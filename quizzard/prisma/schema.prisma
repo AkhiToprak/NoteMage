@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MODELS
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String    // Will be hashed with bcrypt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  notebooks     Notebook[]
+  chatMessages  ChatMessage[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// NOTEBOOK & DOCUMENT MODELS
+// ============================================================================
+
+model Notebook {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  subject       String?   // e.g., "Biology", "History"
+  color         String?   // Hex color for UI
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents     Document[]
+  chatMessages  ChatMessage[]
+
+  @@index([userId])
+  @@map("notebooks")
+}
+
+model Document {
+  id            String    @id @default(cuid())
+  notebookId    String
+  fileName      String
+  filePath      String    // Local or S3 path
+  fileSize      Int       // In bytes
+  fileType      String    // e.g., "application/pdf"
+  textContent   String?   // Extracted text for LLM context
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+
+  @@index([notebookId])
+  @@map("documents")
+}
+
+// ============================================================================
+// CHAT & CONVERSATION MODELS
+// ============================================================================
+
+model ChatMessage {
+  id            String    @id @default(cuid())
+  notebookId    String
+  userId        String
+  role          String    // "user" or "assistant"
+  content       String    // The message text
+  tokens        Int?      // Number of tokens used (for cost tracking)
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([notebookId])
+  @@index([userId])
+  @@map("chat_messages")
+}
+
+// ============================================================================
+// FUTURE MODELS (to be implemented in later phases)
+// ============================================================================
+
+// Phase 11: Quizzes & Flashcards
+// model Quiz {
+//   id            String    @id @default(cuid())
+//   notebookId    String
+//   title         String
+//   questions     QuizQuestion[]
+//   createdAt     DateTime  @default(now())
+// }
+
+// model Flashcard {
+//   id            String    @id @default(cuid())
+//   notebookId    String
+//   front         String    // Question or term
+//   back          String    // Answer or definition
+//   difficulty    Int?      // 1-5 scale for spaced repetition
+//   createdAt     DateTime  @default(now())
+// }
+
+// Phase 13: Social & Sharing
+// model SharedNotebook {
+//   id            String    @id @default(cuid())
+//   notebookId    String
+//   sharedWithId  String
+//   permission    String    // "view" or "edit"
+//   createdAt     DateTime  @default(now())
+// }
+
+// Phase 14: Gamification
+// model UserStreak {
+//   id            String    @id @default(cuid())
+//   userId        String
+//   currentStreak Int       @default(0)
+//   longestStreak Int       @default(0)
+//   lastStudyDate DateTime?
+// }
