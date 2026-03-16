@@ -146,41 +146,169 @@ function RotatingWord() {
 }
 
 // =====================================================================
+// SVG ICONS
+// =====================================================================
+const Ic = {
+  brain: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+    </svg>
+  ),
+  book: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  ),
+  cards: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="16" height="13" rx="2"/>
+      <path d="M22 5H7a2 2 0 0 0-2 2"/>
+      <path d="M6 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2"/>
+    </svg>
+  ),
+  calendar: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
+  play: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
+  users: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+  upload: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  ),
+  sparkle: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>
+      <path d="M19 3l.75 2.25L22 6l-2.25.75L19 9l-.75-2.25L16 6l2.25-.75z"/>
+    </svg>
+  ),
+  trophy: (
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#ffde59" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+      <path d="M4 22h16"/>
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </svg>
+  ),
+  hat: (
+    <svg width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="#8c52ff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18v-1a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v1"/>
+      <path d="M12 10V3"/>
+      <path d="M8 7l4-4 4 4"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  ),
+  flame: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+    </svg>
+  ),
+  medal: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="15" r="5"/>
+      <path d="M8.56 2.9A7 7 0 0 1 19 9v4"/>
+      <path d="M5 9v4a7 7 0 0 0 3.44 6.1"/>
+      <line x1="12" y1="10" x2="12" y2="20"/>
+    </svg>
+  ),
+  chart: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+  ),
+  bolt: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  ),
+  phone: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="2" width="14" height="20" rx="2"/>
+      <line x1="12" y1="18" x2="12.01" y2="18"/>
+    </svg>
+  ),
+  share: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+  ),
+  store: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
+  group: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+};
+
+// =====================================================================
 // DATA
 // =====================================================================
 const FEATURES = [
   {
-    icon: "🧠",
+    icon: Ic.brain,
     title: "AI Tutor",
-    desc: "Chat with Claude AI about your uploaded documents. Get instant explanations, summaries, and answers 24/7 — always based on your own material.",
+    desc: "Chat with AI about your uploaded documents. Get instant explanations, summaries, and answers 24/7 — always based on your own material.",
     delay: 1,
   },
   {
-    icon: "📓",
+    icon: Ic.book,
     title: "Smart Notebooks",
     desc: "Organize everything by subject. Upload PDFs, lecture notes, slides, and more into clean, searchable notebooks with subfolders.",
     delay: 2,
   },
   {
-    icon: "🃏",
+    icon: Ic.cards,
     title: "Quizzes & Flashcards",
     desc: "AI generates multiple-choice quizzes and spaced-repetition flashcards from your material. Active recall proven to boost retention.",
     delay: 3,
   },
   {
-    icon: "📅",
+    icon: Ic.calendar,
     title: "Exam Planner",
     desc: "Add your exam dates and Quizzard builds a personalized study schedule. Daily reminders take the stress out of planning.",
     delay: 1,
   },
   {
-    icon: "🎯",
+    icon: Ic.play,
     title: "YouTube & Articles",
     desc: "Find relevant YouTube videos and articles for any topic. Quizzard analyzes them and adds context directly to your notebook.",
     delay: 2,
   },
   {
-    icon: "👥",
+    icon: Ic.users,
     title: "Study Together",
     desc: "Share notebooks with friends, create study groups, and browse the community notebook marketplace. Learn better, together.",
     delay: 3,
@@ -190,31 +318,36 @@ const FEATURES = [
 const STEPS = [
   {
     n: "01",
-    icon: "📓",
+    icon: Ic.book,
     title: "Create a Notebook",
     desc: "Set up a notebook for each subject. Give it a name, add a description, and organize it with subfolders.",
   },
   {
     n: "02",
-    icon: "📤",
+    icon: Ic.upload,
     title: "Upload Your Material",
     desc: "Drop in PDFs, lecture notes, slides, or links to YouTube videos and articles. Everything in one place.",
   },
   {
     n: "03",
-    icon: "✨",
+    icon: Ic.brain,
     title: "Study with AI",
     desc: "Chat with your tutor, get quizzes, make flashcards, and let Quizzard plan your path to exam day.",
   },
 ];
 
 const ACTIVITY = [
-  { name: "Alex", action: "studied Organic Chemistry for 2 hours", time: "Just now", avatar: "🧑" },
-  { name: "Maria", action: "created 24 flashcards for Calculus", time: "5m ago", avatar: "👩" },
-  { name: "Jonas", action: "scored 96% on History quiz", time: "1h ago", avatar: "🧑‍💼" },
+  { name: "Alex", action: "studied Organic Chemistry for 2 hours", time: "Just now", initials: "A", color: "#8c52ff" },
+  { name: "Maria", action: "created 24 flashcards for Calculus", time: "5m ago", initials: "M", color: "#5170ff" },
+  { name: "Jonas", action: "scored 96% on History quiz", time: "1h ago", initials: "J", color: "#b040a0" },
 ];
 
-const BADGES = ["🔥 Study Streaks", "🏅 Achievements", "📊 Activity Board", "⚡ Daily Goals"];
+const BADGES = [
+  { icon: Ic.flame, label: "Study Streaks" },
+  { icon: Ic.medal, label: "Achievements" },
+  { icon: Ic.chart, label: "Activity Board" },
+  { icon: Ic.bolt, label: "Daily Goals" },
+];
 
 // =====================================================================
 // MAIN PAGE
@@ -245,13 +378,13 @@ export default function LandingPage() {
     <main style={{ background: "#09081a", color: "#ede9ff", minHeight: "100vh", overflowX: "hidden" }}>
       {/* ── GLOBAL STYLES ── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Shrikhand&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Shrikhand&family=Gliker:wght@400;500;600;700&display=swap');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body { font-family: 'DM Sans', sans-serif; background: #09081a; }
+        body { font-family: 'Gliker', 'DM Sans', sans-serif; background: #09081a; }
 
-        /* ── Scroll reveal ── */
+/* ── Scroll reveal ── */
         .reveal {
           opacity: 0;
           transform: translateY(36px);
@@ -270,7 +403,7 @@ export default function LandingPage() {
         .btn-yellow {
           display: inline-flex; align-items: center; gap: 8px;
           background: #ffde59; color: #09081a;
-          font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 16px;
+          font-family: 'Gliker', 'DM Sans', sans-serif; font-weight: 700; font-size: 16px;
           padding: 15px 32px; border-radius: 14px; border: none;
           text-decoration: none; cursor: pointer;
           box-shadow: 0 4px 28px rgba(255,222,89,0.28), 0 2px 8px rgba(0,0,0,0.4);
@@ -285,7 +418,7 @@ export default function LandingPage() {
         .btn-ghost {
           display: inline-flex; align-items: center; gap: 8px;
           background: transparent; color: #ede9ff;
-          font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 16px;
+          font-family: 'Gliker', 'DM Sans', sans-serif; font-weight: 500; font-size: 16px;
           padding: 15px 32px; border-radius: 14px;
           border: 1px solid rgba(140,82,255,0.35);
           text-decoration: none; cursor: pointer;
@@ -376,7 +509,7 @@ export default function LandingPage() {
         }}
       >
         {/* Nav links */}
-        <div className="nav-links" style={{ display: "flex", gap: 36 }}>
+        <div className="nav-links" style={{ display: "flex", gap: 36, marginRight: 48 }}>
           <a href="#features" className="nlink">Features</a>
           <a href="#how-it-works" className="nlink">How It Works</a>
           <a href="#community" className="nlink">Community</a>
@@ -419,7 +552,7 @@ export default function LandingPage() {
               marginBottom: 32,
             }}
           >
-            <span>✨</span>AI-Powered Study Companion
+            <span style={{ display: "flex", alignItems: "center", color: "#c4a0ff" }}>{Ic.sparkle}</span>AI-Powered Study Companion
           </div>
 
           <h1
@@ -445,9 +578,8 @@ export default function LandingPage() {
               margin: "0 auto 52px",
             }}
           >
-            Upload your study material, chat with Claude AI, get quizzes and flashcards, and
-            plan your exam prep — all in one place. Like NotebookLM, but{" "}
-            <em style={{ color: "rgba(237,233,255,0.8)", fontStyle: "italic" }}>actually good</em>.
+            Upload your study material, chat with AI, get quizzes and flashcards, and
+            plan your exam prep — all in one place.
           </p>
 
           <div className="hero-btns" style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
@@ -471,8 +603,7 @@ export default function LandingPage() {
           >
             {[
               { val: "Free Beta", label: "Join now" },
-              { val: "Claude AI", label: "Powered by" },
-              { val: "14 Phases", label: "Roadmap" },
+              { val: "All-in-One", label: "Study platform" },
             ].map((s) => (
               <div key={s.label} style={{ textAlign: "center" }}>
                 <div
@@ -534,7 +665,11 @@ export default function LandingPage() {
           >
             {FEATURES.map((f) => (
               <div key={f.title} className={`fcard reveal d${f.delay}`}>
-                <div style={{ fontSize: 38, marginBottom: 18 }}>{f.icon}</div>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14, marginBottom: 18,
+                  background: "rgba(140,82,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#b899ff",
+                }}>{f.icon}</div>
                 <h3
                   style={{
                     fontFamily: "'Shrikhand', cursive",
@@ -600,7 +735,11 @@ export default function LandingPage() {
                 >
                   {step.n}
                 </div>
-                <div style={{ fontSize: 52, margin: "0 0 18px" }}>{step.icon}</div>
+                <div style={{
+                  width: 64, height: 64, borderRadius: 18, margin: "0 auto 18px",
+                  background: "rgba(140,82,255,0.13)", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#b899ff",
+                }}>{step.icon}</div>
                 <h3
                   style={{
                     fontFamily: "'Shrikhand', cursive",
@@ -656,19 +795,20 @@ export default function LandingPage() {
               </p>
               <div className="reveal d3" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {[
-                  "📱 Friends' study activity feed",
-                  "📚 One-click notebook sharing",
-                  "🛒 Community notebook marketplace",
-                  "👥 Collaborative study groups",
+                  { icon: Ic.phone, label: "Friends' study activity feed" },
+                  { icon: Ic.share, label: "One-click notebook sharing" },
+                  { icon: Ic.store, label: "Community notebook marketplace" },
+                  { icon: Ic.group, label: "Collaborative study groups" },
                 ].map((item) => (
                   <div
-                    key={item}
+                    key={item.label}
                     style={{
                       display: "flex", alignItems: "center", gap: 12,
                       fontSize: 15, color: "rgba(237,233,255,0.72)",
                     }}
                   >
-                    {item}
+                    <span style={{ color: "#8c52ff", display: "flex" }}>{item.icon}</span>
+                    {item.label}
                   </div>
                 ))}
               </div>
@@ -710,7 +850,11 @@ export default function LandingPage() {
                       borderBottom: "1px solid rgba(140,82,255,0.1)",
                     }}
                   >
-                    <span style={{ fontSize: 26 }}>{a.avatar}</span>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                      background: a.color, display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 13, fontWeight: 700, color: "#fff",
+                    }}>{a.initials}</div>
                     <div style={{ flex: 1 }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: "#ede9ff" }}>{a.name}</span>
                       <span style={{ fontSize: 14, color: "rgba(237,233,255,0.48)" }}> {a.action}</span>
@@ -736,7 +880,7 @@ export default function LandingPage() {
         }}
       >
         <div style={{ maxWidth: 880, margin: "0 auto", textAlign: "center" }}>
-          <div className="reveal" style={{ fontSize: 56, marginBottom: 24 }}>🏆</div>
+          <div className="reveal" style={{ marginBottom: 24, display: "flex", justifyContent: "center" }}>{Ic.trophy}</div>
           <h2
             className="reveal d1"
             style={{
@@ -760,8 +904,9 @@ export default function LandingPage() {
           <div className="reveal d3" style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
             {BADGES.map((b) => (
               <div
-                key={b}
+                key={b.label}
                 style={{
+                  display: "flex", alignItems: "center", gap: 8,
                   background: "rgba(140,82,255,0.1)",
                   border: "1px solid rgba(140,82,255,0.22)",
                   borderRadius: 100, padding: "11px 22px",
@@ -769,7 +914,8 @@ export default function LandingPage() {
                   transition: "background 0.2s ease, border-color 0.2s ease",
                 }}
               >
-                {b}
+                <span style={{ color: "#8c52ff", display: "flex" }}>{b.icon}</span>
+                {b.label}
               </div>
             ))}
           </div>
@@ -794,7 +940,7 @@ export default function LandingPage() {
           }}
         />
         <div style={{ position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
-          <div className="reveal" style={{ fontSize: 68, marginBottom: 28 }}>🎩</div>
+          <div className="reveal" style={{ marginBottom: 28, display: "flex", justifyContent: "center" }}>{Ic.hat}</div>
           <h2
             className="reveal d1"
             style={{
@@ -817,7 +963,7 @@ export default function LandingPage() {
           </p>
           <div className="reveal d3">
             <Link href="/auth/register" className="btn-yellow" style={{ fontSize: 18, padding: "18px 52px" }}>
-              Start Studying for Free ✨
+              Start Studying for Free →
             </Link>
           </div>
           <p

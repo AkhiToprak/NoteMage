@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 64 64">
+  <!-- Sparkle rays -->
+  <line x1="22" y1="3"  x2="22" y2="11" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="36" y1="7"  x2="30" y2="13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="39" y1="22" x2="31" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="7"  y1="8"  x2="14" y2="14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="3"  y1="22" x2="11" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="9"  y1="37" x2="15" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- 5-pointed star, center (22,22) -->
+  <path d="M22,13 L24,19 L30.5,19.2 L25.5,23.2 L27.5,29.5 L22,25.8 L16.5,29.5 L18.5,23.2 L13.5,19.2 L20,19 Z"
+        stroke="white" stroke-width="2" fill="none" stroke-linejoin="round"/>
+
+  <!-- Wand stick — double line -->
+  <line x1="27" y1="27.5" x2="59.5" y2="60" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="29.5" y1="25.5" x2="62" y2="58" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

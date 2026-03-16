@@ -21,7 +21,7 @@ WORKDIR /app
 COPY quizzard/package.json quizzard/package-lock.json* ./
 RUN npm ci
 COPY quizzard/ ./
-EXPOSE 3000
+EXPOSE 3001
 CMD ["npm", "run", "dev"]
 
 # Stage 4: Production
