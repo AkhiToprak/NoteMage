@@ -1,18 +1,29 @@
+import Sidebar from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800">
-        {/* Sidebar */}
-      </aside>
-      <div className="flex flex-1 flex-col">
-        <header className="h-16 border-b border-zinc-200 dark:border-zinc-800">
-          {/* Header */}
-        </header>
-        <main className="flex-1 p-6">
+    <div
+      style={{
+        display: 'flex',
+        minHeight: '100vh',
+        background: '#09081a',
+      }}
+    >
+      <Sidebar />
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+        <Header />
+        <main
+          style={{
+            flex: 1,
+            padding: '32px',
+            color: '#ede9ff',
+          }}
+        >
           {children}
         </main>
       </div>

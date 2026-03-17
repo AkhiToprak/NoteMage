@@ -1,5 +1,13 @@
 # CLAUDE.md — Frontend Website Rules
 
+## Project Structure
+
+- **The Next.js app lives in `quizzard/`** (lowercase) — the working directory is `/Users/toprakdemirel/Entwicklung/Quizzard/quizzard/`.
+- The root `Quizzard/` (capital Q) contains only: `CLAUDE.md`, `brand_assets/`, `Dockerfile`, and other non-app files.
+- All source files, `app/`, `src/`, `package.json`, etc. are under `Quizzard/quizzard/`.
+- Brand assets are at `Quizzard/brand_assets/` (one level up from the app).
+- When running commands (e.g. `npm run dev`, `npx`, etc.), always `cd` into `Quizzard/quizzard/` first.
+
 ## Always Do First
 
 - **Invoke the `frontend-design` skill** before writing any frontend code, every session, no exceptions.
