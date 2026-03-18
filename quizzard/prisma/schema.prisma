@@ -47,6 +47,7 @@ model Notebook {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   documents     Document[]
   chatMessages  ChatMessage[]
+  sections      Section[]
 
   @@index([userId])
   @@map("notebooks")
@@ -89,6 +90,67 @@ model ChatMessage {
   @@index([notebookId])
   @@index([userId])
   @@map("chat_messages")
+}
+
+// ============================================================================
+// SECTION & PAGE MODELS (OneNote-style notebook content)
+// ============================================================================
+
+model Section {
+  id            String    @id @default(cuid())
+  notebookId    String
+  parentId      String?   // null = top-level section; set = subsection
+  title         String
+  sortOrder     Int       @default(0)
+  color         String?   // Optional accent color override
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  parent        Section?  @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Section[] @relation("SectionTree")
+  pages         Page[]
+
+  @@index([notebookId])
+  @@index([parentId])
+  @@map("sections")
+}
+
+model Page {
+  id            String    @id @default(cuid())
+  sectionId     String
+  title         String    @default("Untitled")
+  content       Json?     // TipTap JSON document format
+  textContent   String?   // Plain text mirror for AI context + search
+  drawingData   Json?     // Array of stroke objects [{points, color, width}]
+  sortOrder     Int       @default(0)
+  sourceDocId   String?   // Set if this page was imported from a Document
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  section       Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  images        PageImage[]
+
+  @@index([sectionId])
+  @@map("pages")
+}
+
+model PageImage {
+  id            String    @id @default(cuid())
+  pageId        String
+  fileName      String
+  filePath      String
+  fileSize      Int
+  mimeType      String
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  page          Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@map("page_images")
 }
 
 // ============================================================================
