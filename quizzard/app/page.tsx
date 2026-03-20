@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Component as MagicCursor } from "@/components/ui/magic-cursor";
 
 // =====================================================================
 // PARTICLE CANVAS (inspired by 21st.dev Particles component)
@@ -376,6 +377,7 @@ export default function LandingPage() {
 
   return (
     <main style={{ background: "#09081a", color: "#ede9ff", minHeight: "100vh", overflowX: "hidden" }}>
+      <MagicCursor colors={["174 137 255", "185 195 255", "255 222 89"]} />
       {/* ── GLOBAL STYLES ── */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Shrikhand&family=Gliker:wght@400;500;600;700&display=swap');

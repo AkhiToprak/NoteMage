@@ -24,13 +24,15 @@
     "@tiptap/react": "^3.20.4",
     "@tiptap/starter-kit": "^3.20.4",
     "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "mammoth": "^1.12.0",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "pdf-parse": "^2.4.5",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
