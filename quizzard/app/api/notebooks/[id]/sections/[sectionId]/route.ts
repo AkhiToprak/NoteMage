@@ -72,6 +72,13 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (parentId !== undefined && parentId !== null && parentId === sectionId) {
       return badRequestResponse('A section cannot be its own parent');
     }
+    // Verify parent section belongs to same notebook
+    if (parentId !== undefined && parentId !== null) {
+      const parent = await db.section.findFirst({
+        where: { id: parentId, notebookId },
+      });
+      if (!parent) return badRequestResponse('Parent section not found in this notebook');
+    }
 
     const updated = await db.section.update({
       where: { id: sectionId },

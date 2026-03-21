@@ -118,6 +118,11 @@ export async function POST(request: NextRequest) {
       if (visibleToIds.some((id) => typeof id !== 'string' || id.length === 0)) {
         return badRequestResponse('All visibleTo IDs must be non-empty strings');
       }
+      // Deduplicate and remove self
+      visibleToIds = [...new Set(visibleToIds)].filter((id) => id !== userId);
+      if (visibleToIds.length === 0) {
+        return badRequestResponse('visibleTo must contain at least one other user');
+      }
       // Verify all users exist
       const validUsers = await db.user.findMany({
         where: { id: { in: visibleToIds } },
@@ -125,6 +130,23 @@ export async function POST(request: NextRequest) {
       });
       if (validUsers.length !== visibleToIds.length) {
         return badRequestResponse('One or more user IDs are invalid');
+      }
+      // Verify all visibleTo users are friends
+      const friendships = await db.friendship.findMany({
+        where: {
+          status: 'accepted',
+          OR: [
+            { requesterId: userId, addresseeId: { in: visibleToIds } },
+            { requesterId: { in: visibleToIds }, addresseeId: userId },
+          ],
+        },
+      });
+      const friendIds = new Set(
+        friendships.map((f) => f.requesterId === userId ? f.addresseeId : f.requesterId)
+      );
+      const nonFriends = visibleToIds.filter((id) => !friendIds.has(id));
+      if (nonFriends.length > 0) {
+        return badRequestResponse('You can only make posts visible to your friends');
       }
     }
 

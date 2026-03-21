@@ -25,6 +25,15 @@ export async function PUT(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
+    // Prevent replay — onboarding can only be completed once
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { onboardingComplete: true },
+    });
+    if (user?.onboardingComplete) {
+      return badRequestResponse('Onboarding already completed');
+    }
+
     const body = await request.json().catch(() => ({}));
     const { studyGoals = [] } = body as {
       studyGoals?: { type: string; target: number }[];

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     // Validate mime type
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return badRequestResponse(
-        `Unsupported file type: ${file.type}. Allowed: PDF, DOCX, TXT, MD`
+        'Unsupported file type. Allowed: PDF, DOCX, TXT, MD'
       );
     }
 

@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   pages: {
     signIn: '/auth/login',
@@ -33,10 +34,12 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        if (!user) return null;
-
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
-        if (!passwordMatch) return null;
+        // Always run bcrypt to prevent timing-based user enumeration
+        const passwordMatch = await bcrypt.compare(
+          credentials.password,
+          user?.password ?? '$2a$12$invalidhashplaceholdervalue1234'
+        );
+        if (!user || !passwordMatch) return null;
 
         return {
           id: user.id,

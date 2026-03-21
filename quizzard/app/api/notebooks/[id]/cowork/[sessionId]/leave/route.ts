@@ -47,16 +47,13 @@ export async function POST(request: NextRequest, { params }: Params) {
         where: { id: participant.id },
         data: { isActive: false, leftAt: new Date() },
       });
-    });
 
-    // Check if host is the only one left — if so, auto-end session
-    const activeCount = await db.coWorkParticipant.count({
-      where: { sessionId, isActive: true },
-    });
+      // Check if host is the only one left — if so, auto-end session
+      const activeCount = await tx.coWorkParticipant.count({
+        where: { sessionId, isActive: true },
+      });
 
-    if (activeCount <= 1) {
-      // Only host remains — end session
-      await db.$transaction(async (tx) => {
+      if (activeCount <= 1) {
         await tx.pageLock.deleteMany({ where: { sessionId } });
         await tx.coWorkParticipant.updateMany({
           where: { sessionId, isActive: true },
@@ -66,8 +63,8 @@ export async function POST(request: NextRequest, { params }: Params) {
           where: { id: sessionId },
           data: { isActive: false, endedAt: new Date() },
         });
-      });
-    }
+      }
+    });
 
     return successResponse({ left: true });
   } catch {

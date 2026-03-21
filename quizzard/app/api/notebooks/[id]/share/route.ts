@@ -64,17 +64,24 @@ export async function POST(
 
     if (visibility === 'specific' && sharedWithIds) {
       // Validate all recipient IDs are strings
-      if (sharedWithIds.some((id) => typeof id !== 'string' || id.length === 0)) {
+      if (sharedWithIds.some((id: unknown) => typeof id !== 'string' || (id as string).length === 0)) {
         return badRequestResponse('All sharedWithIds must be non-empty strings');
+      }
+
+      // Deduplicate IDs
+      const uniqueIds = [...new Set(sharedWithIds as string[])].filter((id) => id !== userId);
+
+      if (uniqueIds.length === 0) {
+        return badRequestResponse('No valid recipients after deduplication');
       }
 
       // Verify all recipients exist
       const validUsers = await db.user.findMany({
-        where: { id: { in: sharedWithIds } },
+        where: { id: { in: uniqueIds } },
         select: { id: true },
       });
       const validUserIds = new Set(validUsers.map((u) => u.id));
-      const invalidIds = sharedWithIds.filter((id) => !validUserIds.has(id));
+      const invalidIds = uniqueIds.filter((id) => !validUserIds.has(id));
       if (invalidIds.length > 0) {
         return badRequestResponse('One or more recipient IDs are invalid');
       }
@@ -84,8 +91,8 @@ export async function POST(
         where: {
           status: 'accepted',
           OR: [
-            { requesterId: userId, addresseeId: { in: sharedWithIds } },
-            { requesterId: { in: sharedWithIds }, addresseeId: userId },
+            { requesterId: userId, addresseeId: { in: uniqueIds } },
+            { requesterId: { in: uniqueIds }, addresseeId: userId },
           ],
         },
       });
@@ -94,18 +101,20 @@ export async function POST(
           f.requesterId === userId ? f.addresseeId : f.requesterId
         )
       );
-      const nonFriendIds = sharedWithIds.filter(
-        (id) => id !== userId && !friendIds.has(id)
-      );
+      const nonFriendIds = uniqueIds.filter((id) => !friendIds.has(id));
       if (nonFriendIds.length > 0) {
         return badRequestResponse('You can only share with your friends');
       }
 
-      // Share with specific users
+      // Share with specific users — skip duplicates
       const shares = await db.$transaction(async (tx) => {
         const created = [];
-        for (const recipientId of sharedWithIds) {
-          if (recipientId === userId) continue; // Skip self
+        for (const recipientId of uniqueIds) {
+          // Check if already shared with this user
+          const existingShare = await tx.sharedNotebook.findFirst({
+            where: { notebookId, sharedById: userId, sharedWithId: recipientId },
+          });
+          if (existingShare) continue;
 
           const share = await tx.sharedNotebook.create({
             data: {

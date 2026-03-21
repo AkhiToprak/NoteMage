@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import {
@@ -6,12 +6,23 @@ import {
   badRequestResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 registrations per IP per hour
+    const ip = getClientIp(request);
+    const rl = rateLimit(`register:${ip}`, 5, 60 * 60 * 1000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many registration attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { email, password, name } = body;
     let { username } = body;

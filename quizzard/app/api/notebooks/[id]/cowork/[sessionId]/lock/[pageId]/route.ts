@@ -54,6 +54,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     // Clean expired locks first
     await cleanExpiredLocks(sessionId);
 
+    // Per-user lock limit — max 5 concurrent locks
+    const userLockCount = await db.pageLock.count({
+      where: { sessionId, lockedById: userId },
+    });
+    if (userLockCount >= 5) {
+      return conflictResponse('You cannot lock more than 5 pages at once');
+    }
+
     const expiresAt = new Date(Date.now() + LOCK_DURATION_MS);
 
     // Check if page is already locked
@@ -99,22 +107,35 @@ export async function POST(request: NextRequest, { params }: Params) {
       });
     }
 
-    // Create new lock
-    const lock = await db.pageLock.create({
-      data: {
-        sessionId,
+    // Create new lock — catch unique constraint race condition
+    try {
+      const lock = await db.pageLock.create({
+        data: {
+          sessionId,
+          pageId,
+          lockedById: userId,
+          expiresAt,
+        },
+      });
+
+      return successResponse({
+        id: lock.id,
         pageId,
         lockedById: userId,
-        expiresAt,
-      },
-    });
-
-    return successResponse({
-      id: lock.id,
-      pageId,
-      lockedById: userId,
-      expiresAt: lock.expiresAt,
-    });
+        expiresAt: lock.expiresAt,
+      });
+    } catch (err: unknown) {
+      // P2002 = unique constraint violation — another request locked this page concurrently
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        return conflictResponse('Page was locked by another user just now');
+      }
+      throw err;
+    }
   } catch {
     return internalErrorResponse();
   }
@@ -128,12 +149,12 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
     const { id: notebookId, sessionId, pageId } = await params;
 
-    // Verify session exists for this notebook
+    // Verify session exists and is active for this notebook
     const session = await db.coWorkSession.findFirst({
-      where: { id: sessionId, notebookId },
+      where: { id: sessionId, notebookId, isActive: true },
       select: { id: true },
     });
-    if (!session) return notFoundResponse('Session not found');
+    if (!session) return notFoundResponse('Session not found or inactive');
 
     const lock = await db.pageLock.findUnique({
       where: { sessionId_pageId: { sessionId, pageId } },

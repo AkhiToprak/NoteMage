@@ -90,26 +90,33 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Simple URL linkification
+// Simple URL linkification with protocol validation
 function linkifyContent(text: string): React.ReactNode[] {
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
   const parts = text.split(urlRegex);
   return parts.map((part, i) => {
     if (urlRegex.test(part)) {
       urlRegex.lastIndex = 0; // Reset regex state
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: COLORS.primary, textDecoration: 'none' }}
-          onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-          onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
-        >
-          {part}
-        </a>
-      );
+      // Validate URL to ensure only http/https protocols
+      try {
+        const url = new URL(part);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return part;
+        return (
+          <a
+            key={i}
+            href={url.toString()}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: COLORS.primary, textDecoration: 'none' }}
+            onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
+          >
+            {part}
+          </a>
+        );
+      } catch {
+        return part;
+      }
     }
     return part;
   });

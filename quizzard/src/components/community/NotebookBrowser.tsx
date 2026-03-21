@@ -303,7 +303,7 @@ export default function NotebookBrowser() {
 
   return (
     <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-      <style dangerouslySetInnerHTML={{ __html: shimmerKeyframes }} />
+      <style>{shimmerKeyframes}</style>
 
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>

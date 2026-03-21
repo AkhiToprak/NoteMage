@@ -54,7 +54,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
     try {
       const res = await fetch(`/api/user/check-username?username=${encodeURIComponent(username)}`);
       const json = await res.json();
-      if (json.available) {
+      if (json.data?.available) {
         setUsernameStatus('available');
         setUsernameMessage('Available');
       } else {

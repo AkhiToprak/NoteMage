@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   successResponse,
+  badRequestResponse,
   unauthorizedResponse,
   notFoundResponse,
   internalErrorResponse,
@@ -56,6 +57,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     const body = await request.json();
     const { title, content, textContent, sortOrder } = body;
+
+    // Input validation — prevent resource exhaustion
+    if (title !== undefined && (typeof title !== 'string' || title.length > 500)) {
+      return badRequestResponse('Title must be a string under 500 characters');
+    }
+    if (content !== undefined && typeof content !== 'string') {
+      return badRequestResponse('Content must be a string');
+    }
+    if (content !== undefined && content.length > 500_000) {
+      return badRequestResponse('Content exceeds maximum size');
+    }
+    if (textContent !== undefined && typeof textContent !== 'string') {
+      return badRequestResponse('Text content must be a string');
+    }
+    if (textContent !== undefined && textContent.length > 500_000) {
+      return badRequestResponse('Text content exceeds maximum size');
+    }
+    if (sortOrder !== undefined && (typeof sortOrder !== 'number' || !Number.isFinite(sortOrder))) {
+      return badRequestResponse('Sort order must be a finite number');
+    }
 
     const updated = await db.page.update({
       where: { id: pageId },

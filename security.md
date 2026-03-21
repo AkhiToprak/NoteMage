@@ -9,6 +9,7 @@ Then make another audit.
 Continue this audit → fix → audit cycle until there are no more vulnerabilities or errors found.
 
 Focus areas:
+
 - Authentication & authorization (NextAuth, JWT, session handling)
 - API route security (missing auth checks, IDOR, improper ownership validation)
 - Input validation & sanitization (XSS, SQL injection via Prisma, command injection)

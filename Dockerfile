@@ -21,6 +21,7 @@ WORKDIR /app
 COPY quizzard/package.json quizzard/package-lock.json* ./
 RUN npm install
 COPY quizzard/ ./
+RUN npx prisma generate
 EXPOSE 3001
 CMD ["npm", "run", "dev"]
 

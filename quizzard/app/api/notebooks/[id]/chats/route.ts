@@ -67,12 +67,18 @@ export async function POST(request: NextRequest, { params }: Params) {
       return badRequestResponse('Chat title must be 200 characters or less');
     }
 
-    // Validate IDs are arrays of strings
+    // Validate IDs are arrays of strings with size limits
     if (!Array.isArray(contextPageIds) || contextPageIds.some((id) => typeof id !== 'string')) {
       return badRequestResponse('contextPageIds must be an array of strings');
     }
+    if (contextPageIds.length > 50) {
+      return badRequestResponse('Cannot reference more than 50 pages');
+    }
     if (!Array.isArray(contextDocIds) || contextDocIds.some((id) => typeof id !== 'string')) {
       return badRequestResponse('contextDocIds must be an array of strings');
+    }
+    if (contextDocIds.length > 50) {
+      return badRequestResponse('Cannot reference more than 50 documents');
     }
 
     // Validate all page IDs belong to this notebook

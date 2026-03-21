@@ -8,11 +8,14 @@ services:
       target: dev
     ports:
       - "3000:3000"
+      - "3010:3000"
     volumes:
       - ./quizzard:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-arm64-openssl-3.0.x.so.node
+      - DATABASE_URL=postgresql://quizzard:dev_password@db:5432/quizzard_dev?schema=public
     command: npm run dev
     stdin_open: true
     tty: true

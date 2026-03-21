@@ -28,31 +28,39 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    // Check no active session already exists for this notebook
-    const existing = await db.coWorkSession.findFirst({
-      where: { notebookId, isActive: true },
-      select: { id: true },
-    });
-    if (existing) return conflictResponse('An active co-work session already exists for this notebook');
-
     // Create session + add host as first participant in a transaction
-    const session = await db.$transaction(async (tx) => {
-      const s = await tx.coWorkSession.create({
-        data: {
-          notebookId,
-          hostId: userId,
-        },
-      });
+    // The existence check is inside the transaction to prevent race conditions
+    let session;
+    try {
+      session = await db.$transaction(async (tx) => {
+        const existing = await tx.coWorkSession.findFirst({
+          where: { notebookId, isActive: true },
+          select: { id: true },
+        });
+        if (existing) throw new Error('ACTIVE_SESSION_EXISTS');
 
-      await tx.coWorkParticipant.create({
-        data: {
-          sessionId: s.id,
-          userId,
-        },
-      });
+        const s = await tx.coWorkSession.create({
+          data: {
+            notebookId,
+            hostId: userId,
+          },
+        });
 
-      return s;
-    });
+        await tx.coWorkParticipant.create({
+          data: {
+            sessionId: s.id,
+            userId,
+          },
+        });
+
+        return s;
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === 'ACTIVE_SESSION_EXISTS') {
+        return conflictResponse('An active co-work session already exists for this notebook');
+      }
+      throw err;
+    }
 
     return createdResponse({
       id: session.id,

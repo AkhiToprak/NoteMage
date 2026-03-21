@@ -29,9 +29,10 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     if (!image) return notFoundResponse('Image not found');
 
-    // Defense-in-depth: ensure resolved path is still within uploads directory
-    const resolvedPath = path.resolve(image.filePath);
-    if (!resolvedPath.startsWith(UPLOADS_DIR + path.sep) && resolvedPath !== UPLOADS_DIR) {
+    // Defense-in-depth: ensure resolved path stays within uploads directory
+    const resolvedPath = path.normalize(path.resolve(image.filePath));
+    const relative = path.relative(UPLOADS_DIR, resolvedPath);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       return notFoundResponse('Image not found');
     }
 

@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { canUserSeePost } from '@/lib/post-visibility';
 
 const MAX_CONTENT_LENGTH = 2000;
 
@@ -161,29 +162,6 @@ export async function DELETE(
   } catch {
     return internalErrorResponse();
   }
-}
-
-// Helper: check if a user can see a post
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function canUserSeePost(post: any, userId: string): Promise<boolean> {
-  if (post.authorId === userId) return true;
-  if (post.visibility === 'public') return true;
-  if (post.visibility === 'specific') {
-    return post.visibleTo?.length > 0;
-  }
-  if (post.visibility === 'friends') {
-    const friendship = await db.friendship.findFirst({
-      where: {
-        status: 'accepted',
-        OR: [
-          { requesterId: userId, addresseeId: post.authorId },
-          { requesterId: post.authorId, addresseeId: userId },
-        ],
-      },
-    });
-    return !!friendship;
-  }
-  return false;
 }
 
 // Helper: format a post for response

@@ -59,6 +59,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return badRequestResponse('Section title cannot be empty');
     }
+    if (title.trim().length > 200) {
+      return badRequestResponse('Section title must be 200 characters or less');
+    }
 
     if (parentId) {
       const parentSection = await db.section.findFirst({
