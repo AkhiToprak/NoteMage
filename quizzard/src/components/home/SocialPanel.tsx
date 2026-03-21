@@ -79,7 +79,7 @@ export default function SocialPanel() {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const res = await fetch('/api/friends?status=pending_received');
+      const res = await fetch('/api/friends?status=pending&direction=incoming');
       if (res.ok) {
         const json = await res.json();
         if (json.success) {

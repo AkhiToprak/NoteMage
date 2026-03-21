@@ -5,14 +5,21 @@ import Link from 'next/link';
 import { FileText, Trash2 } from 'lucide-react';
 import type { PageSummary } from '@/components/notebook/SectionTree';
 
+interface PageLockInfo {
+  lockedById: string;
+  lockedByUsername: string;
+  isSelf: boolean;
+}
+
 interface PageItemProps {
   page: PageSummary;
   notebookId: string;
   isActive: boolean;
   onRefresh: () => void;
+  lockInfo?: PageLockInfo | null;
 }
 
-export default function PageItem({ page, notebookId, isActive, onRefresh }: PageItemProps) {
+export default function PageItem({ page, notebookId, isActive, onRefresh, lockInfo }: PageItemProps) {
   const [hovered, setHovered] = useState(false);
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -73,7 +80,22 @@ export default function PageItem({ page, notebookId, isActive, onRefresh }: Page
         {page.title}
       </span>
 
-      {hovered && (
+      {/* Lock indicator */}
+      {lockInfo && (
+        <span
+          className="material-symbols-outlined"
+          title={lockInfo.isSelf ? 'You are editing' : `${lockInfo.lockedByUsername} is editing`}
+          style={{
+            fontSize: 13,
+            flexShrink: 0,
+            color: lockInfo.isSelf ? '#60a5fa' : '#fb923c',
+          }}
+        >
+          {lockInfo.isSelf ? 'edit' : 'lock'}
+        </span>
+      )}
+
+      {hovered && !lockInfo && (
         <button
           onClick={handleDelete}
           title="Delete page"

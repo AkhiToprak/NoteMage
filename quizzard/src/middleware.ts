@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export function middleware(request: NextRequest) {
-  const token =
-    request.cookies.get('next-auth.session-token')?.value ??
-    request.cookies.get('__Secure-next-auth.session-token')?.value;
-
+export async function middleware(request: NextRequest) {
+  const token = await getToken({ req: request });
   const { pathname } = request.nextUrl;
+
+  // Auth pages (login/register) handling
+  if (pathname.startsWith('/auth/register')) {
+    if (!token) return NextResponse.next(); // Not logged in — allow registration
+    if (token.onboardingComplete) {
+      // Completed onboarding — block re-registration
+      return NextResponse.redirect(new URL('/home', request.url));
+    }
+    return NextResponse.next(); // Incomplete onboarding — allow access to finish
+  }
 
   // Authenticated users hitting "/" → redirect to /home
   if (pathname === '/' && token) {
@@ -20,12 +28,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
+  // Logged in but onboarding incomplete → force to register
+  if (token && !token.onboardingComplete && !pathname.startsWith('/auth/')) {
+    return NextResponse.redirect(new URL('/auth/register', request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     '/',
+    '/auth/register',
     '/dashboard/:path*',
     '/notebooks/:path*',
     '/settings/:path*',

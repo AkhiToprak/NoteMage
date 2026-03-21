@@ -16,6 +16,7 @@ import DrawingCanvas from './DrawingCanvas';
 import type { StrokeData } from './DrawingCanvas';
 import { ResizableImage } from './ResizableImage';
 import { FontSize } from '@/lib/tiptap-font-size';
+import PageLockIndicator from './PageLockIndicator';
 
 interface PageData {
   id: string;
@@ -30,19 +31,77 @@ interface PageData {
 interface PageEditorProps {
   notebookId: string;
   pageId: string;
+  coWorkSessionId?: string | null;
+  currentUserId?: string | null;
 }
 
-export default function PageEditor({ notebookId, pageId }: PageEditorProps) {
+export default function PageEditor({ notebookId, pageId, coWorkSessionId, currentUserId }: PageEditorProps) {
   const [page, setPage] = useState<PageData | null>(null);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [showDrawing, setShowDrawing] = useState(false);
+  const [lockedByOther, setLockedByOther] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const titleRef = useRef(title);
   titleRef.current = title;
+
+  // Co-work page locking
+  useEffect(() => {
+    if (!coWorkSessionId || !currentUserId) return;
+
+    let heartbeatInterval: ReturnType<typeof setInterval>;
+
+    const acquireLock = async () => {
+      try {
+        const res = await fetch(
+          `/api/notebooks/${notebookId}/cowork/${coWorkSessionId}/lock/${pageId}`,
+          { method: 'POST' }
+        );
+        if (res.status === 409) {
+          setLockedByOther(true);
+        } else if (res.ok) {
+          setLockedByOther(false);
+        }
+      } catch {
+        // silent
+      }
+    };
+
+    const releaseLock = async () => {
+      try {
+        await fetch(
+          `/api/notebooks/${notebookId}/cowork/${coWorkSessionId}/lock/${pageId}`,
+          { method: 'DELETE' }
+        );
+      } catch {
+        // silent
+      }
+    };
+
+    acquireLock();
+    // Heartbeat every 2 minutes
+    heartbeatInterval = setInterval(acquireLock, 2 * 60 * 1000);
+
+    // Release lock on tab close
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable cleanup on tab close
+      navigator.sendBeacon(
+        `/api/notebooks/${notebookId}/cowork/${coWorkSessionId}/lock/${pageId}`,
+        // sendBeacon doesn't support DELETE, so the lock will auto-expire after 5 min
+      );
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Release lock on unmount or page change
+    return () => {
+      clearInterval(heartbeatInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      releaseLock();
+    };
+  }, [coWorkSessionId, currentUserId, notebookId, pageId]);
 
   const handleSaveDrawing = useCallback(
     async (strokes: StrokeData[]) => {
@@ -109,6 +168,7 @@ export default function PageEditor({ notebookId, pageId }: PageEditorProps) {
   const editor = useEditor(
     {
       immediatelyRender: false,
+      editable: !lockedByOther,
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
         UnderlineExt,
@@ -118,7 +178,7 @@ export default function PageEditor({ notebookId, pageId }: PageEditorProps) {
         Color,
         Highlight.configure({ multicolor: true }),
         ResizableImage,
-        Placeholder.configure({ placeholder: 'Start writing...' }),
+        Placeholder.configure({ placeholder: lockedByOther ? 'This page is being edited by someone else...' : 'Start writing...' }),
         Typography,
       ],
       content: page?.content ?? '',
@@ -130,7 +190,7 @@ export default function PageEditor({ notebookId, pageId }: PageEditorProps) {
         scheduleSave(json, ed.getText());
       },
     },
-    [page],
+    [page, lockedByOther],
   );
 
   const handleTitleChange = useCallback(
@@ -222,6 +282,16 @@ export default function PageEditor({ notebookId, pageId }: PageEditorProps) {
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
       `}</style>
 
+      {/* ── Co-work lock banner ── */}
+      {coWorkSessionId && currentUserId && lockedByOther && (
+        <PageLockIndicator
+          notebookId={notebookId}
+          sessionId={coWorkSessionId}
+          pageId={pageId}
+          currentUserId={currentUserId}
+        />
+      )}
+
       {/* ── Title + save status ── */}
       <div style={{ padding: '32px 56px 0', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -229,6 +299,7 @@ export default function PageEditor({ notebookId, pageId }: PageEditorProps) {
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Untitled"
+            readOnly={lockedByOther}
             style={{
               flex: 1,
               background: 'none', border: 'none', outline: 'none',

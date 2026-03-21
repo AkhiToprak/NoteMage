@@ -88,6 +88,19 @@ export function notFoundResponse(error: string = 'Not found') {
 }
 
 /**
+ * Conflict response (409)
+ */
+export function conflictResponse(error: string = 'Conflict') {
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse,
+    { status: 409 }
+  );
+}
+
+/**
  * Internal server error response (500)
  */
 export function internalErrorResponse(error: string = 'Internal server error') {

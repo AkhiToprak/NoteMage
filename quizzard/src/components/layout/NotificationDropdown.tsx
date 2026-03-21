@@ -35,21 +35,29 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   notebook_sent: 'menu_book',
   post_like: 'favorite',
   post_comment: 'chat_bubble',
+  co_work_invite: 'group_work',
 };
 
+function safeStr(val: unknown, fallback: string): string {
+  if (typeof val === 'string' && val.length > 0 && val.length <= 200) return val;
+  return fallback;
+}
+
 function getNotificationText(n: Notification): string {
-  const data = n.data as Record<string, string>;
+  const data = (n.data && typeof n.data === 'object') ? n.data : {};
   switch (n.type) {
     case 'friend_request':
-      return `${data.username || 'Someone'} sent you a friend request`;
+      return `${safeStr(data.username, 'Someone')} sent you a friend request`;
     case 'friend_accepted':
-      return `${data.username || 'Someone'} accepted your friend request`;
+      return `${safeStr(data.username, 'Someone')} accepted your friend request`;
     case 'notebook_sent':
-      return `${data.sharedBy || 'Someone'} shared "${data.notebookName || 'a notebook'}" with you`;
+      return `${safeStr(data.sharedBy, 'Someone')} shared "${safeStr(data.notebookName, 'a notebook')}" with you`;
     case 'post_like':
-      return `${data.fromUsername || 'Someone'} liked your post`;
+      return `${safeStr(data.fromUsername, 'Someone')} liked your post`;
     case 'post_comment':
-      return `${data.fromUsername || 'Someone'} commented on your post`;
+      return `${safeStr(data.fromUsername, 'Someone')} commented on your post`;
+    case 'co_work_invite':
+      return `${safeStr(data.username, 'Someone')} invited you to co-work on "${safeStr(data.notebookName, 'a notebook')}"`;
     default:
       return 'You have a new notification';
   }
