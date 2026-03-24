@@ -112,7 +112,7 @@ export default function UnifiedSidebar() {
               fontSize: '10px', fontWeight: 700, color: 'rgba(237,233,255,0.35)',
               letterSpacing: '0.1em', textTransform: 'uppercase',
             }}>
-              Files
+              Sections
             </span>
             <button
               onClick={() => setIsCreatingSection(true)}
@@ -350,10 +350,10 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
         {/* Hover actions */}
         {hovered && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
-            {/* New file in this section */}
+            {/* New page in this section */}
             <button
               onClick={handleAddPage}
-              title="New file"
+              title="New page"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: '20px', height: '20px', borderRadius: '4px',
