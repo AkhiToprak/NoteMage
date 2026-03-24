@@ -4,13 +4,26 @@ import { useState, useEffect, use, useRef, useCallback } from 'react';
 import { X, Upload, BookOpen, Check, ChevronDown, ChevronRight, Loader2, Plus } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 
+interface ChatMessage {
+  id: string;
+  role: string;
+  content: string;
+  tokens?: number | null;
+  createdAt: string;
+}
+
 interface ChatData {
   id: string;
   title: string;
   contextPageIds: string[];
   contextDocIds: string[];
   createdAt: string;
-  messages: { id: string; role: string; content: string; createdAt: string }[];
+  messages: ChatMessage[];
+}
+
+interface TokenUsage {
+  monthlyUsed: number;
+  monthlyLimit: number;
 }
 
 interface DocumentItem {
@@ -48,7 +61,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSavingContext, setIsSavingContext] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchChat = useCallback(async () => {
     const res = await fetch(`/api/notebooks/${notebookId}/chats/${chatId}`);
@@ -71,6 +90,78 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
     fetchChat();
     fetchDocs();
   }, [fetchChat, fetchDocs]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chat?.messages]);
+
+  const handleSendMessage = async () => {
+    const text = inputValue.trim();
+    if (!text || isSending) return;
+
+    setSendError(null);
+    setIsSending(true);
+
+    // Optimistically add user message
+    const tempUserMsg: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      role: 'user',
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
+    setChat(prev => prev ? { ...prev, messages: [...prev.messages, tempUserMsg] } : prev);
+    setInputValue('');
+
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/chats/${chatId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      const json = await res.json();
+
+      if (json.success && json.data) {
+        const { userMessage, assistantMessage, usage } = json.data;
+
+        // Replace temp message with real ones
+        setChat(prev => {
+          if (!prev) return prev;
+          const filtered = prev.messages.filter(m => m.id !== tempUserMsg.id);
+          return {
+            ...prev,
+            messages: [...filtered, userMessage, assistantMessage],
+          };
+        });
+
+        if (usage) {
+          setTokenUsage({ monthlyUsed: usage.monthlyUsed, monthlyLimit: usage.monthlyLimit });
+        }
+      } else {
+        // Remove optimistic message on error
+        setChat(prev => prev ? { ...prev, messages: prev.messages.filter(m => m.id !== tempUserMsg.id) } : prev);
+        setSendError(json.error ?? 'Failed to send message');
+      }
+    } catch {
+      setChat(prev => prev ? { ...prev, messages: prev.messages.filter(m => m.id !== tempUserMsg.id) } : prev);
+      setSendError('Network error. Please try again.');
+    } finally {
+      setIsSending(false);
+      textareaRef.current?.focus();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   const uploadFile = async (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -244,6 +335,17 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
             }}
           >
+            {msg.role === 'assistant' && (
+              <div style={{
+                width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0, marginRight: '10px', marginTop: '2px',
+                background: 'linear-gradient(135deg, rgba(140,82,255,0.3), rgba(81,112,255,0.2))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#c4a9ff', fontVariationSettings: "'FILL' 1" }}>
+                  auto_fix_high
+                </span>
+              </div>
+            )}
             <div style={{
               maxWidth: '70%',
               padding: '12px 16px',
@@ -257,12 +359,57 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               color: '#ede9ff',
               fontSize: '14px',
               lineHeight: 1.65,
+              whiteSpace: 'pre-wrap',
             }}>
               {msg.content}
             </div>
           </div>
         ))}
+
+        {/* Typing indicator */}
+        {isSending && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+              background: 'linear-gradient(135deg, rgba(140,82,255,0.3), rgba(81,112,255,0.2))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#c4a9ff', fontVariationSettings: "'FILL' 1" }}>
+                auto_fix_high
+              </span>
+            </div>
+            <div style={{
+              padding: '12px 16px', borderRadius: '16px 16px 16px 4px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', gap: '4px', alignItems: 'center',
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ae89ff', animation: 'dotPulse 1.4s ease-in-out infinite', animationDelay: '0s' }} />
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ae89ff', animation: 'dotPulse 1.4s ease-in-out infinite', animationDelay: '0.2s' }} />
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ae89ff', animation: 'dotPulse 1.4s ease-in-out infinite', animationDelay: '0.4s' }} />
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Error banner */}
+      {sendError && (
+        <div style={{
+          margin: '0 28px', padding: '10px 14px', borderRadius: '10px',
+          background: 'rgba(253,111,133,0.08)', border: '1px solid rgba(253,111,133,0.25)',
+          fontSize: '12px', color: '#fd6f85', fontWeight: 500,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span>{sendError}</span>
+          <button
+            onClick={() => setSendError(null)}
+            style={{ background: 'none', border: 'none', color: '#fd6f85', cursor: 'pointer', padding: '2px', display: 'flex' }}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Chat input */}
       <div style={{
@@ -280,13 +427,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           onFocus={() => {}}
         >
           <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Ask the Scholar anything…"
             rows={1}
+            disabled={isSending}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#ede9ff', fontSize: '14px', lineHeight: 1.6,
               fontFamily: "'Gliker', 'DM Sans', sans-serif",
               resize: 'none', minHeight: '22px', maxHeight: '160px',
+              opacity: isSending ? 0.5 : 1,
             }}
             onInput={e => {
               const t = e.currentTarget;
@@ -294,15 +447,27 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               t.style.height = Math.min(t.scrollHeight, 160) + 'px';
             }}
           />
-          <button style={{
-            width: '34px', height: '34px', borderRadius: '9px', border: 'none', flexShrink: 0,
-            background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
-            color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'opacity 0.15s',
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>
-              send
-            </span>
+          <button
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isSending}
+            style={{
+              width: '34px', height: '34px', borderRadius: '9px', border: 'none', flexShrink: 0,
+              background: inputValue.trim() && !isSending
+                ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+                : 'rgba(140,82,255,0.2)',
+              color: inputValue.trim() && !isSending ? '#fff' : 'rgba(255,255,255,0.3)',
+              cursor: inputValue.trim() && !isSending ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'opacity 0.15s, background 0.15s',
+            }}
+          >
+            {isSending ? (
+              <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} />
+            ) : (
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>
+                send
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -560,7 +725,42 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
         </>
       )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* Token usage bar */}
+      {tokenUsage && (
+        <div style={{
+          padding: '8px 28px 12px',
+          display: 'flex', alignItems: 'center', gap: '10px',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          <div style={{
+            flex: 1, height: '4px', borderRadius: '2px',
+            background: 'rgba(255,255,255,0.06)',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', borderRadius: '2px',
+              width: `${Math.min((tokenUsage.monthlyUsed / tokenUsage.monthlyLimit) * 100, 100)}%`,
+              background: tokenUsage.monthlyUsed / tokenUsage.monthlyLimit > 0.9
+                ? '#fd6f85'
+                : 'linear-gradient(90deg, #8c52ff, #5170ff)',
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+          <span style={{
+            fontSize: '10px', color: 'rgba(185,195,255,0.35)', fontWeight: 600, whiteSpace: 'nowrap',
+          }}>
+            {Math.round(tokenUsage.monthlyUsed / 1000)}k / {Math.round(tokenUsage.monthlyLimit / 1000)}k tokens
+          </span>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes dotPulse {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -101,6 +101,23 @@ export function conflictResponse(error: string = 'Conflict') {
 }
 
 /**
+ * Too many requests response (429)
+ */
+export function tooManyRequestsResponse(error: string = 'Too many requests', retryAfterMs?: number) {
+  const headers: Record<string, string> = {};
+  if (retryAfterMs) {
+    headers['Retry-After'] = String(Math.ceil(retryAfterMs / 1000));
+  }
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse,
+    { status: 429, headers }
+  );
+}
+
+/**
  * Internal server error response (500)
  */
 export function internalErrorResponse(error: string = 'Internal server error') {

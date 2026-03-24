@@ -16,6 +16,7 @@ import DrawingCanvas from './DrawingCanvas';
 import type { StrokeData } from './DrawingCanvas';
 import { ResizableImage } from './ResizableImage';
 import { FontSize } from '@/lib/tiptap-font-size';
+import { InlineHeading } from '@/lib/tiptap-inline-heading';
 import PageLockIndicator from './PageLockIndicator';
 
 interface PageData {
@@ -177,6 +178,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
         FontSize,
         Color,
         Highlight.configure({ multicolor: true }),
+        InlineHeading,
         ResizableImage,
         Placeholder.configure({ placeholder: lockedByOther ? 'This page is being edited by someone else...' : 'Start writing...' }),
         Typography,

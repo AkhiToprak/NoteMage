@@ -62,10 +62,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (title !== undefined && (typeof title !== 'string' || title.length > 500)) {
       return badRequestResponse('Title must be a string under 500 characters');
     }
-    if (content !== undefined && typeof content !== 'string') {
-      return badRequestResponse('Content must be a string');
+    if (content !== undefined && typeof content !== 'object') {
+      return badRequestResponse('Content must be a JSON object');
     }
-    if (content !== undefined && content.length > 500_000) {
+    if (content !== undefined && JSON.stringify(content).length > 500_000) {
       return badRequestResponse('Content exceeds maximum size');
     }
     if (textContent !== undefined && typeof textContent !== 'string') {
