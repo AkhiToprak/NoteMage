@@ -4,6 +4,7 @@ import { useState, useEffect, use, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { X, Upload, BookOpen, Check, ChevronDown, ChevronRight, Loader2, Plus, Layers } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
 interface ChatMessage {
   id: string;
@@ -365,9 +366,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               color: '#ede9ff',
               fontSize: '14px',
               lineHeight: 1.65,
-              whiteSpace: 'pre-wrap',
+              whiteSpace: msg.role === 'user' ? 'pre-wrap' : undefined,
             }}>
-              <MessageContent content={msg.content} notebookId={notebookId} />
+              {msg.role === 'user' ? msg.content : <MessageContent content={msg.content} notebookId={notebookId} />}
             </div>
           </div>
         ))}
@@ -861,20 +862,21 @@ function PanelSectionItem({ section, selectedPageIds, onTogglePage, depth }: {
 const FLASHCARD_MARKER_RE = /\[flashcard_set:([^\]]+)\]/g;
 
 function MessageContent({ content, notebookId }: { content: string; notebookId: string }) {
-  // Check if there are any flashcard markers
+  // No flashcard markers — render as markdown directly
   if (!content.includes('[flashcard_set:')) {
-    return <>{content}</>;
+    return <MarkdownRenderer content={content} />;
   }
 
+  // Split around flashcard markers, render text as markdown and markers as links
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   const regex = new RegExp(FLASHCARD_MARKER_RE);
 
   while ((match = regex.exec(content)) !== null) {
-    // Add text before the marker
     if (match.index > lastIndex) {
-      parts.push(content.slice(lastIndex, match.index));
+      const textChunk = content.slice(lastIndex, match.index);
+      parts.push(<MarkdownRenderer key={`md-${lastIndex}`} content={textChunk} />);
     }
 
     const setId = match[1];
@@ -911,9 +913,9 @@ function MessageContent({ content, notebookId }: { content: string; notebookId: 
     lastIndex = match.index + match[0].length;
   }
 
-  // Add remaining text
   if (lastIndex < content.length) {
-    parts.push(content.slice(lastIndex));
+    const remaining = content.slice(lastIndex);
+    parts.push(<MarkdownRenderer key={`md-${lastIndex}`} content={remaining} />);
   }
 
   return <>{parts}</>;

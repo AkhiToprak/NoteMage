@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { deletePageImages } from '@/lib/storage';
 import {
   successResponse,
   badRequestResponse,
@@ -112,6 +113,8 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     });
     if (!existing) return notFoundResponse('Page not found');
 
+    // Clean up image files from disk before deleting DB record
+    await deletePageImages(pageId);
     await db.page.delete({ where: { id: pageId } });
 
     return successResponse({ deleted: true });

@@ -1,9 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, ReactNodeViewRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { all, createLowlight } from 'lowlight';
 import UnderlineExt from '@tiptap/extension-underline';
+import CodeBlockView from './CodeBlockView';
+
+// Create lowlight instance once at module level with ALL languages
+const lowlightInstance = createLowlight(all);
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
@@ -171,7 +177,12 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
       immediatelyRender: false,
       editable: !lockedByOther,
       extensions: [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
+        CodeBlockLowlight.extend({
+          addNodeView() {
+            return ReactNodeViewRenderer(CodeBlockView);
+          },
+        }).configure({ lowlight: lowlightInstance, defaultLanguage: 'javascript' }),
         UnderlineExt,
         TextStyle,
         FontFamily,
@@ -267,10 +278,53 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
         .quizzard-editor li p { margin: 0; }
         /* ── blockquote ── */
         .quizzard-editor blockquote { border-left: 3px solid #8c52ff; padding-left: 16px; color: rgba(237,233,255,0.6); margin: 12px 0; }
-        /* ── code ── */
-        .quizzard-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'Courier New', monospace; }
-        .quizzard-editor pre { background: rgba(140,82,255,0.08); padding: 16px; border-radius: 10px; overflow-x: auto; margin: 12px 0; }
-        .quizzard-editor pre code { background: none; padding: 0; border-radius: 0; }
+        /* ── inline code ── */
+        .quizzard-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; color: #c4a9ff; }
+        /* ── code block ── */
+        .quizzard-editor pre {
+          background: rgba(140,82,255,0.06);
+          border: 1px solid rgba(140,82,255,0.15);
+          padding: 16px 18px;
+          border-radius: 10px;
+          overflow-x: auto;
+          margin: 12px 0;
+          font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+          font-size: 13px;
+          line-height: 1.65;
+          color: #ede9ff;
+        }
+        .quizzard-editor pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; display: block; }
+        .quizzard-editor .code-block-wrapper select option { background: #1a1428; color: #e0daf8; }
+        /* ── syntax highlighting tokens ── */
+        .quizzard-editor .hljs-keyword,
+        .quizzard-editor .hljs-selector-tag,
+        .quizzard-editor .hljs-built_in { color: #c4a0ff; }
+        .quizzard-editor .hljs-string,
+        .quizzard-editor .hljs-attr { color: #ffde59; }
+        .quizzard-editor .hljs-number,
+        .quizzard-editor .hljs-literal { color: #ff9e64; }
+        .quizzard-editor .hljs-function,
+        .quizzard-editor .hljs-title,
+        .quizzard-editor .hljs-title.function_ { color: #7ec8ff; }
+        .quizzard-editor .hljs-params { color: #e0daf8; font-style: italic; }
+        .quizzard-editor .hljs-comment,
+        .quizzard-editor .hljs-quote { color: #7a72a0; font-style: italic; }
+        .quizzard-editor .hljs-variable,
+        .quizzard-editor .hljs-template-variable { color: #e0daf8; }
+        .quizzard-editor .hljs-type,
+        .quizzard-editor .hljs-class .hljs-title { color: #7ec8ff; }
+        .quizzard-editor .hljs-tag { color: #c4a0ff; }
+        .quizzard-editor .hljs-name { color: #c4a0ff; }
+        .quizzard-editor .hljs-attribute { color: #b9c3ff; }
+        .quizzard-editor .hljs-symbol,
+        .quizzard-editor .hljs-bullet { color: #ff9e64; }
+        .quizzard-editor .hljs-addition { color: #a6e3a1; }
+        .quizzard-editor .hljs-deletion { color: #ff6b8a; }
+        .quizzard-editor .hljs-operator { color: #c4a0ff; }
+        .quizzard-editor .hljs-punctuation { color: #8b85a8; }
+        .quizzard-editor .hljs-property { color: #b9c3ff; }
+        .quizzard-editor .hljs-regexp { color: #ff9e64; }
+        .quizzard-editor .hljs-meta { color: #ae89ff; }
         /* ── mark / highlight ── */
         .quizzard-editor mark { border-radius: 3px; padding: 1px 3px; }
         /* ── placeholder ── */

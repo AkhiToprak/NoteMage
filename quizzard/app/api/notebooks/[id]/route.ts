@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { deleteNotebookFiles } from '@/lib/storage';
 import {
   successResponse,
   badRequestResponse,
@@ -103,9 +104,21 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
     const existing = await db.notebook.findFirst({
       where: { id, userId },
+      include: {
+        sections: {
+          include: {
+            pages: { select: { id: true } },
+          },
+        },
+      },
     });
     if (!existing) return notFoundResponse('Notebook not found');
 
+    // Collect all page IDs for file cleanup
+    const pageIds = existing.sections.flatMap((s) => s.pages.map((p) => p.id));
+
+    // Clean up all files from disk before deleting DB records
+    await deleteNotebookFiles(id, pageIds);
     await db.notebook.delete({ where: { id } });
 
     return successResponse({ deleted: true });

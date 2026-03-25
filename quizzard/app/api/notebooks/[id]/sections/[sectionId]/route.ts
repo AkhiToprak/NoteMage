@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { deletePageImages } from '@/lib/storage';
 import {
   successResponse,
   badRequestResponse,
@@ -109,9 +110,16 @@ export async function DELETE(request: NextRequest, { params }: Params) {
         notebookId,
         notebook: { userId },
       },
+      include: {
+        pages: { select: { id: true } },
+      },
     });
     if (!existing) return notFoundResponse('Section not found');
 
+    // Clean up image files for all pages in this section
+    for (const page of existing.pages) {
+      await deletePageImages(page.id);
+    }
     await db.section.delete({ where: { id: sectionId } });
 
     return successResponse({ deleted: true });

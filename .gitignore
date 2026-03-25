@@ -4,3 +4,9 @@ node_modules/
 .DS_Store
 .next/
 dist/
+
+# user uploads
+quizzard/uploads/
+
+# claude worktrees
+.claude/worktrees/

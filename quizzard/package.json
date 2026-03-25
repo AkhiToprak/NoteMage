@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@prisma/client": "^5.8.0",
+    "@tiptap/extension-code-block-lowlight": "^3.20.5",
     "@tiptap/extension-color": "^3.20.4",
     "@tiptap/extension-font-family": "^3.20.4",
     "@tiptap/extension-highlight": "^3.20.4",
@@ -26,6 +27,9 @@
     "@tiptap/starter-kit": "^3.20.4",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "hast-util-to-html": "^9.0.5",
+    "highlight.js": "^11.11.1",
+    "lowlight": "^3.3.0",
     "lucide-react": "^0.577.0",
     "mammoth": "^1.12.0",
     "next": "16.1.6",
@@ -33,6 +37,8 @@
     "pdf-parse": "^2.4.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

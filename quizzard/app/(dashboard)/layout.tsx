@@ -42,7 +42,7 @@ export default function DashboardLayout({
     >
       {!isNotebookWorkspace && <Sidebar />}
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-        <Header />
+        {!isNotebookWorkspace && <Header />}
         <main
           style={{
             flex: 1,

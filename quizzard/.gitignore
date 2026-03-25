@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# user uploads (documents, images) — stored locally, not in git
+/uploads/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

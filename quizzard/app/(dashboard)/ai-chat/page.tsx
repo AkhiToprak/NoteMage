@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
 interface Message {
   id: string;
@@ -380,10 +381,14 @@ export default function AiChatPage() {
                     fontSize: '15px',
                     color: msg.role === 'assistant' ? '#e5e3ff' : '#2a0066',
                     fontWeight: msg.role === 'user' ? 500 : 400,
-                    whiteSpace: 'pre-wrap',
+                    whiteSpace: msg.role === 'user' ? 'pre-wrap' : undefined,
                   }}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <MarkdownRenderer content={msg.content} />
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             </div>

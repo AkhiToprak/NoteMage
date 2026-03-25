@@ -43,3 +43,31 @@ export async function deleteFile(filePath: string): Promise<void> {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
   }
 }
+
+/** Recursively delete a directory and all its contents (e.g. uploads/images/{pageId}) */
+export async function deleteDirectory(dirPath: string): Promise<void> {
+  try {
+    await fs.rm(dirPath, { recursive: true, force: true });
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+}
+
+/** Delete all uploaded files for a notebook (documents + page images) */
+export async function deleteNotebookFiles(notebookId: string, pageIds: string[]): Promise<void> {
+  // Delete document uploads directory
+  const docDir = path.join(process.cwd(), 'uploads', notebookId);
+  await deleteDirectory(docDir);
+
+  // Delete image directories for each page
+  for (const pageId of pageIds) {
+    const imgDir = path.join(process.cwd(), 'uploads', 'images', pageId);
+    await deleteDirectory(imgDir);
+  }
+}
+
+/** Delete all uploaded images for a page */
+export async function deletePageImages(pageId: string): Promise<void> {
+  const imgDir = path.join(process.cwd(), 'uploads', 'images', pageId);
+  await deleteDirectory(imgDir);
+}

@@ -21,7 +21,7 @@ export default function NotebookWorkspaceLayout({
           flex: 1,
           minWidth: 0,
           overflow: 'hidden',
-          background: '#09081a',
+          background: '#12112a',
           display: 'flex',
           flexDirection: 'column',
         }}>
