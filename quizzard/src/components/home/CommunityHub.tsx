@@ -11,14 +11,13 @@ interface CommunityNotebook {
   authorName: string;
   authorAvatar?: string;
   downloads: number;
-  rating: number;
   color: string;
   createdAt: string;
   isFeatured?: boolean;
 }
 
 type MainTab = 'library' | 'friends';
-type FilterTab = 'latest' | 'popular' | 'rated';
+type FilterTab = 'latest' | 'popular';
 
 /* ─── Constants ─── */
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -230,23 +229,15 @@ function FeaturedNotebookCard({ notebook }: { notebook: CommunityNotebook }) {
             </div>
             <span style={{ fontSize: 11, color: COLORS.textMuted }}>{notebook.authorName}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 14, color: COLORS.textMuted }}>
-                download
-              </span>
-              <span style={{ fontSize: 11, color: COLORS.textMuted }}>
-                {notebook.downloads >= 1000
-                  ? `${(notebook.downloads / 1000).toFixed(1)}k`
-                  : notebook.downloads}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 14, color: COLORS.secondary }}>
-                star
-              </span>
-              <span style={{ fontSize: 11, color: COLORS.textMuted }}>{notebook.rating}</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14, color: COLORS.textMuted }}>
+              download
+            </span>
+            <span style={{ fontSize: 11, color: COLORS.textMuted }}>
+              {notebook.downloads >= 1000
+                ? `${(notebook.downloads / 1000).toFixed(1)}k`
+                : notebook.downloads}
+            </span>
           </div>
         </div>
       </div>
@@ -458,7 +449,7 @@ function LargeFeatureCard({ notebook }: { notebook: CommunityNotebook }) {
             Download Notebook
           </button>
           <span style={{ fontSize: 11, color: COLORS.textMuted }}>
-            Shared 3 days ago
+            {notebook.downloads} {notebook.downloads === 1 ? 'download' : 'downloads'}
           </span>
         </div>
       </div>
@@ -527,7 +518,9 @@ export default function CommunityHub() {
             shareId?: string;
             notebookId?: string;
             name?: string;
+            subject?: string;
             color?: string;
+            downloadCount?: number;
             author?: { username?: string; avatarUrl?: string };
             sharedAt?: string;
           }>;
@@ -536,10 +529,9 @@ export default function CommunityHub() {
             id: nb.shareId || nb.notebookId || `api-${i}`,
             title: nb.name || 'Untitled',
             description: '',
-            subject: 'General',
+            subject: nb.subject || 'General',
             authorName: nb.author?.username || 'Unknown',
-            downloads: Math.floor(Math.random() * 1000) + 100,
-            rating: Math.round((4 + Math.random()) * 10) / 10,
+            downloads: nb.downloadCount || 0,
             color: nb.color || '#8c52ff',
             createdAt: nb.sharedAt || new Date().toISOString(),
           }));
@@ -568,7 +560,6 @@ export default function CommunityHub() {
 
   const sortedLibrary = [...library].sort((a, b) => {
     if (filterTab === 'popular') return b.downloads - a.downloads;
-    if (filterTab === 'rated') return b.rating - a.rating;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
@@ -583,7 +574,6 @@ export default function CommunityHub() {
   const filterTabs: { key: FilterTab; label: string }[] = [
     { key: 'latest', label: 'Latest' },
     { key: 'popular', label: 'Most Popular' },
-    { key: 'rated', label: 'Highest Rated' },
   ];
 
   return (

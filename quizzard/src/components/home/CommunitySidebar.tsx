@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import PublishNotebookModal from './PublishNotebookModal';
 
 /* ─── Types ─── */
 interface FriendActivity {
@@ -56,6 +57,7 @@ export default function CommunitySidebar() {
   const [friends, setFriends] = useState<FriendActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredPublish, setHoveredPublish] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [hoveredFriend, setHoveredFriend] = useState<string | null>(null);
   const [hoveredSeeAll, setHoveredSeeAll] = useState(false);
 
@@ -158,8 +160,8 @@ export default function CommunitySidebar() {
           >
             Help the community grow and earn rewards for every download.
           </div>
-          <Link
-            href="/dashboard"
+          <button
+            onClick={() => setShowPublishModal(true)}
             onMouseEnter={() => setHoveredPublish(true)}
             onMouseLeave={() => setHoveredPublish(false)}
             style={{
@@ -173,7 +175,6 @@ export default function CommunitySidebar() {
               color: '#1a1a2e',
               fontSize: 13,
               fontWeight: 700,
-              textDecoration: 'none',
               cursor: 'pointer',
               transition: `transform 0.15s ${EASING}, box-shadow 0.15s ${EASING}`,
               transform: hoveredPublish ? 'translateY(-1px)' : 'none',
@@ -184,7 +185,7 @@ export default function CommunitySidebar() {
               publish
             </span>
             Publish Now
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -382,6 +383,11 @@ export default function CommunitySidebar() {
       </div>
 
       {/* Trending Tags — TODO: populate from API */}
+
+      <PublishNotebookModal
+        open={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+      />
 
       <style>{`
         @keyframes communityPulse {

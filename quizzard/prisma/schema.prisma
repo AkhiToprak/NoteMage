@@ -435,9 +435,10 @@ model SharedNotebook {
   notebookId   String
   sharedById   String
   sharedWithId String?                       // null = community upload
-  type         String                        // "copy" | "live_view"
-  visibility   String   @default("public")   // "public" | "friends" | "specific"
-  createdAt    DateTime @default(now())
+  type          String                        // "copy" | "live_view"
+  visibility    String   @default("public")   // "public" | "friends" | "specific"
+  downloadCount Int      @default(0)
+  createdAt     DateTime @default(now())
 
   notebook     Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   sharedBy     User     @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)

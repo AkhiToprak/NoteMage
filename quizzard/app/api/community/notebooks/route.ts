@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
       sectionCount: s.notebook._count.sections,
       shareType: s.type,
       visibility: s.visibility,
+      downloadCount: s.downloadCount,
       author: s.sharedBy,
       sharedAt: s.createdAt,
     }));
