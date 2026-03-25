@@ -1,13 +1,8 @@
 'use client';
 
 import HomeHeader from '@/components/layout/HomeHeader';
-import RecentNotebooksPanel from '@/components/home/RecentNotebooksPanel';
-import HomeFeed from '@/components/home/HomeFeed';
-import SocialPanel from '@/components/home/SocialPanel';
-
-const COLORS = {
-  pageBg: '#0d0d1a',
-} as const;
+import CommunityHub from '@/components/home/CommunityHub';
+import CommunitySidebar from '@/components/home/CommunitySidebar';
 
 export default function HomePage() {
   return (
@@ -25,47 +20,31 @@ export default function HomePage() {
           minHeight: 0,
         }}
       >
-        {/* Left column — hidden on mobile */}
-        <div
-          className="home-left-col"
-          style={{
-            width: 280,
-            flexShrink: 0,
-          }}
-        >
-          <RecentNotebooksPanel />
-        </div>
-
-        {/* Center column */}
+        {/* Main content area */}
         <div
           style={{
             flex: 1,
             minWidth: 0,
           }}
         >
-          <HomeFeed />
+          <CommunityHub />
         </div>
 
-        {/* Right column — hidden on tablet and below */}
+        {/* Right sidebar */}
         <div
-          className="home-right-col"
+          className="community-right-col"
           style={{
             width: 300,
             flexShrink: 0,
           }}
         >
-          <SocialPanel />
+          <CommunitySidebar />
         </div>
       </div>
 
       <style>{`
         @media (max-width: 1100px) {
-          .home-right-col {
-            display: none !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .home-left-col {
+          .community-right-col {
             display: none !important;
           }
         }
