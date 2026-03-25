@@ -24,8 +24,9 @@
 .DS_Store
 *.pem
 
-# user uploads (documents, images) — stored locally, not in git
+# user uploads (documents, images, avatars) — stored locally, not in git
 /uploads/
+/public/uploads/
 
 # debug
 npm-debug.log*
