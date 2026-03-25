@@ -47,45 +47,7 @@ function getAvatarGradient(id: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-/* ─── Mock friend activity ─── */
-const MOCK_FRIENDS: FriendActivity[] = [
-  {
-    id: 'fr1',
-    username: 'Alex Thompson',
-    activity: 'Downloaded',
-    notebookName: 'Stoic Ethics',
-    notebookColor: '#a689ff',
-    timeAgo: '2 mins ago',
-    online: true,
-  },
-  {
-    id: 'fr2',
-    username: 'Sarah Miller',
-    activity: 'Created',
-    notebookName: 'Web Flow Basics',
-    notebookColor: '#4ecdc4',
-    timeAgo: '1 hour ago',
-    online: true,
-  },
-  {
-    id: 'fr3',
-    username: 'James Chen',
-    activity: 'Completed',
-    notebookName: 'History Quiz',
-    notebookColor: '#ffb142',
-    timeAgo: '4 hours ago',
-    online: false,
-  },
-  {
-    id: 'fr4',
-    username: 'Elena Rossi',
-    activity: 'Updated profile bio',
-    notebookName: '',
-    notebookColor: '',
-    timeAgo: 'Yesterday',
-    online: false,
-  },
-];
+/* ─── No mock data — only real friends from API ─── */
 
 /* ─── Trending tags ─── */
 const TRENDING_TAGS = [
@@ -130,7 +92,7 @@ export default function CommunitySidebar() {
     } catch {
       // fall through
     }
-    setFriends(MOCK_FRIENDS);
+    // API failed — show empty state
     setLoading(false);
   }, []);
 

@@ -73,113 +73,8 @@ function getCoverGradient(id: string, color?: string): string {
   return COVER_GRADIENTS[Math.abs(hash) % COVER_GRADIENTS.length];
 }
 
-/* ─── Mock data ─── */
-const MOCK_FEATURED: CommunityNotebook[] = [
-  {
-    id: 'f1',
-    title: 'Quantum Mechanics Basics',
-    description: 'Deep dive into wave-particle duality, uncertainty principles, and basic states.',
-    subject: 'Physics',
-    authorName: 'Dr. Aria',
-    downloads: 1280,
-    rating: 4.9,
-    color: '#8c52ff',
-    createdAt: '2026-03-20',
-    isFeatured: true,
-  },
-  {
-    id: 'f2',
-    title: 'Color Theory Mastery',
-    description: 'Everything about color psychology, contrast ratios, and building harmonious accessibility.',
-    subject: 'Design',
-    authorName: 'Lia Moon',
-    downloads: 942,
-    rating: 4.8,
-    color: '#ffb142',
-    createdAt: '2026-03-19',
-  },
-  {
-    id: 'f3',
-    title: 'Data Structures Deep Dive',
-    description: 'Trees, graphs, hash maps, and complexity analysis for competitive programming.',
-    subject: 'Computer Science',
-    authorName: 'Maxim R.',
-    downloads: 1105,
-    rating: 4.7,
-    color: '#4ecdc4',
-    createdAt: '2026-03-18',
-  },
-  {
-    id: 'f4',
-    title: 'Integral Calculus Essentials',
-    description: 'Master definite and indefinite integrals with practical problem sets.',
-    subject: 'Mathematics',
-    authorName: 'Prof. Lane',
-    downloads: 870,
-    rating: 4.6,
-    color: '#ff6bab',
-    createdAt: '2026-03-17',
-  },
-];
+/* ─── No mock data — only real notebooks from API ─── */
 
-const MOCK_LIBRARY: CommunityNotebook[] = [
-  {
-    id: 'l1',
-    title: 'Ancient Roman Law',
-    description: 'Summarized legislative structures from the Republic era through imperial codification.',
-    subject: 'History',
-    authorName: 'Marcus Rune',
-    downloads: 320,
-    rating: 4.5,
-    color: '#ffb142',
-    createdAt: '2026-03-22',
-  },
-  {
-    id: 'l2',
-    title: 'Tailwind CSS Advanced',
-    description: 'Configuring custom plugins, JIT engine details and optimization strategies.',
-    subject: 'Computer Science',
-    authorName: 'Sarah Dev',
-    downloads: 560,
-    rating: 4.6,
-    color: '#4ecdc4',
-    createdAt: '2026-03-21',
-  },
-  {
-    id: 'l3',
-    title: 'Stoic Ethics Guide',
-    description: 'Practical application of Epictetus and Seneca in modern decision making.',
-    subject: 'Philosophy',
-    authorName: 'Julian S.',
-    downloads: 290,
-    rating: 4.4,
-    color: '#a689ff',
-    createdAt: '2026-03-20',
-  },
-  {
-    id: 'l4',
-    title: 'Sustainable Architecture Systems',
-    description: 'A deep dive into LEED certifications, passive heating models, and renewable material selection for residential projects.',
-    subject: 'Science',
-    authorName: 'Dr. Hale',
-    downloads: 740,
-    rating: 4.8,
-    color: '#48db9c',
-    createdAt: '2026-03-19',
-    isFeatured: true,
-  },
-  {
-    id: 'l5',
-    title: 'N5 Japanese Vocab',
-    description: 'Complete set of kanji and vocabulary needed for the JLPT N5 exam preparation.',
-    subject: 'Languages',
-    authorName: 'Kenji T.',
-    downloads: 430,
-    rating: 4.3,
-    color: '#63cdff',
-    createdAt: '2026-03-18',
-  },
-];
 
 /* ─── Skeleton loaders ─── */
 function FeaturedSkeleton() {
@@ -661,11 +556,8 @@ export default function CommunityHub() {
         }
       }
     } catch {
-      // fall through to mock
+      // API failed — show empty state
     }
-    // Use mock data as fallback
-    setFeatured(MOCK_FEATURED);
-    setLibrary(MOCK_LIBRARY);
     setLoadingFeatured(false);
     setLoadingLibrary(false);
   }, []);
