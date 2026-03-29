@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronRight, Plus, Trash2, FileText, FileUp } from 'lucide-react';
+import { ChevronRight, Plus, Trash2, FileText, FileUp, Layers } from 'lucide-react';
+import Link from 'next/link';
 import PageItem from '@/components/notebook/PageItem';
 import FileImportDialog from '@/components/notebook/FileImportDialog';
 import type { SectionNode } from '@/components/notebook/SectionTree';
@@ -229,6 +230,11 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
             />
           ))}
 
+          {/* Flashcard sets */}
+          {section.flashcardSets?.map((fc) => (
+            <FlashcardSetItem key={fc.id} fc={fc} notebookId={notebookId} />
+          ))}
+
           {/* Inline create page input */}
           {isCreatingPage && (
             <div
@@ -298,5 +304,50 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
         />
       )}
     </div>
+  );
+}
+
+/** Sidebar item for a flashcard set linked to a section */
+function FlashcardSetItem({ fc, notebookId }: { fc: { id: string; title: string }; notebookId: string }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Link
+      href={`/notebooks/${notebookId}/flashcards/${fc.id}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '4px 10px 4px 38px',
+        textDecoration: 'none',
+        borderRadius: '4px',
+        background: hovered ? 'rgba(140,82,255,0.06)' : 'transparent',
+        transition: 'background 0.12s ease',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Layers
+        size={14}
+        style={{
+          color: hovered ? '#8c52ff' : 'rgba(140,82,255,0.45)',
+          flexShrink: 0,
+          transition: 'color 0.12s ease',
+        }}
+      />
+      <span
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '13px',
+          color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.55)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          transition: 'color 0.12s ease',
+        }}
+      >
+        {fc.title}
+      </span>
+    </Link>
   );
 }

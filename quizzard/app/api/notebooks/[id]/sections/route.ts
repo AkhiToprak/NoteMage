@@ -32,6 +32,10 @@ export async function GET(request: NextRequest, { params }: Params) {
           select: { id: true, title: true, updatedAt: true, sortOrder: true },
           orderBy: { sortOrder: 'asc' },
         },
+        flashcardSets: {
+          select: { id: true, title: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 

@@ -9,6 +9,12 @@ export interface PageSummary {
   sortOrder: number;
 }
 
+export interface FlashcardSetSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
 export interface SectionNode {
   id: string;
   title: string;
@@ -16,6 +22,7 @@ export interface SectionNode {
   sortOrder: number;
   color: string | null;
   pages: PageSummary[];
+  flashcardSets: FlashcardSetSummary[];
   children: SectionNode[];
 }
 
@@ -27,6 +34,7 @@ export interface SectionData {
   sortOrder: number;
   color: string | null;
   pages: PageSummary[];
+  flashcardSets: FlashcardSetSummary[];
 }
 
 /** Build a tree from a flat list of sections. */

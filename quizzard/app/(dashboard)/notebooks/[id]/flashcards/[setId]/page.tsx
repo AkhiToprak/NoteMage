@@ -9,6 +9,7 @@ interface FlashcardSetData {
   notebookId: string;
   chatId: string;
   title: string;
+  sectionId: string | null;
   flashcards: {
     id: string;
     question: string;
@@ -85,6 +86,7 @@ export default function FlashcardViewerPage({ params }: { params: Promise<{ id: 
       setId={setId}
       title={data.title}
       initialCards={data.flashcards}
+      assignedSectionId={data.sectionId}
     />
   );
 }

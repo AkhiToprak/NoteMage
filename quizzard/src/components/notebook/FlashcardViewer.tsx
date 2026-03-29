@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ChevronLeft, ChevronRight, RotateCcw, Download,
-  Pencil, Plus, Trash2, X, Check,
+  Pencil, Plus, Trash2, X, Check, BookPlus, ChevronDown, Loader2, BookCheck,
 } from 'lucide-react';
+import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
 interface Flashcard {
   id: string;
@@ -13,82 +15,22 @@ interface Flashcard {
   sortOrder: number;
 }
 
+interface SectionItem {
+  id: string;
+  title: string;
+  parentId: string | null;
+  children?: SectionItem[];
+}
+
 interface FlashcardViewerProps {
   notebookId: string;
   setId: string;
   title: string;
   initialCards: Flashcard[];
+  assignedSectionId?: string | null;
 }
 
-/** Format answer text: detect bullet/numbered/lettered lists */
-function formatAnswer(text: string): React.ReactNode {
-  if (!text) return null;
-
-  const lines = text.split(/\n|\r\n|\r/);
-  const items: { type: 'bullet' | 'number' | 'letter' | 'text'; content: string }[] = [];
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    const bulletMatch = line.match(/^[•\-*◦▪▫]\s+(.+)$/);
-    if (bulletMatch) { items.push({ type: 'bullet', content: bulletMatch[1] }); continue; }
-
-    const numberMatch = line.match(/^(\d+)[.)]\s+(.+)$/);
-    if (numberMatch) { items.push({ type: 'number', content: numberMatch[2] }); continue; }
-
-    const letterMatch = line.match(/^([a-zA-Z])[.)]\s+(.+)$/);
-    if (letterMatch) { items.push({ type: 'letter', content: letterMatch[2] }); continue; }
-
-    items.push({ type: 'text', content: line });
-  }
-
-  // Check if any list items exist
-  const hasLists = items.some(i => i.type !== 'text');
-  if (!hasLists) {
-    return <div style={{ whiteSpace: 'pre-line' }}>{text}</div>;
-  }
-
-  const elements: React.ReactNode[] = [];
-  let currentList: string[] = [];
-  let currentType: string | null = null;
-
-  const flushList = () => {
-    if (currentList.length > 0) {
-      const listStyle = currentType === 'number' ? 'decimal' : currentType === 'letter' ? 'lower-alpha' : 'disc';
-      elements.push(
-        <ul key={elements.length} style={{
-          listStyleType: listStyle,
-          margin: '12px 0',
-          paddingLeft: '28px',
-          textAlign: 'left',
-        }}>
-          {currentList.map((item, i) => (
-            <li key={i} style={{ margin: '8px 0', lineHeight: 1.7, paddingLeft: '6px' }}>{item}</li>
-          ))}
-        </ul>
-      );
-      currentList = [];
-      currentType = null;
-    }
-  };
-
-  for (const item of items) {
-    if (item.type === 'bullet' || item.type === 'number' || item.type === 'letter') {
-      if (currentType && currentType !== item.type) flushList();
-      currentType = item.type;
-      currentList.push(item.content);
-    } else {
-      flushList();
-      elements.push(<div key={elements.length} style={{ whiteSpace: 'pre-line', margin: '4px 0' }}>{item.content}</div>);
-    }
-  }
-  flushList();
-
-  return <>{elements}</>;
-}
-
-export default function FlashcardViewer({ notebookId, setId, title, initialCards }: FlashcardViewerProps) {
+export default function FlashcardViewer({ notebookId, setId, title, initialCards, assignedSectionId }: FlashcardViewerProps) {
   const [cards, setCards] = useState<Flashcard[]>(initialCards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -99,6 +41,15 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
   const [newQuestion, setNewQuestion] = useState('');
   const [newAnswer, setNewAnswer] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const { refreshSections } = useNotebookWorkspace();
+
+  // Section picker state
+  const [showSectionPicker, setShowSectionPicker] = useState(false);
+  const [sections, setSections] = useState<SectionItem[]>([]);
+  const [loadingSections, setLoadingSections] = useState(false);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(assignedSectionId ?? null);
+  const [savingSection, setSavingSection] = useState(false);
+  const [sectionSaved, setSectionSaved] = useState(!!assignedSectionId);
 
   const card = cards[currentIndex];
 
@@ -210,6 +161,52 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
       setNewQuestion('');
       setNewAnswer('');
     } catch { /* silent */ }
+  };
+
+  // ── Section picker ──
+  const openSectionPicker = async () => {
+    setShowSectionPicker(true);
+    setLoadingSections(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/sections`);
+      const json = await res.json();
+      if (json.success) {
+        // Build tree from flat list
+        const flat: SectionItem[] = json.data;
+        const map = new Map<string, SectionItem>();
+        const roots: SectionItem[] = [];
+        flat.forEach(s => map.set(s.id, { ...s, children: [] }));
+        flat.forEach(s => {
+          const node = map.get(s.id)!;
+          if (s.parentId && map.has(s.parentId)) {
+            map.get(s.parentId)!.children!.push(node);
+          } else {
+            roots.push(node);
+          }
+        });
+        setSections(roots);
+      }
+    } catch { /* silent */ }
+    setLoadingSections(false);
+  };
+
+  const assignToSection = async (sectionId: string) => {
+    setSavingSection(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectedSectionId(sectionId);
+        setSectionSaved(true);
+        refreshSections();
+        setTimeout(() => setShowSectionPicker(false), 600);
+      }
+    } catch { /* silent */ }
+    setSavingSection(false);
   };
 
   if (cards.length === 0) {
@@ -346,19 +343,21 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               overflow: 'hidden',
               display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
               padding: '40px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-              background: '#0f0f0f',
-              color: 'white',
+              boxShadow: '0 8px 32px rgba(140,82,255,0.15), 0 2px 8px rgba(0,0,0,0.3)',
+              background: 'linear-gradient(145deg, #1a1833 0%, #16152a 50%, #120f24 100%)',
+              border: '1px solid rgba(140,82,255,0.25)',
+              color: '#ede9ff',
             }}>
               <div style={{
-                fontSize: '22px', lineHeight: 1.6, textAlign: 'center',
-                maxWidth: '100%', wordWrap: 'break-word',
+                fontSize: '18px', maxWidth: '100%', wordWrap: 'break-word',
+                textAlign: 'center',
               }}>
-                {card?.question}
+                {card && <MarkdownRenderer content={card.question} />}
               </div>
               <div style={{
                 position: 'absolute', bottom: '20px',
-                fontSize: '11px', color: 'rgba(255,255,255,0.25)',
+                fontSize: '11px', color: 'rgba(196,169,255,0.3)',
+                fontFamily: "'DM Sans', sans-serif",
               }}>
                 Click or press Space to flip
               </div>
@@ -372,17 +371,18 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               overflow: 'auto',
               display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
               padding: '40px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-              background: '#ffffff',
-              color: '#2d2d2d',
+              boxShadow: '0 8px 32px rgba(81,112,255,0.12), 0 2px 8px rgba(0,0,0,0.3)',
+              background: 'linear-gradient(145deg, #1e1a3a 0%, #16152a 50%, #131128 100%)',
+              border: '1px solid rgba(81,112,255,0.2)',
+              color: 'rgba(237,233,255,0.85)',
               transform: 'rotateY(180deg)',
             }}>
               <div style={{
-                fontSize: '20px', lineHeight: 1.6, textAlign: 'left',
-                maxWidth: '100%', wordWrap: 'break-word',
+                fontSize: '16px', maxWidth: '100%', wordWrap: 'break-word',
+                textAlign: 'left',
                 paddingLeft: '8px', paddingRight: '8px',
               }}>
-                {card && formatAnswer(card.answer)}
+                {card && <MarkdownRenderer content={card.answer} />}
               </div>
             </div>
           </div>
@@ -412,10 +412,96 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
         )}
         <SmallButton onClick={downloadCSV} icon={<Download size={12} />} label="CSV" />
         <SmallButton onClick={() => setIsAdding(true)} icon={<Plus size={12} />} label="Add" />
+        {sectionSaved ? (
+          <SmallButton onClick={openSectionPicker} icon={<BookCheck size={12} />} label="In Notebook" />
+        ) : (
+          <SmallButton onClick={openSectionPicker} icon={<BookPlus size={12} />} label="Add to Notebook" />
+        )}
         {card && (
           <SmallButton onClick={() => deleteCard(card.id)} icon={<Trash2 size={12} />} label="Delete" danger />
         )}
       </div>
+
+      {/* Section picker modal */}
+      {showSectionPicker && (
+        <div
+          onClick={() => setShowSectionPicker(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '380px', maxHeight: '420px',
+              background: '#16152a',
+              border: '1px solid rgba(140,82,255,0.25)',
+              borderRadius: '16px',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(140,82,255,0.15)',
+            }}>
+              <h3 style={{
+                fontSize: '15px', fontWeight: 700, color: '#ede9ff', margin: 0,
+                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              }}>
+                Add to Section
+              </h3>
+              <button
+                onClick={() => setShowSectionPicker(false)}
+                style={{
+                  background: 'none', border: 'none', color: 'rgba(237,233,255,0.4)',
+                  cursor: 'pointer', padding: '4px', display: 'flex',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Section list */}
+            <div style={{
+              flex: 1, overflowY: 'auto', padding: '8px 12px',
+            }}>
+              {loadingSections ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '40px 0', color: 'rgba(237,233,255,0.3)',
+                }}>
+                  <Loader2 size={20} className="animate-spin" />
+                </div>
+              ) : sections.length === 0 ? (
+                <div style={{
+                  padding: '32px 16px', textAlign: 'center',
+                  fontSize: '13px', color: 'rgba(237,233,255,0.3)',
+                }}>
+                  No sections in this notebook yet.
+                </div>
+              ) : (
+                sections.map(s => (
+                  <SectionPickerNode
+                    key={s.id}
+                    section={s}
+                    depth={0}
+                    selectedId={selectedSectionId}
+                    saving={savingSection}
+                    onSelect={assignToSection}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add card form */}
       {isAdding && (
@@ -484,6 +570,76 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Section picker tree node */
+function SectionPickerNode({ section, depth, selectedId, saving, onSelect }: {
+  section: SectionItem; depth: number; selectedId: string | null;
+  saving: boolean; onSelect: (id: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const [hovered, setHovered] = useState(false);
+  const isSelected = selectedId === section.id;
+  const hasChildren = section.children && section.children.length > 0;
+
+  return (
+    <div>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onClick={() => !saving && onSelect(section.id)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '8px 12px',
+          paddingLeft: `${12 + depth * 16}px`,
+          borderRadius: '8px',
+          cursor: saving ? 'not-allowed' : 'pointer',
+          background: isSelected
+            ? 'rgba(140,82,255,0.2)'
+            : hovered ? 'rgba(140,82,255,0.08)' : 'transparent',
+          border: isSelected ? '1px solid rgba(140,82,255,0.4)' : '1px solid transparent',
+          transition: 'background 0.12s ease',
+          marginBottom: '2px',
+        }}
+      >
+        {hasChildren && (
+          <button
+            onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+            style={{
+              background: 'none', border: 'none', padding: '0', cursor: 'pointer',
+              color: 'rgba(237,233,255,0.3)', display: 'flex',
+            }}
+          >
+            <ChevronDown size={14} style={{
+              transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+              transition: 'transform 0.15s ease',
+            }} />
+          </button>
+        )}
+        {!hasChildren && <div style={{ width: '14px' }} />}
+        <span style={{
+          fontSize: '13px', color: isSelected ? '#c4a9ff' : '#ede9ff',
+          fontWeight: isSelected ? 600 : 400,
+          fontFamily: "'DM Sans', sans-serif",
+          flex: 1,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {section.title}
+        </span>
+        {isSelected && <Check size={14} style={{ color: '#8c52ff', flexShrink: 0 }} />}
+      </div>
+      {hasChildren && expanded && section.children!.map(child => (
+        <SectionPickerNode
+          key={child.id}
+          section={child}
+          depth={depth + 1}
+          selectedId={selectedId}
+          saving={saving}
+          onSelect={onSelect}
+        />
+      ))}
     </div>
   );
 }

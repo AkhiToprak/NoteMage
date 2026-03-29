@@ -160,15 +160,18 @@ model FlashcardSet {
   chatId     String
   messageId  String       // assistant message that created this set
   title      String
+  sectionId  String?      // optional: link to a notebook section for publishing
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
   notebook   Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   chat       NotebookChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  section    Section?     @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   flashcards Flashcard[]
 
   @@index([notebookId])
   @@index([chatId])
+  @@index([sectionId])
   @@map("flashcard_sets")
 }
 
@@ -202,10 +205,11 @@ model Section {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  parent        Section?  @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children      Section[] @relation("SectionTree")
+  notebook      Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  parent        Section?       @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Section[]      @relation("SectionTree")
   pages         Page[]
+  flashcardSets FlashcardSet[]
 
   @@index([notebookId])
   @@index([parentId])

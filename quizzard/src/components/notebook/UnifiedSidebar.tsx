@@ -201,7 +201,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
   const router = useRouter();
   const {
     activeSectionId, setActiveSectionId, notebookId,
-    refreshSections, activePageId,
+    refreshSections, activePageId, activeFlashcardSetId,
   } = useNotebookWorkspace();
 
   const [expanded, setExpanded] = useState(true);
@@ -217,7 +217,8 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
   const color = getSectionColor(section);
   const hasChildren = section.children.length > 0;
   const hasPages = section.pages.length > 0;
-  const hasContent = hasChildren || hasPages || isCreatingChild || isCreatingPage;
+  const hasFlashcardSets = (section.flashcardSets?.length ?? 0) > 0;
+  const hasContent = hasChildren || hasPages || hasFlashcardSets || isCreatingChild || isCreatingPage;
 
   useEffect(() => {
     if (isCreatingChild && childInputRef.current) childInputRef.current.focus();
@@ -418,6 +419,21 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
             );
           })}
 
+          {/* Flashcard sets inside this section */}
+          {section.flashcardSets?.map(fc => {
+            const isFcActive = fc.id === activeFlashcardSetId;
+            return (
+              <FlashcardSetTreeRow
+                key={fc.id}
+                flashcardSet={fc}
+                isActive={isFcActive}
+                notebookId={notebookId}
+                accentColor={color}
+                depth={depth}
+              />
+            );
+          })}
+
           {/* Inline page creation */}
           {isCreatingPage && (
             <div style={{
@@ -567,6 +583,61 @@ function PageTreeRow({ page, isActive, notebookId, accentColor, depth, onDelete 
             <Trash2 size={11} />
           </button>
         )}
+      </div>
+    </Link>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FlashcardSetTreeRow — A flashcard set nested inside a section tree
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function FlashcardSetTreeRow({ flashcardSet, isActive, notebookId, accentColor, depth }: {
+  flashcardSet: { id: string; title: string };
+  isActive: boolean;
+  notebookId: string;
+  accentColor: string;
+  depth: number;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const paddingLeft = 12 + depth * 14 + 18;
+
+  return (
+    <Link
+      href={`/notebooks/${notebookId}/flashcards/${flashcardSet.id}`}
+      style={{ textDecoration: 'none', display: 'block' }}
+    >
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '7px',
+          paddingLeft: `${paddingLeft}px`,
+          paddingRight: '8px',
+          paddingTop: '5px',
+          paddingBottom: '5px',
+          background: isActive
+            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            : hovered ? 'rgba(237,233,255,0.04)' : 'transparent',
+          borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
+          transition: 'background 0.1s ease',
+          cursor: 'pointer',
+        }}
+      >
+        <Layers
+          size={12}
+          style={{ color: isActive ? accentColor : 'rgba(140,82,255,0.45)', flexShrink: 0 }}
+        />
+        <span style={{
+          flex: 1, minWidth: 0,
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '12px',
+          fontWeight: isActive ? 600 : 400,
+          color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {flashcardSet.title}
+        </span>
       </div>
     </Link>
   );
