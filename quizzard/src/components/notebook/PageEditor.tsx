@@ -18,8 +18,8 @@ import Typography from '@tiptap/extension-typography';
 import FontFamily from '@tiptap/extension-font-family';
 import { Loader } from 'lucide-react';
 import EditorToolbar from './EditorToolbar';
-import DrawingCanvas from './DrawingCanvas';
-import type { StrokeData } from './DrawingCanvas';
+import DrawingOverlay, { hydrateStrokes } from './DrawingOverlay';
+import type { StrokeData, EditorMode, ActiveTool, LineStyle, RulerState } from './DrawingOverlay';
 import { ResizableImage } from './ResizableImage';
 import { FontSize } from '@/lib/tiptap-font-size';
 import { InlineHeading } from '@/lib/tiptap-inline-heading';
@@ -28,6 +28,34 @@ import CalloutView from './CalloutView';
 import { ToggleHeading } from '@/lib/tiptap-toggle-heading';
 import ToggleHeadingView from './ToggleHeadingView';
 import PageLockIndicator from './PageLockIndicator';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/** Migrate legacy `heading` nodes to `toggleHeading` nodes in saved content. */
+function migrateHeadingsToToggle(doc: any): any {
+  if (!doc || !doc.content) return doc;
+  return {
+    ...doc,
+    content: doc.content.map((node: any) => {
+      if (node.type === 'heading') {
+        const summaryText = (node.content || [])
+          .filter((c: any) => c.type === 'text')
+          .map((c: any) => c.text)
+          .join('');
+        return {
+          type: 'toggleHeading',
+          attrs: {
+            level: node.attrs?.level || 1,
+            collapsed: false,
+            summary: summaryText,
+          },
+          content: [{ type: 'paragraph' }],
+        };
+      }
+      return node;
+    }),
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 interface PageData {
   id: string;
@@ -52,8 +80,16 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
-  const [showDrawing, setShowDrawing] = useState(false);
   const [lockedByOther, setLockedByOther] = useState(false);
+
+  // Drawing state
+  const [editorMode, setEditorMode] = useState<EditorMode>('cursor');
+  const [penColor, setPenColor] = useState('#ede9ff');
+  const [penWidth, setPenWidth] = useState(4);
+  const [lineStyle, setLineStyle] = useState<LineStyle>('solid');
+  const [activeTool, setActiveTool] = useState<ActiveTool>('pen');
+  const [ruler, setRuler] = useState<RulerState>({ active: false, angle: 0, position: { x: 400, y: 300 } });
+  const [strokes, setStrokes] = useState<StrokeData[]>([]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const titleRef = useRef(title);
@@ -114,19 +150,30 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
     };
   }, [coWorkSessionId, currentUserId, notebookId, pageId]);
 
-  const handleSaveDrawing = useCallback(
-    async (strokes: StrokeData[]) => {
+  const saveDrawingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveDrawing = useCallback(
+    async (data: StrokeData[]) => {
       try {
         await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/drawing`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ drawingData: strokes }),
+          body: JSON.stringify({ drawingData: data }),
         });
       } catch {
         // silent
       }
     },
     [notebookId, pageId],
+  );
+
+  const handleStrokesChange = useCallback(
+    (newStrokes: StrokeData[]) => {
+      setStrokes(newStrokes);
+      if (saveDrawingRef.current) clearTimeout(saveDrawingRef.current);
+      saveDrawingRef.current = setTimeout(() => saveDrawing(newStrokes), 1500);
+    },
+    [saveDrawing],
   );
 
   useEffect(() => {
@@ -139,7 +186,13 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
         const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`);
         if (res.status === 404) { setNotFound(true); return; }
         const json = await res.json();
-        if (json.success) { setPage(json.data); setTitle(json.data.title); }
+        if (json.success) {
+          setPage(json.data);
+          setTitle(json.data.title);
+          if (json.data.drawingData) {
+            setStrokes(hydrateStrokes(json.data.drawingData as unknown[]));
+          }
+        }
       } finally {
         if (isMountedRef.current) setIsLoading(false);
       }
@@ -181,7 +234,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
       immediatelyRender: false,
       editable: !lockedByOther,
       extensions: [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
+        StarterKit.configure({ heading: false, codeBlock: false }),
         CodeBlockLowlight.extend({
           addNodeView() {
             return ReactNodeViewRenderer(CodeBlockView);
@@ -208,7 +261,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
         Placeholder.configure({ placeholder: lockedByOther ? 'This page is being edited by someone else...' : 'Start writing...' }),
         Typography,
       ],
-      content: page?.content ?? '',
+      content: page?.content ? migrateHeadingsToToggle(page.content) : '',
       editorProps: {
         attributes: { class: 'quizzard-editor' },
       },
@@ -235,7 +288,10 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
   );
 
   useEffect(() => {
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (saveDrawingRef.current) clearTimeout(saveDrawingRef.current);
+    };
   }, []);
 
   /* ── Loading skeleton ── */
@@ -306,6 +362,8 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
           font-size: 13px;
           line-height: 1.65;
           color: #ede9ff;
+          position: relative;
+          z-index: auto;
         }
         .quizzard-editor pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; display: block; }
         .quizzard-editor .code-block-wrapper select option { background: #1a1428; color: #e0daf8; }
@@ -410,22 +468,37 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
         editor={editor}
         notebookId={notebookId}
         pageId={pageId}
-        onToggleDrawing={() => setShowDrawing((v) => !v)}
-        isDrawing={showDrawing}
+        editorMode={editorMode}
+        onModeChange={setEditorMode}
+        penColor={penColor}
+        onPenColorChange={setPenColor}
+        penWidth={penWidth}
+        onPenWidthChange={setPenWidth}
+        lineStyle={lineStyle}
+        onLineStyleChange={setLineStyle}
+        activeTool={activeTool}
+        onActiveToolChange={setActiveTool}
+        ruler={ruler}
+        onRulerToggle={() => setRuler((r) => ({ ...r, active: !r.active }))}
+        onClearDrawing={() => handleStrokesChange([])}
       />
 
       {/* ── Editor canvas (full width, infinite scroll) ── */}
       <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-        <div style={{ padding: '28px 56px 80px', minHeight: '100%' }}>
+        <div style={{ padding: '28px 56px 80px', minHeight: '100%', position: 'relative' }}>
           <EditorContent editor={editor} />
-        </div>
-        {showDrawing && (
-          <DrawingCanvas
-            drawingData={(page?.drawingData as StrokeData[]) ?? []}
-            onSave={handleSaveDrawing}
-            onClose={() => setShowDrawing(false)}
+          <DrawingOverlay
+            strokes={strokes}
+            onStrokesChange={handleStrokesChange}
+            mode={editorMode}
+            activeTool={activeTool}
+            penColor={penColor}
+            penWidth={penWidth}
+            lineStyle={lineStyle}
+            ruler={ruler}
+            onRulerChange={setRuler}
           />
-        )}
+        </div>
       </div>
     </div>
   );

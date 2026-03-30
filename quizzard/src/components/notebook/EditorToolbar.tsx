@@ -6,10 +6,13 @@ import {
   Bold, Italic, Underline, Strikethrough,
   Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code,
-  Palette, Highlighter, Undo, Redo, PenTool,
-  ChevronDown, ALargeSmall, MessageSquareWarning, ListCollapse,
+  Palette, Highlighter, Undo, Redo, Pen,
+  ChevronDown, ALargeSmall, MessageSquareWarning,
   Info, AlertTriangle, CheckCircle, Lightbulb,
+  MousePointer2, Eraser, Trash2, Ruler,
 } from 'lucide-react';
+
+import type { EditorMode, ActiveTool, LineStyle, RulerState } from './DrawingOverlay';
 
 const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Info,
@@ -18,7 +21,7 @@ const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   Lightbulb,
 };
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
-import type { ToggleLevel } from '@/lib/tiptap-toggle-heading';
+
 import ImageUploadButton from './ImageUploadButton';
 
 /* ── font options ── */
@@ -59,12 +62,38 @@ const INLINE_SCALE_LEVELS = [
   { level: 3, label: 'H3 Scale', size: '18px' },
 ];
 
+/* ── pen drawing constants ── */
+const PEN_COLORS = ['#ede9ff', '#8c52ff', '#5170ff', '#ef4444', '#22c55e', '#eab308'];
+
+const PEN_WIDTHS = [
+  { label: 'Thin', value: 2 },
+  { label: 'Medium', value: 4 },
+  { label: 'Thick', value: 8 },
+];
+
+const LINE_STYLES: { label: string; value: LineStyle; dasharray?: string }[] = [
+  { label: 'Solid', value: 'solid' },
+  { label: 'Dashed', value: 'dashed', dasharray: '12 6' },
+  { label: 'Dotted', value: 'dotted', dasharray: '2 6' },
+];
+
 interface EditorToolbarProps {
   editor: Editor | null;
   notebookId: string;
   pageId: string;
-  onToggleDrawing?: () => void;
-  isDrawing?: boolean;
+  editorMode: EditorMode;
+  onModeChange: (mode: EditorMode) => void;
+  penColor: string;
+  onPenColorChange: (c: string) => void;
+  penWidth: number;
+  onPenWidthChange: (w: number) => void;
+  lineStyle: LineStyle;
+  onLineStyleChange: (s: LineStyle) => void;
+  activeTool: ActiveTool;
+  onActiveToolChange: (t: ActiveTool) => void;
+  ruler: RulerState;
+  onRulerToggle: () => void;
+  onClearDrawing: () => void;
 }
 
 /*
@@ -758,17 +787,26 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
   );
 }
 
-/* ── toggle heading dropdown ── */
-const TOGGLE_LEVELS: { level: ToggleLevel; label: string }[] = [
-  { level: 1, label: 'Toggle H1' },
-  { level: 2, label: 'Toggle H2' },
-  { level: 3, label: 'Toggle H3' },
-];
+/* ── toolbar row ── */
+const ROW_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '2px',
+  padding: '4px 12px',
+  flexWrap: 'nowrap',
+  minWidth: 0,
+};
 
-function ToggleHeadingDropdown({ editor }: { editor: Editor }) {
+/* ── line style dropdown ── */
+function LineStylePicker({
+  value,
+  onChange,
+}: {
+  value: LineStyle;
+  onChange: (s: LineStyle) => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const isActive = editor.isActive('toggleHeading');
 
   useEffect(() => {
     if (!open) return;
@@ -779,39 +817,40 @@ function ToggleHeadingDropdown({ editor }: { editor: Editor }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  const current = LINE_STYLES.find((l) => l.value === value) ?? LINE_STYLES[0];
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         onMouseDown={(e) => { e.preventDefault(); setOpen((p) => !p); }}
-        title="Insert toggle heading"
+        title="Line Style"
         style={{
-          width: '30px',
-          height: '28px',
-          borderRadius: '6px',
-          border: 'none',
-          background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'rgba(237,233,255,0.5)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          gap: '4px',
+          height: '28px',
+          padding: '0 8px',
+          borderRadius: '6px',
+          border: '1px solid rgba(237,233,255,0.1)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'rgba(237,233,255,0.04)',
+          color: 'rgba(237,233,255,0.7)',
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '11px',
           cursor: 'pointer',
-          transition: 'background 0.1s, color 0.1s',
-          flexShrink: 0,
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.08)';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.85)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
-          }
+          whiteSpace: 'nowrap',
+          transition: 'background 0.1s',
         }}
       >
-        <ListCollapse size={15} />
+        <svg width="28" height="12" viewBox="0 0 28 12">
+          <line
+            x1="2" y1="6" x2="26" y2="6"
+            stroke="rgba(237,233,255,0.7)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray={current.dasharray ?? 'none'}
+          />
+        </svg>
+        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
       </button>
       {open && (
         <div style={{
@@ -824,14 +863,14 @@ function ToggleHeadingDropdown({ editor }: { editor: Editor }) {
           padding: '4px',
           zIndex: 100,
           boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-          minWidth: '130px',
+          minWidth: '110px',
         }}>
-          {TOGGLE_LEVELS.map(({ level, label }) => (
+          {LINE_STYLES.map((ls) => (
             <button
-              key={level}
+              key={ls.value}
               onMouseDown={(e) => {
                 e.preventDefault();
-                editor.chain().focus().toggleToggleHeading({ level }).run();
+                onChange(ls.value);
                 setOpen(false);
               }}
               style={{
@@ -842,68 +881,54 @@ function ToggleHeadingDropdown({ editor }: { editor: Editor }) {
                 padding: '6px 10px',
                 borderRadius: '6px',
                 border: 'none',
-                background: editor.isActive('toggleHeading', { level }) ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: editor.isActive('toggleHeading', { level }) ? '#a47bff' : 'rgba(237,233,255,0.7)',
+                background: value === ls.value ? 'rgba(140,82,255,0.18)' : 'transparent',
+                color: value === ls.value ? '#a47bff' : 'rgba(237,233,255,0.7)',
                 fontFamily: "'DM Sans', sans-serif",
-                fontSize: '13px',
-                fontWeight: level <= 2 ? 700 : 600,
+                fontSize: '12px',
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(237,233,255,0.06)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = editor.isActive('toggleHeading', { level }) ? 'rgba(140,82,255,0.18)' : 'transparent'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = value === ls.value ? 'rgba(140,82,255,0.18)' : 'transparent'; }}
             >
-              <span>{label}</span>
+              <svg width="32" height="10" viewBox="0 0 32 10">
+                <line
+                  x1="2" y1="5" x2="30" y2="5"
+                  stroke={value === ls.value ? '#a47bff' : 'rgba(237,233,255,0.6)'}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray={ls.dasharray ?? 'none'}
+                />
+              </svg>
+              <span>{ls.label}</span>
             </button>
           ))}
-          {isActive && (
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault();
-                editor.chain().focus().unsetToggleHeading().run();
-                setOpen(false);
-              }}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '5px 10px',
-                borderRadius: '5px',
-                border: 'none',
-                background: 'transparent',
-                color: 'rgba(237,233,255,0.4)',
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '11px',
-                cursor: 'pointer',
-                textAlign: 'left',
-                marginTop: '2px',
-                borderTop: '1px solid rgba(237,233,255,0.06)',
-                paddingTop: '6px',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(237,233,255,0.06)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              Remove toggle
-            </button>
-          )}
         </div>
       )}
     </div>
   );
 }
 
-/* ── toolbar row ── */
-const ROW_STYLE: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '2px',
-  padding: '4px 12px',
-  flexWrap: 'nowrap',
-  minWidth: 0,
-};
-
 /* ── main toolbar ── */
-export default function EditorToolbar({ editor, notebookId, pageId, onToggleDrawing, isDrawing }: EditorToolbarProps) {
+export default function EditorToolbar({
+  editor,
+  notebookId,
+  pageId,
+  editorMode,
+  onModeChange,
+  penColor,
+  onPenColorChange,
+  penWidth,
+  onPenWidthChange,
+  lineStyle,
+  onLineStyleChange,
+  activeTool,
+  onActiveToolChange,
+  ruler,
+  onRulerToggle,
+  onClearDrawing,
+}: EditorToolbarProps) {
   const [, setTick] = useState(0);
   const bump = useCallback(() => setTick((t) => t + 1), []);
   const withSelection = useSelectionGuard(editor);
@@ -968,25 +993,103 @@ export default function EditorToolbar({ editor, notebookId, pageId, onToggleDraw
 
       {/* Row 2: Block formatting + utilities */}
       <div style={ROW_STYLE}>
-        <ToolbarButton icon={Heading1} label="Heading 1" isActive={editor.isActive('heading', { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} />
-        <ToolbarButton icon={Heading2} label="Heading 2" isActive={editor.isActive('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
-        <ToolbarButton icon={Heading3} label="Heading 3" isActive={editor.isActive('heading', { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} />
+        <ToolbarButton icon={Heading1} label="Heading 1" isActive={editor.isActive('toggleHeading', { level: 1 })} onClick={() => editor.chain().focus().toggleToggleHeading({ level: 1 }).run()} />
+        <ToolbarButton icon={Heading2} label="Heading 2" isActive={editor.isActive('toggleHeading', { level: 2 })} onClick={() => editor.chain().focus().toggleToggleHeading({ level: 2 }).run()} />
+        <ToolbarButton icon={Heading3} label="Heading 3" isActive={editor.isActive('toggleHeading', { level: 3 })} onClick={() => editor.chain().focus().toggleToggleHeading({ level: 3 }).run()} />
         <Sep />
         <ToolbarButton icon={List} label="Bullet List" isActive={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} />
         <ToolbarButton icon={ListOrdered} label="Ordered List" isActive={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
         <ToolbarButton icon={Quote} label="Blockquote" isActive={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
         <ToolbarButton icon={Code} label="Code Block" isActive={editor.isActive('codeBlock')} onClick={() => editor.chain().focus().toggleCodeBlock().run()} />
         <CalloutDropdown editor={editor} />
-        <ToggleHeadingDropdown editor={editor} />
+
         <Sep />
         <ImageUploadButton editor={editor} notebookId={notebookId} pageId={pageId} />
-        {onToggleDrawing && (
-          <ToolbarButton icon={PenTool} label="Draw" isActive={isDrawing} onClick={onToggleDrawing} />
-        )}
+        <Sep />
+        {/* Cursor / Pen mode toggle */}
+        <ToolbarButton icon={MousePointer2} label="Cursor mode" isActive={editorMode === 'cursor'} onClick={() => onModeChange('cursor')} />
+        <ToolbarButton icon={Pen} label="Pen mode" isActive={editorMode === 'pen'} onClick={() => onModeChange('pen')} />
         <Sep />
         <ToolbarButton icon={Undo} label="Undo (Cmd+Z)" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} />
         <ToolbarButton icon={Redo} label="Redo (Cmd+Shift+Z)" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} />
       </div>
+
+      {/* Row 3: Pen settings (visible only in pen mode) */}
+      {editorMode === 'pen' && (
+        <div style={{ ...ROW_STYLE, borderTop: '1px solid rgba(237,233,255,0.04)', gap: '6px' }}>
+          {/* Pen / Eraser sub-tool */}
+          <ToolbarButton icon={Pen} label="Pen" isActive={activeTool === 'pen'} onClick={() => onActiveToolChange('pen')} />
+          <ToolbarButton icon={Eraser} label="Eraser" isActive={activeTool === 'eraser'} onClick={() => onActiveToolChange('eraser')} />
+
+          <Sep />
+
+          {/* Color swatches */}
+          {PEN_COLORS.map((color) => (
+            <button
+              key={color}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onPenColorChange(color);
+                onActiveToolChange('pen');
+              }}
+              title={color}
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                border: penColor === color && activeTool === 'pen' ? '2px solid #ede9ff' : '2px solid transparent',
+                background: color,
+                cursor: 'pointer',
+                padding: 0,
+                outline: 'none',
+                boxShadow: penColor === color && activeTool === 'pen' ? '0 0 0 2px rgba(140,82,255,0.4)' : 'none',
+                transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+                flexShrink: 0,
+              }}
+            />
+          ))}
+
+          <Sep />
+
+          {/* Width presets */}
+          {PEN_WIDTHS.map((w) => (
+            <button
+              key={w.value}
+              onMouseDown={(e) => { e.preventDefault(); onPenWidthChange(w.value); }}
+              title={`${w.label} (${w.value}px)`}
+              style={{
+                height: 28,
+                borderRadius: 6,
+                border: 'none',
+                background: penWidth === w.value ? 'rgba(140,82,255,0.2)' : 'transparent',
+                color: '#ede9ff',
+                cursor: 'pointer',
+                padding: '0 8px',
+                fontSize: 11,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 500,
+                transition: 'background 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              {w.label}
+            </button>
+          ))}
+
+          <Sep />
+
+          {/* Line style */}
+          <LineStylePicker value={lineStyle} onChange={onLineStyleChange} />
+
+          <Sep />
+
+          {/* Ruler toggle */}
+          <ToolbarButton icon={Ruler} label="Ruler" isActive={ruler.active} onClick={onRulerToggle} />
+
+          {/* Clear all drawings */}
+          <ToolbarButton icon={Trash2} label="Clear All Drawings" onClick={onClearDrawing} />
+        </div>
+      )}
     </div>
   );
 }

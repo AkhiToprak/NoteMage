@@ -181,15 +181,19 @@ function extractInner(fullElement: string, tagName: string): string {
  * Convert a block-level HTML element to a TipTap node.
  */
 function blockToNode(tagName: string, inner: string): TipTapNode | null {
-  // Headings
+  // Headings → toggle headings
   const headingMatch = tagName.match(/^h([1-6])$/);
   if (headingMatch) {
-    const level = parseInt(headingMatch[1], 10);
-    const content = parseInlineContent(inner);
+    const level = Math.min(parseInt(headingMatch[1], 10), 3);
+    const inlineContent = parseInlineContent(inner);
+    const summaryText = inlineContent
+      .filter((c) => c.type === 'text')
+      .map((c) => (c as { text: string }).text)
+      .join('');
     return {
-      type: 'heading',
-      attrs: { level },
-      content: content.length > 0 ? content : undefined,
+      type: 'toggleHeading',
+      attrs: { level, collapsed: false, summary: summaryText },
+      content: [{ type: 'paragraph' }],
     };
   }
 

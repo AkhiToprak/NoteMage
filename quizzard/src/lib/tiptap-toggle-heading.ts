@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Node, mergeAttributes, wrappingInputRule } from '@tiptap/core';
 
 /**
  * ToggleHeading — a block-level TipTap node for collapsible heading sections.
@@ -82,7 +82,18 @@ export const ToggleHeading = Node.create<ToggleHeadingOptions>({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-toggle-level]' }];
+    return [
+      { tag: 'div[data-toggle-level]' },
+      // Also match pasted <h1>, <h2>, <h3> so they become toggle headings
+      ...[1, 2, 3].map((level) => ({
+        tag: `h${level}` as const,
+        getAttrs: (element: HTMLElement) => ({
+          level,
+          collapsed: false,
+          summary: element.textContent || '',
+        }),
+      })),
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -91,6 +102,16 @@ export const ToggleHeading = Node.create<ToggleHeadingOptions>({
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
       0,
     ];
+  },
+
+  addInputRules() {
+    return this.options.levels.map((level) =>
+      wrappingInputRule({
+        find: new RegExp(`^(#{${level}})\\s$`),
+        type: this.type,
+        getAttributes: { level, collapsed: false, summary: '' },
+      }),
+    );
   },
 
   addCommands() {
