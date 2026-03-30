@@ -3,8 +3,7 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import Sidebar from '@/components/layout/Sidebar';
-import Header from '@/components/layout/Header';
+import HomeHeader from '@/components/layout/HomeHeader';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
@@ -35,28 +34,26 @@ export default function DashboardLayout({
     <div
       style={{
         display: 'flex',
+        flexDirection: 'column',
         height: '100vh',
         overflow: 'hidden',
         background: '#0d0d1a',
       }}
     >
-      {!isNotebookWorkspace && <Sidebar />}
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-        {!isNotebookWorkspace && <Header />}
-        <main
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflow: isFullHeight ? 'hidden' : 'auto',
-            padding: isFullHeight ? '0' : '32px',
-            color: '#e5e3ff',
-            display: isFullHeight ? 'flex' : undefined,
-            flexDirection: isFullHeight ? 'column' : undefined,
-          }}
-        >
-          {children}
-        </main>
-      </div>
+      {!isNotebookWorkspace && <HomeHeader />}
+      <main
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: isFullHeight ? 'hidden' : 'auto',
+          padding: isFullHeight ? '0' : '32px',
+          color: '#e5e3ff',
+          display: isFullHeight ? 'flex' : undefined,
+          flexDirection: isFullHeight ? 'column' : undefined,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

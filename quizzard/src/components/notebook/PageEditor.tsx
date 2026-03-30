@@ -72,9 +72,10 @@ interface PageEditorProps {
   pageId: string;
   coWorkSessionId?: string | null;
   currentUserId?: string | null;
+  highlightTerm?: string;
 }
 
-export default function PageEditor({ notebookId, pageId, coWorkSessionId, currentUserId }: PageEditorProps) {
+export default function PageEditor({ notebookId, pageId, coWorkSessionId, currentUserId, highlightTerm }: PageEditorProps) {
   const [page, setPage] = useState<PageData | null>(null);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -293,6 +294,34 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
       if (saveDrawingRef.current) clearTimeout(saveDrawingRef.current);
     };
   }, []);
+
+  // Highlight search term from navigation
+  useEffect(() => {
+    if (!highlightTerm || !editor || editor.isDestroyed) return;
+    // Wait for content to render
+    const timer = setTimeout(() => {
+      if (!editor || editor.isDestroyed) return;
+      const doc = editor.state.doc;
+      const searchLower = highlightTerm.toLowerCase();
+      let foundFrom = -1;
+      let foundTo = -1;
+      doc.descendants((node, pos) => {
+        if (foundFrom !== -1) return false;
+        if (node.isText && node.text) {
+          const idx = node.text.toLowerCase().indexOf(searchLower);
+          if (idx !== -1) {
+            foundFrom = pos + idx;
+            foundTo = foundFrom + highlightTerm.length;
+            return false;
+          }
+        }
+      });
+      if (foundFrom !== -1) {
+        editor.chain().setTextSelection({ from: foundFrom, to: foundTo }).scrollIntoView().run();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [highlightTerm, editor]);
 
   /* ── Loading skeleton ── */
   if (isLoading) {

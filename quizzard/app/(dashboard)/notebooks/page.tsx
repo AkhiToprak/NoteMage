@@ -8,6 +8,8 @@ import FolderCard, { type FolderData } from '@/components/features/FolderCard';
 import FolderForm from '@/components/features/FolderForm';
 import FolderBreadcrumbs from '@/components/features/FolderBreadcrumbs';
 import { PRESETS, getPresetForSubject } from '@/lib/presets';
+import { useSearch } from '@/hooks/useSearch';
+import SearchDropdown from '@/components/search/SearchDropdown';
 
 const ALL_LABEL = 'All Subjects';
 
@@ -55,6 +57,12 @@ function NotebooksPageContent() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<NotebookData | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Search state
+  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults, isLoading: searchLoading, clearResults } = useSearch('notebooks');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchDropdownVisible, setSearchDropdownVisible] = useState(false);
+  const searchDropdownMouseRef = useRef(false);
 
   // Folder form state
   const [showFolderForm, setShowFolderForm] = useState(false);
@@ -433,6 +441,55 @@ function NotebooksPageContent() {
             <span className="material-symbols-outlined" style={{ fontSize: '13px', opacity: 0.7 }}>close</span>
           </button>
         )}
+
+        {/* Search bar */}
+        <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+              fontSize: 18, color: searchFocused ? '#ae89ff' : '#737390',
+              transition: 'color 0.2s', pointerEvents: 'none', zIndex: 1,
+            }}
+          >search</span>
+          <input
+            type="text"
+            placeholder="Search notebooks, pages, users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => { setSearchFocused(true); setSearchDropdownVisible(true); }}
+            onBlur={() => {
+              setSearchFocused(false);
+              if (!searchDropdownMouseRef.current) setSearchDropdownVisible(false);
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 38px',
+              borderRadius: 10,
+              border: `1.5px solid ${searchFocused ? '#ae89ff' : 'rgba(174,137,255,0.12)'}`,
+              background: '#1a1a2e',
+              color: '#e5e3ff',
+              fontSize: 13,
+              outline: 'none',
+              fontFamily: 'inherit',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+            }}
+          />
+          <div
+            onMouseEnter={() => { searchDropdownMouseRef.current = true; }}
+            onMouseLeave={() => { searchDropdownMouseRef.current = false; }}
+          >
+            <SearchDropdown
+              query={searchQuery}
+              results={searchResults}
+              isLoading={searchLoading}
+              isVisible={searchDropdownVisible && searchQuery.length >= 2}
+              onClose={() => { setSearchDropdownVisible(false); clearResults(); }}
+              context="notebooks"
+            />
+          </div>
+        </div>
 
         {/* Right-side buttons */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>

@@ -44,7 +44,6 @@ const NAV_ITEMS = [
   { href: '/home', label: 'Home', icon: 'home' },
   { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { href: '/notebooks', label: 'Notebooks', icon: 'menu_book' },
-  { href: '/ai-chat', label: 'AI Chat', icon: 'smart_toy' },
   { href: '/settings', label: 'Settings', icon: 'settings' },
 ];
 

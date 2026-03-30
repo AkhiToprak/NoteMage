@@ -19,11 +19,10 @@ function getInitials(name?: string | null): string {
 }
 
 const navLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { href: '/notebooks', label: 'Notebooks', icon: 'auto_stories' },
-  { href: '/home',      label: 'Community', icon: 'groups' },
-  { href: '/ai-chat',   label: 'AI Chat',   icon: 'smart_toy' },
-  { href: '/settings',  label: 'Settings',  icon: 'settings' },
+  { href: '/home',      label: 'Home',       icon: 'home' },
+  { href: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
+  { href: '/notebooks', label: 'Notebooks',  icon: 'auto_stories' },
+  { href: '/settings',  label: 'Settings',   icon: 'settings' },
 ];
 
 export default function Sidebar() {

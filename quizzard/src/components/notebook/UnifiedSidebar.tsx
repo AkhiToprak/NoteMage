@@ -6,13 +6,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowLeft, Plus, FolderPlus, ChevronRight, Trash2,
-  FileText, FilePlus, MessageSquare, Sparkles, Layers, HelpCircle, Shapes,
+  FileText, FilePlus, MessageSquare, Sparkles, Layers, HelpCircle, Shapes, Search,
 } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import { getSectionColor } from '@/components/notebook/SectionListItem';
 import type { SectionNode } from '@/components/notebook/SectionTree';
 import type { NotebookChatItem } from '@/components/notebook/NotebookWorkspaceContext';
 import PageTypeSelector from '@/components/notebook/PageTypeSelector';
+import { useSearch } from '@/hooks/useSearch';
+import SearchDropdown from '@/components/search/SearchDropdown';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UnifiedSidebar — OneNote-style sidebar with Files + Chats
@@ -27,6 +29,11 @@ export default function UnifiedSidebar() {
   const [sectionDraft, setSectionDraft] = useState('');
   const sectionInputRef = useRef<HTMLInputElement>(null);
   const accentColor = notebook?.color || '#8c52ff';
+
+  // Workspace search
+  const { query: wsSearchQuery, setQuery: setWsSearchQuery, results: wsSearchResults, isLoading: wsSearchLoading, clearResults: wsClearResults } = useSearch('workspace', notebookId);
+  const [wsSearchFocused, setWsSearchFocused] = useState(false);
+  const isSearchActive = wsSearchQuery.length >= 2;
 
   useEffect(() => {
     if (isCreatingSection && sectionInputRef.current) sectionInputRef.current.focus();
@@ -102,8 +109,73 @@ export default function UnifiedSidebar() {
         </div>
       </div>
 
+      {/* ── Search bar ─────────────────────────────────────────────── */}
+      <div style={{ padding: '8px 10px 4px', position: 'relative' }}>
+        <div style={{ position: 'relative' }}>
+          <Search
+            size={14}
+            style={{
+              position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+              color: wsSearchFocused ? '#ae89ff' : 'rgba(237,233,255,0.3)',
+              transition: 'color 0.15s', pointerEvents: 'none',
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Search in notebook…"
+            value={wsSearchQuery}
+            onChange={(e) => setWsSearchQuery(e.target.value)}
+            onFocus={() => setWsSearchFocused(true)}
+            onBlur={() => setWsSearchFocused(false)}
+            style={{
+              width: '100%',
+              padding: '6px 28px 6px 30px',
+              borderRadius: 8,
+              border: `1px solid ${wsSearchFocused ? 'rgba(174,137,255,0.35)' : 'rgba(140,82,255,0.1)'}`,
+              background: wsSearchFocused ? 'rgba(174,137,255,0.06)' : 'rgba(255,255,255,0.02)',
+              color: '#ede9ff',
+              fontSize: 12,
+              outline: 'none',
+              fontFamily: 'inherit',
+              transition: 'border-color 0.15s, background 0.15s',
+              boxSizing: 'border-box',
+            }}
+          />
+          {wsSearchQuery && (
+            <button
+              onClick={() => wsClearResults()}
+              style={{
+                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                width: 16, height: 16, borderRadius: 4, border: 'none', padding: 0,
+                background: 'rgba(237,233,255,0.1)', color: 'rgba(237,233,255,0.5)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Scrollable body: Files + Chats ──────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+
+        {/* ── Search results (replaces tree when searching) ──────── */}
+        {isSearchActive && (
+          <SearchDropdown
+            query={wsSearchQuery}
+            results={wsSearchResults}
+            isLoading={wsSearchLoading}
+            isVisible={true}
+            onClose={() => wsClearResults()}
+            context="workspace"
+            compact
+          />
+        )}
+
+        {/* ── Normal tree (hidden during search) ─────────────────── */}
+        {!isSearchActive && (<>
 
         {/* ── FILES section ──────────────────────────────────────── */}
         <div style={{ padding: '10px 0 0' }}>
@@ -189,8 +261,39 @@ export default function UnifiedSidebar() {
           background: 'linear-gradient(90deg, transparent, rgba(140,82,255,0.25), transparent)',
         }} />
 
+        {/* ── Scholar link ──────────────────────────────────────── */}
+        <Link
+          href={`/notebooks/${notebookId}`}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '7px 14px',
+            margin: '0 6px 4px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            color: '#c4a9ff',
+            fontSize: '13px',
+            fontWeight: 600,
+            transition: 'background 0.15s ease',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(140,82,255,0.1)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
+        >
+          <div style={{
+            width: '20px', height: '20px', borderRadius: '5px',
+            background: 'linear-gradient(135deg, rgba(140,82,255,0.5), rgba(81,112,255,0.4))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Sparkles size={11} style={{ color: '#e5dbff' }} />
+          </div>
+          Scholar
+        </Link>
+
         {/* ── CHATS section ─────────────────────────────────────── */}
         <ChatTreeSection />
+
+        {/* Close !isSearchActive wrapper */}
+        </>
+        )}
       </div>
     </aside>
   );

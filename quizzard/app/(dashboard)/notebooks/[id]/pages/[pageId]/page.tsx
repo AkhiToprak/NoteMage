@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import PageEditor from '@/components/notebook/PageEditor';
 import dynamic from 'next/dynamic';
 
@@ -12,6 +13,8 @@ export default function PageEditorPage({
   params: Promise<{ id: string; pageId: string }>;
 }) {
   const { id: notebookId, pageId } = use(params);
+  const searchParams = useSearchParams();
+  const highlightTerm = searchParams.get('highlight') || undefined;
   const [pageType, setPageType] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,5 +46,5 @@ export default function PageEditorPage({
     return <InfiniteCanvas notebookId={notebookId} pageId={pageId} />;
   }
 
-  return <PageEditor notebookId={notebookId} pageId={pageId} />;
+  return <PageEditor notebookId={notebookId} pageId={pageId} highlightTerm={highlightTerm} />;
 }

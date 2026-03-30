@@ -1,8 +1,9 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface RecentItem {
   id: string;
@@ -19,6 +20,15 @@ interface DashboardData {
   recentActivity: RecentItem[];
 }
 
+interface FlashcardSetItem {
+  id: string;
+  title: string;
+  notebookId: string;
+  updatedAt: string;
+  _count: { flashcards: number };
+  notebook: { name: string; color: string | null };
+}
+
 interface StatCard {
   label: string;
   value: string;
@@ -29,6 +39,7 @@ interface StatCard {
   badge?: React.ReactNode;
   arrowColor: string;
   href?: string;
+  onClick?: () => void;
 }
 
 function timeAgo(iso: string): string {
@@ -58,20 +69,49 @@ function getActivityStyle(subject?: string | null) {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [notebookCount, setNotebookCount] = useState<number | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [flashcardSets, setFlashcardSets] = useState<FlashcardSetItem[]>([]);
+  const [flashcardCount, setFlashcardCount] = useState<number | null>(null);
+  const [showFlashcardDropdown, setShowFlashcardDropdown] = useState(false);
+  const flashcardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/notebooks')
+    fetch('/api/notebooks?folderId=all')
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setNotebookCount(data.length); })
+      .then((res) => { const d = res?.data ?? res; if (Array.isArray(d)) setNotebookCount(d.length); })
       .catch(() => {});
 
     fetch('/api/dashboard')
       .then((r) => r.json())
-      .then((data) => { if (data?.dailyGoal !== undefined) setDashboard(data); })
+      .then((res) => { const d = res?.data ?? res; if (d?.dailyGoal !== undefined) setDashboard(d); })
+      .catch(() => {});
+
+    fetch('/api/flashcard-sets')
+      .then((r) => r.json())
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (Array.isArray(d)) {
+          setFlashcardSets(d);
+          setFlashcardCount(d.length);
+        }
+      })
       .catch(() => {});
   }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (flashcardRef.current && !flashcardRef.current.contains(e.target as Node)) {
+        setShowFlashcardDropdown(false);
+      }
+    }
+    if (showFlashcardDropdown) {
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+  }, [showFlashcardDropdown]);
 
   const goalProgress = dashboard
     ? Math.min(100, Math.round((dashboard.todayPages / dashboard.dailyGoal) * 100))
@@ -88,20 +128,13 @@ export default function DashboardPage() {
       href: '/notebooks',
     },
     {
-      label: 'Quizzes Taken',
-      value: '—',
-      icon: 'psychology',
-      iconColor: '#b9c3ff',
-      iconBg: 'rgba(185,195,255,0.1)',
-      arrowColor: 'rgba(185,195,255,0.4)',
-    },
-    {
       label: 'Flashcards',
-      value: '—',
+      value: flashcardCount !== null ? String(flashcardCount) : '—',
       icon: 'bolt',
       iconColor: '#f0d04c',
       iconBg: 'rgba(240,208,76,0.1)',
       arrowColor: 'rgba(240,208,76,0.4)',
+      onClick: () => setShowFlashcardDropdown((v) => !v),
     },
     {
       label: 'Day Streak',
@@ -139,11 +172,12 @@ export default function DashboardPage() {
       <section
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '24px',
         }}
       >
-        {statCards.map(({ label, value, icon, iconFilled, iconColor, iconBg, badge, arrowColor, href }) => {
+        {statCards.map(({ label, value, icon, iconFilled, iconColor, iconBg, badge, arrowColor, href, onClick }) => {
+          const isFlashcard = label === 'Flashcards';
           const inner = (
             <div
               style={{
@@ -152,7 +186,7 @@ export default function DashboardPage() {
                 borderRadius: '24px',
                 display: 'flex',
                 flexDirection: 'column',
-                cursor: href ? 'pointer' : 'default',
+                cursor: (href || onClick) ? 'pointer' : 'default',
                 transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
               onMouseEnter={(e) => {
@@ -200,6 +234,97 @@ export default function DashboardPage() {
               <p style={{ fontSize: '15px', fontWeight: 500, color: '#aaa8c8', margin: 0 }}>{label}</p>
             </div>
           );
+
+          if (isFlashcard) {
+            return (
+              <div key={label} ref={flashcardRef} style={{ position: 'relative' }}>
+                <div onClick={onClick} style={{ cursor: 'pointer' }}>{inner}</div>
+                {showFlashcardDropdown && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      right: 0,
+                      background: '#1a1a2e',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(174,137,255,0.15)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                      zIndex: 50,
+                      maxHeight: '320px',
+                      overflowY: 'auto',
+                      padding: '8px',
+                    }}
+                  >
+                    {flashcardSets.length === 0 ? (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: '#aaa8c8' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '32px', display: 'block', marginBottom: '8px', opacity: 0.4 }}>bolt</span>
+                        <p style={{ fontSize: '13px', margin: 0 }}>No flashcard sets yet.</p>
+                        <p style={{ fontSize: '12px', margin: '4px 0 0', opacity: 0.6 }}>Create them from a notebook chat.</p>
+                      </div>
+                    ) : (
+                      flashcardSets.map((set) => (
+                        <div
+                          key={set.id}
+                          onClick={() => {
+                            setShowFlashcardDropdown(false);
+                            router.push(`/notebooks/${set.notebookId}/flashcards/${set.id}`);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#23233c'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                        >
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              background: set.notebook.color ? `${set.notebook.color}20` : 'rgba(240,208,76,0.15)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '18px', color: set.notebook.color || '#f0d04c' }}
+                            >
+                              bolt
+                            </span>
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: '#e5e3ff',
+                              margin: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {set.title}
+                            </p>
+                            <p style={{ fontSize: '11px', color: '#aaa8c8', margin: '2px 0 0' }}>
+                              {set.notebook.name} · {set._count.flashcards} {set._count.flashcards === 1 ? 'card' : 'cards'}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          }
 
           return href ? (
             <Link key={label} href={href} style={{ textDecoration: 'none' }}>{inner}</Link>

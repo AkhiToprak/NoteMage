@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import BurgerMenu from './BurgerMenu';
 import NotificationBell from './NotificationBell';
+import { useSearch } from '@/hooks/useSearch';
+import SearchDropdown from '@/components/search/SearchDropdown';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
@@ -44,7 +46,9 @@ export default function HomeHeader() {
   const [burgerOpen, setBurgerOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const { query: searchQuery, setQuery: setSearchQuery, results, isLoading, clearResults } = useSearch('home');
+  const dropdownMouseRef = useRef(false);
 
   // Hover states
   const [hoveredBurger, setHoveredBurger] = useState(false);
@@ -164,11 +168,14 @@ export default function HomeHeader() {
             </span>
             <input
               type="text"
-              placeholder="Search posts, notebooks, users..."
+              placeholder="Search notebooks, users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              onFocus={() => { setSearchFocused(true); setDropdownVisible(true); }}
+              onBlur={() => {
+                setSearchFocused(false);
+                if (!dropdownMouseRef.current) setDropdownVisible(false);
+              }}
               style={{
                 width: '100%',
                 padding: '9px 16px 9px 44px',
@@ -182,6 +189,19 @@ export default function HomeHeader() {
                 boxSizing: 'border-box',
               }}
             />
+            <div
+              onMouseEnter={() => { dropdownMouseRef.current = true; }}
+              onMouseLeave={() => { dropdownMouseRef.current = false; }}
+            >
+              <SearchDropdown
+                query={searchQuery}
+                results={results}
+                isLoading={isLoading}
+                isVisible={dropdownVisible && searchQuery.length >= 2}
+                onClose={() => { setDropdownVisible(false); clearResults(); }}
+                context="home"
+              />
+            </div>
           </div>
 
           {/* Right actions */}
