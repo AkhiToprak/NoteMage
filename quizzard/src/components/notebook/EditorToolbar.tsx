@@ -8,7 +8,15 @@ import {
   List, ListOrdered, Quote, Code,
   Palette, Highlighter, Undo, Redo, PenTool,
   ChevronDown, ALargeSmall, MessageSquareWarning, ListCollapse,
+  Info, AlertTriangle, CheckCircle, Lightbulb,
 } from 'lucide-react';
+
+const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  Lightbulb,
+};
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
 import type { ToggleLevel } from '@/lib/tiptap-toggle-heading';
 import ImageUploadButton from './ImageUploadButton';
@@ -701,7 +709,9 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(237,233,255,0.06)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <span>{s.emoji}</span>
+                <span style={{ display: 'flex', alignItems: 'center', color: s.borderColor }}>
+                  {(() => { const Icon = CALLOUT_ICONS[s.icon]; return Icon ? <Icon size={14} /> : null; })()}
+                </span>
                 <span>{s.label}</span>
                 <span style={{
                   marginLeft: 'auto',

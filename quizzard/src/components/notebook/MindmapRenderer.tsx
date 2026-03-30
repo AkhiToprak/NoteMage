@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Download, Copy, Check, Maximize2, Minimize2, FileText, Image } from 'lucide-react';
+import { Download, Copy, Check, Maximize2, Minimize2, FileText, Image, Brain } from 'lucide-react';
 
 interface MindmapRendererProps {
   title: string;
@@ -390,8 +390,8 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{
-            fontSize: '14px', lineHeight: 1,
-          }}>🧠</span>
+            display: 'flex', alignItems: 'center', color: '#93a8ff',
+          }}><Brain size={16} /></span>
           <span style={{
             fontSize: '13px', fontWeight: 600, color: '#93a8ff',
             fontFamily: "'Gliker', 'DM Sans', sans-serif",

@@ -30,28 +30,28 @@ declare module '@tiptap/core' {
 
 export const CALLOUT_STYLES: Record<
   CalloutType,
-  { emoji: string; borderColor: string; bgColor: string; label: string }
+  { icon: string; borderColor: string; bgColor: string; label: string }
 > = {
   info: {
-    emoji: 'ℹ️',
+    icon: 'Info',
     borderColor: 'rgba(81,112,255,0.6)',
     bgColor: 'rgba(81,112,255,0.08)',
     label: 'Info',
   },
   warning: {
-    emoji: '⚠️',
+    icon: 'AlertTriangle',
     borderColor: 'rgba(249,115,22,0.6)',
     bgColor: 'rgba(249,115,22,0.08)',
     label: 'Warning',
   },
   success: {
-    emoji: '✅',
+    icon: 'CheckCircle',
     borderColor: 'rgba(34,197,94,0.6)',
     bgColor: 'rgba(34,197,94,0.08)',
     label: 'Success',
   },
   tip: {
-    emoji: '💡',
+    icon: 'Lightbulb',
     borderColor: 'rgba(140,82,255,0.6)',
     bgColor: 'rgba(140,82,255,0.08)',
     label: 'Tip',

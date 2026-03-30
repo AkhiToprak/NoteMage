@@ -103,7 +103,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
-                📝 Text Page
+                Text Page
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.4)', lineHeight: 1.5 }}>
                 Rich text editor with formatting, headings, and lists
@@ -155,7 +155,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
-                🎨 Canvas
+                Canvas
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.4)', lineHeight: 1.5 }}>
                 Infinite canvas for freeform drawing and diagrams

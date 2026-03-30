@@ -4,7 +4,14 @@ import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
 import { useState, useRef, useEffect } from 'react';
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Info, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
+
+const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  Lightbulb,
+};
 
 const TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip'];
 
@@ -67,7 +74,9 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
           }}
           title="Change callout type"
         >
-          <span>{style.emoji}</span>
+          <span style={{ display: 'flex', alignItems: 'center', color: style.borderColor }}>
+            {(() => { const Icon = CALLOUT_ICONS[style.icon]; return Icon ? <Icon size={16} /> : null; })()}
+          </span>
           <ChevronDown size={10} style={{ opacity: 0.5 }} />
         </button>
 
@@ -130,7 +139,9 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                         : 'transparent';
                   }}
                 >
-                  <span>{s.emoji}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: s.borderColor }}>
+                        {(() => { const Icon = CALLOUT_ICONS[s.icon]; return Icon ? <Icon size={14} /> : null; })()}
+                      </span>
                   <span>{s.label}</span>
                   <span
                     style={{
