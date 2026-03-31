@@ -21,6 +21,7 @@ function getInitials(name?: string | null): string {
 const navLinks = [
   { href: '/home',      label: 'Home',       icon: 'home' },
   { href: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
+  { href: '/profile',   label: 'Profile',    icon: 'person' },
   { href: '/notebooks', label: 'Notebooks',  icon: 'auto_stories' },
   { href: '/settings',  label: 'Settings',   icon: 'settings' },
 ];

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, RotateCcw, Download,
   Pencil, Plus, Trash2, X, Check, BookPlus, ChevronDown, Loader2, BookCheck,
-  Lightbulb, CheckCircle2, XCircle,
+  Lightbulb, CheckCircle2, XCircle, Clock, History, TrendingUp,
 } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -63,6 +63,20 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
   const [sectionSaved, setSectionSaved] = useState(!!assignedSectionId);
   const [showSlideEditor, setShowSlideEditor] = useState(false);
 
+  // Quiz attempt tracking
+  const [quizStartTime] = useState<number>(Date.now());
+  const [submitting, setSubmitting] = useState(false);
+  const [attemptHistory, setAttemptHistory] = useState<Array<{
+    id: string;
+    score: number;
+    total: number;
+    percentage: number;
+    timeSpent: number | null;
+    createdAt: string;
+  }>>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [bestScore, setBestScore] = useState<number | null>(null);
+
   const question = questions[currentIndex];
 
   const quizSlides: SlideData[] = useMemo(() => {
@@ -109,9 +123,30 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
     setAnswers(prev => new Map(prev).set(currentIndex, optionIndex));
   }, [mode, isAnswered, currentIndex]);
 
-  const finish = useCallback(() => {
+  const finish = useCallback(async () => {
     setMode('results');
-  }, []);
+    setSubmitting(true);
+    try {
+      const timeSpent = Math.round((Date.now() - quizStartTime) / 1000);
+      const answersPayload = Array.from(answers.entries()).map(([idx, selectedIdx]) => ({
+        questionId: questions[idx].id,
+        selectedIdx,
+      }));
+      const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/attempts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: answersPayload, timeSpent }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setAttemptHistory(prev => [json.data, ...prev]);
+        if (bestScore === null || json.data.percentage > bestScore) {
+          setBestScore(json.data.percentage);
+        }
+      }
+    } catch { /* silent */ }
+    setSubmitting(false);
+  }, [answers, questions, notebookId, setId, quizStartTime, bestScore]);
 
   const startReview = useCallback(() => {
     setMode('review');
@@ -134,6 +169,24 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [prev, next, selectAnswer, editingId]);
+
+  // Fetch attempt history
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/attempts`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setAttemptHistory(json.data);
+          if (json.data.length > 0) {
+            const best = Math.max(...json.data.map((a: { percentage: number }) => a.percentage));
+            setBestScore(best);
+          }
+        }
+      } catch { /* silent */ }
+    };
+    fetchHistory();
+  }, [notebookId, setId]);
 
   const downloadJSON = useCallback(() => {
     const data = {
@@ -345,6 +398,36 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
           ))}
         </div>
 
+        {/* Time spent */}
+        {quizStartTime && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            fontSize: '13px', color: 'rgba(237,233,255,0.4)',
+            marginBottom: '16px',
+          }}>
+            <Clock size={14} />
+            <span>{Math.round((Date.now() - quizStartTime) / 1000)}s</span>
+          </div>
+        )}
+
+        {/* Previous best comparison */}
+        {attemptHistory.length > 1 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '10px 16px', borderRadius: '10px',
+            background: 'rgba(140,82,255,0.06)',
+            border: '1px solid rgba(140,82,255,0.15)',
+            marginBottom: '16px', fontSize: '13px',
+          }}>
+            <TrendingUp size={14} style={{ color: '#c4a9ff' }} />
+            <span style={{ color: 'rgba(237,233,255,0.6)' }}>
+              Previous best: <strong style={{ color: '#c4a9ff' }}>{bestScore}%</strong>
+              {' · '}
+              Attempts: <strong style={{ color: '#c4a9ff' }}>{attemptHistory.length}</strong>
+            </span>
+          </div>
+        )}
+
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <ActionButton onClick={reset} label="Retake Quiz" primary />
@@ -352,6 +435,9 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
           <ActionButton onClick={downloadJSON} label="Download JSON" />
           <ActionButton onClick={openSlideEditor} label="Download PPTX" />
           <ActionButton onClick={downloadPdf} label="Download PDF" />
+          {attemptHistory.length > 0 && (
+            <ActionButton onClick={() => setShowHistory(true)} label="View History" />
+          )}
         </div>
       </div>
     );
@@ -373,6 +459,18 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
       }}>
         {title}
       </h2>
+
+      {bestScore !== null && (
+        <span style={{
+          fontSize: '11px', fontWeight: 600,
+          color: bestScore >= 70 ? '#4ade80' : bestScore >= 40 ? '#fbbf24' : '#fca5a5',
+          background: bestScore >= 70 ? 'rgba(74,222,128,0.1)' : bestScore >= 40 ? 'rgba(251,191,36,0.1)' : 'rgba(252,165,165,0.1)',
+          border: `1px solid ${bestScore >= 70 ? 'rgba(74,222,128,0.2)' : bestScore >= 40 ? 'rgba(251,191,36,0.2)' : 'rgba(252,165,165,0.2)'}`,
+          borderRadius: '9999px', padding: '2px 10px', marginBottom: '4px',
+        }}>
+          Best: {Math.round(bestScore)}%
+        </span>
+      )}
 
       {mode === 'review' && (
         <span style={{
@@ -766,6 +864,99 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
           onExport={() => setShowSlideEditor(false)}
           onClose={() => setShowSlideEditor(false)}
         />
+      )}
+
+      {/* History modal */}
+      {showHistory && (
+        <div
+          onClick={() => setShowHistory(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '420px', maxHeight: '500px',
+              background: '#1a1a36',
+              border: '1px solid rgba(140,82,255,0.25)',
+              borderRadius: '16px',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(140,82,255,0.15)',
+            }}>
+              <h3 style={{
+                fontSize: '15px', fontWeight: 700, color: '#ede9ff', margin: 0,
+                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                <History size={16} /> Quiz History
+              </h3>
+              <button
+                onClick={() => setShowHistory(false)}
+                style={{
+                  background: 'none', border: 'none', color: 'rgba(237,233,255,0.4)',
+                  cursor: 'pointer', padding: '4px', display: 'flex',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+              {attemptHistory.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: '13px', color: 'rgba(237,233,255,0.3)' }}>
+                  No attempts yet.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {attemptHistory.map((attempt, i) => (
+                    <div key={attempt.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '12px 14px', borderRadius: '10px',
+                      background: i === 0 ? 'rgba(140,82,255,0.08)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${i === 0 ? 'rgba(140,82,255,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    }}>
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '10px',
+                        background: attempt.percentage >= 70
+                          ? 'rgba(74,222,128,0.1)' : attempt.percentage >= 40
+                          ? 'rgba(251,191,36,0.1)' : 'rgba(252,165,165,0.1)',
+                        border: `1px solid ${attempt.percentage >= 70
+                          ? 'rgba(74,222,128,0.3)' : attempt.percentage >= 40
+                          ? 'rgba(251,191,36,0.3)' : 'rgba(252,165,165,0.3)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '14px', fontWeight: 700,
+                        color: attempt.percentage >= 70 ? '#4ade80' : attempt.percentage >= 40 ? '#fbbf24' : '#fca5a5',
+                      }}>
+                        {Math.round(attempt.percentage)}%
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', color: '#ede9ff', fontWeight: 600 }}>
+                          {attempt.score}/{attempt.total} correct
+                          {i === 0 && <span style={{ color: '#c4a9ff', fontSize: '11px', marginLeft: '6px' }}>Latest</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.3)', marginTop: '2px' }}>
+                          {new Date(attempt.createdAt).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })}
+                          {attempt.timeSpent && ` · ${attempt.timeSpent}s`}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

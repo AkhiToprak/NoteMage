@@ -9,6 +9,7 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { recordActivity } from '@/lib/activity';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
 
@@ -44,6 +45,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (!userId) return unauthorizedResponse();
 
     const { id: notebookId, pageId } = await params;
+
+    // Record activity (fire-and-forget)
+    recordActivity(userId, 'page_edit').catch(() => {});
 
     const existing = await db.page.findFirst({
       where: {

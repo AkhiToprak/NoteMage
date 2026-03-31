@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ActivityHeatmap from '@/components/features/ActivityHeatmap';
 
 interface RecentItem {
   id: string;
@@ -332,6 +333,11 @@ export default function DashboardPage() {
             <div key={label}>{inner}</div>
           );
         })}
+      </section>
+
+      {/* Activity Heatmap */}
+      <section>
+        <ActivityHeatmap />
       </section>
 
       {/* Bento grid */}

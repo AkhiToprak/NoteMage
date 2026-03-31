@@ -60,6 +60,7 @@ model User {
   notebookComments       NotebookComment[]
   notebookCommentVotes   NotebookCommentVote[]
   microsoftConnection    MicrosoftConnection?
+  activityEvents         ActivityEvent[]
 
   @@map("users")
 }
@@ -128,9 +129,23 @@ model Document {
 
   // Relations
   notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  summaries     DocumentSummary[]
 
   @@index([notebookId])
   @@map("documents")
+}
+
+model DocumentSummary {
+  id         String   @id @default(cuid())
+  documentId String
+  length     String   // "brief" | "detailed"
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, length])
+  @@map("document_summaries")
 }
 
 // ============================================================================
@@ -209,6 +224,12 @@ model Flashcard {
   question       String
   answer         String           @db.Text
   sortOrder      Int              @default(0)
+  // Spaced repetition fields (SM-2 algorithm)
+  easeFactor     Float            @default(2.5)
+  interval       Int              @default(0)       // days until next review
+  repetitions    Int              @default(0)       // consecutive correct answers
+  nextReviewAt   DateTime?                          // null = never reviewed
+  lastReviewAt   DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
@@ -254,6 +275,7 @@ model QuizSet {
   chat       NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section    Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   questions  QuizQuestion[]
+  attempts   QuizAttempt[]
 
   @@index([notebookId])
   @@index([chatId])
@@ -275,9 +297,43 @@ model QuizQuestion {
   updatedAt          DateTime @updatedAt
 
   quizSet            QuizSet  @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  answers            QuizAnswer[]
 
   @@index([quizSetId])
   @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id         String       @id @default(cuid())
+  quizSetId  String
+  userId     String
+  score      Int
+  total      Int
+  percentage Float
+  timeSpent  Int?
+  createdAt  DateTime     @default(now())
+
+  quizSet    QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  answers    QuizAnswer[]
+
+  @@index([quizSetId])
+  @@index([userId, createdAt])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id          String       @id @default(cuid())
+  attemptId   String
+  questionId  String
+  selectedIdx Int
+  isCorrect   Boolean
+  createdAt   DateTime     @default(now())
+
+  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@map("quiz_answers")
 }
 
 // ============================================================================
@@ -815,4 +871,23 @@ model FriendActivity {
 
   @@index([userId, createdAt])
   @@map("friend_activities")
+}
+
+// ============================================================================
+// ACTIVITY TRACKING (Heatmap)
+// ============================================================================
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  type      String   // "message" | "page_edit" | "quiz" | "flashcard_review" | "login"
+  count     Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, type])
+  @@index([userId, date])
+  @@map("activity_events")
 }

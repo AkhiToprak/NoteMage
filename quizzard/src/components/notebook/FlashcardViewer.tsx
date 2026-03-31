@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, RotateCcw, Download,
   Pencil, Plus, Trash2, X, Check, BookPlus, ChevronDown, Loader2, BookCheck, Copy, ImagePlus,
+  Brain,
 } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -24,6 +25,13 @@ interface Flashcard {
   answer: string;
   sortOrder: number;
   images?: FlashcardImageData[];
+}
+
+interface StudyFlashcard extends Flashcard {
+  easeFactor: number;
+  interval: number;
+  repetitions: number;
+  nextReviewAt: string | null;
 }
 
 interface SectionItem {
@@ -65,6 +73,16 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
   const [savingSection, setSavingSection] = useState(false);
   const [sectionSaved, setSectionSaved] = useState(!!assignedSectionId);
   const [showSlideEditor, setShowSlideEditor] = useState(false);
+
+  // Study mode (spaced repetition)
+  const [studyMode, setStudyMode] = useState(false);
+  const [studyCards, setStudyCards] = useState<StudyFlashcard[]>([]);
+  const [studyIndex, setStudyIndex] = useState(0);
+  const [studyFlipped, setStudyFlipped] = useState(false);
+  const [studyResults, setStudyResults] = useState<{ correct: number; total: number } | null>(null);
+  const [loadingStudy, setLoadingStudy] = useState(false);
+  const [dueCount, setDueCount] = useState<number | null>(null);
+  const studyCorrectRef = useRef(0);
 
   const card = cards[currentIndex];
 
@@ -135,6 +153,72 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [flip, prev, next, editingId, isAdding]);
+
+  // ── Fetch due cards count ──
+  useEffect(() => {
+    fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}/study-session`)
+      .then(r => r.json())
+      .then(res => {
+        const cards = res?.data ?? res;
+        if (Array.isArray(cards)) setDueCount(cards.length);
+      })
+      .catch(() => {});
+  }, [notebookId, setId]);
+
+  // ── Study mode ──
+  const startStudyMode = async () => {
+    setLoadingStudy(true);
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}/study-session`);
+      const data = await res.json();
+      const dueCards = data?.data ?? data;
+      if (Array.isArray(dueCards) && dueCards.length > 0) {
+        setStudyCards(dueCards);
+        setStudyIndex(0);
+        setStudyFlipped(false);
+        setStudyResults(null);
+        studyCorrectRef.current = 0;
+        setStudyMode(true);
+      }
+    } finally {
+      setLoadingStudy(false);
+    }
+  };
+
+  const rateCard = async (quality: number) => {
+    const card = studyCards[studyIndex];
+    fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flashcardId: card.id, quality }),
+    }).catch(() => {});
+
+    if (quality >= 3) studyCorrectRef.current++;
+
+    if (studyIndex < studyCards.length - 1) {
+      setStudyIndex(i => i + 1);
+      setStudyFlipped(false);
+    } else {
+      setStudyResults({ correct: studyCorrectRef.current, total: studyCards.length });
+    }
+  };
+
+  const exitStudyMode = () => {
+    setStudyMode(false);
+    setStudyCards([]);
+    setStudyIndex(0);
+    setStudyFlipped(false);
+    setStudyResults(null);
+    studyCorrectRef.current = 0;
+    // Re-fetch due count
+    fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}/study-session`)
+      .then(r => r.json())
+      .then(res => {
+        const cards = res?.data ?? res;
+        if (Array.isArray(cards)) setDueCount(cards.length);
+      })
+      .catch(() => {});
+  };
 
   // ── Edit card ──
   const startEdit = (c: Flashcard) => {
@@ -332,6 +416,189 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
         height: '100%', color: 'rgba(237,233,255,0.4)', fontFamily: 'inherit',
       }}>
         <p style={{ fontSize: '16px', marginBottom: '16px' }}>No flashcards in this set.</p>
+      </div>
+    );
+  }
+
+  // ── Study Mode UI ──
+  if (studyMode) {
+    const studyCard = studyCards[studyIndex];
+
+    // Session complete — show summary
+    if (studyResults) {
+      const pct = Math.round((studyResults.correct / studyResults.total) * 100);
+      return (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          height: '100%', padding: '24px 16px', fontFamily: 'inherit',
+        }}>
+          <div style={{
+            background: '#1a1833', borderRadius: '24px', padding: '48px 40px',
+            border: '1px solid rgba(140,82,255,0.2)', textAlign: 'center',
+            maxWidth: '400px', width: '100%',
+          }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: pct >= 70 ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px',
+            }}>
+              <Brain size={28} style={{ color: pct >= 70 ? '#4ade80' : '#fbbf24' }} />
+            </div>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#ede9ff', margin: '0 0 8px' }}>
+              Session Complete
+            </h2>
+            <p style={{ fontSize: '14px', color: 'rgba(237,233,255,0.5)', margin: '0 0 24px' }}>
+              You reviewed {studyResults.total} {studyResults.total === 1 ? 'card' : 'cards'}
+            </p>
+            <div style={{
+              display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '24px',
+            }}>
+              <div style={{
+                padding: '16px 20px', borderRadius: '12px',
+                background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.2)',
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: '#4ade80' }}>{studyResults.correct}</div>
+                <div style={{ fontSize: '11px', color: 'rgba(74,222,128,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Correct</div>
+              </div>
+              <div style={{
+                padding: '16px 20px', borderRadius: '12px',
+                background: 'rgba(252,165,165,0.1)', border: '1px solid rgba(252,165,165,0.2)',
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: '#fca5a5' }}>{studyResults.total - studyResults.correct}</div>
+                <div style={{ fontSize: '11px', color: 'rgba(252,165,165,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Wrong</div>
+              </div>
+              <div style={{
+                padding: '16px 20px', borderRadius: '12px',
+                background: 'rgba(140,82,255,0.1)', border: '1px solid rgba(140,82,255,0.2)',
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: '#c4a9ff' }}>{pct}%</div>
+                <div style={{ fontSize: '11px', color: 'rgba(196,169,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Accuracy</div>
+              </div>
+            </div>
+            <button
+              onClick={exitStudyMode}
+              style={{
+                padding: '12px 32px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                border: 'none', color: '#fff', fontSize: '14px', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Active study session — show one card at a time
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        height: '100%', padding: '24px 16px', fontFamily: 'inherit', overflow: 'auto',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', maxWidth: '400px', marginBottom: '16px',
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ede9ff', margin: 0 }}>
+            Study Mode
+          </h2>
+          <button
+            onClick={exitStudyMode}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              padding: '6px 12px', borderRadius: '8px',
+              border: '1px solid rgba(140,82,255,0.2)',
+              background: 'transparent', color: 'rgba(237,233,255,0.5)',
+              fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <X size={14} /> Exit
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ width: '100%', maxWidth: '400px', marginBottom: '20px' }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', fontSize: '11px',
+            color: 'rgba(237,233,255,0.4)', marginBottom: '6px',
+          }}>
+            <span>Card {studyIndex + 1} of {studyCards.length}</span>
+            <span>{Math.round(((studyIndex) / studyCards.length) * 100)}% done</span>
+          </div>
+          <div style={{
+            height: '4px', background: 'rgba(140,82,255,0.15)', borderRadius: '2px', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', width: `${(studyIndex / studyCards.length) * 100}%`,
+              background: 'linear-gradient(90deg, #8c52ff, #5170ff)',
+              borderRadius: '2px', transition: 'width 0.3s ease',
+            }} />
+          </div>
+        </div>
+
+        {/* Study card */}
+        {studyCard && (
+          <div
+            onClick={() => !studyFlipped && setStudyFlipped(true)}
+            style={{
+              width: '100%', maxWidth: '360px', minHeight: '400px',
+              borderRadius: '16px', padding: '32px 24px',
+              background: studyFlipped
+                ? 'linear-gradient(135deg, #1a1040, #0f1535)'
+                : 'linear-gradient(135deg, #1a1833, #141230)',
+              border: `1px solid ${studyFlipped ? 'rgba(81,112,255,0.3)' : 'rgba(140,82,255,0.2)'}`,
+              cursor: studyFlipped ? 'default' : 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              textAlign: 'center', marginBottom: '20px',
+            }}
+          >
+            <div style={{
+              fontSize: '10px', color: 'rgba(237,233,255,0.3)', textTransform: 'uppercase',
+              letterSpacing: '0.1em', marginBottom: '16px',
+            }}>
+              {studyFlipped ? 'Answer' : 'Question — tap to reveal'}
+            </div>
+            <div style={{
+              fontSize: '16px', lineHeight: 1.6, color: '#ede9ff',
+              wordBreak: 'break-word', maxWidth: '100%',
+            }}>
+              <MarkdownRenderer content={studyFlipped ? studyCard.answer : studyCard.question} />
+            </div>
+          </div>
+        )}
+
+        {/* Rating buttons — show only after flipping */}
+        {studyFlipped && (
+          <div style={{
+            display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center',
+          }}>
+            {[
+              { quality: 0, label: 'Again', color: '#fca5a5', bg: 'rgba(252,165,165,0.1)', border: 'rgba(252,165,165,0.25)' },
+              { quality: 3, label: 'Hard', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
+              { quality: 4, label: 'Good', color: '#4ade80', bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.25)' },
+              { quality: 5, label: 'Easy', color: '#60a5fa', bg: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.25)' },
+            ].map(({ quality, label, color, bg, border }) => (
+              <button
+                key={quality}
+                onClick={() => rateCard(quality)}
+                style={{
+                  padding: '10px 20px', borderRadius: '10px',
+                  background: bg, border: `1px solid ${border}`,
+                  color, fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'opacity 0.15s ease',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.8'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -665,6 +932,11 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
         ) : (
           <SmallButton onClick={openSectionPicker} icon={<BookPlus size={12} />} label="Add to Notebook" />
         )}
+        <SmallButton
+          onClick={startStudyMode}
+          icon={loadingStudy ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
+          label={dueCount !== null ? `Study (${dueCount})` : 'Study'}
+        />
         {card && (
           <SmallButton onClick={() => deleteCard(card.id)} icon={<Trash2 size={12} />} label="Delete" danger />
         )}

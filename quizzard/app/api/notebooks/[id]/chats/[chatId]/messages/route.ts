@@ -11,6 +11,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { recordActivity } from '@/lib/activity';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
 import { extractText } from '@/lib/fileProcessing';
 import fs from 'fs/promises';
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Record activity (fire-and-forget)
+    recordActivity(userId, 'message').catch(() => {});
 
     // Per-IP request rate limit: 20 requests per minute
     const ip = getClientIp(request);
