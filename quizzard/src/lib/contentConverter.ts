@@ -3,18 +3,18 @@
  * Used when importing files (PDF, DOCX, TXT, MD) as notebook pages.
  */
 
-interface TipTapMark {
+export interface TipTapMark {
   type: string;
   attrs?: Record<string, unknown>;
 }
 
-interface TipTapTextNode {
+export interface TipTapTextNode {
   type: 'text';
   text: string;
   marks?: TipTapMark[];
 }
 
-interface TipTapNode {
+export interface TipTapNode {
   type: string;
   attrs?: Record<string, unknown>;
   content?: (TipTapNode | TipTapTextNode)[];
@@ -22,7 +22,7 @@ interface TipTapNode {
   text?: string;
 }
 
-interface TipTapDoc {
+export interface TipTapDoc {
   type: 'doc';
   content: TipTapNode[];
 }

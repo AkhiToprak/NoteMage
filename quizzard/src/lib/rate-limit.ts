@@ -41,12 +41,28 @@ export function rateLimit(
 }
 
 /**
- * Extract client IP from request headers (X-Forwarded-For or fallback).
+ * Extract client IP from request headers.
+ *
+ * Security: X-Forwarded-For can be spoofed by clients. We take the
+ * *rightmost* IP in the chain (the one added by the last trusted proxy),
+ * which is harder to forge than the leftmost (client-supplied) value.
+ * For environments without a reverse proxy, falls back to x-real-ip.
  */
 export function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    const ips = forwarded.split(',').map(ip => ip.trim()).filter(Boolean);
+    // Use the rightmost IP — the one appended by the closest trusted proxy
+    return ips[ips.length - 1] || 'unknown';
   }
   return request.headers.get('x-real-ip') || 'unknown';
+}
+
+/**
+ * Build a rate-limit key that combines user identity (if authenticated)
+ * with IP. This prevents bypass via header spoofing for logged-in users.
+ */
+export function rateLimitKey(prefix: string, request: NextRequest, userId?: string | null): string {
+  const ip = getClientIp(request);
+  return userId ? `${prefix}:user:${userId}` : `${prefix}:ip:${ip}`;
 }

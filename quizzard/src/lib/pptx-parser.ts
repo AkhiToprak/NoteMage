@@ -14,6 +14,8 @@ export interface PptxSlide {
 }
 
 const MAX_SLIDES = 200;
+const MAX_TOTAL_EXTRACTED_SIZE = 200 * 1024 * 1024; // 200MB total extracted limit
+const MAX_SINGLE_FILE_SIZE = 50 * 1024 * 1024; // 50MB per extracted file
 
 /**
  * Determine MIME type from file extension.
@@ -100,7 +102,12 @@ function getSortedSlideNames(zip: JSZip): string[] {
  * For example, target="../media/image1.png" from "ppt/slides/_rels/slide1.xml.rels"
  * resolves to "ppt/media/image1.png".
  */
-function resolveRelTarget(relsFilePath: string, target: string): string {
+function resolveRelTarget(relsFilePath: string, target: string): string | null {
+  // Reject targets with null bytes or absolute paths
+  if (target.includes('\0') || target.startsWith('/') || target.startsWith('\\')) {
+    return null;
+  }
+
   // Get the directory of the slide file (not the rels file)
   // relsFilePath is like "ppt/slides/_rels/slide1.xml.rels"
   // The relationships are relative to "ppt/slides/"
@@ -109,12 +116,17 @@ function resolveRelTarget(relsFilePath: string, target: string): string {
   const resolved: string[] = [];
   for (const part of parts) {
     if (part === '..') {
+      if (resolved.length === 0) return null; // Would escape archive root
       resolved.pop();
     } else if (part !== '.' && part !== '') {
       resolved.push(part);
     }
   }
-  return resolved.join('/');
+
+  const result = resolved.join('/');
+  // Final safety check: reject if the path still contains traversal sequences
+  if (result.includes('..') || result.startsWith('/')) return null;
+  return result;
 }
 
 /**
@@ -124,6 +136,7 @@ export async function parsePptxFile(buffer: Buffer): Promise<PptxSlide[]> {
   const zip = await JSZip.loadAsync(buffer);
   const slideNames = getSortedSlideNames(zip);
   const slides: PptxSlide[] = [];
+  let totalExtractedSize = 0;
 
   const limitedSlideNames = slideNames.slice(0, MAX_SLIDES);
 
@@ -133,6 +146,10 @@ export async function parsePptxFile(buffer: Buffer): Promise<PptxSlide[]> {
     if (!slideFile) continue;
 
     const slideXml = await slideFile.async('string');
+    totalExtractedSize += Buffer.byteLength(slideXml, 'utf8');
+    if (totalExtractedSize > MAX_TOTAL_EXTRACTED_SIZE) {
+      throw new Error('PPTX file exceeds maximum decompressed size limit');
+    }
 
     // Extract text content
     const textNodes = extractTextNodes(slideXml);
@@ -161,10 +178,17 @@ export async function parsePptxFile(buffer: Buffer): Promise<PptxSlide[]> {
           if (!target) continue;
 
           const resolvedPath = resolveRelTarget(relsPath, target);
+          if (!resolvedPath) continue; // Reject path traversal attempts
           const imageFile = zip.file(resolvedPath);
           if (!imageFile) continue;
 
           const imageBuffer = Buffer.from(await imageFile.async('arraybuffer'));
+          if (imageBuffer.length > MAX_SINGLE_FILE_SIZE) continue; // Skip oversized files
+          totalExtractedSize += imageBuffer.length;
+          if (totalExtractedSize > MAX_TOTAL_EXTRACTED_SIZE) {
+            throw new Error('PPTX file exceeds maximum decompressed size limit');
+          }
+
           const fileName = resolvedPath.split('/').pop() || `image_${relId}.png`;
           const mimeType = mimeFromExtension(fileName);
 

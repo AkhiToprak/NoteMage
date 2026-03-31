@@ -59,6 +59,7 @@ model User {
   lastSeenAt             DateTime?
   notebookComments       NotebookComment[]
   notebookCommentVotes   NotebookCommentVote[]
+  microsoftConnection    MicrosoftConnection?
 
   @@map("users")
 }
@@ -420,6 +421,23 @@ model StudyMaterial {
 
   @@index([phaseId])
   @@map("study_materials")
+}
+
+// --- Microsoft OneNote Connection ---
+
+model MicrosoftConnection {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scope        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("microsoft_connections")
 }
 
 // --- 1.3 Friendships ---

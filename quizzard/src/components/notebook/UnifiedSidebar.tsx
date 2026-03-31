@@ -18,6 +18,7 @@ import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
 import FlashcardImportDialog from '@/components/notebook/FlashcardImportDialog';
 import FlashcardSetManager from '@/components/notebook/FlashcardSetManager';
 import ExportDialog from '@/components/notebook/ExportDialog';
+import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import StudyPlanCreator from '@/components/notebook/StudyPlanCreator';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
@@ -46,6 +47,9 @@ export default function UnifiedSidebar() {
 
   // Export dialog
   const [showExportDialog, setShowExportDialog] = useState(false);
+
+  // Import dialog
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   useEffect(() => {
     if (isCreatingSection && sectionInputRef.current) sectionInputRef.current.focus();
@@ -338,6 +342,44 @@ export default function UnifiedSidebar() {
           Manage Sets
         </button>
 
+        {/* ── Import Notebook button ──────────────────────────── */}
+        <button
+          onClick={() => setShowImportDialog(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '7px 14px',
+            margin: '0 6px 4px',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'transparent',
+            color: 'rgba(196,169,255,0.6)',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            textAlign: 'left',
+            width: 'calc(100% - 12px)',
+            transition: 'background 0.15s ease, color 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.1)';
+            (e.currentTarget as HTMLButtonElement).style.color = '#c4a9ff';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.6)';
+          }}
+        >
+          <div style={{
+            width: '20px', height: '20px', borderRadius: '5px',
+            background: 'rgba(140,82,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Upload size={11} style={{ color: '#c4a9ff' }} />
+          </div>
+          Import
+        </button>
+
         {/* ── Export Pages button ──────────────────────────────── */}
         <button
           onClick={() => setShowExportDialog(true)}
@@ -393,6 +435,15 @@ export default function UnifiedSidebar() {
           notebookId={notebookId}
           onClose={() => setShowSetManager(false)}
           onUpdated={() => refreshSections()}
+        />
+      )}
+
+      {/* Import Dialog modal */}
+      {showImportDialog && (
+        <ImportNotebookDialog
+          notebookId={notebookId}
+          onImported={() => { setShowImportDialog(false); refreshSections(); }}
+          onClose={() => setShowImportDialog(false)}
         />
       )}
 
