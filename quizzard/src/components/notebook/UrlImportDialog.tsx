@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Globe, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Globe, X, Loader2, AlertCircle, CheckCircle2, Youtube } from 'lucide-react';
 
 interface UrlImportDialogProps {
   notebookId: string;
@@ -22,6 +22,25 @@ export default function UrlImportDialog({
   const [importState, setImportState] = useState<ImportState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
+  const isYouTubeUrl = useMemo(() => {
+    return /(?:youtube\.com|youtu\.be)/i.test(url.trim());
+  }, [url]);
+
+  const youtubeVideoId = useMemo(() => {
+    const trimmed = url.trim();
+    const patterns = [
+      /(?:youtube\.com\/watch\?.*v=)([a-zA-Z0-9_-]{11})/,
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    ];
+    for (const p of patterns) {
+      const m = trimmed.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  }, [url]);
+
   const handleImport = useCallback(async () => {
     const trimmed = url.trim();
     if (!trimmed) return;
@@ -30,14 +49,15 @@ export default function UrlImportDialog({
     setErrorMessage('');
 
     try {
-      const res = await fetch(
-        `/api/notebooks/${notebookId}/sections/${sectionId}/import-url`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: trimmed }),
-        }
-      );
+      const endpoint = isYouTubeUrl
+        ? `/api/notebooks/${notebookId}/documents/youtube`
+        : `/api/notebooks/${notebookId}/sections/${sectionId}/import-url`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      });
 
       const body = await res.json().catch(() => null);
 
@@ -53,7 +73,7 @@ export default function UrlImportDialog({
       setErrorMessage(err instanceof Error ? err.message : 'Import failed');
       setImportState('error');
     }
-  }, [url, notebookId, sectionId, onImported]);
+  }, [url, notebookId, sectionId, onImported, isYouTubeUrl]);
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -178,7 +198,11 @@ export default function UrlImportDialog({
                 justifyContent: 'center',
               }}
             >
-              <Globe size={24} style={{ color: '#8c52ff' }} />
+              {isYouTubeUrl ? (
+                <Youtube size={24} style={{ color: '#ff0000' }} />
+              ) : (
+                <Globe size={24} style={{ color: '#8c52ff' }} />
+              )}
             </div>
             <p
               style={{
@@ -189,9 +213,46 @@ export default function UrlImportDialog({
                 lineHeight: '1.5',
               }}
             >
-              Paste a URL to import its text content as a new page.
+              {isYouTubeUrl
+                ? "This is a YouTube video. We'll extract the transcript."
+                : 'Paste a URL to import its text content as a new page.'}
             </p>
           </div>
+
+          {/* YouTube thumbnail preview */}
+          {isYouTubeUrl && youtubeVideoId && (
+            <div
+              style={{
+                borderRadius: '10px',
+                overflow: 'hidden',
+                border: '1px solid rgba(140,82,255,0.15)',
+                position: 'relative',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`}
+                alt="Video thumbnail"
+                style={{ width: '100%', display: 'block', aspectRatio: '16/9', objectFit: 'cover' }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  background: 'rgba(255,0,0,0.85)',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Youtube size={14} style={{ color: '#fff' }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>YouTube</span>
+              </div>
+            </div>
+          )}
 
           {/* URL input */}
           <input
@@ -372,7 +433,9 @@ export default function UrlImportDialog({
                 style={{ animation: 'url-import-spin 1s linear infinite' }}
               />
             )}
-            {importState === 'importing' ? 'Importing...' : 'Import'}
+            {importState === 'importing'
+              ? (isYouTubeUrl ? 'Extracting transcript...' : 'Importing...')
+              : (isYouTubeUrl ? 'Extract Transcript' : 'Import')}
           </button>
         </div>
 

@@ -5,6 +5,7 @@ import { ChevronRight, Plus, Trash2, FileText, FileUp, Layers, HelpCircle } from
 import Link from 'next/link';
 import PageItem from '@/components/notebook/PageItem';
 import FileImportDialog from '@/components/notebook/FileImportDialog';
+import UrlImportDialog from '@/components/notebook/UrlImportDialog';
 import type { SectionNode } from '@/components/notebook/SectionTree';
 
 interface SectionItemProps {
@@ -27,8 +28,23 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
   const [headerHovered, setHeaderHovered] = useState(false);
   const [isCreatingPage, setIsCreatingPage] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showUrlImport, setShowUrlImport] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const importMenuRef = useRef<HTMLDivElement>(null);
   const [newPageTitle, setNewPageTitle] = useState('');
   const pageInputRef = useRef<HTMLInputElement>(null);
+
+  // Close import menu on outside click
+  useEffect(() => {
+    if (!showImportMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (importMenuRef.current && !importMenuRef.current.contains(e.target as Node)) {
+        setShowImportMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showImportMenu]);
 
   // Expand when active page appears inside
   useEffect(() => {
@@ -154,12 +170,13 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
             >
               <Plus size={14} />
             </button>
+            <div ref={importMenuRef} style={{ position: 'relative' }}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowImport(true);
+                setShowImportMenu((v) => !v);
               }}
-              title="Import file"
+              title="Import"
               style={{
                 width: '20px',
                 height: '20px',
@@ -183,6 +200,79 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
             >
               <FileUp size={12} />
             </button>
+            {showImportMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '4px',
+                  background: '#1a1a2e',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(140,82,255,0.15)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                  zIndex: 50,
+                  minWidth: '180px',
+                  padding: '4px',
+                }}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowImportMenu(false);
+                    setShowImport(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#ede9ff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(140,82,255,0.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <FileUp size={14} style={{ color: '#8c52ff', flexShrink: 0 }} />
+                  Upload File
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowImportMenu(false);
+                    setShowUrlImport(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#ede9ff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(140,82,255,0.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#ff0000', flexShrink: 0 }}>smart_display</span>
+                  URL / YouTube
+                </button>
+              </div>
+            )}
+            </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -306,6 +396,19 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
             onRefresh();
           }}
           onClose={() => setShowImport(false)}
+        />
+      )}
+
+      {/* URL / YouTube import dialog */}
+      {showUrlImport && (
+        <UrlImportDialog
+          notebookId={notebookId}
+          sectionId={section.id}
+          onImported={() => {
+            setShowUrlImport(false);
+            onRefresh();
+          }}
+          onClose={() => setShowUrlImport(false)}
         />
       )}
     </div>

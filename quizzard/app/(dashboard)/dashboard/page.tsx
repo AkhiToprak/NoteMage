@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ActivityHeatmap from '@/components/features/ActivityHeatmap';
+import StreakDisplay from '@/components/features/StreakDisplay';
 
 interface RecentItem {
   id: string;
@@ -76,6 +77,9 @@ export default function DashboardPage() {
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSetItem[]>([]);
   const [flashcardCount, setFlashcardCount] = useState<number | null>(null);
   const [showFlashcardDropdown, setShowFlashcardDropdown] = useState(false);
+  const [streakValue, setStreakValue] = useState<string>('—');
+  const [streakIsActive, setStreakIsActive] = useState(false);
+  const [freezesLeft, setFreezeesLeft] = useState(0);
   const flashcardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +100,18 @@ export default function DashboardPage() {
         if (Array.isArray(d)) {
           setFlashcardSets(d);
           setFlashcardCount(d.length);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/user/streak')
+      .then((r) => r.json())
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (d?.currentStreak !== undefined) {
+          setStreakValue(String(d.currentStreak));
+          setStreakIsActive(d.isActiveToday);
+          setFreezeesLeft(d.freezesLeft);
         }
       })
       .catch(() => {});
@@ -139,13 +155,13 @@ export default function DashboardPage() {
     },
     {
       label: 'Day Streak',
-      value: '—',
+      value: streakValue,
       icon: 'local_fire_department',
       iconFilled: true,
       iconColor: '#fd6f85',
       iconBg: 'rgba(253,111,133,0.1)',
       arrowColor: 'rgba(253,111,133,0.4)',
-      badge: (
+      badge: streakIsActive ? (
         <div
           style={{
             padding: '2px 8px',
@@ -160,7 +176,22 @@ export default function DashboardPage() {
         >
           Hot
         </div>
-      ),
+      ) : freezesLeft > 0 ? (
+        <div
+          style={{
+            padding: '2px 8px',
+            background: 'rgba(74,222,128,0.1)',
+            borderRadius: '8px',
+            fontSize: '10px',
+            fontWeight: 700,
+            color: '#4ade80',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+          }}
+        >
+          {freezesLeft} freeze{freezesLeft !== 1 ? 's' : ''}
+        </div>
+      ) : undefined,
     },
   ];
 
