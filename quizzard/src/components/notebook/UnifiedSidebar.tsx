@@ -74,12 +74,12 @@ export default function UnifiedSidebar() {
     <aside style={{
       width: '280px',
       minWidth: '280px',
-      background: '#0d0c20',
+      background: '#111126',
       borderRight: '1px solid rgba(140,82,255,0.1)',
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      fontFamily: "'Gliker', 'DM Sans', sans-serif",
+      fontFamily: 'inherit',
     }}>
       {/* ── Header: Logo + Notebook name ────────────────────────────── */}
       <div style={{
@@ -148,7 +148,7 @@ export default function UnifiedSidebar() {
               padding: '6px 28px 6px 30px',
               borderRadius: 8,
               border: `1px solid ${wsSearchFocused ? 'rgba(174,137,255,0.35)' : 'rgba(140,82,255,0.1)'}`,
-              background: wsSearchFocused ? 'rgba(174,137,255,0.06)' : 'rgba(255,255,255,0.02)',
+              background: wsSearchFocused ? 'rgba(174,137,255,0.06)' : 'rgba(255,255,255,0.035)',
               color: '#ede9ff',
               fontSize: 12,
               outline: 'none',
@@ -252,7 +252,7 @@ export default function UnifiedSidebar() {
                   border: '1px solid rgba(140,82,255,0.3)',
                   borderRadius: '4px',
                   padding: '3px 7px',
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontSize: '12px',
                   color: '#ede9ff',
                   outline: 'none',
@@ -318,7 +318,7 @@ export default function UnifiedSidebar() {
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             textAlign: 'left',
             width: 'calc(100% - 12px)',
             transition: 'background 0.15s ease, color 0.15s ease',
@@ -356,7 +356,7 @@ export default function UnifiedSidebar() {
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             textAlign: 'left',
             width: 'calc(100% - 12px)',
             transition: 'background 0.15s ease, color 0.15s ease',
@@ -394,7 +394,7 @@ export default function UnifiedSidebar() {
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             textAlign: 'left',
             width: 'calc(100% - 12px)',
             transition: 'background 0.15s ease, color 0.15s ease',
@@ -615,7 +615,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
         {/* Section title */}
         <span style={{
           flex: 1,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: depth === 0 ? '13px' : '12px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.65)',
@@ -783,7 +783,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                   border: '1px solid rgba(140,82,255,0.3)',
                   borderRadius: '4px',
                   padding: '3px 7px',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontSize: '12px',
                   color: '#ede9ff',
                   outline: 'none',
@@ -819,7 +819,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                   border: '1px solid rgba(140,82,255,0.3)',
                   borderRadius: '4px',
                   padding: '3px 7px',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontSize: '12px',
                   color: '#ede9ff',
                   outline: 'none',
@@ -924,7 +924,7 @@ function PageTreeRow({ page, isActive, notebookId, accentColor, depth, onDelete 
         )}
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '12px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
@@ -995,7 +995,7 @@ function FlashcardSetTreeRow({ flashcardSet, isActive, notebookId, accentColor, 
         />
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '12px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
@@ -1121,7 +1121,7 @@ function StudyPlanTreeSection() {
                       fontSize: '12.5px', fontWeight: 500,
                       color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                     }}>
                       {plan.title}
                     </div>
@@ -1129,7 +1129,7 @@ function StudyPlanTreeSection() {
                       fontSize: '10px',
                       color: 'rgba(196,169,255,0.35)',
                       marginTop: '1px',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                     }}>
                       {formatDateRange(plan.startDate, plan.endDate)} · {plan._count.phases} phase{plan._count.phases !== 1 ? 's' : ''}
                     </div>
@@ -1353,7 +1353,7 @@ function ChatTreeRow({ chat, isActive, notebookId, onDelete }: {
           />
           <span style={{
             flex: 1, minWidth: 0,
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: isActive ? 600 : 400,
             color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
@@ -1446,7 +1446,7 @@ function FlashcardSetRow({ flashcardSet, isActive, notebookId }: {
         />
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '11px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.45)',
@@ -1496,7 +1496,7 @@ function QuizSetRow({ quizSet, isActive, notebookId }: {
         />
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '11px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.45)',
@@ -1551,7 +1551,7 @@ function QuizSetTreeRow({ quizSet, isActive, notebookId, accentColor, depth }: {
         />
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '12px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',

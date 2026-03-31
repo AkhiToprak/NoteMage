@@ -37,7 +37,7 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid rgba(140,82,255,0.3)',
   borderRadius: '12px',
   padding: '11px 14px',
-  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+  fontFamily: 'inherit',
   fontSize: '14px',
   color: '#ede9ff',
   outline: 'none',
@@ -47,7 +47,7 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+  fontFamily: 'inherit',
   fontSize: '12px',
   fontWeight: '600',
   color: 'rgba(237,233,255,0.5)',
@@ -166,7 +166,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
     >
       <div
         style={{
-          background: '#0d0c20',
+          background: '#111126',
           border: '1px solid rgba(140,82,255,0.2)',
           borderRadius: '18px',
           padding: '28px',
@@ -193,7 +193,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
             padding: 5px 12px;
             border-radius: 9999px;
             border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.07);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -228,7 +228,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2
             style={{
-              fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               fontSize: '18px',
               fontWeight: '700',
               color: '#ede9ff',
@@ -317,7 +317,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                 />
                 <span
                   style={{
-                    fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                     fontSize: '12px',
                     fontWeight: '600',
                     color: selectedPreset.color,
@@ -370,7 +370,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                   />
                   <span
                     style={{
-                      fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                       fontSize: '12px',
                       fontWeight: '600',
                       color: selectedPreset.color,
@@ -398,7 +398,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                 <label
                   style={{
                     display: 'block',
-                    fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                     fontSize: '11px',
                     fontWeight: '600',
                     color: 'rgba(237,233,255,0.4)',
@@ -486,7 +486,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                     border: 'none',
                     padding: '0',
                     cursor: 'pointer',
-                    fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                     fontSize: '12px',
                     color: 'rgba(174,137,255,0.7)',
                     display: 'flex',
@@ -507,7 +507,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
               <div
                 style={{
                   marginTop: '8px',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'rgba(255,255,255,0.07)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '12px',
                   padding: '6px',
@@ -524,7 +524,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                 >
                   <span
                     style={{
-                      fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                       fontSize: '11px',
                       fontWeight: '600',
                       color: 'rgba(237,233,255,0.35)',
@@ -567,7 +567,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                     />
                     <span
                       style={{
-                        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                        fontFamily: 'inherit',
                         fontSize: '13px',
                         fontWeight: '600',
                         color: '#ede9ff',
@@ -577,7 +577,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                     </span>
                     <span
                       style={{
-                        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                        fontFamily: 'inherit',
                         fontSize: '11px',
                         color: 'rgba(237,233,255,0.35)',
                         marginLeft: 'auto',
@@ -649,7 +649,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                 borderRadius: '12px',
                 background: 'rgba(237,233,255,0.06)',
                 border: '1px solid rgba(237,233,255,0.12)',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '14px',
                 fontWeight: '600',
                 color: 'rgba(237,233,255,0.6)',
@@ -679,7 +679,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
                     ? 'rgba(140,82,255,0.3)'
                     : 'linear-gradient(135deg, #8c52ff, #5170ff)',
                 border: 'none',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '14px',
                 fontWeight: '700',
                 color: isLoading || !form.name.trim() ? 'rgba(237,233,255,0.4)' : '#ede9ff',

@@ -45,7 +45,7 @@ export default function PageItem({ page, notebookId, isActive, onRefresh, lockIn
         padding: '5px 10px 5px 38px',
         borderRadius: '6px',
         textDecoration: 'none',
-        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         fontSize: '13px',
         color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
         fontWeight: isActive ? 500 : 400,

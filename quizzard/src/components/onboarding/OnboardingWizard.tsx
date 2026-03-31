@@ -154,7 +154,7 @@ export default function OnboardingWizard() {
             width: '80px',
             height: '80px',
             marginBottom: '24px',
-            background: '#23233c',
+            background: '#2a2a4c',
             borderRadius: '20px',
             display: 'flex',
             alignItems: 'center',
@@ -197,7 +197,7 @@ export default function OnboardingWizard() {
       {/* Card */}
       <div
         style={{
-          background: '#121222',
+          background: '#161630',
           borderRadius: '32px',
           padding: '40px',
           boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
@@ -291,7 +291,7 @@ export default function OnboardingWizard() {
             style={{
               fontSize: '12px',
               fontWeight: 500,
-              color: '#737390',
+              color: '#8888a8',
               textDecoration: 'none',
               transition: 'color 0.15s',
             }}
@@ -299,7 +299,7 @@ export default function OnboardingWizard() {
               (e.currentTarget as HTMLAnchorElement).style.color = '#e5e3ff';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = '#737390';
+              (e.currentTarget as HTMLAnchorElement).style.color = '#8888a8';
             }}
           >
             {item}

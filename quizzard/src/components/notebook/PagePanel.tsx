@@ -79,7 +79,7 @@ export default function PagePanel() {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}>
         {/* Header */}
         <div style={{
@@ -143,7 +143,7 @@ export default function PagePanel() {
                 border: '1px solid rgba(140,82,255,0.2)',
                 background: 'rgba(140,82,255,0.06)',
                 color: 'rgba(196,169,255,0.5)',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '11px',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -177,7 +177,7 @@ export default function PagePanel() {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      fontFamily: "'Gliker', 'DM Sans', sans-serif",
+      fontFamily: 'inherit',
     }}>
       {/* Section name header */}
       <div style={{
@@ -256,7 +256,7 @@ export default function PagePanel() {
                 border: '1px solid rgba(140,82,255,0.3)',
                 borderRadius: '4px',
                 padding: '3px 7px',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '12px',
                 color: '#ede9ff',
                 outline: 'none',
@@ -279,7 +279,7 @@ export default function PagePanel() {
             border: '1px solid rgba(140,82,255,0.1)',
             background: 'transparent',
             color: activeSectionId ? 'rgba(237,233,255,0.35)' : 'rgba(237,233,255,0.15)',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '11px',
             fontWeight: 500,
             cursor: activeSectionId ? 'pointer' : 'not-allowed',
@@ -336,7 +336,7 @@ function ChatRow({ chat, isActive, notebookId, onDelete }: {
         />
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '13px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.6)',
@@ -399,7 +399,7 @@ function PageRow({ page, isActive, notebookId, accentColor, onDelete }: {
         <FileText size={13} style={{ color: isActive ? accentColor : 'rgba(237,233,255,0.25)', flexShrink: 0 }} />
         <span style={{
           flex: 1, minWidth: 0,
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '13px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.6)',

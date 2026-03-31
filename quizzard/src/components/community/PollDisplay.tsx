@@ -23,14 +23,14 @@ interface PollDisplayProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
 } as const;
 
 export default function PollDisplay({ postId, poll, onVote }: PollDisplayProps) {
@@ -121,7 +121,7 @@ export default function PollDisplay({ postId, poll, onVote }: PollDisplayProps) 
                     width: `${percentage}%`,
                     background: opt.userVoted
                       ? 'rgba(174,137,255,0.15)'
-                      : 'rgba(255,255,255,0.03)',
+                      : 'rgba(255,255,255,0.07)',
                     transition: `width 0.5s ${EASING}`,
                   }}
                 />

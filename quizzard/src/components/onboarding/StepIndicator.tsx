@@ -39,13 +39,13 @@ export default function StepIndicator({ currentStep, totalSteps, labels }: StepI
                     background: isCompleted
                       ? '#ae89ff'
                       : isActive
-                      ? '#121222'
-                      : '#23233c',
+                      ? '#161630'
+                      : '#2a2a4c',
                     border: isCompleted
                       ? '2px solid #ae89ff'
                       : isActive
                       ? '2px solid #ae89ff'
-                      : '2px solid #464560',
+                      : '2px solid #555578',
                     animation: isActive ? 'stepGlow 2s ease-in-out infinite' : 'none',
                     transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1), border-color 0.3s cubic-bezier(0.22,1,0.36,1)',
                   }}
@@ -62,7 +62,7 @@ export default function StepIndicator({ currentStep, totalSteps, labels }: StepI
                       style={{
                         fontSize: '13px',
                         fontWeight: 700,
-                        color: isActive ? '#ae89ff' : '#464560',
+                        color: isActive ? '#ae89ff' : '#555578',
                       }}
                     >
                       {stepNum}
@@ -91,7 +91,7 @@ export default function StepIndicator({ currentStep, totalSteps, labels }: StepI
                     flex: 1,
                     height: '2px',
                     marginTop: '15px',
-                    background: stepNum < currentStep ? '#ae89ff' : '#464560',
+                    background: stepNum < currentStep ? '#ae89ff' : '#555578',
                     transition: 'background 0.4s cubic-bezier(0.22,1,0.36,1)',
                     minWidth: '24px',
                   }}

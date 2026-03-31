@@ -12,13 +12,13 @@ import { useEffect, useRef, useCallback } from 'react';
 const lowlight = createLowlight(common);
 
 const COLORS = {
-  elevated: '#1d1d33',
+  elevated: '#232342',
   primary: '#8c52ff',
   primaryLight: '#ae89ff',
   textPrimary: '#ede9ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
   borderSubtle: '#2a2a44',
 } as const;
 
@@ -308,7 +308,7 @@ export default function PublishRichEditor({ content, onChange }: PublishRichEdit
             color: ${COLORS.textSecondary};
           }
           .publish-rich-editor .tiptap pre {
-            background: #0d0d1a;
+            background: #111126;
             border-radius: 8px;
             padding: 16px;
             margin: 12px 0;

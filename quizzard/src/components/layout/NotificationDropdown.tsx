@@ -19,14 +19,14 @@ interface NotificationDropdownProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  cardBg: '#121222',
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  cardBg: '#161630',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
 } as const;
 
 const NOTIFICATION_ICONS: Record<string, string> = {
@@ -252,7 +252,7 @@ export default function NotificationDropdown({ onClose, onRead, onReadAll }: Not
                     padding: '12px 18px',
                     border: 'none',
                     background: isHovered
-                      ? 'rgba(255,255,255,0.03)'
+                      ? 'rgba(255,255,255,0.07)'
                       : !n.read
                       ? 'rgba(174,137,255,0.04)'
                       : 'transparent',

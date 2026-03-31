@@ -137,7 +137,7 @@ export default function AiChatPage() {
         style={{
           width: '320px',
           minWidth: '320px',
-          background: '#121222',
+          background: '#161630',
           display: 'flex',
           flexDirection: 'column',
           gap: '24px',
@@ -167,7 +167,7 @@ export default function AiChatPage() {
         {/* Notebook items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {notebooks.length === 0 && (
-            <p style={{ fontSize: '13px', color: '#464560', textAlign: 'center', padding: '24px 0' }}>
+            <p style={{ fontSize: '13px', color: '#555578', textAlign: 'center', padding: '24px 0' }}>
               No notebooks yet. Create one to get started.
             </p>
           )}
@@ -179,15 +179,15 @@ export default function AiChatPage() {
                 alignItems: 'flex-start',
                 gap: '12px',
                 padding: '16px',
-                background: nb.selected ? '#18182a' : '#0d0d1a',
+                background: nb.selected ? '#1c1c38' : '#111126',
                 borderRadius: '12px',
                 cursor: 'pointer',
                 transition: 'background 0.15s',
                 border: '1px solid',
                 borderColor: nb.selected ? 'transparent' : 'rgba(70,69,96,0.2)',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLLabelElement).style.background = '#1d1d33'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLLabelElement).style.background = nb.selected ? '#18182a' : '#0d0d1a'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLLabelElement).style.background = '#232342'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLLabelElement).style.background = nb.selected ? '#1c1c38' : '#111126'; }}
             >
               <input
                 type="checkbox"
@@ -220,7 +220,7 @@ export default function AiChatPage() {
                 <span
                   style={{
                     fontSize: '10px',
-                    color: '#737390',
+                    color: '#8888a8',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
                     marginTop: '2px',
@@ -232,7 +232,7 @@ export default function AiChatPage() {
               </div>
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '18px', color: nb.selected ? '#aaa8c8' : '#464560', flexShrink: 0 }}
+                style={{ fontSize: '18px', color: nb.selected ? '#aaa8c8' : '#555578', flexShrink: 0 }}
               >
                 description
               </span>
@@ -272,14 +272,14 @@ export default function AiChatPage() {
         </button>
 
         {selectedCount > 0 && (
-          <p style={{ fontSize: '11px', color: '#737390', textAlign: 'center', margin: '0' }}>
+          <p style={{ fontSize: '11px', color: '#8888a8', textAlign: 'center', margin: '0' }}>
             {selectedCount} source{selectedCount !== 1 ? 's' : ''} active
           </p>
         )}
       </aside>
 
       {/* Right panel: Chat */}
-      <section style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d1a', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#111126', position: 'relative', overflow: 'hidden' }}>
 
         {/* Chat history */}
         <div
@@ -372,7 +372,7 @@ export default function AiChatPage() {
                     borderRadius: '20px',
                     borderTopLeftRadius: msg.role === 'assistant' ? '4px' : '20px',
                     borderTopRightRadius: msg.role === 'user' ? '4px' : '20px',
-                    background: msg.role === 'assistant' ? '#18182a' : '#ae89ff',
+                    background: msg.role === 'assistant' ? '#1c1c38' : '#ae89ff',
                     border: msg.role === 'assistant' ? '1px solid rgba(70,69,96,0.1)' : 'none',
                     boxShadow: msg.role === 'assistant'
                       ? '0 8px 32px rgba(0,0,0,0.3)'
@@ -416,7 +416,7 @@ export default function AiChatPage() {
                   padding: '20px 24px',
                   borderRadius: '20px',
                   borderTopLeftRadius: '4px',
-                  background: '#18182a',
+                  background: '#1c1c38',
                   border: '1px solid rgba(70,69,96,0.1)',
                   display: 'flex',
                   alignItems: 'center',
@@ -447,7 +447,7 @@ export default function AiChatPage() {
             width: '100%',
             padding: '32px',
             paddingTop: 0,
-            background: 'linear-gradient(to top, #0d0d1a 60%, rgba(13,13,26,0.9) 80%, transparent)',
+            background: 'linear-gradient(to top, #111126 60%, rgba(17,17,38,0.9) 80%, transparent)',
           }}
         >
           <div style={{ maxWidth: '768px', margin: '0 auto', position: 'relative' }}>
@@ -468,7 +468,7 @@ export default function AiChatPage() {
             <div
               style={{
                 position: 'relative',
-                background: '#1d1d33',
+                background: '#232342',
                 border: '1px solid rgba(70,69,96,0.2)',
                 borderRadius: '24px',
                 padding: '8px',
@@ -556,9 +556,9 @@ export default function AiChatPage() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '16px',
-                    background: isTyping || !input.trim() ? '#23233c' : '#ae89ff',
+                    background: isTyping || !input.trim() ? '#2a2a4c' : '#ae89ff',
                     border: 'none',
-                    color: isTyping || !input.trim() ? '#464560' : '#2a0066',
+                    color: isTyping || !input.trim() ? '#555578' : '#2a0066',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

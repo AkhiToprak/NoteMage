@@ -167,10 +167,10 @@ export default function NotebookBrowser() {
       <div
         key={`skeleton-${i}`}
         style={{
-          background: '#121222',
+          background: '#161630',
           borderRadius: '16px',
           overflow: 'hidden',
-          border: '1px solid #464560',
+          border: '1px solid #555578',
           minHeight: '220px',
         }}
       >
@@ -178,7 +178,7 @@ export default function NotebookBrowser() {
         <div
           style={{
             height: '4px',
-            background: 'linear-gradient(90deg, #1d1d33 0%, #23233c 50%, #1d1d33 100%)',
+            background: 'linear-gradient(90deg, #232342 0%, #2a2a4c 50%, #232342 100%)',
             backgroundSize: '800px 4px',
             animation: 'shimmer 1.5s infinite linear',
           }}
@@ -190,7 +190,7 @@ export default function NotebookBrowser() {
               height: '18px',
               width: '70%',
               borderRadius: '6px',
-              background: 'linear-gradient(90deg, #1d1d33 0%, #23233c 50%, #1d1d33 100%)',
+              background: 'linear-gradient(90deg, #232342 0%, #2a2a4c 50%, #232342 100%)',
               backgroundSize: '800px 18px',
               animation: 'shimmer 1.5s infinite linear',
             }}
@@ -201,7 +201,7 @@ export default function NotebookBrowser() {
               height: '14px',
               width: '40%',
               borderRadius: '6px',
-              background: 'linear-gradient(90deg, #1d1d33 0%, #23233c 50%, #1d1d33 100%)',
+              background: 'linear-gradient(90deg, #232342 0%, #2a2a4c 50%, #232342 100%)',
               backgroundSize: '800px 14px',
               animation: 'shimmer 1.5s infinite linear',
             }}
@@ -213,7 +213,7 @@ export default function NotebookBrowser() {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                background: 'linear-gradient(90deg, #1d1d33 0%, #23233c 50%, #1d1d33 100%)',
+                background: 'linear-gradient(90deg, #232342 0%, #2a2a4c 50%, #232342 100%)',
                 backgroundSize: '800px 24px',
                 animation: 'shimmer 1.5s infinite linear',
               }}
@@ -223,7 +223,7 @@ export default function NotebookBrowser() {
                 height: '12px',
                 width: '80px',
                 borderRadius: '4px',
-                background: 'linear-gradient(90deg, #1d1d33 0%, #23233c 50%, #1d1d33 100%)',
+                background: 'linear-gradient(90deg, #232342 0%, #2a2a4c 50%, #232342 100%)',
                 backgroundSize: '800px 12px',
                 animation: 'shimmer 1.5s infinite linear',
               }}
@@ -237,7 +237,7 @@ export default function NotebookBrowser() {
               width: '60%',
               borderRadius: '4px',
               marginTop: '24px',
-              background: 'linear-gradient(90deg, #1d1d33 0%, #23233c 50%, #1d1d33 100%)',
+              background: 'linear-gradient(90deg, #232342 0%, #2a2a4c 50%, #232342 100%)',
               backgroundSize: '800px 12px',
               animation: 'shimmer 1.5s infinite linear',
             }}
@@ -260,14 +260,14 @@ export default function NotebookBrowser() {
     >
       <span
         className="material-symbols-outlined"
-        style={{ fontSize: '48px', color: '#464560' }}
+        style={{ fontSize: '48px', color: '#555578' }}
       >
         library_books
       </span>
       <p style={{ fontSize: '16px', fontWeight: 600, color: '#aaa8c8', margin: 0 }}>
         No notebooks found
       </p>
-      <p style={{ fontSize: '13px', color: '#737390', margin: 0, textAlign: 'center' }}>
+      <p style={{ fontSize: '13px', color: '#8888a8', margin: 0, textAlign: 'center' }}>
         {debouncedSearch || debouncedSubject
           ? 'Try adjusting your search or filters.'
           : 'Be the first to share a notebook with the community!'}
@@ -296,7 +296,7 @@ export default function NotebookBrowser() {
       <p style={{ fontSize: '16px', fontWeight: 600, color: '#fd6f85', margin: 0 }}>
         Something went wrong
       </p>
-      <p style={{ fontSize: '13px', color: '#737390', margin: 0, textAlign: 'center' }}>
+      <p style={{ fontSize: '13px', color: '#8888a8', margin: 0, textAlign: 'center' }}>
         {error}
       </p>
       <button
@@ -380,7 +380,7 @@ export default function NotebookBrowser() {
                   fontWeight: 600,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  background: isActive ? '#ae89ff' : isHovered ? '#23233c' : '#1d1d33',
+                  background: isActive ? '#ae89ff' : isHovered ? '#2a2a4c' : '#232342',
                   color: isActive ? '#2a0066' : '#aaa8c8',
                   transition: `background 0.2s ${TRANSITION}, color 0.2s ${TRANSITION}`,
                 }}
@@ -410,7 +410,7 @@ export default function NotebookBrowser() {
               top: '50%',
               transform: 'translateY(-50%)',
               fontSize: '18px',
-              color: searchFocused ? '#ae89ff' : '#737390',
+              color: searchFocused ? '#ae89ff' : '#8888a8',
               transition: `color 0.2s ${TRANSITION}`,
               pointerEvents: 'none',
             }}
@@ -427,8 +427,8 @@ export default function NotebookBrowser() {
             style={{
               width: '100%',
               padding: '9px 12px 9px 38px',
-              background: '#23233c',
-              border: `1px solid ${searchFocused ? '#ae89ff' : '#464560'}`,
+              background: '#2a2a4c',
+              border: `1px solid ${searchFocused ? '#ae89ff' : '#555578'}`,
               borderRadius: '12px',
               color: '#e5e3ff',
               fontSize: '13px',
@@ -455,7 +455,7 @@ export default function NotebookBrowser() {
               top: '50%',
               transform: 'translateY(-50%)',
               fontSize: '18px',
-              color: subjectFocused ? '#ae89ff' : '#737390',
+              color: subjectFocused ? '#ae89ff' : '#8888a8',
               transition: `color 0.2s ${TRANSITION}`,
               pointerEvents: 'none',
             }}
@@ -472,8 +472,8 @@ export default function NotebookBrowser() {
             style={{
               width: '100%',
               padding: '9px 12px 9px 38px',
-              background: '#23233c',
-              border: `1px solid ${subjectFocused ? '#ae89ff' : '#464560'}`,
+              background: '#2a2a4c',
+              border: `1px solid ${subjectFocused ? '#ae89ff' : '#555578'}`,
               borderRadius: '12px',
               color: '#e5e3ff',
               fontSize: '13px',
@@ -487,7 +487,7 @@ export default function NotebookBrowser() {
 
         {/* Result count */}
         {!loading && !error && (
-          <span style={{ fontSize: '12px', color: '#737390', marginLeft: 'auto' }}>
+          <span style={{ fontSize: '12px', color: '#8888a8', marginLeft: 'auto' }}>
             {total} notebook{total !== 1 ? 's' : ''}
           </span>
         )}
@@ -547,9 +547,9 @@ export default function NotebookBrowser() {
               gap: '4px',
               padding: '8px 18px',
               borderRadius: '12px',
-              border: `1px solid ${page <= 1 ? '#2a2a40' : hoveredPrev ? '#ae89ff' : '#464560'}`,
-              background: hoveredPrev && page > 1 ? 'rgba(174,137,255,0.08)' : '#1d1d33',
-              color: page <= 1 ? '#464560' : '#e5e3ff',
+              border: `1px solid ${page <= 1 ? '#2a2a40' : hoveredPrev ? '#ae89ff' : '#555578'}`,
+              background: hoveredPrev && page > 1 ? 'rgba(174,137,255,0.08)' : '#232342',
+              color: page <= 1 ? '#555578' : '#e5e3ff',
               fontSize: '13px',
               fontWeight: 600,
               cursor: page <= 1 ? 'not-allowed' : 'pointer',
@@ -579,9 +579,9 @@ export default function NotebookBrowser() {
               gap: '4px',
               padding: '8px 18px',
               borderRadius: '12px',
-              border: `1px solid ${page >= totalPages ? '#2a2a40' : hoveredNext ? '#ae89ff' : '#464560'}`,
-              background: hoveredNext && page < totalPages ? 'rgba(174,137,255,0.08)' : '#1d1d33',
-              color: page >= totalPages ? '#464560' : '#e5e3ff',
+              border: `1px solid ${page >= totalPages ? '#2a2a40' : hoveredNext ? '#ae89ff' : '#555578'}`,
+              background: hoveredNext && page < totalPages ? 'rgba(174,137,255,0.08)' : '#232342',
+              color: page >= totalPages ? '#555578' : '#e5e3ff',
               fontSize: '13px',
               fontWeight: 600,
               cursor: page >= totalPages ? 'not-allowed' : 'pointer',

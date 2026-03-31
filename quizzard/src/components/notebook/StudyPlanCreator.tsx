@@ -118,7 +118,7 @@ export default function StudyPlanCreator({ notebookId, onCreated, onClose }: Stu
     background: 'rgba(140,82,255,0.08)',
     border: '1px solid rgba(140,82,255,0.2)',
     borderRadius: '8px', padding: '8px 12px', outline: 'none',
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: 'inherit',
   };
 
   const labelStyle: React.CSSProperties = {
@@ -138,7 +138,7 @@ export default function StudyPlanCreator({ notebookId, onCreated, onClose }: Stu
         background: '#1e1d35', borderRadius: '16px',
         border: '1px solid rgba(140,82,255,0.2)',
         display: 'flex', flexDirection: 'column',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{
@@ -170,7 +170,7 @@ export default function StudyPlanCreator({ notebookId, onCreated, onClose }: Stu
                 padding: '7px 14px', borderRadius: '8px',
                 border: 'none', cursor: 'pointer',
                 fontSize: '12.5px', fontWeight: 500,
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
                 color: activeTab === tab ? '#c4a9ff' : 'rgba(196,169,255,0.5)',
                 transition: 'background 0.12s ease',
@@ -272,7 +272,7 @@ export default function StudyPlanCreator({ notebookId, onCreated, onClose }: Stu
                     border: '1px dashed rgba(140,82,255,0.2)',
                     background: 'transparent', cursor: 'pointer',
                     color: 'rgba(196,169,255,0.4)', fontSize: '12px',
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                   }}>
                     + Add Phase
                   </button>
@@ -333,7 +333,7 @@ export default function StudyPlanCreator({ notebookId, onCreated, onClose }: Stu
             border: '1px solid rgba(140,82,255,0.2)',
             background: 'transparent', color: '#c4a9ff',
             fontSize: '13px', cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}>
             Cancel
           </button>
@@ -349,7 +349,7 @@ export default function StudyPlanCreator({ notebookId, onCreated, onClose }: Stu
                 ? 'rgba(196,169,255,0.4)' : '#fff',
               fontSize: '13px', fontWeight: 600,
               cursor: isSubmitting ? 'wait' : 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             {isSubmitting && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}

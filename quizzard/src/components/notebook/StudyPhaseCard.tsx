@@ -175,7 +175,7 @@ export default function StudyPhaseCard({ notebookId, planId, phase, onRefresh }:
                     fontSize: '14px', fontWeight: 600, color: '#ede9ff',
                     background: 'rgba(140,82,255,0.1)', border: '1px solid rgba(140,82,255,0.3)',
                     borderRadius: '4px', padding: '2px 6px', outline: 'none',
-                    fontFamily: "'DM Sans', sans-serif", width: '100%',
+                    fontFamily: 'inherit', width: '100%',
                   }}
                 />
               ) : (
@@ -263,7 +263,7 @@ export default function StudyPhaseCard({ notebookId, planId, phase, onRefresh }:
                     border: phase.status === s ? 'none' : '1px solid rgba(140,82,255,0.15)',
                     background: phase.status === s ? STATUS_COLORS[s].bg : 'transparent',
                     color: phase.status === s ? STATUS_COLORS[s].color : 'rgba(196,169,255,0.35)',
-                    cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                    cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
                   {STATUS_COLORS[s].label}
@@ -306,7 +306,7 @@ export default function StudyPhaseCard({ notebookId, planId, phase, onRefresh }:
                         color: mat.completed ? 'rgba(237,233,255,0.3)' : 'rgba(237,233,255,0.7)',
                         textDecoration: mat.completed ? 'line-through' : 'none',
                         flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: 'inherit',
                       }}>
                         {mat.title}
                       </span>
@@ -346,7 +346,7 @@ export default function StudyPhaseCard({ notebookId, planId, phase, onRefresh }:
                 border: '1px dashed rgba(140,82,255,0.2)',
                 background: 'transparent', cursor: 'pointer',
                 color: 'rgba(196,169,255,0.4)', fontSize: '12px',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 transition: 'border-color 0.12s ease, color 0.12s ease',
               }}
             >

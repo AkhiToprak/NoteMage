@@ -9,14 +9,14 @@ type FeedType = 'foryou' | 'friends' | 'trending';
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#0d0d1a',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
+  pageBg: '#111126',
+  cardBg: '#161630',
+  elevated: '#232342',
   primary: '#ae89ff',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
 } as const;
 
 const FEED_TABS: { key: FeedType; label: string; icon: string }[] = [

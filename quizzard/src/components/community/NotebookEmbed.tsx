@@ -17,11 +17,11 @@ interface NotebookInfo {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  elevated: '#1d1d33',
+  elevated: '#232342',
   primary: '#ae89ff',
   textPrimary: '#e5e3ff',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
 } as const;
 
 export default function NotebookEmbed({ notebookId }: NotebookEmbedProps) {

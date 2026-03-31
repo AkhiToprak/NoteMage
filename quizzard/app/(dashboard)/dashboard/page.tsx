@@ -57,7 +57,7 @@ function timeAgo(iso: string): string {
 function getActivityStyle(subject?: string | null) {
   const s = (subject ?? '').toLowerCase();
   if (s.includes('sci') || s.includes('chem') || s.includes('bio') || s.includes('phys'))
-    return { icon: 'science', iconBg: 'rgba(185,195,255,0.2)', iconColor: '#b9c3ff' };
+    return { icon: 'science', iconBg: 'rgba(185,195,255,0.32)', iconColor: '#b9c3ff' };
   if (s.includes('hist') || s.includes('social') || s.includes('geo'))
     return { icon: 'history_edu', iconBg: 'rgba(174,137,255,0.2)', iconColor: '#ae89ff' };
   if (s.includes('math') || s.includes('calc') || s.includes('stat'))
@@ -181,7 +181,7 @@ export default function DashboardPage() {
           const inner = (
             <div
               style={{
-                background: '#121222',
+                background: '#161630',
                 padding: '24px',
                 borderRadius: '24px',
                 display: 'flex',
@@ -190,12 +190,12 @@ export default function DashboardPage() {
                 transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = '#18182a';
+                (e.currentTarget as HTMLDivElement).style.background = '#1c1c38';
                 const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>('.stat-arrow');
                 if (arrow) arrow.style.transform = 'translateX(4px)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = '#121222';
+                (e.currentTarget as HTMLDivElement).style.background = '#161630';
                 const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>('.stat-arrow');
                 if (arrow) arrow.style.transform = 'translateX(0)';
               }}
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                             cursor: 'pointer',
                             transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
                           }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#23233c'; }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#2a2a4c'; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                         >
                           <div
@@ -341,7 +341,7 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div
             style={{
-              background: '#18182a',
+              background: '#1c1c38',
               borderRadius: '32px',
               padding: '32px',
               position: 'relative',
@@ -399,19 +399,19 @@ export default function DashboardPage() {
                           justifyContent: 'space-between',
                           padding: '16px',
                           borderRadius: '16px',
-                          background: '#121222',
+                          background: '#161630',
                           transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
                           cursor: 'pointer',
                         }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background = '#23233c';
+                          (e.currentTarget as HTMLDivElement).style.background = '#2a2a4c';
                           const btn = (e.currentTarget as HTMLDivElement).querySelector<HTMLButtonElement>('.activity-btn');
                           if (btn) { btn.style.background = '#ae89ff'; btn.style.color = '#2a0066'; }
                         }}
                         onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background = '#121222';
+                          (e.currentTarget as HTMLDivElement).style.background = '#161630';
                           const btn = (e.currentTarget as HTMLDivElement).querySelector<HTMLButtonElement>('.activity-btn');
-                          if (btn) { btn.style.background = '#23233c'; btn.style.color = '#ae89ff'; }
+                          if (btn) { btn.style.background = '#2a2a4c'; btn.style.color = '#ae89ff'; }
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                           className="activity-btn"
                           style={{
                             padding: '8px 16px',
-                            background: '#23233c',
+                            background: '#2a2a4c',
                             borderRadius: '12px',
                             border: 'none',
                             color: '#ae89ff',
@@ -604,7 +604,7 @@ export default function DashboardPage() {
           <div
             style={{
               width: '80px', height: '80px',
-              background: '#1d1d33',
+              background: '#232342',
               borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               marginBottom: '24px',

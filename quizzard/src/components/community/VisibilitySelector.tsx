@@ -12,14 +12,14 @@ interface VisibilitySelectorProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  cardBg: '#121222',
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  cardBg: '#161630',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
 } as const;
 
 const OPTIONS: { key: PostVisibility; label: string; icon: string; desc: string }[] = [
@@ -131,7 +131,7 @@ export default function VisibilitySelector({ value, onChange }: VisibilitySelect
                   background: isActive
                     ? 'rgba(174,137,255,0.1)'
                     : isHovered
-                    ? 'rgba(255,255,255,0.04)'
+                    ? 'rgba(255,255,255,0.06)'
                     : 'transparent',
                   cursor: 'pointer',
                   transition: `all 0.15s ${EASING}`,

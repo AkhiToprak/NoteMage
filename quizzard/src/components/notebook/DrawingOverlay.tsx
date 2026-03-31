@@ -559,7 +559,7 @@ export default function DrawingOverlay({
               y={ruler.position.y - 14}
               fill="rgba(164,123,255,0.6)"
               fontSize={11}
-              fontFamily="'DM Sans', sans-serif"
+              fontFamily="inherit"
               style={{ pointerEvents: 'none', userSelect: 'none' }}
             >
               {Math.round(ruler.angle)}°

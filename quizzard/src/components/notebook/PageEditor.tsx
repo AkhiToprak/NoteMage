@@ -347,7 +347,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
   if (notFound) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '400px' }}>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: 'rgba(237,233,255,0.3)' }}>Page not found.</p>
+        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgba(237,233,255,0.3)' }}>Page not found.</p>
       </div>
     );
   }
@@ -485,7 +485,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
             style={{
               flex: 1,
               background: 'none', border: 'none', outline: 'none',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               fontSize: '32px', fontWeight: 700,
               color: '#ede9ff',
               letterSpacing: '-0.04em', lineHeight: 1.2, padding: 0,
@@ -493,7 +493,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
           />
           <div style={{
             display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0,
-            fontFamily: "'DM Sans', sans-serif", fontSize: '11px',
+            fontFamily: 'inherit', fontSize: '11px',
             color: saveStatus === 'saved'
               ? 'rgba(237,233,255,0.2)'
               : saveStatus === 'saving' ? 'rgba(140,82,255,0.6)' : 'rgba(249,115,22,0.6)',
@@ -505,7 +505,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
             {saveStatus === 'unsaved' && 'Unsaved'}
           </div>
         </div>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: 'rgba(237,233,255,0.22)', margin: '0 0 0 2px' }}>
+        <p style={{ fontFamily: 'inherit', fontSize: '11px', color: 'rgba(237,233,255,0.22)', margin: '0 0 0 2px' }}>
           {new Date(page.updatedAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
         </p>
         <div style={{ height: '1px', background: 'rgba(140,82,255,0.1)', margin: '14px 0 0' }} />

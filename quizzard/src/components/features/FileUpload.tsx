@@ -116,7 +116,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             <span
               style={{
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '13px',
                 color: 'rgba(237,233,255,0.5)',
               }}
@@ -136,7 +136,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
             <div>
               <p
                 style={{
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontSize: '13px',
                   fontWeight: '600',
                   color: isDragging ? '#ede9ff' : 'rgba(237,233,255,0.6)',
@@ -148,7 +148,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
               </p>
               <p
                 style={{
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontSize: '12px',
                   color: 'rgba(237,233,255,0.3)',
                   margin: 0,
@@ -179,7 +179,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
             borderRadius: '10px',
             background: 'rgba(239,68,68,0.12)',
             border: '1px solid rgba(239,68,68,0.3)',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '13px',
             color: '#fca5a5',
             display: 'flex',

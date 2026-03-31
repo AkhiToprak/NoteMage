@@ -134,7 +134,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
     <div style={{
       height: '100%', overflow: 'auto',
       padding: '32px 40px',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: 'inherit',
     }}>
       {/* Header */}
       <div style={{ maxWidth: '720px', margin: '0 auto' }}>
@@ -151,7 +151,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                   fontSize: '24px', fontWeight: 700, color: '#ede9ff',
                   background: 'rgba(140,82,255,0.08)', border: '1px solid rgba(140,82,255,0.3)',
                   borderRadius: '8px', padding: '4px 10px', outline: 'none',
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   width: '100%',
                 }}
               />
@@ -161,7 +161,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 style={{
                   fontSize: '24px', fontWeight: 700, color: '#ede9ff',
                   margin: 0, cursor: 'pointer',
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                 }}
               >
                 {plan.title}
@@ -204,7 +204,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
               width: '100%', fontSize: '14px', color: 'rgba(237,233,255,0.6)',
               background: 'rgba(140,82,255,0.06)', border: '1px solid rgba(140,82,255,0.2)',
               borderRadius: '8px', padding: '8px 12px', outline: 'none', resize: 'vertical',
-              fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6,
+              fontFamily: 'inherit', lineHeight: 1.6,
             }}
           />
         ) : (
@@ -303,7 +303,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                   flex: 1, fontSize: '13px', color: '#ede9ff',
                   background: 'rgba(140,82,255,0.08)', border: '1px solid rgba(140,82,255,0.2)',
                   borderRadius: '8px', padding: '8px 12px', outline: 'none',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                 }}
               />
               <input
@@ -315,7 +315,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                   width: '60px', fontSize: '13px', color: '#ede9ff',
                   background: 'rgba(140,82,255,0.08)', border: '1px solid rgba(140,82,255,0.2)',
                   borderRadius: '8px', padding: '8px', outline: 'none', textAlign: 'center',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                 }}
               />
               <span style={{ fontSize: '12px', color: 'rgba(196,169,255,0.4)', alignSelf: 'center' }}>days</span>
@@ -326,7 +326,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 background: newPhaseTitle.trim() ? '#8c52ff' : 'rgba(140,82,255,0.2)',
                 color: newPhaseTitle.trim() ? '#fff' : 'rgba(196,169,255,0.4)',
                 fontSize: '12px', fontWeight: 600, cursor: newPhaseTitle.trim() ? 'pointer' : 'not-allowed',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}>
                 Add Phase
               </button>
@@ -335,7 +335,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 border: '1px solid rgba(140,82,255,0.2)',
                 background: 'transparent', color: '#c4a9ff',
                 fontSize: '12px', cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}>
                 Cancel
               </button>
@@ -350,7 +350,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
               borderRadius: '10px', border: '1.5px dashed rgba(140,82,255,0.2)',
               background: 'transparent', cursor: 'pointer',
               color: 'rgba(196,169,255,0.4)', fontSize: '13px', fontWeight: 500,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               transition: 'border-color 0.15s ease, color 0.15s ease',
             }}
           >

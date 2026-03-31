@@ -23,16 +23,16 @@ interface SharedNotebook {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  cardBg: '#121222',
-  elevated: '#1d1d33',
+  cardBg: '#161630',
+  elevated: '#232342',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
+  textMuted: '#8888a8',
   success: '#4ade80',
   error: '#fd6f85',
-  border: '#464560',
+  border: '#555578',
 } as const;
 
 const AVATAR_COLORS = [

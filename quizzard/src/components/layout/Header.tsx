@@ -37,7 +37,7 @@ export default function Header() {
         justifyContent: 'space-between',
         position: 'sticky',
         top: 0,
-        background: 'rgba(13,13,26,0.8)',
+        background: 'rgba(17,17,38,0.8)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         zIndex: 30,
@@ -118,7 +118,7 @@ export default function Header() {
             transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#1d1d33';
+            (e.currentTarget as HTMLButtonElement).style.background = '#232342';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

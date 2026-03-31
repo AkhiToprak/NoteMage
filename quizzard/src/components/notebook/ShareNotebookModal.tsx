@@ -24,20 +24,20 @@ interface ShareInfo {
 }
 
 const COLORS = {
-  pageBg: '#0d0d1a',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  pageBg: '#111126',
+  cardBg: '#161630',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   deepPurple2: '#8348f6',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
+  textMuted: '#8888a8',
   error: '#fd6f85',
   success: '#4ade80',
   yellow: '#ffde59',
-  border: '#464560',
+  border: '#555578',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -959,7 +959,7 @@ export default function ShareNotebookModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered
-                      ? 'rgba(255,255,255,0.03)'
+                      ? 'rgba(255,255,255,0.07)'
                       : 'transparent',
                     cursor: 'pointer',
                     transition: `all 0.2s ${EASING}`,

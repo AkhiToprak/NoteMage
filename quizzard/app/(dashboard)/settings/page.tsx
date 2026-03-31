@@ -35,7 +35,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
         width: '56px',
         height: '32px',
         borderRadius: '9999px',
-        background: checked ? '#ae89ff' : '#23233c',
+        background: checked ? '#ae89ff' : '#2a2a4c',
         border: 'none',
         cursor: 'pointer',
         flexShrink: 0,
@@ -238,7 +238,7 @@ export default function SettingsPage() {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '16px 20px',
-    background: 'rgba(35,35,60,0.4)',
+    background: 'rgba(14,14,28,0.6)',
     border: 'none',
     borderRadius: '16px',
     color: '#e5e3ff',
@@ -290,7 +290,7 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* Profile card */}
-          <div style={{ background: '#121222', borderRadius: '32px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ background: '#161630', borderRadius: '32px', padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Avatar + name */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '16px' }}>
               <div style={{ position: 'relative' }}>
@@ -400,38 +400,6 @@ export default function SettingsPage() {
             </nav>
           </div>
 
-          {/* Sync status card */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(131,72,246,0.2) 0%, rgba(18,18,34,1) 100%)',
-              borderRadius: '32px',
-              padding: '32px',
-              border: '1px solid rgba(174,137,255,0.1)',
-            }}
-          >
-            <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>Sync Status</h4>
-            <p style={{ fontSize: '12px', color: '#aaa8c8', margin: '0 0 16px', lineHeight: 1.6 }}>
-              Your knowledge base is synced across your devices.
-            </p>
-            <div
-              style={{
-                height: '6px',
-                width: '100%',
-                background: 'rgba(255,255,255,0.08)',
-                borderRadius: '9999px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  width: '100%',
-                  background: 'linear-gradient(90deg, #ae89ff 0%, #ffde59 100%)',
-                  borderRadius: '9999px',
-                }}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Right column */}
@@ -440,7 +408,7 @@ export default function SettingsPage() {
           {/* Account Security */}
           <section
             style={{
-              background: '#18182a',
+              background: '#1c1c38',
               borderRadius: '32px',
               padding: '32px',
               display: activeSection === 'account' || activeSection === 'privacy' ? 'flex' : 'none',
@@ -477,7 +445,7 @@ export default function SettingsPage() {
               <button
                 style={{
                   padding: '16px 24px',
-                  background: '#23233c',
+                  background: '#2a2a4c',
                   border: '1px solid rgba(70,69,96,0.3)',
                   borderRadius: '16px',
                   color: '#e5e3ff',
@@ -489,7 +457,7 @@ export default function SettingsPage() {
                   transition: 'background 0.15s',
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#292946'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#23233c'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#2a2a4c'; }}
               >
                 Change Email
               </button>
@@ -547,7 +515,7 @@ export default function SettingsPage() {
                   style={{
                     alignSelf: 'flex-start',
                     padding: '14px 32px',
-                    background: pwLoading ? '#464560' : '#ae89ff',
+                    background: pwLoading ? '#555578' : '#ae89ff',
                     color: pwLoading ? '#aaa8c8' : '#2a0066',
                     border: 'none',
                     borderRadius: '16px',
@@ -571,7 +539,7 @@ export default function SettingsPage() {
           {/* Notifications */}
           <section
             style={{
-              background: '#18182a',
+              background: '#1c1c38',
               borderRadius: '32px',
               padding: '32px',
               display: activeSection === 'notifications' || activeSection === 'account' ? 'flex' : 'none',
@@ -583,7 +551,7 @@ export default function SettingsPage() {
               <div
                 style={{
                   width: '48px', height: '48px', borderRadius: '16px',
-                  background: 'rgba(185,195,255,0.2)',
+                  background: 'rgba(185,195,255,0.32)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
@@ -606,12 +574,12 @@ export default function SettingsPage() {
                     justifyContent: 'space-between',
                     gap: '24px',
                     padding: '16px',
-                    background: '#121222',
+                    background: '#161630',
                     borderRadius: '16px',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#1d1d33'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#121222'; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#232342'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#161630'; }}
                 >
                   <div>
                     <p style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 2px' }}>{label}</p>
@@ -629,7 +597,7 @@ export default function SettingsPage() {
           {/* Study Goals */}
           <section
             style={{
-              background: '#18182a',
+              background: '#1c1c38',
               borderRadius: '32px',
               padding: '32px',
               display: activeSection === 'goals' ? 'flex' : 'none',
@@ -656,7 +624,7 @@ export default function SettingsPage() {
             <form onSubmit={handleGoalSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div
                 style={{
-                  background: '#121222',
+                  background: '#161630',
                   borderRadius: '20px',
                   padding: '24px',
                   display: 'flex',
@@ -678,7 +646,7 @@ export default function SettingsPage() {
                       style={{
                         width: '36px', height: '36px',
                         borderRadius: '10px',
-                        background: '#23233c',
+                        background: '#2a2a4c',
                         border: 'none',
                         color: '#ae89ff',
                         fontSize: '20px',
@@ -689,7 +657,7 @@ export default function SettingsPage() {
                         fontFamily: 'inherit',
                       }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#2d2d4a'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#23233c'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#2a2a4c'; }}
                     >
                       −
                     </button>
@@ -722,7 +690,7 @@ export default function SettingsPage() {
                       style={{
                         width: '36px', height: '36px',
                         borderRadius: '10px',
-                        background: '#23233c',
+                        background: '#2a2a4c',
                         border: 'none',
                         color: '#ae89ff',
                         fontSize: '20px',
@@ -733,7 +701,7 @@ export default function SettingsPage() {
                         fontFamily: 'inherit',
                       }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#2d2d4a'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#23233c'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#2a2a4c'; }}
                     >
                       +
                     </button>
@@ -751,7 +719,7 @@ export default function SettingsPage() {
                         padding: '6px 16px',
                         borderRadius: '9999px',
                         border: 'none',
-                        background: parseInt(goalInput, 10) === preset ? '#ae89ff' : '#23233c',
+                        background: parseInt(goalInput, 10) === preset ? '#ae89ff' : '#2a2a4c',
                         color: parseInt(goalInput, 10) === preset ? '#2a0066' : '#aaa8c8',
                         fontSize: '13px',
                         fontWeight: 700,
@@ -811,7 +779,7 @@ export default function SettingsPage() {
                 style={{
                   alignSelf: 'flex-start',
                   padding: '14px 32px',
-                  background: goalLoading ? '#464560' : '#ae89ff',
+                  background: goalLoading ? '#555578' : '#ae89ff',
                   color: goalLoading ? '#aaa8c8' : '#2a0066',
                   border: 'none',
                   borderRadius: '16px',
@@ -834,7 +802,7 @@ export default function SettingsPage() {
           {isAdmin && (
             <section
               style={{
-                background: '#18182a',
+                background: '#1c1c38',
                 borderRadius: '32px',
                 padding: '32px',
                 display: activeSection === 'admin' ? 'flex' : 'none',
@@ -867,7 +835,7 @@ export default function SettingsPage() {
                   style={{
                     position: 'absolute', left: 0, top: 0, bottom: 0,
                     paddingLeft: '16px', display: 'flex', alignItems: 'center',
-                    pointerEvents: 'none', color: '#737390',
+                    pointerEvents: 'none', color: '#8888a8',
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>search</span>
@@ -909,7 +877,7 @@ export default function SettingsPage() {
 
               {/* User list */}
               {!adminLoading && adminUsers.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '32px', color: '#737390', fontSize: '14px' }}>
+                <div style={{ textAlign: 'center', padding: '32px', color: '#8888a8', fontSize: '14px' }}>
                   {adminSearch ? 'No users found for that search.' : 'No users found.'}
                 </div>
               )}
@@ -923,7 +891,7 @@ export default function SettingsPage() {
                       <div
                         key={user.id}
                         style={{
-                          background: user.banned ? 'rgba(253,111,133,0.05)' : '#121222',
+                          background: user.banned ? 'rgba(253,111,133,0.05)' : '#161630',
                           borderRadius: '16px',
                           padding: '16px 20px',
                           display: 'flex',
@@ -954,7 +922,7 @@ export default function SettingsPage() {
                             <span style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff' }}>
                               {user.name || user.username}
                             </span>
-                            <span style={{ fontSize: '12px', color: '#737390' }}>@{user.username}</span>
+                            <span style={{ fontSize: '12px', color: '#8888a8' }}>@{user.username}</span>
                             {user.role === 'admin' && (
                               <span style={{
                                 fontSize: '10px', fontWeight: 700, color: '#ffde59',
@@ -985,7 +953,7 @@ export default function SettingsPage() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
                             <span style={{ fontSize: '12px', color: '#aaa8c8' }}>{user.email}</span>
-                            <span style={{ fontSize: '11px', color: '#737390' }}>
+                            <span style={{ fontSize: '11px', color: '#8888a8' }}>
                               {user.notebookCount} notebook{user.notebookCount !== 1 ? 's' : ''} · {user.postCount} post{user.postCount !== 1 ? 's' : ''}
                             </span>
                           </div>
@@ -1066,8 +1034,8 @@ export default function SettingsPage() {
                     disabled={adminPage <= 1}
                     style={{
                       padding: '8px 16px', borderRadius: '10px', border: 'none',
-                      background: adminPage <= 1 ? '#1d1d33' : '#23233c',
-                      color: adminPage <= 1 ? '#464560' : '#e5e3ff',
+                      background: adminPage <= 1 ? '#232342' : '#2a2a4c',
+                      color: adminPage <= 1 ? '#555578' : '#e5e3ff',
                       fontSize: '13px', fontWeight: 700, cursor: adminPage <= 1 ? 'default' : 'pointer',
                       fontFamily: 'inherit',
                     }}
@@ -1082,8 +1050,8 @@ export default function SettingsPage() {
                     disabled={adminPage >= adminTotalPages}
                     style={{
                       padding: '8px 16px', borderRadius: '10px', border: 'none',
-                      background: adminPage >= adminTotalPages ? '#1d1d33' : '#23233c',
-                      color: adminPage >= adminTotalPages ? '#464560' : '#e5e3ff',
+                      background: adminPage >= adminTotalPages ? '#232342' : '#2a2a4c',
+                      color: adminPage >= adminTotalPages ? '#555578' : '#e5e3ff',
                       fontSize: '13px', fontWeight: 700, cursor: adminPage >= adminTotalPages ? 'default' : 'pointer',
                       fontFamily: 'inherit',
                     }}
@@ -1108,7 +1076,7 @@ export default function SettingsPage() {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  background: '#18182a', borderRadius: '24px', padding: '32px',
+                  background: '#1c1c38', borderRadius: '24px', padding: '32px',
                   width: '100%', maxWidth: '440px',
                   boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
                   border: '1px solid rgba(255,222,89,0.15)',
@@ -1176,7 +1144,7 @@ export default function SettingsPage() {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  background: '#18182a', borderRadius: '24px', padding: '32px',
+                  background: '#1c1c38', borderRadius: '24px', padding: '32px',
                   width: '100%', maxWidth: '440px',
                   boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
                   border: '1px solid rgba(253,111,133,0.2)',

@@ -217,7 +217,7 @@ export default function FlashcardImportDialog({
     padding: '10px 12px',
     fontSize: '14px',
     color: '#ede9ff',
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: 'inherit',
     outline: 'none',
   };
 
@@ -256,7 +256,7 @@ export default function FlashcardImportDialog({
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         {/* Header */}
@@ -276,7 +276,7 @@ export default function FlashcardImportDialog({
               fontWeight: 700,
               color: '#ede9ff',
               margin: 0,
-              fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             Import Flashcards
@@ -330,7 +330,7 @@ export default function FlashcardImportDialog({
                   color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.4)',
                   fontSize: '12px',
                   fontWeight: 600,
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   cursor: 'pointer',
                   transition: 'color 0.15s ease, background 0.15s ease',
                 }}
@@ -552,7 +552,7 @@ export default function FlashcardImportDialog({
                         color: termSep === val ? '#c4a9ff' : 'rgba(237,233,255,0.5)',
                         fontSize: '12px',
                         fontWeight: 600,
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: 'inherit',
                         cursor: 'pointer',
                         transition: 'background 0.12s ease, border-color 0.12s ease',
                       }}
@@ -624,7 +624,7 @@ export default function FlashcardImportDialog({
               color: 'rgba(237,233,255,0.5)',
               fontSize: '13px',
               cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             Cancel
@@ -654,7 +654,7 @@ export default function FlashcardImportDialog({
                   parsedCards.length > 0 && quizletTitle.trim() && !quizletSubmitting
                     ? 'pointer'
                     : 'not-allowed',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontWeight: 600,
               }}
             >

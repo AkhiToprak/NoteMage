@@ -36,7 +36,7 @@ export default function Sidebar() {
         width: '256px',
         minWidth: '256px',
         height: '100vh',
-        background: '#0d0d1a',
+        background: '#111126',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',

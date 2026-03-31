@@ -59,9 +59,9 @@ const SECONDARY_THEME: AccentTheme = {
   accent: '#b9c3ff',
   accentBg: 'rgba(185,195,255,0.1)',
   badgeBg: 'rgba(185,195,255,0.1)',
-  badgeBorder: 'rgba(185,195,255,0.2)',
+  badgeBorder: 'rgba(185,195,255,0.32)',
   badgeText: '#b9c3ff',
-  hoverBorder: 'rgba(185,195,255,0.4)',
+  hoverBorder: 'rgba(185,195,255,0.55)',
 };
 const TERTIARY_THEME: AccentTheme = {
   accent: '#ffedb3',
@@ -258,7 +258,7 @@ export default function NotebookCard({ notebook, onEdit, onDelete, draggable, on
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>description</span>
                 <span style={{ fontSize: '12px' }}>{docCount}</span>
               </div>
-              <span style={{ fontSize: '10px', color: '#737390', fontStyle: 'italic' }}>
+              <span style={{ fontSize: '10px', color: '#8888a8', fontStyle: 'italic' }}>
                 Updated {formatDate(notebook.updatedAt)}
               </span>
             </div>
@@ -273,7 +273,7 @@ export default function NotebookCard({ notebook, onEdit, onDelete, draggable, on
             position: 'absolute',
             top: '48px',
             right: '24px',
-            background: '#1d1d33',
+            background: '#232342',
             borderRadius: '12px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             overflow: 'hidden',
@@ -299,7 +299,7 @@ export default function NotebookCard({ notebook, onEdit, onDelete, draggable, on
               fontFamily: 'inherit',
               textAlign: 'left',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#23233c'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#2a2a4c'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ae89ff' }}>edit</span>

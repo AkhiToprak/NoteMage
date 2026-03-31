@@ -150,11 +150,11 @@ export default function FileImportDialog({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: '#0d0c20',
+          background: '#111126',
           borderRadius: '16px',
           border: '1px solid rgba(140,82,255,0.18)',
           padding: '24px',
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           color: '#ede9ff',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}
@@ -366,7 +366,7 @@ export default function FileImportDialog({
               padding: '8px 20px',
               fontSize: '13px',
               fontWeight: 600,
-              fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               color: 'rgba(237,233,255,0.7)',
               cursor: 'pointer',
               transition: 'background 0.15s ease, color 0.15s ease',

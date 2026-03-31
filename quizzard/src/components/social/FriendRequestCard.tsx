@@ -55,7 +55,7 @@ export default function FriendRequestCard({
         gap: 12,
         padding: '12px 16px',
         borderRadius: 12,
-        background: hovered ? '#23233c' : '#1d1d33',
+        background: hovered ? '#2a2a4c' : '#232342',
         transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
       }}
     >
@@ -119,7 +119,7 @@ export default function FriendRequestCard({
           <span
             style={{
               fontSize: 12,
-              color: '#737390',
+              color: '#8888a8',
               lineHeight: 1.3,
               whiteSpace: 'nowrap',
             }}

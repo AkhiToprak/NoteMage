@@ -9,16 +9,16 @@ const PublishRichEditor = lazy(() => import('@/components/publish/PublishRichEdi
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#0d0d1a',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
+  pageBg: '#111126',
+  cardBg: '#161630',
+  elevated: '#232342',
   primary: '#8c52ff',
   primaryLight: '#ae89ff',
   secondary: '#ffde59',
   textPrimary: '#ede9ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
   borderSubtle: '#2a2a44',
   success: '#4ade80',
   error: '#fd6f85',
@@ -627,9 +627,9 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-      padding: '12px 16px', borderRadius: 10, background: '#1d1d33',
+      padding: '12px 16px', borderRadius: 10, background: '#232342',
     }}>
-      <span style={{ fontSize: 13, color: '#737390', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 13, color: '#8888a8', fontWeight: 500 }}>{label}</span>
       <span style={{ fontSize: 13, color: '#ede9ff', fontWeight: 600, textAlign: 'right', maxWidth: '60%', wordBreak: 'break-word' }}>{value}</span>
     </div>
   );

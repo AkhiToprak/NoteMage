@@ -110,7 +110,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
           width: '90vw',
           maxWidth: '1000px',
           height: '80vh',
-          background: '#0d0c20',
+          background: '#111126',
           borderRadius: '16px',
           border: '1px solid rgba(140,82,255,0.18)',
           overflow: 'hidden',
@@ -136,7 +136,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
               fontSize: '18px',
               fontWeight: 700,
               color: '#ede9ff',
-              fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             Edit Slides
@@ -195,7 +195,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                       color: 'rgba(237,233,255,0.4)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                     }}
                   >
                     Slide Title
@@ -213,7 +213,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                       color: '#ede9ff',
                       fontSize: '15px',
                       fontWeight: 600,
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -230,7 +230,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                       color: 'rgba(237,233,255,0.4)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                     }}
                   >
                     Content
@@ -248,7 +248,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                       background: 'rgba(140,82,255,0.04)',
                       color: '#ede9ff',
                       fontSize: '14px',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                       outline: 'none',
                       resize: 'vertical',
                       boxSizing: 'border-box',
@@ -267,7 +267,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                       color: 'rgba(237,233,255,0.4)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                     }}
                   >
                     Speaker Notes
@@ -285,7 +285,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                       background: 'rgba(140,82,255,0.04)',
                       color: '#ede9ff',
                       fontSize: '13px',
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'inherit',
                       outline: 'none',
                       resize: 'vertical',
                       boxSizing: 'border-box',
@@ -305,7 +305,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                   justifyContent: 'center',
                   color: 'rgba(237,233,255,0.3)',
                   fontSize: '14px',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                 }}
               >
                 No slides yet. Click &quot;Add Slide&quot; to get started.
@@ -330,7 +330,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
             style={{
               fontSize: '12px',
               color: 'rgba(237,233,255,0.4)',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             {slides.length} slide{slides.length !== 1 ? 's' : ''}
@@ -377,7 +377,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                 color: 'rgba(237,233,255,0.5)',
                 fontSize: '13px',
                 cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 transition: 'background 0.12s ease',
               }}
               onMouseEnter={e => { (e.target as HTMLButtonElement).style.background = 'rgba(237,233,255,0.05)'; }}
@@ -402,7 +402,7 @@ export default function SlideEditorModal({ initialSlides, presentationTitle, onE
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: exporting ? 'not-allowed' : 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 boxShadow: '0 4px 16px rgba(140,82,255,0.3)',
                 transition: 'opacity 0.15s ease',
                 opacity: slides.length === 0 ? 0.4 : 1,
@@ -480,7 +480,7 @@ function AddSlideButton({ onClick }: { onClick: () => void }) {
         fontSize: '11px',
         fontWeight: 600,
         cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         transition: 'background 0.12s ease, color 0.12s ease',
         flexShrink: 0,
       }}

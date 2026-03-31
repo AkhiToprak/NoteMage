@@ -177,7 +177,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
               {notebook?.name ?? '…'}
             </h2>
 
-            <p style={{ fontSize: '15px', color: '#737390', margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: '15px', color: '#8888a8', margin: 0, fontWeight: 500 }}>
               Feed the Scholar, review your vault, and start AI-powered chats.
             </p>
           </div>
@@ -200,7 +200,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
               boxShadow: '0 8px 24px rgba(255,222,89,0.2)',
               transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
               flexShrink: 0,
-              fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
@@ -283,15 +283,15 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
             border: `2px dashed ${isDragging ? 'rgba(174,137,255,0.8)' : 'rgba(70,69,96,0.4)'}`,
             background: isDragging
               ? 'rgba(174,137,255,0.06)'
-              : 'linear-gradient(135deg, #1a1a2e 0%, #1d1d33 100%)',
+              : 'linear-gradient(135deg, #1a1a2e 0%, #232342 100%)',
             display: 'flex',
             alignItems: 'center',
             gap: '18px',
             cursor: 'pointer',
             transition: 'border-color 0.2s ease, background 0.2s ease',
             boxShadow: isDragging
-              ? '0 0 0 4px rgba(174,137,255,0.12), inset 0 1px 0 rgba(255,255,255,0.04)'
-              : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+              ? '0 0 0 4px rgba(174,137,255,0.12), inset 0 1px 0 rgba(255,255,255,0.06)'
+              : 'inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
             onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(174,137,255,0.5)'; }}
             onMouseLeave={e => { if (!isDragging) (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.4)'; }}
@@ -310,7 +310,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 3px', letterSpacing: '-0.01em' }}>
                 {isUploading ? 'Uploading…' : 'Feed the Scholar'}
               </p>
-              <p style={{ fontSize: '12px', color: '#737390', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: '12px', color: '#8888a8', margin: 0, lineHeight: 1.5 }}>
                 PDF · DOCX · TXT · MD &nbsp;·&nbsp; max 50 MB
               </p>
               {uploadError && (
@@ -335,7 +335,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
           padding: '20px 22px',
           background: 'linear-gradient(135deg, #141424 0%, #0f0f1e 100%)',
           border: '1px solid rgba(255,222,89,0.08)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
           display: 'flex', alignItems: 'center', gap: '18px',
         }}>
           <div style={{
@@ -364,11 +364,11 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
               {['M','T','W','T','F','S','S'].map((d, i) => (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <div style={{ height: '5px', borderRadius: '9999px', background: 'rgba(255,255,255,0.07)', width: '100%' }} />
-                  <span style={{ fontSize: '9px', color: '#464560', fontWeight: 600 }}>{d}</span>
+                  <span style={{ fontSize: '9px', color: '#555578', fontWeight: 600 }}>{d}</span>
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: '11px', color: '#464560', margin: 0 }}>Start studying to build your streak!</p>
+            <p style={{ fontSize: '11px', color: '#555578', margin: 0 }}>Start studying to build your streak!</p>
           </div>
         </div>
 
@@ -377,9 +377,9 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
           gridArea: 'insight',
           borderRadius: '20px',
           padding: '22px',
-          background: 'linear-gradient(145deg, rgba(140,82,255,0.12) 0%, rgba(81,112,255,0.06) 50%, rgba(13,12,32,0.8) 100%)',
+          background: 'linear-gradient(145deg, rgba(140,82,255,0.12) 0%, rgba(81,112,255,0.06) 50%, rgba(17,17,38,0.8) 100%)',
           border: '1px solid rgba(140,82,255,0.18)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 32px rgba(140,82,255,0.06)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 32px rgba(140,82,255,0.06)',
           position: 'relative', overflow: 'hidden',
         }}>
           <div style={{
@@ -435,10 +435,10 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
         {/* ── Document Vault ── */}
         <div className="nb-card" style={{
           gridArea: 'vault',
-          background: 'linear-gradient(170deg, #1c1c30 0%, #18182a 60%)',
+          background: 'linear-gradient(170deg, #1c1c30 0%, #1c1c38 60%)',
           borderRadius: '22px', padding: '26px', alignSelf: 'stretch',
           border: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 24px 48px rgba(0,0,0,0.2)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px rgba(0,0,0,0.2)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -453,11 +453,11 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                 {String(documents.length).padStart(2, '0')} FILES
               </span>
             </div>
-            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '10px', padding: '4px' }}>
               {['grid_view','list'].map((icon, i) => (
                 <button key={icon} style={{
                   padding: '6px 8px', background: i === 1 ? 'rgba(174,137,255,0.12)' : 'transparent',
-                  border: 'none', color: i === 1 ? '#ae89ff' : '#464560', borderRadius: '7px', cursor: 'pointer', display: 'flex',
+                  border: 'none', color: i === 1 ? '#ae89ff' : '#555578', borderRadius: '7px', cursor: 'pointer', display: 'flex',
                   transition: 'background 0.12s, color 0.12s',
                 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{icon}</span>
@@ -470,14 +470,14 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
             <div style={{ padding: '56px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
               <div style={{
                 width: '64px', height: '64px', borderRadius: '18px',
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.06)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#464560' }}>folder_open</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#555578' }}>folder_open</span>
               </div>
               <div>
                 <p style={{ fontSize: '15px', fontWeight: 700, color: '#aaa8c8', margin: '0 0 4px' }}>Vault is empty</p>
-                <p style={{ fontSize: '13px', color: '#464560', margin: 0 }}>Upload files above or select notebook pages when starting a chat.</p>
+                <p style={{ fontSize: '13px', color: '#555578', margin: 0 }}>Upload files above or select notebook pages when starting a chat.</p>
               </div>
             </div>
           ) : (
@@ -492,16 +492,16 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                       display: 'flex', alignItems: 'center', gap: '14px',
                       padding: '13px 14px',
                       background: 'rgba(255,255,255,0.025)', borderRadius: '14px',
-                      border: '1px solid rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.07)',
                       transition: 'background 0.18s ease, border-color 0.18s ease', cursor: 'default',
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.05)';
+                      (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.07)';
                       (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(174,137,255,0.15)';
                     }}
                     onMouseLeave={e => {
                       (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.025)';
-                      (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.05)';
+                      (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)';
                     }}
                   >
                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -511,7 +511,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                       <p style={{ fontSize: '13px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {doc.fileName}
                       </p>
-                      <p style={{ fontSize: '11px', color: '#737390', margin: 0 }}>
+                      <p style={{ fontSize: '11px', color: '#8888a8', margin: 0 }}>
                         {formatBytes(doc.fileSize)} · {formatDate(doc.createdAt)}
                       </p>
                     </div>
@@ -519,13 +519,13 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                       <button
                         onClick={() => handleDelete(doc.id)}
                         disabled={deletingId === doc.id}
-                        style={{ padding: '6px', background: 'transparent', border: 'none', color: '#737390', cursor: 'pointer', borderRadius: '7px', display: 'flex', transition: 'color 0.12s, background 0.12s' }}
+                        style={{ padding: '6px', background: 'transparent', border: 'none', color: '#8888a8', cursor: 'pointer', borderRadius: '7px', display: 'flex', transition: 'color 0.12s, background 0.12s' }}
                         onMouseEnter={e => {
                           (e.currentTarget as HTMLButtonElement).style.color = '#fd6f85';
                           (e.currentTarget as HTMLButtonElement).style.background = 'rgba(253,111,133,0.08)';
                         }}
                         onMouseLeave={e => {
-                          (e.currentTarget as HTMLButtonElement).style.color = '#737390';
+                          (e.currentTarget as HTMLButtonElement).style.color = '#8888a8';
                           (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
                         }}
                       >

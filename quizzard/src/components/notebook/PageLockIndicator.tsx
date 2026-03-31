@@ -121,7 +121,7 @@ export default function PageLockIndicator({
           fontSize: 13,
           fontWeight: 600,
           color: '#fb923c',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         @{lock.lockedBy.username} is editing this page
@@ -132,7 +132,7 @@ export default function PageLockIndicator({
           fontSize: 11,
           color: 'rgba(251,146,60,0.5)',
           marginLeft: 'auto',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         Read-only

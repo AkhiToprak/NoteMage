@@ -53,7 +53,7 @@ export default function QuizViewerPage({ params }: { params: Promise<{ id: strin
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: '100%', color: 'rgba(237,233,255,0.3)',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}>
         Loading quiz...
       </div>
@@ -65,7 +65,7 @@ export default function QuizViewerPage({ params }: { params: Promise<{ id: strin
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         height: '100%', gap: '12px',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}>
         <p style={{ color: 'rgba(252,165,165,0.8)', fontSize: '14px' }}>{error}</p>
         <button
@@ -75,7 +75,7 @@ export default function QuizViewerPage({ params }: { params: Promise<{ id: strin
             border: '1px solid rgba(140,82,255,0.3)',
             background: 'transparent', color: '#c4a9ff',
             fontSize: '13px', cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}
         >
           Go back

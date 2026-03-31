@@ -67,7 +67,7 @@ export default function CreateSectionDialog({ notebookId, parentId, onCreated, o
           border: '1px solid rgba(140,82,255,0.2)',
           borderRadius: '4px',
           padding: '3px 8px',
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '13px',
           fontWeight: 600,
           color: '#ede9ff',

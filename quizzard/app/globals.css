@@ -45,27 +45,27 @@
   --on-error-container:         #ff97a3;
 
   /* Surface */
-  --background:                 #0d0d1a;
-  --surface:                    #0d0d1a;
-  --surface-dim:                #0d0d1a;
-  --surface-bright:             #292946;
-  --surface-container-lowest:   #000000;
-  --surface-container-low:      #121222;
-  --surface-container:          #18182a;
-  --surface-container-high:     #1d1d33;
-  --surface-container-highest:  #23233c;
+  --background:                 #111126;
+  --surface:                    #111126;
+  --surface-dim:                #111126;
+  --surface-bright:             #333358;
+  --surface-container-lowest:   #080816;
+  --surface-container-low:      #161630;
+  --surface-container:          #1c1c38;
+  --surface-container-high:     #232342;
+  --surface-container-highest:  #2a2a4c;
   --surface-tint:               #ae89ff;
-  --surface-variant:            #23233c;
-  --on-surface:                 #e5e3ff;
-  --on-surface-variant:         #aaa8c8;
-  --on-background:              #e5e3ff;
-  --foreground:                 #e5e3ff;
+  --surface-variant:            #2a2a4c;
+  --on-surface:                 #eeecff;
+  --on-surface-variant:         #c0bed8;
+  --on-background:              #eeecff;
+  --foreground:                 #eeecff;
   --inverse-surface:            #fcf8ff;
   --inverse-on-surface:         #545363;
 
   /* Outline */
-  --outline:                    #737390;
-  --outline-variant:            #464560;
+  --outline:                    #8888a8;
+  --outline-variant:            #555578;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */

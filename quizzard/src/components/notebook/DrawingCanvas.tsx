@@ -231,7 +231,7 @@ export default function DrawingCanvas({ drawingData, onSave, onClose }: DrawingC
     cursor: 'pointer',
     padding: '0 8px',
     fontSize: 11,
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: 'inherit',
     fontWeight: 500,
     transition: 'background 0.15s ease',
   });

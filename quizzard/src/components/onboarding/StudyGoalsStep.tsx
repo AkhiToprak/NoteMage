@@ -114,14 +114,14 @@ export default function StudyGoalsStep({
               onMouseEnter={() => setHoveredCard(config.type)}
               onMouseLeave={() => setHoveredCard(null)}
               style={{
-                background: '#1d1d33',
+                background: '#232342',
                 borderRadius: '20px',
                 padding: '20px',
                 border: isSelected
                   ? '2px solid #ae89ff'
                   : isHovered
                   ? '1px solid rgba(174,137,255,0.3)'
-                  : '1px solid #464560',
+                  : '1px solid #555578',
                 boxShadow: isSelected ? '0 0 0 4px rgba(174,137,255,0.1)' : 'none',
                 cursor: 'pointer',
                 transition: 'border-color 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
@@ -133,7 +133,7 @@ export default function StudyGoalsStep({
                 className="material-symbols-outlined"
                 style={{
                   fontSize: '24px',
-                  color: isSelected ? '#ae89ff' : '#737390',
+                  color: isSelected ? '#ae89ff' : '#8888a8',
                   display: 'block',
                   marginBottom: '8px',
                   transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
@@ -170,7 +170,7 @@ export default function StudyGoalsStep({
                   {goal.target} / week
                 </p>
               ) : (
-                <p style={{ margin: '0 0 0', fontSize: '11px', color: '#464560' }}>
+                <p style={{ margin: '0 0 0', fontSize: '11px', color: '#555578' }}>
                   Tap to set goal
                 </p>
               )}
@@ -191,9 +191,9 @@ export default function StudyGoalsStep({
                           setTarget(config.type, preset);
                         }}
                         style={{
-                          background: isActive ? '#ae89ff' : '#23233c',
+                          background: isActive ? '#ae89ff' : '#2a2a4c',
                           color: isActive ? '#1a0044' : '#aaa8c8',
-                          border: `1px solid ${isActive ? '#ae89ff' : '#464560'}`,
+                          border: `1px solid ${isActive ? '#ae89ff' : '#555578'}`,
                           borderRadius: '20px',
                           padding: '4px 10px',
                           fontSize: '12px',
@@ -216,10 +216,10 @@ export default function StudyGoalsStep({
                     onChange={(e) => handleCustomInput(config.type, e.target.value)}
                     style={{
                       width: '52px',
-                      background: '#23233c',
+                      background: '#2a2a4c',
                       border: customInputs[config.type]
                         ? '1px solid #ae89ff'
-                        : '1px solid #464560',
+                        : '1px solid #555578',
                       borderRadius: '8px',
                       padding: '4px 8px',
                       color: '#e5e3ff',
@@ -243,7 +243,7 @@ export default function StudyGoalsStep({
           style={{
             width: '100%',
             padding: '16px',
-            background: loading ? '#464560' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
+            background: loading ? '#555578' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
             border: 'none',
             borderRadius: '16px',
             color: loading ? '#aaa8c8' : '#2a0066',
@@ -301,7 +301,7 @@ export default function StudyGoalsStep({
             background: 'transparent',
             border: 'none',
             borderRadius: '16px',
-            color: '#737390',
+            color: '#8888a8',
             fontSize: '15px',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -312,7 +312,7 @@ export default function StudyGoalsStep({
             if (!loading) e.currentTarget.style.color = '#aaa8c8';
           }}
           onMouseLeave={(e) => {
-            if (!loading) e.currentTarget.style.color = '#737390';
+            if (!loading) e.currentTarget.style.color = '#8888a8';
           }}
         >
           Skip for now

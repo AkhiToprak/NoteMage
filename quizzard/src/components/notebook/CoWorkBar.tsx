@@ -117,7 +117,7 @@ export default function CoWorkBar({
           padding: '8px 16px',
           background: 'rgba(174,137,255,0.06)',
           borderBottom: '1px solid rgba(174,137,255,0.1)',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         {/* Pulsing live indicator */}
@@ -150,7 +150,7 @@ export default function CoWorkBar({
                 width: 28,
                 height: 28,
                 borderRadius: 8,
-                border: '2px solid #0d0c20',
+                border: '2px solid #111126',
                 marginLeft: i > 0 ? -8 : 0,
                 zIndex: shown.length - i,
                 position: 'relative',
@@ -189,9 +189,9 @@ export default function CoWorkBar({
                 width: 28,
                 height: 28,
                 borderRadius: 8,
-                border: '2px solid #0d0c20',
+                border: '2px solid #111126',
                 marginLeft: -8,
-                background: '#23233c',
+                background: '#2a2a4c',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

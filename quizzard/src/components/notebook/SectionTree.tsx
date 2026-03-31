@@ -87,7 +87,7 @@ export default function SectionTree({ sections, activePageId, notebookId, onRefr
         style={{
           padding: '32px 16px',
           textAlign: 'center',
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '13px',
           color: 'rgba(237,233,255,0.3)',
         }}

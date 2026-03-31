@@ -222,7 +222,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
             <div style={{
               maxHeight: 200, overflow: 'auto',
               border: '1px solid rgba(140,82,255,0.1)',
-              borderRadius: 10, background: 'rgba(255,255,255,0.02)',
+              borderRadius: 10, background: 'rgba(255,255,255,0.035)',
             }}>
               {sections.map(sec => (
                 <SectionGroup
@@ -319,7 +319,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               </span>
               <div style={{
                 border: '1px solid rgba(140,82,255,0.1)', borderRadius: 10,
-                background: 'rgba(255,255,255,0.02)', overflow: 'hidden',
+                background: 'rgba(255,255,255,0.035)', overflow: 'hidden',
               }}>
                 {orderedSelectedPages.map((page, idx) => (
                   <div key={page.id}>

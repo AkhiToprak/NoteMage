@@ -35,7 +35,7 @@ export default function PageEditorPage({
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: '100%', color: 'rgba(237,233,255,0.3)',
-        fontFamily: "'DM Sans', sans-serif", fontSize: '14px',
+        fontFamily: 'inherit', fontSize: '14px',
       }}>
         Loading...
       </div>

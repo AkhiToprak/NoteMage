@@ -15,19 +15,19 @@ const MAX_CONTENT = 2000;
 const MAX_IMAGES = 4;
 
 const COLORS = {
-  pageBg: '#0d0d1a',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  pageBg: '#111126',
+  cardBg: '#161630',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   deepPurple2: '#8348f6',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
+  textMuted: '#8888a8',
   error: '#fd6f85',
   success: '#4ade80',
-  border: '#464560',
+  border: '#555578',
 } as const;
 
 const AVATAR_COLORS = [

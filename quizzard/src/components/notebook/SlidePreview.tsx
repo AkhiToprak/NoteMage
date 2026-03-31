@@ -43,7 +43,7 @@ export default function SlidePreview({ title, content, index, isActive, onClick 
         position: 'relative',
         flexShrink: 0,
         transition: 'border-color 0.15s ease, background 0.15s ease',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}
     >
       {/* Slide number badge */}
@@ -59,7 +59,7 @@ export default function SlidePreview({ title, content, index, isActive, onClick 
           borderRadius: '4px',
           padding: '1px 5px',
           lineHeight: '14px',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         {index + 1}

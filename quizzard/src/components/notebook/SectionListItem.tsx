@@ -104,7 +104,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
         {/* Title */}
         <span style={{
           flex: 1,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: depth === 0 ? '13px' : '12px',
           fontWeight: isActive ? 600 : 400,
           color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.65)',
@@ -180,7 +180,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
               border: '1px solid rgba(140,82,255,0.3)',
               borderRadius: '4px',
               padding: '3px 7px',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               fontSize: '12px',
               color: '#ede9ff',
               outline: 'none',

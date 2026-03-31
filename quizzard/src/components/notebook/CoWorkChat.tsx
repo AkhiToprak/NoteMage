@@ -95,7 +95,7 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
             : hoveredToggle
               ? 'rgba(174,137,255,0.2)'
               : 'rgba(174,137,255,0.12)',
-          color: isOpen ? '#0d0d1a' : '#ae89ff',
+          color: isOpen ? '#111126' : '#ae89ff',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -126,7 +126,7 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '2px solid #0d0c20',
+              border: '2px solid #111126',
             }}
           >
             {messages.length > 99 ? '99+' : messages.length}
@@ -143,16 +143,16 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
             right: 24,
             width: 320,
             maxHeight: 440,
-            background: '#121222',
+            background: '#161630',
             borderRadius: 20,
-            border: '1px solid #464560',
+            border: '1px solid #555578',
             boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             zIndex: 1000,
             animation: 'chatPanelIn 0.25s cubic-bezier(0.22,1,0.36,1)',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}
         >
           {/* Header */}
@@ -177,7 +177,7 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
             <span
               style={{
                 fontSize: 10,
-                color: '#737390',
+                color: '#8888a8',
                 marginLeft: 'auto',
                 fontStyle: 'italic',
               }}
@@ -203,7 +203,7 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
                 style={{
                   textAlign: 'center',
                   padding: '40px 16px',
-                  color: '#737390',
+                  color: '#8888a8',
                   fontSize: 12,
                 }}
               >
@@ -257,7 +257,7 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
                       borderRadius: isOwn ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                       background: isOwn
                         ? 'linear-gradient(135deg, rgba(174,137,255,0.2), rgba(136,78,251,0.2))'
-                        : '#1d1d33',
+                        : '#232342',
                       fontSize: 13,
                       color: '#e5e3ff',
                       lineHeight: 1.5,
@@ -302,7 +302,7 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
                 padding: '9px 14px',
                 borderRadius: 12,
                 border: 'none',
-                background: '#23233c',
+                background: '#2a2a4c',
                 color: '#e5e3ff',
                 fontSize: 13,
                 fontFamily: 'inherit',
@@ -323,8 +323,8 @@ export default function CoWorkChat({ currentUserId, currentUsername }: CoWorkCha
                   ? hoveredSend
                     ? 'linear-gradient(135deg, #c4a6ff, #9b5fff)'
                     : 'linear-gradient(135deg, #ae89ff, #884efb)'
-                  : '#23233c',
-                color: input.trim() ? '#fff' : '#737390',
+                  : '#2a2a4c',
+                color: input.trim() ? '#fff' : '#8888a8',
                 cursor: input.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',

@@ -215,7 +215,7 @@ export default function FlashcardSetManager({ notebookId, onClose, onUpdated }: 
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         {/* Header */}
@@ -232,7 +232,7 @@ export default function FlashcardSetManager({ notebookId, onClose, onUpdated }: 
             fontWeight: 700,
             color: '#ede9ff',
             margin: 0,
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}>
             Manage Flashcard Sets
           </h3>
@@ -399,7 +399,7 @@ export default function FlashcardSetManager({ notebookId, onClose, onUpdated }: 
                 color: 'rgba(237,233,255,0.5)',
                 fontSize: '13px',
                 cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}
             >
               Close
@@ -422,7 +422,7 @@ export default function FlashcardSetManager({ notebookId, onClose, onUpdated }: 
                   color: canMerge ? '#fff' : 'rgba(237,233,255,0.3)',
                   fontSize: '13px',
                   cursor: canMerge ? 'pointer' : 'not-allowed',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontWeight: 600,
                 }}
               >
@@ -447,7 +447,7 @@ export default function FlashcardSetManager({ notebookId, onClose, onUpdated }: 
                   color: canSplit ? '#fff' : 'rgba(237,233,255,0.3)',
                   fontSize: '13px',
                   cursor: canSplit ? 'pointer' : 'not-allowed',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontWeight: 600,
                 }}
               >
@@ -510,7 +510,7 @@ function ModeTab({ label, active, onClick }: { label: string; active: boolean; o
         fontSize: '12px',
         fontWeight: active ? 600 : 400,
         cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         transition: 'background 0.12s ease, color 0.12s ease, border-color 0.12s ease',
       }}
     >
@@ -727,12 +727,12 @@ function TitleDialog({ title, placeholder, value, onChange, onConfirm, onCancel,
         onClick={e => e.stopPropagation()}
         style={{
           width: '340px',
-          background: '#16152a',
+          background: '#1a1a36',
           border: '1px solid rgba(140,82,255,0.3)',
           borderRadius: '12px',
           padding: '20px',
           boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         <h4 style={{
@@ -740,7 +740,7 @@ function TitleDialog({ title, placeholder, value, onChange, onConfirm, onCancel,
           fontWeight: 700,
           color: '#ede9ff',
           margin: '0 0 12px',
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}>
           {title}
         </h4>
@@ -763,7 +763,7 @@ function TitleDialog({ title, placeholder, value, onChange, onConfirm, onCancel,
             padding: '10px 12px',
             fontSize: '14px',
             color: '#ede9ff',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             outline: 'none',
             marginBottom: '14px',
           }}
@@ -779,7 +779,7 @@ function TitleDialog({ title, placeholder, value, onChange, onConfirm, onCancel,
               color: 'rgba(237,233,255,0.5)',
               fontSize: '13px',
               cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             Cancel
@@ -800,7 +800,7 @@ function TitleDialog({ title, placeholder, value, onChange, onConfirm, onCancel,
               color: canConfirm ? '#fff' : 'rgba(237,233,255,0.3)',
               fontSize: '13px',
               cursor: canConfirm ? 'pointer' : 'not-allowed',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               fontWeight: 600,
             }}
           >

@@ -12,16 +12,16 @@ import SearchDropdown from '@/components/search/SearchDropdown';
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#0d0d1a',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  pageBg: '#111126',
+  cardBg: '#161630',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
+  textMuted: '#8888a8',
   error: '#fd6f85',
-  border: '#464560',
+  border: '#555578',
 } as const;
 
 const AVATAR_COLORS = [
@@ -81,7 +81,7 @@ export default function HomeHeader() {
           position: 'sticky',
           top: 0,
           zIndex: 50,
-          background: 'rgba(13,13,26,0.85)',
+          background: 'rgba(17,17,38,0.85)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           borderBottom: `1px solid ${COLORS.border}`,
@@ -305,7 +305,7 @@ export default function HomeHeader() {
                           gap: 10,
                           padding: '8px 12px',
                           borderRadius: 8,
-                          background: isHovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+                          background: isHovered ? 'rgba(255,255,255,0.07)' : 'transparent',
                           color: isHovered ? COLORS.textPrimary : COLORS.textSecondary,
                           textDecoration: 'none',
                           fontSize: 13,

@@ -33,7 +33,7 @@ function getPasswordScore(password: string): number {
 }
 
 const scoreLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-const scoreColor = ['#464560', '#fd6f85', '#ffde59', '#ae89ff', '#4dff91'];
+const scoreColor = ['#555578', '#fd6f85', '#ffde59', '#ae89ff', '#4dff91'];
 
 export default function AccountStep({ data, onChange, onNext, loading, error }: AccountStepProps) {
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
@@ -129,7 +129,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '16px 16px 16px 48px',
-    background: '#23233c',
+    background: '#2a2a4c',
     border: 'none',
     borderRadius: '16px',
     color: '#e5e3ff',
@@ -260,7 +260,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
             <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#fd6f85' }}>{usernameMessage}</p>
           )}
           {(usernameStatus === 'idle' || usernameStatus === 'typing') && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#737390' }}>
+            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#8888a8' }}>
               3–20 chars, letters, numbers, underscores
             </p>
           )}
@@ -268,7 +268,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
 
         {/* Full Name */}
         <div>
-          <label style={labelStyle}>Full Name <span style={{ color: '#737390', fontWeight: 400 }}>(optional)</span></label>
+          <label style={labelStyle}>Full Name <span style={{ color: '#8888a8', fontWeight: 400 }}>(optional)</span></label>
           <div style={{ position: 'relative' }}>
             <div style={iconWrapStyle}>
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>person</span>
@@ -337,7 +337,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
                       flex: 1,
                       height: '4px',
                       borderRadius: '2px',
-                      background: passwordScore >= seg ? scoreColor[passwordScore] : '#464560',
+                      background: passwordScore >= seg ? scoreColor[passwordScore] : '#555578',
                       transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1)',
                     }}
                   />
@@ -390,7 +390,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
               width: '18px',
               height: '18px',
               borderRadius: '4px',
-              background: '#23233c',
+              background: '#2a2a4c',
               border: 'none',
               accentColor: '#ae89ff',
               flexShrink: 0,
@@ -415,7 +415,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           style={{
             width: '100%',
             padding: '16px',
-            background: loading ? '#464560' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
+            background: loading ? '#555578' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
             border: 'none',
             borderRadius: '16px',
             color: loading ? '#aaa8c8' : '#2a0066',

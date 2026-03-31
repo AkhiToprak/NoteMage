@@ -36,7 +36,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
       >
         <h3
           style={{
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '18px',
             fontWeight: 700,
             color: '#ede9ff',
@@ -48,7 +48,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
         </h3>
         <p
           style={{
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '13px',
             color: 'rgba(237,233,255,0.4)',
             marginBottom: '20px',
@@ -74,7 +74,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               color: '#ede9ff',
               cursor: 'pointer',
               transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
@@ -126,7 +126,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               color: '#ede9ff',
               cursor: 'pointer',
               transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
@@ -176,7 +176,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             border: 'none',
             background: 'transparent',
             color: 'rgba(237,233,255,0.35)',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '12px',
             cursor: 'pointer',
             transition: 'color 0.15s',

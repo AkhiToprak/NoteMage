@@ -138,7 +138,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
           transform: 'translate(-50%, -50%)',
           width: '100%',
           maxWidth: 440,
-          background: '#121222',
+          background: '#161630',
           borderRadius: 24,
           boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
           zIndex: 10000,
@@ -200,8 +200,8 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
               height: 32,
               borderRadius: 10,
               border: 'none',
-              background: hoveredClose ? '#1d1d33' : 'transparent',
-              color: '#737390',
+              background: hoveredClose ? '#232342' : 'transparent',
+              color: '#8888a8',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -229,7 +229,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
               style={{
                 padding: '40px 0',
                 textAlign: 'center',
-                color: '#737390',
+                color: '#8888a8',
                 fontSize: 13,
               }}
             >
@@ -245,7 +245,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
               style={{
                 padding: '40px 0',
                 textAlign: 'center',
-                color: '#737390',
+                color: '#8888a8',
                 fontSize: 13,
               }}
             >
@@ -272,7 +272,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered && !isSent
-                        ? 'rgba(255,255,255,0.03)'
+                        ? 'rgba(255,255,255,0.07)'
                         : 'transparent',
                     transition: `background 0.12s ${EASING}`,
                     marginBottom: 2,
@@ -288,7 +288,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
                         ? 'none'
                         : isSent
                           ? '1.5px solid rgba(74,222,128,0.3)'
-                          : '1.5px solid #464560',
+                          : '1.5px solid #555578',
                       background: isSelected
                         ? 'linear-gradient(135deg, #ae89ff, #884efb)'
                         : isSent
@@ -352,7 +352,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
                       flex: 1,
                       fontSize: 14,
                       fontWeight: 600,
-                      color: isSent ? '#737390' : '#e5e3ff',
+                      color: isSent ? '#8888a8' : '#e5e3ff',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -382,7 +382,7 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
             justifyContent: 'space-between',
           }}
         >
-          <span style={{ fontSize: 12, color: '#737390' }}>
+          <span style={{ fontSize: 12, color: '#8888a8' }}>
             {selected.size > 0
               ? `${selected.size} selected`
               : sent.size > 0
@@ -404,11 +404,11 @@ export default function CoWorkInviteModal({ open, onClose, notebookId, sessionId
               border: 'none',
               background:
                 selected.size === 0
-                  ? '#23233c'
+                  ? '#2a2a4c'
                   : hoveredSend
                     ? 'linear-gradient(135deg, #c4a6ff, #9b5fff)'
                     : 'linear-gradient(135deg, #ae89ff, #884efb)',
-              color: selected.size === 0 ? '#737390' : '#fff',
+              color: selected.size === 0 ? '#8888a8' : '#fff',
               fontSize: 13,
               fontWeight: 700,
               cursor: selected.size === 0 || sending ? 'not-allowed' : 'pointer',

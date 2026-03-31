@@ -122,7 +122,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                       calloutType === t
                         ? '#a47bff'
                         : 'rgba(237,233,255,0.7)',
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                     fontSize: '13px',
                     cursor: 'pointer',
                     textAlign: 'left',

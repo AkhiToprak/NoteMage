@@ -377,7 +377,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
       width: '100%',
       borderRadius: '12px',
       border: '1px solid rgba(81,112,255,0.25)',
-      background: 'linear-gradient(145deg, #1a1833 0%, #16152a 50%, #120f24 100%)',
+      background: 'linear-gradient(145deg, #1a1833 0%, #1a1a36 50%, #120f24 100%)',
       overflow: 'hidden',
       margin: '8px 0',
     }}>
@@ -394,7 +394,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
           }}><Brain size={16} /></span>
           <span style={{
             fontSize: '13px', fontWeight: 600, color: '#93a8ff',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}>
             {title}
           </span>
@@ -438,7 +438,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'rgba(237,233,255,0.3)', fontSize: '13px',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}>
             Rendering mind map...
           </div>

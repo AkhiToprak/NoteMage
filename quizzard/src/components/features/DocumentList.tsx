@@ -63,7 +63,7 @@ export default function DocumentList({ documents, onDelete, deletingId }: Docume
             {/* File name */}
             <span
               style={{
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '13px',
                 color: 'rgba(237,233,255,0.75)',
                 flex: 1,
@@ -80,7 +80,7 @@ export default function DocumentList({ documents, onDelete, deletingId }: Docume
             {/* File size */}
             <span
               style={{
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '11px',
                 color: 'rgba(237,233,255,0.25)',
                 flexShrink: 0,
@@ -92,7 +92,7 @@ export default function DocumentList({ documents, onDelete, deletingId }: Docume
             {/* Date */}
             <span
               style={{
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '11px',
                 color: 'rgba(237,233,255,0.22)',
                 flexShrink: 0,

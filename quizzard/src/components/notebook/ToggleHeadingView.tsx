@@ -99,7 +99,7 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
             background: 'none',
             border: 'none',
             outline: 'none',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: style.fontSize,
             fontWeight: Number(style.fontWeight),
             letterSpacing: style.letterSpacing,

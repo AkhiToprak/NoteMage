@@ -191,8 +191,23 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
       const json = await res.json();
       if (json.success && json.data?.id) {
         await fetchDocs();
-        setSelectedDocIds(prev => new Set([...prev, json.data.id]));
+        const newDocIds = new Set([...selectedDocIds, json.data.id]);
+        setSelectedDocIds(newDocIds);
+
+        // Auto-save: immediately add the uploaded document to the chat's context
+        // so the AI can reference it without requiring a manual "Update Context" click
+        await fetch(`/api/notebooks/${notebookId}/chats/${chatId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contextDocIds: [...newDocIds] }),
+        });
+        // Update local chat state to reflect the new context
+        setChat(prev => prev ? { ...prev, contextDocIds: [...newDocIds] } : prev);
+      } else {
+        setUploadError(json.error ?? 'Upload failed. Please try again.');
       }
+    } catch {
+      setUploadError('Network error. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -234,7 +249,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column', height: '100%',
-      fontFamily: "'Gliker', 'DM Sans', sans-serif",
+      fontFamily: 'inherit',
       position: 'relative',
     }}>
 
@@ -243,7 +258,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
         padding: '18px 28px',
         borderBottom: '1px solid rgba(140,82,255,0.08)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
-        background: 'rgba(13,12,32,0.6)', flexShrink: 0,
+        background: 'rgba(17,17,38,0.6)', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <div style={{
@@ -263,7 +278,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               {chat?.title ?? '…'}
             </h1>
             {totalContext > 0 && (
-              <p style={{ margin: 0, fontSize: '11px', color: 'rgba(185,195,255,0.4)' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: 'rgba(185,195,255,0.55)' }}>
                 {totalContext} context source{totalContext !== 1 ? 's' : ''} attached
               </p>
             )}
@@ -280,7 +295,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             background: 'rgba(140,82,255,0.1)',
             color: '#c4a9ff', fontSize: '12px', fontWeight: 700,
             cursor: 'pointer', flexShrink: 0,
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             transition: 'background 0.15s, border-color 0.15s',
           }}
           onMouseEnter={e => {
@@ -328,7 +343,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               <p style={{ margin: '0 0 6px', fontSize: '18px', fontWeight: 700, color: '#ede9ff', fontFamily: '"Shrikhand", serif', fontStyle: 'italic' }}>
                 Scholar is ready
               </p>
-              <p style={{ margin: 0, fontSize: '13px', color: 'rgba(185,195,255,0.45)', maxWidth: '360px', lineHeight: 1.7 }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'rgba(185,195,255,0.6)', maxWidth: '360px', lineHeight: 1.7 }}>
                 {totalContext > 0
                   ? `I have ${totalContext} context source${totalContext !== 1 ? 's' : ''} loaded. Ask me anything about your material.`
                   : 'Feed me some documents or notebook pages to get started, then ask anything.'}
@@ -362,7 +377,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
               background: msg.role === 'user'
                 ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
-                : 'rgba(255,255,255,0.05)',
+                : 'rgba(255,255,255,0.07)',
               border: msg.role === 'user'
                 ? 'none'
                 : '1px solid rgba(255,255,255,0.08)',
@@ -390,7 +405,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             </div>
             <div style={{
               padding: '12px 16px', borderRadius: '16px 16px 16px 4px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)',
               display: 'flex', gap: '4px', alignItems: 'center',
             }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ae89ff', animation: 'dotPulse 1.4s ease-in-out infinite', animationDelay: '0s' }} />
@@ -429,7 +444,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
       }}>
         <div style={{
           display: 'flex', gap: '10px', alignItems: 'flex-end',
-          background: 'rgba(255,255,255,0.04)',
+          background: 'rgba(255,255,255,0.06)',
           border: '1px solid rgba(140,82,255,0.15)',
           borderRadius: '14px', padding: '12px 14px',
           transition: 'border-color 0.15s',
@@ -447,7 +462,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#ede9ff', fontSize: '14px', lineHeight: 1.6,
-              fontFamily: "'Gliker', 'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               resize: 'none', minHeight: '22px', maxHeight: '160px',
               opacity: isSending ? 0.5 : 1,
             }}
@@ -495,7 +510,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           <div style={{
             position: 'absolute', top: 0, right: 0, bottom: 0,
             width: '380px', zIndex: 11,
-            background: 'linear-gradient(160deg, #16152a 0%, #111025 100%)',
+            background: 'linear-gradient(160deg, #1a1a36 0%, #151530 100%)',
             borderLeft: '1px solid rgba(140,82,255,0.2)',
             display: 'flex', flexDirection: 'column',
             boxShadow: '-16px 0 48px rgba(0,0,0,0.4)',
@@ -518,7 +533,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 onClick={() => setShowFeedPanel(false)}
                 style={{
                   width: '26px', height: '26px', borderRadius: '7px', border: 'none',
-                  background: 'rgba(255,255,255,0.05)', color: 'rgba(237,233,255,0.4)',
+                  background: 'rgba(255,255,255,0.07)', color: 'rgba(237,233,255,0.4)',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.12s, color 0.12s',
                 }}
@@ -527,7 +542,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
                   (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.4)';
                 }}
               >
@@ -554,8 +569,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             <div style={{ padding: '14px 20px 0' }}>
               <div style={{
                 display: 'flex', gap: '4px',
-                background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '4px',
-                border: '1px solid rgba(255,255,255,0.05)',
+                background: 'rgba(255,255,255,0.07)', borderRadius: '10px', padding: '4px',
+                border: '1px solid rgba(255,255,255,0.07)',
               }}>
                 {(['notebook', 'upload'] as const).map(tab => (
                   <button
@@ -563,11 +578,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                     onClick={() => setFeedTab(tab)}
                     style={{
                       flex: 1, padding: '7px 12px', borderRadius: '7px', border: 'none',
-                      cursor: 'pointer', fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                      cursor: 'pointer', fontFamily: 'inherit',
                       fontSize: '12px', fontWeight: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                       background: feedTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
-                      color: feedTab === tab ? '#c4a9ff' : 'rgba(185,195,255,0.35)',
+                      color: feedTab === tab ? '#c4a9ff' : 'rgba(185,195,255,0.5)',
                       transition: 'background 0.12s, color 0.12s',
                     }}
                   >
@@ -588,7 +603,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 }}>
                   {sectionTree.length === 0 ? (
                     <div style={{ padding: '32px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '13px', color: 'rgba(185,195,255,0.3)', margin: 0 }}>
+                      <p style={{ fontSize: '13px', color: 'rgba(185,195,255,0.6)', margin: 0 }}>
                         No sections yet. Add pages to your notebook first.
                       </p>
                     </div>
@@ -627,7 +642,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                     style={{
                       borderRadius: '10px',
                       border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
-                      background: isDragging ? 'rgba(140,82,255,0.05)' : 'rgba(255,255,255,0.02)',
+                      background: isDragging ? 'rgba(140,82,255,0.05)' : 'rgba(255,255,255,0.035)',
                       padding: '18px', display: 'flex', alignItems: 'center', gap: '12px',
                       cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s', flexShrink: 0,
                     }}
@@ -653,7 +668,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                       <p style={{ margin: '0 0 1px', fontSize: '13px', fontWeight: 700, color: '#e5e3ff' }}>
                         {isUploading ? 'Uploading…' : 'Drop or click to upload'}
                       </p>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#737390' }}>PDF · DOCX · TXT · MD</p>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#8888a8' }}>PDF · DOCX · TXT · MD</p>
                       {uploadError && <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#fd6f85' }}>{uploadError}</p>}
                     </div>
                   </div>
@@ -661,7 +676,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   {/* Doc list */}
                   {documents.length > 0 && (
                     <div style={{ flex: 1, overflowY: 'auto', background: 'rgba(255,255,255,0.025)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ padding: '8px 12px 4px', fontSize: '10px', fontWeight: 600, color: 'rgba(185,195,255,0.35)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                      <div style={{ padding: '8px 12px 4px', fontSize: '10px', fontWeight: 600, color: 'rgba(185,195,255,0.5)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
                         Vault documents
                       </div>
                       {documents.map(doc => {
@@ -679,7 +694,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                               display: 'flex', alignItems: 'center', gap: '10px',
                               padding: '9px 12px', cursor: 'pointer',
                               background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                              borderTop: '1px solid rgba(255,255,255,0.04)',
+                              borderTop: '1px solid rgba(255,255,255,0.06)',
                               transition: 'background 0.1s',
                             }}
                           >
@@ -695,7 +710,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                             <span style={{ fontSize: '12px', color: 'rgba(237,233,255,0.7)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {doc.fileName}
                             </span>
-                            <span style={{ fontSize: '10px', color: '#737390', flexShrink: 0 }}>
+                            <span style={{ fontSize: '10px', color: '#8888a8', flexShrink: 0 }}>
                               {formatBytes(doc.fileSize)}
                             </span>
                           </div>
@@ -719,7 +734,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                     : 'linear-gradient(135deg, #8c52ff, #5170ff)',
                   color: '#fff', fontSize: '13px', fontWeight: 700,
                   cursor: isSavingContext ? 'not-allowed' : 'pointer',
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   boxShadow: isSavingContext ? 'none' : '0 4px 16px rgba(140,82,255,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
                   transition: 'opacity 0.15s',
@@ -740,7 +755,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
         <div style={{
           padding: '8px 28px 12px',
           display: 'flex', alignItems: 'center', gap: '10px',
-          borderTop: '1px solid rgba(255,255,255,0.04)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
         }}>
           <div style={{
             flex: 1, height: '4px', borderRadius: '2px',
@@ -757,7 +772,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             }} />
           </div>
           <span style={{
-            fontSize: '10px', color: 'rgba(185,195,255,0.35)', fontWeight: 600, whiteSpace: 'nowrap',
+            fontSize: '10px', color: 'rgba(185,195,255,0.5)', fontWeight: 600, whiteSpace: 'nowrap',
           }}>
             {Math.round(tokenUsage.monthlyUsed / 1000)}k / {Math.round(tokenUsage.monthlyLimit / 1000)}k tokens
           </span>
@@ -790,17 +805,17 @@ function PanelSectionItem({ section, selectedPageIds, onTogglePage, depth }: {
         style={{
           display: 'flex', alignItems: 'center', gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
-          cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.04)',
+          cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <span style={{ color: 'rgba(185,195,255,0.3)', display: 'flex' }}>
+        <span style={{ color: 'rgba(185,195,255,0.6)', display: 'flex' }}>
           {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
         </span>
-        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(185,195,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1 }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(185,195,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1 }}>
           {section.title}
         </span>
         {section.pages.length > 0 && (
-          <span style={{ fontSize: '10px', color: 'rgba(185,195,255,0.25)' }}>
+          <span style={{ fontSize: '10px', color: 'rgba(185,195,255,0.38)' }}>
             {section.pages.filter(p => selectedPageIds.has(p.id)).length}/{section.pages.length}
           </span>
         )}
@@ -819,7 +834,7 @@ function PanelSectionItem({ section, selectedPageIds, onTogglePage, depth }: {
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.03)',
+                  borderBottom: '1px solid rgba(255,255,255,0.07)',
                   transition: 'background 0.1s',
                 }}
               >
@@ -849,7 +864,7 @@ function PanelSectionItem({ section, selectedPageIds, onTogglePage, depth }: {
           ))}
           {section.pages.length === 0 && !section.children?.length && (
             <div style={{ padding: `6px 12px 6px ${24 + depth * 14}px` }}>
-              <span style={{ fontSize: '11px', color: 'rgba(185,195,255,0.2)' }}>No pages</span>
+              <span style={{ fontSize: '11px', color: 'rgba(185,195,255,0.32)' }}>No pages</span>
             </div>
           )}
         </>

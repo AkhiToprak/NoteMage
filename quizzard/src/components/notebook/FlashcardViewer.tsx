@@ -329,7 +329,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        height: '100%', color: 'rgba(237,233,255,0.4)', fontFamily: "'DM Sans', sans-serif",
+        height: '100%', color: 'rgba(237,233,255,0.4)', fontFamily: 'inherit',
       }}>
         <p style={{ fontSize: '16px', marginBottom: '16px' }}>No flashcards in this set.</p>
       </div>
@@ -340,14 +340,14 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
     <div ref={containerRef} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       height: '100%', padding: '24px 16px',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: 'inherit',
       overflow: 'auto',
     }}>
       {/* Title */}
       <h2 style={{
         fontSize: '20px', fontWeight: 700, color: '#ede9ff',
         margin: '0 0 8px', textAlign: 'center',
-        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}>
         {title}
       </h2>
@@ -391,7 +391,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                 border: '1px solid rgba(140,82,255,0.2)',
                 borderRadius: '8px', padding: '12px',
                 fontSize: '14px', color: '#ede9ff',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 outline: 'none',
               }}
             />
@@ -405,7 +405,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                 border: '1px solid rgba(140,82,255,0.2)',
                 borderRadius: '8px', padding: '12px',
                 fontSize: '14px', color: '#ede9ff',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 outline: 'none',
               }}
             />
@@ -433,7 +433,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                         background: 'rgba(140,82,255,0.08)',
                         color: 'rgba(237,233,255,0.5)',
                         fontSize: '11px', cursor: 'pointer',
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: 'inherit',
                       }}
                     >
                       {uploadingSide === side ? <Loader2 size={10} className="animate-spin" /> : <ImagePlus size={10} />}
@@ -509,7 +509,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                   border: '1px solid rgba(237,233,255,0.1)',
                   background: 'transparent', color: 'rgba(237,233,255,0.5)',
                   fontSize: '13px', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                 }}
               >
                 <X size={14} /> Cancel
@@ -522,7 +522,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                   border: 'none',
                   background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
                   color: '#fff', fontSize: '13px', cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                 }}
               >
                 <Check size={14} /> Save
@@ -551,7 +551,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
               padding: '40px',
               boxShadow: '0 8px 32px rgba(140,82,255,0.15), 0 2px 8px rgba(0,0,0,0.3)',
-              background: 'linear-gradient(145deg, #1a1833 0%, #16152a 50%, #120f24 100%)',
+              background: 'linear-gradient(145deg, #1a1833 0%, #1a1a36 50%, #120f24 100%)',
               border: '1px solid rgba(140,82,255,0.25)',
               color: '#ede9ff',
             }}>
@@ -583,7 +583,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               <div style={{
                 position: 'absolute', bottom: '20px',
                 fontSize: '11px', color: 'rgba(196,169,255,0.3)',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}>
                 Click or press Space to flip
               </div>
@@ -598,7 +598,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
               padding: '40px',
               boxShadow: '0 8px 32px rgba(81,112,255,0.12), 0 2px 8px rgba(0,0,0,0.3)',
-              background: 'linear-gradient(145deg, #1e1a3a 0%, #16152a 50%, #131128 100%)',
+              background: 'linear-gradient(145deg, #1e1a3a 0%, #1a1a36 50%, #131128 100%)',
               border: '1px solid rgba(81,112,255,0.2)',
               color: 'rgba(237,233,255,0.85)',
               transform: 'rotateY(180deg)',
@@ -685,7 +685,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
             onClick={e => e.stopPropagation()}
             style={{
               width: '380px', maxHeight: '420px',
-              background: '#16152a',
+              background: '#1a1a36',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               display: 'flex', flexDirection: 'column',
@@ -701,7 +701,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
             }}>
               <h3 style={{
                 fontSize: '15px', fontWeight: 700, color: '#ede9ff', margin: 0,
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}>
                 Add to Section
               </h3>
@@ -772,7 +772,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               border: '1px solid rgba(140,82,255,0.2)',
               borderRadius: '8px', padding: '10px',
               fontSize: '14px', color: '#ede9ff',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               outline: 'none',
             }}
           />
@@ -788,7 +788,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
               border: '1px solid rgba(140,82,255,0.2)',
               borderRadius: '8px', padding: '10px',
               fontSize: '14px', color: '#ede9ff',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               outline: 'none',
             }}
           />
@@ -799,7 +799,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                 padding: '7px 12px', borderRadius: '8px',
                 border: '1px solid rgba(237,233,255,0.1)',
                 background: 'transparent', color: 'rgba(237,233,255,0.5)',
-                fontSize: '12px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
               Cancel
@@ -810,7 +810,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
                 padding: '7px 12px', borderRadius: '8px',
                 border: 'none',
                 background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
-                color: '#fff', fontSize: '12px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                color: '#fff', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
               Add Card
@@ -880,7 +880,7 @@ function SectionPickerNode({ section, depth, selectedId, saving, onSelect }: {
         <span style={{
           fontSize: '13px', color: isSelected ? '#c4a9ff' : '#ede9ff',
           fontWeight: isSelected ? 600 : 400,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           flex: 1,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
@@ -950,7 +950,7 @@ function SmallButton({ onClick, icon, label, danger }: {
           ? (hovered ? '#fca5a5' : 'rgba(252,165,165,0.6)')
           : (hovered ? '#c4a9ff' : 'rgba(237,233,255,0.4)'),
         fontSize: '12px', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         transition: 'background 0.12s ease, color 0.12s ease',
       }}
     >

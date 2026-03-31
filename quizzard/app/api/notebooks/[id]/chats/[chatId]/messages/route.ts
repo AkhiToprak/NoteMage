@@ -12,6 +12,8 @@ import {
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
+import { extractText } from '@/lib/fileProcessing';
+import fs from 'fs/promises';
 
 type Params = { params: Promise<{ id: string; chatId: string }> };
 
@@ -122,11 +124,30 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (chat.contextDocIds.length > 0) {
       const docs = await db.document.findMany({
         where: { id: { in: chat.contextDocIds } },
-        select: { fileName: true, textContent: true },
+        select: { id: true, fileName: true, fileType: true, filePath: true, textContent: true },
       });
       for (const doc of docs) {
-        if (doc.textContent) {
-          contextParts.push(`[Document: ${doc.fileName}]\n${doc.textContent}`);
+        let text = doc.textContent;
+
+        // Lazy re-extraction: if textContent is missing, try to extract from the stored file
+        if (!text && doc.filePath) {
+          try {
+            const buffer = await fs.readFile(doc.filePath);
+            text = await extractText(Buffer.from(buffer), doc.fileType);
+            if (text) {
+              // Persist so we don't re-extract next time
+              await db.document.update({
+                where: { id: doc.id },
+                data: { textContent: text },
+              });
+            }
+          } catch {
+            // File missing or extraction failed — skip this document
+          }
+        }
+
+        if (text) {
+          contextParts.push(`[Document: ${doc.fileName}]\n${text}`);
         }
       }
     }

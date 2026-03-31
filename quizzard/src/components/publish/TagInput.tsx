@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const COLORS = {
-  cardBg: '#121222',
-  elevated: '#1d1d33',
+  cardBg: '#161630',
+  elevated: '#232342',
   primary: '#8c52ff',
   primaryLight: '#ae89ff',
   textPrimary: '#ede9ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
   borderSubtle: '#2a2a44',
   error: '#fd6f85',
 } as const;

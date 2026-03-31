@@ -99,7 +99,7 @@ export default function FlashcardSetCreator({
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}
       >
         {/* Header */}
@@ -116,7 +116,7 @@ export default function FlashcardSetCreator({
             fontWeight: 700,
             color: '#ede9ff',
             margin: 0,
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}>
             Create Flashcard Set
           </h3>
@@ -170,7 +170,7 @@ export default function FlashcardSetCreator({
                 padding: '10px 12px',
                 fontSize: '14px',
                 color: '#ede9ff',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 outline: 'none',
               }}
             />
@@ -234,7 +234,7 @@ export default function FlashcardSetCreator({
                   padding: '8px 10px',
                   fontSize: '13px',
                   color: '#ede9ff',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   outline: 'none',
                   width: '100%',
                   boxSizing: 'border-box',
@@ -253,7 +253,7 @@ export default function FlashcardSetCreator({
                   padding: '8px 10px',
                   fontSize: '13px',
                   color: '#ede9ff',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   outline: 'none',
                   width: '100%',
                   boxSizing: 'border-box',
@@ -277,7 +277,7 @@ export default function FlashcardSetCreator({
               color: 'rgba(196,169,255,0.6)',
               fontSize: '13px',
               cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               transition: 'background 0.12s ease, color 0.12s ease',
             }}
             onMouseEnter={e => {
@@ -324,7 +324,7 @@ export default function FlashcardSetCreator({
               color: 'rgba(237,233,255,0.5)',
               fontSize: '13px',
               cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             Cancel
@@ -345,7 +345,7 @@ export default function FlashcardSetCreator({
               color: canSubmit ? '#fff' : 'rgba(237,233,255,0.3)',
               fontSize: '13px',
               cursor: canSubmit ? 'pointer' : 'not-allowed',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
               fontWeight: 600,
             }}
           >

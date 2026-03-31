@@ -39,12 +39,12 @@ export default function SectionPanel() {
     <aside style={{
       width: '180px',
       minWidth: '180px',
-      background: '#0d0c20',
+      background: '#111126',
       borderRight: '1px solid rgba(140,82,255,0.1)',
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      fontFamily: "'Gliker', 'DM Sans', sans-serif",
+      fontFamily: 'inherit',
     }}>
       {/* Logo + notebook name */}
       <div style={{
@@ -123,7 +123,7 @@ export default function SectionPanel() {
                 border: '1px solid rgba(140,82,255,0.3)',
                 borderRadius: '4px',
                 padding: '3px 7px',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 fontSize: '12px',
                 color: '#ede9ff',
                 outline: 'none',
@@ -248,7 +248,7 @@ export default function SectionPanel() {
             border: '1px solid rgba(140,82,255,0.12)',
             background: 'transparent',
             color: 'rgba(237,233,255,0.35)',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '11px',
             fontWeight: 500,
             cursor: 'pointer',

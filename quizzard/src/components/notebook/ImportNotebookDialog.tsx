@@ -38,7 +38,7 @@ export default function ImportNotebookDialog({ notebookId, onImported, onClose }
         background: '#1e1d35', borderRadius: '16px',
         border: '1px solid rgba(140,82,255,0.2)',
         display: 'flex', flexDirection: 'column',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{
@@ -74,7 +74,7 @@ export default function ImportNotebookDialog({ notebookId, onImported, onClose }
                 padding: '7px 14px', borderRadius: '8px',
                 border: 'none', cursor: 'pointer',
                 fontSize: '12.5px', fontWeight: 500,
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
                 color: activeTab === tab ? '#c4a9ff' : 'rgba(196,169,255,0.5)',
                 transition: 'background 0.12s ease',
@@ -281,7 +281,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             padding: '10px 24px', borderRadius: '10px', border: 'none',
             background: '#8c52ff', color: '#fff',
             fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}
         >
           <svg width="16" height="16" viewBox="0 0 23 23" fill="none">
@@ -333,7 +333,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             padding: '8px 20px', borderRadius: '8px', border: 'none',
             background: '#8c52ff', color: '#fff',
             fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}
         >
           Done
@@ -355,7 +355,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             border: '1px solid rgba(140,82,255,0.3)',
             background: 'transparent', color: '#c4a9ff',
             fontSize: '12px', cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
           }}
         >
           Retry
@@ -380,7 +380,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           style={{
             fontSize: '11px', color: 'rgba(252,165,165,0.5)',
             background: 'transparent', border: 'none', cursor: 'pointer',
-            textDecoration: 'underline', fontFamily: "'DM Sans', sans-serif",
+            textDecoration: 'underline', fontFamily: 'inherit',
           }}
         >
           Disconnect
@@ -406,7 +406,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                     display: 'flex', alignItems: 'center', gap: '8px',
                     width: '100%', padding: '8px 8px', borderRadius: '8px',
                     border: 'none', background: 'transparent', cursor: 'pointer',
-                    textAlign: 'left', fontFamily: "'DM Sans', sans-serif",
+                    textAlign: 'left', fontFamily: 'inherit',
                   }}
                 >
                   {isExpanded
@@ -432,7 +432,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                         width: '100%', padding: '6px 8px 6px 34px', borderRadius: '6px',
                         border: 'none', cursor: 'pointer', textAlign: 'left',
                         background: isSelected ? 'rgba(140,82,255,0.1)' : 'transparent',
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: 'inherit',
                         transition: 'background 0.1s ease',
                       }}
                     >
@@ -478,7 +478,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
               color: selectedSections.size > 0 ? '#fff' : 'rgba(196,169,255,0.4)',
               fontSize: '13px', fontWeight: 600,
               cursor: selectedSections.size > 0 ? 'pointer' : 'not-allowed',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}
           >
             <Upload size={14} />

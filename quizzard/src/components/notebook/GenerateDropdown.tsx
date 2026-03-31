@@ -157,7 +157,7 @@ export default function GenerateDropdown({ notebookId, pageId, disabled }: Gener
                   background: 'transparent',
                   color: loading && !isThisLoading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
                   fontSize: '13px',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   transition: 'background 0.1s',
                   textAlign: 'left',

@@ -30,17 +30,17 @@ type FilterTab = 'latest' | 'popular' | 'rated';
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#0d0d1a',
+  pageBg: '#111126',
   surface: '#12121f',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
+  cardBg: '#161630',
+  elevated: '#232342',
   primary: '#8c52ff',
   primaryLight: '#ae89ff',
   secondary: '#ffde59',
   textPrimary: '#ede9ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
   borderSubtle: '#2a2a44',
 } as const;
 
@@ -564,7 +564,7 @@ export default function CommunityHub() {
           {/* Most Downloaded This Week */}
           <div style={{ marginBottom: 36 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: COLORS.textPrimary, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: COLORS.textPrimary, margin: 0, fontFamily: 'inherit' }}>
                 Most Downloaded This Week
               </h2>
               <Link
@@ -605,7 +605,7 @@ export default function CommunityHub() {
           {/* Library Explorer */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, color: COLORS.textPrimary, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: COLORS.textPrimary, margin: 0, fontFamily: 'inherit' }}>
                 Library Explorer
               </h2>
 

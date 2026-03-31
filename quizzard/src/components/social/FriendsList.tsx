@@ -89,7 +89,7 @@ function SkeletonRow({ compact }: { compact: boolean }) {
           width: 32,
           height: 32,
           borderRadius: '50%',
-          background: '#1d1d33',
+          background: '#232342',
           flexShrink: 0,
           animation: 'friendsListPulse 1.5s ease-in-out infinite',
         }}
@@ -100,7 +100,7 @@ function SkeletonRow({ compact }: { compact: boolean }) {
             width: 80,
             height: 12,
             borderRadius: 6,
-            background: '#1d1d33',
+            background: '#232342',
             marginBottom: compact ? 0 : 4,
             animation: 'friendsListPulse 1.5s ease-in-out 0.1s infinite',
           }}
@@ -111,7 +111,7 @@ function SkeletonRow({ compact }: { compact: boolean }) {
               width: 56,
               height: 10,
               borderRadius: 6,
-              background: '#1d1d33',
+              background: '#232342',
               animation: 'friendsListPulse 1.5s ease-in-out 0.2s infinite',
             }}
           />
@@ -238,7 +238,7 @@ export default function FriendsList({
                 fontSize: 13,
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                color: '#737390',
+                color: '#8888a8',
                 letterSpacing: '0.08em',
               }}
             >
@@ -285,7 +285,7 @@ export default function FriendsList({
           <div
             style={{
               fontSize: 12,
-              color: '#737390',
+              color: '#8888a8',
               padding: '8px 0',
               textAlign: 'center',
             }}
@@ -312,7 +312,7 @@ export default function FriendsList({
                     borderRadius: 8,
                     background:
                       hoveredFriendId === friend.friendshipId
-                        ? '#1d1d33'
+                        ? '#232342'
                         : 'transparent',
                     transition: TRANSITION,
                     cursor: 'pointer',
@@ -366,9 +366,9 @@ export default function FriendsList({
   return (
     <div
       style={{
-        background: '#121222',
+        background: '#161630',
         borderRadius: 12,
-        border: '1px solid #464560',
+        border: '1px solid #555578',
         overflow: 'hidden',
       }}
     >
@@ -401,7 +401,7 @@ export default function FriendsList({
                 minWidth: 22,
                 height: 22,
                 borderRadius: 11,
-                background: '#1d1d33',
+                background: '#232342',
                 color: '#aaa8c8',
                 fontSize: 12,
                 fontWeight: 600,
@@ -445,8 +445,8 @@ export default function FriendsList({
       {pendingRequests.length > 0 && (
         <div
           style={{
-            borderTop: '1px solid #464560',
-            borderBottom: '1px solid #464560',
+            borderTop: '1px solid #555578',
+            borderBottom: '1px solid #555578',
           }}
         >
           <button
@@ -489,7 +489,7 @@ export default function FriendsList({
               className="material-symbols-outlined"
               style={{
                 fontSize: 18,
-                color: '#737390',
+                color: '#8888a8',
                 transition: TRANSITION,
                 transform: pendingExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               }}
@@ -656,7 +656,7 @@ export default function FriendsList({
           <button
             style={{
               background: 'none',
-              border: '1px solid #464560',
+              border: '1px solid #555578',
               borderRadius: 8,
               color: '#ae89ff',
               fontSize: 13,
@@ -685,7 +685,7 @@ export default function FriendsList({
         >
           <span
             className="material-symbols-outlined"
-            style={{ fontSize: 40, color: '#737390' }}
+            style={{ fontSize: 40, color: '#8888a8' }}
           >
             group
           </span>
@@ -701,7 +701,7 @@ export default function FriendsList({
           <span
             style={{
               fontSize: 13,
-              color: '#737390',
+              color: '#8888a8',
             }}
           >
             Find people to study with
@@ -725,7 +725,7 @@ export default function FriendsList({
                 padding: '8px 16px',
                 background:
                   hoveredFriendId === friend.friendshipId
-                    ? '#1d1d33'
+                    ? '#232342'
                     : 'transparent',
                 transition: TRANSITION,
                 cursor: 'pointer',
@@ -772,8 +772,8 @@ export default function FriendsList({
                     height: 28,
                     borderRadius: 6,
                     border: 'none',
-                    background: '#23233c',
-                    color: '#737390',
+                    background: '#2a2a4c',
+                    color: '#8888a8',
                     cursor: 'pointer',
                     flexShrink: 0,
                     transition: TRANSITION,

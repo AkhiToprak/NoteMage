@@ -448,7 +448,7 @@ function NotebooksPageContent() {
             className="material-symbols-outlined"
             style={{
               position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-              fontSize: 18, color: searchFocused ? '#ae89ff' : '#737390',
+              fontSize: 18, color: searchFocused ? '#ae89ff' : '#8888a8',
               transition: 'color 0.2s', pointerEvents: 'none', zIndex: 1,
             }}
           >search</span>
@@ -610,7 +610,7 @@ function NotebooksPageContent() {
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.3)';
               const icon = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>('.add-folder-icon-wrap');
-              if (icon) { icon.style.background = '#18182a'; icon.style.transform = 'scale(1)'; }
+              if (icon) { icon.style.background = '#1c1c38'; icon.style.transform = 'scale(1)'; }
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>('.add-folder-label');
               if (label) label.style.color = '#aaa8c8';
             }}
@@ -621,19 +621,19 @@ function NotebooksPageContent() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#18182a',
+                background: '#1c1c38',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1), transform 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#737390' }}>create_new_folder</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#8888a8' }}>create_new_folder</span>
             </span>
             <p className="add-folder-label" style={{ fontWeight: 700, color: '#aaa8c8', margin: '4px 0 0', transition: 'color 0.2s' }}>
               New Folder
             </p>
-            <p style={{ fontSize: '12px', color: '#737390', margin: 0, textAlign: 'center', padding: '0 24px' }}>
+            <p style={{ fontSize: '12px', color: '#8888a8', margin: 0, textAlign: 'center', padding: '0 24px' }}>
               Group your notebooks together
             </p>
           </div>
@@ -664,7 +664,7 @@ function NotebooksPageContent() {
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.3)';
               const icon = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>('.add-icon-wrap');
-              if (icon) { icon.style.background = '#18182a'; icon.style.transform = 'scale(1)'; }
+              if (icon) { icon.style.background = '#1c1c38'; icon.style.transform = 'scale(1)'; }
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>('.add-label');
               if (label) label.style.color = '#aaa8c8';
             }}
@@ -675,19 +675,19 @@ function NotebooksPageContent() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#18182a',
+                background: '#1c1c38',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1), transform 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#737390' }}>add</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#8888a8' }}>add</span>
             </span>
             <p className="add-label" style={{ fontWeight: 700, color: '#aaa8c8', margin: '4px 0 0', transition: 'color 0.2s' }}>
               New Subject
             </p>
-            <p style={{ fontSize: '12px', color: '#737390', margin: 0, textAlign: 'center', padding: '0 24px' }}>
+            <p style={{ fontSize: '12px', color: '#8888a8', margin: 0, textAlign: 'center', padding: '0 24px' }}>
               Organize your thoughts in a new notebook
             </p>
           </div>
@@ -711,7 +711,7 @@ function NotebooksPageContent() {
             <div
               key={label}
               style={{
-                background: '#18182a',
+                background: '#1c1c38',
                 borderRadius: '16px',
                 padding: '24px',
                 display: 'flex',
@@ -780,7 +780,7 @@ function NotebooksPageContent() {
         >
           <div
             style={{
-              background: '#18182a',
+              background: '#1c1c38',
               borderRadius: '20px',
               padding: '32px',
               width: '100%',
@@ -819,7 +819,7 @@ function NotebooksPageContent() {
                 disabled={deleteLoading}
                 style={{
                   flex: 1, padding: '12px', borderRadius: '12px',
-                  background: '#23233c', border: 'none',
+                  background: '#2a2a4c', border: 'none',
                   fontSize: '14px', fontWeight: 600, color: '#aaa8c8',
                   cursor: deleteLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 }}
@@ -862,7 +862,7 @@ function NotebooksPageContent() {
         >
           <div
             style={{
-              background: '#18182a',
+              background: '#1c1c38',
               borderRadius: '20px',
               padding: '32px',
               width: '100%',
@@ -901,7 +901,7 @@ function NotebooksPageContent() {
                 disabled={deleteFolderLoading}
                 style={{
                   flex: 1, padding: '12px', borderRadius: '12px',
-                  background: '#23233c', border: 'none',
+                  background: '#2a2a4c', border: 'none',
                   fontSize: '14px', fontWeight: 600, color: '#aaa8c8',
                   cursor: deleteFolderLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 }}

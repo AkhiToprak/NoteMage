@@ -105,10 +105,10 @@ export default function NotebookPreviewCard({
       onClick={handleCardClick}
       style={{
         position: 'relative',
-        background: '#121222',
+        background: '#161630',
         borderRadius: '16px',
         overflow: 'hidden',
-        border: `1px solid ${hovered ? 'rgba(174,137,255,0.3)' : '#464560'}`,
+        border: `1px solid ${hovered ? 'rgba(174,137,255,0.3)' : '#555578'}`,
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered
           ? '0 8px 24px rgba(174,137,255,0.12)'
@@ -265,7 +265,7 @@ export default function NotebookPreviewCard({
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              color: '#737390',
+              color: '#8888a8',
               fontSize: '12px',
             }}
           >
@@ -302,7 +302,7 @@ export default function NotebookPreviewCard({
         <div
           style={{
             fontSize: '10px',
-            color: '#737390',
+            color: '#8888a8',
             fontStyle: 'italic',
           }}
         >

@@ -127,7 +127,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
         background: '#1e1d35', borderRadius: '16px',
         border: '1px solid rgba(140,82,255,0.2)',
         display: 'flex', flexDirection: 'column',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{
@@ -159,7 +159,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                 padding: '6px 12px', borderRadius: '6px',
                 border: 'none', cursor: 'pointer',
                 fontSize: '12px', fontWeight: 500,
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
                 color: activeTab === tab ? '#c4a9ff' : 'rgba(196,169,255,0.5)',
                 transition: 'background 0.12s ease, color 0.12s ease',
@@ -193,7 +193,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                     width: '100%', padding: '8px 10px', borderRadius: '8px',
                     border: 'none', cursor: 'pointer', textAlign: 'left',
                     background: isChecked ? 'rgba(140,82,255,0.12)' : 'transparent',
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                     transition: 'background 0.12s ease',
                   }}
                 >
@@ -232,7 +232,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               border: '1px solid rgba(140,82,255,0.2)',
               background: 'transparent', color: '#c4a9ff',
               fontSize: '12px', cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'inherit',
             }}>
               Cancel
             </button>
@@ -244,7 +244,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                 background: selected.size > 0 ? '#8c52ff' : 'rgba(140,82,255,0.2)',
                 color: selected.size > 0 ? '#fff' : 'rgba(196,169,255,0.4)',
                 fontSize: '12px', fontWeight: 600, cursor: selected.size > 0 ? 'pointer' : 'not-allowed',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}
             >
               Add ({selected.size})

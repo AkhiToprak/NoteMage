@@ -37,7 +37,7 @@ export default function DashboardLayout({
         flexDirection: 'column',
         height: '100vh',
         overflow: 'hidden',
-        background: '#0d0d1a',
+        background: '#111126',
       }}
     >
       {!isNotebookWorkspace && <HomeHeader />}

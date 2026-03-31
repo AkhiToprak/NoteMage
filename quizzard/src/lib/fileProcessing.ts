@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export const ALLOWED_MIME_TYPES = [
@@ -17,7 +16,9 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   switch (mimeType) {
     case 'application/pdf': {
-      const result = await pdfParse(buffer);
+      const parser = new PDFParse({ data: new Uint8Array(buffer) });
+      const result = await parser.getText();
+      await parser.destroy();
       return result.text;
     }
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {

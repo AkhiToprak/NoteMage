@@ -28,17 +28,17 @@ interface TrendingTag {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#0d0d1a',
+  pageBg: '#111126',
   surface: '#12121f',
-  cardBg: '#121222',
-  elevated: '#1d1d33',
+  cardBg: '#161630',
+  elevated: '#232342',
   primary: '#8c52ff',
   primaryLight: '#ae89ff',
   secondary: '#ffde59',
   textPrimary: '#ede9ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
-  border: '#464560',
+  textMuted: '#8888a8',
+  border: '#555578',
   borderSubtle: '#2a2a44',
   success: '#4ade80',
 } as const;
@@ -137,7 +137,7 @@ export default function CommunitySidebar() {
       >
         {/* Decorative circles */}
         <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-        <div style={{ position: 'absolute', bottom: -10, left: -10, width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+        <div style={{ position: 'absolute', bottom: -10, left: -10, width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
 
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 6 }}>

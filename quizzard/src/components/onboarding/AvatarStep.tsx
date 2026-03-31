@@ -55,10 +55,10 @@ export default function AvatarStep({
 
   const cardBase: React.CSSProperties = {
     flex: 1,
-    background: '#1d1d33',
+    background: '#232342',
     borderRadius: '20px',
     padding: '20px 16px',
-    border: '1px solid #464560',
+    border: '1px solid #555578',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -136,7 +136,7 @@ export default function AvatarStep({
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(13,13,26,0.7)',
+                background: 'rgba(17,17,38,0.7)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -160,7 +160,7 @@ export default function AvatarStep({
         <div
           style={{
             ...cardBase,
-            borderColor: uploadCardHovered ? 'rgba(174,137,255,0.4)' : '#464560',
+            borderColor: uploadCardHovered ? 'rgba(174,137,255,0.4)' : '#555578',
           }}
           onMouseEnter={() => setUploadCardHovered(true)}
           onMouseLeave={() => setUploadCardHovered(false)}
@@ -233,7 +233,7 @@ export default function AvatarStep({
           style={{
             width: '100%',
             padding: '16px',
-            background: loading || uploading ? '#464560' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
+            background: loading || uploading ? '#555578' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
             border: 'none',
             borderRadius: '16px',
             color: loading || uploading ? '#aaa8c8' : '#2a0066',
@@ -280,7 +280,7 @@ export default function AvatarStep({
             background: 'transparent',
             border: 'none',
             borderRadius: '16px',
-            color: '#737390',
+            color: '#8888a8',
             fontSize: '15px',
             fontWeight: 600,
             cursor: loading || uploading ? 'not-allowed' : 'pointer',
@@ -291,7 +291,7 @@ export default function AvatarStep({
             if (!loading && !uploading) e.currentTarget.style.color = '#aaa8c8';
           }}
           onMouseLeave={(e) => {
-            if (!loading && !uploading) e.currentTarget.style.color = '#737390';
+            if (!loading && !uploading) e.currentTarget.style.color = '#8888a8';
           }}
         >
           Skip for now

@@ -93,7 +93,7 @@ export default function FolderBreadcrumbs({ breadcrumbs, onNavigate, onDropNoteb
           <span key={crumb.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '16px', color: '#737390' }}
+              style={{ fontSize: '16px', color: '#8888a8' }}
             >
               chevron_right
             </span>

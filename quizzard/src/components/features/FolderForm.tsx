@@ -48,7 +48,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
     >
       <div
         style={{
-          background: '#18182a',
+          background: '#1c1c38',
           borderRadius: '20px',
           padding: '32px',
           width: '100%',
@@ -137,7 +137,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
                 flex: 1,
                 padding: '12px',
                 borderRadius: '12px',
-                background: '#23233c',
+                background: '#2a2a4c',
                 border: 'none',
                 fontSize: '14px',
                 fontWeight: 600,

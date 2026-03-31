@@ -49,16 +49,16 @@ interface PostCardProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  cardBg: '#121222',
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  cardBg: '#161630',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
+  textMuted: '#8888a8',
   error: '#fd6f85',
-  border: '#464560',
+  border: '#555578',
 } as const;
 
 const AVATAR_COLORS = [
@@ -395,7 +395,7 @@ export default function PostCard({ post, onDelete, onUpdate }: PostCardProps) {
                       padding: '8px 12px',
                       borderRadius: 8,
                       border: 'none',
-                      background: hoveredMenuItem === 'edit' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                      background: hoveredMenuItem === 'edit' ? 'rgba(255,255,255,0.07)' : 'transparent',
                       color: COLORS.textPrimary,
                       fontSize: 13,
                       cursor: 'pointer',

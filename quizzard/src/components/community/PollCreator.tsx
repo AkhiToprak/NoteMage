@@ -16,15 +16,15 @@ interface PollCreatorProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  elevated: '#1d1d33',
-  inputBg: '#23233c',
+  elevated: '#232342',
+  inputBg: '#2a2a4c',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
-  textMuted: '#737390',
+  textMuted: '#8888a8',
   error: '#fd6f85',
-  border: '#464560',
+  border: '#555578',
 } as const;
 
 const MAX_OPTIONS = 4;

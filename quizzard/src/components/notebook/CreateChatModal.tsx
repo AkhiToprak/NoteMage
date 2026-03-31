@@ -137,11 +137,11 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
         zIndex: 1001,
         width: '540px',
         maxWidth: 'calc(100vw - 40px)',
-        background: 'linear-gradient(160deg, #16152a 0%, #111025 100%)',
+        background: 'linear-gradient(160deg, #1a1a36 0%, #151530 100%)',
         border: '1px solid rgba(140,82,255,0.2)',
         borderRadius: '20px',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset',
-        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+        boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.07) inset',
+        fontFamily: 'inherit',
         overflow: 'hidden',
       }}>
 
@@ -169,7 +169,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                 New Scholar Chat
               </h2>
             </div>
-            <p style={{ margin: 0, fontSize: '12px', color: 'rgba(185,195,255,0.45)' }}>
+            <p style={{ margin: 0, fontSize: '12px', color: 'rgba(185,195,255,0.6)' }}>
               in <span style={{ color: 'rgba(185,195,255,0.7)' }}>{notebookName}</span>
             </p>
           </div>
@@ -177,7 +177,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
             onClick={onClose}
             style={{
               width: '28px', height: '28px', borderRadius: '8px',
-              border: 'none', background: 'rgba(255,255,255,0.05)',
+              border: 'none', background: 'rgba(255,255,255,0.07)',
               color: 'rgba(237,233,255,0.4)', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
@@ -188,7 +188,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
               (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.4)';
             }}
           >
@@ -209,14 +209,14 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
               placeholder={`Chat — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
               style={{
                 width: '100%', boxSizing: 'border-box',
-                background: 'rgba(255,255,255,0.04)',
+                background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(140,82,255,0.2)',
                 borderRadius: '10px',
                 padding: '10px 14px',
                 fontSize: '14px',
                 color: '#ede9ff',
                 outline: 'none',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 transition: 'border-color 0.15s',
               }}
               onFocus={e => { (e.currentTarget as HTMLInputElement).style.borderColor = 'rgba(140,82,255,0.5)'; }}
@@ -244,9 +244,9 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
             {/* Tabs */}
             <div style={{
               display: 'flex', gap: '4px', marginBottom: '12px',
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(255,255,255,0.07)',
               borderRadius: '10px', padding: '4px',
-              border: '1px solid rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.07)',
             }}>
               {(['notebook', 'upload'] as const).map(tab => (
                 <button
@@ -254,11 +254,11 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                   onClick={() => setActiveTab(tab)}
                   style={{
                     flex: 1, padding: '7px 12px', borderRadius: '7px', border: 'none',
-                    cursor: 'pointer', fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                    cursor: 'pointer', fontFamily: 'inherit',
                     fontSize: '12px', fontWeight: 600,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                     background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
-                    color: activeTab === tab ? '#c4a9ff' : 'rgba(185,195,255,0.35)',
+                    color: activeTab === tab ? '#c4a9ff' : 'rgba(185,195,255,0.5)',
                     transition: 'background 0.12s, color 0.12s',
                   }}
                 >
@@ -278,7 +278,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
               }}>
                 {sections.length === 0 ? (
                   <div style={{ padding: '24px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '13px', color: 'rgba(185,195,255,0.3)', margin: 0 }}>
+                    <p style={{ fontSize: '13px', color: 'rgba(185,195,255,0.6)', margin: 0 }}>
                       No sections yet. Add pages to your notebook first.
                     </p>
                   </div>
@@ -305,7 +305,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                   style={{
                     borderRadius: '10px',
                     border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
-                    background: isDragging ? 'rgba(140,82,255,0.05)' : 'rgba(255,255,255,0.02)',
+                    background: isDragging ? 'rgba(140,82,255,0.05)' : 'rgba(255,255,255,0.035)',
                     padding: '20px',
                     display: 'flex', alignItems: 'center', gap: '14px',
                     cursor: 'pointer',
@@ -336,7 +336,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                     <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 700, color: '#e5e3ff' }}>
                       {isUploading ? 'Uploading…' : 'Drop file or click to browse'}
                     </p>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#737390' }}>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#8888a8' }}>
                       PDF · DOCX · TXT · MD — max 50MB
                     </p>
                     {uploadError && (
@@ -353,7 +353,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                     border: '1px solid rgba(255,255,255,0.06)',
                     maxHeight: '140px', overflowY: 'auto',
                   }}>
-                    <div style={{ padding: '8px 12px 4px', fontSize: '10px', fontWeight: 600, color: 'rgba(185,195,255,0.35)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '8px 12px 4px', fontSize: '10px', fontWeight: 600, color: 'rgba(185,195,255,0.5)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
                       Vault documents
                     </div>
                     {documents.map(doc => {
@@ -381,7 +381,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                           <span style={{ fontSize: '12px', color: 'rgba(237,233,255,0.7)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {doc.fileName}
                           </span>
-                          <span style={{ fontSize: '10px', color: '#737390', flexShrink: 0 }}>
+                          <span style={{ fontSize: '10px', color: '#8888a8', flexShrink: 0 }}>
                             {formatBytes(doc.fileSize)}
                           </span>
                         </div>
@@ -413,11 +413,11 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                 border: '1px solid rgba(255,255,255,0.08)',
                 background: 'transparent', color: 'rgba(185,195,255,0.5)',
                 fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 transition: 'background 0.12s, color 0.12s',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
                 (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
               }}
               onMouseLeave={e => {
@@ -436,7 +436,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
                   ? 'rgba(140,82,255,0.4)'
                   : 'linear-gradient(135deg, #8c52ff, #5170ff)',
                 color: '#fff', fontSize: '13px', fontWeight: 700, cursor: isCreating ? 'not-allowed' : 'pointer',
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 boxShadow: isCreating ? 'none' : '0 4px 16px rgba(140,82,255,0.35)',
                 display: 'flex', alignItems: 'center', gap: '7px',
                 transition: 'opacity 0.15s, transform 0.15s cubic-bezier(0.22,1,0.36,1)',
@@ -478,17 +478,17 @@ function SectionPickerItem({ section, selectedPageIds, onTogglePage, depth }: {
           display: 'flex', alignItems: 'center', gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <span style={{ color: 'rgba(185,195,255,0.3)', display: 'flex' }}>
+        <span style={{ color: 'rgba(185,195,255,0.6)', display: 'flex' }}>
           {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
         </span>
-        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(185,195,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1 }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(185,195,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em', flex: 1 }}>
           {section.title}
         </span>
         {hasPages && (
-          <span style={{ fontSize: '10px', color: 'rgba(185,195,255,0.25)' }}>
+          <span style={{ fontSize: '10px', color: 'rgba(185,195,255,0.38)' }}>
             {section.pages.filter(p => selectedPageIds.has(p.id)).length}/{section.pages.length}
           </span>
         )}
@@ -508,10 +508,10 @@ function SectionPickerItem({ section, selectedPageIds, onTogglePage, depth }: {
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.03)',
+                  borderBottom: '1px solid rgba(255,255,255,0.07)',
                   transition: 'background 0.1s',
                 }}
-                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.07)'; }}
                 onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
               >
                 <div style={{
@@ -543,7 +543,7 @@ function SectionPickerItem({ section, selectedPageIds, onTogglePage, depth }: {
 
           {!hasPages && !hasChildren && (
             <div style={{ padding: `6px 12px 6px ${24 + depth * 14}px` }}>
-              <span style={{ fontSize: '11px', color: 'rgba(185,195,255,0.2)' }}>No pages</span>
+              <span style={{ fontSize: '11px', color: 'rgba(185,195,255,0.32)' }}>No pages</span>
             </div>
           )}
         </>

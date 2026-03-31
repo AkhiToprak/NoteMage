@@ -100,7 +100,7 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
         />
         <span
           style={{
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: 600,
             color: 'rgba(237,233,255,0.7)',
@@ -273,7 +273,7 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
                   border: '1px solid rgba(140,82,255,0.2)',
                   borderRadius: '4px',
                   padding: '3px 8px',
-                  fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   fontSize: '13px',
                   color: '#ede9ff',
                   outline: 'none',
@@ -342,7 +342,7 @@ function FlashcardSetItem({ fc, notebookId }: { fc: { id: string; title: string 
       />
       <span
         style={{
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '13px',
           color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.55)',
           overflow: 'hidden',
@@ -387,7 +387,7 @@ function QuizSetItem({ qs, notebookId }: { qs: { id: string; title: string }; no
       />
       <span
         style={{
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           fontSize: '13px',
           color: hovered ? '#93a8ff' : 'rgba(237,233,255,0.55)',
           overflow: 'hidden',

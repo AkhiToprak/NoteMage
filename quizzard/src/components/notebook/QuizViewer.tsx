@@ -273,7 +273,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        height: '100%', color: 'rgba(237,233,255,0.4)', fontFamily: "'DM Sans', sans-serif",
+        height: '100%', color: 'rgba(237,233,255,0.4)', fontFamily: 'inherit',
       }}>
         <p style={{ fontSize: '16px', marginBottom: '16px' }}>No questions in this quiz.</p>
       </div>
@@ -287,13 +287,13 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
       <div ref={containerRef} style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         height: '100%', padding: '40px 16px',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         overflow: 'auto',
       }}>
         <h2 style={{
           fontSize: '24px', fontWeight: 700, color: '#ede9ff',
           margin: '0 0 8px', textAlign: 'center',
-          fontFamily: "'Gliker', 'DM Sans', sans-serif",
+          fontFamily: 'inherit',
         }}>
           Quiz Complete
         </h2>
@@ -334,7 +334,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
             { label: 'Skipped', value: `${skippedCount}`, color: 'rgba(237,233,255,0.4)' },
           ].map(stat => (
             <div key={stat.label} style={{
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(255,255,255,0.07)',
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: '12px', padding: '14px 8px',
               textAlign: 'center',
@@ -362,14 +362,14 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
     <div ref={containerRef} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       height: '100%', padding: '24px 16px',
-      fontFamily: "'DM Sans', sans-serif",
+      fontFamily: 'inherit',
       overflow: 'auto',
     }}>
       {/* Title */}
       <h2 style={{
         fontSize: '20px', fontWeight: 700, color: '#ede9ff',
         margin: '0 0 4px', textAlign: 'center',
-        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}>
         {title}
       </h2>
@@ -439,7 +439,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
                   border: '1px solid rgba(140,82,255,0.2)',
                   borderRadius: '8px', padding: '8px 12px',
                   fontSize: '13px', color: '#ede9ff',
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: 'inherit',
                   outline: 'none',
                 }}
               />
@@ -467,7 +467,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
         }}>
           {/* Question text */}
           <div style={{
-            background: 'linear-gradient(145deg, #1a1833 0%, #16152a 50%, #120f24 100%)',
+            background: 'linear-gradient(145deg, #1a1833 0%, #1a1a36 50%, #120f24 100%)',
             border: '1px solid rgba(140,82,255,0.25)',
             borderRadius: '16px',
             padding: '28px 24px',
@@ -490,7 +490,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
               const reviewSelected = mode === 'review' && reviewAnswer === i;
 
               let borderColor = 'rgba(140,82,255,0.15)';
-              let bg = 'rgba(255,255,255,0.03)';
+              let bg = 'rgba(255,255,255,0.07)';
               let textColor = 'rgba(237,233,255,0.7)';
 
               if (showResult) {
@@ -522,7 +522,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
                     background: bg,
                     cursor: isAnswered || mode === 'review' ? 'default' : 'pointer',
                     textAlign: 'left',
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: 'inherit',
                     transition: 'background 0.15s, border-color 0.15s',
                   }}
                 >
@@ -557,7 +557,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
                 background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
                 color: '#fbbf24', fontSize: '12px', fontWeight: 600,
                 cursor: 'pointer', marginBottom: '12px',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: 'inherit',
                 transition: 'background 0.12s',
               }}
             >
@@ -609,7 +609,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
               background: answers.has(currentIndex)
                 ? (answers.get(currentIndex) === question.correctIndex
                   ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)')
-                : 'rgba(255,255,255,0.03)',
+                : 'rgba(255,255,255,0.07)',
               border: `1px solid ${answers.has(currentIndex)
                 ? (answers.get(currentIndex) === question.correctIndex
                   ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)')
@@ -697,7 +697,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
             onClick={e => e.stopPropagation()}
             style={{
               width: '380px', maxHeight: '420px',
-              background: '#16152a',
+              background: '#1a1a36',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               display: 'flex', flexDirection: 'column',
@@ -712,7 +712,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
             }}>
               <h3 style={{
                 fontSize: '15px', fontWeight: 700, color: '#ede9ff', margin: 0,
-                fontFamily: "'Gliker', 'DM Sans', sans-serif",
+                fontFamily: 'inherit',
               }}>
                 Add to Section
               </h3>
@@ -782,7 +782,7 @@ const textareaStyle: React.CSSProperties = {
   border: '1px solid rgba(140,82,255,0.2)',
   borderRadius: '8px', padding: '10px',
   fontSize: '13px', color: '#ede9ff',
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: 'inherit',
   outline: 'none',
 };
 
@@ -797,7 +797,7 @@ const cancelBtnStyle: React.CSSProperties = {
   border: '1px solid rgba(237,233,255,0.1)',
   background: 'transparent', color: 'rgba(237,233,255,0.5)',
   fontSize: '13px', cursor: 'pointer',
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: 'inherit',
 };
 
 const saveBtnStyle: React.CSSProperties = {
@@ -806,7 +806,7 @@ const saveBtnStyle: React.CSSProperties = {
   border: 'none',
   background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
   color: '#fff', fontSize: '13px', cursor: 'pointer',
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: 'inherit',
 };
 
 // ── Sub-components (mirror FlashcardViewer patterns) ──
@@ -858,7 +858,7 @@ function SectionPickerNode({ section, depth, selectedId, saving, onSelect }: {
         <span style={{
           fontSize: '13px', color: isSelected ? '#c4a9ff' : '#ede9ff',
           fontWeight: isSelected ? 600 : 400,
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: 'inherit',
           flex: 1,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
@@ -928,7 +928,7 @@ function SmallButton({ onClick, icon, label, danger }: {
           ? (hovered ? '#fca5a5' : 'rgba(252,165,165,0.6)')
           : (hovered ? '#c4a9ff' : 'rgba(237,233,255,0.4)'),
         fontSize: '12px', cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         transition: 'background 0.12s ease, color 0.12s ease',
       }}
     >
@@ -954,7 +954,7 @@ function ActionButton({ onClick, label, primary }: {
           : hovered ? 'rgba(140,82,255,0.1)' : 'transparent',
         color: primary ? '#fff' : '#c4a9ff',
         fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'inherit',
         boxShadow: primary ? '0 4px 16px rgba(140,82,255,0.3)' : 'none',
         transition: 'background 0.15s',
       }}

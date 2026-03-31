@@ -68,12 +68,12 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
       style={{
         width: '256px',
         minWidth: '256px',
-        background: '#0d0c20',
+        background: '#111126',
         borderRight: '1px solid rgba(140,82,255,0.12)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        fontFamily: "'Gliker', 'DM Sans', sans-serif",
+        fontFamily: 'inherit',
       }}
     >
       {/* Top: notebook name + back arrow */}
@@ -181,7 +181,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
             border: '1px solid rgba(140,82,255,0.15)',
             background: newSectionHovered ? 'rgba(140,82,255,0.08)' : 'transparent',
             color: newSectionHovered ? 'rgba(237,233,255,0.7)' : 'rgba(237,233,255,0.4)',
-            fontFamily: "'Gliker', 'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: 500,
             cursor: 'pointer',

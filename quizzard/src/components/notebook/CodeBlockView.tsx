@@ -59,7 +59,7 @@ export default function CodeBlockView({ node, updateAttributes, extension }: Nod
             borderRadius: '5px',
             padding: '2px 8px',
             fontSize: '11px',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: 'inherit',
             color: '#ae89ff',
             cursor: 'pointer',
             outline: 'none',
