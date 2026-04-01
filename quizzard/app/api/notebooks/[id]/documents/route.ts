@@ -69,8 +69,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     let textContent: string | null = null;
     try {
       textContent = await extractText(buffer, file.type);
-    } catch {
-      // Text extraction failed — store file anyway, textContent stays null
+    } catch (err) {
+      console.error('[Document Upload] Text extraction failed:', file.name, file.type, err);
     }
 
     const document = await db.document.create({

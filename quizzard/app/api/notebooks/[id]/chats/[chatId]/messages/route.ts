@@ -166,8 +166,8 @@ export async function POST(request: NextRequest, { params }: Params) {
                 data: { textContent: text },
               });
             }
-          } catch {
-            // File missing or extraction failed — skip this document
+          } catch (err) {
+            console.error('[AI Chat] Lazy re-extraction failed:', doc.fileName, doc.fileType, err);
           }
         }
 
