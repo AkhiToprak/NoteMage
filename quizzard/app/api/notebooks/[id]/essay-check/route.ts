@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { anthropic } from '@/lib/anthropic';
+import { anthropic, MONTHLY_TOKEN_LIMIT } from '@/lib/anthropic';
+import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import {
   successResponse,
   badRequestResponse,
   unauthorizedResponse,
   notFoundResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 
@@ -33,6 +35,14 @@ export async function POST(
     }
     if (text.length > 50000) {
       return badRequestResponse('Text is too long (max 50,000 characters)');
+    }
+
+    // Token budget check
+    const { allowed } = await checkTokenBudget(userId);
+    if (!allowed) {
+      return tooManyRequestsResponse(
+        `Monthly token limit reached (${MONTHLY_TOKEN_LIMIT.toLocaleString()} tokens). Resets on the 1st of next month.`
+      );
     }
 
     const checkMode = mode === 'full' ? 'full' : 'grammar';
@@ -68,6 +78,15 @@ If there are no issues, return { "issues": [], "overallScore": 100, "summary": "
       max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: text }],
+    });
+
+    // Record token usage
+    const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
+    await recordTokenUsage({
+      notebookId,
+      userId,
+      tokens: totalTokens,
+      description: `[essay-check] ${checkMode} check`,
     });
 
     const responseText = response.content

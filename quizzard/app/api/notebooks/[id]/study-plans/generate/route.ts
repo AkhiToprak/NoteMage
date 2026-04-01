@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL, MONTHLY_TOKEN_LIMIT } from '@/lib/anthropic';
+import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import {
   createdResponse,
   badRequestResponse,
@@ -29,16 +30,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!notebook) return notFoundResponse('Notebook not found');
 
     // Token budget check
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const tokenUsage = await db.chatMessage.aggregate({
-      where: { userId, createdAt: { gte: startOfMonth }, tokens: { not: null } },
-      _sum: { tokens: true },
-    });
-    const usedTokens = tokenUsage._sum.tokens ?? 0;
-    if (usedTokens >= MONTHLY_TOKEN_LIMIT) {
+    const { allowed } = await checkTokenBudget(userId);
+    if (!allowed) {
       return tooManyRequestsResponse(
         `Monthly token limit reached (${MONTHLY_TOKEN_LIMIT.toLocaleString()} tokens). Resets on the 1st of next month.`
       );
@@ -128,6 +121,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       ],
       tools: [STUDY_PLAN_TOOL],
       tool_choice: { type: 'tool', name: 'create_study_plan' },
+    });
+
+    // Record token usage
+    const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
+    await recordTokenUsage({
+      notebookId,
+      userId,
+      tokens: totalTokens,
+      description: `[study-plan] Generated study plan for notebook "${notebook.name}"`,
     });
 
     const { studyPlan: toolUse } = extractToolUses(response.content);

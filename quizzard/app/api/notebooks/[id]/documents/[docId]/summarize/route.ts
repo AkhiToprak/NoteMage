@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { anthropic, AI_MODEL } from '@/lib/anthropic';
+import { anthropic, AI_MODEL, MONTHLY_TOKEN_LIMIT } from '@/lib/anthropic';
+import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import {
   successResponse,
   badRequestResponse,
   unauthorizedResponse,
   notFoundResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 
@@ -49,6 +51,14 @@ export async function POST(
       }
     }
 
+    // Token budget check (only when we're about to call the API)
+    const { allowed } = await checkTokenBudget(userId);
+    if (!allowed) {
+      return tooManyRequestsResponse(
+        `Monthly token limit reached (${MONTHLY_TOKEN_LIMIT.toLocaleString()} tokens). Resets on the 1st of next month.`
+      );
+    }
+
     // Generate with Claude
     const prompt = length === 'brief'
       ? `Summarize the following document in 3-5 concise bullet points. Focus on the key takeaways.\n\nDocument:\n${document.textContent.slice(0, 15000)}`
@@ -58,6 +68,15 @@ export async function POST(
       model: AI_MODEL,
       max_tokens: length === 'brief' ? 500 : 1500,
       messages: [{ role: 'user', content: prompt }],
+    });
+
+    // Record token usage
+    const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
+    await recordTokenUsage({
+      notebookId,
+      userId,
+      tokens: totalTokens,
+      description: `[summarize] ${length} summary for "${document.fileName}"`,
     });
 
     const summaryContent = response.content
