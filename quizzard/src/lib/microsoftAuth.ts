@@ -21,7 +21,16 @@ const msalConfig: msal.Configuration = {
   },
 };
 
-const msalClient = new msal.ConfidentialClientApplication(msalConfig);
+let _msalClient: msal.ConfidentialClientApplication | null = null;
+function getMsalClient() {
+  if (!AZURE_CLIENT_ID || !AZURE_CLIENT_SECRET) {
+    throw new Error('Microsoft Azure credentials are not configured');
+  }
+  if (!_msalClient) {
+    _msalClient = new msal.ConfidentialClientApplication(msalConfig);
+  }
+  return _msalClient;
+}
 
 // ── State parameter signing (CSRF prevention) ──
 
@@ -61,7 +70,7 @@ function verifyState(state: string): string | null {
  */
 export async function getAuthCodeUrl(userId: string): Promise<string> {
   const state = signState(userId);
-  const url = await msalClient.getAuthCodeUrl({
+  const url = await getMsalClient().getAuthCodeUrl({
     scopes: SCOPES,
     redirectUri: REDIRECT_URI,
     state,
@@ -82,7 +91,7 @@ export async function acquireTokenByCode(
     throw new Error('Invalid or expired state parameter');
   }
 
-  const result = await msalClient.acquireTokenByCode({
+  const result = await getMsalClient().acquireTokenByCode({
     code,
     scopes: SCOPES,
     redirectUri: REDIRECT_URI,
@@ -96,7 +105,7 @@ export async function acquireTokenByCode(
   const expiresAt = result.expiresOn ? new Date(result.expiresOn) : new Date(Date.now() + 3600 * 1000);
 
   // Get the refresh token from the MSAL cache
-  const tokenCache = msalClient.getTokenCache().serialize();
+  const tokenCache = getMsalClient().getTokenCache().serialize();
   const cacheData = JSON.parse(tokenCache);
   const refreshTokens = cacheData.RefreshToken || {};
   const refreshTokenEntry = Object.values(refreshTokens)[0] as { secret?: string } | undefined;
@@ -131,7 +140,7 @@ export async function getValidAccessToken(userId: string): Promise<string> {
   }
 
   try {
-    const result = await msalClient.acquireTokenByRefreshToken({
+    const result = await getMsalClient().acquireTokenByRefreshToken({
       refreshToken: connection.refreshToken,
       scopes: SCOPES,
     });
@@ -143,7 +152,7 @@ export async function getValidAccessToken(userId: string): Promise<string> {
     const expiresAt = result.expiresOn ? new Date(result.expiresOn) : new Date(Date.now() + 3600 * 1000);
 
     // Check for updated refresh token in cache
-    const tokenCache = msalClient.getTokenCache().serialize();
+    const tokenCache = getMsalClient().getTokenCache().serialize();
     const cacheData = JSON.parse(tokenCache);
     const refreshTokens = cacheData.RefreshToken || {};
     const refreshTokenEntry = Object.values(refreshTokens)[0] as { secret?: string } | undefined;
