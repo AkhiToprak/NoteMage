@@ -37,6 +37,9 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   post_comment: 'chat_bubble',
   comment_reply: 'reply',
   co_work_invite: 'group_work',
+  level_up: 'trending_up',
+  achievement_unlocked: 'emoji_events',
+  exam_reminder: 'alarm',
 };
 
 function safeStr(val: unknown, fallback: string): string {
@@ -61,6 +64,17 @@ function getNotificationText(n: Notification): string {
       return `${safeStr(data.fromUsername, 'Someone')} replied to your comment`;
     case 'co_work_invite':
       return `${safeStr(data.username, 'Someone')} invited you to co-work on "${safeStr(data.notebookName, 'a notebook')}"`;
+    case 'level_up':
+      return `You reached level ${typeof data.newLevel === 'number' ? data.newLevel : '?'}!`;
+    case 'achievement_unlocked':
+      return `Achievement unlocked: ${safeStr(data.name, 'New achievement')}`;
+    case 'exam_reminder': {
+      const days = typeof data.daysLeft === 'number' ? data.daysLeft : null;
+      const title = safeStr(data.examTitle, 'your exam');
+      if (days === 0) return `${title} is today!`;
+      if (days === 1) return `${title} is tomorrow!`;
+      return days !== null ? `${title} is in ${days} days` : `Upcoming exam: ${title}`;
+    }
     default:
       return 'You have a new notification';
   }
