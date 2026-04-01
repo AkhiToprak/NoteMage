@@ -9,7 +9,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
-import SlideEditorModal, { SlideData } from './SlideEditorModal';
 
 interface FlashcardImageData {
   id: string;
@@ -74,7 +73,6 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(assignedSectionId ?? null);
   const [savingSection, setSavingSection] = useState(false);
   const [sectionSaved, setSectionSaved] = useState(!!assignedSectionId);
-  const [showSlideEditor, setShowSlideEditor] = useState(false);
 
   // Study mode (spaced repetition)
   const [studyMode, setStudyMode] = useState(false);
@@ -92,14 +90,6 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
 
   const card = cards[currentIndex];
 
-  const flashcardSlides: SlideData[] = useMemo(() => {
-    const slides: SlideData[] = [];
-    cards.forEach((c, i) => {
-      slides.push({ title: `Card ${i + 1} — Question`, content: c.question });
-      slides.push({ title: `Card ${i + 1} — Answer`, content: c.answer });
-    });
-    return slides;
-  }, [cards]);
 
   const flip = useCallback(() => setIsFlipped(v => !v), []);
   const next = useCallback(() => {
@@ -134,18 +124,6 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
     window.URL.revokeObjectURL(url);
   }, [cards, title]);
 
-  const openSlideEditor = useCallback(() => {
-    setShowSlideEditor(true);
-  }, []);
-
-  const downloadPdf = useCallback(() => {
-    const a = document.createElement('a');
-    a.href = `/api/notebooks/${notebookId}/flashcard-sets/${setId}/export-pdf`;
-    a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_flashcards.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }, [notebookId, setId, title]);
 
   const deleteSet = useCallback(async () => {
     if (!window.confirm('Delete this entire flashcard set? This cannot be undone.')) return;
@@ -1062,15 +1040,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
             { onClick: deleteSet, icon: <Trash2 size={12} />, label: 'Delete Set', danger: true },
           ]}
         />
-        <DropdownButton
-          icon={<Download size={12} />}
-          label="Download"
-          items={[
-            { onClick: downloadCSV, icon: <Download size={12} />, label: 'CSV' },
-            { onClick: openSlideEditor, icon: <Download size={12} />, label: 'PPTX' },
-            { onClick: downloadPdf, icon: <Download size={12} />, label: 'PDF' },
-          ]}
-        />
+        <SmallButton onClick={downloadCSV} icon={<Download size={12} />} label="CSV" />
         {sectionSaved ? (
           <SmallButton onClick={openSectionPicker} icon={<BookCheck size={12} />} label="In Notebook" />
         ) : (
@@ -1232,15 +1202,7 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
         </div>
       )}
 
-      {/* Slide editor modal */}
-      {showSlideEditor && (
-        <SlideEditorModal
-          initialSlides={flashcardSlides}
-          presentationTitle={title}
-          onExport={() => setShowSlideEditor(false)}
-          onClose={() => setShowSlideEditor(false)}
-        />
-      )}
+
     </div>
   );
 }
