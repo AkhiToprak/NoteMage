@@ -103,7 +103,7 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
       // Load saved canvas state
       if (page?.content && typeof page.content === 'object' && Object.keys(page.content).length > 0) {
         try {
-          editor.store.loadStoreSnapshot(page.content as Parameters<typeof editor.store.loadStoreSnapshot>[0]);
+          editor.store.loadStoreSnapshot(page.content as unknown as Parameters<typeof editor.store.loadStoreSnapshot>[0]);
         } catch {
           // If loading fails, start with empty canvas
         }
