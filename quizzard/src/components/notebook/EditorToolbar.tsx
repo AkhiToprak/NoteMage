@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Underline, Strikethrough,
@@ -11,7 +12,9 @@ import {
   Info, AlertTriangle, CheckCircle, Lightbulb,
   MousePointer2, Eraser, Trash2, Ruler,
   Table2, Rows3, Columns3, PanelTop, Merge, Plus, Minus,
+  MoreHorizontal,
 } from 'lucide-react';
+import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 
 import type { EditorMode, ActiveTool, LineStyle, RulerState } from './DrawingOverlay';
 
@@ -1038,6 +1041,76 @@ function LineStylePicker({
   );
 }
 
+/* ── page actions menu (delete etc.) ── */
+function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { refreshSections } = useNotebookWorkspace();
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this page? This cannot be undone.')) return;
+    try {
+      await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, { method: 'DELETE' });
+      refreshSections();
+      router.push(`/notebooks/${notebookId}`);
+    } catch { /* silent */ }
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} style={{ position: 'relative', marginLeft: 'auto' }}>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); setOpen(p => !p); }}
+        title="Page actions"
+        style={{
+          width: 30, height: 28, borderRadius: 6, border: 'none',
+          background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
+          color: open ? '#a47bff' : 'rgba(237,233,255,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', transition: 'background 0.1s, color 0.1s',
+        }}
+      >
+        <MoreHorizontal size={15} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+          background: '#131228', border: '1px solid rgba(140,82,255,0.2)',
+          borderRadius: 10, padding: '4px',
+          zIndex: 100, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          minWidth: 160,
+        }}>
+          <button
+            onClick={handleDelete}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 6, border: 'none',
+              background: 'transparent', color: '#fca5a5',
+              fontSize: 13, fontFamily: 'inherit', cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(252,165,165,0.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <Trash2 size={14} />
+            Delete page
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── main toolbar ── */
 export default function EditorToolbar({
   editor,
@@ -1143,6 +1216,7 @@ export default function EditorToolbar({
         <Sep />
         <ToolbarButton icon={Undo} label="Undo (Cmd+Z)" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} />
         <ToolbarButton icon={Redo} label="Redo (Cmd+Shift+Z)" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} />
+        <PageActionsMenu notebookId={notebookId} pageId={pageId} />
       </div>
 
       {/* Row 3: Pen settings (visible only in pen mode) */}

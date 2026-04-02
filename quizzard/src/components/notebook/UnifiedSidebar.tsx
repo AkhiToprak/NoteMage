@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  ArrowLeft, Plus, FolderPlus, ChevronRight, Trash2,
+  ArrowLeft, Plus, FolderPlus, ChevronRight, Trash2, ChevronsLeft,
   FileText, FilePlus, MessageSquare, Sparkles, Layers, HelpCircle, Shapes, Search, SlidersHorizontal, Upload, Download,
   CalendarDays,
 } from 'lucide-react';
@@ -30,6 +30,7 @@ import SearchDropdown from '@/components/search/SearchDropdown';
 export default function UnifiedSidebar() {
   const {
     notebookId, notebook, sections, refreshSections,
+    setSidebarCollapsed,
   } = useNotebookWorkspace();
 
   const [isCreatingSection, setIsCreatingSection] = useState(false);
@@ -122,6 +123,22 @@ export default function UnifiedSidebar() {
           }}>
             {notebook?.name ?? '...'}
           </span>
+          <button
+            onClick={() => setSidebarCollapsed(true)}
+            title="Collapse sidebar"
+            style={{
+              width: 22, height: 22, borderRadius: 5,
+              background: 'transparent', border: 'none',
+              color: 'rgba(237,233,255,0.4)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, padding: 0,
+              transition: 'color 0.12s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(237,233,255,0.8)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(237,233,255,0.4)'; }}
+          >
+            <ChevronsLeft size={14} />
+          </button>
         </div>
       </div>
 

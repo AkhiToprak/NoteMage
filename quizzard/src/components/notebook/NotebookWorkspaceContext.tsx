@@ -61,6 +61,8 @@ interface WorkspaceContextValue {
   refreshSections: () => void;
   refreshStudyPlans: () => void;
   isScholarView: boolean;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 const NotebookWorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -77,6 +79,7 @@ export function NotebookWorkspaceProvider({ notebookId, children }: { notebookId
   const [flatSections, setFlatSections] = useState<SectionData[]>([]);
   const [sections, setSections] = useState<SectionNode[]>([]);
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chats, setChats] = useState<NotebookChatItem[]>([]);
   const [studyPlans, setStudyPlans] = useState<StudyPlanSummary[]>([]);
 
@@ -188,6 +191,8 @@ export function NotebookWorkspaceProvider({ notebookId, children }: { notebookId
       refreshSections: fetchSections,
       refreshStudyPlans: fetchStudyPlans,
       isScholarView: activeChatId !== null,
+      sidebarCollapsed,
+      setSidebarCollapsed,
     }}>
       {children}
     </NotebookWorkspaceContext.Provider>
