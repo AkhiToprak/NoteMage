@@ -7,6 +7,7 @@ import {
   unauthorizedResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { sendSignupNotification } from '@/lib/email';
 
 const VALID_GOAL_TYPES = ['hours', 'pages', 'quizzes', 'notebooks'] as const;
 
@@ -54,6 +55,11 @@ export async function PUT(request: NextRequest) {
 
     const weekStart = getCurrentWeekStart();
 
+    const fullUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { email: true, tier: true },
+    });
+
     await db.$transaction(async (tx) => {
       // Delete existing goals for this week to avoid duplicates
       await tx.studyGoal.deleteMany({
@@ -78,6 +84,11 @@ export async function PUT(request: NextRequest) {
         data: { onboardingComplete: true },
       });
     });
+
+    // Fire-and-forget signup notification
+    if (fullUser?.email) {
+      sendSignupNotification(fullUser.email, fullUser.tier);
+    }
 
     return successResponse({ success: true });
   } catch {
