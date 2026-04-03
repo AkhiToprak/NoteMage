@@ -470,6 +470,11 @@ export default function DashboardPage() {
         </section>
       )}
 
+      {/* Activity Heatmap */}
+      <section>
+        <ActivityHeatmap />
+      </section>
+
       {/* Upcoming Exams */}
       <section
         style={{
@@ -558,11 +563,6 @@ export default function DashboardPage() {
           onClose={() => setShowExamForm(false)}
         />
       )}
-
-      {/* Activity Heatmap */}
-      <section>
-        <ActivityHeatmap />
-      </section>
 
       {/* Bento grid */}
       <section>
