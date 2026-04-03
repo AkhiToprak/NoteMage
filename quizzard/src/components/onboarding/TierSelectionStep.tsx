@@ -32,7 +32,6 @@ export default function TierSelectionStep({
           display: 'flex',
           gap: '16px',
           justifyContent: 'center',
-          flexWrap: 'wrap',
         }}
       >
         {(['FREE', 'PLUS', 'PRO'] as TierKey[]).map((tier) => (

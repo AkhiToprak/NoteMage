@@ -63,7 +63,7 @@ export default function PricingCard({
     flexDirection: 'column',
     gap: '20px',
     flex: '1 1 0',
-    minWidth: '200px',
+    minWidth: '0',
     maxWidth: '320px',
     cursor: onSelect ? 'pointer' : 'default',
     boxShadow: selected ? `0 0 40px ${accent.text}33` : accent.glow,

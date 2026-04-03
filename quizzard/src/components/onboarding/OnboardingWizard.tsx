@@ -170,7 +170,7 @@ export default function OnboardingWizard() {
     : "Almost there — personalize your journey.";
 
   return (
-    <>
+    <div style={step === 2 ? { width: '90vw', maxWidth: '960px', marginLeft: '50%', transform: 'translateX(-50%)' } : undefined}>
       <style>{`
         @keyframes fadeSlide {
           from { opacity: 0; transform: translateY(12px); }
@@ -241,8 +241,7 @@ export default function OnboardingWizard() {
           boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
           position: 'relative',
           overflow: 'hidden',
-          maxWidth: step === 2 ? '900px' : undefined,
-          width: step === 2 ? '100%' : undefined,
+          width: '100%',
         }}
       >
         {/* Top gradient line */}
@@ -356,6 +355,6 @@ export default function OnboardingWizard() {
           </a>
         ))}
       </div>
-    </>
+    </div>
   );
 }
