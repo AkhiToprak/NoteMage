@@ -14,8 +14,13 @@ export async function checkUsageLimit(
 ): Promise<UsageLimitResult> {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { tier: true },
+    select: { tier: true, role: true },
   });
+
+  // Admins have unlimited everything
+  if (user.role === 'admin') {
+    return { allowed: true, used: 0, limit: -1 };
+  }
 
   const tierConfig = TIERS[user.tier as TierKey];
   const limit = tierConfig.limits[featureType];

@@ -258,7 +258,7 @@ export default function Sidebar() {
                 {session.user.name}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                <TierBadge tier={(session.user as any).tier || 'FREE'} />
+                <TierBadge tier={(session.user as any).tier || 'FREE'} role={(session.user as any).role} />
               </div>
             </div>
           </div>

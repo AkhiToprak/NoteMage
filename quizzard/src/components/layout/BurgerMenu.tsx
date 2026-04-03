@@ -51,7 +51,7 @@ const NAV_ITEMS = [
 export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const user = session?.user as { id?: string; username?: string; name?: string; avatarUrl?: string; tier?: string } | undefined;
+  const user = session?.user as { id?: string; username?: string; name?: string; avatarUrl?: string; tier?: string; role?: string } | undefined;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [hoveredLogout, setHoveredLogout] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -168,7 +168,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               {user?.name || user?.username || 'User'}
-              <TierBadge tier={user?.tier || 'FREE'} />
+              <TierBadge tier={user?.tier || 'FREE'} role={user?.role} />
             </div>
             {user?.username && (
               <div style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 2 }}>
