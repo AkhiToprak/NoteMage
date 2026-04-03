@@ -27,11 +27,6 @@ interface ChatData {
   messages: ChatMessage[];
 }
 
-interface TokenUsage {
-  monthlyUsed: number;
-  monthlyLimit: number;
-}
-
 interface DocumentItem {
   id: string;
   fileName: string;
@@ -70,7 +65,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const [contextWarning, setContextWarning] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -145,10 +139,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             messages: [...filtered, userMessage, assistantMessage],
           };
         });
-
-        if (usage) {
-          setTokenUsage({ monthlyUsed: usage.monthlyUsed, monthlyLimit: usage.monthlyLimit });
-        }
 
         // Show warning if some context sources couldn't be read
         if (contextStatus && Array.isArray(contextStatus.skipped) && contextStatus.skipped.length > 0) {
@@ -787,34 +777,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
         </>
       )}
 
-      {/* Token usage bar */}
-      {tokenUsage && (
-        <div style={{
-          padding: '8px 28px 12px',
-          display: 'flex', alignItems: 'center', gap: '10px',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <div style={{
-            flex: 1, height: '4px', borderRadius: '2px',
-            background: 'rgba(255,255,255,0.06)',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              height: '100%', borderRadius: '2px',
-              width: `${Math.min((tokenUsage.monthlyUsed / tokenUsage.monthlyLimit) * 100, 100)}%`,
-              background: tokenUsage.monthlyUsed / tokenUsage.monthlyLimit > 0.9
-                ? '#fd6f85'
-                : 'linear-gradient(90deg, #8c52ff, #5170ff)',
-              transition: 'width 0.3s ease',
-            }} />
-          </div>
-          <span style={{
-            fontSize: '10px', color: 'rgba(185,195,255,0.5)', fontWeight: 600, whiteSpace: 'nowrap',
-          }}>
-            {Math.round(tokenUsage.monthlyUsed / 1000)}k / {Math.round(tokenUsage.monthlyLimit / 1000)}k tokens
-          </span>
-        </div>
-      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
