@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useCallback, useRef, PointerEvent as ReactPointerEvent } from 'react';
 
 function getInitials(name?: string | null): string {
@@ -132,6 +132,8 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [avatarImage, setAvatarImage] = useState<HTMLImageElement | null>(null);
   const [avatarScale, setAvatarScale] = useState(1);
   const [avatarOffset, setAvatarOffset] = useState({ x: 0, y: 0 });
@@ -1413,6 +1415,7 @@ export default function SettingsPage() {
                   (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
                 }}
                 onMouseDown={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)'; }}
+                onClick={() => setDeleteConfirmOpen(true)}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete_forever</span>
                 Delete Account
@@ -1533,6 +1536,111 @@ export default function SettingsPage() {
                 }}
               >
                 {avatarUploading ? 'Uploading…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Account Confirmation Modal */}
+      {deleteConfirmOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(8px)',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !deleting) setDeleteConfirmOpen(false); }}
+        >
+          <div
+            style={{
+              background: '#1c1c38',
+              borderRadius: '24px',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px',
+              maxWidth: '400px',
+              width: '90%',
+              border: '1px solid rgba(253,111,133,0.3)',
+            }}
+          >
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(253,111,133,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <span className="material-symbols-outlined" style={{ color: '#fd6f85', fontSize: '28px' }}>warning</span>
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', margin: 0, textAlign: 'center' }}>
+              Delete your account?
+            </h3>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, margin: 0, textAlign: 'center' }}>
+              This action is permanent. All your notebooks, flashcards, progress, and data will be permanently deleted. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '4px' }}>
+              <button
+                disabled={deleting}
+                onClick={() => setDeleteConfirmOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '14px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  opacity: deleting ? 0.5 : 1,
+                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    const res = await fetch('/api/user/delete-account', { method: 'DELETE' });
+                    if (res.ok) {
+                      await signOut({ callbackUrl: '/' });
+                    } else {
+                      alert('Failed to delete account. Please try again.');
+                      setDeleting(false);
+                    }
+                  } catch {
+                    alert('Failed to delete account. Please try again.');
+                    setDeleting(false);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#c8475d',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '14px',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  opacity: deleting ? 0.7 : 1,
+                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete my account'}
               </button>
             </div>
           </div>
