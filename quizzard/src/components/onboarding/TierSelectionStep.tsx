@@ -1,7 +1,8 @@
 'use client';
 
 import PricingCard from '@/components/pricing/PricingCard';
-import type { TierKey } from '@/lib/tiers';
+import { TIERS, type TierKey } from '@/lib/tiers';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface TierSelectionStepProps {
   selectedTier: TierKey;
@@ -18,6 +19,8 @@ export default function TierSelectionStep({
   loading,
   error,
 }: TierSelectionStepProps) {
+  const { formatPrice } = useCurrency();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <p style={{ color: '#aaa8c8', fontSize: '14px', margin: 0, textAlign: 'center' }}>
@@ -38,6 +41,7 @@ export default function TierSelectionStep({
             tier={tier}
             selected={selectedTier === tier}
             onSelect={onSelect}
+            formattedPrice={formatPrice(TIERS[tier].priceCHF)}
           />
         ))}
       </div>

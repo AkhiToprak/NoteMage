@@ -31,7 +31,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
   },
   PLUS: {
     name: 'Plus',
-    priceCHF: 9,
+    priceCHF: 5,
     limits: {
       ai_flashcards: 4,
       ai_pptx: 3,
@@ -45,7 +45,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
   },
   PRO: {
     name: 'Pro',
-    priceCHF: 19,
+    priceCHF: 10,
     limits: {
       ai_flashcards: -1,
       ai_pptx: -1,
