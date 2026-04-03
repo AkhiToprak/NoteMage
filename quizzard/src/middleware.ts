@@ -30,6 +30,15 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/home', request.url)));
   }
 
+  // Public pricing page — allow unauthenticated access
+  if (pathname === '/pricing') {
+    if (token && token.onboardingComplete) {
+      // Logged-in users can also view pricing
+      return withSecurityHeaders(NextResponse.next());
+    }
+    return withSecurityHeaders(NextResponse.next());
+  }
+
   // Unauthenticated users hitting protected routes → redirect to login
   if (pathname !== '/' && !token) {
     const signInUrl = new URL('/auth/login', request.url);
@@ -57,5 +66,6 @@ export const config = {
     '/ai-chat',
     '/home/:path*',
     '/home',
+    '/pricing',
   ],
 };

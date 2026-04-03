@@ -496,6 +496,7 @@ export default function LandingPage() {
           {/* Right side: links + auth */}
           <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
             <div className="nav-links" style={{ display: "flex", gap: 36 }}>
+              <Link href="/pricing" className="nlink">Pricing</Link>
               <a href="#how-it-works" className="nlink">How It Works</a>
             </div>
             <div className="nav-auth" style={{ display: "flex", gap: 16, alignItems: "center" }}>

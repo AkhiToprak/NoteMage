@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import StepIndicator from './StepIndicator';
 import AccountStep from './AccountStep';
+import TierSelectionStep from './TierSelectionStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep from './StudyGoalsStep';
+import type { TierKey } from '@/lib/tiers';
 
 interface FormData {
   username: string;
@@ -16,11 +18,12 @@ interface FormData {
   password: string;
   confirmPassword: string;
   agreed: boolean;
+  selectedTier: TierKey;
   avatarUrl: string | null;
   studyGoals: { type: string; target: number }[];
 }
 
-const STEP_LABELS = ['Account', 'Avatar', 'Goals'];
+const STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Goals'];
 
 const INITIAL_FORM: FormData = {
   username: '',
@@ -29,15 +32,21 @@ const INITIAL_FORM: FormData = {
   password: '',
   confirmPassword: '',
   agreed: false,
+  selectedTier: 'FREE',
   avatarUrl: null,
   studyGoals: [],
 };
 
 export default function OnboardingWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { update: updateSession } = useSession();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [formData, setFormData] = useState<FormData>(() => {
+    const tierParam = searchParams.get('tier')?.toUpperCase();
+    const initialTier = (tierParam === 'PLUS' || tierParam === 'PRO') ? tierParam as TierKey : 'FREE';
+    return { ...INITIAL_FORM, selectedTier: initialTier };
+  });
   const [loading, setLoading] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<number, string>>({});
 
@@ -91,23 +100,48 @@ export default function OnboardingWizard() {
     }
   };
 
-  // ── Step 2: Avatar ────────────────────────────────────────────────────────
+  // ── Step 2: Tier Selection ────────────────────────────────────────────────
+  const handleTierNext = async () => {
+    clearStepError(2);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/user/tier', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: formData.selectedTier }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setStepError(2, data.error || 'Failed to save plan.');
+        return;
+      }
+      // Refresh JWT so session reflects new tier
+      await updateSession();
+      setStep(3);
+    } catch {
+      setStepError(2, 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Step 3: Avatar ────────────────────────────────────────────────────────
   const handleAvatarNext = () => {
-    setStep(3);
+    setStep(4);
   };
 
   const handleAvatarSkip = () => {
     setFormData((prev) => ({ ...prev, avatarUrl: null }));
-    setStep(3);
+    setStep(4);
   };
 
   const handleAvatarChange = (url: string) => {
     setFormData((prev) => ({ ...prev, avatarUrl: url }));
   };
 
-  // ── Step 3: Goals ─────────────────────────────────────────────────────────
+  // ── Step 4: Goals ─────────────────────────────────────────────────────────
   const submitOnboarding = async (goals: { type: string; target: number }[]) => {
-    clearStepError(3);
+    clearStepError(4);
     setLoading(true);
     try {
       await fetch('/api/user/onboarding', {
@@ -119,13 +153,21 @@ export default function OnboardingWizard() {
       await updateSession();
       router.push('/home');
     } catch {
-      setStepError(3, 'Something went wrong. Please try again.');
+      setStepError(4, 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
 
   const handleGoalsFinish = () => submitOnboarding(formData.studyGoals);
   const handleGoalsSkip = () => submitOnboarding([]);
+
+  const stepSubtitle = step === 1
+    ? "Join the Neon Scholar society."
+    : step === 2
+    ? "Choose your plan."
+    : step === 3
+    ? "Let's set up your profile."
+    : "Almost there — personalize your journey.";
 
   return (
     <>
@@ -186,11 +228,7 @@ export default function OnboardingWizard() {
           Quizzard AI
         </h1>
         <p style={{ color: '#aaa8c8', fontSize: '17px', margin: 0, textAlign: 'center' }}>
-          {step === 1
-            ? "Join the Neon Scholar society."
-            : step === 2
-            ? "Let's set up your profile."
-            : "Almost there — personalize your journey."}
+          {stepSubtitle}
         </p>
       </div>
 
@@ -203,6 +241,8 @@ export default function OnboardingWizard() {
           boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
           position: 'relative',
           overflow: 'hidden',
+          maxWidth: step === 2 ? '900px' : undefined,
+          width: step === 2 ? '100%' : undefined,
         }}
       >
         {/* Top gradient line */}
@@ -221,7 +261,7 @@ export default function OnboardingWizard() {
         {/* Step Indicator */}
         <StepIndicator
           currentStep={step}
-          totalSteps={3}
+          totalSteps={4}
           labels={STEP_LABELS}
         />
 
@@ -251,6 +291,16 @@ export default function OnboardingWizard() {
           )}
 
           {step === 2 && (
+            <TierSelectionStep
+              selectedTier={formData.selectedTier}
+              onSelect={(tier) => setFormData((prev) => ({ ...prev, selectedTier: tier }))}
+              onNext={handleTierNext}
+              loading={loading}
+              error={stepErrors[2] || ''}
+            />
+          )}
+
+          {step === 3 && (
             <AvatarStep
               username={formData.username}
               currentAvatarUrl={formData.avatarUrl}
@@ -258,18 +308,18 @@ export default function OnboardingWizard() {
               onNext={handleAvatarNext}
               onSkip={handleAvatarSkip}
               loading={loading}
-              error={stepErrors[2] || ''}
+              error={stepErrors[3] || ''}
             />
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <StudyGoalsStep
               goals={formData.studyGoals}
               onChange={(goals) => setFormData((prev) => ({ ...prev, studyGoals: goals }))}
               onFinish={handleGoalsFinish}
               onSkip={handleGoalsSkip}
               loading={loading}
-              error={stepErrors[3] || ''}
+              error={stepErrors[4] || ''}
             />
           )}
         </div>

@@ -2,7 +2,7 @@
 
 interface StepIndicatorProps {
   currentStep: number;
-  totalSteps: 3;
+  totalSteps: number;
   labels: string[];
 }
 

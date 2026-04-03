@@ -7,6 +7,7 @@ declare module 'next-auth' {
       id: string;
       username: string;
       avatarUrl?: string;
+      tier: string;
     } & DefaultSession['user'];
   }
 }
@@ -17,5 +18,6 @@ declare module 'next-auth/jwt' {
     username?: string;
     avatarUrl?: string;
     onboardingComplete?: boolean;
+    tier?: string;
   }
 }

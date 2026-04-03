@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
+import TierBadge from '@/components/ui/TierBadge';
 
 function getInitials(name?: string | null): string {
   if (!name) return '?';
@@ -61,9 +62,10 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
         {session?.user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: '500', color: '#aaa8c8' }}>
+            <span style={{ fontSize: '14px', fontWeight: '500', color: '#aaa8c8', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               Hello,{' '}
               <span style={{ color: '#e5e3ff' }}>{session.user.name}</span>
+              <TierBadge tier={(session.user as any).tier || 'FREE'} />
             </span>
             {session.user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

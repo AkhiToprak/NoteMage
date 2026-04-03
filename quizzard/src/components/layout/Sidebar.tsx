@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import FriendsList from '@/components/social/FriendsList';
 import AddFriendModal from '@/components/social/AddFriendModal';
+import TierBadge from '@/components/ui/TierBadge';
 
 function getInitials(name?: string | null): string {
   if (!name) return '?';
@@ -256,17 +257,9 @@ export default function Sidebar() {
               >
                 {session.user.name}
               </p>
-              <p
-                style={{
-                  fontSize: '10px',
-                  color: '#aaa8c8',
-                  margin: 0,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                }}
-              >
-                The Neon Scholar
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                <TierBadge tier={(session.user as any).tier || 'FREE'} />
+              </div>
             </div>
           </div>
         )}

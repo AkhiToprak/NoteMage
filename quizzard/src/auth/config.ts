@@ -32,6 +32,7 @@ export const authOptions: NextAuthOptions = {
             avatarUrl: true,
             onboardingComplete: true,
             role: true,
+            tier: true,
             banned: true,
             banReason: true,
           },
@@ -57,6 +58,7 @@ export const authOptions: NextAuthOptions = {
           avatarUrl: user.avatarUrl ?? undefined,
           onboardingComplete: user.onboardingComplete,
           role: user.role,
+          tier: user.tier,
         };
       },
     }),
@@ -69,18 +71,20 @@ export const authOptions: NextAuthOptions = {
         token.avatarUrl = (user as any).avatarUrl;
         token.onboardingComplete = (user as any).onboardingComplete;
         token.role = (user as any).role;
+        token.tier = (user as any).tier;
       }
       // Re-read from DB when session is explicitly updated (e.g. after onboarding)
       if (trigger === 'update' && token.id) {
         const freshUser = await db.user.findUnique({
           where: { id: token.id as string },
-          select: { onboardingComplete: true, username: true, avatarUrl: true, role: true },
+          select: { onboardingComplete: true, username: true, avatarUrl: true, role: true, tier: true },
         });
         if (freshUser) {
           token.onboardingComplete = freshUser.onboardingComplete;
           token.username = freshUser.username;
           token.avatarUrl = freshUser.avatarUrl ?? undefined;
           token.role = freshUser.role;
+          token.tier = freshUser.tier;
         }
       }
       return token;
@@ -92,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         session.user.avatarUrl = token.avatarUrl as string | undefined;
         (session.user as any).onboardingComplete = token.onboardingComplete;
         (session.user as any).role = token.role;
+        session.user.tier = (token.tier as string) ?? 'FREE';
       }
       return session;
     },

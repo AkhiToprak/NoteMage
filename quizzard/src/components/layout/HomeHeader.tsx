@@ -8,6 +8,7 @@ import BurgerMenu from './BurgerMenu';
 import NotificationBell from './NotificationBell';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
+import TierBadge from '@/components/ui/TierBadge';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
@@ -41,7 +42,7 @@ function getAvatarGradient(id: string): string {
 
 export default function HomeHeader() {
   const { data: session } = useSession();
-  const user = session?.user as { id?: string; username?: string; name?: string; avatarUrl?: string } | undefined;
+  const user = session?.user as { id?: string; username?: string; name?: string; avatarUrl?: string; tier?: string } | undefined;
 
   const [burgerOpen, setBurgerOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
@@ -280,8 +281,9 @@ export default function HomeHeader() {
                   `}</style>
                   {/* User info */}
                   <div style={{ padding: '10px 12px 8px', borderBottom: `1px solid ${COLORS.border}`, marginBottom: 4 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.textPrimary }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.textPrimary, display: 'flex', alignItems: 'center', gap: 6 }}>
                       {user?.name || user?.username}
+                      <TierBadge tier={user?.tier || 'FREE'} />
                     </div>
                     {user?.username && (
                       <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 1 }}>

@@ -62,6 +62,13 @@
 - **Spacing:** Use intentional, consistent spacing tokens — not random Tailwind steps.
 - **Depth:** Surfaces should have a layering system (base → elevated → floating), not all sit at the same z-plane.
 
+## Implementation Approach
+
+- **Break work into small phases** — implement one phase at a time, verify before moving on.
+- **Use subagents** for complex or parallel tasks to keep the main context clean.
+- **Ask questions** when things are uncertain or big decisions need to be made — don't assume.
+- **Follow plans strictly** when a plan document is provided (e.g. `tierplan.md`).
+
 ## Hard Rules
 
 - Do not add sections, features, or content not in the reference

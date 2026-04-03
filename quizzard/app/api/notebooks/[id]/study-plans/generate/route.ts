@@ -13,6 +13,7 @@ import {
 } from '@/lib/api-response';
 import { STUDY_PLAN_TOOL, extractToolUses } from '@/lib/ai-tools';
 import type { StudyPlanToolInput } from '@/lib/ai-tools';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,12 @@ export async function POST(request: NextRequest, { params }: Params) {
       return tooManyRequestsResponse(
         `Monthly token limit reached (${MONTHLY_TOKEN_LIMIT.toLocaleString()} tokens). Resets on the 1st of next month.`
       );
+    }
+
+    // Usage limit check (ai_study_plan)
+    const studyPlanUsage = await checkUsageLimit(userId, 'ai_study_plan');
+    if (!studyPlanUsage.allowed) {
+      return tooManyRequestsResponse('Monthly study plan generation limit reached. Upgrade your plan for more.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -218,6 +225,9 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
       });
     });
+
+    // Increment ai_study_plan usage after successful creation
+    await incrementUsage(userId, 'ai_study_plan');
 
     return createdResponse(plan);
   } catch (error: unknown) {

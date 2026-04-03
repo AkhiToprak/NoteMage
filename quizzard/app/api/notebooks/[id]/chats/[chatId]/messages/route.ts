@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL, MONTHLY_TOKEN_LIMIT } from '@/lib/anthropic';
@@ -14,6 +14,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { recordActivity } from '@/lib/activity';
 import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
 import { extractText } from '@/lib/fileProcessing';
 import { readFile } from '@/lib/storage';
@@ -230,6 +231,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
 
+    // ── Usage limit check (scholar_chat) ──
+    const chatUsage = await checkUsageLimit(userId, 'scholar_chat');
+    if (!chatUsage.allowed) {
+      return NextResponse.json(
+        { error: 'Monthly chat limit reached. Upgrade your plan for more messages.', limitReached: true },
+        { status: 429 }
+      );
+    }
+
     // ── Call Anthropic API (with tools) ──
     const response = await anthropic.messages.create({
       model: AI_MODEL,
@@ -245,6 +255,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { text: extractedText, flashcard: flashcardToolUse, quiz: quizToolUse, mindmap: mindmapToolUse, studyPlan: studyPlanToolUse, presentation: presentationToolUse } = extractToolUses(response.content);
     let assistantText = extractedText;
 
+    // Increment scholar_chat usage after successful AI response
+    await incrementUsage(userId, 'scholar_chat');
+
     // ── If tool_use: create flashcards in DB ──
     let flashcardSetData: { id: string; title: string; cardCount: number } | null = null;
 
@@ -256,6 +269,15 @@ export async function POST(request: NextRequest, { params }: Params) {
         // Fallback: treat as text-only response
         assistantText = assistantText || 'I tried to create flashcards but the format was invalid. Please try again.';
       } else {
+        // Check ai_flashcards usage limit before persisting
+        const fcUsage = await checkUsageLimit(userId, 'ai_flashcards');
+        if (!fcUsage.allowed) {
+          return NextResponse.json(
+            { error: 'Monthly flashcard generation limit reached. Upgrade your plan for more.', limitReached: true },
+            { status: 429 }
+          );
+        }
+
         // Create flashcard set + cards in a transaction, along with messages
         const result = await db.$transaction(async (tx) => {
           // Save user message
@@ -325,6 +347,9 @@ export async function POST(request: NextRequest, { params }: Params) {
           title: result.fSet.title,
           cardCount: result.fSet.flashcards.length,
         };
+
+        // Increment ai_flashcards usage after successful creation
+        await incrementUsage(userId, 'ai_flashcards');
 
         return successResponse({
           userMessage: {
@@ -594,6 +619,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       const { title: presTitle, themeColor, slides: presSlides } = presentationToolUse.input;
 
       if (presTitle && Array.isArray(presSlides) && presSlides.length > 0) {
+        // Check ai_pptx usage limit before persisting
+        const pptxUsage = await checkUsageLimit(userId, 'ai_pptx');
+        if (!pptxUsage.allowed) {
+          return NextResponse.json(
+            { error: 'Monthly presentation generation limit reached. Upgrade your plan for more.', limitReached: true },
+            { status: 429 }
+          );
+        }
+
         const presJson = JSON.stringify({ themeColor, slides: presSlides });
         const markerText = (assistantText ? `${assistantText}\n\n` : '')
           + `[presentation_start:${presTitle}]\n${presJson}\n[presentation_end]`;
@@ -625,6 +659,9 @@ export async function POST(request: NextRequest, { params }: Params) {
           where: { id: chatId },
           data: { updatedAt: new Date() },
         });
+
+        // Increment ai_pptx usage after successful creation
+        await incrementUsage(userId, 'ai_pptx');
 
         return successResponse({
           userMessage: {

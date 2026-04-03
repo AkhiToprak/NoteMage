@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import TierBadge from '@/components/ui/TierBadge';
 
 interface BurgerMenuProps {
   open: boolean;
@@ -50,7 +51,7 @@ const NAV_ITEMS = [
 export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const user = session?.user as { id?: string; username?: string; name?: string; avatarUrl?: string } | undefined;
+  const user = session?.user as { id?: string; username?: string; name?: string; avatarUrl?: string; tier?: string } | undefined;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [hoveredLogout, setHoveredLogout] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -165,8 +166,9 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
             </div>
           )}
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.textPrimary }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               {user?.name || user?.username || 'User'}
+              <TierBadge tier={user?.tier || 'FREE'} />
             </div>
             {user?.username && (
               <div style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 2 }}>
