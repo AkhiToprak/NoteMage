@@ -25,6 +25,8 @@ export interface DonePayload {
     skipped: { type: string; name: string; reason: string }[];
     total: number;
   };
+  aborted?: boolean;
+  partialText?: string;
 }
 
 type StreamStatus = 'idle' | 'streaming' | 'done' | 'error';
@@ -76,6 +78,7 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const streamingTextRef = useRef('');
 
   const abort = useCallback(() => {
     if (abortControllerRef.current) {
@@ -94,6 +97,7 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
 
       setStatus('streaming');
       setStreamingText('');
+      streamingTextRef.current = '';
       setError(null);
 
       let response: Response;
@@ -109,8 +113,8 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
         );
       } catch (err) {
         if (controller.signal.aborted) {
-          setStatus('idle');
-          return null;
+          setStatus('done');
+          return { aborted: true, partialText: streamingTextRef.current } as DonePayload;
         }
         const msg = err instanceof Error ? err.message : 'Network error';
         setStatus('error');
@@ -155,7 +159,8 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
             switch (sse.event) {
               case 'text': {
                 const parsed = JSON.parse(sse.data) as { delta: string };
-                setStreamingText((prev) => prev + parsed.delta);
+                streamingTextRef.current += parsed.delta;
+                setStreamingText(streamingTextRef.current);
                 break;
               }
               case 'done': {
@@ -174,8 +179,8 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
         }
       } catch (err) {
         if (controller.signal.aborted) {
-          setStatus('idle');
-          return null;
+          setStatus('done');
+          return { aborted: true, partialText: streamingTextRef.current } as DonePayload;
         }
         const msg = err instanceof Error ? err.message : 'Stream read error';
         setStatus('error');

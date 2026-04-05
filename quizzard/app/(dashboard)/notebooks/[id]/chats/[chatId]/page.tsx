@@ -126,33 +126,52 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
       const donePayload = await streamSend(text);
 
       if (donePayload) {
-        const { userMessage, assistantMessage, flashcardSet, quizSet, contextStatus } = donePayload;
+        if (donePayload.aborted) {
+          // User stopped generation — show what we have
+          const partialText = donePayload.partialText || '';
+          const stoppedContent = partialText || '*Generation stopped*';
 
-        // Replace temp message with real ones
-        setChat(prev => {
-          if (!prev) return prev;
-          const filtered = prev.messages.filter(m => m.id !== tempUserMsg.id);
-          return {
-            ...prev,
-            messages: [...filtered, userMessage, assistantMessage],
-          };
-        });
-
-        // Show warning if some context sources couldn't be read
-        if (contextStatus && Array.isArray(contextStatus.skipped) && contextStatus.skipped.length > 0) {
-          const names = contextStatus.skipped.map((s: { name: string }) => s.name).join(', ');
-          setContextWarning(`${contextStatus.skipped.length} Quelle(n) konnten nicht gelesen werden: ${names}`);
-          setTimeout(() => setContextWarning(null), 10_000);
+          setChat(prev => {
+            if (!prev) return prev;
+            const filtered = prev.messages.filter(m => m.id !== tempUserMsg.id);
+            return {
+              ...prev,
+              messages: [
+                ...filtered,
+                { id: `user-${Date.now()}`, role: 'user', content: text, createdAt: new Date().toISOString() },
+                { id: `stopped-${Date.now()}`, role: 'assistant', content: stoppedContent, createdAt: new Date().toISOString() },
+              ],
+            };
+          });
         } else {
-          setContextWarning(null);
-        }
+          const { userMessage, assistantMessage, flashcardSet, quizSet, contextStatus } = donePayload;
 
-        // Refresh sidebar chats if flashcards or quizzes were created
-        if (flashcardSet || quizSet) {
-          refreshChats();
+          // Replace temp message with real ones
+          setChat(prev => {
+            if (!prev) return prev;
+            const filtered = prev.messages.filter(m => m.id !== tempUserMsg.id);
+            return {
+              ...prev,
+              messages: [...filtered, userMessage, assistantMessage],
+            };
+          });
+
+          // Show warning if some context sources couldn't be read
+          if (contextStatus && Array.isArray(contextStatus.skipped) && contextStatus.skipped.length > 0) {
+            const names = contextStatus.skipped.map((s: { name: string }) => s.name).join(', ');
+            setContextWarning(`${contextStatus.skipped.length} Quelle(n) konnten nicht gelesen werden: ${names}`);
+            setTimeout(() => setContextWarning(null), 10_000);
+          } else {
+            setContextWarning(null);
+          }
+
+          // Refresh sidebar chats if flashcards or quizzes were created
+          if (flashcardSet || quizSet) {
+            refreshChats();
+          }
         }
       } else {
-        // Stream was aborted or returned null (error already set by hook)
+        // Null = error (already set by hook)
         setChat(prev => prev ? { ...prev, messages: prev.messages.filter(m => m.id !== tempUserMsg.id) } : prev);
       }
     } catch {
@@ -414,7 +433,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           </div>
         ))}
 
-        {/* Streaming assistant message or typing indicator */}
+        {/* Streaming assistant message or stop button */}
         {isSending && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
             <div style={{
@@ -474,39 +493,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
         </div>
       )}
 
-      {/* Stop generating button */}
-      {isSending && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 28px 0' }}>
-          <button
-            onClick={streamAbort}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              background: 'rgba(140,82,255,0.15)',
-              color: '#c4a9ff',
-              border: '1px solid rgba(140,82,255,0.25)',
-              fontSize: '13px',
-              fontWeight: 500,
-              padding: '8px 16px',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontFamily: "var(--font-sans)",
-              transition: 'background 0.15s, border-color 0.15s',
-            }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.25)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(140,82,255,0.4)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.15)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(140,82,255,0.25)';
-            }}
-          >
-            <Square size={12} fill="#c4a9ff" />
-            Stop generating
-          </button>
-        </div>
-      )}
-
       {/* Chat input */}
       <div style={{
         padding: '16px 28px 24px',
@@ -543,28 +529,41 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               t.style.height = Math.min(t.scrollHeight, 160) + 'px';
             }}
           />
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isSending}
-            style={{
-              width: '34px', height: '34px', borderRadius: '9px', border: 'none', flexShrink: 0,
-              background: inputValue.trim() && !isSending
-                ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
-                : 'rgba(140,82,255,0.2)',
-              color: inputValue.trim() && !isSending ? '#fff' : 'rgba(255,255,255,0.3)',
-              cursor: inputValue.trim() && !isSending ? 'pointer' : 'not-allowed',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'opacity 0.15s, background 0.15s',
-            }}
-          >
-            {isSending ? (
-              <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} />
-            ) : (
+          {isSending ? (
+            <button
+              onClick={streamAbort}
+              style={{
+                width: '34px', height: '34px', borderRadius: '9px', border: 'none', flexShrink: 0,
+                background: 'rgba(140,82,255,0.3)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.45)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.3)'; }}
+            >
+              <Square size={12} fill="#c4a9ff" stroke="#c4a9ff" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim()}
+              style={{
+                width: '34px', height: '34px', borderRadius: '9px', border: 'none', flexShrink: 0,
+                background: inputValue.trim()
+                  ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+                  : 'rgba(140,82,255,0.2)',
+                color: inputValue.trim() ? '#fff' : 'rgba(255,255,255,0.3)',
+                cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'opacity 0.15s, background 0.15s',
+              }}
+            >
               <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>
                 send
               </span>
-            )}
-          </button>
+            </button>
+          )}
         </div>
       </div>
 
