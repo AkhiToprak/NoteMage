@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { X, Upload, BookOpen, Check, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface PageRef { id: string; title: string; }
 interface SectionRef { id: string; title: string; pages: PageRef[]; children?: SectionRef[]; }
@@ -24,6 +25,7 @@ function formatBytes(bytes: number) {
 }
 
 export default function CreateChatModal({ notebookId, notebookName, sections, documents, onClose, onCreate }: Props) {
+  const { upload } = useDirectUpload();
   const [title, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState<'notebook' | 'upload'>('notebook');
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
@@ -59,16 +61,15 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
       setUploadError('Unsupported file type. Allowed: PDF, DOCX, TXT, MD');
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      setUploadError('File too large. Maximum size is 50MB');
-      return;
-    }
     setUploadError(null);
     setIsUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch(`/api/notebooks/${notebookId}/documents`, { method: 'POST', body: fd });
+      const { storagePath } = await upload(file, 'document', { notebookId });
+      const res = await fetch(`/api/notebooks/${notebookId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
+      });
       const json = await res.json();
       if (json.success && json.data?.id) {
         setUploadedDocIds(prev => [...prev, json.data.id]);
@@ -77,7 +78,7 @@ export default function CreateChatModal({ notebookId, notebookName, sections, do
     } finally {
       setIsUploading(false);
     }
-  }, [notebookId]);
+  }, [notebookId, upload]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();

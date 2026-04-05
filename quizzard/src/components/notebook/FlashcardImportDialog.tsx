@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, type DragEvent, type ChangeEvent } from 'react';
 import { X, FileUp, Loader2, AlertCircle, CheckCircle2, FileSpreadsheet, ClipboardPaste, Archive } from 'lucide-react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface FlashcardImportDialogProps {
   notebookId: string;
@@ -50,6 +51,8 @@ export default function FlashcardImportDialog({
   const [customCardSep, setCustomCardSep] = useState('');
   const [pasteSubmitting, setPasteSubmitting] = useState(false);
 
+  const { upload } = useDirectUpload();
+
   const resetUpload = useCallback(() => {
     setUploadState('idle');
     setFileName('');
@@ -92,14 +95,21 @@ export default function FlashcardImportDialog({
       setErrorMessage('');
 
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        if (title.trim()) formData.append('title', title.trim());
-        if (sectionId) formData.append('sectionId', sectionId);
+        // Upload directly to Supabase Storage
+        const uploadContext: { notebookId: string; sectionId?: string } = { notebookId };
+        if (sectionId) uploadContext.sectionId = sectionId;
+        const { storagePath } = await upload(file, 'flashcard-import', uploadContext);
 
+        // Call the API with JSON body
         const res = await fetch(`/api/notebooks/${notebookId}/flashcard-sets/import`, {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storagePath,
+            fileName: file.name,
+            title: title.trim() || undefined,
+            sectionId,
+          }),
         });
 
         const json = await res.json();
@@ -116,7 +126,7 @@ export default function FlashcardImportDialog({
         setUploadState('error');
       }
     },
-    [activeTab, notebookId, sectionId, title, onImported]
+    [activeTab, notebookId, sectionId, title, onImported, upload]
   );
 
   const handleDrop = useCallback(

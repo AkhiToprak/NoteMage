@@ -8,9 +8,9 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
-import { extractText, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/fileProcessing';
+import { extractText, ALLOWED_MIME_TYPES } from '@/lib/fileProcessing';
 import { textToTipTapJSON, htmlToTipTapJSON } from '@/lib/contentConverter';
-import { saveImage } from '@/lib/storage';
+import { downloadFromStorage, validateStoragePath, deleteFile, saveImage } from '@/lib/storage';
 import mammoth from 'mammoth';
 
 type Params = { params: Promise<{ id: string; sectionId: string }> };
@@ -34,32 +34,29 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!section) return notFoundResponse('Section not found in this notebook');
 
-    // Parse FormData
-    const formData = await request.formData();
-    const file = formData.get('file');
+    // Parse JSON body
+    const { storagePath, fileName: rawFileName, fileType } = await request.json();
 
-    if (!file || !(file instanceof File)) {
-      return badRequestResponse('No file provided');
+    if (!storagePath) {
+      return badRequestResponse('No storagePath provided');
+    }
+    if (!validateStoragePath(storagePath, 'temp-imports/')) {
+      return badRequestResponse('Invalid storage path');
     }
 
     // Validate mime type
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    if (!ALLOWED_MIME_TYPES.includes(fileType)) {
       return badRequestResponse(
         'Unsupported file type. Allowed: PDF, DOCX, TXT, MD'
       );
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return badRequestResponse('File exceeds maximum size of 10MB');
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await downloadFromStorage(storagePath);
 
     // Extract TipTap JSON content
     let content: object;
     const isDocx =
-      file.type ===
+      fileType ===
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
     if (isDocx) {
@@ -68,15 +65,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       content = htmlToTipTapJSON(htmlResult.value);
     } else {
       // For PDF, TXT, MD — extract plain text then convert
-      const text = await extractText(buffer, file.type);
+      const text = await extractText(buffer, fileType);
       content = textToTipTapJSON(text);
     }
 
     // Always extract plain text for the textContent field (used for search)
-    const textContent = await extractText(buffer, file.type);
+    const textContent = await extractText(buffer, fileType);
 
     // Derive page title from filename (without extension)
-    const filename = file.name || 'Imported File';
+    const filename = rawFileName || 'Imported File';
     const title = filename.replace(/\.[^.]+$/, '');
 
     // Determine sort order
@@ -99,7 +96,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
 
     // Extract and save embedded images from PDF files
-    if (file.type === 'application/pdf') {
+    if (fileType === 'application/pdf') {
       try {
         const { extractPdfImages } = await import('@/lib/pdf-image-extractor');
         const extractedImages = await extractPdfImages(buffer);
@@ -141,6 +138,9 @@ export async function POST(request: NextRequest, { params }: Params) {
         console.error('PDF image extraction error:', imageError);
       }
     }
+
+    // Clean up temp file (fire and forget)
+    await deleteFile(storagePath).catch(() => {});
 
     return createdResponse(page);
   } catch (error) {

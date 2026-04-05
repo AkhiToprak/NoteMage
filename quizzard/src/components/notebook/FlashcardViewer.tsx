@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface FlashcardImageData {
   id: string;
@@ -50,6 +51,7 @@ interface FlashcardViewerProps {
 }
 
 export default function FlashcardViewer({ notebookId, setId, title, initialCards, assignedSectionId }: FlashcardViewerProps) {
+  const { upload } = useDirectUpload();
   const [cards, setCards] = useState<Flashcard[]>(initialCards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -362,12 +364,14 @@ export default function FlashcardViewer({ notebookId, setId, title, initialCards
   const uploadImage = async (file: File, side: 'front' | 'back', cardId: string) => {
     setUploadingSide(side);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('side', side);
+      const { storagePath } = await upload(file, 'flashcard-image', { notebookId, setId, cardId });
       const res = await fetch(
         `/api/notebooks/${notebookId}/flashcard-sets/${setId}/flashcards/${cardId}/images`,
-        { method: 'POST', body: formData }
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, fileName: file.name, side }),
+        }
       );
       const json = await res.json();
       if (json.success) {

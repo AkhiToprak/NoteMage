@@ -23,8 +23,6 @@ export const ALLOWED_MIME_TYPES = [
   'application/vnd.ms-excel',
 ];
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
 export async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   switch (mimeType) {
     case 'application/pdf': {

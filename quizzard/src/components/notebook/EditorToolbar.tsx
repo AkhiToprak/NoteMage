@@ -85,6 +85,7 @@ const LINE_STYLES: { label: string; value: LineStyle; dasharray?: string }[] = [
 interface EditorToolbarProps {
   editor: Editor | null;
   notebookId: string;
+  sectionId: string;
   pageId: string;
   editorMode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
@@ -1115,6 +1116,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
 export default function EditorToolbar({
   editor,
   notebookId,
+  sectionId,
   pageId,
   editorMode,
   onModeChange,
@@ -1207,7 +1209,7 @@ export default function EditorToolbar({
         <TableContextButtons editor={editor} />
 
         <Sep />
-        <ImageUploadButton editor={editor} notebookId={notebookId} pageId={pageId} />
+        <ImageUploadButton editor={editor} notebookId={notebookId} sectionId={sectionId} pageId={pageId} />
         <GenerateDropdown notebookId={notebookId} pageId={pageId} />
         <Sep />
         {/* Cursor / Pen mode toggle */}

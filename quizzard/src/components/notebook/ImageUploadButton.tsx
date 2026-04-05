@@ -1,18 +1,21 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { ImagePlus, Loader } from 'lucide-react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { validateFile } from '@/lib/file-validation';
 
 interface ImageUploadButtonProps {
   editor: Editor;
   notebookId: string;
+  sectionId: string;
   pageId: string;
 }
 
-export default function ImageUploadButton({ editor, notebookId, pageId }: ImageUploadButtonProps) {
+export default function ImageUploadButton({ editor, notebookId, sectionId, pageId }: ImageUploadButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const { upload, isUploading } = useDirectUpload();
 
   const handleClick = () => {
     fileInputRef.current?.click();
@@ -22,14 +25,23 @@ export default function ImageUploadButton({ editor, notebookId, pageId }: ImageU
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
+    const validationError = validateFile(file, 'page-image');
+    if (validationError) {
+      // Could show a toast here; for now silently reject
+      return;
+    }
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const { storagePath } = await upload(file, 'page-image', {
+        notebookId,
+        sectionId,
+        pageId,
+      });
 
       const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/images`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath, fileName: file.name }),
       });
 
       const json = await res.json();
@@ -42,7 +54,6 @@ export default function ImageUploadButton({ editor, notebookId, pageId }: ImageU
     } catch {
       // Upload failed silently
     } finally {
-      setIsUploading(false);
       // Reset input so the same file can be selected again
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

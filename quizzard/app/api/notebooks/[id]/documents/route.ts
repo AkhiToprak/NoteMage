@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { saveFile } from '@/lib/storage';
-import { extractText, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/fileProcessing';
+import { downloadFromStorage, validateStoragePath } from '@/lib/storage';
+import { extractText, ALLOWED_MIME_TYPES } from '@/lib/fileProcessing';
 import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import {
@@ -51,35 +51,32 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    const data = await request.formData();
-    const file = data.get('file') as File | null;
+    const { storagePath, fileName, fileType } = await request.json();
 
-    if (!file) return badRequestResponse('No file provided');
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    if (!storagePath) return badRequestResponse('No storagePath provided');
+    if (!validateStoragePath(storagePath, 'documents/')) {
+      return badRequestResponse('Invalid storage path');
+    }
+    if (!ALLOWED_MIME_TYPES.includes(fileType)) {
       return badRequestResponse('Unsupported file type. Allowed: PDF, DOCX, TXT, MD');
     }
-    if (file.size > MAX_FILE_SIZE) {
-      return badRequestResponse('File too large. Maximum size is 10MB');
-    }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const { filePath } = await saveFile(notebookId, file.name, buffer);
+    const buffer = await downloadFromStorage(storagePath);
 
     let textContent: string | null = null;
     try {
-      textContent = await extractText(buffer, file.type);
+      textContent = await extractText(buffer, fileType);
     } catch (err) {
-      console.error('[Document Upload] Text extraction failed:', file.name, file.type, err);
+      console.error('[Document Upload] Text extraction failed:', fileName, fileType, err);
     }
 
     const document = await db.document.create({
       data: {
         notebookId,
-        fileName: file.name,
-        filePath,
-        fileSize: file.size,
-        fileType: file.type,
+        fileName,
+        filePath: storagePath,
+        fileSize: buffer.length,
+        fileType,
         textContent,
       },
     });

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { saveImage } from '@/lib/storage';
+import { downloadFromStorage, validateStoragePath } from '@/lib/storage';
 import {
   createdResponse,
   badRequestResponse,
@@ -13,7 +13,18 @@ import {
 type Params = { params: Promise<{ id: string; pageId: string }> };
 
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+function mimeFromExtension(fileName: string): string | null {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+  };
+  return ext ? map[ext] ?? null : null;
+}
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
@@ -35,31 +46,27 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (!page) return notFoundResponse('Page not found');
 
-    const formData = await request.formData();
-    const file = formData.get('file');
+    const { storagePath, fileName } = await request.json();
 
-    if (!file || !(file instanceof File)) {
-      return badRequestResponse('No file provided');
+    if (!storagePath || !validateStoragePath(storagePath, 'images/')) {
+      return badRequestResponse('Invalid or missing storagePath');
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const contentType = mimeFromExtension(fileName || '');
+    if (!contentType || !ALLOWED_TYPES.includes(contentType)) {
       return badRequestResponse('Invalid file type. Allowed: PNG, JPEG, GIF, WebP');
     }
 
-    if (file.size > MAX_SIZE) {
-      return badRequestResponse('File too large. Maximum size is 5MB');
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { filePath } = await saveImage(pageId, file.name, buffer);
+    // Download from storage for size tracking / validation
+    const buffer = await downloadFromStorage(storagePath);
 
     const image = await db.pageImage.create({
       data: {
         pageId,
-        fileName: file.name,
-        filePath,
-        fileSize: file.size,
-        mimeType: file.type,
+        fileName: fileName || 'image',
+        filePath: storagePath,
+        fileSize: buffer.length,
+        mimeType: contentType,
       },
     });
 

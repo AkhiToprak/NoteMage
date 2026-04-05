@@ -11,10 +11,7 @@ import {
 } from '@/lib/api-response';
 import { parsePptxFile } from '@/lib/pptx-parser';
 import { textToTipTapJSON } from '@/lib/contentConverter';
-import { saveImage } from '@/lib/storage';
-
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+import { saveImage, downloadFromStorage, validateStoragePath, deleteFile } from '@/lib/storage';
 
 type Params = { params: Promise<{ id: string; sectionId: string }> };
 
@@ -37,25 +34,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!section) return notFoundResponse('Section not found in this notebook');
 
-    // Parse FormData
-    const formData = await request.formData();
-    const file = formData.get('file');
-
-    if (!file || !(file instanceof File)) {
-      return badRequestResponse('No file provided');
+    // Parse JSON body with storage path
+    const { storagePath } = await request.json();
+    if (!storagePath || !validateStoragePath(storagePath, 'temp-imports/')) {
+      return badRequestResponse('Invalid or missing storagePath');
     }
 
-    // Validate mime type
-    if (file.type !== PPTX_MIME) {
-      return badRequestResponse('Unsupported file type. Only PPTX files are allowed.');
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return badRequestResponse('File exceeds maximum size of 50MB');
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await downloadFromStorage(storagePath);
     const slides = await parsePptxFile(buffer);
 
     if (slides.length === 0) {
@@ -104,6 +89,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
       createdPages.push(page);
     }
+
+    // Clean up temp file from storage
+    await deleteFile(storagePath).catch(() => {});
 
     return createdResponse(createdPages);
   } catch (error) {

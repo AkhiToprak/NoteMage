@@ -2,15 +2,10 @@
 
 import { useState, useRef } from 'react';
 import { Upload, Loader } from 'lucide-react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { validateFile } from '@/lib/file-validation';
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'text/markdown',
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 interface FileUploadProps {
   notebookId: string;
@@ -22,19 +17,10 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { upload: directUpload, isUploading: isDirectUploading } = useDirectUpload();
 
-  const validate = (file: File): string | null => {
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return `Unsupported file type. Allowed: PDF, DOCX, TXT, MD`;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return `File too large. Maximum size is 10MB`;
-    }
-    return null;
-  };
-
-  const upload = async (file: File) => {
-    const validationError = validate(file);
+  const uploadFile = async (file: File) => {
+    const validationError = validateFile(file, 'document');
     if (validationError) {
       setError(validationError);
       return;
@@ -44,12 +30,12 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
     setIsUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const { storagePath } = await directUpload(file, 'document', { notebookId });
 
       const res = await fetch(`/api/notebooks/${notebookId}/documents`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
       });
 
       const json = await res.json();
@@ -71,20 +57,20 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) upload(file);
+    if (file) uploadFile(file);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) upload(file);
+    if (file) uploadFile(file);
   };
 
   return (
     <div style={{ marginBottom: '16px' }}>
       {/* Drop zone */}
       <div
-        onClick={() => !isUploading && inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); if (!isUploading) setIsDragging(true); }}
+        onClick={() => !(isUploading || isDirectUploading) && inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); if (!(isUploading || isDirectUploading)) setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         style={{
@@ -99,12 +85,12 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
           alignItems: 'center',
           justifyContent: 'center',
           gap: '10px',
-          cursor: isUploading ? 'default' : 'pointer',
+          cursor: (isUploading || isDirectUploading) ? 'default' : 'pointer',
           transition: 'border-color 0.15s ease, background 0.15s ease',
           textAlign: 'center',
         }}
       >
-        {isUploading ? (
+        {(isUploading || isDirectUploading) ? (
           <>
             <Loader
               size={26}

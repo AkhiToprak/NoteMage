@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { saveFlashcardImage } from '@/lib/storage';
+import { downloadFromStorage, validateStoragePath } from '@/lib/storage';
 import {
   successResponse,
   createdResponse,
@@ -14,7 +14,6 @@ import {
 type Params = { params: Promise<{ id: string; setId: string; cardId: string }> };
 
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 function validateImageMagicBytes(buffer: Buffer): boolean {
   if (buffer.length < 4) return false;
@@ -29,8 +28,20 @@ function validateImageMagicBytes(buffer: Buffer): boolean {
   return false;
 }
 
+function mimeFromExtension(fileName: string): string | null {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+  };
+  return ext ? map[ext] ?? null : null;
+}
+
 /**
- * POST – upload an image for a flashcard (front or back side)
+ * POST – register a direct-uploaded image for a flashcard (front or back side)
  */
 export async function POST(request: NextRequest, { params }: Params) {
   try {
@@ -48,24 +59,19 @@ export async function POST(request: NextRequest, { params }: Params) {
     const card = await db.flashcard.findFirst({ where: { id: cardId, flashcardSetId: setId } });
     if (!card) return notFoundResponse('Flashcard not found');
 
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const side = formData.get('side') as string | null;
+    const { storagePath, fileName, side } = await request.json();
 
-    if (!file || !(file instanceof File)) {
-      return badRequestResponse('No file provided');
+    if (!storagePath || !validateStoragePath(storagePath, 'flashcard-images/')) {
+      return badRequestResponse('Invalid or missing storagePath');
     }
 
     if (!side || (side !== 'front' && side !== 'back')) {
       return badRequestResponse('Side must be "front" or "back"');
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const contentType = mimeFromExtension(fileName || '');
+    if (!contentType || !ALLOWED_TYPES.includes(contentType)) {
       return badRequestResponse('Invalid file type. Allowed: PNG, JPEG, GIF, WebP');
-    }
-
-    if (file.size > MAX_SIZE) {
-      return badRequestResponse('File too large. Maximum size is 5MB');
     }
 
     // Determine next sortOrder for this side
@@ -75,22 +81,21 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     const nextSortOrder = (lastImage?.sortOrder ?? -1) + 1;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // Download from storage for magic byte validation
+    const buffer = await downloadFromStorage(storagePath);
 
     if (!validateImageMagicBytes(buffer)) {
       return badRequestResponse('Invalid image file');
     }
 
-    const { filePath } = await saveFlashcardImage(cardId, file.name, buffer);
-
     const image = await db.flashcardImage.create({
       data: {
         flashcardId: cardId,
         side,
-        fileName: file.name,
-        filePath,
-        fileSize: file.size,
-        mimeType: file.type,
+        fileName: fileName || 'image',
+        filePath: storagePath,
+        fileSize: buffer.length,
+        mimeType: contentType,
         sortOrder: nextSortOrder,
       },
     });

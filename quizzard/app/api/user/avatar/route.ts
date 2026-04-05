@@ -1,15 +1,14 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { savePublicFile } from '@/lib/storage';
+import { downloadFromStorage, validateStoragePath } from '@/lib/storage';
+import { BUCKET_PUBLIC } from '@/lib/supabase';
 import {
   successResponse,
   badRequestResponse,
   unauthorizedResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
-
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Magic byte signatures for allowed image types
 const MAGIC_BYTES: { ext: string; bytes: number[] }[] = [
@@ -30,25 +29,23 @@ export async function POST(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const formData = await request.formData();
-    const file = formData.get('avatar') || formData.get('file');
-
-    if (!file || !(file instanceof File)) {
-      return badRequestResponse('No file provided');
+    const { storagePath } = await request.json();
+    if (!storagePath) {
+      return badRequestResponse('No storage path provided');
     }
 
-    if (file.size > MAX_SIZE) {
-      return badRequestResponse('File too large. Maximum size is 5MB');
+    if (!validateStoragePath(storagePath, 'avatars/')) {
+      return badRequestResponse('Invalid storage path');
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await downloadFromStorage(storagePath, BUCKET_PUBLIC);
+
     const ext = detectImageType(buffer);
     if (!ext) {
       return badRequestResponse('Invalid file type. Allowed: PNG, JPEG, WebP');
     }
 
-    const fileName = `${userId}.${ext}`;
-    const { publicUrl } = await savePublicFile('avatars', fileName, buffer);
+    const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/public-uploads/${storagePath}`;
 
     await db.user.update({
       where: { id: userId },

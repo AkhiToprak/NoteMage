@@ -1,6 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { validateFile } from '@/lib/file-validation';
 
 interface AvatarStepProps {
   username: string;
@@ -22,9 +24,12 @@ export default function AvatarStep({
   error,
 }: AvatarStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload, isUploading: isDirectUploading } = useDirectUpload();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadCardHovered, setUploadCardHovered] = useState(false);
+
+  const isUploadBusy = uploading || isDirectUploading;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -32,9 +37,18 @@ export default function AvatarStep({
     setUploadError('');
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      const res = await fetch('/api/user/avatar', { method: 'POST', body: formData });
+      const validationError = validateFile(file, 'avatar');
+      if (validationError) {
+        setUploadError(validationError);
+        setUploading(false);
+        return;
+      }
+      const { storagePath } = await upload(file, 'avatar');
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath }),
+      });
       const json = await res.json();
       if (!res.ok) {
         setUploadError(json.error || 'Upload failed');
@@ -164,7 +178,7 @@ export default function AvatarStep({
           }}
           onMouseEnter={() => setUploadCardHovered(true)}
           onMouseLeave={() => setUploadCardHovered(false)}
-          onClick={() => !uploading && fileInputRef.current?.click()}
+          onClick={() => !isUploadBusy && fileInputRef.current?.click()}
         >
           <span
             className="material-symbols-outlined"
@@ -229,7 +243,7 @@ export default function AvatarStep({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <button
           onClick={onNext}
-          disabled={loading || uploading}
+          disabled={loading || isUploadBusy}
           style={{
             width: '100%',
             padding: '16px',
@@ -273,7 +287,7 @@ export default function AvatarStep({
 
         <button
           onClick={onSkip}
-          disabled={loading || uploading}
+          disabled={loading || isUploadBusy}
           style={{
             width: '100%',
             padding: '14px',

@@ -111,3 +111,31 @@ export async function deleteNotebookFiles(notebookId: string, pageIds: string[])
 export async function deletePageImages(pageId: string): Promise<void> {
   await deleteDirectory(`images/${pageId}`);
 }
+
+/**
+ * Download a file from Supabase Storage (used after direct client uploads).
+ * Defaults to the private bucket.
+ */
+export async function downloadFromStorage(
+  filePath: string,
+  bucket: string = BUCKET_PRIVATE
+): Promise<Buffer> {
+  const { data, error } = await supabase.storage.from(bucket).download(filePath);
+
+  if (error || !data) {
+    throw new Error(`Failed to download from storage: ${error?.message}`);
+  }
+  return Buffer.from(await data.arrayBuffer());
+}
+
+/**
+ * Validate that a storage path starts with the expected prefix
+ * and contains no path traversal sequences.
+ */
+export function validateStoragePath(
+  path: string,
+  expectedPrefix: string
+): boolean {
+  if (!path || path.includes('..') || path.includes('//')) return false;
+  return path.startsWith(expectedPrefix);
+}

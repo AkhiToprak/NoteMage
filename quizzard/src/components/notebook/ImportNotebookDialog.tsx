@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Loader2, ChevronRight, ChevronDown, Check, FileText, Upload } from 'lucide-react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface ImportNotebookDialogProps {
   notebookId: string;
@@ -498,6 +499,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const { upload } = useDirectUpload();
 
   const handlePdfUpload = useCallback(async (file: File) => {
     if (file.type !== 'application/pdf') {
@@ -525,12 +527,17 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
       const sectionJson = await sectionRes.json();
       const sectionId = sectionJson.data.id;
 
+      // Upload PDF directly to Supabase Storage
+      const { storagePath } = await upload(file, 'section-import', { notebookId, sectionId });
+
       // Import the PDF into the new section
-      const formData = new FormData();
-      formData.append('file', file);
       const importRes = await fetch(
         `/api/notebooks/${notebookId}/sections/${sectionId}/import`,
-        { method: 'POST', body: formData }
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
+        }
       );
       if (!importRes.ok) {
         const body = await importRes.json().catch(() => null);
@@ -543,7 +550,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
       setErrorMessage(err instanceof Error ? err.message : 'Upload failed');
       setUploadState('error');
     }
-  }, [notebookId, onImported]);
+  }, [notebookId, onImported, upload]);
 
   return (
     <div style={{ padding: '8px 0' }}>

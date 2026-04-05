@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useCallback, useRef, PointerEvent as ReactPointerEvent } from 'react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 function getInitials(name?: string | null): string {
   if (!name) return '?';
@@ -202,6 +203,7 @@ export default function SettingsPage() {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Avatar editor state
+  const { upload } = useDirectUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
@@ -338,9 +340,13 @@ export default function SettingsPage() {
         return;
       }
       try {
-        const formData = new FormData();
-        formData.append('avatar', blob, 'avatar.png');
-        const res = await fetch('/api/user/avatar', { method: 'POST', body: formData });
+        const file = new File([blob], 'avatar.png', { type: 'image/png' });
+        const { storagePath } = await upload(file, 'avatar');
+        const res = await fetch('/api/user/avatar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath }),
+        });
         const json = await res.json();
         if (!res.ok) {
           setAvatarError(json.error || 'Upload failed.');

@@ -515,6 +515,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
       <EditorToolbar
         editor={editor}
         notebookId={notebookId}
+        sectionId={page?.sectionId ?? ''}
         pageId={pageId}
         editorMode={editorMode}
         onModeChange={setEditorMode}

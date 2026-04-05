@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { savePublicFile } from '@/lib/storage';
+import { downloadFromStorage, validateStoragePath } from '@/lib/storage';
+import { BUCKET_PUBLIC } from '@/lib/supabase';
 import {
   successResponse,
   createdResponse,
@@ -12,7 +13,6 @@ import {
 
 const MAX_CONTENT_LENGTH = 2000;
 const MAX_IMAGES = 4;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB per image
 const MAX_POLL_OPTIONS = 4;
 const MIN_POLL_OPTIONS = 2;
 
@@ -31,16 +31,16 @@ function detectImageType(buffer: Buffer): string | null {
   return null;
 }
 
-// POST — create a new post (multipart/form-data)
+// POST — create a new post (JSON body with pre-uploaded image paths)
 export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const formData = await request.formData();
+    const body = await request.json();
+    const { content, visibility: rawVisibility, imagePaths, poll, notebookRef, specificFriendIds } = body;
 
-    // Extract fields
-    const content = formData.get('content');
+    // Validate content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
       return badRequestResponse('Content is required');
     }
@@ -48,12 +48,10 @@ export async function POST(request: NextRequest) {
       return badRequestResponse(`Content must be ${MAX_CONTENT_LENGTH} characters or less`);
     }
 
-    const visibility = (formData.get('visibility') as string) || 'public';
+    const visibility = rawVisibility || 'public';
     if (!VALID_VISIBILITIES.includes(visibility as (typeof VALID_VISIBILITIES)[number])) {
       return badRequestResponse('visibility must be "public", "friends", or "specific"');
     }
-
-    const notebookRef = formData.get('notebookRef') as string | null;
 
     // Validate notebookRef if provided — must be user's own notebook
     if (notebookRef) {
@@ -66,15 +64,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parse poll data if provided
-    const pollJson = formData.get('poll') as string | null;
+    // Parse poll data if provided (already a parsed object from JSON body)
     let pollData: { question: string; options: string[] } | null = null;
-    if (pollJson) {
-      try {
-        pollData = JSON.parse(pollJson);
-      } catch {
-        return badRequestResponse('Invalid poll data');
-      }
+    if (poll) {
+      pollData = poll;
       if (!pollData || !pollData.question || typeof pollData.question !== 'string' || pollData.question.trim().length === 0) {
         return badRequestResponse('Poll question is required');
       }
@@ -95,31 +88,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse specific visibility user IDs
-    const visibleToJson = formData.get('visibleTo') as string | null;
     let visibleToIds: string[] = [];
     if (visibility === 'specific') {
-      if (!visibleToJson) {
-        return badRequestResponse('visibleTo is required for specific visibility');
-      }
-      try {
-        visibleToIds = JSON.parse(visibleToJson);
-      } catch {
-        return badRequestResponse('Invalid visibleTo data');
-      }
+      visibleToIds = specificFriendIds;
       if (!Array.isArray(visibleToIds) || visibleToIds.length === 0) {
-        return badRequestResponse('visibleTo must be a non-empty array of user IDs');
+        return badRequestResponse('specificFriendIds is required for specific visibility');
       }
       if (visibleToIds.length > 50) {
         return badRequestResponse('Cannot share with more than 50 users');
       }
       // Validate all IDs are non-empty strings
-      if (visibleToIds.some((id) => typeof id !== 'string' || id.length === 0)) {
-        return badRequestResponse('All visibleTo IDs must be non-empty strings');
+      if (visibleToIds.some((id: string) => typeof id !== 'string' || id.length === 0)) {
+        return badRequestResponse('All specificFriendIds must be non-empty strings');
       }
       // Deduplicate and remove self
       visibleToIds = [...new Set(visibleToIds)].filter((id) => id !== userId);
       if (visibleToIds.length === 0) {
-        return badRequestResponse('visibleTo must contain at least one other user');
+        return badRequestResponse('specificFriendIds must contain at least one other user');
       }
       // Verify all users exist
       const validUsers = await db.user.findMany({
@@ -148,34 +133,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Process images
-    const imageFiles: File[] = [];
-    for (const [key, value] of formData.entries()) {
-      if (key === 'images' && value instanceof File && value.size > 0) {
-        imageFiles.push(value);
-      }
-    }
-    if (imageFiles.length > MAX_IMAGES) {
+    // Validate image paths
+    const paths: string[] = Array.isArray(imagePaths) ? imagePaths : [];
+    if (paths.length > MAX_IMAGES) {
       return badRequestResponse(`Maximum ${MAX_IMAGES} images allowed`);
     }
 
-    // Validate and save images
+    // Validate and verify uploaded images
     const savedImages: { url: string; sortOrder: number }[] = [];
-    if (imageFiles.length > 0) {
-      for (let i = 0; i < imageFiles.length; i++) {
-        const file = imageFiles[i];
-        if (file.size > MAX_IMAGE_SIZE) {
-          return badRequestResponse(`Image ${i + 1} exceeds 5MB limit`);
-        }
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const ext = detectImageType(buffer);
-        if (!ext) {
-          return badRequestResponse(`Image ${i + 1} is not a valid image (PNG, JPEG, or WebP)`);
-        }
-        const fileName = `${userId}-${Date.now()}-${i}.${ext}`;
-        const { publicUrl } = await savePublicFile('posts', fileName, buffer);
-        savedImages.push({ url: publicUrl, sortOrder: i });
+    for (let i = 0; i < paths.length; i++) {
+      const path = paths[i];
+      if (!validateStoragePath(path, 'posts/')) {
+        return badRequestResponse(`Image ${i + 1} has an invalid storage path`);
       }
+      const buffer = await downloadFromStorage(path, BUCKET_PUBLIC);
+      if (!buffer) {
+        return badRequestResponse(`Image ${i + 1} could not be found in storage`);
+      }
+      const ext = detectImageType(buffer);
+      if (!ext) {
+        return badRequestResponse(`Image ${i + 1} is not a valid image (PNG, JPEG, or WebP)`);
+      }
+      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET_PUBLIC}/${path}`;
+      savedImages.push({ url: publicUrl, sortOrder: i });
     }
 
     // Create post with all related data in a transaction

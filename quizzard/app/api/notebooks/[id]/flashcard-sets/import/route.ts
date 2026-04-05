@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { parseAnkiFile } from '@/lib/anki-parser';
+import { downloadFromStorage, validateStoragePath, deleteFile } from '@/lib/storage';
 import {
   createdResponse,
   badRequestResponse,
@@ -13,7 +14,6 @@ import {
 
 type Params = { params: Promise<{ id: string }> };
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_CARDS = 5000;
 const QUESTION_HEADERS = ['question', 'front', 'term'];
 const ANSWER_HEADERS = ['answer', 'back', 'definition'];
@@ -31,20 +31,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const titleOverride = formData.get('title') as string | null;
-    const sectionId = formData.get('sectionId') as string | null;
+    const { storagePath, fileName, title: titleOverride, sectionId } = await request.json();
 
-    if (!file) return badRequestResponse('File is required');
-
-    if (file.size > MAX_FILE_SIZE) {
-      return badRequestResponse('File too large. Maximum size is 50MB.');
+    if (!storagePath) return badRequestResponse('storagePath is required');
+    if (!validateStoragePath(storagePath, 'temp-imports/')) {
+      return badRequestResponse('Invalid storage path');
     }
 
-    const fileName = file.name;
-    const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await downloadFromStorage(storagePath);
+
+    const ext = (fileName || '').split('.').pop()?.toLowerCase() || '';
 
     let cards: { question: string; answer: string }[] = [];
     let source = 'import';
@@ -98,7 +94,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     // Derive title from filename if not provided
-    const title = titleOverride?.trim() || fileName.replace(/\.[^.]+$/, '');
+    const title = titleOverride?.trim() || (fileName || 'Imported Set').replace(/\.[^.]+$/, '');
 
     // Validate sectionId if provided
     if (sectionId) {
@@ -124,6 +120,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
       include: { flashcards: true },
     });
+
+    // Clean up temp file from storage
+    await deleteFile(storagePath).catch(() => {});
 
     return createdResponse(set);
   } catch (err) {

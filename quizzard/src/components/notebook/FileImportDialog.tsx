@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
 import { FileUp, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { validateFile } from '@/lib/file-validation';
 
 interface FileImportDialogProps {
   notebookId: string;
@@ -11,16 +13,6 @@ interface FileImportDialogProps {
 }
 
 const ACCEPTED_EXTENSIONS = '.pdf,.docx,.txt,.md,.pptx,.xlsx,.xls';
-const ACCEPTED_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain',
-  'text/markdown',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel',
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 
@@ -35,17 +27,14 @@ export default function FileImportDialog({
   const [fileName, setFileName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { upload } = useDirectUpload();
 
   const handleFile = useCallback(
     async (file: File) => {
       // Client-side validation
-      if (!ACCEPTED_TYPES.includes(file.type)) {
-        setErrorMessage('Unsupported file type. Please use PDF, DOCX, PPTX, XLSX, TXT, or MD.');
-        setUploadState('error');
-        return;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        setErrorMessage('File exceeds the 10MB size limit.');
+      const validationError = validateFile(file, 'section-import');
+      if (validationError) {
+        setErrorMessage(validationError);
         setUploadState('error');
         return;
       }
@@ -55,16 +44,22 @@ export default function FileImportDialog({
       setErrorMessage('');
 
       try {
-        const formData = new FormData();
-        formData.append('file', file);
+        // Upload directly to Supabase Storage
+        const { storagePath } = await upload(file, 'section-import', { notebookId, sectionId });
 
+        // Determine the correct API endpoint based on file type
         const isPptx = file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
         const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           || file.type === 'application/vnd.ms-excel';
         const importPath = isPptx ? 'import-pptx' : isExcel ? 'import-xlsx' : 'import';
+
         const res = await fetch(
           `/api/notebooks/${notebookId}/sections/${sectionId}/${importPath}`,
-          { method: 'POST', body: formData }
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
+          }
         );
 
         if (!res.ok) {
@@ -82,7 +77,7 @@ export default function FileImportDialog({
         setUploadState('error');
       }
     },
-    [notebookId, sectionId, onImported]
+    [notebookId, sectionId, onImported, upload]
   );
 
   const handleDrop = useCallback(

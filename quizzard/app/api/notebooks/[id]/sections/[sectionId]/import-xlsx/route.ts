@@ -11,12 +11,7 @@ import {
 } from '@/lib/api-response';
 import { xlsxToTipTapTableJSON, type SheetData } from '@/lib/contentConverter';
 import { extractText } from '@/lib/fileProcessing';
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const XLSX_MIMES = [
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel',
-];
+import { downloadFromStorage, validateStoragePath, deleteFile } from '@/lib/storage';
 
 type Params = { params: Promise<{ id: string; sectionId: string }> };
 
@@ -39,25 +34,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!section) return notFoundResponse('Section not found in this notebook');
 
-    // Parse FormData
-    const formData = await request.formData();
-    const file = formData.get('file');
-
-    if (!file || !(file instanceof File)) {
-      return badRequestResponse('No file provided');
+    // Parse JSON body with storage path
+    const { storagePath } = await request.json();
+    if (!storagePath || !validateStoragePath(storagePath, 'temp-imports/')) {
+      return badRequestResponse('Invalid or missing storagePath');
     }
 
-    // Validate mime type
-    if (!XLSX_MIMES.includes(file.type)) {
-      return badRequestResponse('Unsupported file type. Only XLSX/XLS files are allowed.');
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return badRequestResponse('File exceeds maximum size of 10MB');
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await downloadFromStorage(storagePath);
 
     // Parse workbook into sheet data
     const XLSX = await import('xlsx');
@@ -73,7 +56,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const content = xlsxToTipTapTableJSON(sheetsData) as unknown as Prisma.InputJsonValue;
 
     // Extract plain text for search index
-    const textContent = await extractText(buffer, file.type);
+    const textContent = await extractText(buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
     // Determine sort order
     const maxOrder = await db.page.aggregate({
@@ -82,19 +65,22 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     const sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
 
-    // Derive title from filename
-    const title = file.name.replace(/\.(xlsx|xls)$/i, '') || 'Excel Import';
+    // Derive title from storage path filename
+    const fileName = storagePath.split('/').pop()?.replace(/\.(xlsx|xls)$/i, '') || 'Excel Import';
 
     const page = await db.page.create({
       data: {
         sectionId,
-        title,
+        title: fileName,
         content,
         textContent,
         sortOrder,
         sourceDocId: null,
       },
     });
+
+    // Clean up temp file from storage
+    await deleteFile(storagePath).catch(() => {});
 
     return createdResponse(page);
   } catch (error) {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface ShareNotebookModalProps {
   open: boolean;
@@ -67,6 +68,7 @@ export default function ShareNotebookModal({
   notebookId,
   notebookName,
 }: ShareNotebookModalProps) {
+  const { upload } = useDirectUpload();
   const [activeTab, setActiveTab] = useState<Tab>('community');
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [shareType, setShareType] = useState<ShareType>('copy');
@@ -235,11 +237,11 @@ export default function ShareNotebookModal({
           const shareId = json.data?.share?.id;
           if (shareId && pendingFiles.current.length > 0) {
             for (const file of pendingFiles.current) {
-              const formData = new FormData();
-              formData.append('file', file);
+              const { storagePath } = await upload(file, 'shared-image', { shareId });
               await fetch(`/api/community/notebooks/${shareId}/images`, {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ storagePath, fileName: file.name }),
               });
             }
             pendingFiles.current = [];

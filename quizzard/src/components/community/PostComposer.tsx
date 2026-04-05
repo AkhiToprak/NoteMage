@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 import VisibilitySelector, { PostVisibility } from './VisibilitySelector';
 import PollCreator, { PollData } from './PollCreator';
 import NotebookLinkPicker from './NotebookLinkPicker';
@@ -59,6 +60,7 @@ interface ImagePreview {
 
 export default function PostComposer({ onPostCreated }: PostComposerProps) {
   const { data: session } = useSession();
+  const { upload } = useDirectUpload();
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<PostVisibility>('public');
   const [images, setImages] = useState<ImagePreview[]>([]);
@@ -66,6 +68,7 @@ export default function PostComposer({ onPostCreated }: PostComposerProps) {
   const [linkedNotebook, setLinkedNotebook] = useState<LinkedNotebook | null>(null);
   const [notebookPickerOpen, setNotebookPickerOpen] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Hover states
@@ -129,25 +132,27 @@ export default function PostComposer({ onPostCreated }: PostComposerProps) {
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('content', content.trim());
-      formData.append('visibility', visibility);
-
-      if (linkedNotebook) {
-        formData.append('notebookRef', linkedNotebook.id);
-      }
-
-      for (const img of images) {
-        formData.append('images', img.file);
-      }
-
-      if (poll) {
-        formData.append('poll', JSON.stringify(poll));
+      // Upload images directly to Supabase first
+      const imagePaths: string[] = [];
+      if (images.length > 0) {
+        setIsUploadingImages(true);
+        for (const imageItem of images) {
+          const { storagePath } = await upload(imageItem.file, 'post-image');
+          imagePaths.push(storagePath);
+        }
+        setIsUploadingImages(false);
       }
 
       const res = await fetch('/api/posts', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: content.trim(),
+          visibility,
+          imagePaths,
+          poll: poll || undefined,
+          notebookRef: linkedNotebook?.id || undefined,
+        }),
       });
 
       if (res.ok) {
@@ -170,6 +175,7 @@ export default function PostComposer({ onPostCreated }: PostComposerProps) {
     } catch {
       setError('Network error. Please try again.');
     } finally {
+      setIsUploadingImages(false);
       setIsPosting(false);
     }
   };
@@ -602,7 +608,7 @@ export default function PostComposer({ onPostCreated }: PostComposerProps) {
                     >
                       progress_activity
                     </span>
-                    Posting...
+                    {isUploadingImages ? 'Uploading images...' : 'Posting...'}
                   </>
                 ) : (
                   <>
