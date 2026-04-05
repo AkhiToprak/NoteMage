@@ -31,8 +31,7 @@ interface MarkdownRendererProps {
 const bubbleComponents: Components = {
   h1: ({ children }) => (
     <h1 style={{
-      fontFamily: '"Shrikhand", serif',
-      fontStyle: 'italic',
+      fontFamily: 'var(--font-chat)',
       fontSize: '2em',
       fontWeight: 700,
       color: '#ede9ff',
@@ -43,8 +42,7 @@ const bubbleComponents: Components = {
   ),
   h2: ({ children }) => (
     <h2 style={{
-      fontFamily: '"Shrikhand", serif',
-      fontStyle: 'italic',
+      fontFamily: 'var(--font-chat)',
       fontSize: '1.55em',
       fontWeight: 700,
       color: '#e0d8ff',
