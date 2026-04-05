@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Epilogue, Plus_Jakarta_Sans, Shrikhand } from "next/font/google";
+import { Epilogue, Oswald, Plus_Jakarta_Sans, Shrikhand } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
@@ -15,6 +15,13 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const oswald = Oswald({
+  variable: "--font-oswald",
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -55,7 +62,7 @@ export default function RootLayout({
         <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
       </head>
       <body
-        className={`${epilogue.variable} ${plusJakartaSans.variable} ${shrikhand.variable} antialiased`}
+        className={`${epilogue.variable} ${oswald.variable} ${plusJakartaSans.variable} ${shrikhand.variable} antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

@@ -118,6 +118,7 @@
   --font-display:  var(--font-epilogue), "Epilogue", serif;
   --font-sans:     var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
   --font-brand:    var(--font-shrikhand), "Shrikhand", serif;
+  --font-chat:     var(--font-oswald), "Oswald", sans-serif;
 
   /* Border radius */
   --radius-sm:   0.5rem;   /* 8px  */

@@ -7,7 +7,6 @@ import HomeHeader from '@/components/layout/HomeHeader';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
-const AI_CHAT_RE = /^\/ai-chat/;
 
 export default function DashboardLayout({
   children,
@@ -25,10 +24,7 @@ export default function DashboardLayout({
     }
   }, [status, session, router]);
   const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
-  const isAiChat = AI_CHAT_RE.test(pathname);
-
-  // AI chat needs full-height layout with no padding, but keeps sidebar + header
-  const isFullHeight = isNotebookWorkspace || isAiChat;
+  const isFullHeight = isNotebookWorkspace;
 
   return (
     <div

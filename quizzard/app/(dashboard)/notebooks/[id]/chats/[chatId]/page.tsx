@@ -265,7 +265,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column', height: '100%',
-      fontFamily: "var(--font-sans)",
+      fontFamily: "var(--font-chat)",
       position: 'relative',
     }}>
 

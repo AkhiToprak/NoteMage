@@ -19,7 +19,6 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/notebooks') && pathname.split('/').length === 3) return 'Notebook';
   if (pathname.startsWith('/notebooks')) return 'Notebooks';
   if (pathname.startsWith('/settings')) return 'Settings';
-  if (pathname.startsWith('/ai-chat')) return 'AI Chat';
   return 'Quizzard';
 }
 
