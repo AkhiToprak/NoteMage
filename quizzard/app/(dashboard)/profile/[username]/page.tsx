@@ -12,6 +12,7 @@ interface PublicProfileData {
   bio: string | null;
   avatarUrl: string | null;
   createdAt: string;
+  friendshipStatus: string | null;
   _count: {
     notebooks: number;
   };
@@ -43,6 +44,8 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   const isOwnProfile = session?.user?.username === username;
 
@@ -58,8 +61,12 @@ export default function PublicProfilePage() {
       .then((res) => {
         if (!res) return;
         const d = res?.data ?? res;
-        if (d?.id) setProfile(d);
-        else setNotFound(true);
+        if (d?.id) {
+          setProfile(d);
+          setFriendshipStatus(d.friendshipStatus ?? null);
+        } else {
+          setNotFound(true);
+        }
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -115,6 +122,24 @@ export default function PublicProfilePage() {
       </div>
     );
   }
+
+  const handleFriendRequest = async () => {
+    if (!profile || sendingRequest) return;
+    setSendingRequest(true);
+    try {
+      const res = await fetch('/api/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: profile.username }),
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const newStatus = json?.data?.friendship?.status === 'accepted' ? 'accepted' : 'pending_sent';
+      setFriendshipStatus(newStatus);
+    } catch { /* ignore */ } finally {
+      setSendingRequest(false);
+    }
+  };
 
   if (!profile) return null;
 
@@ -222,6 +247,112 @@ export default function PublicProfilePage() {
             Edit Profile
           </Link>
         )}
+
+        {/* Friend Request Button (only for other users when logged in) */}
+        {!isOwnProfile && session?.user && friendshipStatus && (() => {
+          switch (friendshipStatus) {
+            case 'none':
+              return (
+                <button
+                  onClick={handleFriendRequest}
+                  disabled={sendingRequest}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '20px',
+                    padding: '10px 24px',
+                    background: '#ae89ff',
+                    color: '#2a0066',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: sendingRequest ? 'wait' : 'pointer',
+                    opacity: sendingRequest ? 0.7 : 1,
+                    transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
+                  }}
+                  onMouseEnter={(e) => { if (!sendingRequest) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person_add</span>
+                  {sendingRequest ? 'Sending…' : 'Send Friend Request'}
+                </button>
+              );
+            case 'pending_sent':
+              return (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '20px',
+                    padding: '10px 24px',
+                    background: 'rgba(136,136,168,0.15)',
+                    color: '#8888a8',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(136,136,168,0.25)',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>schedule</span>
+                  Request Pending
+                </div>
+              );
+            case 'pending_received':
+              return (
+                <button
+                  onClick={handleFriendRequest}
+                  disabled={sendingRequest}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '20px',
+                    padding: '10px 24px',
+                    background: '#4ade80',
+                    color: '#000',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: sendingRequest ? 'wait' : 'pointer',
+                    opacity: sendingRequest ? 0.7 : 1,
+                    transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
+                  }}
+                  onMouseEnter={(e) => { if (!sendingRequest) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>how_to_reg</span>
+                  {sendingRequest ? 'Accepting…' : 'Accept Friend Request'}
+                </button>
+              );
+            case 'accepted':
+              return (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '20px',
+                    padding: '10px 24px',
+                    background: 'rgba(78,251,165,0.1)',
+                    color: '#4efba5',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(78,251,165,0.2)',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+                  Friends
+                </div>
+              );
+            default:
+              return null;
+          }
+        })()}
       </div>
 
       {/* Stats Section */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   SearchResults,
@@ -73,7 +73,54 @@ function CategoryHeader({ icon, label, count }: { icon: string; label: string; c
 
 /* ── Result items ────────────────────────────────────────── */
 
-function UserItem({ user, query, onClick }: { user: UserResult; query: string; onClick: () => void }) {
+function FriendActionButton({ status, onSendRequest }: { status: string; onSendRequest: (e: React.MouseEvent) => void }) {
+  switch (status) {
+    case 'none':
+      return (
+        <button
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onSendRequest(e); }}
+          style={{
+            background: C.primary, color: '#2a0066', fontSize: 10, fontWeight: 700,
+            borderRadius: 6, padding: '3px 10px', border: 'none', cursor: 'pointer',
+            flexShrink: 0, transition: `opacity 0.15s ${EASING}`,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.85'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+        >
+          Add
+        </button>
+      );
+    case 'pending_sent':
+      return (
+        <span style={{ fontSize: 10, color: C.textMuted, fontStyle: 'italic', flexShrink: 0 }}>
+          Pending
+        </span>
+      );
+    case 'pending_received':
+      return (
+        <button
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onSendRequest(e); }}
+          style={{
+            background: '#4ade80', color: '#000', fontSize: 10, fontWeight: 700,
+            borderRadius: 6, padding: '3px 10px', border: 'none', cursor: 'pointer',
+            flexShrink: 0, transition: `opacity 0.15s ${EASING}`,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.85'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+        >
+          Accept
+        </button>
+      );
+    case 'accepted':
+      return (
+        <span style={{ fontSize: 10, color: '#4efba5', fontWeight: 600, flexShrink: 0 }}>Friend</span>
+      );
+    default:
+      return null;
+  }
+}
+
+function UserItem({ user, query, onClick, onSendRequest }: { user: UserResult; query: string; onClick: () => void; onSendRequest: (e: React.MouseEvent) => void }) {
   return (
     <button onMouseDown={onClick} style={itemStyle}>
       <div style={{
@@ -97,9 +144,7 @@ function UserItem({ user, query, onClick }: { user: UserResult; query: string; o
           </div>
         )}
       </div>
-      {user.friendshipStatus === 'accepted' && (
-        <span style={{ fontSize: 10, color: '#4efba5', fontWeight: 600, flexShrink: 0 }}>Friend</span>
-      )}
+      <FriendActionButton status={user.friendshipStatus} onSendRequest={onSendRequest} />
     </button>
   );
 }
@@ -203,6 +248,26 @@ export default function SearchDropdown({
 }: SearchDropdownProps) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+
+  // Reset overrides when results change
+  useEffect(() => {
+    setStatusOverrides({});
+  }, [results]);
+
+  const handleFriendRequest = useCallback(async (username: string) => {
+    try {
+      const res = await fetch('/api/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const newStatus = json?.data?.friendship?.status === 'accepted' ? 'accepted' : 'pending_sent';
+      setStatusOverrides((prev) => ({ ...prev, [username]: newStatus }));
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -263,11 +328,21 @@ export default function SearchDropdown({
       {hasUsers && (
         <div style={{ padding: '4px 0' }}>
           <CategoryHeader icon="person" label="Users" count={results!.users!.length} />
-          {results!.users!.map((u) => (
-            <div key={u.id} className="search-item" style={{ borderRadius: 8, margin: '0 6px' }}>
-              <UserItem user={u} query={query} onClick={() => { router.push(`/profile/${u.username}`); onClose(); }} />
-            </div>
-          ))}
+          {results!.users!.map((u) => {
+            const effectiveUser = statusOverrides[u.username]
+              ? { ...u, friendshipStatus: statusOverrides[u.username] }
+              : u;
+            return (
+              <div key={u.id} className="search-item" style={{ borderRadius: 8, margin: '0 6px' }}>
+                <UserItem
+                  user={effectiveUser}
+                  query={query}
+                  onClick={() => { router.push(`/profile/${u.username}`); onClose(); }}
+                  onSendRequest={(e) => { e.preventDefault(); e.stopPropagation(); handleFriendRequest(u.username); }}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   successResponse,
@@ -7,7 +8,7 @@ import {
 } from '@/lib/api-response';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
@@ -32,7 +33,32 @@ export async function GET(
 
     if (!user) return notFoundResponse('User not found');
 
-    return successResponse(user);
+    // Determine friendship status if viewer is authenticated
+    let friendshipStatus: string | null = null;
+    const viewerId = await getAuthUserId(request);
+    if (viewerId && viewerId !== user.id) {
+      const friendship = await db.friendship.findFirst({
+        where: {
+          OR: [
+            { requesterId: viewerId, addresseeId: user.id },
+            { requesterId: user.id, addresseeId: viewerId },
+          ],
+        },
+        select: { status: true, requesterId: true },
+      });
+
+      if (!friendship) {
+        friendshipStatus = 'none';
+      } else if (friendship.status === 'accepted') {
+        friendshipStatus = 'accepted';
+      } else if (friendship.status === 'pending') {
+        friendshipStatus = friendship.requesterId === viewerId ? 'pending_sent' : 'pending_received';
+      } else if (friendship.status === 'declined') {
+        friendshipStatus = 'none';
+      }
+    }
+
+    return successResponse({ ...user, friendshipStatus });
   } catch {
     return internalErrorResponse();
   }
