@@ -51,17 +51,23 @@ export async function PUT(request: NextRequest) {
     const data: Record<string, unknown> = {};
 
     if (name !== undefined) {
-      if (typeof name !== 'string' || name.length > 100) {
+      if (name === null) {
+        data.name = null;
+      } else if (typeof name !== 'string' || name.length > 100) {
         return badRequestResponse('Name must be a string of at most 100 characters');
+      } else {
+        data.name = name.trim() || null;
       }
-      data.name = name.trim() || null;
     }
 
     if (bio !== undefined) {
-      if (typeof bio !== 'string' || bio.length > 160) {
+      if (bio === null) {
+        data.bio = null;
+      } else if (typeof bio !== 'string' || bio.length > 160) {
         return badRequestResponse('Bio must be a string of at most 160 characters');
+      } else {
+        data.bio = bio.trim() || null;
       }
-      data.bio = bio.trim() || null;
     }
 
     if (dailyGoal !== undefined) {
@@ -82,24 +88,33 @@ export async function PUT(request: NextRequest) {
     }
 
     if (location !== undefined) {
-      if (typeof location !== 'string' || location.length > 100) {
+      if (location === null) {
+        data.location = null;
+      } else if (typeof location !== 'string' || location.length > 100) {
         return badRequestResponse('Location must be at most 100 characters');
+      } else {
+        data.location = location.trim() || null;
       }
-      data.location = location.trim() || null;
     }
 
     if (school !== undefined) {
-      if (typeof school !== 'string' || school.length > 100) {
+      if (school === null) {
+        data.school = null;
+      } else if (typeof school !== 'string' || school.length > 100) {
         return badRequestResponse('School must be at most 100 characters');
+      } else {
+        data.school = school.trim() || null;
       }
-      data.school = school.trim() || null;
     }
 
     if (lineOfWork !== undefined) {
-      if (typeof lineOfWork !== 'string' || lineOfWork.length > 100) {
+      if (lineOfWork === null) {
+        data.lineOfWork = null;
+      } else if (typeof lineOfWork !== 'string' || lineOfWork.length > 100) {
         return badRequestResponse('Line of work must be at most 100 characters');
+      } else {
+        data.lineOfWork = lineOfWork.trim() || null;
       }
-      data.lineOfWork = lineOfWork.trim() || null;
     }
 
     if (profilePrivate !== undefined) {
