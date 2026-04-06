@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "age" INTEGER;
+ALTER TABLE "users" ADD COLUMN "location" VARCHAR(100);
+ALTER TABLE "users" ADD COLUMN "school" VARCHAR(100);
+ALTER TABLE "users" ADD COLUMN "lineOfWork" VARCHAR(100);
+ALTER TABLE "users" ADD COLUMN "profilePrivate" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "users" ADD COLUMN "hideAchievements" BOOLEAN NOT NULL DEFAULT false;

@@ -36,6 +36,12 @@ model User {
   username           String    @unique       // 3-20 chars, alphanumeric + underscores only
   avatarUrl          String?                 // URL to uploaded avatar image, null = default
   bio                String?   @db.VarChar(160) // Short bio, max 160 chars
+  age                Int?
+  location           String?   @db.VarChar(100)
+  school             String?   @db.VarChar(100)
+  lineOfWork         String?   @db.VarChar(100)
+  profilePrivate     Boolean   @default(false)    // If true, only friends see full profile
+  hideAchievements   Boolean   @default(false)    // If true, achievements hidden on public profile
   tier               Tier      @default(FREE)
   pendingTier        Tier?                       // Tier to switch to at end of current period (null = no change)
   subscriptionPeriodEnd DateTime?                // When the current billing period ends (null = free / no active period)

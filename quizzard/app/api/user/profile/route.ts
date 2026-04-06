@@ -22,26 +22,19 @@ export async function GET(request: NextRequest) {
         bio: true,
         avatarUrl: true,
         dailyGoal: true,
+        age: true,
+        location: true,
+        school: true,
+        lineOfWork: true,
+        profilePrivate: true,
+        hideAchievements: true,
         createdAt: true,
-        _count: {
-          select: {
-            notebooks: true,
-            chatMessages: true,
-          },
-        },
       },
     });
 
     if (!user) return unauthorizedResponse();
 
-    const flashcardSetCount = await db.flashcardSet.count({
-      where: { notebook: { userId } },
-    });
-
-    return successResponse({
-      ...user,
-      flashcardSetCount,
-    });
+    return successResponse(user);
   } catch {
     return internalErrorResponse();
   }
@@ -53,7 +46,7 @@ export async function PUT(request: NextRequest) {
     if (!userId) return unauthorizedResponse();
 
     const body = await request.json();
-    const { name, bio, dailyGoal } = body;
+    const { name, bio, dailyGoal, age, location, school, lineOfWork, profilePrivate, hideAchievements } = body;
 
     const data: Record<string, unknown> = {};
 
@@ -78,6 +71,51 @@ export async function PUT(request: NextRequest) {
       data.dailyGoal = Math.round(dailyGoal);
     }
 
+    if (age !== undefined) {
+      if (age === null) {
+        data.age = null;
+      } else if (typeof age !== 'number' || age < 1 || age > 150 || !Number.isInteger(age)) {
+        return badRequestResponse('Age must be an integer between 1 and 150');
+      } else {
+        data.age = age;
+      }
+    }
+
+    if (location !== undefined) {
+      if (typeof location !== 'string' || location.length > 100) {
+        return badRequestResponse('Location must be at most 100 characters');
+      }
+      data.location = location.trim() || null;
+    }
+
+    if (school !== undefined) {
+      if (typeof school !== 'string' || school.length > 100) {
+        return badRequestResponse('School must be at most 100 characters');
+      }
+      data.school = school.trim() || null;
+    }
+
+    if (lineOfWork !== undefined) {
+      if (typeof lineOfWork !== 'string' || lineOfWork.length > 100) {
+        return badRequestResponse('Line of work must be at most 100 characters');
+      }
+      data.lineOfWork = lineOfWork.trim() || null;
+    }
+
+    if (profilePrivate !== undefined) {
+      if (typeof profilePrivate !== 'boolean') {
+        return badRequestResponse('profilePrivate must be a boolean');
+      }
+      data.profilePrivate = profilePrivate;
+    }
+
+    if (hideAchievements !== undefined) {
+      if (typeof hideAchievements !== 'boolean') {
+        return badRequestResponse('hideAchievements must be a boolean');
+      }
+      data.hideAchievements = hideAchievements;
+    }
+
     if (Object.keys(data).length === 0) {
       return badRequestResponse('No valid fields to update');
     }
@@ -92,6 +130,12 @@ export async function PUT(request: NextRequest) {
         bio: true,
         avatarUrl: true,
         dailyGoal: true,
+        age: true,
+        location: true,
+        school: true,
+        lineOfWork: true,
+        profilePrivate: true,
+        hideAchievements: true,
         createdAt: true,
       },
     });

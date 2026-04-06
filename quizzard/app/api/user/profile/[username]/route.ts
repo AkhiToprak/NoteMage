@@ -22,12 +22,13 @@ export async function GET(
         name: true,
         bio: true,
         avatarUrl: true,
+        age: true,
+        location: true,
+        school: true,
+        lineOfWork: true,
+        profilePrivate: true,
+        hideAchievements: true,
         createdAt: true,
-        _count: {
-          select: {
-            notebooks: true,
-          },
-        },
       },
     });
 
@@ -36,7 +37,9 @@ export async function GET(
     // Determine friendship status if viewer is authenticated
     let friendshipStatus: string | null = null;
     const viewerId = await getAuthUserId(request);
-    if (viewerId && viewerId !== user.id) {
+    const isOwnProfile = viewerId === user.id;
+
+    if (viewerId && !isOwnProfile) {
       const friendship = await db.friendship.findFirst({
         where: {
           OR: [
@@ -58,7 +61,25 @@ export async function GET(
       }
     }
 
-    return successResponse({ ...user, friendshipStatus });
+    const isFriend = friendshipStatus === 'accepted';
+
+    // Private profile: only show limited info to non-friends
+    if (user.profilePrivate && !isFriend && !isOwnProfile) {
+      return successResponse({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
+        profilePrivate: true,
+        friendshipStatus,
+      });
+    }
+
+    return successResponse({
+      ...user,
+      friendshipStatus,
+    });
   } catch {
     return internalErrorResponse();
   }

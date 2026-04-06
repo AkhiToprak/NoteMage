@@ -4,18 +4,22 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import TrophyShelf from '@/components/features/TrophyShelf';
 
 interface PublicProfileData {
   id: string;
   username: string;
   name: string | null;
-  bio: string | null;
+  bio?: string | null;
   avatarUrl: string | null;
+  age?: number | null;
+  location?: string | null;
+  school?: string | null;
+  lineOfWork?: string | null;
+  profilePrivate?: boolean;
+  hideAchievements?: boolean;
   createdAt: string;
   friendshipStatus: string | null;
-  _count: {
-    notebooks: number;
-  };
 }
 
 function getInitials(name?: string | null): string {
@@ -35,6 +39,13 @@ function formatDate(iso: string): string {
     day: 'numeric',
   });
 }
+
+const DETAIL_ITEMS: { key: keyof PublicProfileData; label: string; icon: string }[] = [
+  { key: 'age', label: 'Age', icon: 'person' },
+  { key: 'location', label: 'Location', icon: 'location_on' },
+  { key: 'school', label: 'School', icon: 'school' },
+  { key: 'lineOfWork', label: 'Line of Work', icon: 'work' },
+];
 
 export default function PublicProfilePage() {
   const { data: session } = useSession();
@@ -143,6 +154,10 @@ export default function PublicProfilePage() {
 
   if (!profile) return null;
 
+  const isPrivate = profile.profilePrivate && !isOwnProfile && friendshipStatus !== 'accepted';
+  const hasDetails = DETAIL_ITEMS.some((item) => profile[item.key] != null);
+  const showAchievements = !profile.hideAchievements && !isPrivate;
+
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {/* Profile Header */}
@@ -201,8 +216,8 @@ export default function PublicProfilePage() {
           @{profile.username}
         </p>
 
-        {/* Bio */}
-        {profile.bio && (
+        {/* Bio (only if not private) */}
+        {!isPrivate && profile.bio && (
           <p style={{ fontSize: '14px', color: '#b9c3ff', margin: '0 0 16px', lineHeight: 1.6, maxWidth: '480px' }}>
             {profile.bio}
           </p>
@@ -217,7 +232,7 @@ export default function PublicProfilePage() {
         {/* Edit Profile (only if own profile) */}
         {isOwnProfile && (
           <Link
-            href="/settings"
+            href="/profile"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -269,6 +284,7 @@ export default function PublicProfilePage() {
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: sendingRequest ? 'wait' : 'pointer',
+                    fontFamily: 'inherit',
                     opacity: sendingRequest ? 0.7 : 1,
                     transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
                   }}
@@ -276,7 +292,7 @@ export default function PublicProfilePage() {
                   onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person_add</span>
-                  {sendingRequest ? 'Sending…' : 'Send Friend Request'}
+                  {sendingRequest ? 'Sending...' : 'Send Friend Request'}
                 </button>
               );
             case 'pending_sent':
@@ -318,6 +334,7 @@ export default function PublicProfilePage() {
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: sendingRequest ? 'wait' : 'pointer',
+                    fontFamily: 'inherit',
                     opacity: sendingRequest ? 0.7 : 1,
                     transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
                   }}
@@ -325,7 +342,7 @@ export default function PublicProfilePage() {
                   onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>how_to_reg</span>
-                  {sendingRequest ? 'Accepting…' : 'Accept Friend Request'}
+                  {sendingRequest ? 'Accepting...' : 'Accept Friend Request'}
                 </button>
               );
             case 'accepted':
@@ -355,61 +372,73 @@ export default function PublicProfilePage() {
         })()}
       </div>
 
-      {/* Stats Section */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gap: '16px',
-        }}
-      >
+      {/* Private Profile Notice */}
+      {isPrivate && (
         <div
           style={{
             background: '#161630',
-            borderRadius: '20px',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            borderRadius: '24px',
+            padding: '40px',
             textAlign: 'center',
           }}
         >
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
-              background: 'rgba(174,137,255,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '12px',
-            }}
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '48px', color: '#8888a8', display: 'block', marginBottom: '12px', opacity: 0.5 }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '24px', color: '#ae89ff' }}
-            >
-              auto_stories
-            </span>
-          </div>
-          <h3
-            style={{
-              fontFamily: 'var(--font-brand)',
-              fontSize: '28px',
-              fontWeight: 400,
-              color: '#e5e3ff',
-              margin: '0 0 4px',
-              lineHeight: 1,
-            }}
-          >
-            {profile._count.notebooks}
+            lock
+          </span>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+            This profile is private
           </h3>
-          <p style={{ fontSize: '13px', fontWeight: 500, color: '#aaa8c8', margin: 0 }}>
-            Notebooks
+          <p style={{ fontSize: '13px', color: '#8888a8', margin: 0 }}>
+            Only friends can see the full profile.
           </p>
         </div>
-      </div>
+      )}
+
+      {/* Profile Details (only if not private and has details) */}
+      {!isPrivate && hasDetails && (
+        <div
+          style={{
+            background: '#161630',
+            borderRadius: '24px',
+            padding: '28px 32px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>About</h3>
+          {DETAIL_ITEMS.map((item) => {
+            const value = profile[item.key];
+            if (value == null) return null;
+            return (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '20px', color: '#ae89ff', flexShrink: 0 }}
+                >
+                  {item.icon}
+                </span>
+                <div>
+                  <p style={{ fontSize: '11px', color: '#8888a8', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                    {item.label}
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#e5e3ff', margin: 0 }}>
+                    {String(value)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Achievements */}
+      {showAchievements && (
+        <TrophyShelf userId={profile.id} />
+      )}
     </div>
   );
 }

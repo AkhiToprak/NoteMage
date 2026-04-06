@@ -54,14 +54,21 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function TrophyShelf() {
+interface TrophyShelfProps {
+  userId?: string;
+}
+
+export default function TrophyShelf({ userId }: TrophyShelfProps = {}) {
   const [activeTab, setActiveTab] = useState<Category>('all');
   const [data, setData] = useState<AchievementsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedBadge, setExpandedBadge] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/user/achievements')
+    const url = userId
+      ? `/api/user/achievements?userId=${encodeURIComponent(userId)}`
+      : '/api/user/achievements';
+    fetch(url)
       .then((r) => r.json())
       .then((res) => {
         const d = res?.data ?? res;
@@ -69,7 +76,7 @@ export default function TrophyShelf() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [userId]);
 
   const unlockedSet = new Set(data?.unlocked?.map((u) => u.badge) ?? []);
   const unlockedMap = new Map(data?.unlocked?.map((u) => [u.badge, u]) ?? []);
