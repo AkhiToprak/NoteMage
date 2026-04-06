@@ -96,12 +96,12 @@ export default function ActivityHeatmap() {
 
   const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLDivElement>, date: string, count: number) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const parentRect = e.currentTarget.closest('[data-heatmap-container]')?.getBoundingClientRect();
-    if (parentRect) {
+    const wrapperRect = e.currentTarget.closest('[data-heatmap-wrapper]')?.getBoundingClientRect();
+    if (wrapperRect) {
       setTooltip({
         visible: true,
-        x: rect.left - parentRect.left + CELL_SIZE / 2,
-        y: rect.top - parentRect.top - 8,
+        x: rect.left - wrapperRect.left + CELL_SIZE / 2,
+        y: rect.top - wrapperRect.top - 8,
         date,
         count,
       });
@@ -152,78 +152,85 @@ export default function ActivityHeatmap() {
           Loading activity...
         </div>
       ) : (
-        <div
-          data-heatmap-container
-          style={{
-            position: 'relative',
-            width: `${leftPadding + gridWidth}px`,
-            height: `${topPadding + gridHeight}px`,
-            overflowX: 'auto',
-            overflowY: 'visible',
-          }}
-        >
-          {/* Month labels */}
-          {monthLabels.map((m, i) => (
+        <div data-heatmap-wrapper style={{ position: 'relative', overflow: 'visible' }}>
+          <div
+            style={{
+              overflowX: 'auto',
+              overflowY: 'visible',
+            }}
+          >
             <div
-              key={`${m.label}-${i}`}
+              data-heatmap-container
               style={{
-                position: 'absolute',
-                left: `${leftPadding + m.week * (CELL_SIZE + CELL_GAP)}px`,
-                top: 0,
-                fontSize: '11px',
-                color: '#aaa8c8',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
+                position: 'relative',
+                width: `${leftPadding + gridWidth}px`,
+                height: `${topPadding + gridHeight}px`,
               }}
             >
-              {m.label}
+              {/* Month labels */}
+              {monthLabels.map((m, i) => (
+                <div
+                  key={`${m.label}-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${leftPadding + m.week * (CELL_SIZE + CELL_GAP)}px`,
+                    top: 0,
+                    fontSize: '11px',
+                    color: '#aaa8c8',
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {m.label}
+                </div>
+              ))}
+
+              {/* Day labels */}
+              {DAY_LABELS.map((label, i) => (
+                label ? (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: `${topPadding + i * (CELL_SIZE + CELL_GAP) + 1}px`,
+                      fontSize: '11px',
+                      color: '#aaa8c8',
+                      fontWeight: 500,
+                      width: `${leftPadding - 6}px`,
+                      textAlign: 'right',
+                    }}
+                  >
+                    {label}
+                  </div>
+                ) : null
+              ))}
+
+              {/* Grid cells */}
+              {cells.map((cell) => (
+                <div
+                  key={cell.date}
+                  onMouseEnter={(e) => handleMouseEnter(e, cell.date, cell.count)}
+                  onMouseLeave={handleMouseLeave}
+                  style={{
+                    position: 'absolute',
+                    left: `${leftPadding + cell.week * (CELL_SIZE + CELL_GAP)}px`,
+                    top: `${topPadding + cell.day * (CELL_SIZE + CELL_GAP)}px`,
+                    width: `${CELL_SIZE}px`,
+                    height: `${CELL_SIZE}px`,
+                    borderRadius: '3px',
+                    background: getColor(cell.count),
+                    cursor: 'pointer',
+                    transition: 'opacity 0.15s',
+                  }}
+                  onMouseOver={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '0.8'; }}
+                  onMouseOut={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '1'; }}
+                />
+              ))}
             </div>
-          ))}
+          </div>
 
-          {/* Day labels */}
-          {DAY_LABELS.map((label, i) => (
-            label ? (
-              <div
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: `${topPadding + i * (CELL_SIZE + CELL_GAP) + 1}px`,
-                  fontSize: '11px',
-                  color: '#aaa8c8',
-                  fontWeight: 500,
-                  width: `${leftPadding - 6}px`,
-                  textAlign: 'right',
-                }}
-              >
-                {label}
-              </div>
-            ) : null
-          ))}
-
-          {/* Grid cells */}
-          {cells.map((cell) => (
-            <div
-              key={cell.date}
-              onMouseEnter={(e) => handleMouseEnter(e, cell.date, cell.count)}
-              onMouseLeave={handleMouseLeave}
-              style={{
-                position: 'absolute',
-                left: `${leftPadding + cell.week * (CELL_SIZE + CELL_GAP)}px`,
-                top: `${topPadding + cell.day * (CELL_SIZE + CELL_GAP)}px`,
-                width: `${CELL_SIZE}px`,
-                height: `${CELL_SIZE}px`,
-                borderRadius: '3px',
-                background: getColor(cell.count),
-                cursor: 'pointer',
-                transition: 'opacity 0.15s',
-              }}
-              onMouseOver={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '0.8'; }}
-              onMouseOut={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '1'; }}
-            />
-          ))}
-
-          {/* Tooltip */}
+          {/* Tooltip — rendered outside the scroll container to avoid clipping */}
           {tooltip.visible && (
             <div
               style={{
