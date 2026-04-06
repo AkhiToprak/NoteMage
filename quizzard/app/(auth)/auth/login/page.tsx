@@ -27,8 +27,10 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        if (result.error.includes("Account locked")) {
-          setError("Your account has been locked due to too many failed login attempts. Please check your email for an unlock link.");
+        if (result.error.includes("ACCOUNT_LOCKED:")) {
+          const unlockAt = new Date(result.error.split("ACCOUNT_LOCKED:")[1]);
+          const timeStr = unlockAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          setError(`Your account has been locked due to too many failed login attempts. It will be unlocked at ${timeStr}.`);
         } else {
           setError("Invalid email or password");
         }

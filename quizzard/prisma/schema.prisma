@@ -32,8 +32,6 @@ model User {
   banReason          String?                      // Optional reason shown to banned user
   failedLoginAttempts Int      @default(0)         // Brute-force protection counter
   lockedAt           DateTime?                     // Set when account is locked after too many failures
-  unlockToken        String?   @unique             // Token sent via email to unlock account
-  unlockTokenExpiry  DateTime?                     // Expiry time for the unlock token
   dailyGoal          Int       @default(10)  // Pages the user wants to write/study per day (kept for backward compat)
   username           String    @unique       // 3-20 chars, alphanumeric + underscores only
   avatarUrl          String?                 // URL to uploaded avatar image, null = default

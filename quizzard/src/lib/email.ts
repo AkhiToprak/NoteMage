@@ -2,7 +2,7 @@ import emailjs from '@emailjs/nodejs';
 
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID!;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID!;
-const EMAILJS_UNLOCK_TEMPLATE_ID = process.env.EMAILJS_UNLOCK_TEMPLATE_ID!;
+
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY!;
 const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY!;
 
@@ -30,27 +30,5 @@ export async function sendSignupNotification(email: string, plan: string) {
     );
   } catch (error) {
     console.error('Failed to send signup notification email:', error);
-  }
-}
-
-export async function sendAccountLockedEmail(toEmail: string, unlockToken: string) {
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3001';
-  const unlockUrl = `${baseUrl}/auth/unlock?token=${unlockToken}`;
-
-  try {
-    await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_UNLOCK_TEMPLATE_ID,
-      {
-        to_email: toEmail,
-        unlock_url: unlockUrl,
-      },
-      {
-        publicKey: EMAILJS_PUBLIC_KEY,
-        privateKey: EMAILJS_PRIVATE_KEY,
-      },
-    );
-  } catch (error) {
-    console.error('Failed to send account locked email:', error);
   }
 }

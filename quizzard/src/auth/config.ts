@@ -1,9 +1,7 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import { db } from '@/lib/db';
-import { sendAccountLockedEmail } from '@/lib/email';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -42,21 +40,20 @@ export const authOptions: NextAuthOptions = {
             banReason: true,
             failedLoginAttempts: true,
             lockedAt: true,
-            unlockTokenExpiry: true,
           },
         });
 
         // Check if account is locked (before password check, but after user lookup)
         if (user?.lockedAt) {
-          const tokenExpiry = user.unlockTokenExpiry?.getTime() ?? 0;
-          if (tokenExpiry > Date.now()) {
-            // Lock is still active
-            throw new Error('Account locked due to too many failed attempts. Check your email for an unlock link.');
+          const unlockAt = user.lockedAt.getTime() + LOCKOUT_DURATION_MS;
+          if (unlockAt > Date.now()) {
+            // Lock is still active — include unlock time in error for the frontend
+            throw new Error(`ACCOUNT_LOCKED:${new Date(unlockAt).toISOString()}`);
           }
           // Lock has expired — auto-clear and let login proceed
           await db.user.update({
             where: { id: user.id },
-            data: { failedLoginAttempts: 0, lockedAt: null, unlockToken: null, unlockTokenExpiry: null },
+            data: { failedLoginAttempts: 0, lockedAt: null },
           });
         }
 
@@ -81,17 +78,13 @@ export const authOptions: NextAuthOptions = {
             });
 
             if (freshUser && freshUser.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-              const token = crypto.randomUUID();
+              const now = new Date();
               await db.user.update({
                 where: { id: user.id },
-                data: {
-                  lockedAt: new Date(),
-                  unlockToken: token,
-                  unlockTokenExpiry: new Date(Date.now() + LOCKOUT_DURATION_MS),
-                },
+                data: { lockedAt: now },
               });
-              // Fire-and-forget email
-              sendAccountLockedEmail(user.email, token).catch(console.error);
+              const unlockAt = new Date(now.getTime() + LOCKOUT_DURATION_MS);
+              throw new Error(`ACCOUNT_LOCKED:${unlockAt.toISOString()}`);
             }
           }
           return null;
@@ -106,7 +99,7 @@ export const authOptions: NextAuthOptions = {
         if (user.failedLoginAttempts > 0) {
           await db.user.update({
             where: { id: user.id },
-            data: { failedLoginAttempts: 0, lockedAt: null, unlockToken: null, unlockTokenExpiry: null },
+            data: { failedLoginAttempts: 0, lockedAt: null },
           });
         }
 
