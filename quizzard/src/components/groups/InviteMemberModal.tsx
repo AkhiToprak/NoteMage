@@ -48,7 +48,7 @@ export default function InviteMemberModal({ open, onClose, groupId, existingMemb
         const res = await fetch('/api/friends');
         if (res.ok) {
           const json = await res.json();
-          setFriends((json.data || []).map((f: { id: string; username: string; name?: string | null; avatarUrl?: string | null }) => ({
+          setFriends((json.data?.friends || []).map((f: { id: string; username: string; name?: string | null; avatarUrl?: string | null }) => ({
             id: f.id, username: f.username, name: f.name || null, avatarUrl: f.avatarUrl || null,
           })));
         }
