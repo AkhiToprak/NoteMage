@@ -102,6 +102,7 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
     const meta = message.metadata as {
       sharedId?: string;
       contentType?: string;
+      contentId?: string;
       contentTitle?: string;
       fileName?: string;
       fileSize?: number;
@@ -111,10 +112,23 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
     };
 
     const handleSave = async () => {
-      if (saving || saved || !meta.sharedId) return;
+      if (saving || saved) return;
       setSaving(true);
       try {
-        const res = await fetch(`/api/groups/${groupId}/shared/${meta.sharedId}/save`, {
+        let sid = meta.sharedId;
+        // If no sharedId in metadata (older messages), look it up from the shared list
+        if (!sid && meta.contentType && meta.contentId) {
+          const listRes = await fetch(`/api/groups/${groupId}/shared?contentType=${meta.contentType}&limit=50`);
+          if (listRes.ok) {
+            const listJson = await listRes.json();
+            const match = (listJson.data?.items || []).find(
+              (i: { contentId: string }) => i.contentId === meta.contentId
+            );
+            if (match) sid = match.id;
+          }
+        }
+        if (!sid) { setSaving(false); return; }
+        const res = await fetch(`/api/groups/${groupId}/shared/${sid}/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -150,7 +164,7 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
             background: COLORS.elevated, border: `1px solid ${COLORS.border}33`,
             padding: 16, borderRadius: 16, maxWidth: 340,
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: meta.sharedId ? 12 : 0 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 12 }}>
               <div style={{ width: 48, height: 48, background: `${COLORS.primary}1a`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <ContentTypeIcon type={meta.contentType || ''} />
               </div>
@@ -161,30 +175,28 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
                 )}
               </div>
             </div>
-            {meta.sharedId && (
-              <button
-                onClick={handleSave}
-                disabled={saving || saved}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  width: '100%', padding: '8px 0', borderRadius: 10,
-                  border: saved ? 'none' : `1px solid ${COLORS.border}`,
-                  background: saved ? `${COLORS.primary}1a` : 'transparent',
-                  color: saved ? COLORS.primary : COLORS.textSecondary,
-                  fontSize: 12, fontWeight: 600,
-                  cursor: saving || saved ? 'default' : 'pointer',
-                  fontFamily: 'inherit',
-                  transition: `background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1), border-color 0.2s cubic-bezier(0.22,1,0.36,1)`,
-                }}
-                onMouseEnter={(e) => { if (!saving && !saved) { e.currentTarget.style.borderColor = COLORS.primary; e.currentTarget.style.color = COLORS.primary; } }}
-                onMouseLeave={(e) => { if (!saving && !saved) { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.color = COLORS.textSecondary; } }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                  {saved ? 'check_circle' : 'library_add'}
-                </span>
-                {saved ? 'Saved to Library' : saving ? 'Saving...' : 'Save to Library'}
-              </button>
-            )}
+            <button
+              onClick={handleSave}
+              disabled={saving || saved}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                width: '100%', padding: '8px 0', borderRadius: 10,
+                border: saved ? 'none' : `1px solid ${COLORS.border}`,
+                background: saved ? `${COLORS.primary}1a` : 'transparent',
+                color: saved ? COLORS.primary : COLORS.textSecondary,
+                fontSize: 12, fontWeight: 600,
+                cursor: saving || saved ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+                transition: `background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1), border-color 0.2s cubic-bezier(0.22,1,0.36,1)`,
+              }}
+              onMouseEnter={(e) => { if (!saving && !saved) { e.currentTarget.style.borderColor = COLORS.primary; e.currentTarget.style.color = COLORS.primary; } }}
+              onMouseLeave={(e) => { if (!saving && !saved) { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.color = COLORS.textSecondary; } }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                {saved ? 'check_circle' : 'library_add'}
+              </span>
+              {saved ? 'Saved to Library' : saving ? 'Saving...' : 'Save to Library'}
+            </button>
           </div>
         </div>
       </div>
