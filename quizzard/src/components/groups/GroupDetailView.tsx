@@ -231,7 +231,7 @@ export default function GroupDetailView({ groupId }: Props) {
           <GroupChat groupId={groupId} currentUserId={currentUserId} />
         )}
         {activeTab === 'shared' && (
-          <GroupSharedContent groupId={groupId} currentUserId={currentUserId} userRole={userRole} />
+          <GroupSharedContent groupId={groupId} groupName={group?.name || ''} currentUserId={currentUserId} userRole={userRole} />
         )}
         {activeTab === 'members' && (
           <GroupMemberList

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
+            description: true,
             avatarUrl: true,
             _count: { select: { members: { where: { status: 'accepted' } } } },
           },
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
         group: {
           id: inv.group.id,
           name: inv.group.name,
+          description: inv.group.description,
           avatarUrl: inv.group.avatarUrl,
           memberCount: inv.group._count.members,
         },

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import GroupSharedContentCard from './GroupSharedContentCard';
+import ShareContentModal from './ShareContentModal';
 
 const COLORS = {
   pageBg: '#111126',
@@ -41,14 +42,16 @@ interface SharedItem {
 
 interface Props {
   groupId: string;
+  groupName: string;
   currentUserId: string;
   userRole: string;
 }
 
-export default function GroupSharedContent({ groupId, currentUserId, userRole }: Props) {
+export default function GroupSharedContent({ groupId, groupName, currentUserId, userRole }: Props) {
   const [items, setItems] = useState<SharedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -95,6 +98,7 @@ export default function GroupSharedContent({ groupId, currentUserId, userRole }:
           boxShadow: `0 8px 24px rgba(255,222,89,0.15)`,
           transition: `transform 0.2s ${EASING}`,
         }}
+          onClick={() => setShareModalOpen(true)}
           onMouseEnter={(e) => { (e.currentTarget).style.transform = 'scale(1.03)'; }}
           onMouseLeave={(e) => { (e.currentTarget).style.transform = 'scale(1)'; }}
         >
@@ -163,6 +167,14 @@ export default function GroupSharedContent({ groupId, currentUserId, userRole }:
           100% { background-position: -200% 0; }
         }
       `}</style>
+
+      <ShareContentModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        groupId={groupId}
+        groupName={groupName}
+        onShared={fetchItems}
+      />
     </div>
   );
 }
