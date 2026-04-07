@@ -55,9 +55,9 @@ export default function GroupChatInput({ onSend, sending }: Props) {
       backdropFilter: 'blur(20px)',
       borderTop: `1px solid ${COLORS.border}1a`,
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 1200, margin: '0 auto' }}>
         <button style={{
-          width: 40, height: 40, borderRadius: '50%', border: 'none',
+          width: 36, height: 36, borderRadius: '50%', border: 'none',
           background: 'transparent', color: COLORS.textMuted, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           transition: `color 0.2s ${EASING}`,

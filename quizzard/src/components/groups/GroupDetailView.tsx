@@ -109,8 +109,8 @@ export default function GroupDetailView({ groupId }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Group header */}
       <div style={{
-        padding: '16px 24px',
-        display: 'flex', alignItems: 'center', gap: 16,
+        padding: '8px 24px',
+        display: 'flex', alignItems: 'center', gap: 10,
         borderBottom: `1px solid ${COLORS.border}1a`,
         background: `${COLORS.pageBg}cc`,
         backdropFilter: 'blur(20px)',
@@ -119,7 +119,7 @@ export default function GroupDetailView({ groupId }: Props) {
         <button
           onClick={() => router.push('/groups')}
           style={{
-            width: 36, height: 36, borderRadius: 10,
+            width: 28, height: 28, borderRadius: 8,
             background: 'transparent', border: 'none',
             color: COLORS.textMuted, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -129,23 +129,23 @@ export default function GroupDetailView({ groupId }: Props) {
           onMouseEnter={(e) => (e.currentTarget.style.color = COLORS.textPrimary)}
           onMouseLeave={(e) => (e.currentTarget.style.color = COLORS.textMuted)}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 24 }}>arrow_back</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
         </button>
         {group.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={group.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }} />
+          <img src={group.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'cover' }} />
         ) : (
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
+            width: 28, height: 28, borderRadius: 8,
             background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#fff' }}>groups</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#fff' }}>groups</span>
           </div>
         )}
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 800, color: COLORS.textPrimary, letterSpacing: '-0.02em', margin: 0 }}>{group.name}</h1>
-          <p style={{ fontSize: 12, color: COLORS.textMuted, margin: 0 }}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</p>
+          <h1 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', margin: 0 }}>{group.name}</h1>
+          <p style={{ fontSize: 11, color: COLORS.textMuted, margin: 0 }}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</p>
         </div>
       </div>
 
@@ -167,16 +167,16 @@ export default function GroupDetailView({ groupId }: Props) {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  position: 'relative', padding: '16px 0',
+                  position: 'relative', padding: '18px 0',
                   background: 'none', border: 'none',
-                  fontSize: 14, fontWeight: active ? 700 : 600,
+                  fontSize: 15, fontWeight: active ? 700 : 600,
                   color: active ? COLORS.primary : COLORS.textMuted,
                   cursor: 'pointer', fontFamily: 'inherit',
                   display: 'flex', alignItems: 'center', gap: 8,
                   transition: `color 0.2s ${EASING}`,
                 }}
               >
-                {tab.icon && <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>}
+                {tab.icon && <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{tab.icon}</span>}
                 {tab.label}
                 {active && (
                   <span style={{
@@ -202,16 +202,16 @@ export default function GroupDetailView({ groupId }: Props) {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  position: 'relative', padding: '16px 0',
+                  position: 'relative', padding: '18px 0',
                   background: 'none', border: 'none',
-                  fontSize: 14, fontWeight: active ? 700 : 600,
+                  fontSize: 15, fontWeight: active ? 700 : 600,
                   color: active ? COLORS.primary : COLORS.textMuted,
                   cursor: 'pointer', fontFamily: 'inherit',
                   display: 'flex', alignItems: 'center', gap: 8,
                   transition: `color 0.2s ${EASING}`,
                 }}
               >
-                {tab.icon && <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>}
+                {tab.icon && <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{tab.icon}</span>}
                 {tab.label}
                 {active && (
                   <span style={{
