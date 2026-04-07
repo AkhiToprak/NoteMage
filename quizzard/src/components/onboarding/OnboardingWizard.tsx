@@ -83,15 +83,8 @@ export default function OnboardingWizard() {
 
         if (statusData.data?.status !== 'complete') return;
 
-        // Poll for webhook to update tier in DB before refreshing session
-        let attempts = 0;
-        while (attempts < 5) {
-          await new Promise((r) => setTimeout(r, 1000));
-          const subRes = await fetch('/api/user/subscription');
-          const subData = await subRes.json();
-          if (subData.data?.tier !== 'FREE') break;
-          attempts++;
-        }
+        // Verify and fulfill tier directly with Stripe (fallback if webhook is delayed)
+        await fetch('/api/stripe/checkout/verify', { method: 'POST' });
 
         await updateSession();
         setStep(3);
@@ -178,14 +171,11 @@ export default function OnboardingWizard() {
 
   // ── Payment success handler ──────────────────────────────────────────────
   const handlePaymentSuccess = async () => {
-    // Poll subscription status to confirm webhook has processed
-    let attempts = 0;
-    while (attempts < 5) {
-      await new Promise((r) => setTimeout(r, 1000));
-      const res = await fetch('/api/user/subscription');
-      const data = await res.json();
-      if (data.data?.tier !== 'FREE') break;
-      attempts++;
+    // Verify and fulfill tier directly with Stripe (fallback if webhook is delayed)
+    try {
+      await fetch('/api/stripe/checkout/verify', { method: 'POST' });
+    } catch {
+      // Verification failed — tier may still be updated by webhook later
     }
     await updateSession();
     setShowPayment(false);

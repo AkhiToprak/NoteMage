@@ -8,6 +8,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { sendSignupNotification } from '@/lib/email';
+import { verifyAndFulfillCheckout } from '@/lib/stripe-fulfillment';
 
 const VALID_GOAL_TYPES = ['hours', 'pages', 'quizzes', 'notebooks'] as const;
 
@@ -81,23 +82,16 @@ export async function PUT(request: NextRequest) {
     });
 
     // Read user AFTER transaction for freshest tier.
-    // If tier is still FREE, the Stripe webhook may still be in-flight — poll briefly.
+    // If tier is still FREE, verify directly with Stripe (fallback if webhook hasn't arrived).
     let fullUser = await db.user.findUnique({
       where: { id: userId },
       select: { email: true, tier: true },
     });
 
     if (fullUser && fullUser.tier === 'FREE') {
-      for (let i = 0; i < 3; i++) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const fresh = await db.user.findUnique({
-          where: { id: userId },
-          select: { email: true, tier: true },
-        });
-        if (fresh && fresh.tier !== 'FREE') {
-          fullUser = fresh;
-          break;
-        }
+      const verifiedTier = await verifyAndFulfillCheckout(userId);
+      if (verifiedTier && verifiedTier !== 'FREE') {
+        fullUser = { ...fullUser, tier: verifiedTier };
       }
     }
 

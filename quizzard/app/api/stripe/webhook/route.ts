@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
   const tier = session.metadata?.tier;
+  console.log(
+    `[Stripe Webhook] checkout.session.completed — userId=${userId}, tier=${tier}, sessionId=${session.id}`
+  );
   if (!userId || !tier) {
     console.error('[Stripe Webhook] Missing metadata on checkout session');
     return;
@@ -73,6 +76,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       subscriptionPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     },
   });
+  console.log(
+    `[Stripe Webhook] Fulfilled tier=${tier} for user=${userId}, subscription=${subscriptionId}`
+  );
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
