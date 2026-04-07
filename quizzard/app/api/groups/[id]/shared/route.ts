@@ -8,7 +8,6 @@ import {
   forbiddenResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
-import { createSystemMessage } from '@/lib/group-messages';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -178,13 +177,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
     });
 
-    // Get sharer info for response and system message
+    // Get sharer info for response and chat message
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, name: true, username: true, avatarUrl: true },
     });
-    const displayName = user?.name || user?.username || 'Someone';
-    await createSystemMessage(id, `${displayName} shared ${title}`);
+
+    // Create a rich content_share message in the chat
+    await db.groupMessage.create({
+      data: {
+        groupId: id,
+        senderId: userId,
+        type: 'content_share',
+        content: title,
+        metadata: {
+          contentType,
+          contentId,
+          contentTitle: title,
+          description,
+          ...metadata,
+        },
+      },
+    });
 
     return successResponse({
       id: shared.id,
