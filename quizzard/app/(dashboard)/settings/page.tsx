@@ -117,6 +117,15 @@ export default function SettingsPage() {
       });
       const json = await res.json();
       if (res.ok) {
+        // If a checkout URL is returned, redirect to Stripe
+        if (json.data?.checkoutUrl) {
+          window.location.href = json.data.checkoutUrl;
+          return;
+        }
+        if (json.data?.requiresCheckout) {
+          window.location.href = json.data.checkoutUrl || '/pricing';
+          return;
+        }
         setSubTier(json.data.tier);
         setSubPendingTier(json.data.pendingTier);
         setSubPeriodEnd(json.data.subscriptionPeriodEnd);
@@ -125,6 +134,23 @@ export default function SettingsPage() {
       } else {
         setSubStatus({ type: 'error', msg: json.error || 'Something went wrong.' });
       }
+    } catch {
+      setSubStatus({ type: 'error', msg: 'Network error. Try again.' });
+    }
+    setSubLoading(false);
+  };
+
+  const handleManageBilling = async () => {
+    setSubLoading(true);
+    setSubStatus(null);
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' });
+      const json = await res.json();
+      if (res.ok && json.data?.url) {
+        window.location.href = json.data.url;
+        return;
+      }
+      setSubStatus({ type: 'error', msg: json.error || 'Failed to open billing portal.' });
     } catch {
       setSubStatus({ type: 'error', msg: 'Network error. Try again.' });
     }
@@ -1272,6 +1298,36 @@ export default function SettingsPage() {
               >
                 {subStatus.msg}
               </div>
+            )}
+
+            {/* Manage Billing button (for paid users) */}
+            {subTier !== 'FREE' && (
+              <button
+                onClick={handleManageBilling}
+                disabled={subLoading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '14px 24px',
+                  borderRadius: '14px',
+                  background: 'rgba(174,137,255,0.12)',
+                  border: '1px solid rgba(174,137,255,0.2)',
+                  color: '#ae89ff',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: subLoading ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  opacity: subLoading ? 0.5 : 1,
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => { if (!subLoading) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.2)'; }}
+                onMouseLeave={(e) => { if (!subLoading) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.12)'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>open_in_new</span>
+                Manage Billing
+              </button>
             )}
 
             {/* Info note */}

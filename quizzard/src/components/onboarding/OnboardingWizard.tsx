@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import StepIndicator from './StepIndicator';
 import AccountStep from './AccountStep';
 import TierSelectionStep from './TierSelectionStep';
+import PaymentStep from './PaymentStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep from './StudyGoalsStep';
 import type { TierKey } from '@/lib/tiers';
@@ -49,12 +50,30 @@ export default function OnboardingWizard() {
   });
   const [loading, setLoading] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<number, string>>({});
+  const [showPayment, setShowPayment] = useState(false);
 
   const setStepError = (s: number, msg: string) =>
     setStepErrors((prev) => ({ ...prev, [s]: msg }));
 
   const clearStepError = (s: number) =>
     setStepErrors((prev) => ({ ...prev, [s]: '' }));
+
+  // Handle return from Stripe Embedded Checkout (edge case: user navigated away and back)
+  useEffect(() => {
+    const paymentSuccess = searchParams.get('payment_success');
+    const sessionId = searchParams.get('session_id');
+    if (paymentSuccess === 'true' && sessionId) {
+      fetch(`/api/stripe/checkout/status?session_id=${sessionId}`)
+        .then((r) => r.json())
+        .then(async (data) => {
+          if (data.data?.status === 'complete') {
+            await updateSession();
+            setStep(3);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [searchParams, updateSession]);
 
   const handleFieldChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -103,26 +122,52 @@ export default function OnboardingWizard() {
   // ── Step 2: Tier Selection ────────────────────────────────────────────────
   const handleTierNext = async () => {
     clearStepError(2);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/user/tier', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: formData.selectedTier }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setStepError(2, data.error || 'Failed to save plan.');
-        return;
+
+    if (formData.selectedTier === 'FREE') {
+      // Free tier: save directly and advance
+      setLoading(true);
+      try {
+        const res = await fetch('/api/user/tier', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier: 'FREE' }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          setStepError(2, data.error || 'Failed to save plan.');
+          return;
+        }
+        await updateSession();
+        setStep(3);
+      } catch {
+        setStepError(2, 'Something went wrong. Please try again.');
+      } finally {
+        setLoading(false);
       }
-      // Refresh JWT so session reflects new tier
-      await updateSession();
-      setStep(3);
-    } catch {
-      setStepError(2, 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      // Paid tier: show embedded Stripe checkout
+      setShowPayment(true);
     }
+  };
+
+  // ── Payment success handler ──────────────────────────────────────────────
+  const handlePaymentSuccess = async () => {
+    // Poll subscription status to confirm webhook has processed
+    let attempts = 0;
+    while (attempts < 5) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const res = await fetch('/api/user/subscription');
+      const data = await res.json();
+      if (data.data?.tier !== 'FREE') break;
+      attempts++;
+    }
+    await updateSession();
+    setShowPayment(false);
+    setStep(3);
+  };
+
+  const handlePaymentBack = () => {
+    setShowPayment(false);
   };
 
   // ── Step 3: Avatar ────────────────────────────────────────────────────────
@@ -170,7 +215,7 @@ export default function OnboardingWizard() {
     : "Almost there — personalize your journey.";
 
   return (
-    <div style={step === 2 ? { width: '90vw', maxWidth: '960px', marginLeft: '50%', transform: 'translateX(-50%)' } : undefined}>
+    <div style={step === 2 && !showPayment ? { width: '90vw', maxWidth: '960px', marginLeft: '50%', transform: 'translateX(-50%)' } : undefined}>
       <style>{`
         @keyframes fadeSlide {
           from { opacity: 0; transform: translateY(12px); }
@@ -288,12 +333,21 @@ export default function OnboardingWizard() {
             />
           )}
 
-          {step === 2 && (
+          {step === 2 && !showPayment && (
             <TierSelectionStep
               selectedTier={formData.selectedTier}
               onSelect={(tier) => setFormData((prev) => ({ ...prev, selectedTier: tier }))}
               onNext={handleTierNext}
               loading={loading}
+              error={stepErrors[2] || ''}
+            />
+          )}
+
+          {step === 2 && showPayment && (
+            <PaymentStep
+              tier={formData.selectedTier}
+              onSuccess={handlePaymentSuccess}
+              onBack={handlePaymentBack}
               error={stepErrors[2] || ''}
             />
           )}

@@ -68,7 +68,7 @@ export default function TierSelectionStep({
           transition: 'opacity 0.2s',
         }}
       >
-        {loading ? 'Saving…' : 'Continue'}
+        {loading ? 'Saving…' : selectedTier === 'FREE' ? 'Continue' : 'Continue to Payment'}
       </button>
     </div>
   );

@@ -22,6 +22,11 @@ export async function PUT(request: NextRequest) {
       return badRequestResponse('Invalid tier. Must be FREE, PLUS, or PRO.');
     }
 
+    // Paid tiers can only be activated via Stripe payment
+    if (tier !== 'FREE') {
+      return badRequestResponse('Paid tiers must be activated through payment.');
+    }
+
     const user = await db.user.update({
       where: { id: userId },
       data: { tier },
