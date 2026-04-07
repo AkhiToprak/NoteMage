@@ -52,6 +52,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       skipRedirectRef.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowCreateModal(true);
       router.replace(`/notebooks/${id}`);
     }

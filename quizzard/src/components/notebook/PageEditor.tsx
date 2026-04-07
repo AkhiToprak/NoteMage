@@ -104,8 +104,6 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
   useEffect(() => {
     if (!coWorkSessionId || !currentUserId) return;
 
-    let heartbeatInterval: ReturnType<typeof setInterval>;
-
     const acquireLock = async () => {
       try {
         const res = await fetch(
@@ -135,7 +133,7 @@ export default function PageEditor({ notebookId, pageId, coWorkSessionId, curren
 
     acquireLock();
     // Heartbeat every 2 minutes
-    heartbeatInterval = setInterval(acquireLock, 2 * 60 * 1000);
+    const heartbeatInterval = setInterval(acquireLock, 2 * 60 * 1000);
 
     // Release lock on tab close
     const handleBeforeUnload = () => {

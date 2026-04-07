@@ -111,7 +111,9 @@ export default function CommunitySidebar() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFriendActivity();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTrendingTags();
   }, [fetchFriendActivity, fetchTrendingTags]);
 

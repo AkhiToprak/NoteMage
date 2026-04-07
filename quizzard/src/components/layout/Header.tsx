@@ -63,7 +63,7 @@ export default function Header() {
             <span style={{ fontSize: '14px', fontWeight: '500', color: '#aaa8c8', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               Hello,{' '}
               <span style={{ color: '#e5e3ff' }}>{session.user.name}</span>
-              <TierBadge tier={(session.user as any).tier || 'FREE'} role={(session.user as any).role} />
+              <TierBadge tier={session.user.tier || 'FREE'} role={session.user.role} />
             </span>
             {session.user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

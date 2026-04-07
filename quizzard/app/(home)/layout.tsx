@@ -10,7 +10,7 @@ export default function HomeLayout({ children }: { children: React.ReactNode }) 
 
   // Redirect to onboarding if not completed
   useEffect(() => {
-    if (status === 'authenticated' && session?.user && !(session.user as any).onboardingComplete) {
+    if (status === 'authenticated' && session?.user && !session.user.onboardingComplete) {
       router.replace('/auth/register');
     }
   }, [status, session, router]);

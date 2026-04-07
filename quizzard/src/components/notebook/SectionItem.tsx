@@ -48,6 +48,7 @@ export default function SectionItem({ section, depth, activePageId, notebookId, 
 
   // Expand when active page appears inside
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (hasActivePage) setExpanded(true);
   }, [hasActivePage]);
 

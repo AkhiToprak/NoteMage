@@ -194,6 +194,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
       svg.appendChild(text);
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoaded(true);
   }, [markdown, title, expanded]);
 

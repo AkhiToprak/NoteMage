@@ -57,7 +57,9 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
   }, [notebookId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotebook();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSections();
   }, [fetchNotebook, fetchSections]);
 

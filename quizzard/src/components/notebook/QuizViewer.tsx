@@ -66,7 +66,8 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
   const [showSlideEditor, setShowSlideEditor] = useState(false);
 
   // Quiz attempt tracking
-  const [quizStartTime] = useState<number>(Date.now());
+  const [quizStartTime] = useState<number>(() => Date.now());
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [attemptHistory, setAttemptHistory] = useState<Array<{
     id: string;
@@ -155,6 +156,14 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
     setCurrentIndex(0);
     setShowHint(false);
   }, []);
+
+  // Elapsed time ticker
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.round((Date.now() - quizStartTime) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [quizStartTime]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -418,7 +427,7 @@ export default function QuizViewer({ notebookId, setId, title, initialQuestions,
             marginBottom: '16px',
           }}>
             <Clock size={14} />
-            <span>{Math.round((Date.now() - quizStartTime) / 1000)}s</span>
+            <span>{elapsedSeconds}s</span>
           </div>
         )}
 

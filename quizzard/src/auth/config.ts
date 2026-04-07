@@ -116,12 +116,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
+        const u = user as typeof user & { username?: string; avatarUrl?: string; onboardingComplete?: boolean; role?: string; tier?: string };
         token.id = user.id;
-        token.username = (user as any).username;
-        token.avatarUrl = (user as any).avatarUrl;
-        token.onboardingComplete = (user as any).onboardingComplete;
-        token.role = (user as any).role;
-        token.tier = (user as any).tier;
+        token.username = u.username;
+        token.avatarUrl = u.avatarUrl;
+        token.onboardingComplete = u.onboardingComplete;
+        token.role = u.role;
+        token.tier = u.tier;
       }
       // Re-read from DB when session is explicitly updated (e.g. after onboarding)
       if (trigger === 'update' && token.id) {
@@ -144,8 +145,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
         session.user.avatarUrl = token.avatarUrl as string | undefined;
-        (session.user as any).onboardingComplete = token.onboardingComplete;
-        (session.user as any).role = token.role;
+        session.user.onboardingComplete = token.onboardingComplete as boolean;
+        session.user.role = (token.role as string) ?? 'user';
         session.user.tier = (token.tier as string) ?? 'FREE';
       }
       return session;

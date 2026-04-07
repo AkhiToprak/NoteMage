@@ -1348,6 +1348,7 @@ function ChatTreeRow({ chat, isActive, notebookId, onDelete }: {
   useEffect(() => {
     if (activeFlashcardSetId && hasFlashcards) {
       const match = chat.flashcardSets.some(fs => fs.id === activeFlashcardSetId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (match) setExpanded(true);
     }
     if (activeQuizSetId && hasQuizzes) {

@@ -62,6 +62,7 @@ export default function FlashcardSetManager({ notebookId, sectionId, onClose, on
     setLoading(false);
   }, [notebookId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchSets(); }, [fetchSets]);
 
   // Fetch cards for a specific set

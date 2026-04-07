@@ -18,6 +18,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
 
   useEffect(() => {
     if (folder) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(folder.name);
       setColor(folder.color ?? '#8c52ff');
     }

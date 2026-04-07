@@ -255,6 +255,7 @@ function ResizableImageView({ node, updateAttributes, selected }: NodeViewProps)
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!selected) setToolbarOpen(false);
   }, [selected]);
 

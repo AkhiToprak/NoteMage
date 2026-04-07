@@ -77,6 +77,7 @@ export default function NotebookForm({ notebook, onSubmit, onCancel, isLoading }
   const langInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       name: notebook?.name ?? '',
       subject: notebook?.subject ?? '',

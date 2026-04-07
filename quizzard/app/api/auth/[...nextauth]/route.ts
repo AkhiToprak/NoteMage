@@ -15,7 +15,7 @@ async function rateLimitedPost(req: NextRequest, ctx: unknown) {
       { status: 429 }
     );
   }
-  return (handler as Function)(req, ctx);
+  return (handler as (...args: unknown[]) => Promise<Response>)(req, ctx);
 }
 
 export { handler as GET, rateLimitedPost as POST };

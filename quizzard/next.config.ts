@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
 let config: NextConfig = nextConfig;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { withSentryConfig } = require("@sentry/nextjs");
   config = withSentryConfig(nextConfig, {
     silent: true,

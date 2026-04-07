@@ -215,7 +215,7 @@ export default function SettingsPage() {
   };
 
   // Admin state
-  const isAdmin = (session?.user as any)?.role === 'admin';
+  const isAdmin = session?.user?.role === 'admin';
   const [adminSearch, setAdminSearch] = useState('');
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [adminTotal, setAdminTotal] = useState(0);
@@ -408,6 +408,7 @@ export default function SettingsPage() {
   // Fetch users when admin section is active
   useEffect(() => {
     if (activeSection === 'admin' && isAdmin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchAdminUsers(adminSearch, adminPage);
     }
   }, [activeSection, isAdmin, adminPage]); // eslint-disable-line react-hooks/exhaustive-deps

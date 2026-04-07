@@ -110,6 +110,7 @@ export default function CommunityCatalogPage() {
     setLoading(false);
   }, [sort, period, page, search, tagFilter]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchNotebooks(); }, [fetchNotebooks]);
 
   // Update URL when filters change
@@ -132,8 +133,10 @@ export default function CommunityCatalogPage() {
     }, 300);
   };
 
+  const [renderTimestamp] = useState(() => Date.now());
+
   function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    const diff = renderTimestamp - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);

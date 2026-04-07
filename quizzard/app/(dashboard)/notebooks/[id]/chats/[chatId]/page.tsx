@@ -1046,7 +1046,7 @@ function MessageContent({ content, notebookId }: { content: string; notebookId: 
 
   // Parse all markers (mindmaps + presentations + youtube videos + set links) and render in order
   const parts: React.ReactNode[] = [];
-  let remaining = content;
+  const remaining = content;
   let partKey = 0;
 
   // First, extract multi-line blocks (mindmaps, presentations, and youtube videos)

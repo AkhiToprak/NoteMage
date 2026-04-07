@@ -112,42 +112,6 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
   const [importProgress, setImportProgress] = useState('');
   const [importResult, setImportResult] = useState<{ sectionsImported: number; pagesImported: number; errors: string[] } | null>(null);
 
-  // Check connection status on mount
-  useEffect(() => {
-    checkStatus();
-  }, []);
-
-  // Listen for OAuth popup messages
-  useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      // Only accept messages from our own origin to prevent cross-origin attacks
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type === 'onenote-auth-success') {
-        loadNotebooks();
-      } else if (event.data?.type === 'onenote-auth-error') {
-        setError(event.data.message || 'Authentication failed');
-        setState('error');
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
-  const checkStatus = useCallback(async () => {
-    setState('checking');
-    try {
-      const res = await fetch('/api/import/onenote/status');
-      const json = await res.json();
-      if (json.success && json.data?.connected) {
-        loadNotebooks();
-      } else {
-        setState('disconnected');
-      }
-    } catch {
-      setState('disconnected');
-    }
-  }, []);
-
   const loadNotebooks = useCallback(async () => {
     setState('loading');
     setError('');
@@ -170,6 +134,43 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
       setState('error');
     }
   }, []);
+
+  const checkStatus = useCallback(async () => {
+    setState('checking');
+    try {
+      const res = await fetch('/api/import/onenote/status');
+      const json = await res.json();
+      if (json.success && json.data?.connected) {
+        loadNotebooks();
+      } else {
+        setState('disconnected');
+      }
+    } catch {
+      setState('disconnected');
+    }
+  }, [loadNotebooks]);
+
+  // Check connection status on mount
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkStatus();
+  }, [checkStatus]);
+
+  // Listen for OAuth popup messages
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      // Only accept messages from our own origin to prevent cross-origin attacks
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'onenote-auth-success') {
+        loadNotebooks();
+      } else if (event.data?.type === 'onenote-auth-error') {
+        setError(event.data.message || 'Authentication failed');
+        setState('error');
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [loadNotebooks]);
 
   const connectMicrosoft = useCallback(async () => {
     try {

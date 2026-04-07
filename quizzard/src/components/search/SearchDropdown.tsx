@@ -252,6 +252,7 @@ export default function SearchDropdown({
 
   // Reset overrides when results change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatusOverrides({});
   }, [results]);
 

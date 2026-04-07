@@ -55,6 +55,7 @@ export default function PageLockIndicator({
   }, [notebookId, sessionId, pageId, currentUserId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLockStatus();
     const interval = setInterval(fetchLockStatus, 10000);
     return () => clearInterval(interval);

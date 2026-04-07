@@ -13,8 +13,17 @@ import {
 
 const MAX_COMMENT_LENGTH = 500;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatComment(c: any, voteScoreMap: Map<string, number>, userVoteMap: Map<string, number>): any {
+interface CommentRow {
+  id: string;
+  content: string;
+  createdAt: Date;
+  parentCommentId: string | null;
+  author: { id: string; name: string | null; username: string; avatarUrl: string | null };
+  _count?: { replies: number };
+  replies?: CommentRow[];
+}
+
+function formatComment(c: CommentRow, voteScoreMap: Map<string, number>, userVoteMap: Map<string, number>) {
   return {
     id: c.id,
     content: c.content,
@@ -24,7 +33,7 @@ function formatComment(c: any, voteScoreMap: Map<string, number>, userVoteMap: M
     voteScore: voteScoreMap.get(c.id) ?? 0,
     userVote: userVoteMap.get(c.id) ?? 0,
     replyCount: c._count?.replies ?? 0,
-    replies: (c.replies ?? []).map((r: any) => formatComment(r, voteScoreMap, userVoteMap)),
+    replies: (c.replies ?? []).map((r: CommentRow) => formatComment(r, voteScoreMap, userVoteMap)),
   };
 }
 
