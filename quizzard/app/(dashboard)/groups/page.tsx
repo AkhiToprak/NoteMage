@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import StudyGroupCard from '@/components/social/StudyGroupCard';
 import CreateGroupModal from '@/components/social/CreateGroupModal';
+import GroupInvitationCard from '@/components/groups/GroupInvitationCard';
 
 interface Group {
   id: string;
@@ -59,6 +60,54 @@ export default function GroupsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hoveredCreate, setHoveredCreate] = useState(false);
+  const [invitations, setInvitations] = useState<Array<{
+    id: string;
+    groupId: string;
+    group: { id: string; name: string; avatarUrl: string | null; memberCount: number };
+    inviter: { id: string; name: string | null; username: string; avatarUrl: string | null };
+  }>>([]);
+
+  const fetchInvitations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/groups/invitations');
+      if (res.ok) {
+        const json = await res.json();
+        setInvitations(json.data || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleAcceptInvite = useCallback(async (invitationId: string) => {
+    const inv = invitations.find((i) => i.id === invitationId);
+    if (!inv) return;
+    try {
+      const res = await fetch(`/api/groups/${inv.groupId}/invitations/${invitationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'accept' }),
+      });
+      if (res.ok) {
+        setInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+        fetchGroups();
+      }
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invitations]);
+
+  const handleDeclineInvite = useCallback(async (invitationId: string) => {
+    const inv = invitations.find((i) => i.id === invitationId);
+    if (!inv) return;
+    try {
+      const res = await fetch(`/api/groups/${inv.groupId}/invitations/${invitationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'decline' }),
+      });
+      if (res.ok) {
+        setInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+      }
+    } catch { /* ignore */ }
+  }, [invitations]);
 
   const fetchGroups = useCallback(async () => {
     setLoading(true);
@@ -77,7 +126,8 @@ export default function GroupsPage() {
 
   useEffect(() => {
     fetchGroups();
-  }, [fetchGroups]);
+    fetchInvitations();
+  }, [fetchGroups, fetchInvitations]);
 
   return (
     <>
@@ -165,6 +215,29 @@ export default function GroupsPage() {
             Create Group
           </button>
         </div>
+
+        {/* Pending Invitations */}
+        {invitations.length > 0 && (
+          <div style={{ marginBottom: 32 }}>
+            <h3 style={{
+              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.1em', color: COLORS.primary,
+              marginBottom: 16,
+            }}>
+              Pending Invitations ({invitations.length})
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {invitations.map((inv) => (
+                <GroupInvitationCard
+                  key={inv.id}
+                  invitation={inv}
+                  onAccept={handleAcceptInvite}
+                  onDecline={handleDeclineInvite}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {loading ? (

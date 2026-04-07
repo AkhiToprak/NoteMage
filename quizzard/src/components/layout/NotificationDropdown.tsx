@@ -40,6 +40,8 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   level_up: 'trending_up',
   achievement_unlocked: 'emoji_events',
   exam_reminder: 'alarm',
+  group_invitation: 'group_add',
+  group_member_joined: 'groups',
 };
 
 function safeStr(val: unknown, fallback: string): string {
@@ -75,6 +77,10 @@ function getNotificationText(n: Notification): string {
       if (days === 1) return `${title} is tomorrow!`;
       return days !== null ? `${title} is in ${days} days` : `Upcoming exam: ${title}`;
     }
+    case 'group_invitation':
+      return `${safeStr(data.inviterName, 'Someone')} invited you to join "${safeStr(data.groupName, 'a study group')}"`;
+    case 'group_member_joined':
+      return `${safeStr(data.userName, 'Someone')} joined "${safeStr(data.groupName, 'a study group')}"`;
     default:
       return 'You have a new notification';
   }

@@ -84,6 +84,10 @@ model User {
   streak                 UserStreak?
   ownedGroups            StudyGroup[]       @relation("OwnedGroups")
   groupMemberships       StudyGroupMember[]
+  sentGroupMessages      GroupMessage[]     @relation("SentGroupMessages")
+  sentInvitations        GroupInvitation[]  @relation("SentInvitations")
+  receivedInvitations    GroupInvitation[]  @relation("ReceivedInvitations")
+  sharedGroupContent     GroupSharedContent[] @relation("SharedGroupContent")
   achievements           Achievement[]
   xp                     Int                @default(0)
   level                  Int                @default(1)
@@ -932,17 +936,22 @@ model ActivityEvent {
 model StudyGroup {
   id          String             @id @default(cuid())
   name        String
-  description String?
+  description String?            @db.VarChar(500)
   ownerId     String
   avatarUrl   String?
+  type        String             @default("study_group") // "study_group" | "class" | "direct"
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  owner       User               @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     StudyGroupMember[]
-  notebooks   StudyGroupNotebook[]
+  owner         User               @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
+  members       StudyGroupMember[]
+  notebooks     StudyGroupNotebook[]
+  messages      GroupMessage[]
+  invitations   GroupInvitation[]
+  sharedContent GroupSharedContent[]
 
   @@index([ownerId])
+  @@index([type])
   @@map("study_groups")
 }
 
@@ -951,12 +960,14 @@ model StudyGroupMember {
   groupId  String
   userId   String
   role     String     @default("member") // "owner" | "admin" | "member"
+  status   String     @default("accepted") // "pending" | "accepted" | "declined"
   joinedAt DateTime   @default(now())
 
   group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
+  @@index([userId, status])
   @@map("study_group_members")
 }
 
@@ -972,6 +983,67 @@ model StudyGroupNotebook {
 
   @@unique([groupId, notebookId])
   @@map("study_group_notebooks")
+}
+
+// --- Group Invitations ---
+
+model GroupInvitation {
+  id        String     @id @default(cuid())
+  groupId   String
+  inviterId String
+  inviteeId String
+  status    String     @default("pending") // "pending" | "accepted" | "declined"
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter   User       @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee   User       @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, inviteeId])
+  @@index([inviteeId, status])
+  @@map("group_invitations")
+}
+
+// --- Group Messages (Chat) ---
+
+model GroupMessage {
+  id        String     @id @default(cuid())
+  groupId   String
+  senderId  String?    // null for system messages
+  type      String     @default("text") // "text" | "system" | "content_share"
+  content   String     @db.Text
+  metadata  Json?      // { contentType, contentId, contentTitle, fileName, fileUrl, ... }
+  createdAt DateTime   @default(now())
+
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    User?      @relation("SentGroupMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([groupId, createdAt])
+  @@index([senderId])
+  @@map("group_messages")
+}
+
+// --- Group Shared Content ---
+
+model GroupSharedContent {
+  id          String     @id @default(cuid())
+  groupId     String
+  sharedById  String
+  contentType String     // "notebook" | "folder" | "document" | "flashcard_set" | "quiz_set"
+  contentId   String     // ID of the referenced resource
+  title       String     // denormalized for display
+  description String?
+  metadata    Json?      // { color, subject, cardCount, questionCount, etc. }
+  createdAt   DateTime   @default(now())
+
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sharedBy    User       @relation("SharedGroupContent", fields: [sharedById], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, contentType, contentId])
+  @@index([groupId, createdAt])
+  @@index([sharedById])
+  @@map("group_shared_content")
 }
 
 // ============================================================================
