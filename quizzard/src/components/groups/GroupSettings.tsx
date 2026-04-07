@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const COLORS = {
@@ -35,8 +35,67 @@ export default function GroupSettings({ groupId, group, currentUserId, userRole,
   const [saving, setSaving] = useState(false);
   const [saveHover, setSaveHover] = useState(false);
   const [deleteHover, setDeleteHover] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(group.avatarUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isOwner = userRole === 'owner';
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      alert('Only PNG, JPEG, and WebP images are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File must be under 5MB.');
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      // 1. Get signed URL
+      const urlRes = await fetch('/api/uploads/signed-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purpose: 'group-avatar',
+          fileName: file.name,
+          contentType: file.type,
+          groupId,
+        }),
+      });
+      if (!urlRes.ok) throw new Error('Failed to get upload URL');
+      const urlJson = await urlRes.json();
+      const { signedUrl, storagePath } = urlJson.data;
+
+      // 2. Upload file to storage
+      const uploadRes = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type, 'x-upsert': 'true' },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error('Upload failed');
+
+      // 3. Confirm with backend
+      const confirmRes = await fetch(`/api/groups/${groupId}/avatar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath }),
+      });
+      if (!confirmRes.ok) throw new Error('Failed to update avatar');
+      const confirmJson = await confirmRes.json();
+      setAvatarUrl(confirmJson.data.avatarUrl);
+      onUpdated();
+    } catch {
+      alert('Failed to upload avatar. Please try again.');
+    }
+    setAvatarUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [groupId, onUpdated]);
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) return;
@@ -83,9 +142,9 @@ export default function GroupSettings({ groupId, group, currentUserId, userRole,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             overflow: 'hidden',
           }}>
-            {group.avatarUrl ? (
+            {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={group.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <span className="material-symbols-outlined" style={{ fontSize: 40, color: COLORS.textMuted }}>image</span>
             )}
@@ -94,17 +153,27 @@ export default function GroupSettings({ groupId, group, currentUserId, userRole,
             <p style={{ fontSize: 14, fontWeight: 700, color: COLORS.textPrimary }}>Group Avatar</p>
             <p style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>Recommended: 512×512px</p>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleAvatarUpload}
+          />
           <button style={{
             width: '100%', padding: '10px 16px',
             background: `${COLORS.primary}33`, color: COLORS.primary,
             border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 13,
-            cursor: 'pointer', fontFamily: 'inherit',
+            cursor: avatarUploading ? 'wait' : 'pointer', fontFamily: 'inherit',
             transition: `background 0.2s ${EASING}`,
+            opacity: avatarUploading ? 0.6 : 1,
           }}
-            onMouseEnter={(e) => { (e.currentTarget).style.background = COLORS.primary; (e.currentTarget).style.color = '#fff'; }}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarUploading}
+            onMouseEnter={(e) => { if (!avatarUploading) { (e.currentTarget).style.background = COLORS.primary; (e.currentTarget).style.color = '#fff'; } }}
             onMouseLeave={(e) => { (e.currentTarget).style.background = `${COLORS.primary}33`; (e.currentTarget).style.color = COLORS.primary; }}
           >
-            Change Photo
+            {avatarUploading ? 'Uploading...' : 'Change Photo'}
           </button>
         </div>
 

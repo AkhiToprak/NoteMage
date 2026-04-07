@@ -15,6 +15,7 @@ type Purpose =
   | 'flashcard-image'
   | 'shared-image'
   | 'avatar'
+  | 'group-avatar'
   | 'post-image'
   | 'document'
   | 'section-import'
@@ -30,6 +31,7 @@ interface SignedUrlRequestBody {
   cardId?: string;
   setId?: string;
   shareId?: string;
+  groupId?: string;
 }
 
 function sanitizeFilename(name: string): string {
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
       'flashcard-image',
       'shared-image',
       'avatar',
+      'group-avatar',
       'post-image',
       'document',
       'section-import',
@@ -143,6 +146,17 @@ export async function POST(request: NextRequest) {
       case 'avatar': {
         const ext = getExtensionFromContentType(contentType);
         storagePath = `avatars/${userId}.${ext}`;
+        bucket = BUCKET_PUBLIC;
+        break;
+      }
+
+      case 'group-avatar': {
+        const { groupId } = body as SignedUrlRequestBody & { groupId: string };
+        if (!groupId) {
+          return badRequestResponse('group-avatar requires groupId');
+        }
+        const ext = getExtensionFromContentType(contentType);
+        storagePath = `avatars/group-${groupId}.${ext}`;
         bucket = BUCKET_PUBLIC;
         break;
       }

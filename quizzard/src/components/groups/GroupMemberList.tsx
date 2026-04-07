@@ -203,7 +203,7 @@ export default function GroupMemberList({ groupId, currentUserId, userRole, memb
 
                 {isMenuOpen && canManage && (
                   <div style={{
-                    position: 'absolute', right: 0, top: '100%', zIndex: 50,
+                    position: 'absolute', right: 0, bottom: '100%', zIndex: 50,
                     background: COLORS.elevated, borderRadius: 12, padding: 8,
                     minWidth: 180, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                     border: `1px solid ${COLORS.border}33`,

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import SaveDestinationModal from './SaveDestinationModal';
 
 const COLORS = {
   pageBg: '#111126',
@@ -80,8 +81,10 @@ function ContentTypeIcon({ type }: { type: string }) {
 }
 
 export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [resolvedSharedId, setResolvedSharedId] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
   // System message
   if (message.type === 'system') {
     return (
@@ -111,13 +114,12 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
       questionCount?: number;
     };
 
-    const handleSave = async () => {
-      if (saving || saved) return;
-      setSaving(true);
-      try {
-        let sid = meta.sharedId;
-        // If no sharedId in metadata (older messages), look it up from the shared list
-        if (!sid && meta.contentType && meta.contentId) {
+    const handleOpenSaveModal = async () => {
+      if (saved || resolving) return;
+      let sid = meta.sharedId || resolvedSharedId;
+      if (!sid && meta.contentType && meta.contentId) {
+        setResolving(true);
+        try {
           const listRes = await fetch(`/api/groups/${groupId}/shared?contentType=${meta.contentType}&limit=50`);
           if (listRes.ok) {
             const listJson = await listRes.json();
@@ -126,16 +128,12 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
             );
             if (match) sid = match.id;
           }
-        }
-        if (!sid) { setSaving(false); return; }
-        const res = await fetch(`/api/groups/${groupId}/shared/${sid}/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        });
-        if (res.ok) setSaved(true);
-      } catch { /* ignore */ }
-      setSaving(false);
+        } catch { /* ignore */ }
+        setResolving(false);
+      }
+      if (!sid) return;
+      setResolvedSharedId(sid);
+      setSaveModalOpen(true);
     };
 
     const subtextParts: string[] = [];
@@ -177,8 +175,8 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
               </div>
             </div>
             <button
-              onClick={handleSave}
-              disabled={saving || saved}
+              onClick={handleOpenSaveModal}
+              disabled={saved || resolving}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 width: '100%', padding: '8px 0', borderRadius: 10,
@@ -186,20 +184,31 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
                 background: saved ? `${COLORS.primary}1a` : 'transparent',
                 color: saved ? COLORS.primary : COLORS.textSecondary,
                 fontSize: 12, fontWeight: 600,
-                cursor: saving || saved ? 'default' : 'pointer',
+                cursor: saved || resolving ? 'default' : 'pointer',
                 fontFamily: 'inherit',
                 transition: `background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1), border-color 0.2s cubic-bezier(0.22,1,0.36,1)`,
               }}
-              onMouseEnter={(e) => { if (!saving && !saved) { e.currentTarget.style.borderColor = COLORS.primary; e.currentTarget.style.color = COLORS.primary; } }}
-              onMouseLeave={(e) => { if (!saving && !saved) { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.color = COLORS.textSecondary; } }}
+              onMouseEnter={(e) => { if (!saved && !resolving) { e.currentTarget.style.borderColor = COLORS.primary; e.currentTarget.style.color = COLORS.primary; } }}
+              onMouseLeave={(e) => { if (!saved && !resolving) { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.color = COLORS.textSecondary; } }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
                 {saved ? 'check_circle' : 'library_add'}
               </span>
-              {saved ? 'Saved to Library' : saving ? 'Saving...' : 'Save to Library'}
+              {saved ? 'Saved to Library' : resolving ? 'Loading...' : 'Save to Library'}
             </button>
           </div>
         </div>
+        {resolvedSharedId && (
+          <SaveDestinationModal
+            open={saveModalOpen}
+            onClose={() => setSaveModalOpen(false)}
+            groupId={groupId}
+            sharedId={resolvedSharedId}
+            contentType={meta.contentType || ''}
+            contentTitle={meta.contentTitle || meta.fileName || 'Shared content'}
+            onSaved={() => { setSaved(true); setSaveModalOpen(false); }}
+          />
+        )}
       </div>
     );
   }
