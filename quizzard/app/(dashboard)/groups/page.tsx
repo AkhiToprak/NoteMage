@@ -151,10 +151,11 @@ export default function GroupsPage() {
       const data = await res.json();
       const raw = data.data?.groups ?? data.data ?? [];
       setGroups(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Array.isArray(raw)
-          ? raw.map((g: Record<string, unknown>) => ({
+          ? raw.map((g: any) => ({
               ...g,
-              _count: (g as { _count?: unknown })._count ?? {
+              _count: g._count ?? {
                 members: g.memberCount ?? 0,
                 notebooks: g.notebookCount ?? 0,
               },
