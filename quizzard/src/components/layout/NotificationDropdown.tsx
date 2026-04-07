@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Notification {
   id: string;
@@ -86,6 +87,24 @@ function getNotificationText(n: Notification): string {
   }
 }
 
+function getNotificationLink(n: Notification): string | null {
+  const data = n.data && typeof n.data === 'object' ? n.data : {};
+  switch (n.type) {
+    case 'friend_request':
+    case 'friend_accepted':
+      return typeof data.username === 'string' ? `/profile/${data.username}` : null;
+    case 'post_upvote':
+    case 'post_comment':
+    case 'comment_reply':
+      return typeof data.postId === 'string' ? `/community/post/${data.postId}` : null;
+    case 'group_invitation':
+    case 'group_member_joined':
+      return typeof data.groupId === 'string' ? `/groups/${data.groupId}` : null;
+    default:
+      return null;
+  }
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -103,6 +122,7 @@ export default function NotificationDropdown({
   onRead,
   onReadAll,
 }: NotificationDropdownProps) {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -262,6 +282,8 @@ export default function NotificationDropdown({
                   key={n.id}
                   onClick={() => {
                     if (!n.read) handleMarkRead(n.id);
+                    const link = getNotificationLink(n);
+                    if (link) router.push(link);
                     onClose();
                   }}
                   onMouseEnter={() => setHoveredItem(n.id)}
