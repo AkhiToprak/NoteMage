@@ -147,7 +147,7 @@ export default function TimerWidget({ compact }: Props) {
           50% { opacity: 0.3; transform: scale(0.8); }
         }
         @keyframes twDropIn {
-          from { opacity: 0; transform: translateY(${compact ? '4px' : '-4px'}) scale(0.98); }
+          from { opacity: 0; transform: ${compact ? 'translateX(-4px)' : 'translateY(-4px)'} scale(0.98); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes twRingPulse {
@@ -166,9 +166,8 @@ export default function TimerWidget({ compact }: Props) {
           style={{
             position: 'absolute',
             ...(compact
-              ? { bottom: '100%', marginBottom: 8 }
-              : { top: '100%', marginTop: 8 }),
-            right: 0,
+              ? { left: '100%', marginLeft: 8, top: 0 }
+              : { top: '100%', marginTop: 8, right: 0 }),
             width: isPhone ? 'calc(100vw - 24px)' : 310,
             maxWidth: 340,
             background: C.cardBg,
