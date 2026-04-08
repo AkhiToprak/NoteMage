@@ -45,6 +45,7 @@ interface GroupData {
   allowMemberSharing: boolean;
   allowMemberInvites: boolean;
   members: Member[];
+  pendingInvites?: { id: string; invitee: { id: string; name: string | null; username: string; avatarUrl: string | null }; createdAt: string }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -249,6 +250,7 @@ export default function GroupDetailView({ groupId }: Props) {
             currentUserId={currentUserId}
             userRole={userRole}
             members={group.members}
+            pendingInvites={group.pendingInvites || []}
             onRefresh={fetchGroup}
             onInviteClick={() => setInviteOpen(true)}
             canInvite={canInvite}

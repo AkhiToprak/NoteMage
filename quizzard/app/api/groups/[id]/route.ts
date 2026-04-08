@@ -52,6 +52,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
           },
           orderBy: { addedAt: 'desc' },
         },
+        invitations: {
+          where: { status: 'pending' },
+          include: {
+            invitee: {
+              select: { id: true, name: true, username: true, avatarUrl: true },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -88,6 +97,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
         color: n.notebook.color,
         addedById: n.addedById,
         addedAt: n.addedAt,
+      })),
+      pendingInvites: group.invitations.map((inv) => ({
+        id: inv.id,
+        invitee: inv.invitee,
+        createdAt: inv.createdAt,
       })),
     });
   } catch {

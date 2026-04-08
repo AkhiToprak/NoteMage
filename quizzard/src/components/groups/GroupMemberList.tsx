@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 
 const COLORS = {
   pageBg: '#111126',
@@ -42,6 +42,7 @@ interface Props {
   currentUserId: string;
   userRole: string;
   members: Member[];
+  pendingInvites?: PendingInvite[];
   onRefresh: () => void;
   canInvite?: boolean;
   onInviteClick: () => void;
@@ -53,25 +54,10 @@ const ROLE_BADGES: Record<string, { label: string; bg: string; color: string }> 
   teacher: { label: 'Teacher', bg: '#ffde5933', color: '#ffde59' },
 };
 
-export default function GroupMemberList({ groupId, currentUserId, userRole, members, onRefresh, onInviteClick, canInvite = true }: Props) {
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+export default function GroupMemberList({ groupId, currentUserId, userRole, members, pendingInvites = [], onRefresh, onInviteClick, canInvite = true }: Props) {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   const isAdminOrOwner = userRole === 'owner' || userRole === 'admin';
-
-  // Fetch pending invitations
-  useEffect(() => {
-    if (!isAdminOrOwner) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/groups/${groupId}/invitations`);
-        if (res.ok) {
-          const json = await res.json();
-          setPendingInvites(json.data || []);
-        }
-      } catch { /* ignore */ }
-    })();
-  }, [groupId, isAdminOrOwner]);
 
   const handleRoleChange = useCallback(async (targetUserId: string, role: string) => {
     setMenuOpen(null);
@@ -235,7 +221,7 @@ export default function GroupMemberList({ groupId, currentUserId, userRole, memb
       </div>
 
       {/* Pending invitations */}
-      {isAdminOrOwner && pendingInvites.length > 0 && (
+      {pendingInvites.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: COLORS.textMuted, marginBottom: 16 }}>
             Pending Invitations ({pendingInvites.length})
