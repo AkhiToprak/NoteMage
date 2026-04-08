@@ -24,15 +24,18 @@ const COMPARISON_DATA: FeatureCategory[] = [
       { name: 'AI Presentations', icon: 'slideshow', free: '1/mo', plus: '3/mo', pro: 'Unlimited' },
       { name: 'AI Study Plans', icon: 'school', free: '2/mo', plus: '4/mo', pro: 'Unlimited' },
       { name: 'Scholar Chat Messages', icon: 'forum', free: '20/mo', plus: '100/mo', pro: 'Unlimited' },
+      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
     ],
   },
   {
     category: 'Study Tools',
     features: [
-      { name: 'Notebook Editor', icon: 'edit_note', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Document Upload', icon: 'upload_file', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Progress Tracking', icon: 'trending_up', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Achievements & XP', icon: 'emoji_events', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Notebooks', icon: 'menu_book', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Text Files', icon: 'description', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Canvas Files', icon: 'draw', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Flashcard Creator', icon: 'style', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Quiz Creator', icon: 'quiz', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
     ],
   },
   {
@@ -41,6 +44,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
       { name: 'Study Groups', icon: 'groups', free: '✓', plus: '✓', pro: '✓' },
       { name: 'Classes', icon: 'school', free: '✓', plus: '✓', pro: '✓' },
       { name: 'Direct Messages', icon: 'chat', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
     ],
   },
 ];
