@@ -103,12 +103,20 @@ export default function SettingsPage() {
   const [greetingLoading, setGreetingLoading] = useState(false);
   const [greetingStatus, setGreetingStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
 
+  // Scholar name state
+  const [scholarNameInput, setScholarNameInput] = useState('');
+  const [scholarNameLoading, setScholarNameLoading] = useState(false);
+  const [scholarNameStatus, setScholarNameStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+
   useEffect(() => {
     fetch('/api/user/profile')
       .then((r) => r.json())
       .then((res) => {
         if (res?.data?.customGreeting) {
           setCustomGreeting(res.data.customGreeting);
+        }
+        if (res?.data?.scholarName) {
+          setScholarNameInput(res.data.scholarName);
         }
       })
       .catch(() => {});
@@ -135,6 +143,30 @@ export default function SettingsPage() {
       setGreetingStatus({ type: 'error', msg: 'Network error. Try again.' });
     }
     setGreetingLoading(false);
+  };
+
+  const handleScholarNameSave = async () => {
+    setScholarNameLoading(true);
+    setScholarNameStatus(null);
+    try {
+      const value = scholarNameInput.trim() || null;
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scholarName: value }),
+      });
+      if (res.ok) {
+        setScholarNameStatus({ type: 'success', msg: value ? 'Scholar name saved!' : 'Reset to default "Scholar".' });
+        if (!value) setScholarNameInput('');
+        await updateSession();
+      } else {
+        const json = await res.json();
+        setScholarNameStatus({ type: 'error', msg: json.error || 'Failed to save.' });
+      }
+    } catch {
+      setScholarNameStatus({ type: 'error', msg: 'Network error. Try again.' });
+    }
+    setScholarNameLoading(false);
   };
 
   const tierNames: Record<string, string> = { FREE: 'Free', PLUS: 'Plus', PRO: 'Pro' };
@@ -1008,6 +1040,152 @@ export default function SettingsPage() {
                   }}
                 >
                   {greetingStatus.msg}
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* Scholar Name */}
+          <section
+            style={{
+              background: '#1c1c38',
+              borderRadius: isPhone ? '20px' : '32px',
+              padding: isPhone ? '20px' : '32px',
+              display: activeSection === 'account' ? 'flex' : 'none',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '16px',
+                  background: 'rgba(174,137,255,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                >
+                  auto_awesome
+                </span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                  Scholar Name
+                </h3>
+                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
+                  Give your AI study assistant a custom name.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                type="text"
+                placeholder="e.g. Archimedes, Sage, Athena…"
+                value={scholarNameInput}
+                onChange={(e) => {
+                  setScholarNameInput(e.target.value);
+                  setScholarNameStatus(null);
+                }}
+                maxLength={30}
+                style={inputStyle}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(174,137,255,0.4)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ fontSize: '12px', color: '#555578' }}>
+                  {scholarNameInput.length}/30 &middot; Leave empty for default &ldquo;Scholar&rdquo;
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {scholarNameInput && (
+                    <button
+                      onClick={async () => {
+                        setScholarNameInput('');
+                        setScholarNameLoading(true);
+                        setScholarNameStatus(null);
+                        try {
+                          const res = await fetch('/api/user/profile', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ scholarName: null }),
+                          });
+                          if (res.ok) {
+                            setScholarNameStatus({ type: 'success', msg: 'Reset to default "Scholar".' });
+                            await updateSession();
+                          } else {
+                            setScholarNameStatus({ type: 'error', msg: 'Failed to clear.' });
+                          }
+                        } catch {
+                          setScholarNameStatus({ type: 'error', msg: 'Network error.' });
+                        }
+                        setScholarNameLoading(false);
+                      }}
+                      disabled={scholarNameLoading}
+                      style={{
+                        padding: '10px 20px',
+                        background: 'transparent',
+                        border: '1px solid #555578',
+                        borderRadius: '12px',
+                        color: '#aaa8c8',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: scholarNameLoading ? 'not-allowed' : 'pointer',
+                        transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button
+                    onClick={handleScholarNameSave}
+                    disabled={scholarNameLoading}
+                    style={{
+                      padding: '10px 24px',
+                      background: scholarNameLoading
+                        ? 'rgba(174,137,255,0.3)'
+                        : 'linear-gradient(135deg, #ae89ff, #8348f6)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: scholarNameLoading ? 'not-allowed' : 'pointer',
+                      boxShadow: scholarNameLoading ? 'none' : '0 8px 24px rgba(174,137,255,0.3)',
+                      transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!scholarNameLoading)
+                        (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!scholarNameLoading)
+                        (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                    }}
+                  >
+                    {scholarNameLoading ? 'Saving…' : 'Save Name'}
+                  </button>
+                </div>
+              </div>
+              {scholarNameStatus && (
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: scholarNameStatus.type === 'success' ? '#4ade80' : '#fd6f85',
+                    margin: 0,
+                  }}
+                >
+                  {scholarNameStatus.msg}
                 </p>
               )}
             </div>

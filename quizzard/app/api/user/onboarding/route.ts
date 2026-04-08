@@ -37,9 +37,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { studyGoals = [] } = body as {
+    const { studyGoals = [], scholarName } = body as {
       studyGoals?: { type: string; target: number }[];
+      scholarName?: string | null;
     };
+
+    // Validate scholar name
+    if (scholarName !== undefined && scholarName !== null) {
+      if (typeof scholarName !== 'string' || scholarName.trim().length > 30) {
+        return badRequestResponse('Scholar name must be at most 30 characters');
+      }
+    }
 
     if (!Array.isArray(studyGoals)) {
       return badRequestResponse('studyGoals must be an array');
@@ -74,12 +82,13 @@ export async function PUT(request: NextRequest) {
         });
       }
 
-      // Mark onboarding complete + sync pages goal → dailyGoal
+      // Mark onboarding complete + sync pages goal → dailyGoal + save scholar name
       const pagesGoal = studyGoals.find((g) => g.type === 'pages');
       await tx.user.update({
         where: { id: userId },
         data: {
           onboardingComplete: true,
+          ...(scholarName ? { scholarName: scholarName.trim() } : {}),
           ...(pagesGoal
             ? { dailyGoal: Math.min(200, Math.max(1, Math.ceil(pagesGoal.target / 7))) }
             : {}),

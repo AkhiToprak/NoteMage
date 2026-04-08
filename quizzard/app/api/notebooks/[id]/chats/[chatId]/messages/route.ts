@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { getAuthUserId } from '@/lib/auth';
+import { getScholarName } from '@/lib/scholar';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL, MONTHLY_TOKEN_LIMIT } from '@/lib/anthropic';
 import {
@@ -64,6 +66,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const token = await getToken({ req: request });
+    const scholarName = getScholarName(token?.scholarName as string | undefined);
 
     // Record activity (fire-and-forget)
     recordActivity(userId, 'message').catch(() => {});
@@ -213,7 +218,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // ── Build system prompt ──
     const systemParts = [
-      'You are Scholar, an AI study assistant embedded in the Quizzard notebook app.',
+      `You are ${scholarName}, an AI study assistant embedded in the Quizzard notebook app.`,
+      `Your name is ${scholarName}. When the user asks your name, respond with "${scholarName}".`,
       'Help the user study, understand, and review their notes and documents.',
       'Be concise, clear, and educational. Use markdown formatting when helpful.',
       '',

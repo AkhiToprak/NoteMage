@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { X, Upload, BookOpen, Check, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { getScholarName } from '@/lib/scholar';
 
 interface PageRef {
   id: string;
@@ -52,6 +54,8 @@ export default function CreateChatModal({
 }: Props) {
   const { upload } = useDirectUpload();
   const { isPhone } = useBreakpoint();
+  const { data: session } = useSession();
+  const scholarName = getScholarName(session?.user?.scholarName);
   const [title, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState<'notebook' | 'upload'>('notebook');
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
@@ -226,7 +230,7 @@ export default function CreateChatModal({
                   letterSpacing: '-0.01em',
                 }}
               >
-                New Scholar Chat
+                New {scholarName} Chat
               </h2>
             </div>
             <p style={{ margin: 0, fontSize: '12px', color: 'rgba(185,195,255,0.6)' }}>
@@ -333,7 +337,7 @@ export default function CreateChatModal({
                   textTransform: 'uppercase',
                 }}
               >
-                Feed the Scholar
+                Feed {scholarName}
               </label>
               {totalContext > 0 && (
                 <span

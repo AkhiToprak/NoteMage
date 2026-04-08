@@ -10,6 +10,7 @@ import TierSelectionStep from './TierSelectionStep';
 import PaymentStep from './PaymentStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep from './StudyGoalsStep';
+import ScholarNameStep from './ScholarNameStep';
 import type { TierKey } from '@/lib/tiers';
 
 interface FormData {
@@ -21,10 +22,11 @@ interface FormData {
   agreed: boolean;
   selectedTier: TierKey;
   avatarUrl: string | null;
+  scholarName: string;
   studyGoals: { type: string; target: number }[];
 }
 
-const STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Goals'];
+const STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Scholar', 'Goals'];
 
 const INITIAL_FORM: FormData = {
   username: '',
@@ -35,6 +37,7 @@ const INITIAL_FORM: FormData = {
   agreed: false,
   selectedTier: 'FREE',
   avatarUrl: null,
+  scholarName: '',
   studyGoals: [],
 };
 
@@ -42,7 +45,7 @@ export default function OnboardingWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { update: updateSession } = useSession();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [formData, setFormData] = useState<FormData>(() => {
     const tierParam = searchParams.get('tier')?.toUpperCase();
     const initialTier =
@@ -200,21 +203,32 @@ export default function OnboardingWizard() {
     setFormData((prev) => ({ ...prev, avatarUrl: url }));
   };
 
-  // ── Step 4: Goals ─────────────────────────────────────────────────────────
+  // ── Step 4: Scholar Name ──────────────────────────────────────────────────
+  const handleScholarNameNext = () => {
+    setStep(5);
+  };
+
+  const handleScholarNameSkip = () => {
+    setFormData((prev) => ({ ...prev, scholarName: '' }));
+    setStep(5);
+  };
+
+  // ── Step 5: Goals ─────────────────────────────────────────────────────────
   const submitOnboarding = async (goals: { type: string; target: number }[]) => {
-    clearStepError(4);
+    clearStepError(5);
     setLoading(true);
     try {
+      const scholarName = formData.scholarName.trim() || null;
       await fetch('/api/user/onboarding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studyGoals: goals }),
+        body: JSON.stringify({ studyGoals: goals, scholarName }),
       });
       // Refresh the JWT token so middleware sees onboardingComplete: true
       await updateSession();
       router.push('/home');
     } catch {
-      setStepError(4, 'Something went wrong. Please try again.');
+      setStepError(5, 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
@@ -229,7 +243,9 @@ export default function OnboardingWizard() {
         ? 'Choose your plan.'
         : step === 3
           ? "Let's set up your profile."
-          : 'Almost there — personalize your journey.';
+          : step === 4
+            ? 'Give your scholar a name.'
+            : 'Almost there — personalize your journey.';
 
   return (
     <div
@@ -325,7 +341,7 @@ export default function OnboardingWizard() {
         />
 
         {/* Step Indicator */}
-        <StepIndicator currentStep={step} totalSteps={4} labels={STEP_LABELS} />
+        <StepIndicator currentStep={step} totalSteps={5} labels={STEP_LABELS} />
 
         {/* Step Content */}
         <div
@@ -384,13 +400,24 @@ export default function OnboardingWizard() {
           )}
 
           {step === 4 && (
+            <ScholarNameStep
+              scholarName={formData.scholarName}
+              onChange={(name) => setFormData((prev) => ({ ...prev, scholarName: name }))}
+              onNext={handleScholarNameNext}
+              onSkip={handleScholarNameSkip}
+              loading={loading}
+              error={stepErrors[4] || ''}
+            />
+          )}
+
+          {step === 5 && (
             <StudyGoalsStep
               goals={formData.studyGoals}
               onChange={(goals) => setFormData((prev) => ({ ...prev, studyGoals: goals }))}
               onFinish={handleGoalsFinish}
               onSkip={handleGoalsSkip}
               loading={loading}
-              error={stepErrors[4] || ''}
+              error={stepErrors[5] || ''}
             />
           )}
         </div>

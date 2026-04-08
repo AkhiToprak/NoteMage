@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         profilePrivate: true,
         hideAchievements: true,
         customGreeting: true,
+        scholarName: true,
         createdAt: true,
       },
     });
@@ -62,6 +63,7 @@ export async function PUT(request: NextRequest) {
       profilePrivate,
       hideAchievements,
       customGreeting,
+      scholarName,
     } = body;
 
     const data: Record<string, unknown> = {};
@@ -174,6 +176,16 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    if (scholarName !== undefined) {
+      if (scholarName === null) {
+        data.scholarName = null;
+      } else if (typeof scholarName !== 'string' || scholarName.length > 30) {
+        return badRequestResponse('Scholar name must be a string of at most 30 characters');
+      } else {
+        data.scholarName = scholarName.trim() || null;
+      }
+    }
+
     if (Object.keys(data).length === 0) {
       return badRequestResponse('No valid fields to update');
     }
@@ -197,6 +209,7 @@ export async function PUT(request: NextRequest) {
           profilePrivate: true,
           hideAchievements: true,
           customGreeting: true,
+          scholarName: true,
           createdAt: true,
         },
       });

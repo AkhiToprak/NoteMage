@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, use, useRef, useCallback, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { getScholarName } from '@/lib/scholar';
 import Link from 'next/link';
 import {
   X,
@@ -79,6 +81,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
   const { notebook, flatSections, refreshChats } = useNotebookWorkspace();
   const { upload: directUpload } = useDirectUpload();
   const { isPhone } = useBreakpoint();
+  const { data: session } = useSession();
+  const scholarName = getScholarName(session?.user?.scholarName);
 
   const [chat, setChat] = useState<ChatData | null>(null);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -415,7 +419,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           >
             cloud_upload
           </span>
-          {!isPhone && 'Feed the Scholar'}
+          {!isPhone && `Feed ${scholarName}`}
           {totalContext > 0 && (
             <span
               style={{
@@ -525,7 +529,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   fontStyle: 'normal',
                 }}
               >
-                Scholar is ready
+                {scholarName} is ready
               </p>
               <p
                 style={{
@@ -753,7 +757,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask the Scholar anything…"
+            placeholder={`Ask ${scholarName} anything…`}
             rows={1}
             disabled={isSending}
             style={{
@@ -882,7 +886,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   cloud_upload
                 </span>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#f0edff' }}>
-                  Feed the Scholar
+                  Feed {scholarName}
                 </h3>
               </div>
               <button

@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
             onboardingComplete: true,
             role: true,
             tier: true,
+            scholarName: true,
             banned: true,
             banReason: true,
             failedLoginAttempts: true,
@@ -111,6 +112,7 @@ export const authOptions: NextAuthOptions = {
           onboardingComplete: user.onboardingComplete,
           role: user.role,
           tier: user.tier,
+          scholarName: user.scholarName ?? undefined,
         };
       },
     }),
@@ -124,6 +126,7 @@ export const authOptions: NextAuthOptions = {
           onboardingComplete?: boolean;
           role?: string;
           tier?: string;
+          scholarName?: string;
         };
         token.id = user.id;
         token.username = u.username;
@@ -131,6 +134,7 @@ export const authOptions: NextAuthOptions = {
         token.onboardingComplete = u.onboardingComplete;
         token.role = u.role;
         token.tier = u.tier;
+        token.scholarName = u.scholarName;
       }
       // Re-read from DB when session is explicitly updated (e.g. after onboarding)
       if (trigger === 'update' && token.id) {
@@ -142,6 +146,7 @@ export const authOptions: NextAuthOptions = {
             avatarUrl: true,
             role: true,
             tier: true,
+            scholarName: true,
           },
         });
         if (freshUser) {
@@ -150,6 +155,7 @@ export const authOptions: NextAuthOptions = {
           token.avatarUrl = freshUser.avatarUrl ?? undefined;
           token.role = freshUser.role;
           token.tier = freshUser.tier;
+          token.scholarName = freshUser.scholarName ?? undefined;
         }
       }
       return token;
@@ -162,6 +168,7 @@ export const authOptions: NextAuthOptions = {
         session.user.onboardingComplete = token.onboardingComplete as boolean;
         session.user.role = (token.role as string) ?? 'user';
         session.user.tier = (token.tier as string) ?? 'FREE';
+        session.user.scholarName = token.scholarName as string | undefined;
       }
       return session;
     },

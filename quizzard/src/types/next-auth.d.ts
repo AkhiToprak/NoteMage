@@ -10,6 +10,7 @@ declare module 'next-auth' {
       onboardingComplete: boolean;
       role: string;
       tier: string;
+      scholarName?: string;
     } & DefaultSession['user'];
   }
 }
@@ -22,5 +23,6 @@ declare module 'next-auth/jwt' {
     onboardingComplete?: boolean;
     role?: string;
     tier?: string;
+    scholarName?: string;
   }
 }

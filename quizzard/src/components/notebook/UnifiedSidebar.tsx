@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { getScholarName } from '@/lib/scholar';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -44,6 +46,8 @@ import SearchDropdown from '@/components/search/SearchDropdown';
 export default function UnifiedSidebar() {
   const { notebookId, notebook, sections, refreshSections, setSidebarCollapsed } =
     useNotebookWorkspace();
+  const { data: session } = useSession();
+  const scholarName = getScholarName(session?.user?.scholarName);
 
   const [isCreatingSection, setIsCreatingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState('');
@@ -457,7 +461,7 @@ export default function UnifiedSidebar() {
               >
                 <Sparkles size={11} style={{ color: '#e5dbff' }} />
               </div>
-              Scholar
+              {scholarName}
             </Link>
 
             {/* ── Manage Flashcard Sets button ─────────────────────── */}
@@ -1638,6 +1642,8 @@ function StudyPlanTreeSection() {
 
 function ChatTreeSection() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const scholarName = getScholarName(session?.user?.scholarName);
   const { notebookId, chats, activeChatId, refreshChats } = useNotebookWorkspace();
   const [expanded, setExpanded] = useState(true);
 
@@ -1702,7 +1708,7 @@ function ChatTreeSection() {
               textTransform: 'uppercase',
             }}
           >
-            Scholar Chats
+            {scholarName} Chats
           </span>
         </div>
 
