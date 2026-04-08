@@ -588,6 +588,166 @@ export default function QuizViewer({
             <ActionButton onClick={() => setShowHistory(true)} label="View History" />
           )}
         </div>
+
+        {/* History modal */}
+        {showHistory && (
+          <div
+            onClick={() => setShowHistory(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1000,
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '420px',
+                maxHeight: '500px',
+                background: '#1a1a36',
+                border: '1px solid rgba(140,82,255,0.25)',
+                borderRadius: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                  borderBottom: '1px solid rgba(140,82,255,0.15)',
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: '#ede9ff',
+                    margin: 0,
+                    fontFamily: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <History size={16} /> Quiz History
+                </h3>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(237,233,255,0.4)',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+                {attemptHistory.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '32px 16px',
+                      textAlign: 'center',
+                      fontSize: '13px',
+                      color: 'rgba(237,233,255,0.3)',
+                    }}
+                  >
+                    No attempts yet.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {attemptHistory.map((attempt, i) => (
+                      <div
+                        key={attempt.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '12px 14px',
+                          borderRadius: '10px',
+                          background: i === 0 ? 'rgba(140,82,255,0.08)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${i === 0 ? 'rgba(140,82,255,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
+                            background:
+                              attempt.percentage >= 70
+                                ? 'rgba(74,222,128,0.1)'
+                                : attempt.percentage >= 40
+                                  ? 'rgba(251,191,36,0.1)'
+                                  : 'rgba(252,165,165,0.1)',
+                            border: `1px solid ${
+                              attempt.percentage >= 70
+                                ? 'rgba(74,222,128,0.3)'
+                                : attempt.percentage >= 40
+                                  ? 'rgba(251,191,36,0.3)'
+                                  : 'rgba(252,165,165,0.3)'
+                            }`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color:
+                              attempt.percentage >= 70
+                                ? '#4ade80'
+                                : attempt.percentage >= 40
+                                  ? '#fbbf24'
+                                  : '#fca5a5',
+                          }}
+                        >
+                          {Math.round(attempt.percentage)}%
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', color: '#ede9ff', fontWeight: 600 }}>
+                            {attempt.score}/{attempt.total} correct
+                            {i === 0 && (
+                              <span style={{ color: '#c4a9ff', fontSize: '11px', marginLeft: '6px' }}>
+                                Latest
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              color: 'rgba(237,233,255,0.3)',
+                              marginTop: '2px',
+                            }}
+                          >
+                            {new Date(attempt.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                            {attempt.timeSpent && ` · ${attempt.timeSpent}s`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
