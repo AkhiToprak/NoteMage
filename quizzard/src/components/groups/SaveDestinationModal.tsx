@@ -63,6 +63,8 @@ export default function SaveDestinationModal({
   const [sections, setSections] = useState<{ id: string; title: string; sortOrder: number }[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [creatingSection, setCreatingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
   const needsSection = contentType === 'flashcard_set' || contentType === 'quiz_set';
   // Folder browsing for non-notebook types
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -366,8 +368,8 @@ export default function SaveDestinationModal({
                 {/* ── For flashcards/quizzes/documents: pick notebook ── */}
                 {!isNotebook && (
                   <>
-                    {/* Create new notebook — NOT available for flashcard sets */}
-                    {contentType !== 'flashcard_set' && (
+                    {/* Create new notebook — NOT available for flashcard/quiz sets */}
+                    {!needsSection && (
                       <ItemRow
                         icon="add" iconBg={COLORS.primary}
                         label="Create New Notebook"
@@ -450,10 +452,86 @@ export default function SaveDestinationModal({
                         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: COLORS.textMuted, marginBottom: 8, paddingLeft: 4 }}>
                           Choose a section
                         </div>
+
+                        {/* Create new section */}
+                        {!creatingSection ? (
+                          <ItemRow
+                            icon="add" iconBg={COLORS.primary}
+                            label="Create New Section"
+                            sublabel="Name a new section for this content"
+                            selected={false}
+                            hovered={hoveredItem === '__new_section__'}
+                            onHover={(h) => setHoveredItem(h ? '__new_section__' : null)}
+                            onClick={() => { setCreatingSection(true); setSelectedSectionId(null); setNewSectionName(''); }}
+                            dashed
+                          />
+                        ) : (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                            border: `2px solid ${COLORS.primary}`, borderRadius: 12,
+                            background: `${COLORS.primary}0d`, marginBottom: 2,
+                          }}>
+                            <div style={{
+                              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                              background: `${COLORS.primary}1a`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 18, color: COLORS.primary }}>add</span>
+                            </div>
+                            <input
+                              autoFocus
+                              value={newSectionName}
+                              onChange={(e) => setNewSectionName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Escape') { setCreatingSection(false); setNewSectionName(''); }
+                              }}
+                              placeholder="Section name..."
+                              maxLength={100}
+                              style={{
+                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                color: COLORS.textPrimary, fontSize: 14, fontWeight: 600,
+                                fontFamily: 'inherit',
+                              }}
+                            />
+                            <button
+                              onClick={async () => {
+                                if (!newSectionName.trim() || !selectedNotebookId) return;
+                                try {
+                                  const res = await fetch(`/api/notebooks/${selectedNotebookId}/sections`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ title: newSectionName.trim() }),
+                                  });
+                                  if (res.ok) {
+                                    const json = await res.json();
+                                    const newId = json.data?.id;
+                                    if (newId) {
+                                      setSections((prev) => [...prev, { id: newId, title: newSectionName.trim(), sortOrder: prev.length }]);
+                                      setSelectedSectionId(newId);
+                                      setCreatingSection(false);
+                                      setNewSectionName('');
+                                    }
+                                  }
+                                } catch { /* ignore */ }
+                              }}
+                              disabled={!newSectionName.trim()}
+                              style={{
+                                background: newSectionName.trim() ? COLORS.primary : COLORS.elevated,
+                                color: newSectionName.trim() ? '#fff' : COLORS.textMuted,
+                                border: 'none', borderRadius: 8, padding: '6px 12px',
+                                fontSize: 12, fontWeight: 700, cursor: newSectionName.trim() ? 'pointer' : 'default',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              Create
+                            </button>
+                          </div>
+                        )}
+
                         {sectionsLoading ? (
                           <div style={{ padding: '16px 0', textAlign: 'center', color: COLORS.textMuted, fontSize: 13 }}>Loading sections...</div>
-                        ) : sections.length === 0 ? (
-                          <div style={{ padding: '16px 0', textAlign: 'center', color: COLORS.textMuted, fontSize: 13 }}>No sections in this notebook</div>
+                        ) : sections.length === 0 && !creatingSection ? (
+                          <div style={{ padding: '16px 0', textAlign: 'center', color: COLORS.textMuted, fontSize: 13 }}>No sections yet — create one above</div>
                         ) : (
                           sections.map((s) => (
                             <ItemRow
@@ -463,7 +541,7 @@ export default function SaveDestinationModal({
                               selected={selectedSectionId === s.id}
                               hovered={hoveredItem === `section-${s.id}`}
                               onHover={(h) => setHoveredItem(h ? `section-${s.id}` : null)}
-                              onClick={() => setSelectedSectionId(s.id)}
+                              onClick={() => { setSelectedSectionId(s.id); setCreatingSection(false); }}
                             />
                           ))
                         )}
