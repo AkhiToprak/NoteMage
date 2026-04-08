@@ -107,8 +107,11 @@ function getNotificationLink(n: Notification): string | null {
     case 'comment_reply':
       return typeof data.postId === 'string' ? `/community/post/${data.postId}` : null;
     case 'group_invitation':
-      return typeof data.groupId === 'string' ? `/groups/invite/${data.groupId}` : null;
+      return '/groups';
     case 'group_member_joined':
+    case 'group_message':
+    case 'dm_message':
+    case 'group_content_shared':
       return typeof data.groupId === 'string' ? `/groups/${data.groupId}` : null;
     default:
       return null;

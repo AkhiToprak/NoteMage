@@ -118,33 +118,37 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
     });
 
-    // Notify all other accepted members (fire-and-forget)
+    // Notify all other accepted members (fire-and-forget, non-blocking)
     if (group && message.sender) {
-      const otherMembers = await db.studyGroupMember.findMany({
-        where: { groupId: id, status: 'accepted', userId: { not: userId } },
-        select: { userId: true },
-      });
-      if (otherMembers.length > 0) {
-        const groupInfo = await db.studyGroup.findUnique({
-          where: { id },
-          select: { name: true, type: true },
-        });
-        const notifType = groupInfo?.type === 'direct' ? 'dm_message' : 'group_message';
-        const preview = typeof content === 'string' ? content.trim().slice(0, 50) : '';
-        await db.notification.createMany({
-          data: otherMembers.map((m) => ({
-            userId: m.userId,
-            type: notifType,
-            data: {
-              groupId: id,
-              groupName: groupInfo?.name || '',
-              senderName: message.sender?.name || message.sender?.username || 'Someone',
-              senderUsername: message.sender?.username || '',
-              messagePreview: preview,
-            },
-          })),
-        });
-      }
+      (async () => {
+        try {
+          const otherMembers = await db.studyGroupMember.findMany({
+            where: { groupId: id, status: 'accepted', userId: { not: userId } },
+            select: { userId: true },
+          });
+          if (otherMembers.length > 0) {
+            const groupInfo = await db.studyGroup.findUnique({
+              where: { id },
+              select: { name: true, type: true },
+            });
+            const notifType = groupInfo?.type === 'direct' ? 'dm_message' : 'group_message';
+            const preview = typeof content === 'string' ? content.trim().slice(0, 50) : '';
+            await db.notification.createMany({
+              data: otherMembers.map((m) => ({
+                userId: m.userId,
+                type: notifType,
+                data: {
+                  groupId: id,
+                  groupName: groupInfo?.name || '',
+                  senderName: message.sender?.name || message.sender?.username || 'Someone',
+                  senderUsername: message.sender?.username || '',
+                  messagePreview: preview,
+                },
+              })),
+            });
+          }
+        } catch { /* notification failure should not break message sending */ }
+      })();
     }
 
     return successResponse({
