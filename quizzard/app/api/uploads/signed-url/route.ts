@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
 
       case 'avatar': {
         const ext = getExtensionFromContentType(contentType);
-        storagePath = `avatars/${userId}.${ext}`;
+        storagePath = `avatars/${userId}-${Date.now()}.${ext}`;
         bucket = BUCKET_PUBLIC;
         break;
       }
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('group-avatar requires groupId');
         }
         const ext = getExtensionFromContentType(contentType);
-        storagePath = `avatars/group-${groupId}.${ext}`;
+        storagePath = `avatars/group-${groupId}-${Date.now()}.${ext}`;
         bucket = BUCKET_PUBLIC;
         break;
       }
