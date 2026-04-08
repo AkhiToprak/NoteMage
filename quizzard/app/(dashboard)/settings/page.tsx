@@ -393,7 +393,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', position: 'relative', padding: isPhone ? '0 16px' : undefined }}>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', position: 'relative', padding: isPhone ? '0 16px' : undefined, overflow: 'hidden', width: '100%', boxSizing: 'border-box' }}>
       {/* Ambient bg blobs */}
       <div
         style={{
@@ -450,10 +450,11 @@ export default function SettingsPage() {
           display: isPhone ? 'flex' : 'grid',
           flexDirection: isPhone ? 'column' : undefined,
           gridTemplateColumns: isPhone ? undefined : '1fr 2fr',
-          gap: isPhone ? '20px' : '32px',
+          gap: isPhone ? '16px' : '32px',
           alignItems: 'start',
           position: 'relative',
           zIndex: 1,
+          overflow: 'hidden',
         }}
       >
         {/* Left column */}
@@ -473,36 +474,36 @@ export default function SettingsPage() {
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
+                flexDirection: isPhone ? 'row' : 'column',
                 alignItems: 'center',
-                textAlign: 'center',
-                gap: '16px',
+                textAlign: isPhone ? 'left' : 'center',
+                gap: isPhone ? '12px' : '16px',
               }}
             >
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
                 {session?.user?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={session.user.avatarUrl}
                     alt={session.user.name || 'Avatar'}
                     style={{
-                      width: '96px',
-                      height: '96px',
-                      borderRadius: '24px',
+                      width: isPhone ? '64px' : '96px',
+                      height: isPhone ? '64px' : '96px',
+                      borderRadius: isPhone ? '16px' : '24px',
                       objectFit: 'cover',
                     }}
                   />
                 ) : (
                   <div
                     style={{
-                      width: '96px',
-                      height: '96px',
-                      borderRadius: '24px',
+                      width: isPhone ? '64px' : '96px',
+                      height: isPhone ? '64px' : '96px',
+                      borderRadius: isPhone ? '16px' : '24px',
                       background: 'linear-gradient(135deg, #ae89ff 0%, #8348f6 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '32px',
+                      fontSize: isPhone ? '24px' : '32px',
                       fontWeight: 700,
                       color: '#ffffff',
                       letterSpacing: '-0.01em',

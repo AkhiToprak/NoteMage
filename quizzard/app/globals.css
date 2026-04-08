@@ -133,6 +133,7 @@
 html {
   background: var(--background);
   color: var(--on-surface);
+  overflow-x: hidden;
 }
 
 body {
@@ -142,6 +143,7 @@ body {
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* ─── Global scrollbar: hidden everywhere ────────────────────────────── */
