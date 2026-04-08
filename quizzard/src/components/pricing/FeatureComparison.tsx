@@ -38,10 +38,9 @@ const COMPARISON_DATA: FeatureCategory[] = [
   {
     category: 'Collaboration',
     features: [
-      { name: 'Co-Work Groups', icon: 'groups', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Published Notebooks', icon: 'public', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Priority Support', icon: 'support_agent', free: '—', plus: '✓', pro: '✓' },
-      { name: 'Early Access Features', icon: 'new_releases', free: '—', plus: '—', pro: '✓' },
+      { name: 'Study Groups', icon: 'groups', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Classes', icon: 'school', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Direct Messages', icon: 'chat', free: '✓', plus: '✓', pro: '✓' },
     ],
   },
 ];
