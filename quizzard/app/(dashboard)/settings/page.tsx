@@ -340,6 +340,7 @@ export default function SettingsPage() {
   // Avatar editor state
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
 
   const fetchAdminUsers = useCallback(async (search: string, page: number) => {
@@ -2700,101 +2701,39 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Danger Zone */}
-          <section
+          {/* Delete Account */}
+          <button
+            onClick={() => setDeleteConfirmOpen(true)}
             style={{
-              background: 'rgba(138,22,50,0.05)',
-              borderRadius: isPhone ? '20px' : '32px',
-              padding: isPhone ? '20px' : '32px',
-              border: '1px solid rgba(253,111,133,0.2)',
+              alignSelf: 'flex-start',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '24px',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              background: 'transparent',
+              color: 'rgba(253,111,133,0.7)',
+              border: '1px solid rgba(253,111,133,0.2)',
+              borderRadius: '12px',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'border-color 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(253,111,133,0.5)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#fd6f85';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(253,111,133,0.2)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(253,111,133,0.7)';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '16px',
-                  background: 'rgba(253,111,133,0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ color: '#fd6f85', fontSize: '24px' }}
-                >
-                  dangerous
-                </span>
-              </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#fd6f85', margin: 0 }}>
-                Danger Zone
-              </h3>
-            </div>
-            <div
-              style={{
-                background: 'rgba(138,22,50,0.1)',
-                borderRadius: '16px',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: 'rgba(255,151,163,0.8)',
-                  lineHeight: 1.7,
-                  margin: 0,
-                }}
-              >
-                Once you delete your account, there is no going back. All your study notebooks,
-                flashcards, and progress history will be permanently erased from our neon scrolls.
-              </p>
-              <button
-                style={{
-                  alignSelf: 'flex-start',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '14px 40px',
-                  background: '#c8475d',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '16px',
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  boxShadow: '0 4px 20px rgba(253,111,133,0.2)',
-                  transition:
-                    'background 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = '#fd6f85';
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = '#c8475d';
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-                }}
-                onMouseDown={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-                }}
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                  delete_forever
-                </span>
-                Delete Account
-              </button>
-            </div>
-          </section>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              delete_forever
+            </span>
+            Delete Account
+          </button>
         </div>
       </div>
 
@@ -2821,7 +2760,10 @@ export default function SettingsPage() {
             backdropFilter: 'blur(8px)',
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget && !deleting) setDeleteConfirmOpen(false);
+            if (e.target === e.currentTarget && !deleting) {
+              setDeleteConfirmOpen(false);
+              setDeleteConfirmText('');
+            }
           }}
         >
           <div
@@ -2876,13 +2818,46 @@ export default function SettingsPage() {
                 textAlign: 'center',
               }}
             >
-              This action is permanent. All your notebooks, flashcards, progress, and data will be
-              permanently deleted. This cannot be undone.
+              All your notebooks, flashcards, progress, and data will be permanently deleted. This cannot be undone.
             </p>
+            <div style={{ width: '100%' }}>
+              <label
+                style={{
+                  fontSize: '13px',
+                  color: 'rgba(255,255,255,0.5)',
+                  marginBottom: '8px',
+                  display: 'block',
+                }}
+              >
+                Type <strong style={{ color: '#fd6f85' }}>DELETE</strong> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                autoComplete="off"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '12px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
             <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '4px' }}>
               <button
                 disabled={deleting}
-                onClick={() => setDeleteConfirmOpen(false)}
+                onClick={() => {
+                  setDeleteConfirmOpen(false);
+                  setDeleteConfirmText('');
+                }}
                 style={{
                   flex: 1,
                   padding: '12px',
@@ -2901,7 +2876,7 @@ export default function SettingsPage() {
                 Cancel
               </button>
               <button
-                disabled={deleting}
+                disabled={deleting || deleteConfirmText !== 'DELETE'}
                 onClick={async () => {
                   setDeleting(true);
                   try {
@@ -2920,16 +2895,16 @@ export default function SettingsPage() {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  background: '#c8475d',
+                  background: deleteConfirmText === 'DELETE' ? '#c8475d' : 'rgba(200,71,93,0.3)',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '14px',
                   fontWeight: 700,
                   fontSize: '14px',
-                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  cursor: deleting || deleteConfirmText !== 'DELETE' ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
-                  opacity: deleting ? 0.7 : 1,
-                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                  opacity: deleting ? 0.7 : deleteConfirmText !== 'DELETE' ? 0.5 : 1,
+                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
                 }}
               >
                 {deleting ? 'Deleting…' : 'Yes, delete my account'}
