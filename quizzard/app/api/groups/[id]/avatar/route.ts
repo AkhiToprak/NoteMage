@@ -37,8 +37,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const membership = await db.studyGroupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
     });
-    if (!membership || (membership.role !== 'owner' && membership.role !== 'admin') || membership.status !== 'accepted') {
-      return forbiddenResponse('Only admins and owners can change the group avatar');
+    if (!membership || !['owner', 'admin', 'teacher'].includes(membership.role) || membership.status !== 'accepted') {
+      return forbiddenResponse('Only admins, owners, and teachers can change the avatar');
     }
 
     const { storagePath } = await request.json();
