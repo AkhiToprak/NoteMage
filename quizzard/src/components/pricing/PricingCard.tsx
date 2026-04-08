@@ -18,6 +18,7 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_flashcards: 'AI Flashcard sets',
   ai_pptx: 'AI Presentations',
   ai_study_plan: 'AI Study Plans',
+  ai_quizzes: 'AI Quizzes',
   scholar_chat: 'Scholar Chat messages',
 };
 
@@ -25,6 +26,7 @@ const FEATURE_ICONS: Record<FeatureType, string> = {
   ai_flashcards: 'auto_awesome',
   ai_pptx: 'slideshow',
   ai_study_plan: 'school',
+  ai_quizzes: 'quiz',
   scholar_chat: 'forum',
 };
 
@@ -243,7 +245,7 @@ export default function PricingCard({
               </span>
               <span>
                 {limit === -1 ? (
-                  <strong style={{ color: accent.text }}>Unlimited</strong>
+                  <strong style={{ color: accent.text }}>Unlimited*</strong>
                 ) : (
                   limit
                 )}{' '}
@@ -254,6 +256,21 @@ export default function PricingCard({
           )
         )}
       </ul>
+
+      {/* Pro footnote */}
+      {isPro && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 11,
+            color: 'var(--outline)',
+            lineHeight: 1.5,
+            fontStyle: 'italic',
+          }}
+        >
+          *Fair use (~1M tokens/mo). Every AI request costs us, so this prevents abuse — but it&apos;s way more than you&apos;d ever need.
+        </p>
+      )}
 
       {/* CTA */}
       {ctaHref ? (

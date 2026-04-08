@@ -20,10 +20,11 @@ const COMPARISON_DATA: FeatureCategory[] = [
   {
     category: 'AI Features',
     features: [
-      { name: 'AI Flashcard Sets', icon: 'auto_awesome', free: '1/mo', plus: '4/mo', pro: 'Unlimited' },
-      { name: 'AI Presentations', icon: 'slideshow', free: '1/mo', plus: '3/mo', pro: 'Unlimited' },
-      { name: 'AI Study Plans', icon: 'school', free: '2/mo', plus: '4/mo', pro: 'Unlimited' },
-      { name: 'Scholar Chat Messages', icon: 'forum', free: '20/mo', plus: '100/mo', pro: 'Unlimited' },
+      { name: 'AI Flashcard Sets', icon: 'auto_awesome', free: '1/mo', plus: '4/mo', pro: 'Unlimited*' },
+      { name: 'AI Presentations', icon: 'slideshow', free: '1/mo', plus: '3/mo', pro: 'Unlimited*' },
+      { name: 'AI Study Plans', icon: 'school', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
+      { name: 'AI Quizzes', icon: 'quiz', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
+      { name: 'Scholar Chat Messages', icon: 'forum', free: '20/mo', plus: '100/mo', pro: 'Unlimited*' },
       { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
     ],
   },
@@ -50,7 +51,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
 ];
 
 function CellValue({ value, isPro }: { value: string; isPro?: boolean }) {
-  if (value === 'Unlimited') {
+  if (value === 'Unlimited*' || value === 'Unlimited') {
     return (
       <span
         style={{
@@ -68,7 +69,7 @@ function CellValue({ value, isPro }: { value: string; isPro?: boolean }) {
         >
           all_inclusive
         </span>
-        Unlimited
+        Unlimited{value.includes('*') ? '*' : ''}
       </span>
     );
   }
@@ -378,7 +379,7 @@ export default function FeatureComparison() {
                               fontSize: 13,
                               fontWeight: 700,
                               color:
-                                item.value === 'Unlimited'
+                                item.value.startsWith('Unlimited')
                                   ? 'var(--tertiary-container)'
                                   : item.value === '✓'
                                     ? 'var(--primary)'
@@ -387,7 +388,7 @@ export default function FeatureComparison() {
                                       : 'var(--on-surface)',
                             }}
                           >
-                            {item.value === 'Unlimited' ? '∞' : item.value}
+                            {item.value.startsWith('Unlimited') ? '∞*' : item.value}
                           </span>
                         </div>
                       ))}
@@ -399,6 +400,21 @@ export default function FeatureComparison() {
           </div>
         ))}
       </div>
+      {/* Footnote */}
+      <p
+        style={{
+          marginTop: 32,
+          fontSize: 12,
+          color: 'var(--outline)',
+          lineHeight: 1.6,
+          textAlign: 'center',
+          fontStyle: 'italic',
+        }}
+      >
+        *Pro plan usage is subject to a fair use policy (~1M tokens/month). This limit exists
+        because every AI feature costs us real money per request. 1M tokens is far more than any
+        student would realistically use in a month — it&apos;s just there to prevent abuse.
+      </p>
     </section>
   );
 }

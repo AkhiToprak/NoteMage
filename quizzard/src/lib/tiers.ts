@@ -2,7 +2,7 @@ import type { Tier } from '@prisma/client';
 
 export type TierKey = Tier;
 
-export type FeatureType = 'ai_flashcards' | 'ai_pptx' | 'ai_study_plan' | 'scholar_chat';
+export type FeatureType = 'ai_flashcards' | 'ai_pptx' | 'ai_study_plan' | 'scholar_chat' | 'ai_quizzes';
 
 export interface TierConfig {
   name: string;
@@ -22,6 +22,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_flashcards: 1,
       ai_pptx: 1,
       ai_study_plan: 2,
+      ai_quizzes: 2,
       scholar_chat: 20,
     },
     badge: {
@@ -36,6 +37,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_flashcards: 4,
       ai_pptx: 3,
       ai_study_plan: 4,
+      ai_quizzes: 4,
       scholar_chat: 100,
     },
     badge: {
@@ -51,6 +53,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_flashcards: -1,
       ai_pptx: -1,
       ai_study_plan: -1,
+      ai_quizzes: -1,
       scholar_chat: -1,
     },
     badge: {
