@@ -150,116 +150,6 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div style={{ flex: 1, overflowY: 'auto', height: '100%' }}>
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px' }}>
-        {/* Header */}
-        <header
-          style={{ marginBottom: '48px', display: 'flex', flexDirection: 'column', gap: '16px' }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-end',
-              gap: '24px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Breadcrumb chips */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {notebook?.color && (
-                  <span
-                    style={{
-                      padding: '4px 12px',
-                      background: 'rgba(174,137,255,0.2)',
-                      color: '#cdb5ff',
-                      borderRadius: '9999px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: '13px', fontVariationSettings: "'FILL' 1" }}
-                    >
-                      auto_fix_high
-                    </span>
-                    Scholar
-                  </span>
-                )}
-              </div>
-
-              {/* Notebook name */}
-              <h2
-                style={{
-                  fontFamily: 'var(--font-brand)',
-                  fontSize: '52px',
-                  fontWeight: 400,
-                  color: '#e5e3ff',
-                  margin: 0,
-                  lineHeight: 1.05,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {notebook?.name ?? '…'}
-              </h2>
-
-              <p style={{ fontSize: '15px', color: '#8888a8', margin: 0, fontWeight: 500 }}>
-                Feed the Scholar, review your vault, and start AI-powered chats.
-              </p>
-            </div>
-
-            {/* Start Chat CTA */}
-            <button
-              onClick={() => setShowCreateModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                background: '#ffde59',
-                color: '#5f4f00',
-                padding: '16px 32px',
-                borderRadius: '16px',
-                fontWeight: 900,
-                fontSize: '17px',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(255,222,89,0.2)',
-                transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-                flexShrink: 0,
-                fontFamily: 'inherit',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-              }}
-              onMouseDown={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-              }}
-              onMouseUp={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: '22px',
-                  fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
-                }}
-              >
-                auto_fix_high
-              </span>
-              Start Chat
-            </button>
-          </div>
-        </header>
-
         {/* Empty state when no pages exist */}
         {sectionsLoaded && !hasPages && (
           <div
@@ -267,13 +157,21 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '80px 24px',
-              color: 'rgba(237,233,255,0.4)',
-              fontSize: '15px',
-              fontWeight: 500,
+              padding: '120px 24px 48px',
             }}
           >
-            No files yet
+            <p
+              style={{
+                fontFamily: 'var(--font-brand)',
+                fontSize: '28px',
+                fontWeight: 400,
+                color: 'var(--outline)',
+                margin: 0,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Start learning {notebook?.name ?? '…'}...
+            </p>
           </div>
         )}
 
