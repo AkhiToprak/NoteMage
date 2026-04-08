@@ -269,7 +269,7 @@ export default function PricingPage() {
             gap: 24,
             justifyContent: 'center',
             alignItems: 'stretch',
-            maxWidth: 1080,
+            maxWidth: 1280,
             margin: '0 auto',
           }}
         >
@@ -336,7 +336,7 @@ export default function PricingPage() {
               'opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1)',
           }}
         >
-          Ready to ace your exams?
+          Get started today
         </h2>
         <p
           style={{
@@ -353,7 +353,7 @@ export default function PricingPage() {
               'opacity 0.6s cubic-bezier(0.22,1,0.36,1) 80ms, transform 0.6s cubic-bezier(0.22,1,0.36,1) 80ms',
           }}
         >
-          Join thousands of students studying smarter with Quizzard.
+          Pick a plan and start learning in minutes.
         </p>
         <Link
           href="/auth/register"

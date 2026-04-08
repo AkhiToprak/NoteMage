@@ -20,7 +20,7 @@ export default function PricingHero() {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        padding: '160px 40px 80px',
+        padding: '140px 40px 48px',
         textAlign: 'center',
       }}
     >
@@ -75,73 +75,24 @@ export default function PricingHero() {
         />
       </div>
 
-      {/* ── Content ── */}
-      <p
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'var(--primary)',
-          marginBottom: 20,
-          position: 'relative',
-          zIndex: 1,
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1)',
-          transitionDelay: '0ms',
-        }}
-      >
-        Pricing
-      </p>
-
+      {/* Just "Pricing" — large and clean */}
       <h1
         style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(36px, 5vw, 64px)',
+          fontSize: 'clamp(48px, 7vw, 80px)',
           fontWeight: 800,
           letterSpacing: '-0.03em',
-          lineHeight: 1.06,
-          marginBottom: 20,
+          lineHeight: 1,
           color: 'var(--on-surface)',
           position: 'relative',
           zIndex: 1,
           opacity: mounted ? 1 : 0,
           transform: mounted ? 'translateY(0)' : 'translateY(16px)',
           transition: 'opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1)',
-          transitionDelay: '80ms',
         }}
       >
-        Study smarter,{' '}
-        <span
-          style={{
-            background: 'linear-gradient(135deg, var(--primary), var(--tertiary-container))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          not harder
-        </span>
+        Pricing
       </h1>
-
-      <p
-        style={{
-          fontSize: 'clamp(15px, 2vw, 18px)',
-          color: 'var(--on-surface-variant)',
-          opacity: mounted ? 0.7 : 0,
-          lineHeight: 1.7,
-          maxWidth: 560,
-          position: 'relative',
-          zIndex: 1,
-          transform: mounted ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1)',
-          transitionDelay: '160ms',
-        }}
-      >
-        Start free, upgrade when you need more. Every plan includes the core Quizzard
-        experience — AI flashcards, study plans, and Scholar Chat.
-      </p>
     </section>
   );
 }
