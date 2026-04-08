@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import NotificationDropdown from './NotificationDropdown';
+import NotificationToast from './NotificationToast';
+import type { Notification } from '@/lib/notification-utils';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
@@ -14,10 +17,14 @@ const COLORS = {
 } as const;
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [toastNotification, setToastNotification] = useState<Notification | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const lastSeenIdRef = useRef<string | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -26,6 +33,29 @@ export default function NotificationBell() {
         const json = await res.json();
         if (json.success) {
           setUnreadCount(json.data.count || 0);
+
+          const latest = json.data.latestUnread;
+          if (latest) {
+            if (isInitialLoadRef.current) {
+              // First load — just store the ID, don't show toast
+              lastSeenIdRef.current = latest.id;
+              isInitialLoadRef.current = false;
+            } else if (latest.id !== lastSeenIdRef.current) {
+              // New notification detected
+              lastSeenIdRef.current = latest.id;
+              setToastNotification({
+                id: latest.id,
+                type: latest.type,
+                data: latest.data,
+                read: false,
+                createdAt: typeof latest.createdAt === 'string' ? latest.createdAt : new Date(latest.createdAt).toISOString(),
+              });
+            }
+          } else {
+            if (isInitialLoadRef.current) {
+              isInitialLoadRef.current = false;
+            }
+          }
         }
       }
     } catch {
@@ -35,7 +65,6 @@ export default function NotificationBell() {
 
   // Poll every 30s
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
@@ -52,6 +81,28 @@ export default function NotificationBell() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
+
+  // Dismiss toast when dropdown opens
+  useEffect(() => {
+    if (dropdownOpen) {
+      setToastNotification(null);
+    }
+  }, [dropdownOpen]);
+
+  const handleToastNavigate = async (notificationId: string, link: string) => {
+    setToastNotification(null);
+    try {
+      await fetch(`/api/notifications/${notificationId}`, { method: 'PUT' });
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {
+      // silently fail
+    }
+    router.push(link);
+  };
+
+  const handleToastDismiss = () => {
+    setToastNotification(null);
+  };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -71,7 +122,7 @@ export default function NotificationBell() {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          transition: `all 0.15s ${EASING}`,
+          transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
         }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
@@ -107,6 +158,14 @@ export default function NotificationBell() {
           onClose={() => setDropdownOpen(false)}
           onRead={() => setUnreadCount((c) => Math.max(0, c - 1))}
           onReadAll={() => setUnreadCount(0)}
+        />
+      )}
+
+      {!dropdownOpen && toastNotification && (
+        <NotificationToast
+          notification={toastNotification}
+          onDismiss={handleToastDismiss}
+          onNavigate={handleToastNavigate}
         />
       )}
     </div>

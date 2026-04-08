@@ -13,10 +13,22 @@ export async function GET(request: NextRequest) {
 
     // If just requesting unread count
     if (searchParams.get('unreadCount') === 'true') {
-      const count = await db.notification.count({
-        where: { userId, read: false },
+      const [count, latestUnread] = await Promise.all([
+        db.notification.count({
+          where: { userId, read: false },
+        }),
+        db.notification.findFirst({
+          where: { userId, read: false },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, type: true, data: true, createdAt: true },
+        }),
+      ]);
+      return successResponse({
+        count,
+        latestUnread: latestUnread
+          ? { id: latestUnread.id, type: latestUnread.type, data: latestUnread.data, createdAt: latestUnread.createdAt }
+          : null,
       });
-      return successResponse({ count });
     }
 
     // Paginated list
