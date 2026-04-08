@@ -98,6 +98,45 @@ export default function SettingsPage() {
     newTier?: string;
   } | null>(null);
 
+  // Custom greeting state
+  const [customGreeting, setCustomGreeting] = useState('');
+  const [greetingLoading, setGreetingLoading] = useState(false);
+  const [greetingStatus, setGreetingStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res?.data?.customGreeting) {
+          setCustomGreeting(res.data.customGreeting);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleGreetingSave = async () => {
+    setGreetingLoading(true);
+    setGreetingStatus(null);
+    try {
+      const value = customGreeting.trim() || null;
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customGreeting: value }),
+      });
+      if (res.ok) {
+        setGreetingStatus({ type: 'success', msg: value ? 'Custom greeting saved!' : 'Reset to random greetings.' });
+        if (!value) setCustomGreeting('');
+      } else {
+        const json = await res.json();
+        setGreetingStatus({ type: 'error', msg: json.error || 'Failed to save.' });
+      }
+    } catch {
+      setGreetingStatus({ type: 'error', msg: 'Network error. Try again.' });
+    }
+    setGreetingLoading(false);
+  };
+
   const tierNames: Record<string, string> = { FREE: 'Free', PLUS: 'Plus', PRO: 'Pro' };
   const tierPrices: Record<string, number> = { FREE: 0, PLUS: 5, PRO: 10 };
   const tierColors: Record<string, string> = { FREE: '#aaa8c8', PLUS: '#c084fc', PRO: '#fbbf24' };
@@ -826,6 +865,151 @@ export default function SettingsPage() {
                   {pwLoading ? 'Updating…' : 'Update Password'}
                 </button>
               </form>
+            </div>
+          </section>
+
+          {/* Dashboard Greeting */}
+          <section
+            style={{
+              background: '#1c1c38',
+              borderRadius: isPhone ? '20px' : '32px',
+              padding: isPhone ? '20px' : '32px',
+              display: activeSection === 'account' ? 'flex' : 'none',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '16px',
+                  background: 'rgba(240,208,76,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: '#f0d04c', fontSize: '24px' }}
+                >
+                  waving_hand
+                </span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                  Dashboard Greeting
+                </h3>
+                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
+                  Set a custom greeting. Use {'{'}<span style={{ color: '#ae89ff' }}>name</span>{'}'} to include your name.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                type="text"
+                placeholder="e.g. The mighty {name} has arrived!"
+                value={customGreeting}
+                onChange={(e) => {
+                  setCustomGreeting(e.target.value);
+                  setGreetingStatus(null);
+                }}
+                maxLength={120}
+                style={inputStyle}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(174,137,255,0.4)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <span style={{ fontSize: '12px', color: '#555578' }}>
+                  {customGreeting.length}/120 &middot; Leave empty for random greetings
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {customGreeting && (
+                    <button
+                      onClick={async () => {
+                        setCustomGreeting('');
+                        setGreetingLoading(true);
+                        setGreetingStatus(null);
+                        try {
+                          const res = await fetch('/api/user/profile', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ customGreeting: null }),
+                          });
+                          if (res.ok) {
+                            setGreetingStatus({ type: 'success', msg: 'Reset to random greetings.' });
+                          } else {
+                            setGreetingStatus({ type: 'error', msg: 'Failed to clear.' });
+                          }
+                        } catch {
+                          setGreetingStatus({ type: 'error', msg: 'Network error.' });
+                        }
+                        setGreetingLoading(false);
+                      }}
+                      disabled={greetingLoading}
+                      style={{
+                        padding: '10px 20px',
+                        background: 'transparent',
+                        border: '1px solid #555578',
+                        borderRadius: '12px',
+                        color: '#aaa8c8',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: greetingLoading ? 'not-allowed' : 'pointer',
+                        transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button
+                    onClick={handleGreetingSave}
+                    disabled={greetingLoading}
+                    style={{
+                      padding: '10px 24px',
+                      background: greetingLoading
+                        ? 'rgba(174,137,255,0.3)'
+                        : 'linear-gradient(135deg, #ae89ff, #8348f6)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: greetingLoading ? 'not-allowed' : 'pointer',
+                      boxShadow: greetingLoading ? 'none' : '0 8px 24px rgba(174,137,255,0.3)',
+                      transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!greetingLoading)
+                        (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!greetingLoading)
+                        (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                    }}
+                  >
+                    {greetingLoading ? 'Saving…' : 'Save Greeting'}
+                  </button>
+                </div>
+              </div>
+              {greetingStatus && (
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: greetingStatus.type === 'success' ? '#4ade80' : '#fd6f85',
+                    margin: 0,
+                  }}
+                >
+                  {greetingStatus.msg}
+                </p>
+              )}
             </div>
           </section>
 

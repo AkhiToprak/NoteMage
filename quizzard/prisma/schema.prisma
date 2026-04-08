@@ -40,6 +40,7 @@ model User {
   location           String?   @db.VarChar(100)
   school             String?   @db.VarChar(100)
   lineOfWork         String?   @db.VarChar(100)
+  customGreeting     String?   @db.VarChar(120) // Custom dashboard greeting, null = use random
   profilePrivate     Boolean   @default(false)    // If true, only friends see full profile
   hideAchievements   Boolean   @default(false)    // If true, achievements hidden on public profile
   tier               Tier      @default(FREE)

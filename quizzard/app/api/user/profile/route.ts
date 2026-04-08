@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
         lineOfWork: true,
         profilePrivate: true,
         hideAchievements: true,
+        customGreeting: true,
         createdAt: true,
       },
     });
@@ -60,6 +61,7 @@ export async function PUT(request: NextRequest) {
       lineOfWork,
       profilePrivate,
       hideAchievements,
+      customGreeting,
     } = body;
 
     const data: Record<string, unknown> = {};
@@ -162,6 +164,16 @@ export async function PUT(request: NextRequest) {
       data.hideAchievements = hideAchievements;
     }
 
+    if (customGreeting !== undefined) {
+      if (customGreeting === null) {
+        data.customGreeting = null;
+      } else if (typeof customGreeting !== 'string' || customGreeting.length > 120) {
+        return badRequestResponse('Custom greeting must be a string of at most 120 characters');
+      } else {
+        data.customGreeting = customGreeting.trim() || null;
+      }
+    }
+
     if (Object.keys(data).length === 0) {
       return badRequestResponse('No valid fields to update');
     }
@@ -184,6 +196,7 @@ export async function PUT(request: NextRequest) {
           lineOfWork: true,
           profilePrivate: true,
           hideAchievements: true,
+          customGreeting: true,
           createdAt: true,
         },
       });

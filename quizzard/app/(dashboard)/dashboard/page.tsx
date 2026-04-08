@@ -9,6 +9,7 @@ import XPProgressBar from '@/components/features/XPProgressBar';
 import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
 import DashboardAchievements from '@/components/features/DashboardAchievements';
+import DashboardGreeting from '@/components/features/DashboardGreeting';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
 
@@ -359,6 +360,11 @@ export default function DashboardPage() {
         gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '32px' }),
       }}
     >
+      {/* Greeting */}
+      <DashboardGreeting
+        userName={session?.user?.name || session?.user?.username || 'Scholar'}
+      />
+
       {/* Stats Row — carousel on phone, grid on tablet/desktop */}
       {isPhone && (
         <style>{`.stat-carousel::-webkit-scrollbar { display: none; }`}</style>
