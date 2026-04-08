@@ -1,44 +1,33 @@
 import { db } from '@/lib/db';
 import { ACHIEVEMENTS, UserStats } from './achievements';
 
+/** All badge keys except the meta-achievement */
+const NON_META_BADGES = ACHIEVEMENTS.filter((a) => a.badge !== 'all_achievements').map(
+  (a) => a.badge
+);
+
+/** All valid badge keys (used to exclude orphaned old records from counts) */
+const VALID_BADGES = ACHIEVEMENTS.map((a) => a.badge);
+
 export async function gatherUserStats(userId: string): Promise<UserStats> {
   const [
     notebookCount,
-    documentCount,
-    messageCount,
-    quizAttemptCount,
-    perfectQuizCount,
-    flashcardReviewAgg,
     streak,
     friendCount,
     sharedNotebookCount,
     groupCount,
-    pageCount,
+    allWrongAttempt,
+    userRecord,
+    examCount,
+    folderCount,
+    sharedStudyMaterialCount,
+    canvasPageCount,
+    totalTodos,
+    incompleteTodos,
+    unlockedCount,
   ] = await Promise.all([
     // Notebooks owned by user
     db.notebook.count({ where: { userId } }),
-
-    // Documents in user's notebooks
-    db.document.count({
-      where: { notebook: { userId } },
-    }),
-
-    // Chat messages sent by user (role: 'user')
-    db.chatMessage.count({
-      where: { userId, role: 'user' },
-    }),
-
-    // Quiz attempts
-    db.quizAttempt.count({ where: { userId } }),
-
-    // Perfect quiz scores (100%)
-    db.quizAttempt.count({ where: { userId, percentage: 100 } }),
-
-    // Flashcard reviews from activity events
-    db.activityEvent.aggregate({
-      _sum: { count: true },
-      where: { userId, type: 'flashcard_review' },
-    }),
 
     // Current streak
     db.userStreak.findUnique({
@@ -62,24 +51,100 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     // Study group memberships
     db.studyGroupMember.count({ where: { userId } }),
 
-    // Pages in user's notebooks → sections → pages
+    // Any quiz attempt with all wrong answers
+    db.quizAttempt.findFirst({
+      where: { userId, score: 0, total: { gt: 0 } },
+      select: { id: true },
+    }),
+
+    // User record for level, usernameChanged, scholarName, dailyGoal
+    db.user.findUnique({
+      where: { id: userId },
+      select: {
+        level: true,
+        usernameChanged: true,
+        scholarName: true,
+        dailyGoal: true,
+      },
+    }),
+
+    // Exam count
+    db.exam.count({ where: { userId } }),
+
+    // Folder count
+    db.notebookFolder.count({ where: { userId } }),
+
+    // Shared flashcard sets or quizzes in groups
+    db.groupSharedContent.count({
+      where: {
+        sharedById: userId,
+        contentType: { in: ['flashcard_set', 'quiz_set'] },
+      },
+    }),
+
+    // Canvas pages in user's notebooks
     db.page.count({
-      where: { section: { notebook: { userId } } },
+      where: { pageType: 'canvas', section: { notebook: { userId } } },
+    }),
+
+    // Total todos
+    db.todo.count({ where: { userId } }),
+
+    // Incomplete todos
+    db.todo.count({ where: { userId, completed: false } }),
+
+    // Count of valid unlocked achievements (exclude orphaned old badges)
+    db.achievement.count({
+      where: { userId, badge: { in: VALID_BADGES } },
     }),
   ]);
 
+  // ── Perfect first try (needs sequential logic) ──────────────────────
+  let hasPerfectFirstTry = false;
+  const perfectAttempts = await db.quizAttempt.findMany({
+    where: { userId, percentage: 100 },
+    select: { quizSetId: true, createdAt: true },
+  });
+  for (const pa of perfectAttempts) {
+    const earlierAttempt = await db.quizAttempt.findFirst({
+      where: {
+        userId,
+        quizSetId: pa.quizSetId,
+        createdAt: { lt: pa.createdAt },
+      },
+      select: { id: true },
+    });
+    if (!earlierAttempt) {
+      hasPerfectFirstTry = true;
+      break;
+    }
+  }
+
+  // ── Daily goal hit ──────────────────────────────────────────────────
+  const dailyGoal = userRecord?.dailyGoal ?? 10;
+  const dailyGoalDay = await db.activityEvent.findFirst({
+    where: { userId, type: 'page_edit', count: { gte: dailyGoal } },
+    select: { id: true },
+  });
+
   return {
     notebookCount,
-    documentCount,
-    messageCount,
-    quizAttemptCount,
-    perfectQuizCount,
-    flashcardReviewCount: flashcardReviewAgg._sum.count ?? 0,
     currentStreak: streak?.currentStreak ?? 0,
     friendCount,
     sharedNotebookCount,
     groupCount,
-    pageCount,
+    hasAllWrongQuiz: !!allWrongAttempt,
+    hasPerfectFirstTry,
+    userLevel: userRecord?.level ?? 1,
+    usernameChanged: userRecord?.usernameChanged ?? false,
+    examCount,
+    folderCount,
+    sharedStudyMaterialCount,
+    canvasPageCount,
+    allTodosDone: totalTodos > 0 && incompleteTodos === 0,
+    scholarNameSet: !!userRecord?.scholarName,
+    dailyGoalHit: !!dailyGoalDay,
+    totalAchievementsUnlocked: unlockedCount,
   };
 }
 
@@ -97,10 +162,11 @@ export async function checkAndUnlockAchievements(
 
   const unlockedBadges = new Set(existingAchievements.map((a) => a.badge));
 
-  // 2. Determine newly earned achievements
+  // ── Pass 1: Check all achievements except the meta-achievement ──────
   const newlyUnlocked: { badge: string; name: string; description: string; icon: string }[] = [];
 
   for (const achievement of ACHIEVEMENTS) {
+    if (achievement.badge === 'all_achievements') continue;
     if (unlockedBadges.has(achievement.badge)) continue;
     if (!achievement.checkCondition(stats)) continue;
 
@@ -112,31 +178,70 @@ export async function checkAndUnlockAchievements(
     });
   }
 
-  if (newlyUnlocked.length === 0) return [];
-
-  // 3. Create achievement records and notifications atomically
-  await db.$transaction(
-    newlyUnlocked.flatMap((a) => [
-      db.achievement.create({
-        data: {
-          userId,
-          badge: a.badge,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId,
-          type: 'achievement_unlocked',
+  if (newlyUnlocked.length > 0) {
+    await db.$transaction(
+      newlyUnlocked.flatMap((a) => [
+        db.achievement.create({
+          data: { userId, badge: a.badge },
+        }),
+        db.notification.create({
           data: {
-            badge: a.badge,
-            name: a.name,
-            description: a.description,
-            icon: a.icon,
+            userId,
+            type: 'achievement_unlocked',
+            data: {
+              badge: a.badge,
+              name: a.name,
+              description: a.description,
+              icon: a.icon,
+            },
           },
-        },
-      }),
-    ])
-  );
+        }),
+      ])
+    );
+
+    // Update the set so pass 2 sees pass 1 results
+    for (const a of newlyUnlocked) {
+      unlockedBadges.add(a.badge);
+    }
+  }
+
+  // ── Pass 2: Check the meta-achievement ("Quizzard") ─────────────────
+  if (!unlockedBadges.has('all_achievements')) {
+    const validUnlockedCount = [...unlockedBadges].filter((b) =>
+      NON_META_BADGES.includes(b)
+    ).length;
+
+    if (validUnlockedCount >= NON_META_BADGES.length) {
+      const metaDef = ACHIEVEMENTS.find((a) => a.badge === 'all_achievements')!;
+      try {
+        await db.$transaction([
+          db.achievement.create({
+            data: { userId, badge: 'all_achievements' },
+          }),
+          db.notification.create({
+            data: {
+              userId,
+              type: 'achievement_unlocked',
+              data: {
+                badge: metaDef.badge,
+                name: metaDef.name,
+                description: metaDef.description,
+                icon: metaDef.icon,
+              },
+            },
+          }),
+        ]);
+        newlyUnlocked.push({
+          badge: metaDef.badge,
+          name: metaDef.name,
+          description: metaDef.description,
+          icon: metaDef.icon,
+        });
+      } catch {
+        // Ignore P2002 unique constraint violation (race condition)
+      }
+    }
+  }
 
   return newlyUnlocked.map(({ badge, name }) => ({ badge, name }));
 }

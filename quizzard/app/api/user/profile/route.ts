@@ -8,6 +8,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { Prisma } from '@prisma/client';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 
@@ -190,6 +191,17 @@ export async function PUT(request: NextRequest) {
       return badRequestResponse('No valid fields to update');
     }
 
+    // Detect username change for "McLovin" achievement
+    if (data.username !== undefined) {
+      const currentUser = await db.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      });
+      if (currentUser && currentUser.username !== data.username) {
+        data.usernameChanged = true;
+      }
+    }
+
     let updated;
     try {
       updated = await db.user.update({
@@ -219,6 +231,9 @@ export async function PUT(request: NextRequest) {
       }
       throw err;
     }
+
+    // Fire achievement check for McLovin (username) and lay offs (scholar name)
+    checkAndUnlockAchievements(userId).catch(console.error);
 
     return successResponse(updated);
   } catch {

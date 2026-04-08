@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 /**
  * GET – List all upcoming exams for the current user, sorted by examDate ascending.
@@ -93,6 +94,8 @@ export async function POST(request: NextRequest) {
         studyPlan: { select: { id: true } },
       },
     });
+
+    checkAndUnlockAchievements(userId).catch(console.error);
 
     return createdResponse(exam);
   } catch {

@@ -9,6 +9,7 @@ import {
   forbiddenResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 // PUT — accept/decline a friend request
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -68,6 +69,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           },
         },
       });
+
+      // Check friend-related achievements for both users
+      checkAndUnlockAchievements(userId).catch(console.error);
+      checkAndUnlockAchievements(friendship.requesterId).catch(console.error);
     }
 
     return successResponse({

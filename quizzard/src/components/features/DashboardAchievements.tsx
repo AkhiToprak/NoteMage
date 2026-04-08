@@ -4,23 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ACHIEVEMENTS } from '@/lib/achievements';
 
-const ICON_MAP: Record<string, string> = {
-  BookOpen: 'menu_book',
-  Upload: 'upload',
-  Library: 'local_library',
-  PenTool: 'edit_note',
-  MessageSquare: 'chat',
-  Brain: 'psychology',
-  HelpCircle: 'quiz',
-  Award: 'emoji_events',
-  Layers: 'layers',
-  Flame: 'local_fire_department',
-  Crown: 'workspace_premium',
-  UserPlus: 'person_add',
-  Share2: 'share',
-  Users: 'group',
-};
-
 interface UnlockedAchievement {
   badge: string;
   name: string;
@@ -203,7 +186,7 @@ export default function DashboardAchievements() {
           </p>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {recentUnlocked.map((ach) => {
-              const materialIcon = ICON_MAP[ach.icon] || 'emoji_events';
+              const materialIcon = ach.icon;
               return (
                 <div
                   key={ach.badge}
@@ -326,7 +309,7 @@ export default function DashboardAchievements() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {almostThere.map((ach) => {
-              const materialIcon = ICON_MAP[ach.icon] || 'emoji_events';
+              const materialIcon = ach.icon;
               const pct = Math.min(ach.pct * 100, 100);
               return (
                 <div

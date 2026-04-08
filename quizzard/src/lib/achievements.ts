@@ -1,187 +1,204 @@
 export interface UserStats {
   notebookCount: number;
-  documentCount: number;
-  messageCount: number;
-  quizAttemptCount: number;
-  perfectQuizCount: number;
-  flashcardReviewCount: number;
   currentStreak: number;
   friendCount: number;
   sharedNotebookCount: number;
   groupCount: number;
-  pageCount: number;
+  hasAllWrongQuiz: boolean;
+  hasPerfectFirstTry: boolean;
+  userLevel: number;
+  usernameChanged: boolean;
+  examCount: number;
+  folderCount: number;
+  sharedStudyMaterialCount: number;
+  canvasPageCount: number;
+  allTodosDone: boolean;
+  scholarNameSet: boolean;
+  dailyGoalHit: boolean;
+  totalAchievementsUnlocked: number;
 }
 
 export interface AchievementDef {
   badge: string;
   name: string;
   description: string;
-  icon: string; // lucide icon name
-  category: 'study' | 'social' | 'streak' | 'content';
+  icon: string; // Material Symbols icon name (used directly, no mapping needed)
+  category: 'study' | 'social' | 'streak' | 'content' | 'special';
   checkCondition: (stats: UserStats) => boolean;
   getProgress: (stats: UserStats) => { current: number; target: number };
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = [
-  // ── Content ──────────────────────────────────────────────────────────
+  // ── Study ───────────────────────────────────────────────────────────
   {
-    badge: 'first_notebook',
-    name: 'Fresh Start',
-    description: 'Create your first notebook',
-    icon: 'BookOpen',
-    category: 'content',
-    checkCondition: (s) => s.notebookCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.notebookCount, 1), target: 1 }),
+    badge: 'daily_goal',
+    name: 'locked in',
+    description: 'Hit your daily goal once',
+    icon: 'my_location',
+    category: 'study',
+    checkCondition: (s) => s.dailyGoalHit,
+    getProgress: (s) => ({ current: s.dailyGoalHit ? 1 : 0, target: 1 }),
   },
   {
-    badge: 'first_upload',
-    name: 'Material Girl',
-    description: 'Upload your first document',
-    icon: 'Upload',
-    category: 'content',
-    checkCondition: (s) => s.documentCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.documentCount, 1), target: 1 }),
+    badge: 'all_wrong_quiz',
+    name: "what's 9+10?",
+    description: 'Get all answers wrong in a quiz',
+    icon: 'sentiment_very_dissatisfied',
+    category: 'study',
+    checkCondition: (s) => s.hasAllWrongQuiz,
+    getProgress: (s) => ({ current: s.hasAllWrongQuiz ? 1 : 0, target: 1 }),
   },
+  {
+    badge: 'perfect_first_try',
+    name: 'built different',
+    description: 'Get all answers in a quiz right first try',
+    icon: 'military_tech',
+    category: 'study',
+    checkCondition: (s) => s.hasPerfectFirstTry,
+    getProgress: (s) => ({ current: s.hasPerfectFirstTry ? 1 : 0, target: 1 }),
+  },
+  {
+    badge: 'first_level_up',
+    name: 'levels to this game',
+    description: 'Level up once',
+    icon: 'upgrade',
+    category: 'study',
+    checkCondition: (s) => s.userLevel >= 2,
+    getProgress: (s) => ({ current: Math.min(s.userLevel - 1, 1), target: 1 }),
+  },
+  {
+    badge: 'first_exam',
+    name: 'tight schedule',
+    description: 'Add an exam date',
+    icon: 'event',
+    category: 'study',
+    checkCondition: (s) => s.examCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.examCount, 1), target: 1 }),
+  },
+  {
+    badge: 'all_todos_done',
+    name: 'Time for a break!',
+    description: "Check off all your To-Do's",
+    icon: 'task_alt',
+    category: 'study',
+    checkCondition: (s) => s.allTodosDone,
+    getProgress: (s) => ({ current: s.allTodosDone ? 1 : 0, target: 1 }),
+  },
+
+  // ── Content ─────────────────────────────────────────────────────────
   {
     badge: '10_notebooks',
-    name: 'Bookworm',
-    description: 'Create 10 notebooks',
-    icon: 'Library',
+    name: 'librarian',
+    description: 'Have 10 notebooks or more',
+    icon: 'local_library',
     category: 'content',
     checkCondition: (s) => s.notebookCount >= 10,
     getProgress: (s) => ({ current: Math.min(s.notebookCount, 10), target: 10 }),
   },
   {
-    badge: '50_pages',
-    name: 'Prolific Writer',
-    description: 'Write 50 pages',
-    icon: 'PenTool',
+    badge: 'first_folder',
+    name: 'organizer',
+    description: 'Create a folder',
+    icon: 'create_new_folder',
     category: 'content',
-    checkCondition: (s) => s.pageCount >= 50,
-    getProgress: (s) => ({ current: Math.min(s.pageCount, 50), target: 50 }),
+    checkCondition: (s) => s.folderCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.folderCount, 1), target: 1 }),
+  },
+  {
+    badge: 'first_canvas',
+    name: 'Picasso',
+    description: 'Use a canvas',
+    icon: 'draw',
+    category: 'content',
+    checkCondition: (s) => s.canvasPageCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.canvasPageCount, 1), target: 1 }),
   },
 
-  // ── Study ────────────────────────────────────────────────────────────
-  {
-    badge: '100_messages',
-    name: 'Chatterbox',
-    description: 'Send 100 chat messages',
-    icon: 'MessageSquare',
-    category: 'study',
-    checkCondition: (s) => s.messageCount >= 100,
-    getProgress: (s) => ({ current: Math.min(s.messageCount, 100), target: 100 }),
-  },
-  {
-    badge: '500_messages',
-    name: 'Deep Thinker',
-    description: 'Send 500 chat messages',
-    icon: 'Brain',
-    category: 'study',
-    checkCondition: (s) => s.messageCount >= 500,
-    getProgress: (s) => ({ current: Math.min(s.messageCount, 500), target: 500 }),
-  },
-  {
-    badge: 'first_quiz',
-    name: 'Quiz Whiz',
-    description: 'Complete your first quiz',
-    icon: 'HelpCircle',
-    category: 'study',
-    checkCondition: (s) => s.quizAttemptCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.quizAttemptCount, 1), target: 1 }),
-  },
-  {
-    badge: 'perfect_quiz',
-    name: 'Perfectionist',
-    description: 'Score 100% on a quiz',
-    icon: 'Award',
-    category: 'study',
-    checkCondition: (s) => s.perfectQuizCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.perfectQuizCount, 1), target: 1 }),
-  },
-  {
-    badge: 'first_flashcard_review',
-    name: 'Card Shark',
-    description: 'Complete your first flashcard review',
-    icon: 'Layers',
-    category: 'study',
-    checkCondition: (s) => s.flashcardReviewCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.flashcardReviewCount, 1), target: 1 }),
-  },
-
-  // ── Streak ───────────────────────────────────────────────────────────
+  // ── Streak ──────────────────────────────────────────────────────────
   {
     badge: '7_day_streak',
-    name: 'Week Warrior',
-    description: 'Maintain a 7-day streak',
-    icon: 'Flame',
+    name: 'no days off',
+    description: 'Log in for 7 days straight',
+    icon: 'local_fire_department',
     category: 'streak',
     checkCondition: (s) => s.currentStreak >= 7,
     getProgress: (s) => ({ current: Math.min(s.currentStreak, 7), target: 7 }),
   },
-  {
-    badge: '30_day_streak',
-    name: 'Monthly Master',
-    description: 'Maintain a 30-day streak',
-    icon: 'Flame',
-    category: 'streak',
-    checkCondition: (s) => s.currentStreak >= 30,
-    getProgress: (s) => ({ current: Math.min(s.currentStreak, 30), target: 30 }),
-  },
-  {
-    badge: '100_day_streak',
-    name: 'Centurion',
-    description: 'Maintain a 100-day streak',
-    icon: 'Flame',
-    category: 'streak',
-    checkCondition: (s) => s.currentStreak >= 100,
-    getProgress: (s) => ({ current: Math.min(s.currentStreak, 100), target: 100 }),
-  },
-  {
-    badge: '365_day_streak',
-    name: 'Legend',
-    description: 'Maintain a 365-day streak',
-    icon: 'Crown',
-    category: 'streak',
-    checkCondition: (s) => s.currentStreak >= 365,
-    getProgress: (s) => ({ current: Math.min(s.currentStreak, 365), target: 365 }),
-  },
 
-  // ── Social ───────────────────────────────────────────────────────────
+  // ── Social ──────────────────────────────────────────────────────────
   {
     badge: 'first_friend',
-    name: 'Study Buddy',
+    name: "bff's",
     description: 'Add your first friend',
-    icon: 'UserPlus',
+    icon: 'person_add',
     category: 'social',
     checkCondition: (s) => s.friendCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.friendCount, 1), target: 1 }),
   },
   {
+    badge: 'first_group',
+    name: 'in this together',
+    description: 'Start your first study group',
+    icon: 'group',
+    category: 'social',
+    checkCondition: (s) => s.groupCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.groupCount, 1), target: 1 }),
+  },
+  {
+    badge: 'username_changed',
+    name: 'McLovin',
+    description: 'Change your username',
+    icon: 'badge',
+    category: 'social',
+    checkCondition: (s) => s.usernameChanged,
+    getProgress: (s) => ({ current: s.usernameChanged ? 1 : 0, target: 1 }),
+  },
+  {
     badge: 'first_share',
-    name: 'Generous Scholar',
-    description: 'Publish a notebook to the community',
-    icon: 'Share2',
+    name: 'influencer',
+    description: 'Share a notebook',
+    icon: 'share',
     category: 'social',
     checkCondition: (s) => s.sharedNotebookCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.sharedNotebookCount, 1), target: 1 }),
   },
   {
-    badge: '10_friends',
-    name: 'Social Butterfly',
-    description: 'Have 10 friends',
-    icon: 'Users',
+    badge: 'share_study_material',
+    name: 'plug',
+    description: 'Share a flashcard set or quiz',
+    icon: 'send',
     category: 'social',
-    checkCondition: (s) => s.friendCount >= 10,
-    getProgress: (s) => ({ current: Math.min(s.friendCount, 10), target: 10 }),
+    checkCondition: (s) => s.sharedStudyMaterialCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.sharedStudyMaterialCount, 1), target: 1 }),
   },
   {
-    badge: 'first_group',
-    name: 'Team Player',
-    description: 'Join or create a study group',
-    icon: 'Users',
+    badge: '20_friends',
+    name: 'cool kid',
+    description: 'Have 20 or more friends',
+    icon: 'diversity_3',
     category: 'social',
-    checkCondition: (s) => s.groupCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.groupCount, 1), target: 1 }),
+    checkCondition: (s) => s.friendCount >= 20,
+    getProgress: (s) => ({ current: Math.min(s.friendCount, 20), target: 20 }),
+  },
+  {
+    badge: 'scholar_renamed',
+    name: 'lay offs',
+    description: 'Change the name of your scholar',
+    icon: 'edit',
+    category: 'social',
+    checkCondition: (s) => s.scholarNameSet,
+    getProgress: (s) => ({ current: s.scholarNameSet ? 1 : 0, target: 1 }),
+  },
+
+  // ── Special ─────────────────────────────────────────────────────────
+  {
+    badge: 'all_achievements',
+    name: 'Quizzard',
+    description: 'Get all achievements',
+    icon: 'auto_awesome',
+    category: 'special',
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 17,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 17), target: 17 }),
   },
 ];
 

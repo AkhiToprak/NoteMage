@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 export const XP_REWARDS = {
   message_sent: 5,
@@ -67,6 +68,8 @@ export async function awardXP(
         data: { newLevel: calculatedLevel },
       },
     });
+
+    checkAndUnlockAchievements(userId).catch(console.error);
   }
 
   return { newXP: user.xp, newLevel: calculatedLevel, leveledUp };

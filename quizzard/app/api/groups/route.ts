@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 // GET /api/groups — list groups the user is a member of
 export async function GET(request: NextRequest) {
@@ -191,6 +192,8 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    checkAndUnlockAchievements(userId).catch(console.error);
 
     return createdResponse({
       id: group.id,

@@ -8,6 +8,7 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,6 +39,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
     }
 
     const updated = await db.todo.update({ where: { id }, data });
+
+    // Check "Time for a break!" achievement when completing a todo
+    if (data.completed === true) {
+      checkAndUnlockAchievements(userId).catch(console.error);
+    }
 
     return successResponse(updated);
   } catch {

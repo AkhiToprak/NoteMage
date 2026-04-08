@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,6 +96,8 @@ export async function POST(request: NextRequest) {
         folderId: folderId || null,
       },
     });
+
+    checkAndUnlockAchievements(userId).catch(console.error);
 
     return createdResponse(notebook);
   } catch {

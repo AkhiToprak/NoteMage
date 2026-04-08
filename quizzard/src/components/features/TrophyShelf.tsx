@@ -4,24 +4,7 @@ import { useState, useEffect } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { ACHIEVEMENTS } from '@/lib/achievements';
 
-const ICON_MAP: Record<string, string> = {
-  BookOpen: 'menu_book',
-  Upload: 'upload',
-  Library: 'local_library',
-  PenTool: 'edit_note',
-  MessageSquare: 'chat',
-  Brain: 'psychology',
-  HelpCircle: 'quiz',
-  Award: 'emoji_events',
-  Layers: 'layers',
-  Flame: 'local_fire_department',
-  Crown: 'workspace_premium',
-  UserPlus: 'person_add',
-  Share2: 'share',
-  Users: 'group',
-};
-
-type Category = 'all' | 'content' | 'study' | 'streak' | 'social';
+type Category = 'all' | 'content' | 'study' | 'streak' | 'social' | 'special';
 
 interface UnlockedAchievement {
   badge: string;
@@ -45,6 +28,7 @@ const CATEGORIES: { key: Category; label: string; icon: string }[] = [
   { key: 'study', label: 'Study', icon: 'psychology' },
   { key: 'streak', label: 'Streak', icon: 'local_fire_department' },
   { key: 'social', label: 'Social', icon: 'group' },
+  { key: 'special', label: 'Special', icon: 'auto_awesome' },
 ];
 
 function formatDate(iso: string): string {
@@ -228,7 +212,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps = {}) {
           const unlockInfo = unlockedMap.get(achievement.badge);
           const progress = progressMap.get(achievement.badge);
           const isExpanded = expandedBadge === achievement.badge;
-          const materialIcon = ICON_MAP[achievement.icon] || 'emoji_events';
+          const materialIcon = achievement.icon;
 
           return (
             <div

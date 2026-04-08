@@ -2,23 +2,6 @@
 
 import { useEffect } from 'react';
 
-const ICON_MAP: Record<string, string> = {
-  BookOpen: 'menu_book',
-  Upload: 'upload',
-  Library: 'local_library',
-  PenTool: 'edit_note',
-  MessageSquare: 'chat',
-  Brain: 'psychology',
-  HelpCircle: 'quiz',
-  Award: 'emoji_events',
-  Layers: 'layers',
-  Flame: 'local_fire_department',
-  Crown: 'workspace_premium',
-  UserPlus: 'person_add',
-  Share2: 'share',
-  Users: 'group',
-};
-
 interface AchievementToastProps {
   badge: string;
   name: string;
@@ -40,7 +23,7 @@ export default function AchievementToast({
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  const materialIcon = ICON_MAP[icon] || 'emoji_events';
+  const materialIcon = icon;
 
   return (
     <>

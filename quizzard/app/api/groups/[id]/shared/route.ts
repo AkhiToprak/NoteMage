@@ -9,6 +9,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { canPerformAction } from '@/lib/group-permissions';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -235,6 +236,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         }
       } catch { /* notification failure should not break sharing */ }
     })();
+
+    checkAndUnlockAchievements(userId).catch(console.error);
 
     return successResponse({
       id: shared.id,

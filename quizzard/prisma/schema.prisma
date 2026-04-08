@@ -42,6 +42,7 @@ model User {
   lineOfWork         String?   @db.VarChar(100)
   customGreeting     String?   @db.VarChar(120) // Custom dashboard greeting, null = use random
   scholarName        String?   @db.VarChar(30)  // Custom AI assistant name, null = "Scholar"
+  usernameChanged    Boolean   @default(false)    // Set to true when user changes their username
   profilePrivate     Boolean   @default(false)    // If true, only friends see full profile
   hideAchievements   Boolean   @default(false)    // If true, achievements hidden on public profile
   tier               Tier      @default(FREE)
