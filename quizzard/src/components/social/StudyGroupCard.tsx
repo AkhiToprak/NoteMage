@@ -10,6 +10,7 @@ interface StudyGroupCardProps {
     avatarUrl?: string | null;
     _count: { members: number; notebooks: number };
   };
+  hasUnread?: boolean;
   onClick?: () => void;
 }
 
@@ -25,7 +26,7 @@ const COLORS = {
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
-export default function StudyGroupCard({ group, onClick }: StudyGroupCardProps) {
+export default function StudyGroupCard({ group, hasUnread, onClick }: StudyGroupCardProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -34,6 +35,7 @@ export default function StudyGroupCard({ group, onClick }: StudyGroupCardProps) 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        position: 'relative' as const,
         background: hovered ? COLORS.elevated : COLORS.cardBg,
         borderRadius: 16,
         padding: 24,
@@ -48,6 +50,14 @@ export default function StudyGroupCard({ group, onClick }: StudyGroupCardProps) 
         minHeight: 140,
       }}
     >
+      {hasUnread && (
+        <div style={{
+          position: 'absolute', top: 12, right: 12,
+          width: 8, height: 8, borderRadius: '50%',
+          background: COLORS.primary,
+          boxShadow: `0 0 8px ${COLORS.primary}cc`,
+        }} />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {group.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

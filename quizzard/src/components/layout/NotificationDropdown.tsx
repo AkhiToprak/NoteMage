@@ -43,6 +43,9 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   exam_reminder: 'alarm',
   group_invitation: 'group_add',
   group_member_joined: 'groups',
+  group_message: 'chat',
+  dm_message: 'chat_bubble',
+  group_content_shared: 'share',
 };
 
 function safeStr(val: unknown, fallback: string): string {
@@ -82,6 +85,12 @@ function getNotificationText(n: Notification): string {
       return `${safeStr(data.inviterName, 'Someone')} invited you to join "${safeStr(data.groupName, 'a study group')}"`;
     case 'group_member_joined':
       return `${safeStr(data.userName, 'Someone')} joined "${safeStr(data.groupName, 'a study group')}"`;
+    case 'group_message':
+      return `${safeStr(data.senderName, 'Someone')} sent a message in "${safeStr(data.groupName, 'a group')}"`;
+    case 'dm_message':
+      return `${safeStr(data.senderName, 'Someone')} sent you a message`;
+    case 'group_content_shared':
+      return `${safeStr(data.sharerName, 'Someone')} shared "${safeStr(data.contentTitle, 'content')}"`;
     default:
       return 'You have a new notification';
   }

@@ -211,6 +211,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
     });
 
+    // Notify all other accepted members
+    const otherMembers = await db.studyGroupMember.findMany({
+      where: { groupId: id, status: 'accepted', userId: { not: userId } },
+      select: { userId: true },
+    });
+    if (otherMembers.length > 0) {
+      const displayName = user?.name || user?.username || 'Someone';
+      await db.notification.createMany({
+        data: otherMembers.map((m) => ({
+          userId: m.userId,
+          type: 'group_content_shared',
+          data: {
+            groupId: id,
+            sharerName: displayName,
+            contentTitle: title,
+            contentType,
+          },
+        })),
+      });
+    }
+
     return successResponse({
       id: shared.id,
       groupId: shared.groupId,

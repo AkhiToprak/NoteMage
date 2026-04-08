@@ -962,9 +962,10 @@ model StudyGroupMember {
   id       String     @id @default(cuid())
   groupId  String
   userId   String
-  role     String     @default("member") // "owner" | "admin" | "member"
-  status   String     @default("accepted") // "pending" | "accepted" | "declined"
-  joinedAt DateTime   @default(now())
+  role       String     @default("member") // "owner" | "admin" | "member"
+  status     String     @default("accepted") // "pending" | "accepted" | "declined"
+  joinedAt   DateTime   @default(now())
+  lastReadAt DateTime?  // null = never read; set when user opens the group
 
   group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -23,6 +23,7 @@ interface Group {
   description: string | null;
   _count: { members: number; notebooks: number };
   owner: { name: string };
+  hasUnread?: boolean;
 }
 
 const COLORS = {
@@ -107,7 +108,7 @@ export default function GroupsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [hoveredCreate, setHoveredCreate] = useState(false);
   const [showDMModal, setShowDMModal] = useState(false);
-  const [dms, setDms] = useState<Array<{ id: string; members: GroupMember[] }>>([]);
+  const [dms, setDms] = useState<Array<{ id: string; members: GroupMember[]; hasUnread?: boolean }>>([]);
   const [dmsLoading, setDmsLoading] = useState(false);
   const [invitations, setInvitations] = useState<Array<{
     id: string;
@@ -166,7 +167,7 @@ export default function GroupsPage() {
         const json = await res.json();
         const raw = json.data?.groups ?? [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setDms(Array.isArray(raw) ? raw.map((g: any) => ({ id: g.id, members: g.members || [] })) : []);
+        setDms(Array.isArray(raw) ? raw.map((g: any) => ({ id: g.id, members: g.members || [], hasUnread: g.hasUnread })) : []);
       }
     } catch { /* ignore */ }
     setDmsLoading(false);
@@ -391,6 +392,7 @@ export default function GroupsPage() {
                     <DMCard
                       key={dm.id}
                       otherUser={otherUser}
+                      hasUnread={dm.hasUnread}
                       onClick={() => router.push(`/groups/${dm.id}`)}
                     />
                   );
@@ -539,6 +541,7 @@ export default function GroupsPage() {
               <StudyGroupCard
                 key={group.id}
                 group={group}
+                hasUnread={group.hasUnread}
                 onClick={() => router.push(`/groups/${group.id}`)}
               />
             ))}

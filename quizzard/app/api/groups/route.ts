@@ -44,31 +44,43 @@ export async function GET(request: NextRequest) {
                 user: { select: { id: true, name: true, username: true, avatarUrl: true } },
               },
             },
+            // Latest message for unread detection
+            messages: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: { createdAt: true },
+            },
           },
         },
       },
       orderBy: { joinedAt: 'desc' },
     });
 
-    const groups = memberships.map((m) => ({
-      id: m.group.id,
-      name: m.group.name,
-      description: m.group.description,
-      avatarUrl: m.group.avatarUrl,
-      ownerId: m.group.ownerId,
-      owner: m.group.owner,
-      type: m.group.type,
-      role: m.role,
-      memberCount: m.group._count.members,
-      notebookCount: m.group._count.notebooks,
-      members: m.group.members.map((mem) => ({
-        userId: mem.userId,
-        ...mem.user,
-      })),
-      joinedAt: m.joinedAt,
-      createdAt: m.group.createdAt,
-      updatedAt: m.group.updatedAt,
-    }));
+    const groups = memberships.map((m) => {
+      const lastMsg = m.group.messages[0]?.createdAt || null;
+      const hasUnread = lastMsg ? (!m.lastReadAt || lastMsg > m.lastReadAt) : false;
+      return {
+        id: m.group.id,
+        name: m.group.name,
+        description: m.group.description,
+        avatarUrl: m.group.avatarUrl,
+        ownerId: m.group.ownerId,
+        owner: m.group.owner,
+        type: m.group.type,
+        role: m.role,
+        memberCount: m.group._count.members,
+        notebookCount: m.group._count.notebooks,
+        members: m.group.members.map((mem) => ({
+          userId: mem.userId,
+          ...mem.user,
+        })),
+        hasUnread,
+        lastMessageAt: lastMsg?.toISOString() || null,
+        joinedAt: m.joinedAt,
+        createdAt: m.group.createdAt,
+        updatedAt: m.group.updatedAt,
+      };
+    });
 
     return successResponse({ groups, count: groups.length });
   } catch {

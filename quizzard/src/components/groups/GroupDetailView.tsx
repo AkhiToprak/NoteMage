@@ -86,6 +86,12 @@ export default function GroupDetailView({ groupId }: Props) {
 
   useEffect(() => { fetchGroup(); }, [fetchGroup]);
 
+  // Mark group as read when opened
+  useEffect(() => {
+    if (!groupId) return;
+    fetch(`/api/groups/${groupId}/read`, { method: 'POST' }).catch(() => {});
+  }, [groupId]);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: COLORS.textMuted }}>

@@ -22,10 +22,11 @@ interface DMUser {
 
 interface Props {
   otherUser: DMUser;
+  hasUnread?: boolean;
   onClick: () => void;
 }
 
-export default function DMCard({ otherUser, onClick }: Props) {
+export default function DMCard({ otherUser, hasUnread, onClick }: Props) {
   const [hovered, setHovered] = useState(false);
   const initial = (otherUser.name?.[0] || otherUser.username[0] || '?').toUpperCase();
 
@@ -64,7 +65,15 @@ export default function DMCard({ otherUser, onClick }: Props) {
           @{otherUser.username}
         </p>
       </div>
-      <span className="material-symbols-outlined" style={{ marginLeft: 'auto', fontSize: 20, color: COLORS.textMuted, opacity: hovered ? 1 : 0.4, transition: `opacity 0.2s ${EASING}` }}>
+      {hasUnread && (
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: COLORS.primary,
+          boxShadow: `0 0 8px ${COLORS.primary}cc`,
+          marginLeft: 'auto', flexShrink: 0,
+        }} />
+      )}
+      <span className="material-symbols-outlined" style={{ marginLeft: hasUnread ? 8 : 'auto', fontSize: 20, color: COLORS.textMuted, opacity: hovered ? 1 : 0.4, transition: `opacity 0.2s ${EASING}` }}>
         chevron_right
       </span>
     </div>
