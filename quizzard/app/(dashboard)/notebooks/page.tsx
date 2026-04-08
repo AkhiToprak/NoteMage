@@ -87,7 +87,6 @@ function NotebooksPageContent() {
   const [notebooks, setNotebooks] = useState<NotebookData[]>([]);
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string; name: string }>>([]);
-  const [totalNotebooks, setTotalNotebooks] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState(ALL_LABEL);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -127,7 +126,6 @@ function NotebooksPageContent() {
       const fetches: Promise<Response>[] = [
         fetch(`/api/notebook-folders?parentId=${folderParam}`),
         fetch(`/api/notebooks?folderId=${folderParam}`),
-        fetch('/api/notebooks?folderId=all'),
       ];
 
       // Fetch breadcrumbs if inside a folder
@@ -136,16 +134,15 @@ function NotebooksPageContent() {
       }
 
       const results = await Promise.all(fetches);
-      const [foldersJson, notebooksJson, allNotebooksJson] = await Promise.all(
-        results.slice(0, 3).map((r) => r.json())
+      const [foldersJson, notebooksJson] = await Promise.all(
+        results.slice(0, 2).map((r) => r.json())
       );
 
       if (foldersJson.success) setFolders(foldersJson.data);
       if (notebooksJson.success) setNotebooks(notebooksJson.data);
-      if (allNotebooksJson.success) setTotalNotebooks(allNotebooksJson.data.length);
 
-      if (currentFolderId && results[3]) {
-        const breadcrumbJson = await results[3].json();
+      if (currentFolderId && results[2]) {
+        const breadcrumbJson = await results[2].json();
         if (breadcrumbJson.success) {
           setBreadcrumbs(breadcrumbJson.data.breadcrumbs);
         }
@@ -982,71 +979,6 @@ function NotebooksPageContent() {
         </div>
       )}
 
-      {/* Stats footer */}
-      {!isLoading && (
-        <div
-          style={{
-            marginTop: responsiveValue(bp, { phone: '32px', tablet: '40px', desktop: '48px' }),
-            display: 'grid',
-            gridTemplateColumns: responsiveValue(bp, { phone: '1fr', tablet: 'repeat(auto-fill, minmax(200px, 1fr))', desktop: 'repeat(auto-fill, minmax(220px, 1fr))' }),
-            gap: responsiveValue(bp, { phone: '12px', tablet: '16px', desktop: '24px' }),
-          }}
-        >
-          {[
-            {
-              icon: 'book_4',
-              color: '#ae89ff',
-              bg: 'rgba(174,137,255,0.1)',
-              value: totalNotebooks,
-              label: 'Total Notebooks',
-            },
-            {
-              icon: 'flash_on',
-              color: '#b9c3ff',
-              bg: 'rgba(185,195,255,0.1)',
-              value: '—',
-              label: 'Mastered Cards',
-            },
-          ].map(({ icon, color, bg, value, label }) => (
-            <div
-              key={label}
-              style={{
-                background: '#1c1c38',
-                borderRadius: '16px',
-                padding: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '24px',
-              }}
-            >
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '14px',
-                  background: bg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ color, fontSize: '24px' }}>
-                  {icon}
-                </span>
-              </div>
-              <div>
-                <p
-                  style={{ fontSize: '24px', fontWeight: 900, color: '#e5e3ff', margin: '0 0 2px' }}
-                >
-                  {value}
-                </p>
-                <p style={{ fontSize: '12px', color: '#aaa8c8', margin: 0 }}>{label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Create / Edit notebook modal */}
       {showForm && (
