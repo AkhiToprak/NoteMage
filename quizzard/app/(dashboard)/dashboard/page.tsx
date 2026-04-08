@@ -21,11 +21,25 @@ interface RecentItem {
   pageCount: number;
 }
 
+interface StudyGoalData {
+  type: string;
+  target: number;
+  current: number;
+}
+
 interface DashboardData {
   dailyGoal: number;
   todayPages: number;
   recentActivity: RecentItem[];
+  studyGoals?: StudyGoalData[];
 }
+
+const GOAL_META: Record<string, { icon: string; label: string; unit: string }> = {
+  hours: { icon: 'schedule', label: 'Study Hours', unit: 'hrs' },
+  pages: { icon: 'description', label: 'Pages Written', unit: 'pgs' },
+  quizzes: { icon: 'psychology', label: 'Quizzes', unit: 'quiz' },
+  notebooks: { icon: 'auto_stories', label: 'Notebooks', unit: 'nb' },
+};
 
 interface TodoItem {
   id: string;
@@ -974,7 +988,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Daily Goal */}
+          {/* Study Goals */}
           <div
             style={{
               background: 'linear-gradient(135deg, #8348f6 0%, #001971 100%)',
@@ -999,7 +1013,7 @@ export default function DashboardPage() {
                   marginBottom: '16px',
                 }}
               >
-                Daily Goal
+                {dashboard?.studyGoals && dashboard.studyGoals.length > 0 ? 'Weekly Goals' : 'Daily Goal'}
               </span>
               <h2
                 style={{
@@ -1010,7 +1024,7 @@ export default function DashboardPage() {
                   lineHeight: 1.1,
                 }}
               >
-                {goalProgress >= 100 ? 'Goal Complete!' : 'Keep Writing'}
+                {goalProgress >= 100 ? 'Goal Complete!' : 'Keep Going'}
               </h2>
               <p
                 style={{
@@ -1029,6 +1043,7 @@ export default function DashboardPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Pages progress bar (auto-tracked) */}
               <div>
                 <div
                   style={{
@@ -1041,7 +1056,7 @@ export default function DashboardPage() {
                     marginBottom: '8px',
                   }}
                 >
-                  <span>Progress</span>
+                  <span>Pages Today</span>
                   <span>{goalProgress}%</span>
                 </div>
                 <div
@@ -1065,6 +1080,64 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
+
+              {/* Other active study goals */}
+              {dashboard?.studyGoals && dashboard.studyGoals.filter((g) => g.type !== 'pages').length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {dashboard.studyGoals
+                    .filter((g) => g.type !== 'pages')
+                    .map((goal) => {
+                      const meta = GOAL_META[goal.type];
+                      if (!meta) return null;
+                      const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                      return (
+                        <div key={goal.type} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: '18px', color: 'rgba(255,255,255,0.7)', flexShrink: 0 }}
+                          >
+                            {meta.icon}
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                marginBottom: '4px',
+                              }}
+                            >
+                              <span style={{ color: 'rgba(255,255,255,0.8)' }}>{meta.label}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                {goal.current}/{goal.target} {meta.unit}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                height: '6px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '9999px',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: '100%',
+                                  width: `${pct}%`,
+                                  background: 'rgba(255,222,89,0.7)',
+                                  borderRadius: '9999px',
+                                  transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+
               <Link
                 href="/notebooks"
                 style={{
@@ -1104,7 +1177,7 @@ export default function DashboardPage() {
                   textAlign: 'center',
                 }}
               >
-                Change target in{' '}
+                Change targets in{' '}
                 <Link
                   href="/settings"
                   style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}
