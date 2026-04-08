@@ -38,6 +38,7 @@ import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import StudyPlanCreator from '@/components/notebook/StudyPlanCreator';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
+import TimerWidget from '@/components/layout/TimerWidget';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UnifiedSidebar — OneNote-style sidebar with Files + Chats
@@ -182,6 +183,7 @@ export default function UnifiedSidebar() {
           >
             {notebook?.name ?? '...'}
           </span>
+          <TimerWidget compact />
           <button
             onClick={() => setSidebarCollapsed(true)}
             title="Collapse sidebar"

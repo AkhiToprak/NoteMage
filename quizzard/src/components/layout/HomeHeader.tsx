@@ -10,6 +10,7 @@ import { useSearch } from '@/hooks/useSearch';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import TierBadge from '@/components/ui/TierBadge';
+import TimerWidget from './TimerWidget';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
@@ -235,6 +236,8 @@ export default function HomeHeader() {
 
           {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {/* Timer */}
+            <TimerWidget />
             {/* Notification bell */}
             <NotificationBell />
 

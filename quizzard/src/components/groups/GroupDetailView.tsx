@@ -9,6 +9,7 @@ import GroupSharedContent from './GroupSharedContent';
 import GroupMemberList from './GroupMemberList';
 import GroupSettings from './GroupSettings';
 import InviteMemberModal from './InviteMemberModal';
+import TimerWidget from '@/components/layout/TimerWidget';
 
 const COLORS = {
   pageBg: '#111126',
@@ -186,7 +187,7 @@ export default function GroupDetailView({ groupId }: Props) {
             </div>
           )
         )}
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: '-0.02em', margin: 0 }}>
             {isDM && otherUser ? (otherUser.name || otherUser.username) : group.name}
           </h1>
@@ -194,6 +195,7 @@ export default function GroupDetailView({ groupId }: Props) {
             <p style={{ fontSize: 11, color: COLORS.textMuted, margin: 0 }}>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</p>
           )}
         </div>
+        <TimerWidget />
       </div>
 
       {/* Tab bar */}

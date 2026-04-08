@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import HomeHeader from '@/components/layout/HomeHeader';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { TimerProvider } from '@/contexts/TimerContext';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
@@ -28,29 +29,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isFullHeight = isNotebookWorkspace || isGroupDetail;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        overflow: 'hidden',
-        background: '#111126',
-      }}
-    >
-      {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
-      <main
+    <TimerProvider>
+      <div
         style={{
-          flex: 1,
-          minHeight: 0,
-          overflow: isFullHeight ? 'hidden' : 'auto',
-          padding: isFullHeight ? '0' : isPhone ? '16px' : isTablet ? '20px' : '32px',
-          color: '#e5e3ff',
-          display: isFullHeight ? 'flex' : undefined,
-          flexDirection: isFullHeight ? 'column' : undefined,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100dvh',
+          overflow: 'hidden',
+          background: '#111126',
         }}
       >
-        {children}
-      </main>
-    </div>
+        {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
+        <main
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflow: isFullHeight ? 'hidden' : 'auto',
+            padding: isFullHeight ? '0' : isPhone ? '16px' : isTablet ? '20px' : '32px',
+            color: '#e5e3ff',
+            display: isFullHeight ? 'flex' : undefined,
+            flexDirection: isFullHeight ? 'column' : undefined,
+          }}
+        >
+          {children}
+        </main>
+      </div>
+    </TimerProvider>
   );
 }
