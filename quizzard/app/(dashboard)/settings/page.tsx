@@ -78,8 +78,8 @@ export default function SettingsPage() {
     weeklyReport: false,
   });
 
-  const [dailyGoal, setDailyGoal] = useState<number>(10);
-  const [goalInput, setGoalInput] = useState<string>('10');
+  const [studyGoals, setStudyGoals] = useState<{ type: string; target: number }[]>([]);
+  const [goalCustomInputs, setGoalCustomInputs] = useState<Record<string, string>>({});
   const [goalStatus, setGoalStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(
     null
   );
@@ -190,35 +190,59 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    fetch('/api/user/settings')
+    fetch('/api/user/study-goals')
       .then((r) => r.json())
-      .then((data) => {
-        if (typeof data?.dailyGoal === 'number') {
-          setDailyGoal(data.dailyGoal);
-          setGoalInput(String(data.dailyGoal));
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (Array.isArray(d?.goals)) {
+          setStudyGoals(d.goals.map((g: { type: string; target: number }) => ({ type: g.type, target: g.target })));
         }
       })
       .catch(() => {});
   }, []);
 
+  const GOAL_CONFIGS = [
+    { type: 'hours', icon: 'schedule', label: 'Study Hours / Week', unit: 'hrs', presets: [5, 10, 15, 20] },
+    { type: 'pages', icon: 'description', label: 'Pages Written / Week', unit: 'pgs', presets: [5, 10, 20, 50] },
+    { type: 'quizzes', icon: 'psychology', label: 'Quizzes / Week', unit: 'quiz', presets: [3, 5, 10, 20] },
+    { type: 'notebooks', icon: 'auto_stories', label: 'Notebooks / Week', unit: 'nb', presets: [1, 2, 3, 5] },
+  ];
+
+  const getStudyGoal = (type: string) => studyGoals.find((g) => g.type === type);
+
+  const toggleStudyGoal = (config: typeof GOAL_CONFIGS[number]) => {
+    const existing = getStudyGoal(config.type);
+    if (existing) {
+      setStudyGoals(studyGoals.filter((g) => g.type !== config.type));
+    } else {
+      setStudyGoals([...studyGoals, { type: config.type, target: config.presets[1] }]);
+    }
+  };
+
+  const setStudyGoalTarget = (type: string, target: number) => {
+    setStudyGoals(studyGoals.map((g) => (g.type === type ? { ...g, target } : g)));
+  };
+
+  const handleGoalCustomInput = (type: string, value: string) => {
+    setGoalCustomInputs((prev) => ({ ...prev, [type]: value }));
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num > 0) {
+      setStudyGoalTarget(type, num);
+    }
+  };
+
   const handleGoalSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = parseInt(goalInput, 10);
-    if (isNaN(parsed) || parsed < 1 || parsed > 200) {
-      setGoalStatus({ type: 'error', msg: 'Please enter a number between 1 and 200.' });
-      return;
-    }
     setGoalLoading(true);
     setGoalStatus(null);
     try {
-      const res = await fetch('/api/user/settings', {
-        method: 'PATCH',
+      const res = await fetch('/api/user/study-goals', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dailyGoal: parsed }),
+        body: JSON.stringify({ goals: studyGoals }),
       });
       if (res.ok) {
-        setDailyGoal(parsed);
-        setGoalStatus({ type: 'success', msg: 'Daily goal updated!' });
+        setGoalStatus({ type: 'success', msg: 'Study goals updated!' });
       } else {
         setGoalStatus({ type: 'error', msg: 'Failed to save. Try again.' });
       }
@@ -946,185 +970,139 @@ export default function SettingsPage() {
               onSubmit={handleGoalSave}
               style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
             >
+              <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: 1.6 }}>
+                Track what matters to you. Your page goal also drives the dashboard progress bar.
+              </p>
+
+              {/* Goal Cards Grid */}
               <div
                 style={{
-                  background: '#161630',
-                  borderRadius: '20px',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
+                  display: 'grid',
+                  gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr',
+                  gap: '12px',
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: isPhone ? 'column' : 'row',
-                    alignItems: isPhone ? 'stretch' : 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: isPhone ? '16px' : '24px',
-                  }}
-                >
-                  <div>
-                    <p
-                      style={{
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        color: '#e5e3ff',
-                        margin: '0 0 4px',
-                      }}
-                    >
-                      Daily Page Goal
-                    </p>
-                    <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: 1.6 }}>
-                      How many pages do you want to write or study each day? Your dashboard progress
-                      bar tracks this.
-                    </p>
-                  </div>
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const v = Math.max(1, parseInt(goalInput || '0', 10) - 1);
-                        setGoalInput(String(v));
-                      }}
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        background: '#2a2a4c',
-                        border: 'none',
-                        color: '#ae89ff',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'background 0.15s',
-                        fontFamily: 'inherit',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.background = '#2d2d4a';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.background = '#2a2a4c';
-                      }}
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={200}
-                      value={goalInput}
-                      onChange={(e) => setGoalInput(e.target.value)}
-                      style={{
-                        width: '72px',
-                        padding: '10px',
-                        background: 'rgba(35,35,60,0.6)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: '#e5e3ff',
-                        fontSize: '18px',
-                        fontWeight: 700,
-                        fontFamily: 'inherit',
-                        outline: 'none',
-                        textAlign: 'center',
-                        boxSizing: 'border-box',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.boxShadow = '0 0 0 2px rgba(174,137,255,0.4)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.boxShadow = 'none';
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const v = Math.min(200, parseInt(goalInput || '0', 10) + 1);
-                        setGoalInput(String(v));
-                      }}
-                      style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        background: '#2a2a4c',
-                        border: 'none',
-                        color: '#ae89ff',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'background 0.15s',
-                        fontFamily: 'inherit',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.background = '#2d2d4a';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.background = '#2a2a4c';
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
+                {GOAL_CONFIGS.map((config) => {
+                  const goal = getStudyGoal(config.type);
+                  const isSelected = !!goal;
 
-                {/* Quick presets */}
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {[5, 10, 20, 30, 50].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setGoalInput(String(preset))}
+                  return (
+                    <div
+                      key={config.type}
+                      onClick={() => toggleStudyGoal(config)}
                       style={{
-                        padding: '6px 16px',
-                        borderRadius: '9999px',
-                        border: 'none',
-                        background: parseInt(goalInput, 10) === preset ? '#ae89ff' : '#2a2a4c',
-                        color: parseInt(goalInput, 10) === preset ? '#2a0066' : '#aaa8c8',
-                        fontSize: '13px',
-                        fontWeight: 700,
+                        background: '#232342',
+                        borderRadius: '20px',
+                        padding: '20px',
+                        border: isSelected
+                          ? '2px solid #ae89ff'
+                          : '1px solid #555578',
+                        boxShadow: isSelected ? '0 0 0 4px rgba(174,137,255,0.1)' : 'none',
                         cursor: 'pointer',
-                        fontFamily: 'inherit',
-                        transition: 'background 0.15s, color 0.15s',
+                        transition:
+                          'border-color 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
+                        userSelect: 'none' as const,
                       }}
                     >
-                      {preset} pages
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: '24px',
+                          color: isSelected ? '#ae89ff' : '#8888a8',
+                          display: 'block',
+                          marginBottom: '8px',
+                          transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
+                          fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
+                        }}
+                      >
+                        {config.icon}
+                      </span>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div
-                  style={{
-                    flex: 1,
-                    height: '8px',
-                    background: 'rgba(255,255,255,0.06)',
-                    borderRadius: '9999px',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${Math.min(100, (dailyGoal / 50) * 100)}%`,
-                      background: 'linear-gradient(90deg, #ae89ff 0%, #ffde59 100%)',
-                      borderRadius: '9999px',
-                      transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
-                    }}
-                  />
-                </div>
-                <span style={{ fontSize: '12px', color: '#aaa8c8', flexShrink: 0 }}>
-                  Current: {dailyGoal} pages/day
-                </span>
+                      <p
+                        style={{
+                          margin: '0 0 4px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: isSelected ? '#e5e3ff' : '#aaa8c8',
+                          lineHeight: '1.4',
+                          transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
+                        }}
+                      >
+                        {config.label}
+                      </p>
+
+                      {isSelected && goal ? (
+                        <p
+                          style={{
+                            margin: '0 0 12px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: '#ae89ff',
+                          }}
+                        >
+                          {goal.target} / week
+                        </p>
+                      ) : (
+                        <p style={{ margin: '0 0 0', fontSize: '11px', color: '#555578' }}>
+                          Tap to set goal
+                        </p>
+                      )}
+
+                      {isSelected && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}
+                        >
+                          {config.presets.map((preset) => {
+                            const isActive = goal?.target === preset && !goalCustomInputs[config.type];
+                            return (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => {
+                                  setGoalCustomInputs((prev) => ({ ...prev, [config.type]: '' }));
+                                  setStudyGoalTarget(config.type, preset);
+                                }}
+                                style={{
+                                  background: isActive ? '#ae89ff' : '#2a2a4c',
+                                  color: isActive ? '#1a0044' : '#aaa8c8',
+                                  border: `1px solid ${isActive ? '#ae89ff' : '#555578'}`,
+                                  borderRadius: '20px',
+                                  padding: '4px 10px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  fontFamily: 'inherit',
+                                  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                                }}
+                              >
+                                {preset}
+                              </button>
+                            );
+                          })}
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="?"
+                            value={goalCustomInputs[config.type] || ''}
+                            onChange={(e) => handleGoalCustomInput(config.type, e.target.value)}
+                            style={{
+                              width: '52px',
+                              background: '#2a2a4c',
+                              border: goalCustomInputs[config.type] ? '1px solid #ae89ff' : '1px solid #555578',
+                              borderRadius: '8px',
+                              padding: '4px 8px',
+                              color: '#e5e3ff',
+                              fontSize: '12px',
+                              fontFamily: 'inherit',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {goalStatus && (
@@ -1170,7 +1148,7 @@ export default function SettingsPage() {
                     (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
                 }}
               >
-                {goalLoading ? 'Saving…' : 'Save Goal'}
+                {goalLoading ? 'Saving…' : 'Save Goals'}
               </button>
             </form>
           </section>

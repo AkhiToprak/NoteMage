@@ -74,10 +74,16 @@ export async function PUT(request: NextRequest) {
         });
       }
 
-      // Mark onboarding complete
+      // Mark onboarding complete + sync pages goal → dailyGoal
+      const pagesGoal = studyGoals.find((g) => g.type === 'pages');
       await tx.user.update({
         where: { id: userId },
-        data: { onboardingComplete: true },
+        data: {
+          onboardingComplete: true,
+          ...(pagesGoal
+            ? { dailyGoal: Math.min(200, Math.max(1, Math.ceil(pagesGoal.target / 7))) }
+            : {}),
+        },
       });
     });
 
