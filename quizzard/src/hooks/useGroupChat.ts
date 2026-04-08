@@ -16,6 +16,7 @@ interface ChatMessage {
   content: string;
   metadata: unknown;
   createdAt: string;
+  status?: 'sending' | 'delivered' | 'read';
 }
 
 interface UseGroupChatReturn {
@@ -167,6 +168,22 @@ export function useGroupChat(groupId: string): UseGroupChatReturn {
   const sendMessage = useCallback(
     async (content: string, type?: string, metadata?: unknown): Promise<void> => {
       setSending(true);
+
+      // Optimistic message with "sending" status
+      const tempId = `__sending__${Date.now()}`;
+      const optimistic: ChatMessage = {
+        id: tempId,
+        groupId,
+        senderId: null, // will be replaced
+        sender: null,
+        type: type || 'text',
+        content,
+        metadata: metadata ?? null,
+        createdAt: new Date().toISOString(),
+        status: 'sending',
+      };
+      setMessages((prev) => [optimistic, ...prev]);
+
       try {
         const body: Record<string, unknown> = { content };
         if (type) body.type = type;
@@ -178,18 +195,28 @@ export function useGroupChat(groupId: string): UseGroupChatReturn {
           body: JSON.stringify(body),
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          // Remove optimistic message on failure
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          return;
+        }
 
         const json = await res.json();
-        if (!json.success || !json.data) return;
+        if (!json.success || !json.data) {
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          return;
+        }
 
-        const newMessage = json.data as ChatMessage;
+        const newMessage = { ...(json.data as ChatMessage), status: 'delivered' as const };
 
         setMessages((prev) => {
-          // Avoid duplicate if poll already picked it up
-          if (prev.some((m) => m.id === newMessage.id)) return prev;
-          return [newMessage, ...prev];
+          // Replace optimistic with real message
+          const withoutTemp = prev.filter((m) => m.id !== tempId);
+          if (withoutTemp.some((m) => m.id === newMessage.id)) return withoutTemp;
+          return [newMessage, ...withoutTemp];
         });
+      } catch {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
       } finally {
         if (mountedRef.current) setSending(false);
       }

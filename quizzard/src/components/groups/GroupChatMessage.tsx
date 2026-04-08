@@ -28,6 +28,7 @@ interface ChatMessageData {
   content: string;
   metadata: unknown;
   createdAt: string;
+  status?: 'sending' | 'delivered' | 'read';
 }
 
 interface Props {
@@ -66,6 +67,25 @@ function Avatar({ user, size = 36 }: { user: { name?: string | null; avatarUrl?:
     }}>
       {initial}
     </div>
+  );
+}
+
+function MessageStatusIcon({ status, isOwn }: { status?: string; isOwn: boolean }) {
+  if (!isOwn || !status) return null;
+  const color = status === 'read' ? COLORS.primary : `${COLORS.textMuted}99`;
+  if (status === 'sending') {
+    return (
+      <span className="material-symbols-outlined" style={{ fontSize: 14, color, marginLeft: 4, verticalAlign: 'middle' }}>
+        check
+      </span>
+    );
+  }
+  // delivered or read: double check
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: 4, width: 18, height: 14 }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 14, color, position: 'absolute', left: 0 }}>check</span>
+      <span className="material-symbols-outlined" style={{ fontSize: 14, color, position: 'absolute', left: 5 }}>check</span>
+    </span>
   );
 }
 
@@ -156,7 +176,10 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexDirection: isOwn ? 'row-reverse' : 'row' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: isOwn ? COLORS.yellow : COLORS.primary }}>{isOwn ? 'You' : message.sender?.name || message.sender?.username}</span>
-            <span style={{ fontSize: 10, fontWeight: 500, color: `${COLORS.textMuted}b3` }}>{timeAgo(message.createdAt)}</span>
+            <span style={{ fontSize: 10, fontWeight: 500, color: `${COLORS.textMuted}b3`, display: 'inline-flex', alignItems: 'center' }}>
+              {timeAgo(message.createdAt)}
+              <MessageStatusIcon status={message.status} isOwn={isOwn} />
+            </span>
           </div>
           <div style={{
             background: COLORS.elevated, border: `1px solid ${COLORS.border}33`,
@@ -220,7 +243,10 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexDirection: isOwn ? 'row-reverse' : 'row' }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: isOwn ? COLORS.yellow : COLORS.primary }}>{isOwn ? 'You' : message.sender?.name || message.sender?.username}</span>
-          <span style={{ fontSize: 10, fontWeight: 500, color: `${COLORS.textMuted}b3` }}>{timeAgo(message.createdAt)}</span>
+          <span style={{ fontSize: 10, fontWeight: 500, color: `${COLORS.textMuted}b3`, display: 'inline-flex', alignItems: 'center' }}>
+            {timeAgo(message.createdAt)}
+            <MessageStatusIcon status={message.status} isOwn={isOwn} />
+          </span>
         </div>
         <div style={{
           background: isOwn ? `${COLORS.primary}33` : COLORS.cardBg,

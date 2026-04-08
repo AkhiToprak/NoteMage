@@ -33,17 +33,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const cursor = url.searchParams.get('cursor');
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '30', 10) || 30, 50);
 
-    const messages = await db.groupMessage.findMany({
-      where: {
-        groupId: id,
-        ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit + 1,
-      include: {
-        sender: { select: SENDER_SELECT },
-      },
-    });
+    const [messages, otherMembers] = await Promise.all([
+      db.groupMessage.findMany({
+        where: {
+          groupId: id,
+          ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit + 1,
+        include: {
+          sender: { select: SENDER_SELECT },
+        },
+      }),
+      // Fetch all OTHER accepted members' lastReadAt for read status
+      db.studyGroupMember.findMany({
+        where: { groupId: id, status: 'accepted', userId: { not: userId } },
+        select: { lastReadAt: true },
+      }),
+    ]);
 
     let nextCursor: string | null = null;
     if (messages.length > limit) {
@@ -51,17 +58,30 @@ export async function GET(request: NextRequest, context: RouteContext) {
       nextCursor = extra.createdAt.toISOString();
     }
 
+    const totalOthers = otherMembers.length;
+
     return successResponse({
-      messages: messages.map((m) => ({
-        id: m.id,
-        groupId: m.groupId,
-        senderId: m.senderId,
-        sender: m.sender,
-        type: m.type,
-        content: m.content,
-        metadata: m.metadata,
-        createdAt: m.createdAt,
-      })),
+      messages: messages.map((m) => {
+        // Compute read status: how many others have lastReadAt >= message.createdAt
+        let status: 'delivered' | 'read' = 'delivered';
+        if (totalOthers > 0 && m.senderId === userId) {
+          const readCount = otherMembers.filter(
+            (om) => om.lastReadAt && om.lastReadAt >= m.createdAt
+          ).length;
+          if (readCount >= totalOthers) status = 'read';
+        }
+        return {
+          id: m.id,
+          groupId: m.groupId,
+          senderId: m.senderId,
+          sender: m.sender,
+          type: m.type,
+          content: m.content,
+          metadata: m.metadata,
+          createdAt: m.createdAt,
+          status,
+        };
+      }),
       nextCursor,
     });
   } catch {
