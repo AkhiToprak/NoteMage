@@ -51,7 +51,7 @@ const LAST_SEEN_UPDATE_INTERVAL = 60_000; // batch DB updates every 60s
 
 // Git-stamp so we can verify from /debug whether the running binary is the
 // latest compiled code. Bumped by hand whenever the cowork logic changes.
-const WS_SERVER_BUILD_TAG = 'cowork-v6-buildtag-2026-04-10';
+const WS_SERVER_BUILD_TAG = 'cowork-v7-buildtag-2026-04-10';
 
 if (!NEXTAUTH_SECRET) {
   console.error('[ws-server] NEXTAUTH_SECRET is not set. Exiting.');
@@ -484,7 +484,14 @@ io.on('connection', async (socket: Socket) => {
       const sessionId = payload?.sessionId;
       if (!sessionId || typeof sessionId !== 'string') return;
       if (typeof payload.pageId !== 'string') return;
-      socket.to(`session:${sessionId}`).emit('cowork:doc_notify', {
+      const room = `session:${sessionId}`;
+      const roomSockets = io.sockets.adapter.rooms.get(room);
+      const others = Math.max(0, (roomSockets?.size ?? 0) - 1);
+      console.log(
+        `[ws-server] cowork:doc_notify relay from ${userId} → ${room} ` +
+          `page=${payload.pageId} (${others} other socket(s) in room)`
+      );
+      socket.to(room).emit('cowork:doc_notify', {
         sessionId,
         pageId: payload.pageId,
         by: userId,

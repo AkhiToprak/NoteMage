@@ -204,10 +204,27 @@ export default function PageEditor({
    * effect's deps don't include `page`, so it wouldn't re-run once the
    * ref finally became non-null. Doing the bounds check inside the
    * handler against `editorContainerRef.current` (read on every event)
-   * dodges the timing issue entirely and has negligible cost. */
+   * dodges the timing issue entirely and has negligible cost.
+   *
+   * We also stash the most recently emitted position in a ref so a
+   * periodic "presence" heartbeat can re-emit the same coords every 2s.
+   * Without that, a participant who joins while the host is idle sees
+   * nothing until the host happens to move — which made it look like
+   * cursors were completely broken on initial mount. */
+  const lastCursorPosRef = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     if (!coworkSocket || !coWorkSessionId) return;
     let lastEmit = 0;
+
+    const sendCursor = (x: number, y: number) => {
+      lastCursorPosRef.current = { x, y };
+      coworkSocket.emit('cowork:cursor', {
+        sessionId: coWorkSessionId,
+        pageId,
+        x,
+        y,
+      });
+    };
 
     const onMove = (e: PointerEvent) => {
       const container = editorContainerRef.current;
@@ -241,17 +258,30 @@ export default function PageEditor({
       const x = viewportX + container.scrollLeft;
       const y = viewportY + container.scrollTop;
 
-      coworkSocket.emit('cowork:cursor', {
-        sessionId: coWorkSessionId,
-        pageId,
-        x,
-        y,
-      });
+      sendCursor(x, y);
     };
 
     document.addEventListener('pointermove', onMove);
+
+    // Presence heartbeat: re-emit the last known cursor position every
+    // 2 seconds so peers who join later (or missed the initial burst
+    // because their socket was still joining the room) see a cursor
+    // even while the user is idle. Cheap — it's one event every 2s,
+    // and the receiver's 8s GC still cleans up genuinely absent peers.
+    const presenceInterval = setInterval(() => {
+      const pos = lastCursorPosRef.current;
+      if (!pos) return;
+      coworkSocket.emit('cowork:cursor', {
+        sessionId: coWorkSessionId,
+        pageId,
+        x: pos.x,
+        y: pos.y,
+      });
+    }, 2000);
+
     return () => {
       document.removeEventListener('pointermove', onMove);
+      clearInterval(presenceInterval);
     };
   }, [coworkSocket, coWorkSessionId, pageId]);
 
@@ -663,6 +693,35 @@ export default function PageEditor({
       coworkSocket.off('cowork:doc_notify', onDocNotify);
     };
   }, [coworkSocket, coWorkSessionId, pageId]);
+
+  /* ─── Cowork: sync content on socket connect ─────────────────────────── *
+   * The first time the cowork socket connects (and on every reconnect),
+   * trigger a content refresh. This closes the race window between the
+   * participant landing on the page and their socket finishing its
+   * handshake — any host edits broadcast during that window would
+   * otherwise be missed until the 5s polling tick. Same fix applies to
+   * reconnects after a transient drop.
+   *
+   * Gated on effectiveReadOnly so we never overwrite the local user's
+   * in-flight edits when they're the one typing. */
+  useEffect(() => {
+    if (!coworkSocket || !coWorkSessionId) return;
+    const syncIfReadOnly = () => {
+      if (!effectiveReadOnly) return;
+      void refreshDocFromServerRef.current();
+    };
+    coworkSocket.on('connect', syncIfReadOnly);
+    // Also fire once now if the socket was already connected when the
+    // effect ran (which is the common case on the host's side and can
+    // also happen for participants if the socket handshake finishes
+    // before React re-renders with the new socket instance).
+    if (coworkSocket.connected) {
+      syncIfReadOnly();
+    }
+    return () => {
+      coworkSocket.off('connect', syncIfReadOnly);
+    };
+  }, [coworkSocket, coWorkSessionId, effectiveReadOnly]);
 
   /* ─── Cowork: listen for the host's "open editing" broadcast ─────────── */
   useEffect(() => {
