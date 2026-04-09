@@ -35,6 +35,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Notemage',
   description: 'AI-powered study companion',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
