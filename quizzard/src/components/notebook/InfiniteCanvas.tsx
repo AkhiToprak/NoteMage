@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Loader } from 'lucide-react';
+import { HexColorPicker, HexColorInput } from 'react-colorful';
 // NOTE: This whole module is only ever loaded client-side because the parent
 // `app/(dashboard)/notebooks/[id]/pages/[pageId]/page.tsx` imports it via
 // `dynamic(..., { ssr: false })`. That means we can safely import Excalidraw
@@ -9,6 +10,7 @@ import { Loader } from 'lucide-react';
 // preserves the static members like `MainMenu.DefaultItems.ClearCanvas`.
 import {
   Excalidraw,
+  MainMenu,
   WelcomeScreen,
   getSceneVersion,
   CaptureUpdateAction,
@@ -87,7 +89,6 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
   const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const lastSceneVersionRef = useRef<number>(-1);
   const lastBgColorRef = useRef<string>(DEFAULT_BG);
-  const bgColorInputRef = useRef<HTMLInputElement | null>(null);
   const [bgColor, setBgColor] = useState<string>(DEFAULT_BG);
   titleRef.current = title;
 
@@ -195,27 +196,19 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
   );
 
   /* ─── Background color picker → Excalidraw updateScene ─────────────── *
-   * Opens the browser's native color input when the swatch is clicked,
-   * then pushes the chosen color into Excalidraw via updateScene. The
-   * subsequent onChange fires handleChange above, which detects the bg
-   * change, updates lastBgColorRef + bgColor state, and schedules a
-   * save via the normal debounced pipeline. */
-  const openBgColorPicker = useCallback(() => {
-    bgColorInputRef.current?.click();
+   * Called from the react-colorful HexColorPicker inside our custom
+   * MainMenu item. Pushes the new color into Excalidraw; the subsequent
+   * onChange fires handleChange, which detects the bg change, updates
+   * lastBgColorRef + bgColor state, and schedules a save via the normal
+   * debounced pipeline. */
+  const handleBgColorChange = useCallback((newColor: string) => {
+    const api = excalidrawAPIRef.current;
+    if (!api) return;
+    api.updateScene({
+      appState: { viewBackgroundColor: newColor },
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    });
   }, []);
-
-  const handleBgColorInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newColor = e.target.value;
-      const api = excalidrawAPIRef.current;
-      if (!api) return;
-      api.updateScene({
-        appState: { viewBackgroundColor: newColor },
-        captureUpdate: CaptureUpdateAction.IMMEDIATELY,
-      });
-    },
-    []
-  );
 
   /* ─── Title change → debounced save (canvas snapshot read from API) ─ */
   const handleTitleChange = useCallback((newTitle: string) => {
@@ -533,50 +526,6 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
               padding: 0,
             }}
           />
-          {/* Canvas background color picker — clicking the swatch opens
-              the browser's native color picker. The input is visually
-              hidden but still focusable via its ref. */}
-          <button
-            type="button"
-            onClick={openBgColorPicker}
-            title="Canvas background color"
-            aria-label="Canvas background color"
-            style={{
-              flexShrink: 0,
-              width: '22px',
-              height: '22px',
-              borderRadius: '6px',
-              background: bgColor,
-              border: '1px solid rgba(237,233,255,0.15)',
-              boxShadow: '0 0 0 1px rgba(0,0,0,0.3) inset',
-              cursor: 'pointer',
-              padding: 0,
-              transition: 'transform 0.15s ease, border-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.08)';
-              e.currentTarget.style.borderColor = 'rgba(140,82,255,0.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.borderColor = 'rgba(237,233,255,0.15)';
-            }}
-          />
-          <input
-            ref={bgColorInputRef}
-            type="color"
-            value={bgColor}
-            onChange={handleBgColorInputChange}
-            aria-hidden="true"
-            tabIndex={-1}
-            style={{
-              position: 'absolute',
-              width: 0,
-              height: 0,
-              opacity: 0,
-              pointerEvents: 'none',
-            }}
-          />
           <div
             style={{
               display: 'flex',
@@ -643,6 +592,100 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
               },
             }}
           >
+            {/* Custom burger menu: replicates Excalidraw's default set,
+                but swaps the built-in ChangeCanvasBackground (preset
+                swatches + hex input) for our react-colorful HexColorPicker
+                so the "Canvas background" section shows a full spectrum
+                wheel. Selecting a color calls handleBgColorChange, which
+                fires updateScene; Excalidraw's onChange then propagates
+                back through handleChange, syncing bgColor state and
+                triggering the debounced save. */}
+            <MainMenu>
+              <MainMenu.DefaultItems.LoadScene />
+              <MainMenu.DefaultItems.SaveToActiveFile />
+              <MainMenu.DefaultItems.Export />
+              <MainMenu.DefaultItems.SaveAsImage />
+              <MainMenu.DefaultItems.CommandPalette />
+              <MainMenu.DefaultItems.SearchMenu />
+              <MainMenu.DefaultItems.Help />
+              <MainMenu.DefaultItems.ClearCanvas />
+              <MainMenu.Separator />
+              <MainMenu.ItemCustom>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    padding: '4px 0',
+                    width: '100%',
+                  }}
+                  onPointerDown={(e) => {
+                    // Prevent Excalidraw's menu from closing when the
+                    // user drags inside the saturation square / hue slider.
+                    e.stopPropagation();
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: 'rgba(237,233,255,0.55)',
+                      letterSpacing: '0.02em',
+                      padding: '0 4px',
+                    }}
+                  >
+                    Canvas background
+                  </div>
+                  <div style={{ padding: '0 4px' }}>
+                    <HexColorPicker
+                      color={bgColor}
+                      onChange={handleBgColorChange}
+                      style={{ width: '100%', height: '140px' }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '0 4px',
+                    }}
+                  >
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '6px',
+                        background: bgColor,
+                        border: '1px solid rgba(237,233,255,0.15)',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <HexColorInput
+                      prefixed
+                      color={bgColor}
+                      onChange={handleBgColorChange}
+                      style={{
+                        flex: 1,
+                        background: 'rgba(0,0,0,0.35)',
+                        border: '1px solid rgba(237,233,255,0.12)',
+                        borderRadius: '6px',
+                        color: '#ede9ff',
+                        fontFamily: 'inherit',
+                        fontSize: '12px',
+                        padding: '6px 8px',
+                        outline: 'none',
+                        minWidth: 0,
+                      }}
+                    />
+                  </div>
+                </div>
+              </MainMenu.ItemCustom>
+              <MainMenu.Separator />
+              <MainMenu.DefaultItems.ToggleTheme />
+            </MainMenu>
+
             {/* Custom welcome screen with no "Welcome to Excalidraw" text. */}
             <WelcomeScreen>
               <WelcomeScreen.Center>
