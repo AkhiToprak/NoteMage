@@ -1,9 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Tldraw, type Editor as TldrawEditor } from 'tldraw';
-import 'tldraw/tldraw.css';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Loader } from 'lucide-react';
+import { getSceneVersion } from '@excalidraw/excalidraw';
+import '@excalidraw/excalidraw/index.css';
+import type {
+  AppState,
+  BinaryFiles,
+  ExcalidrawImperativeAPI,
+  ExcalidrawInitialDataState,
+} from '@excalidraw/excalidraw/types';
+import type {
+  ExcalidrawElement,
+  OrderedExcalidrawElement,
+} from '@excalidraw/excalidraw/element/types';
+
+// Excalidraw uses browser-only APIs — must be dynamically imported with SSR off.
+const Excalidraw = dynamic(
+  async () => (await import('@excalidraw/excalidraw')).Excalidraw,
+  { ssr: false }
+);
 
 interface CanvasPageData {
   id: string;
@@ -19,33 +36,71 @@ interface InfiniteCanvasProps {
   pageId: string;
 }
 
+/**
+ * Persisted shape we write back to the DB. We deliberately avoid persisting
+ * the full AppState because it contains ephemeral data (selection, zoom,
+ * pointer, collaborators, etc). Only viewBackgroundColor is kept.
+ */
+type PersistedScene = {
+  elements: readonly ExcalidrawElement[];
+  appState: { viewBackgroundColor: string };
+  files: BinaryFiles;
+};
+
+const DEFAULT_BG = '#0d0c1f';
+
+/**
+ * Detect whether `raw` looks like an Excalidraw scene. Legacy rows may contain
+ * tldraw store snapshots (shaped differently), which we silently drop and
+ * start from a blank canvas — the next save overwrites the row.
+ */
+function toExcalidrawInitialData(raw: unknown): ExcalidrawInitialDataState | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const maybe = raw as Record<string, unknown>;
+  if (!Array.isArray(maybe.elements)) return null;
+
+  const savedAppState = (maybe.appState ?? {}) as Partial<AppState>;
+
+  return {
+    elements: maybe.elements as readonly ExcalidrawElement[],
+    appState: {
+      viewBackgroundColor: savedAppState.viewBackgroundColor ?? DEFAULT_BG,
+    },
+    files: (maybe.files as BinaryFiles) ?? undefined,
+    scrollToContent: true,
+  };
+}
+
 export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasProps) {
   const [page, setPage] = useState<CanvasPageData | null>(null);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const titleRef = useRef(title);
-  const editorRef = useRef<TldrawEditor | null>(null);
+  const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const lastSceneVersionRef = useRef<number>(-1);
   titleRef.current = title;
 
-  // Fetch page data
+  /* ─── Fetch page data ───────────────────────────────────────────────── */
   useEffect(() => {
     isMountedRef.current = true;
     setIsLoading(true);
     setNotFound(false);
+    lastSceneVersionRef.current = -1;
 
     (async () => {
       try {
         const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`);
         if (res.status === 404) {
-          setNotFound(true);
+          if (isMountedRef.current) setNotFound(true);
           return;
         }
         const json = await res.json();
-        if (json.success) {
+        if (json.success && isMountedRef.current) {
           setPage(json.data);
           setTitle(json.data.title);
         }
@@ -59,8 +114,9 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
     };
   }, [notebookId, pageId]);
 
+  /* ─── Save pipeline ─────────────────────────────────────────────────── */
   const save = useCallback(
-    async (canvasState: Record<string, unknown>, pageTitle: string) => {
+    async (canvasState: PersistedScene | Record<string, never>, pageTitle: string) => {
       setSaveStatus('saving');
       try {
         await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
@@ -76,76 +132,89 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
     [notebookId, pageId]
   );
 
-  const scheduleSave = useCallback(
-    (canvasState: Record<string, unknown>) => {
+  // Keep save in a ref so handleChange can stay perfectly stable.
+  const saveRef = useRef(save);
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
+
+  /* ─── Excalidraw onChange — version-gated + 2s debounce ─────────────── */
+  const handleChange = useCallback(
+    (
+      elements: readonly OrderedExcalidrawElement[],
+      appState: AppState,
+      files: BinaryFiles
+    ) => {
+      const version = getSceneVersion(elements);
+      if (version === lastSceneVersionRef.current) return;
+      // First onChange fires at mount — prime the version ref without saving.
+      if (lastSceneVersionRef.current === -1) {
+        lastSceneVersionRef.current = version;
+        return;
+      }
+      lastSceneVersionRef.current = version;
+
       setSaveStatus('unsaved');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        save(canvasState, titleRef.current);
+        saveRef.current(
+          {
+            elements: elements as readonly ExcalidrawElement[],
+            appState: { viewBackgroundColor: appState.viewBackgroundColor },
+            files,
+          },
+          titleRef.current
+        );
       }, 2000);
     },
-    [save]
+    []
   );
 
-  const handleTitleChange = useCallback(
-    (newTitle: string) => {
-      setTitle(newTitle);
-      setSaveStatus('unsaved');
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        if (!editorRef.current) {
-          save({}, newTitle);
-          return;
-        }
-        const snapshot = editorRef.current.store.getStoreSnapshot();
-        save(snapshot as unknown as Record<string, unknown>, newTitle);
-      }, 1500);
-    },
-    [save]
-  );
-
-  const handleMount = useCallback(
-    (editor: TldrawEditor) => {
-      editorRef.current = editor;
-
-      // Load saved canvas state
-      if (
-        page?.content &&
-        typeof page.content === 'object' &&
-        Object.keys(page.content).length > 0
-      ) {
-        try {
-          editor.store.loadStoreSnapshot(
-            page.content as unknown as Parameters<typeof editor.store.loadStoreSnapshot>[0]
-          );
-        } catch {
-          // If loading fails, start with empty canvas
-        }
+  /* ─── Title change → debounced save (canvas snapshot read from API) ─ */
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    setSaveStatus('unsaved');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const api = excalidrawAPIRef.current;
+      if (!api) {
+        saveRef.current({}, newTitle);
+        return;
       }
-
-      // Subscribe to store changes for auto-save
-      const unsub = editor.store.listen(
-        () => {
-          const snapshot = editor.store.getStoreSnapshot();
-          scheduleSave(snapshot as unknown as Record<string, unknown>);
+      const elements = api.getSceneElements();
+      const appState = api.getAppState();
+      const files = api.getFiles();
+      saveRef.current(
+        {
+          elements: elements as readonly ExcalidrawElement[],
+          appState: { viewBackgroundColor: appState.viewBackgroundColor },
+          files,
         },
-        { source: 'user', scope: 'document' }
+        newTitle
       );
+    }, 1500);
+  }, []);
 
-      return () => {
-        unsub();
-      };
-    },
-    [page, scheduleSave]
-  );
-
+  /* ─── Cleanup timer on unmount ──────────────────────────────────────── */
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, []);
 
-  /* Loading skeleton */
+  /* ─── Derive initial data from fetched page (memoized per page) ─────── */
+  const initialData = useMemo<ExcalidrawInitialDataState | null>(() => {
+    if (!page) return null;
+    const parsed = toExcalidrawInitialData(page.content);
+    if (parsed) return parsed;
+    return {
+      elements: [],
+      appState: { viewBackgroundColor: DEFAULT_BG },
+    };
+  }, [page]);
+
+  /* ─── Render ────────────────────────────────────────────────────────── */
+
   if (isLoading) {
     return (
       <div style={{ padding: '40px 56px' }}>
@@ -191,16 +260,12 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
     );
   }
 
-  if (!page) return null;
+  if (!page || !initialData) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        /* Override tldraw theme for dark mode compatibility */
-        .tl-container {
-          --color-background: #0d0c1f !important;
-        }
       `}</style>
 
       {/* Title + save status */}
@@ -269,9 +334,28 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
         <div style={{ height: '1px', background: 'rgba(140,82,255,0.1)', margin: '14px 0 0' }} />
       </div>
 
-      {/* Canvas */}
+      {/* Canvas — absolute-inset wrapper gives Excalidraw a deterministic size */}
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-        <Tldraw onMount={handleMount} inferDarkMode />
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <Excalidraw
+            initialData={initialData}
+            onChange={handleChange}
+            excalidrawAPI={(api) => {
+              excalidrawAPIRef.current = api;
+            }}
+            theme="dark"
+            UIOptions={{
+              canvasActions: {
+                loadScene: false,
+                saveToActiveFile: false,
+                export: false,
+                clearCanvas: true,
+                changeViewBackgroundColor: true,
+                toggleTheme: false,
+              },
+            }}
+          />
+        </div>
       </div>
     </div>
   );
