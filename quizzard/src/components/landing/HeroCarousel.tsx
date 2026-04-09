@@ -30,14 +30,6 @@ const slides: Slide[] = [
     placeholder:
       'https://placehold.co/1280x780/0f0d24/ffde59/png?text=Infinite+Canvas+Mockup',
   },
-  {
-    eyebrow: 'Split view',
-    title: 'Both, side-by-side',
-    accent: '#b9c3ff',
-    chromeLabel: '/notebooks/chemistry',
-    placeholder:
-      'https://placehold.co/1280x780/12102a/b9c3ff/png?text=Split+View+Mockup',
-  },
 ];
 
 export default function HeroCarousel() {
