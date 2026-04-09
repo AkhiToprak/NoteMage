@@ -100,15 +100,33 @@ export default function CoWorkChat({
         const list: ServerMessage[] = json.data?.messages || [];
         if (cancelled) return;
         setMessages((prev) => {
-          // Preserve local pending (optimistic) messages and merge in
-          // server rows by id.
-          const pending = prev.filter((m) => m.pending);
+          // Build a Map of server messages by id.
           const byId = new Map<string, ChatMessage>();
           for (const m of list) byId.set(m.id, fromServer(m));
           for (const m of prev) {
             if (!m.pending && !byId.has(m.id)) byId.set(m.id, m);
           }
-          return [...Array.from(byId.values()).sort((a, b) => a.timestamp - b.timestamp), ...pending];
+
+          // Only keep pending messages whose server twin has NOT yet
+          // arrived. This used to be "always keep pending" which caused
+          // every sent message to appear twice once the poll fetched the
+          // persisted row (pending + server copy both in the list). The
+          // ws-delivered de-dupe was the only path that cleared pending
+          // before — if the socket wasn't joined to the room (or just
+          // flaky), duplicates stuck around forever.
+          const stillPending = prev.filter((m) => {
+            if (!m.pending) return false;
+            return !list.some(
+              (sm) => sm.userId === m.userId && sm.text === m.text
+            );
+          });
+
+          return [
+            ...Array.from(byId.values()).sort(
+              (a, b) => a.timestamp - b.timestamp
+            ),
+            ...stillPending,
+          ];
         });
       } catch {
         // silent

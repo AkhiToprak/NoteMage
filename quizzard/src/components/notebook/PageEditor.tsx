@@ -457,6 +457,15 @@ export default function PageEditor({
     ? lockedByOther && !coworkEditOpen
     : lockedByOther;
 
+  // NB: `page` is deliberately NOT in the useEditor deps list. When we
+  // polled the live document during a cowork session, the old deps
+  // `[page, ...]` caused a full editor teardown + rebuild every 2.5s
+  // (polling → setPage → useEditor dep changed → destroy+recreate
+  // editor → whole subtree remounts → useCoworkSocket hook tears down
+  // before its `connect` event could run `cowork:join`). The server
+  // saw connections but never any `cowork:join ✓` logs. Fix: keep the
+  // editor instance stable across polling ticks and hydrate content
+  // imperatively (see the effect below this hook).
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -498,7 +507,9 @@ export default function PageEditor({
         TableHeader,
         SlashCommand.configure({ onStateChange: handleSlashStateChange }),
       ],
-      content: page?.content ? migrateHeadingsToToggle(page.content) : '',
+      // Start blank; hydrated imperatively in the effect below once the
+      // initial fetch completes.
+      content: '',
       editorProps: {
         attributes: { class: 'notemage-editor' },
       },
@@ -507,8 +518,23 @@ export default function PageEditor({
         scheduleSave(json, ed.getText());
       },
     },
-    [page, effectiveReadOnly, handleSlashStateChange]
+    [pageId, effectiveReadOnly, handleSlashStateChange]
   );
+
+  // Hydrate editor content on initial page load. Only fires when the
+  // editor instance or the pageId changes — NOT on every `page` state
+  // update — so polling can't restart this effect either.
+  const hydratedForPageIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!editor) return;
+    if (!page?.content) return;
+    if (hydratedForPageIdRef.current === pageId) return;
+    hydratedForPageIdRef.current = pageId;
+    editor.commands.setContent(
+      migrateHeadingsToToggle(page.content),
+      { emitUpdate: false }
+    );
+  }, [editor, pageId, page?.content]);
 
   /* ─── Cowork: live document polling when viewing as a non-editor ─────── *
    * The editor itself has no built-in sync. When a cowork participant is
@@ -549,8 +575,11 @@ export default function PageEditor({
           migrateHeadingsToToggle(json.data.content),
           { emitUpdate: false }
         );
-        // Keep the page metadata in sync too (title, updatedAt, etc.)
-        setPage(json.data);
+        // Update title only. Do NOT call setPage(json.data) here — that
+        // would mutate the `page` state and (historically) trigger a
+        // useEditor teardown, which tore down useCoworkSocket with it.
+        // Keeping `page` stable during polling is what keeps the cowork
+        // socket alive long enough to actually emit cowork:join.
         if (typeof json.data.title === 'string') setTitle(json.data.title);
       } catch {
         // silent — next tick will retry
