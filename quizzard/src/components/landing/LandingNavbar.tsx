@@ -126,7 +126,7 @@ export default function LandingNavbar() {
             style={{ display: 'flex', alignItems: 'center', gap: 12 }}
           >
             <Link
-              href="/login"
+              href="/auth/login"
               style={{
                 fontSize: 14,
                 fontWeight: 500,
@@ -143,7 +143,7 @@ export default function LandingNavbar() {
               Log in
             </Link>
             <Link
-              href="/signup"
+              href="/auth/register"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -256,7 +256,7 @@ export default function LandingNavbar() {
             }}
           />
           <Link
-            href="/login"
+            href="/auth/login"
             style={{
               fontSize: 18,
               color: 'rgba(237, 233, 255, 0.72)',
@@ -266,7 +266,7 @@ export default function LandingNavbar() {
             Log in
           </Link>
           <Link
-            href="/signup"
+            href="/auth/register"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -143,7 +143,7 @@ export default function FinalCta() {
           }}
         >
           <Link
-            href="/signup"
+            href="/auth/register"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

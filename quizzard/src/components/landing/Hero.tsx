@@ -149,7 +149,7 @@ export default function Hero() {
             }}
           >
             <Link
-              href="/signup"
+              href="/auth/register"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
