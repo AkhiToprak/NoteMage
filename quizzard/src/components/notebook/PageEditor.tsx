@@ -33,6 +33,11 @@ import CalloutView from './CalloutView';
 import { ToggleHeading } from '@/lib/tiptap-toggle-heading';
 import ToggleHeadingView from './ToggleHeadingView';
 import PageLockIndicator from './PageLockIndicator';
+import {
+  SlashCommand,
+  type SlashCommandState,
+} from '@/lib/tiptap-slash-command';
+import SlashMenu from './SlashMenu';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** Migrate legacy `heading` nodes to `toggleHeading` nodes in saved content. */
@@ -111,6 +116,22 @@ export default function PageEditor({
   const isMountedRef = useRef(true);
   const titleRef = useRef(title);
   titleRef.current = title;
+
+  /* ─── Slash command menu state ──────────────────────────────────────── */
+  const [slashState, setSlashState] = useState<SlashCommandState>({
+    isOpen: false,
+    query: '',
+    range: null,
+    clientRect: null,
+  });
+  // Stable wrapper around setSlashState so the ProseMirror plugin can keep
+  // a single function reference across renders without re-instantiating.
+  const slashSetterRef = useRef(setSlashState);
+  slashSetterRef.current = setSlashState;
+  const handleSlashStateChange = useCallback(
+    (next: SlashCommandState) => slashSetterRef.current(next),
+    []
+  );
 
   // Co-work page locking
   useEffect(() => {
@@ -287,6 +308,7 @@ export default function PageEditor({
         TableRow,
         TableCell,
         TableHeader,
+        SlashCommand.configure({ onStateChange: handleSlashStateChange }),
       ],
       content: page?.content ? migrateHeadingsToToggle(page.content) : '',
       editorProps: {
@@ -297,7 +319,7 @@ export default function PageEditor({
         scheduleSave(json, ed.getText());
       },
     },
-    [page, lockedByOther]
+    [page, lockedByOther, handleSlashStateChange]
   );
 
   const handleTitleChange = useCallback(
@@ -613,6 +635,7 @@ export default function PageEditor({
       <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         <div style={{ padding: isPhone ? '16px 16px 60px' : isTablet ? '20px 28px 80px' : '28px 56px 80px', minHeight: '100%', position: 'relative' }}>
           <EditorContent editor={editor} />
+          <SlashMenu state={slashState} editor={editor} />
           <DrawingOverlay
             strokes={strokes}
             onStrokesChange={handleStrokesChange}
