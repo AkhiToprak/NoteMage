@@ -3,31 +3,31 @@ import { getAuthUserId } from '@/lib/auth';
 import { unauthorizedResponse } from '@/lib/api-response';
 
 /**
- * GET /api/debug/cowork-emit-test?room=<room>
+ * GET /api/debug/cowork-emit-test
+ *   ?session=<sessionId>   → broadcasts to `session:<sessionId>`
+ *   ?room=<room>           → broadcasts to the literal room name
+ * Defaults to `session:debug-test` if neither is passed.
  *
- * Hits the ws-server's `/emit` webhook with a synthetic test event and
- * returns the complete response (status, text body, timing, env-var
- * check) so we can see exactly where the REST→WS broadcast chain is
- * breaking down.
+ * Hits the ws-server's `/emit` webhook with a synthetic debug:ping
+ * event and returns the complete response (status, text body, timing,
+ * env-var check, listener count from the ws-server's perspective).
  *
- * Auth: any authenticated user. This is safe to expose because:
- *   - It only POSTs to our own internal webhook
- *   - The event name is a dedicated `debug:ping` that clients are
- *     not subscribed to — no side effects
- *   - Worst case: a logged-in user spams their own test broadcasts,
- *     which the ws-server rate limits at the TCP level.
+ * Use it to verify whether a broadcast aimed at a specific session
+ * actually reaches anyone. If you pass the session id of a currently-
+ * running cowork session and the `listeners` field in the ws-server
+ * response is 0, then nobody's socket is actually in that room.
  *
- * Usage:
- *   curl -b "cookie-jar" https://notemage.app/api/debug/cowork-emit-test
- *   curl -b "cookie-jar" https://notemage.app/api/debug/cowork-emit-test?room=session:abc123
- *
- * Or just paste the URL into a browser tab while logged in.
+ * Auth: any authenticated user.
  */
 export async function GET(request: NextRequest) {
   const userId = await getAuthUserId(request);
   if (!userId) return unauthorizedResponse();
 
-  const room = request.nextUrl.searchParams.get('room') || 'session:debug-test';
+  const sessionIdParam = request.nextUrl.searchParams.get('session');
+  const roomParam = request.nextUrl.searchParams.get('room');
+  const room = sessionIdParam
+    ? `session:${sessionIdParam}`
+    : roomParam || 'session:debug-test';
 
   const WS_INTERNAL_URL =
     process.env.WS_INTERNAL_URL || 'http://localhost:3002';
@@ -88,6 +88,19 @@ export async function GET(request: NextRequest) {
     const elapsed = Date.now() - started;
     const bodyText = await res.text();
 
+    // Parse the listener count out of the ws-server's JSON response
+    // so we can report it at the top level without the caller having to
+    // parse `bodyText`.
+    let listeners: number | null = null;
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (typeof parsed?.listeners === 'number') listeners = parsed.listeners;
+    } catch {
+      // ignore
+    }
+
+    const probingRealSession = !!sessionIdParam;
+
     return NextResponse.json({
       ok: res.ok,
       stage: 'fetch',
@@ -99,18 +112,23 @@ export async function GET(request: NextRequest) {
       response: {
         status: res.status,
         statusText: res.statusText,
+        listeners,
         headers: Object.fromEntries(res.headers.entries()),
         bodyText,
         elapsedMs: elapsed,
       },
       hint:
         res.status === 401
-          ? 'WS_INTERNAL_SECRET does not match the value configured on the ws-server. Generate a new one with `openssl rand -hex 32` and set it IDENTICALLY on both Vercel and DigitalOcean App Platform, then redeploy both.'
+          ? 'WS_INTERNAL_SECRET does not match the value configured on the ws-server. Regenerate and set identically on both sides.'
           : res.status === 404
-            ? 'The ws-server is reachable but does not have a POST /emit handler. It is running old code — redeploy the ws-server on DigitalOcean.'
-            : res.ok
-              ? 'Broadcast delivered. Check the ws-server Runtime Logs on DigitalOcean for the corresponding `[ws-server] /emit → debug:ping` line — it should show `(0 listeners)` for the fake "session:debug-test" room.'
-              : `Unexpected status. Check the ws-server runtime logs.`,
+            ? 'The ws-server is reachable but has no POST /emit handler. Redeploy ws-server on DigitalOcean.'
+            : !res.ok
+              ? `Unexpected status ${res.status}. Check the ws-server runtime logs.`
+              : probingRealSession && listeners === 0
+                ? 'Broadcast delivered BUT 0 listeners in the room. This means nobody\'s socket is currently in that session room on the ws-server. The host\'s `cowork:join` emit is either not reaching the server or the server is not adding the socket to the room. Check the host\'s browser console for a `[cowork-socket] emitting cowork:join for session ...` log and the ws-server Runtime Logs for the matching join event.'
+                : probingRealSession && listeners && listeners > 0
+                  ? `Broadcast delivered to ${listeners} listener(s). If the host is one of those listeners, they should now see a \`recv debug:ping\` line in their browser console. If they do NOT, there is a client-side subscription bug (unlikely). If they DO, the real-time chain works end-to-end and the original bug is elsewhere.`
+                  : 'Broadcast delivered. 0 listeners is expected for the fake "session:debug-test" room.',
       envCheck,
     });
   } catch (err) {

@@ -130,9 +130,12 @@ function createSession(sessionId: string): SessionEntry {
       log('auth_error from ws-server:', payload);
     });
 
-    // Log every cowork:* event received (catch-all for debugging).
+    // Log every event received (catch-all for debugging). Includes
+    // `cowork:*` and `debug:*` and anything else the server sends so we
+    // can verify whether broadcasts from the /emit webhook are
+    // reaching this client at all.
     socket.onAny((event, ...args) => {
-      if (typeof event === 'string' && event.startsWith('cowork:')) {
+      if (typeof event === 'string') {
         log('recv', event, args[0]);
       }
     });
