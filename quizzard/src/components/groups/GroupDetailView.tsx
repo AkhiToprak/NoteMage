@@ -142,6 +142,8 @@ export default function GroupDetailView({ groupId }: Props) {
         background: `${COLORS.pageBg}cc`,
         backdropFilter: 'blur(20px)',
         flexShrink: 0,
+        position: 'relative',
+        zIndex: 10,
       }}>
         <button
           onClick={() => router.push('/groups')}
