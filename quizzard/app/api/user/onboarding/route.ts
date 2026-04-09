@@ -42,10 +42,10 @@ export async function PUT(request: NextRequest) {
       scholarName?: string | null;
     };
 
-    // Validate scholar name
+    // Validate mage name
     if (scholarName !== undefined && scholarName !== null) {
       if (typeof scholarName !== 'string' || scholarName.trim().length > 30) {
-        return badRequestResponse('Scholar name must be at most 30 characters');
+        return badRequestResponse('Mage name must be at most 30 characters');
       }
     }
 
@@ -82,7 +82,7 @@ export async function PUT(request: NextRequest) {
         });
       }
 
-      // Mark onboarding complete + sync pages goal → dailyGoal + save scholar name
+      // Mark onboarding complete + sync pages goal → dailyGoal + save mage name
       const pagesGoal = studyGoals.find((g) => g.type === 'pages');
       await tx.user.update({
         where: { id: userId },

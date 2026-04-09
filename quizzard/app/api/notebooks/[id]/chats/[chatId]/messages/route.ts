@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { getAuthUserId } from '@/lib/auth';
-import { getScholarName } from '@/lib/scholar';
+import { getMageName } from '@/lib/scholar';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL } from '@/lib/anthropic';
 import {
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!userId) return unauthorizedResponse();
 
     const token = await getToken({ req: request });
-    const scholarName = getScholarName(token?.scholarName as string | undefined);
+    const mageName = getMageName(token?.scholarName as string | undefined);
 
     // Record activity (fire-and-forget)
     recordActivity(userId, 'message').catch(() => {});
@@ -206,8 +206,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // ── Build system prompt ──
     const systemParts = [
-      `You are ${scholarName}, an AI study assistant embedded in the Notemage notebook app.`,
-      `Your name is ${scholarName}. When the user asks your name, respond with "${scholarName}".`,
+      `You are ${mageName}, an AI study assistant embedded in the Notemage notebook app.`,
+      `Your name is ${mageName}. When the user asks your name, respond with "${mageName}".`,
       'Help the user study, understand, and review their notes and documents.',
       'Be concise, clear, and educational. Use markdown formatting when helpful.',
       '',

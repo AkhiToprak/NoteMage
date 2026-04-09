@@ -103,10 +103,10 @@ export default function SettingsPage() {
   const [greetingLoading, setGreetingLoading] = useState(false);
   const [greetingStatus, setGreetingStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
 
-  // Scholar name state
-  const [scholarNameInput, setScholarNameInput] = useState('');
-  const [scholarNameLoading, setScholarNameLoading] = useState(false);
-  const [scholarNameStatus, setScholarNameStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+  // Mage name state
+  const [mageNameInput, setMageNameInput] = useState('');
+  const [mageNameLoading, setMageNameLoading] = useState(false);
+  const [mageNameStatus, setMageNameStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -116,7 +116,7 @@ export default function SettingsPage() {
           setCustomGreeting(res.data.customGreeting);
         }
         if (res?.data?.scholarName) {
-          setScholarNameInput(res.data.scholarName);
+          setMageNameInput(res.data.scholarName);
         }
       })
       .catch(() => {});
@@ -145,28 +145,28 @@ export default function SettingsPage() {
     setGreetingLoading(false);
   };
 
-  const handleScholarNameSave = async () => {
-    setScholarNameLoading(true);
-    setScholarNameStatus(null);
+  const handleMageNameSave = async () => {
+    setMageNameLoading(true);
+    setMageNameStatus(null);
     try {
-      const value = scholarNameInput.trim() || null;
+      const value = mageNameInput.trim() || null;
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scholarName: value }),
       });
       if (res.ok) {
-        setScholarNameStatus({ type: 'success', msg: value ? 'Scholar name saved!' : 'Reset to default "Scholar".' });
-        if (!value) setScholarNameInput('');
+        setMageNameStatus({ type: 'success', msg: value ? 'Mage name saved!' : 'Reset to default "Mage".' });
+        if (!value) setMageNameInput('');
         await updateSession();
       } else {
         const json = await res.json();
-        setScholarNameStatus({ type: 'error', msg: json.error || 'Failed to save.' });
+        setMageNameStatus({ type: 'error', msg: json.error || 'Failed to save.' });
       }
     } catch {
-      setScholarNameStatus({ type: 'error', msg: 'Network error. Try again.' });
+      setMageNameStatus({ type: 'error', msg: 'Network error. Try again.' });
     }
-    setScholarNameLoading(false);
+    setMageNameLoading(false);
   };
 
   const tierNames: Record<string, string> = { FREE: 'Free', PLUS: 'Plus', PRO: 'Pro' };
@@ -643,10 +643,10 @@ export default function SettingsPage() {
                 <h3
                   style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 4px' }}
                 >
-                  {session?.user?.name ?? 'Scholar'}
+                  {session?.user?.name ?? 'Mage'}
                 </h3>
                 <p style={{ fontSize: '13px', color: '#b9c3ff', fontWeight: 500, margin: 0 }}>
-                  Scholar Level 1
+                  Mage Level 1
                 </p>
               </div>
             </div>
@@ -1046,7 +1046,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Scholar Name */}
+          {/* Mage Name */}
           <section
             style={{
               background: '#1c1c38',
@@ -1078,7 +1078,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
-                  Scholar Name
+                  Mage Name
                 </h3>
                 <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
                   Give your AI study assistant a custom name.
@@ -1090,10 +1090,10 @@ export default function SettingsPage() {
               <input
                 type="text"
                 placeholder="e.g. Archimedes, Sage, Athena…"
-                value={scholarNameInput}
+                value={mageNameInput}
                 onChange={(e) => {
-                  setScholarNameInput(e.target.value);
-                  setScholarNameStatus(null);
+                  setMageNameInput(e.target.value);
+                  setMageNameStatus(null);
                 }}
                 maxLength={30}
                 style={inputStyle}
@@ -1106,15 +1106,15 @@ export default function SettingsPage() {
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <span style={{ fontSize: '12px', color: '#555578' }}>
-                  {scholarNameInput.length}/30 &middot; Leave empty for default &ldquo;Scholar&rdquo;
+                  {mageNameInput.length}/30 &middot; Leave empty for default &ldquo;Mage&rdquo;
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {scholarNameInput && (
+                  {mageNameInput && (
                     <button
                       onClick={async () => {
-                        setScholarNameInput('');
-                        setScholarNameLoading(true);
-                        setScholarNameStatus(null);
+                        setMageNameInput('');
+                        setMageNameLoading(true);
+                        setMageNameStatus(null);
                         try {
                           const res = await fetch('/api/user/profile', {
                             method: 'PUT',
@@ -1122,17 +1122,17 @@ export default function SettingsPage() {
                             body: JSON.stringify({ scholarName: null }),
                           });
                           if (res.ok) {
-                            setScholarNameStatus({ type: 'success', msg: 'Reset to default "Scholar".' });
+                            setMageNameStatus({ type: 'success', msg: 'Reset to default "Mage".' });
                             await updateSession();
                           } else {
-                            setScholarNameStatus({ type: 'error', msg: 'Failed to clear.' });
+                            setMageNameStatus({ type: 'error', msg: 'Failed to clear.' });
                           }
                         } catch {
-                          setScholarNameStatus({ type: 'error', msg: 'Network error.' });
+                          setMageNameStatus({ type: 'error', msg: 'Network error.' });
                         }
-                        setScholarNameLoading(false);
+                        setMageNameLoading(false);
                       }}
-                      disabled={scholarNameLoading}
+                      disabled={mageNameLoading}
                       style={{
                         padding: '10px 20px',
                         background: 'transparent',
@@ -1141,7 +1141,7 @@ export default function SettingsPage() {
                         color: '#aaa8c8',
                         fontSize: '14px',
                         fontWeight: 600,
-                        cursor: scholarNameLoading ? 'not-allowed' : 'pointer',
+                        cursor: mageNameLoading ? 'not-allowed' : 'pointer',
                         transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
                       }}
                     >
@@ -1149,11 +1149,11 @@ export default function SettingsPage() {
                     </button>
                   )}
                   <button
-                    onClick={handleScholarNameSave}
-                    disabled={scholarNameLoading}
+                    onClick={handleMageNameSave}
+                    disabled={mageNameLoading}
                     style={{
                       padding: '10px 24px',
-                      background: scholarNameLoading
+                      background: mageNameLoading
                         ? 'rgba(174,137,255,0.3)'
                         : 'linear-gradient(135deg, #ae89ff, #8348f6)',
                       border: 'none',
@@ -1161,32 +1161,32 @@ export default function SettingsPage() {
                       color: '#fff',
                       fontSize: '14px',
                       fontWeight: 600,
-                      cursor: scholarNameLoading ? 'not-allowed' : 'pointer',
-                      boxShadow: scholarNameLoading ? 'none' : '0 8px 24px rgba(174,137,255,0.3)',
+                      cursor: mageNameLoading ? 'not-allowed' : 'pointer',
+                      boxShadow: mageNameLoading ? 'none' : '0 8px 24px rgba(174,137,255,0.3)',
                       transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
                     }}
                     onMouseEnter={(e) => {
-                      if (!scholarNameLoading)
+                      if (!mageNameLoading)
                         (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
                     }}
                     onMouseLeave={(e) => {
-                      if (!scholarNameLoading)
+                      if (!mageNameLoading)
                         (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
                     }}
                   >
-                    {scholarNameLoading ? 'Saving…' : 'Save Name'}
+                    {mageNameLoading ? 'Saving…' : 'Save Name'}
                   </button>
                 </div>
               </div>
-              {scholarNameStatus && (
+              {mageNameStatus && (
                 <p
                   style={{
                     fontSize: '14px',
-                    color: scholarNameStatus.type === 'success' ? '#4ade80' : '#fd6f85',
+                    color: mageNameStatus.type === 'success' ? '#4ade80' : '#fd6f85',
                     margin: 0,
                   }}
                 >
-                  {scholarNameStatus.msg}
+                  {mageNameStatus.msg}
                 </p>
               )}
             </div>
@@ -1242,7 +1242,7 @@ export default function SettingsPage() {
                 },
                 {
                   key: 'weeklyReport' as const,
-                  label: 'Weekly Scholar Report',
+                  label: 'Weekly Mage Report',
                   desc: 'A detailed breakdown of your learning progress via email.',
                 },
               ].map(({ key, label, desc }) => (

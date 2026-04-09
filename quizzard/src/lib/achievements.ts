@@ -183,7 +183,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     badge: 'scholar_renamed',
     name: 'lay offs',
-    description: 'Change the name of your scholar',
+    description: 'Change the name of your mage',
     icon: 'edit',
     category: 'social',
     checkCondition: (s) => s.scholarNameSet,

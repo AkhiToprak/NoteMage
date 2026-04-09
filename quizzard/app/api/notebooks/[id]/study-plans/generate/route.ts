@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { getAuthUserId } from '@/lib/auth';
-import { getScholarName } from '@/lib/scholar';
+import { getMageName } from '@/lib/scholar';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL } from '@/lib/anthropic';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!userId) return unauthorizedResponse();
 
     const token = await getToken({ req: request });
-    const scholarName = getScholarName(token?.scholarName as string | undefined);
+    const mageName = getMageName(token?.scholarName as string | undefined);
 
     const { id: notebookId } = await params;
 
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const duration = durationDays && durationDays > 0 ? durationDays : 14;
 
     const systemPrompt = [
-      `You are ${scholarName}, an AI study assistant. Create a structured study plan using ONLY the materials provided below.`,
+      `You are ${mageName}, an AI study assistant. Create a structured study plan using ONLY the materials provided below.`,
       'IMPORTANT: Only use the exact referenceId values from the inventory. Do not invent IDs.',
       'Use the correct type for each material: "page" for Pages, "flashcard_set" for Flashcard Sets, "quiz_set" for Quiz Sets, "document" for Documents.',
       'Distribute materials logically across phases. Each phase should have a clear focus.',

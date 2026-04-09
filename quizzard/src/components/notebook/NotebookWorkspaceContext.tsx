@@ -66,7 +66,7 @@ interface WorkspaceContextValue {
   refreshStudyPlans: () => void;
   refreshFlashcardSets: () => void;
   refreshQuizSets: () => void;
-  isScholarView: boolean;
+  isMageView: boolean;
   sectionsLoaded: boolean;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -255,7 +255,7 @@ export function NotebookWorkspaceProvider({
         refreshStudyPlans: fetchStudyPlans,
         refreshFlashcardSets: fetchFlashcardSets,
         refreshQuizSets: fetchQuizSets,
-        isScholarView: activeChatId !== null,
+        isMageView: activeChatId !== null,
         sidebarCollapsed,
         setSidebarCollapsed,
       }}

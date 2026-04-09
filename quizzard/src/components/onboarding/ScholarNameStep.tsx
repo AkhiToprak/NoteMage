@@ -25,7 +25,7 @@ export default function ScholarNameStep({
   const [validationError, setValidationError] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
 
-  const displayName = scholarName.trim() || 'Scholar';
+  const displayName = scholarName.trim() || 'Mage';
   const charCount = scholarName.length;
   const displayError = error || validationError;
 
@@ -48,7 +48,7 @@ export default function ScholarNameStep({
     <>
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
-          Name your Scholar
+          Name your Mage
         </h2>
         <p style={{ fontSize: '14px', color: '#aaa8c8', margin: 0 }}>
           Give your AI study assistant a unique name.

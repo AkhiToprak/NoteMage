@@ -17,7 +17,7 @@ export default function PagePanel() {
     activeSectionId,
     activePageId,
     activeChatId,
-    isScholarView,
+    isMageView,
     chats,
     refreshChats,
     refreshSections,
@@ -93,8 +93,8 @@ export default function PagePanel() {
     [notebookId, activeChatId, router, refreshChats]
   );
 
-  // ── Scholar mode: show chats ──────────────────────────────────────────────
-  if (isScholarView) {
+  // ── Mage mode: show chats ─────────────────────────────────────────────────
+  if (isMageView) {
     return (
       <div
         style={{

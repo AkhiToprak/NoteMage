@@ -1,6 +1,6 @@
 /**
- * Returns the user's custom scholar name, or "Scholar" as the default.
+ * Returns the user's custom mage name, or "Mage" as the default.
  */
-export function getScholarName(scholarName?: string | null): string {
-  return scholarName?.trim() || 'Scholar';
+export function getMageName(scholarName?: string | null): string {
+  return scholarName?.trim() || 'Mage';
 }

@@ -26,7 +26,7 @@ interface FormData {
   studyGoals: { type: string; target: number }[];
 }
 
-const STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Scholar', 'Goals'];
+const STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Mage', 'Goals'];
 
 const INITIAL_FORM: FormData = {
   username: '',
@@ -203,12 +203,12 @@ export default function OnboardingWizard() {
     setFormData((prev) => ({ ...prev, avatarUrl: url }));
   };
 
-  // ── Step 4: Scholar Name ──────────────────────────────────────────────────
-  const handleScholarNameNext = () => {
+  // ── Step 4: Mage Name ─────────────────────────────────────────────────────
+  const handleMageNameNext = () => {
     setStep(5);
   };
 
-  const handleScholarNameSkip = () => {
+  const handleMageNameSkip = () => {
     setFormData((prev) => ({ ...prev, scholarName: '' }));
     setStep(5);
   };
@@ -244,7 +244,7 @@ export default function OnboardingWizard() {
         : step === 3
           ? "Let's set up your profile."
           : step === 4
-            ? 'Give your scholar a name.'
+            ? 'Give your mage a name.'
             : 'Almost there — personalize your journey.';
 
   return (
@@ -403,8 +403,8 @@ export default function OnboardingWizard() {
             <ScholarNameStep
               scholarName={formData.scholarName}
               onChange={(name) => setFormData((prev) => ({ ...prev, scholarName: name }))}
-              onNext={handleScholarNameNext}
-              onSkip={handleScholarNameSkip}
+              onNext={handleMageNameNext}
+              onSkip={handleMageNameSkip}
               loading={loading}
               error={stepErrors[4] || ''}
             />

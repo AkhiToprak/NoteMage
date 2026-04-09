@@ -19,7 +19,7 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_pptx: 'AI Presentations',
   ai_study_plan: 'AI Study Plans',
   ai_quizzes: 'AI Quizzes',
-  scholar_chat: 'Scholar Chat messages',
+  scholar_chat: 'Mage Chat messages',
 };
 
 const FEATURE_ICONS: Record<FeatureType, string> = {

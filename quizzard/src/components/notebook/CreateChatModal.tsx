@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { X, Upload, BookOpen, Check, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { getScholarName } from '@/lib/scholar';
+import { getMageName } from '@/lib/scholar';
 
 interface PageRef {
   id: string;
@@ -55,7 +55,7 @@ export default function CreateChatModal({
   const { upload } = useDirectUpload();
   const { isPhone } = useBreakpoint();
   const { data: session } = useSession();
-  const scholarName = getScholarName(session?.user?.scholarName);
+  const mageName = getMageName(session?.user?.scholarName);
   const [title, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState<'notebook' | 'upload'>('notebook');
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
@@ -230,7 +230,7 @@ export default function CreateChatModal({
                   letterSpacing: '-0.01em',
                 }}
               >
-                New {scholarName} Chat
+                New {mageName} Chat
               </h2>
             </div>
             <p style={{ margin: 0, fontSize: '12px', color: 'rgba(185,195,255,0.6)' }}>
@@ -317,7 +317,7 @@ export default function CreateChatModal({
             />
           </div>
 
-          {/* Feed the Scholar section */}
+          {/* Feed the Mage section */}
           <div>
             <div
               style={{
@@ -337,7 +337,7 @@ export default function CreateChatModal({
                   textTransform: 'uppercase',
                 }}
               >
-                Feed {scholarName}
+                Feed {mageName}
               </label>
               {totalContext > 0 && (
                 <span

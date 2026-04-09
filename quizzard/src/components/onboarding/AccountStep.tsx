@@ -204,7 +204,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
             </div>
             <input
               type="text"
-              placeholder="coolscholar42"
+              placeholder="coolmage42"
               value={data.username}
               onChange={(e) => handleUsernameChange(e.target.value)}
               disabled={loading}
@@ -294,7 +294,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
             </div>
             <input
               type="text"
-              placeholder="Alex Scholar"
+              placeholder="Alex Mage"
               value={data.name}
               onChange={(e) => onChange('name', e.target.value)}
               disabled={loading}

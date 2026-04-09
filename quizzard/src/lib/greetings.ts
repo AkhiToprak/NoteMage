@@ -34,7 +34,7 @@ export const GREETINGS: string[] = [
   'The world is {name}\u2019s classroom.',
   'Here we go again, {name}.',
   'Respect the grind, {name}.',
-  '{name}, the scholar, has arrived.',
+  '{name}, the mage, has arrived.',
   'Knowledge awaits, {name}.',
   '*slow clap* {name} showed up.',
   'Today\u2019s MVP: {name}.',

@@ -362,7 +362,7 @@ export default function DashboardPage() {
     >
       {/* Greeting */}
       <DashboardGreeting
-        userName={session?.user?.name || session?.user?.username || 'Scholar'}
+        userName={session?.user?.name || session?.user?.username || 'Mage'}
       />
 
       {/* Stats Row — carousel on phone, grid on tablet/desktop */}
@@ -1273,7 +1273,7 @@ export default function DashboardPage() {
               lineHeight: '1.7',
             }}
           >
-            No notebooks yet. Create your first one to get started on your neon scholar journey.
+            No notebooks yet. Create your first one to get started on your notemage journey.
           </p>
           <Link
             href="/notebooks"

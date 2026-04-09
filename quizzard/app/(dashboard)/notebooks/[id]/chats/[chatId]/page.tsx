@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useRef, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
-import { getScholarName } from '@/lib/scholar';
+import { getMageName } from '@/lib/scholar';
 import Link from 'next/link';
 import {
   X,
@@ -82,7 +82,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
   const { upload: directUpload } = useDirectUpload();
   const { isPhone } = useBreakpoint();
   const { data: session } = useSession();
-  const scholarName = getScholarName(session?.user?.scholarName);
+  const mageName = getMageName(session?.user?.scholarName);
 
   const [chat, setChat] = useState<ChatData | null>(null);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -385,7 +385,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           </div>
         </div>
 
-        {/* Feed the Scholar button */}
+        {/* Feed the Mage button */}
         <button
           onClick={() => setShowFeedPanel(true)}
           style={{
@@ -419,7 +419,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           >
             cloud_upload
           </span>
-          {!isPhone && `Feed ${scholarName}`}
+          {!isPhone && `Feed ${mageName}`}
           {totalContext > 0 && (
             <span
               style={{
@@ -529,7 +529,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   fontStyle: 'normal',
                 }}
               >
-                {scholarName} is ready
+                {mageName} is ready
               </p>
               <p
                 style={{
@@ -757,7 +757,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Ask ${scholarName} anything…`}
+            placeholder={`Ask ${mageName} anything…`}
             rows={1}
             disabled={isSending}
             style={{
@@ -837,7 +837,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
         </div>
       </div>
 
-      {/* Feed the Scholar side panel */}
+      {/* Feed the Mage side panel */}
       {showFeedPanel && (
         <>
           {/* Backdrop */}
@@ -886,7 +886,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   cloud_upload
                 </span>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#f0edff' }}>
-                  Feed {scholarName}
+                  Feed {mageName}
                 </h3>
               </div>
               <button

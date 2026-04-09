@@ -181,7 +181,7 @@ export async function PUT(request: NextRequest) {
       if (scholarName === null) {
         data.scholarName = null;
       } else if (typeof scholarName !== 'string' || scholarName.length > 30) {
-        return badRequestResponse('Scholar name must be a string of at most 30 characters');
+        return badRequestResponse('Mage name must be a string of at most 30 characters');
       } else {
         data.scholarName = scholarName.trim() || null;
       }
@@ -232,7 +232,7 @@ export async function PUT(request: NextRequest) {
       throw err;
     }
 
-    // Fire achievement check for McLovin (username) and lay offs (scholar name)
+    // Fire achievement check for McLovin (username) and lay offs (mage name)
     checkAndUnlockAchievements(userId).catch(console.error);
 
     return successResponse(updated);
