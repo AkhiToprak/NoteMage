@@ -14,12 +14,14 @@ export interface FlashcardSetSummary {
   id: string;
   title: string;
   createdAt: string;
+  _count?: { flashcards: number };
 }
 
 export interface QuizSetSummary {
   id: string;
   title: string;
   createdAt: string;
+  _count?: { questions: number };
 }
 
 export interface StudyPlanSummary {
@@ -57,9 +59,13 @@ interface WorkspaceContextValue {
   activeStudyPlanId: string | null;
   chats: NotebookChatItem[];
   studyPlans: StudyPlanSummary[];
+  flashcardSets: FlashcardSetSummary[];
+  quizSets: QuizSetSummary[];
   refreshChats: () => void;
   refreshSections: () => void;
   refreshStudyPlans: () => void;
+  refreshFlashcardSets: () => void;
+  refreshQuizSets: () => void;
   isScholarView: boolean;
   sectionsLoaded: boolean;
   sidebarCollapsed: boolean;
@@ -90,6 +96,8 @@ export function NotebookWorkspaceProvider({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chats, setChats] = useState<NotebookChatItem[]>([]);
   const [studyPlans, setStudyPlans] = useState<StudyPlanSummary[]>([]);
+  const [flashcardSets, setFlashcardSets] = useState<FlashcardSetSummary[]>([]);
+  const [quizSets, setQuizSets] = useState<QuizSetSummary[]>([]);
 
   // Derive activePageId from URL
   const activePageId = (() => {
@@ -172,12 +180,38 @@ export function NotebookWorkspaceProvider({
     }
   }, [notebookId]);
 
+  const fetchFlashcardSets = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/flashcard-sets`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setFlashcardSets(json.data as FlashcardSetSummary[]);
+      }
+    } catch {
+      /* silent */
+    }
+  }, [notebookId]);
+
+  const fetchQuizSets = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setQuizSets(json.data as QuizSetSummary[]);
+      }
+    } catch {
+      /* silent */
+    }
+  }, [notebookId]);
+
   useEffect(() => {
     fetchNotebook();
     fetchSections();
     fetchChats();
     fetchStudyPlans();
-  }, [fetchNotebook, fetchSections, fetchChats, fetchStudyPlans]);
+    fetchFlashcardSets();
+    fetchQuizSets();
+  }, [fetchNotebook, fetchSections, fetchChats, fetchStudyPlans, fetchFlashcardSets, fetchQuizSets]);
 
   // Derive activeSectionId from activePageId after sections load
   useEffect(() => {
@@ -214,9 +248,13 @@ export function NotebookWorkspaceProvider({
         activeStudyPlanId,
         chats,
         studyPlans,
+        flashcardSets,
+        quizSets,
         refreshChats: fetchChats,
         refreshSections: fetchSections,
         refreshStudyPlans: fetchStudyPlans,
+        refreshFlashcardSets: fetchFlashcardSets,
+        refreshQuizSets: fetchQuizSets,
         isScholarView: activeChatId !== null,
         sidebarCollapsed,
         setSidebarCollapsed,
