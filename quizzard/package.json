@@ -45,6 +45,8 @@
     "better-sqlite3": "^12.8.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "hast-util-to-html": "^9.0.5",
     "highlight.js": "^11.11.1",
     "isomorphic-dompurify": "^3.7.1",
