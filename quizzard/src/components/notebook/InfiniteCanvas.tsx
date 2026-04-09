@@ -346,22 +346,52 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
           display: none !important;
         }
 
-        /* ─── Reorder shape toolbar: Text → Pen → Eraser first ─────────
+        /* ─── Reorder shape toolbar: Lock | divider | Text, Pen, Eraser | rest ──
          * Excalidraw's shapes toolbar is a flex container where each
-         * tool is a label.ToolIcon wrapping a radio input. The inputs
-         * are identified by data-testid (toolbar-text, toolbar-freedraw,
-         * toolbar-eraser), NOT by a value attribute. We use :has() to
-         * set the order property on the label, which is the direct
-         * flex child. Lock, Hand, Selection and the other shapes keep
-         * their default order 0 and follow after. */
-        .excalidraw label:has(> input[data-testid="toolbar-text"]) {
-          order: -3 !important;
+         * tool is a label.ToolIcon wrapping a radio input. Lock sits
+         * before a divider, then all the shape tools follow.
+         *
+         * We want: Lock → divider → Text → Pen → Eraser → (everything
+         * else in DOM order) → divider → extras button.
+         *
+         * Strategy: give every direct child of the flex container a
+         * default order of 10, then override the five items we care
+         * about with specific low values, and push the trailing
+         * divider + extras button to high values. Items we don't
+         * override sit at order 10 and fall into their DOM order,
+         * which is what we want for Hand/Selection/Rect/etc. */
+        .excalidraw .App-toolbar .Stack_horizontal > * {
+          order: 10;
         }
-        .excalidraw label:has(> input[data-testid="toolbar-freedraw"]) {
-          order: -2 !important;
+        .excalidraw .App-toolbar .Stack_horizontal > label:has(> input[data-testid="toolbar-lock"]) {
+          order: 1 !important;
         }
-        .excalidraw label:has(> input[data-testid="toolbar-eraser"]) {
-          order: -1 !important;
+        .excalidraw .App-toolbar .Stack_horizontal > .App-toolbar__divider:first-of-type {
+          order: 2 !important;
+        }
+        .excalidraw .App-toolbar .Stack_horizontal > label:has(> input[data-testid="toolbar-text"]) {
+          order: 3 !important;
+        }
+        .excalidraw .App-toolbar .Stack_horizontal > label:has(> input[data-testid="toolbar-freedraw"]) {
+          order: 4 !important;
+        }
+        .excalidraw .App-toolbar .Stack_horizontal > label:has(> input[data-testid="toolbar-eraser"]) {
+          order: 5 !important;
+        }
+        .excalidraw .App-toolbar .Stack_horizontal > .App-toolbar__divider:last-of-type {
+          order: 20 !important;
+        }
+        .excalidraw .App-toolbar .Stack_horizontal > button.App-toolbar__extra-tools-trigger {
+          order: 21 !important;
+        }
+
+        /* Hide the numeric keybinding badges on every tool. Excalidraw's
+         * keyboard shortcuts are hardcoded in its source, so the badges
+         * would otherwise show "8" on Text while Text is in position 3,
+         * which is confusing. The tooltips on hover still show the key
+         * (e.g. "Text — T or 8") for anyone who wants the shortcut. */
+        .excalidraw .ToolIcon__keybinding {
+          display: none !important;
         }
       `}</style>
 
