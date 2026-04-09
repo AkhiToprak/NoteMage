@@ -9,7 +9,6 @@ import { Loader } from 'lucide-react';
 // preserves the static members like `MainMenu.DefaultItems.ClearCanvas`.
 import {
   Excalidraw,
-  MainMenu,
   WelcomeScreen,
   getSceneVersion,
 } from '@excalidraw/excalidraw';
@@ -271,15 +270,21 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
         /* ─── De-brand Excalidraw ─────────────────────────────────────
-         * Excalidraw is MIT-licensed so we're allowed to remove/hide
-         * any of its branded UI. The three leak points are:
+         * Excalidraw is MIT-licensed so we're allowed to hide its
+         * branded UI. The library sidebar and the default burger menu
+         * both stay enabled — we only strip the outbound links:
          *   1. the floating "?" help button (bottom-right) which opens
          *      a dialog titled "Excalidraw";
-         *   2. the library sidebar trigger, whose sidebar links to
-         *      "Excalidraw+" promotional content;
-         *   3. the "Excalidraw+" and "Sign in" promos that some
-         *      builds inject into the main menu. We also provide a
-         *      custom <MainMenu> below, which excludes them by design.
+         *   2. the "Browse libraries" button inside the library panel,
+         *      which links out to libraries.excalidraw.com;
+         *   3. any outbound anchor in the main menu pointing at
+         *      excalidraw.com / plus.excalidraw.com / libraries. /
+         *      docs. / blog. or the Excalidraw social accounts on
+         *      github.com, twitter.com, x.com, discord.gg.
+         * Selector uses attribute-contains (*=) so it also catches
+         * /excalidraw-dev/, etc. The MainMenu.DefaultItems.Socials
+         * group is rendered as anchor tags and is fully hidden by the
+         * :has(...) rule so we don't leave an empty group separator.
          * ───────────────────────────────────────────────────────────── */
         .excalidraw .help-icon,
         .excalidraw button.help-icon,
@@ -287,14 +292,28 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
         .excalidraw [data-testid="HelpDialog"] {
           display: none !important;
         }
-        .excalidraw .default-sidebar-trigger,
-        .excalidraw .sidebar-trigger,
-        .excalidraw [data-testid="sidebar-trigger"],
-        .excalidraw .layer-ui__library {
+        .excalidraw .library-menu-browse-button,
+        .excalidraw .library-menu-browse-button * {
           display: none !important;
         }
         .excalidraw a[href*="plus.excalidraw.com"],
-        .excalidraw a[href*="excalidraw.com"] {
+        .excalidraw a[href*="libraries.excalidraw.com"],
+        .excalidraw a[href*="docs.excalidraw.com"],
+        .excalidraw a[href*="blog.excalidraw.com"],
+        .excalidraw a[href="https://excalidraw.com"],
+        .excalidraw a[href*="//excalidraw.com"],
+        .excalidraw a[href*="github.com/excalidraw"],
+        .excalidraw a[href*="twitter.com/excalidraw"],
+        .excalidraw a[href*="x.com/excalidraw"],
+        .excalidraw a[href*="discord.gg/UexuTaE"],
+        .excalidraw a[href*="discord.com/invite/UexuTaE"] {
+          display: none !important;
+        }
+        /* Hide any dropdown-menu group that contains only excalidraw
+         * links (the Socials group) so the main menu doesn't end in
+         * an orphan separator. */
+        .excalidraw .dropdown-menu-group:has(> a[href*="excalidraw"]:only-child),
+        .excalidraw .dropdown-menu-group:not(:has(> :not(a[href*="excalidraw"]))) {
           display: none !important;
         }
       `}</style>
@@ -377,22 +396,15 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
             theme="dark"
             UIOptions={{
               canvasActions: {
-                loadScene: false,
-                saveToActiveFile: false,
-                export: false,
+                loadScene: true,
+                saveToActiveFile: true,
+                export: {},
                 clearCanvas: true,
                 changeViewBackgroundColor: true,
-                toggleTheme: false,
+                toggleTheme: true,
               },
             }}
           >
-            {/* Custom main menu with NO Excalidraw-branded items
-                (skips Socials / Excalidraw+ / Help / LiveCollab / LoadScene
-                / Export / SaveAsImage — all of which show the Excalidraw name). */}
-            <MainMenu>
-              <MainMenu.DefaultItems.ClearCanvas />
-              <MainMenu.DefaultItems.ChangeCanvasBackground />
-            </MainMenu>
             {/* Custom welcome screen with no "Welcome to Excalidraw" text. */}
             <WelcomeScreen>
               <WelcomeScreen.Center>
