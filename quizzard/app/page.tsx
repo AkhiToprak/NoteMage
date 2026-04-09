@@ -3,7 +3,6 @@
 import { Component as MagicCursor } from '@/components/ui/magic-cursor';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import Hero from '@/components/landing/Hero';
-import LogoMarquee from '@/components/landing/LogoMarquee';
 import NotetakingCanvasSpotlight from '@/components/landing/NotetakingCanvasSpotlight';
 import MageSpotlight from '@/components/landing/MageSpotlight';
 import CoworkSpotlight from '@/components/landing/CoworkSpotlight';
@@ -29,7 +28,6 @@ export default function LandingPage() {
       <MagicCursor />
       <LandingNavbar />
       <Hero />
-      <LogoMarquee />
       <NotetakingCanvasSpotlight />
       <MageSpotlight />
       <CoworkSpotlight />

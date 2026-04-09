@@ -41,24 +41,37 @@ const slides: Slide[] = [
 ];
 
 export default function HeroCarousel() {
+  // Duplicate slides so the loop always feels busy + endless even with only
+  // 3 unique cards. Embla's `loop` already wraps seamlessly — duplicating just
+  // keeps neighbors in view during the wrap so you never see a "reset".
+  const loopedSlides = [...slides, ...slides, ...slides];
+
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       loop: true,
       align: 'center',
       containScroll: false,
       skipSnaps: false,
+      startIndex: slides.length, // start in the middle copy for smoothest wrap
     },
-    [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]
+    [Autoplay({ delay: 4200, stopOnInteraction: false, stopOnMouseEnter: true })]
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const scrollTo = useCallback((index: number) => emblaApi?.scrollTo(index), [emblaApi]);
+  const scrollTo = useCallback(
+    (index: number) => emblaApi?.scrollTo(slides.length + index),
+    [emblaApi]
+  );
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
-    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    const onSelect = () => {
+      // Map looped index back to the 3 unique slides for the progress pills
+      const i = emblaApi.selectedScrollSnap();
+      setSelectedIndex(i % slides.length);
+    };
     onSelect();
     emblaApi.on('select', onSelect);
     return () => {
@@ -83,8 +96,8 @@ export default function HeroCarousel() {
         className="hero-sticker hero-sticker-tl"
         style={{
           position: 'absolute',
-          top: -32,
-          left: -28,
+          top: -56,
+          left: -20,
           zIndex: 3,
           padding: '10px 16px',
           borderRadius: 'var(--radius-full)',
@@ -121,11 +134,11 @@ export default function HeroCarousel() {
 
       <div
         aria-hidden
-        className="hero-sticker hero-sticker-tr"
+        className="hero-sticker hero-sticker-br"
         style={{
           position: 'absolute',
-          top: 42,
-          right: -32,
+          bottom: 84,
+          right: -40,
           zIndex: 3,
           padding: '10px 14px',
           borderRadius: 'var(--radius-full)',
@@ -161,45 +174,6 @@ export default function HeroCarousel() {
         </span>
       </div>
 
-      <div
-        aria-hidden
-        className="hero-sticker hero-sticker-bl"
-        style={{
-          position: 'absolute',
-          bottom: -28,
-          left: 44,
-          zIndex: 3,
-          padding: '10px 14px',
-          borderRadius: 'var(--radius-full)',
-          background: 'rgba(20, 18, 44, 0.88)',
-          border: '1px solid rgba(174, 137, 255, 0.35)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          animation: 'nm-float 8s ease-in-out infinite 0.6s',
-        }}
-      >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 16, color: 'var(--primary)' }}
-        >
-          quiz
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: 12,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'rgba(237, 233, 255, 0.78)',
-          }}
-        >
-          Quiz generated in 4s
-        </span>
-      </div>
-
       {/* Embla viewport */}
       <div
         ref={emblaRef}
@@ -212,33 +186,32 @@ export default function HeroCarousel() {
         aria-label="Notemage product showcase"
       >
         <div style={{ display: 'flex', gap: 0 }}>
-          {slides.map((slide, i) => (
-            <div
-              key={i}
-              className="hero-slide"
-              role="group"
-              aria-roledescription="slide"
-              aria-label={`${i + 1} of ${slides.length}: ${slide.title}`}
-              style={{
-                minWidth: 0,
-                padding: '0 8px',
-                transform:
-                  i === selectedIndex ? 'scale(1)' : 'scale(0.95)',
-                opacity: i === selectedIndex ? 1 : 0.55,
-                transition:
-                  'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            >
-              <MockFrame
-                image={slide.placeholder}
-                alt={`${slide.title} mockup`}
-                urlLabel={`notemage.app${slide.chromeLabel}`}
-                cornerLabel={slide.eyebrow}
-                accent={`${slide.accent}55`}
-                aspectRatio="16 / 10"
-              />
-            </div>
-          ))}
+          {loopedSlides.map((slide, i) => {
+            const uniqueIndex = i % slides.length;
+            return (
+              <div
+                key={i}
+                className="hero-slide"
+                role="group"
+                aria-roledescription="slide"
+                aria-label={`${uniqueIndex + 1} of ${slides.length}: ${slide.title}`}
+                aria-hidden={i < slides.length || i >= slides.length * 2}
+                style={{
+                  minWidth: 0,
+                  padding: '0 8px',
+                }}
+              >
+                <MockFrame
+                  image={slide.placeholder}
+                  alt={`${slide.title} mockup`}
+                  urlLabel={`notemage.app${slide.chromeLabel}`}
+                  cornerLabel={slide.eyebrow}
+                  accent={`${slide.accent}55`}
+                  aspectRatio="16 / 10"
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -45,7 +45,7 @@ export default function CoworkSpotlight() {
         <div style={{ position: 'relative', minWidth: 0, overflow: 'hidden', borderRadius: 'var(--radius-xl)' }}>
           <MockFrame
             urlLabel="notemage.app/live/zurich-bio"
-            cornerLabel="LIVE · 4 minds"
+            cornerLabel="Coming soon"
             accent="rgba(81, 112, 255, 0.35)"
             aspectRatio="4 / 3"
           >
@@ -155,7 +155,7 @@ export default function CoworkSpotlight() {
                 fontWeight: 600,
               }}
             >
-              Live co-working
+              Coming soon · Live co-working
             </span>
           </div>
 
@@ -195,9 +195,10 @@ export default function CoworkSpotlight() {
               fontFamily: 'var(--font-sans)',
             }}
           >
-            Host a session, share a link, and watch your friends&apos; cursors
-            move through the notebook in real time. Lock the page you&apos;re
-            editing, chat on the side, keep the momentum.
+            Soon you&apos;ll be able to host a session, share a link, and see
+            your friends move through the notebook with you. Live cursors,
+            page locks, side chat — all in the same notebook. We&apos;re
+            building it now.
           </p>
 
           <ul
@@ -214,7 +215,7 @@ export default function CoworkSpotlight() {
               { icon: 'visibility', text: 'Live presence dots' },
               { icon: 'lock', text: 'Page locking' },
               { icon: 'chat', text: 'Side chat + reactions' },
-              { icon: 'timer', text: 'Session timer' },
+              { icon: 'notifications', text: 'Ping me when it ships' },
             ].map((b) => (
               <li
                 key={b.text}

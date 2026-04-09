@@ -146,7 +146,6 @@ export default function Hero() {
               display: 'flex',
               gap: 14,
               flexWrap: 'wrap',
-              marginBottom: 36,
             }}
           >
             <Link
@@ -222,26 +221,6 @@ export default function Hero() {
             </Link>
           </div>
 
-          {/* Trust strip */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 18,
-              flexWrap: 'wrap',
-              fontSize: 12,
-              color: 'rgba(237, 233, 255, 0.45)',
-              fontFamily: 'var(--font-brand)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            <span>✦ Free forever</span>
-            <span style={{ opacity: 0.3 }}>/</span>
-            <span>✦ No card needed</span>
-            <span style={{ opacity: 0.3 }}>/</span>
-            <span>✦ 60 seconds to setup</span>
-          </div>
         </div>
 
         {/* RIGHT — carousel */}

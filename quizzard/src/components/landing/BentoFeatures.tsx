@@ -10,16 +10,6 @@ const cells = [
     description:
       'Send friend requests, build study groups, and share notebooks with the people who are actually in your class.',
     accent: '#ae89ff',
-    span: 'large',
-  },
-  {
-    icon: 'library_books',
-    tag: 'Public library',
-    title: 'Learn from everyone',
-    description:
-      'Browse notebooks published by other students. Clone one, make it yours.',
-    accent: '#ffde59',
-    span: 'small',
   },
   {
     icon: 'phone_iphone',
@@ -28,7 +18,6 @@ const cells = [
     description:
       'Your notebook follows you. Everything syncs instantly, offline-friendly.',
     accent: '#b9c3ff',
-    span: 'small',
   },
   {
     icon: 'download',
@@ -37,7 +26,6 @@ const cells = [
     description:
       'Never locked in. Export any notebook as PDF, PowerPoint, or plain markdown — including your flashcards, quizzes, and mind maps.',
     accent: '#8ce5a7',
-    span: 'large',
   },
 ];
 
@@ -75,7 +63,7 @@ export default function BentoFeatures() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.4fr 1fr 1fr 1.4fr',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             gridTemplateRows: 'auto',
             gap: 22,
           }}
@@ -84,7 +72,7 @@ export default function BentoFeatures() {
           {cells.map((c) => (
             <div
               key={c.title}
-              className={`bento-cell bento-cell-${c.span}`}
+              className="bento-cell"
               style={{
                 position: 'relative',
                 padding: 28,
@@ -192,24 +180,14 @@ export default function BentoFeatures() {
       </div>
 
       <style jsx>{`
-        .bento-cell-large {
-          grid-column: span 2;
-        }
-        .bento-cell-small {
-          grid-column: span 1;
-        }
         @media (max-width: 1023px) {
           .bento-grid {
-            grid-template-columns: 1fr 1fr !important;
-          }
-          .bento-cell-large,
-          .bento-cell-small {
-            grid-column: span 1 !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
           }
         }
         @media (max-width: 639px) {
           .bento-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: minmax(0, 1fr) !important;
           }
         }
       `}</style>

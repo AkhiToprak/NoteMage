@@ -74,6 +74,16 @@ const tools: Tool[] = [
     placeholder:
       'https://placehold.co/620x400/160f2c/c9a6ff/png?text=XP',
   },
+  {
+    icon: 'timer',
+    tag: 'Focus sprints',
+    title: 'Pomodoro',
+    description:
+      '25-minute sprints with built-in breaks. Stay locked in without leaving your notebook.',
+    accent: '#ff9566',
+    placeholder:
+      'https://placehold.co/620x400/1a1025/ff9566/png?text=Pomodoro',
+  },
 ];
 
 export default function LearningToolsCarousel() {
