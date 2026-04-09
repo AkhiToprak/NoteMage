@@ -77,12 +77,40 @@ export default function CoWorkBar({
     }
   }, [notebookId, sessionId]);
 
-  // Initial load + reconciliation. Real-time events keep us in sync after,
-  // so we don't need the 10-second polling fallback anymore — but we still
-  // do one fetch at mount to populate the list before the first event lands.
+  // Initial load + defensive polling fallback. Real-time events via the
+  // socket are the primary update mechanism, but a 5-second poll keeps the
+  // bar accurate even if the socket is disconnected, flaky, or missed a
+  // broadcast (e.g. the ws-server was briefly unreachable when a peer
+  // joined). Also ends the session on the UI side if the server has
+  // marked it inactive behind our back.
   useEffect(() => {
     fetchParticipants();
-  }, [fetchParticipants]);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/notebooks/${notebookId}/cowork/${sessionId}`
+        );
+        if (res.status === 404) {
+          // Session disappeared — host ended it while we weren't looking.
+          onSessionEnd?.();
+          return;
+        }
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data?.isActive === false) {
+            onSessionEnd?.();
+            return;
+          }
+          if (Array.isArray(json.data?.participants)) {
+            setParticipants(json.data.participants);
+          }
+        }
+      } catch {
+        // silent — next tick will retry
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchParticipants, notebookId, sessionId, onSessionEnd]);
 
   // Real-time participant updates via the cowork socket.
   useEffect(() => {

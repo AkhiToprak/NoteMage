@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, FileText, FilePlus, Trash2, MessageSquare, Sparkles } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
@@ -10,6 +10,12 @@ import type { NotebookChatItem } from '@/components/notebook/NotebookWorkspaceCo
 
 export default function PagePanel() {
   const router = useRouter();
+  // Preserve the cowork session query param across sidebar navigation so
+  // the host can switch pages without dropping out of the session. Any
+  // page link rendered below appends `?cowork=<sessionId>` when present.
+  const searchParams = useSearchParams();
+  const coworkSessionId = searchParams.get('cowork');
+  const coworkQuery = coworkSessionId ? `?cowork=${coworkSessionId}` : '';
   const {
     notebookId,
     flatSections,
@@ -303,6 +309,7 @@ export default function PagePanel() {
               isActive={isActive}
               notebookId={notebookId}
               accentColor={accentColor}
+              coworkQuery={coworkQuery}
               onDelete={handleDeletePage}
             />
           );
@@ -493,19 +500,22 @@ function PageRow({
   isActive,
   notebookId,
   accentColor,
+  coworkQuery,
   onDelete,
 }: {
   page: { id: string; title: string };
   isActive: boolean;
   notebookId: string;
   accentColor: string;
+  /** Query suffix to preserve cowork session param across navigation. */
+  coworkQuery: string;
   onDelete: (id: string, e: React.MouseEvent) => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <Link
-      href={`/notebooks/${notebookId}/pages/${page.id}`}
+      href={`/notebooks/${notebookId}/pages/${page.id}${coworkQuery}`}
       style={{ textDecoration: 'none', display: 'block' }}
     >
       <div

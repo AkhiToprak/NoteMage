@@ -15,6 +15,15 @@ import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
 
+/**
+ * GET — read page content.
+ *
+ * Access rules (in order):
+ *   1. The notebook owner can always read.
+ *   2. An active participant in an active cowork session on this
+ *      notebook can also read. This is the critical path for joiners
+ *      who arrive via `?cowork=<sessionId>` on a notebook they don't own.
+ */
 export async function GET(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
@@ -22,7 +31,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     const { id: notebookId, pageId } = await params;
 
-    const page = await db.page.findFirst({
+    // Path 1: notebook owner — fastest, most common case.
+    let page = await db.page.findFirst({
       where: {
         id: pageId,
         section: {
@@ -33,6 +43,33 @@ export async function GET(request: NextRequest, { params }: Params) {
       include: { images: true },
     });
 
+    if (!page) {
+      // Path 2: active cowork participant. We don't care which session
+      // id the client is using — any active session on this notebook
+      // where the caller is an active participant is enough.
+      const participant = await db.coWorkParticipant.findFirst({
+        where: {
+          userId,
+          isActive: true,
+          session: {
+            notebookId,
+            isActive: true,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (participant) {
+        page = await db.page.findFirst({
+          where: {
+            id: pageId,
+            section: { notebookId },
+          },
+          include: { images: true },
+        });
+      }
+    }
+
     if (!page) return notFoundResponse('Page not found');
 
     return successResponse(page);
@@ -41,6 +78,15 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 }
 
+/**
+ * PUT — update page content.
+ *
+ * Same access rules as GET: notebook owner, or active cowork participant
+ * on any active session in this notebook. PageLock enforcement happens
+ * separately via /cowork/[sessionId]/lock/[pageId] and is checked by
+ * the client — the PUT endpoint itself only gates READ/WRITE ability,
+ * not who owns the lock.
+ */
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
@@ -55,7 +101,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     awardXP(userId, 'page_edited').catch(console.error);
     checkAndUnlockAchievements(userId).catch(console.error);
 
-    const existing = await db.page.findFirst({
+    let existing = await db.page.findFirst({
       where: {
         id: pageId,
         section: {
@@ -64,6 +110,24 @@ export async function PUT(request: NextRequest, { params }: Params) {
         },
       },
     });
+
+    if (!existing) {
+      // Cowork participant fallback.
+      const participant = await db.coWorkParticipant.findFirst({
+        where: {
+          userId,
+          isActive: true,
+          session: { notebookId, isActive: true },
+        },
+        select: { id: true },
+      });
+      if (participant) {
+        existing = await db.page.findFirst({
+          where: { id: pageId, section: { notebookId } },
+        });
+      }
+    }
+
     if (!existing) return notFoundResponse('Page not found');
 
     const body = await request.json();

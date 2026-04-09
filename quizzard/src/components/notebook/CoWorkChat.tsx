@@ -83,10 +83,14 @@ export default function CoWorkChat({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Initial history load
+  // Initial history load + defensive polling fallback. Real-time delivery
+  // is via the cowork:message socket event, but a 5-second poll refreshes
+  // the history so the chat stays accurate even if the socket drops a
+  // broadcast. The fetch de-dupes by id, so new poll results never create
+  // duplicates of messages we already have from the socket.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const res = await fetch(
           `/api/notebooks/${notebookId}/cowork/${sessionId}/messages`
@@ -94,15 +98,27 @@ export default function CoWorkChat({
         if (!res.ok) return;
         const json = await res.json();
         const list: ServerMessage[] = json.data?.messages || [];
-        if (!cancelled) {
-          setMessages(list.map(fromServer));
-        }
+        if (cancelled) return;
+        setMessages((prev) => {
+          // Preserve local pending (optimistic) messages and merge in
+          // server rows by id.
+          const pending = prev.filter((m) => m.pending);
+          const byId = new Map<string, ChatMessage>();
+          for (const m of list) byId.set(m.id, fromServer(m));
+          for (const m of prev) {
+            if (!m.pending && !byId.has(m.id)) byId.set(m.id, m);
+          }
+          return [...Array.from(byId.values()).sort((a, b) => a.timestamp - b.timestamp), ...pending];
+        });
       } catch {
         // silent
       }
-    })();
+    };
+    load();
+    const interval = setInterval(load, 5000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, [notebookId, sessionId]);
 

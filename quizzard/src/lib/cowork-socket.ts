@@ -32,6 +32,17 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3002';
 const HEARTBEAT_INTERVAL = 30_000;
 const TOKEN_REFRESH_INTERVAL = 4 * 60 * 1000; // 4 min (TTL is 5 min)
 
+// Verbose debug logging — enabled for all environments until the cowork
+// real-time layer is stable. Log output is prefixed so it's easy to filter
+// in DevTools ("cowork-socket").
+const DEBUG = true;
+const log = (...args: unknown[]) => {
+  if (DEBUG && typeof console !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[cowork-socket]', ...args);
+  }
+};
+
 interface SessionEntry {
   socket: Socket | null;
   refCount: number;
@@ -67,9 +78,26 @@ function createSession(sessionId: string): SessionEntry {
   let active = true;
 
   (async () => {
+    log('createSession: fetching presence token for session', sessionId);
     const token = await fetchToken();
-    if (!active || !token) return;
+    if (!active) {
+      log('createSession: aborted (inactive) for', sessionId);
+      return;
+    }
+    if (!token) {
+      log(
+        'createSession: NO TOKEN returned from /api/auth/presence-token — is the user logged in?'
+      );
+      return;
+    }
 
+    log(
+      'createSession: connecting to',
+      WS_URL,
+      'for session',
+      sessionId,
+      '(transports: websocket, polling)'
+    );
     const socket = io(WS_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -81,16 +109,48 @@ function createSession(sessionId: string): SessionEntry {
 
     // Join the cowork room as soon as we're connected.
     const sendJoin = () => {
+      log('emitting cowork:join for session', sessionId);
       socket.emit('cowork:join', { sessionId });
     };
 
-    socket.on('connect', sendJoin);
+    socket.on('connect', () => {
+      log('socket connected — id:', socket.id, 'for session', sessionId);
+      sendJoin();
+    });
+
+    socket.on('connect_error', (err) => {
+      log('connect_error:', (err as Error).message);
+    });
+
+    socket.on('disconnect', (reason) => {
+      log('socket disconnected — reason:', reason);
+    });
+
+    socket.on('auth_error', (payload) => {
+      log('auth_error from ws-server:', payload);
+    });
+
+    // Log every cowork:* event received (catch-all for debugging).
+    socket.onAny((event, ...args) => {
+      if (typeof event === 'string' && event.startsWith('cowork:')) {
+        log('recv', event, args[0]);
+      }
+    });
 
     // If the socket reconnects after a brief drop, re-join the room.
-    socket.io.on('reconnect', sendJoin);
+    socket.io.on('reconnect', () => {
+      log('socket reconnected — re-joining room');
+      sendJoin();
+    });
 
     // Wake up any consumers that mounted before the socket finished
     // initialising — they get the live socket immediately.
+    log(
+      'createSession: notifying',
+      entry.listeners.size,
+      'waiting listener(s) for',
+      sessionId
+    );
     for (const listener of entry.listeners) {
       listener(socket);
     }
@@ -146,10 +206,20 @@ export function useCoworkSocket(sessionId: string | null): Socket | null {
       return;
     }
 
+    log('useCoworkSocket mount — sessionId:', sessionId);
+
     let entry = sessions.get(sessionId);
     if (!entry) {
+      log('no existing entry — creating new session');
       entry = createSession(sessionId);
       sessions.set(sessionId, entry);
+    } else {
+      log(
+        'reusing existing entry — refCount was',
+        entry.refCount,
+        'socket:',
+        entry.socket ? 'ready' : 'pending'
+      );
     }
     entry.refCount += 1;
 
@@ -159,15 +229,20 @@ export function useCoworkSocket(sessionId: string | null): Socket | null {
     if (entry.socket) {
       setSocket(entry.socket);
     } else {
-      const onReady = (s: Socket) => setSocket(s);
+      const onReady = (s: Socket) => {
+        log('one-shot listener fired — socket now available');
+        setSocket(s);
+      };
       entry.listeners.add(onReady);
     }
 
     return () => {
+      log('useCoworkSocket cleanup — sessionId:', sessionId);
       const e = sessions.get(sessionId);
       if (!e) return;
       e.refCount -= 1;
       if (e.refCount <= 0) {
+        log('refCount hit 0 — destroying session entry');
         e.destroying = true;
         e.cleanup();
         sessions.delete(sessionId);
