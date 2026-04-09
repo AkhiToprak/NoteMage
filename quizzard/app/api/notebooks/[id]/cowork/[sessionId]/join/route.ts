@@ -6,7 +6,6 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   forbiddenResponse,
-  conflictResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 import { wsEmit } from '@/lib/ws-emit';
@@ -14,6 +13,18 @@ import { wsEmit } from '@/lib/ws-emit';
 type Params = { params: Promise<{ id: string; sessionId: string }> };
 
 // POST — join a co-work session
+//
+// Gating: caller must be either
+//   1. the host (always allowed), or
+//   2. an active member of the StudyGroup passed in the request body
+//      (for invites coming from group/class/DM chats), or
+//   3. an accepted friend of the host (legacy fallback — covers invites
+//      shared via notification or direct link before the chat feature
+//      existed).
+//
+// Join is idempotent: if the caller is already an active participant,
+// we return success without touching the DB and still broadcast so
+// subscribers refresh their participant list.
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
@@ -28,34 +39,61 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!session) return notFoundResponse('Session not found or inactive');
 
-    // Verify user is a friend of the host (or is the host)
+    // Gate: host OR shared-group member OR friend of host
     if (session.hostId !== userId) {
-      const friendship = await db.friendship.findFirst({
-        where: {
-          status: 'accepted',
-          OR: [
-            { requesterId: userId, addresseeId: session.hostId },
-            { requesterId: session.hostId, addresseeId: userId },
-          ],
-        },
-      });
-      if (!friendship) return forbiddenResponse('You must be friends with the host to join');
+      const body = await request.json().catch(() => ({}));
+      const groupId =
+        typeof (body as { groupId?: unknown }).groupId === 'string'
+          ? (body as { groupId: string }).groupId
+          : null;
+
+      let allowed = false;
+
+      if (groupId) {
+        const [callerMembership, hostMembership] = await Promise.all([
+          db.studyGroupMember.findUnique({
+            where: { groupId_userId: { groupId, userId } },
+          }),
+          db.studyGroupMember.findUnique({
+            where: { groupId_userId: { groupId, userId: session.hostId } },
+          }),
+        ]);
+        allowed =
+          callerMembership?.status === 'accepted' &&
+          hostMembership?.status === 'accepted';
+      }
+
+      if (!allowed) {
+        const friendship = await db.friendship.findFirst({
+          where: {
+            status: 'accepted',
+            OR: [
+              { requesterId: userId, addresseeId: session.hostId },
+              { requesterId: session.hostId, addresseeId: userId },
+            ],
+          },
+        });
+        allowed = !!friendship;
+      }
+
+      if (!allowed) {
+        return forbiddenResponse('You do not have access to this session');
+      }
     }
 
-    // Check if already a participant
+    // Idempotent join — if the caller is already active, we still
+    // re-broadcast so any out-of-sync participant bar refreshes.
     const existingParticipant = await db.coWorkParticipant.findUnique({
       where: { sessionId_userId: { sessionId, userId } },
     });
 
     if (existingParticipant) {
-      if (existingParticipant.isActive) {
-        return conflictResponse('Already in this session');
+      if (!existingParticipant.isActive) {
+        await db.coWorkParticipant.update({
+          where: { id: existingParticipant.id },
+          data: { isActive: true, leftAt: null },
+        });
       }
-      // Re-join: reactivate
-      await db.coWorkParticipant.update({
-        where: { id: existingParticipant.id },
-        data: { isActive: true, leftAt: null },
-      });
     } else {
       await db.coWorkParticipant.create({
         data: { sessionId, userId },

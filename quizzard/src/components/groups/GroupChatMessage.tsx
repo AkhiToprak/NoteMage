@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import SaveDestinationModal from './SaveDestinationModal';
+import CoworkInviteCard from '@/components/cowork/CoworkInviteCard';
+import type { CoworkInvitePayload } from '@/lib/cowork-join';
 
 const COLORS = {
   pageBg: '#111126',
@@ -34,6 +36,7 @@ interface ChatMessageData {
 interface Props {
   message: ChatMessageData;
   groupId: string;
+  currentUserId: string;
   isOwn: boolean;
 }
 
@@ -100,7 +103,7 @@ function ContentTypeIcon({ type }: { type: string }) {
   return <span className="material-symbols-outlined" style={{ fontSize: 24, color: COLORS.primary }}>{icons[type] || 'attachment'}</span>;
 }
 
-export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
+export default function GroupChatMessage({ message, groupId, currentUserId, isOwn }: Props) {
   const [saved, setSaved] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [resolvedSharedId, setResolvedSharedId] = useState<string | null>(null);
@@ -116,6 +119,53 @@ export default function GroupChatMessage({ message, groupId, isOwn }: Props) {
         }}>
           {message.content}
         </span>
+      </div>
+    );
+  }
+
+  // Co-work session invite — rich card with Join button, styled like the
+  // landing page cowork spotlight. Rendered as an avatar+card row so the
+  // host's identity stays visible, matching how content_share is laid out.
+  if (message.type === 'cowork_invite' && message.metadata) {
+    const payload = message.metadata as CoworkInvitePayload;
+    const hostName =
+      message.sender?.name ||
+      message.sender?.username ||
+      'A member';
+    return (
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+          maxWidth: 480,
+          marginLeft: isOwn ? 'auto' : 0,
+          marginRight: isOwn ? 0 : 'auto',
+          flexDirection: isOwn ? 'row-reverse' : 'row',
+        }}
+      >
+        {message.sender && (
+          <Avatar user={message.sender} size={32} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 11,
+              color: COLORS.textMuted,
+              marginBottom: 6,
+              textAlign: isOwn ? 'right' : 'left',
+              fontWeight: 600,
+            }}
+          >
+            {hostName} · {timeAgo(message.createdAt)}
+          </div>
+          <CoworkInviteCard
+            payload={payload}
+            groupId={groupId}
+            currentUserId={currentUserId}
+            hostName={hostName}
+          />
+        </div>
       </div>
     );
   }

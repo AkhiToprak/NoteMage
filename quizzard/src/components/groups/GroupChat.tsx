@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGroupChat } from '@/hooks/useGroupChat';
 import GroupChatMessage from './GroupChatMessage';
 import GroupChatInput from './GroupChatInput';
 import ShareContentModal from './ShareContentModal';
+import StartCoworkModal from '@/components/cowork/StartCoworkModal';
+import type { CoworkInvitePayload } from '@/lib/cowork-join';
 
 const COLORS = {
   pageBg: '#111126',
@@ -45,8 +47,19 @@ function LoadingSkeleton() {
 export default function GroupChat({ groupId, groupName, currentUserId, canChat = true }: Props) {
   const { messages, loading, sending, hasMore, loadMore, sendMessage } = useGroupChat(groupId);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [startCoworkOpen, setStartCoworkOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wasAtBottomRef = useRef(true);
+
+  // When StartCoworkModal finishes creating a session, post the invite
+  // card as a structured chat message so every member sees it.
+  const handleCoworkCreated = useCallback(
+    (payload: CoworkInvitePayload) => {
+      const content = `Started a co-work session on "${payload.pageTitle}"`;
+      sendMessage(content, 'cowork_invite', payload);
+    },
+    [sendMessage]
+  );
 
   // Auto-scroll to bottom on new messages (only if user was already at bottom)
   useEffect(() => {
@@ -113,6 +126,7 @@ export default function GroupChat({ groupId, groupName, currentUserId, canChat =
             key={msg.id}
             message={msg}
             groupId={groupId}
+            currentUserId={currentUserId}
             isOwn={msg.senderId === currentUserId}
           />
         ))}
@@ -120,7 +134,12 @@ export default function GroupChat({ groupId, groupName, currentUserId, canChat =
 
       {/* Input */}
       {canChat ? (
-        <GroupChatInput onSend={(content) => sendMessage(content)} sending={sending} onShareClick={() => setShareModalOpen(true)} />
+        <GroupChatInput
+          onSend={(content) => sendMessage(content)}
+          sending={sending}
+          onShareClick={() => setShareModalOpen(true)}
+          onStartCoworkClick={() => setStartCoworkOpen(true)}
+        />
       ) : (
         <div style={{
           padding: '16px 24px', textAlign: 'center',
@@ -138,6 +157,15 @@ export default function GroupChat({ groupId, groupName, currentUserId, canChat =
         groupId={groupId}
         groupName={groupName}
         onShared={() => setShareModalOpen(false)}
+      />
+
+      <StartCoworkModal
+        open={startCoworkOpen}
+        onClose={() => setStartCoworkOpen(false)}
+        groupId={groupId}
+        groupName={groupName}
+        currentUserId={currentUserId}
+        onCreated={handleCoworkCreated}
       />
 
       <style>{`
