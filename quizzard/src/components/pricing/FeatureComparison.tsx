@@ -25,6 +25,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
       { name: 'AI Study Plans', icon: 'school', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
       { name: 'AI Quizzes', icon: 'quiz', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
       { name: 'Mage Chat Messages', icon: 'forum', free: '50/mo', plus: '100/mo', pro: 'Unlimited*' },
+      { name: 'Inline AI Editing', icon: 'auto_fix', free: '—', plus: '—', pro: 'Unlimited*' },
       { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
     ],
   },

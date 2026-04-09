@@ -20,6 +20,7 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_study_plan: 'AI Study Plans',
   ai_quizzes: 'AI Quizzes',
   scholar_chat: 'Mage Chat messages',
+  ai_inline_edit: 'Inline AI editing',
 };
 
 const FEATURE_ICONS: Record<FeatureType, string> = {
@@ -28,6 +29,7 @@ const FEATURE_ICONS: Record<FeatureType, string> = {
   ai_study_plan: 'school',
   ai_quizzes: 'quiz',
   scholar_chat: 'forum',
+  ai_inline_edit: 'auto_fix',
 };
 
 const ACCENT: Record<
@@ -232,7 +234,8 @@ export default function PricingCard({
                 className="material-symbols-outlined"
                 style={{
                   fontSize: 18,
-                  color: accent.text,
+                  color:
+                    limit === 0 ? 'var(--outline)' : accent.text,
                   fontVariationSettings: "'FILL' 1",
                   flexShrink: 0,
                   opacity: isRevealed ? 1 : 0,
@@ -241,16 +244,50 @@ export default function PricingCard({
                   transitionDelay: `${delay + 200 + idx * 50}ms`,
                 }}
               >
-                {limit === -1 ? 'all_inclusive' : 'check_circle'}
+                {limit === -1
+                  ? 'all_inclusive'
+                  : limit === 0
+                    ? 'lock'
+                    : 'check_circle'}
               </span>
-              <span>
+              <span
+                style={
+                  limit === 0
+                    ? {
+                        color: 'var(--outline)',
+                        textDecoration: 'line-through',
+                      }
+                    : undefined
+                }
+              >
                 {limit === -1 ? (
                   <strong style={{ color: accent.text }}>Unlimited*</strong>
-                ) : (
+                ) : limit === 0 ? null : (
                   limit
-                )}{' '}
+                )}
+                {limit !== 0 && ' '}
                 {FEATURE_LABELS[feature]}
-                {limit !== -1 && <span style={{ color: 'var(--outline)' }}>/mo</span>}
+                {limit > 0 && <span style={{ color: 'var(--outline)' }}>/mo</span>}
+                {limit === 0 && (
+                  <span
+                    style={{
+                      marginLeft: 6,
+                      padding: '1px 6px',
+                      borderRadius: 999,
+                      background: 'rgba(255, 222, 89, 0.14)',
+                      border: '1px solid rgba(255, 222, 89, 0.32)',
+                      color: '#ffde59',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      verticalAlign: 'middle',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Pro
+                  </span>
+                )}
               </span>
             </li>
           )

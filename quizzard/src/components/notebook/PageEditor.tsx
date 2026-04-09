@@ -38,6 +38,8 @@ import {
   type SlashCommandState,
 } from '@/lib/tiptap-slash-command';
 import SlashMenu from './SlashMenu';
+import InlineAIToolbar from './InlineAIToolbar';
+import UpsellToast from '@/components/ui/UpsellToast';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** Migrate legacy `heading` nodes to `toggleHeading` nodes in saved content. */
@@ -116,6 +118,11 @@ export default function PageEditor({
   const isMountedRef = useRef(true);
   const titleRef = useRef(title);
   titleRef.current = title;
+
+  /* ─── Inline AI upsell toast state ──────────────────────────────────── */
+  const [upsellOpen, setUpsellOpen] = useState(false);
+  const handleRequiresUpgrade = useCallback(() => setUpsellOpen(true), []);
+  const handleUpsellClose = useCallback(() => setUpsellOpen(false), []);
 
   /* ─── Slash command menu state ──────────────────────────────────────── */
   const [slashState, setSlashState] = useState<SlashCommandState>({
@@ -636,6 +643,12 @@ export default function PageEditor({
         <div style={{ padding: isPhone ? '16px 16px 60px' : isTablet ? '20px 28px 80px' : '28px 56px 80px', minHeight: '100%', position: 'relative' }}>
           <EditorContent editor={editor} />
           <SlashMenu state={slashState} editor={editor} />
+          <InlineAIToolbar
+            editor={editor}
+            notebookId={notebookId}
+            pageId={pageId}
+            onRequiresUpgrade={handleRequiresUpgrade}
+          />
           <DrawingOverlay
             strokes={strokes}
             onStrokesChange={handleStrokesChange}
@@ -649,6 +662,13 @@ export default function PageEditor({
           />
         </div>
       </div>
+
+      <UpsellToast
+        open={upsellOpen}
+        onClose={handleUpsellClose}
+        title="Inline AI is a Pro feature"
+        description="Rewrite, summarize, and expand your notes with one click — upgrade to Pro to unlock it."
+      />
     </div>
   );
 }
