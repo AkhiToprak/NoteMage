@@ -503,6 +503,31 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
           content: "3";
           font-size: 11px;
         }
+
+        /* Shrink react-colorful for the compact burger-menu item.
+         * Defaults are 200x200 with a 24px hue bar and 28x28 pointers,
+         * which looks oversized inside a dropdown. The outer size is
+         * already set via the inline style prop on <HexColorPicker>;
+         * these rules bring the hue bar and pointer down to match. */
+        .excalidraw .dropdown-menu .react-colorful {
+          border-radius: 6px;
+        }
+        .excalidraw .dropdown-menu .react-colorful__hue,
+        .excalidraw .dropdown-menu .react-colorful__alpha {
+          height: 14px;
+        }
+        .excalidraw .dropdown-menu .react-colorful__saturation {
+          border-bottom-width: 8px;
+          border-radius: 6px 6px 0 0;
+        }
+        .excalidraw .dropdown-menu .react-colorful__last-control {
+          border-radius: 0 0 6px 6px;
+        }
+        .excalidraw .dropdown-menu .react-colorful__pointer {
+          width: 14px;
+          height: 14px;
+          border-width: 2px;
+        }
       `}</style>
 
       {/* Title + save status */}
@@ -615,8 +640,8 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px',
-                    padding: '4px 0',
+                    gap: '6px',
+                    padding: '2px 0',
                     width: '100%',
                   }}
                   onPointerDown={(e) => {
@@ -627,36 +652,36 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
                 >
                   <div
                     style={{
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: 500,
-                      color: 'rgba(237,233,255,0.55)',
+                      color: 'rgba(237,233,255,0.5)',
                       letterSpacing: '0.02em',
-                      padding: '0 4px',
+                      padding: '0 2px',
                     }}
                   >
                     Canvas background
                   </div>
-                  <div style={{ padding: '0 4px' }}>
+                  <div style={{ padding: '0 2px' }}>
                     <HexColorPicker
                       color={bgColor}
                       onChange={handleBgColorChange}
-                      style={{ width: '100%', height: '140px' }}
+                      style={{ width: '100%', height: '96px' }}
                     />
                   </div>
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '0 4px',
+                      gap: '6px',
+                      padding: '0 2px',
                     }}
                   >
                     <div
                       aria-hidden="true"
                       style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '6px',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '4px',
                         background: bgColor,
                         border: '1px solid rgba(237,233,255,0.15)',
                         flexShrink: 0,
@@ -670,11 +695,11 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
                         flex: 1,
                         background: 'rgba(0,0,0,0.35)',
                         border: '1px solid rgba(237,233,255,0.12)',
-                        borderRadius: '6px',
+                        borderRadius: '5px',
                         color: '#ede9ff',
                         fontFamily: 'inherit',
-                        fontSize: '12px',
-                        padding: '6px 8px',
+                        fontSize: '11px',
+                        padding: '4px 6px',
                         outline: 'none',
                         minWidth: 0,
                       }}
