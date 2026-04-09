@@ -38,9 +38,20 @@ loadEnv();
 const WS_PORT = parseInt(process.env.WS_PORT || process.env.PORT || '3002', 10);
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 const WS_INTERNAL_SECRET = process.env.WS_INTERNAL_SECRET;
-const HEARTBEAT_INTERVAL = 30_000; // 30s
+const HEARTBEAT_INTERVAL = 30_000; // 30s (our own client-emitted heartbeat)
 const HEARTBEAT_TIMEOUT = 65_000; // miss 2 heartbeats → disconnect
+// Socket.IO ping/pong is the server-driven keep-alive that actually prevents
+// the DO App Platform / Cloudflare load balancer from closing the TCP
+// connection as idle. We keep these shorter than any known LB idle timeout
+// (DO's default is 60s) so the connection never goes silent long enough to
+// get reaped. Without this, sockets drop every ~60s with `transport close`.
+const SOCKETIO_PING_INTERVAL = 20_000; // 20s
+const SOCKETIO_PING_TIMEOUT = 25_000; // tolerate one missed ping before kill
 const LAST_SEEN_UPDATE_INTERVAL = 60_000; // batch DB updates every 60s
+
+// Git-stamp so we can verify from /debug whether the running binary is the
+// latest compiled code. Bumped by hand whenever the cowork logic changes.
+const WS_SERVER_BUILD_TAG = 'cowork-v5-buildtag-2026-04-09';
 
 if (!NEXTAUTH_SECRET) {
   console.error('[ws-server] NEXTAUTH_SECRET is not set. Exiting.');
@@ -139,14 +150,32 @@ const httpServer = createServer((req, res) => {
   // only reveal the first 4 chars + length, never the full value.
   if (req.url === '/debug') {
     const secret = WS_INTERNAL_SECRET || '';
+    // Dump the current cowork-room state so we can see whether any sockets
+    // are actually in session rooms. If a real session exists in the DB
+    // but coworkRoomsDetail is empty, we know the ws-server has the wrong
+    // code or nobody successfully ran the cowork:join handler.
+    const coworkRoomsDetail: Record<string, { users: number; sockets: number }> = {};
+    for (const [sessionId, userMap] of coworkSocketUsers.entries()) {
+      const roomSockets = io.sockets.adapter.rooms.get(`session:${sessionId}`);
+      coworkRoomsDetail[sessionId] = {
+        users: userMap.size,
+        sockets: roomSockets ? roomSockets.size : 0,
+      };
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
+        buildTag: WS_SERVER_BUILD_TAG,
         nodeVersion: process.version,
         uptimeSeconds: Math.round(process.uptime()),
         listeningPort: WS_PORT,
         onlineUsers: onlineUsers.size,
         coworkRooms: coworkSocketUsers.size,
+        coworkRoomsDetail,
+        pingConfig: {
+          pingInterval: SOCKETIO_PING_INTERVAL,
+          pingTimeout: SOCKETIO_PING_TIMEOUT,
+        },
         env: {
           NEXTAUTH_SECRET_set: !!NEXTAUTH_SECRET,
           WS_INTERNAL_SECRET_set: !!WS_INTERNAL_SECRET,
@@ -246,20 +275,34 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  pingInterval: HEARTBEAT_INTERVAL,
-  pingTimeout: HEARTBEAT_TIMEOUT,
+  // Short ping interval so the TCP connection never goes idle long enough
+  // for the DO App Platform / Cloudflare LB to reap it (`transport close`).
+  pingInterval: SOCKETIO_PING_INTERVAL,
+  pingTimeout: SOCKETIO_PING_TIMEOUT,
+  // Accept both transports; prefer websocket but fall back to polling if
+  // WebSockets are blocked by an intermediate proxy.
+  transports: ['websocket', 'polling'],
+  // Allow the client to upgrade from polling to websocket after the initial
+  // handshake. Default is true but being explicit.
+  allowUpgrades: true,
 });
 
 // ─── Connection handler ───
 io.on('connection', async (socket: Socket) => {
   const token = socket.handshake.auth?.token as string;
   if (!token) {
+    console.warn(
+      `[ws-server] connection ${socket.id} rejected: no token in handshake`
+    );
     socket.disconnect(true);
     return;
   }
 
   const verified = verifyPresenceToken(token);
   if (!verified) {
+    console.warn(
+      `[ws-server] connection ${socket.id} rejected: token verification failed`
+    );
     socket.emit('auth_error', { message: 'Invalid or expired token' });
     socket.disconnect(true);
     return;
@@ -267,6 +310,9 @@ io.on('connection', async (socket: Socket) => {
 
   const { userId } = verified;
   const wasOnline = isOnline(userId);
+  console.log(
+    `[ws-server] ✓ connection ${socket.id} authed as user ${userId} (transport: ${socket.conn.transport.name})`
+  );
 
   // Register connection
   if (!onlineUsers.has(userId)) {
@@ -306,7 +352,13 @@ io.on('connection', async (socket: Socket) => {
   // an active participant.
   socket.on('cowork:join', (payload: { sessionId?: string }) => {
     const sessionId = payload?.sessionId;
-    if (!sessionId || typeof sessionId !== 'string') return;
+    if (!sessionId || typeof sessionId !== 'string') {
+      console.warn(
+        `[ws-server] cowork:join rejected — socket ${socket.id} user ${userId} sent invalid payload:`,
+        payload
+      );
+      return;
+    }
 
     const room = `session:${sessionId}`;
     socket.join(room);
@@ -326,6 +378,13 @@ io.on('connection', async (socket: Socket) => {
     }
     const prevCount = usersInSession.get(userId) || 0;
     usersInSession.set(userId, prevCount + 1);
+
+    const roomSockets = io.sockets.adapter.rooms.get(room);
+    console.log(
+      `[ws-server] cowork:join ✓ socket ${socket.id} user ${userId} → ${room} ` +
+        `(room now has ${roomSockets ? roomSockets.size : 0} socket(s), ` +
+        `${usersInSession.size} distinct user(s))`
+    );
   });
 
   // ─── Cowork: leave a session room ───
@@ -404,8 +463,13 @@ io.on('connection', async (socket: Socket) => {
   );
 
   // Disconnect
-  socket.on('disconnect', async () => {
+  socket.on('disconnect', async (reason: string) => {
     const uid = socketToUser.get(socket.id);
+    const hadCoworkSessions = socketCoworkSessions.has(socket.id);
+    console.log(
+      `[ws-server] disconnect ${socket.id} user ${uid ?? '?'} ` +
+        `reason=${reason} hadCoworkSessions=${hadCoworkSessions}`
+    );
     if (!uid) return;
 
     socketToUser.delete(socket.id);
@@ -471,7 +535,11 @@ setInterval(async () => {
 
 // ─── Start ───
 httpServer.listen(WS_PORT, () => {
-  console.log(`[ws-server] Presence server listening on port ${WS_PORT}`);
+  console.log(
+    `[ws-server] Presence server listening on port ${WS_PORT} ` +
+      `(build=${WS_SERVER_BUILD_TAG} node=${process.version} ` +
+      `ping=${SOCKETIO_PING_INTERVAL}/${SOCKETIO_PING_TIMEOUT}ms)`
+  );
 });
 
 // Graceful shutdown

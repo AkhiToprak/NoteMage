@@ -140,11 +140,10 @@ function createSession(sessionId: string): SessionEntry {
       }
     });
 
-    // If the socket reconnects after a brief drop, re-join the room.
-    socket.io.on('reconnect', () => {
-      log('socket reconnected — re-joining room');
-      sendJoin();
-    });
+    // If the socket reconnects after a brief drop, the subsequent
+    // `connect` event already fires and calls sendJoin(). We deliberately
+    // do NOT also hook `socket.io.on('reconnect', ...)` to avoid
+    // double-emitting cowork:join on every reconnect cycle.
 
     // Wake up any consumers that mounted before the socket finished
     // initialising — they get the live socket immediately.

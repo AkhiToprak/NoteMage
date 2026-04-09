@@ -1,1 +1,1 @@
-web: node ws-dist/ws-server.cjs
+web: npm run build:ws && node ws-dist/ws-server.cjs
