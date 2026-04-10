@@ -19,16 +19,14 @@ const slides: Slide[] = [
     title: 'Write like a human',
     accent: '#ae89ff',
     chromeLabel: '/notebooks/algebra',
-    placeholder:
-      'https://placehold.co/1280x780/14122c/ae89ff/png?text=Text+Notes+Mockup',
+    placeholder: '/screenshots/text_file_screenshot.png',
   },
   {
     eyebrow: 'Infinite canvas',
     title: 'Draw like a wizard',
     accent: '#ffde59',
     chromeLabel: '/notebooks/anatomy/canvas',
-    placeholder:
-      'https://placehold.co/1280x780/0f0d24/ffde59/png?text=Infinite+Canvas+Mockup',
+    placeholder: '/screenshots/canvas_screenshot.png',
   },
 ];
 

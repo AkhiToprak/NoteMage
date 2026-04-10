@@ -62,7 +62,7 @@ export default function NotetakingCanvasSpotlight() {
             title="Write like a human"
             description="A rich text editor built for study sessions. Slash menu, markdown shortcuts, and inline AI that lives exactly where your cursor is."
             bullets={notetakingBullets}
-            mockImage="https://placehold.co/1280x760/14122c/ae89ff/png?text=Text+Notes"
+            mockImage="/screenshots/text_file_screenshot.png"
             mockCornerLabel="Algebra · Chapter 3"
             accent="rgba(174, 137, 255, 0.35)"
           />
@@ -73,7 +73,7 @@ export default function NotetakingCanvasSpotlight() {
             title="Draw like a wizard"
             description="A frictionless canvas for diagrams, sketches, and handwritten notes. Excalidraw under the hood, polished by us on top."
             bullets={canvasBullets}
-            mockImage="https://placehold.co/1280x760/0f0d24/ffde59/png?text=Infinite+Canvas"
+            mockImage="/screenshots/canvas_screenshot.png"
             mockCornerLabel="Anatomy · Sketchpad"
             accent="rgba(255, 222, 89, 0.35)"
           />
