@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import type { Editor } from '@tiptap/react';
+import { useAiTask } from './AiTaskContext';
 
 /**
  * Floating toolbar that appears whenever the user has a non-trivial text
@@ -43,6 +44,13 @@ const ACTION_LABELS: Record<InlineAction, string> = {
   expand: 'Expand',
 };
 
+// Labels shown in the global AI status pill while each action is running.
+const RUNNING_LABELS: Record<InlineAction, string> = {
+  rewrite: 'Rewriting…',
+  summarize: 'Summarizing…',
+  expand: 'Expanding…',
+};
+
 const ACTION_ICONS: Record<InlineAction, string> = {
   rewrite: 'auto_fix',
   summarize: 'short_text',
@@ -63,6 +71,8 @@ export default function InlineAIToolbar({
   );
   const [busyAction, setBusyAction] = useState<InlineAction | null>(null);
   const [hidden, setHidden] = useState(false);
+
+  const { startAiTask, finishAiTask } = useAiTask();
 
   // Snapshot of the selection captured the moment a button is pressed.
   // Used to restore selection + insert the AI text after the SSE stream.
@@ -162,6 +172,10 @@ export default function InlineAIToolbar({
       const selectedText = state.doc.textBetween(from, to, '\n');
 
       setBusyAction(action);
+
+      // Surface the busy state in the global AI status pill so progress is
+      // visible regardless of scroll position or toolbar visibility.
+      const taskId = startAiTask(RUNNING_LABELS[action]);
 
       // Abort any previous in-flight call before starting a new one
       abortRef.current?.abort();
@@ -266,11 +280,12 @@ export default function InlineAIToolbar({
         if ((err as Error).name === 'AbortError') return;
         (onError ?? console.error)((err as Error).message);
       } finally {
+        finishAiTask(taskId);
         setBusyAction(null);
         pendingRangeRef.current = null;
       }
     },
-    [editor, busyAction, notebookId, pageId, onRequiresUpgrade, onError]
+    [editor, busyAction, notebookId, pageId, onRequiresUpgrade, onError, startAiTask, finishAiTask]
   );
 
   const visible = position !== null && !hidden && editor !== null;

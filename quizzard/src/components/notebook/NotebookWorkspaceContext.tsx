@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { usePathname } from 'next/navigation';
 import { buildSectionTree } from '@/components/notebook/SectionTree';
 import type { SectionData, SectionNode } from '@/components/notebook/SectionTree';
+import { AiTaskProvider } from './AiTaskContext';
 
 interface NotebookMeta {
   name: string;
@@ -260,7 +261,7 @@ export function NotebookWorkspaceProvider({
         setSidebarCollapsed,
       }}
     >
-      {children}
+      <AiTaskProvider>{children}</AiTaskProvider>
     </NotebookWorkspaceContext.Provider>
   );
 }

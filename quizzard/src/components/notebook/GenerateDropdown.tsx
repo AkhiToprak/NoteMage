@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAiTask } from './AiTaskContext';
 
 interface GenerateDropdownProps {
   notebookId: string;
@@ -19,6 +20,13 @@ const OPTIONS: { type: GenerateType; label: string; icon: typeof BookOpen }[] = 
   { type: 'mindmap', label: 'Generate Mind Map', icon: Network },
 ];
 
+// Labels shown in the global AI status pill while each action is running.
+const AI_TASK_LABELS: Record<GenerateType, string> = {
+  flashcards: 'Generating flashcards…',
+  quiz: 'Generating quiz…',
+  mindmap: 'Generating mind map…',
+};
+
 export default function GenerateDropdown({
   notebookId,
   pageId,
@@ -30,6 +38,7 @@ export default function GenerateDropdown({
   const [loadingType, setLoadingType] = useState<GenerateType | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { startAiTask, finishAiTask } = useAiTask();
 
   // Close on outside click
   useEffect(() => {
@@ -46,6 +55,8 @@ export default function GenerateDropdown({
       if (loading) return;
       setLoading(true);
       setLoadingType(type);
+
+      const taskId = startAiTask(AI_TASK_LABELS[type]);
 
       try {
         const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/generate`, {
@@ -80,11 +91,12 @@ export default function GenerateDropdown({
       } catch {
         alert('Network error. Please try again.');
       } finally {
+        finishAiTask(taskId);
         setLoading(false);
         setLoadingType(null);
       }
     },
-    [loading, notebookId, pageId, router]
+    [loading, notebookId, pageId, router, startAiTask, finishAiTask]
   );
 
   return (
