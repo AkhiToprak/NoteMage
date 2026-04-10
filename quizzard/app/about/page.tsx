@@ -418,7 +418,7 @@ export default function AboutPage() {
           {/* Contact CTA */}
           <div style={{ marginTop: 32 }}>
             <a
-              href="mailto:notemage.app@gmail.com"
+              href="/contact"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
