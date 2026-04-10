@@ -34,6 +34,8 @@ import { ToggleHeading } from '@/lib/tiptap-toggle-heading';
 import ToggleHeadingView from './ToggleHeadingView';
 import PageLockIndicator from './PageLockIndicator';
 import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
+import { looksLikeMarkdown, markdownToHtml } from '@/lib/markdown-to-html';
+import { DOMParser as PMDOMParser } from '@tiptap/pm/model';
 import {
   SlashCommand,
   type SlashCommandState,
@@ -600,6 +602,31 @@ export default function PageEditor({
       content: '',
       editorProps: {
         attributes: { class: 'notemage-editor' },
+        // Plain-text markdown paste support. If the clipboard has text/html
+        // we let TipTap's default HTML pipeline handle it (that covers
+        // Google Docs, Notion, web pages, etc.). If it's pure text/plain
+        // and smells like markdown, we convert it to HTML first so the
+        // existing extension parseHTML rules can take over.
+        // See src/lib/markdown-to-html.ts for the detection heuristic.
+        handlePaste: (view, event) => {
+          const cb = event.clipboardData;
+          if (!cb) return false;
+          if (cb.types.includes('text/html')) return false;
+
+          const text = cb.getData('text/plain');
+          if (!text || !looksLikeMarkdown(text)) return false;
+
+          const html = markdownToHtml(text);
+          const container = document.createElement('div');
+          container.innerHTML = html;
+          const slice = PMDOMParser.fromSchema(view.state.schema).parseSlice(
+            container,
+            { preserveWhitespace: false }
+          );
+          view.dispatch(view.state.tr.replaceSelection(slice).scrollIntoView());
+          event.preventDefault();
+          return true;
+        },
       },
       onUpdate: ({ editor: ed }) => {
         // Data-loss guard: drop any updates that fire before hydration has
