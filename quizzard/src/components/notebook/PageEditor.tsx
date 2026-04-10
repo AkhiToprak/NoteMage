@@ -48,30 +48,65 @@ import RemoteCursor from './RemoteCursor';
 import { useCoworkSocket } from '@/lib/cowork-socket';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/** Migrate legacy `heading` nodes to `toggleHeading` nodes in saved content. */
+/**
+ * Prepare saved page content for re-entry into the editor.
+ *
+ *   1. Migrate any legacy `heading` nodes from older pages into
+ *      `toggleHeading` nodes so they keep rendering the same way.
+ *
+ *   2. Force every `toggleHeading` to `collapsed: false`. The outline
+ *      collapse plugin hides everything under a collapsed heading via
+ *      `display: none` — useful for live editing, but when the saved
+ *      state carries `collapsed: true` into a fresh page load every-
+ *      thing beneath that heading looks like it vanished (the user's
+ *      real bug report). Collapse is a UI affordance, not a content
+ *      property; it should not persist across reloads.
+ */
 function migrateHeadingsToToggle(doc: any): any {
   if (!doc || !doc.content) return doc;
-  return {
-    ...doc,
-    content: doc.content.map((node: any) => {
-      if (node.type === 'heading') {
-        const summaryText = (node.content || [])
-          .filter((c: any) => c.type === 'text')
-          .map((c: any) => c.text)
-          .join('');
-        return {
-          type: 'toggleHeading',
-          attrs: {
-            level: node.attrs?.level || 1,
-            collapsed: false,
-            summary: summaryText,
-          },
-          content: [{ type: 'paragraph' }],
-        };
-      }
-      return node;
-    }),
+
+  const walk = (node: any): any => {
+    if (!node || typeof node !== 'object') return node;
+
+    // Legacy `heading` → `toggleHeading` conversion.
+    if (node.type === 'heading') {
+      const summaryText = (node.content || [])
+        .filter((c: any) => c.type === 'text')
+        .map((c: any) => c.text)
+        .join('');
+      return {
+        type: 'toggleHeading',
+        attrs: {
+          level: node.attrs?.level || 1,
+          collapsed: false,
+          summary: summaryText,
+        },
+        content: [{ type: 'paragraph' }],
+      };
+    }
+
+    let next = node;
+
+    // Force expanded state on every toggle heading we see.
+    if (
+      node.type === 'toggleHeading' &&
+      node.attrs &&
+      node.attrs.collapsed
+    ) {
+      next = { ...node, attrs: { ...node.attrs, collapsed: false } };
+    }
+
+    // Recurse into children so nested toggles inside callouts / toggles
+    // also get reset.
+    if (Array.isArray(next.content)) {
+      const mapped = next.content.map(walk);
+      next = { ...next, content: mapped };
+    }
+
+    return next;
   };
+
+  return walk(doc);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -476,11 +511,20 @@ export default function PageEditor({
     async (contentJson: Record<string, unknown>, plainText: string, pageTitle: string) => {
       setSaveStatus('saving');
       try {
-        await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
+        const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: pageTitle, content: contentJson, textContent: plainText }),
         });
+        // `fetch` only throws on network errors — a 4xx/5xx response is
+        // still a resolved promise. Without this check, an API-side
+        // rejection (e.g. the empty-doc guard, oversized-body guard)
+        // would silently show "saved" and the user would reload to find
+        // their changes missing.
+        if (!res.ok) {
+          if (isMountedRef.current) setSaveStatus('unsaved');
+          return;
+        }
         if (isMountedRef.current) setSaveStatus('saved');
 
         // Real-time cowork doc broadcast. After the save has landed in
