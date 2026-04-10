@@ -33,6 +33,7 @@ import CalloutView from './CalloutView';
 import { ToggleHeading } from '@/lib/tiptap-toggle-heading';
 import ToggleHeadingView from './ToggleHeadingView';
 import PageLockIndicator from './PageLockIndicator';
+import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
 import {
   SlashCommand,
   type SlashCommandState,
@@ -535,6 +536,23 @@ export default function PageEditor({
   // Fix: keep the editor instance stable for the full pageId lifetime
   // and drive content/editable imperatively via `setContent` and
   // `setEditable`.
+
+  // Hydration tracking — declared BEFORE useEditor because the editor's
+  // onUpdate closure captures these refs and we'd otherwise hit a TDZ
+  // error. The hydration effect below is what actually writes to this
+  // ref; `onUpdate` only reads it as a gate.
+  //
+  // Data-loss context: without this gate, onUpdate could fire while the
+  // editor was still in its initial `content: ''` state and autosave
+  // the TipTap default empty doc over a user's real content. We lost a
+  // page this way on 2026-04-10 — the page was asleep (no tab open)
+  // yet somehow got wiped at 11:30. The client-side root cause is
+  // still under investigation, but even if another bug exists the gate
+  // guarantees the damaging PUT cannot come from this editor instance
+  // unless hydration has completed for the current pageId.
+  const hydratedForPageIdRef = useRef<string | null>(null);
+  const lastKnownContentWasEmptyRef = useRef<boolean>(false);
+
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -584,7 +602,27 @@ export default function PageEditor({
         attributes: { class: 'notemage-editor' },
       },
       onUpdate: ({ editor: ed }) => {
+        // Data-loss guard: drop any updates that fire before hydration has
+        // landed for the current pageId. This catches the "editor briefly
+        // has the default empty doc and onUpdate fires" race that was
+        // silently overwriting page content with the TipTap default
+        // {type:'doc',content:[{type:'paragraph'}]}.
+        //
+        // We also reject updates whose outgoing JSON is effectively empty
+        // when the editor was supposed to be hydrated — this is a belt-and
+        // -braces check that catches any other path that might emit an
+        // empty doc (e.g. a transient extension reset).
+        if (hydratedForPageIdRef.current !== pageId) return;
         const json = ed.getJSON() as Record<string, unknown>;
+        if (isEffectivelyEmptyTiptapDoc(json) && !lastKnownContentWasEmptyRef.current) {
+          // The user somehow went from non-empty to empty in a single
+          // onUpdate tick. That's almost never a legitimate edit; it's
+          // almost always the editor being reset under us. Skip the save.
+          // If the user really did select-all-and-delete, the next real
+          // keystroke will re-fire onUpdate with real content.
+          return;
+        }
+        lastKnownContentWasEmptyRef.current = isEffectivelyEmptyTiptapDoc(json);
         scheduleSave(json, ed.getText());
       },
     },
@@ -601,18 +639,31 @@ export default function PageEditor({
 
   // Hydrate editor content on initial page load. Only fires when the
   // editor instance or the pageId changes — NOT on every `page` state
-  // update — so polling can't restart this effect either.
-  const hydratedForPageIdRef = useRef<string | null>(null);
+  // update — so polling can't restart this effect either. The ref it
+  // writes is declared above the useEditor call so onUpdate's closure
+  // can read it as its hydration gate.
+  //
+  // The `page.id === pageId` check is critical: right after the pageId
+  // prop changes (e.g. navigating from page A to page B), React re-
+  // renders immediately with the new pageId but the `page` state still
+  // holds page A's data until the fetch for B resolves. Without this
+  // guard we'd hydrate the new editor with page A's content, then the
+  // onUpdate gate (which only checks hydratedForPageIdRef === pageId)
+  // would happily autosave A's content to page B's record. That's a
+  // second, separate data-loss bug — fixed here by refusing to hydrate
+  // until the fetched `page.id` matches the current `pageId`.
   useEffect(() => {
     if (!editor) return;
     if (!page?.content) return;
+    if (page.id !== pageId) return;
     if (hydratedForPageIdRef.current === pageId) return;
     hydratedForPageIdRef.current = pageId;
+    lastKnownContentWasEmptyRef.current = isEffectivelyEmptyTiptapDoc(page.content);
     editor.commands.setContent(
       migrateHeadingsToToggle(page.content),
       { emitUpdate: false }
     );
-  }, [editor, pageId, page?.content]);
+  }, [editor, pageId, page?.id, page?.content]);
 
   /* ─── Cowork: live document sync when viewing as a non-editor ─────── *
    * When the participant is locked out (host holds the lock and "open
@@ -740,14 +791,27 @@ export default function PageEditor({
     (newTitle: string) => {
       setTitle(newTitle);
       if (!editor) return;
+      // Hydration gate: refuse to save while the editor is still in its
+      // pre-hydration blank state. Otherwise changing the title before
+      // the initial fetch lands would autosave the TipTap default empty
+      // doc over the real content. The title input only mounts after
+      // `isLoading` is false so this guard is defence-in-depth, but
+      // cheap.
+      if (hydratedForPageIdRef.current !== pageId) return;
       setSaveStatus('unsaved');
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         const json = editor.getJSON() as Record<string, unknown>;
+        // Second-pass guard: if the editor somehow contains an empty
+        // doc despite the hydration check, drop the save. This is the
+        // same check the onUpdate path does.
+        if (isEffectivelyEmptyTiptapDoc(json) && !lastKnownContentWasEmptyRef.current) {
+          return;
+        }
         save(json, editor.getText(), newTitle);
       }, 1500);
     },
-    [editor, save]
+    [editor, save, pageId]
   );
 
   useEffect(() => {

@@ -12,6 +12,7 @@ import {
 import { recordActivity } from '@/lib/activity';
 import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
+import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
 
@@ -151,6 +152,27 @@ export async function PUT(request: NextRequest, { params }: Params) {
     }
     if (sortOrder !== undefined && (typeof sortOrder !== 'number' || !Number.isFinite(sortOrder))) {
       return badRequestResponse('Sort order must be a finite number');
+    }
+
+    // Data-loss guard: refuse to overwrite a non-empty text page's content
+    // with an effectively empty TipTap document. An unhydrated editor (or
+    // any transient reset) serialises to {type:'doc',content:[{type:'paragraph'}]}
+    // which is a valid object but would nuke the page. We've seen this happen
+    // in cowork sessions. The client has its own gate on hydration, this is
+    // the last line of defence at the API boundary.
+    //
+    // Only applies to text pages — canvas pages can legitimately save
+    // a "cleared" doc if the user wiped the drawing layer, and the canvas
+    // content shape isn't a TipTap doc anyway.
+    if (
+      content !== undefined &&
+      existing.pageType === 'text' &&
+      isEffectivelyEmptyTiptapDoc(content) &&
+      !isEffectivelyEmptyTiptapDoc(existing.content)
+    ) {
+      return badRequestResponse(
+        'Refused to overwrite non-empty page with empty document. This is always a bug on the client side — please reload the page and try again.'
+      );
     }
 
     const updated = await db.page.update({
