@@ -14,6 +14,20 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState<number | undefined>(undefined);
 
+  // New-style flat toggle headings have a single empty paragraph as
+  // their only child (a schema-compliance placeholder — the real
+  // "section content" lives as following siblings and is hidden via
+  // the position-collapse plugin on the extension). In that case we
+  // don't render the content area at all — it would show up as a
+  // blank line under every heading. Legacy toggles that still carry
+  // real block content inside their body render the content area as
+  // before.
+  const hasInlineBody = !(
+    node.content.childCount === 1 &&
+    node.content.firstChild?.type.name === 'paragraph' &&
+    node.content.firstChild.content.size === 0
+  );
+
   // Track content height via ResizeObserver so it updates when images load, etc.
   useEffect(() => {
     const el = contentRef.current;
@@ -58,11 +72,7 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
       data-toggle-level={level}
       data-collapsed={String(collapsed)}
       style={{
-        margin: '16px 0',
-        borderRadius: '8px',
-        border: '1px solid rgba(140,82,255,0.12)',
-        background: 'rgba(140,82,255,0.03)',
-        overflow: 'hidden',
+        margin: '14px 0 2px 0',
       }}
     >
       {/* Summary / heading row */}
@@ -71,12 +81,9 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '10px 14px',
+          gap: '6px',
           cursor: 'pointer',
           userSelect: 'none',
-          borderBottom: collapsed ? 'none' : '1px solid rgba(140,82,255,0.08)',
-          transition: 'border-color 0.2s',
         }}
         onClick={toggleCollapsed}
       >
@@ -84,7 +91,7 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
         <ChevronRight
           size={16}
           style={{
-            color: 'rgba(140,82,255,0.6)',
+            color: 'rgba(140,82,255,0.55)',
             flexShrink: 0,
             transition: 'transform 0.2s ease',
             transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)',
@@ -97,7 +104,7 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
           onChange={handleSummaryChange}
           onKeyDown={handleSummaryKeyDown}
           onClick={(e) => e.stopPropagation()}
-          placeholder={`Toggle Heading ${level}`}
+          placeholder={`Heading ${level}`}
           style={{
             flex: 1,
             background: 'none',
@@ -114,17 +121,25 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
         />
       </div>
 
-      {/* Collapsible content */}
+      {/* Collapsible body.
+          For flat-model toggles the body is a single empty paragraph
+          placeholder — we hide it entirely with display:none to keep
+          the heading flush with the following content. Legacy toggles
+          that still carry real nested content animate open/closed on
+          the `collapsed` attr as before.
+          NodeViewContent must always be mounted in the DOM (even when
+          hidden) so ProseMirror can keep tracking the child positions. */}
       <div
         ref={contentRef}
         style={{
+          display: hasInlineBody ? 'block' : 'none',
           overflow: 'hidden',
           transition: 'max-height 0.25s ease, opacity 0.2s ease',
           maxHeight: collapsed ? '0px' : contentHeight ? `${contentHeight + 40}px` : '2000px',
           opacity: collapsed ? 0 : 1,
         }}
       >
-        <div style={{ padding: '12px 14px 14px 38px' }}>
+        <div style={{ padding: '4px 0 4px 22px' }}>
           <NodeViewContent />
         </div>
       </div>
