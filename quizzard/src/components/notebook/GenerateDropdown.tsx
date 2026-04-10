@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAiTask } from './AiTaskContext';
+import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 
 interface GenerateDropdownProps {
   notebookId: string;
@@ -39,6 +40,7 @@ export default function GenerateDropdown({
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { startAiTask, finishAiTask } = useAiTask();
+  const { refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
 
   // Close on outside click
   useEffect(() => {
@@ -77,10 +79,12 @@ export default function GenerateDropdown({
 
         if (data.type === 'flashcards' && data.flashcardSet) {
           setOpen(false);
-          router.push(`/notebooks/${notebookId}?tab=flashcards&setId=${data.flashcardSet.id}`);
+          refreshFlashcardSets();
+          router.push(`/notebooks/${notebookId}/flashcards/${data.flashcardSet.id}`);
         } else if (data.type === 'quiz' && data.quizSet) {
           setOpen(false);
-          router.push(`/notebooks/${notebookId}?tab=quiz&setId=${data.quizSet.id}`);
+          refreshQuizSets();
+          router.push(`/notebooks/${notebookId}/quizzes/${data.quizSet.id}`);
         } else if (data.type === 'mindmap' && data.mindmap) {
           setOpen(false);
           alert(`Mind map "${data.mindmap.title}" generated successfully!`);
@@ -96,7 +100,7 @@ export default function GenerateDropdown({
         setLoadingType(null);
       }
     },
-    [loading, notebookId, pageId, router, startAiTask, finishAiTask]
+    [loading, notebookId, pageId, router, startAiTask, finishAiTask, refreshFlashcardSets, refreshQuizSets]
   );
 
   return (
