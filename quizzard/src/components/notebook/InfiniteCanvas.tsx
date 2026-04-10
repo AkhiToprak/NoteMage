@@ -287,6 +287,7 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
   const lastBgColorRef = useRef<string>(DEFAULT_BG);
   const [bgColor, setBgColor] = useState<string>(DEFAULT_BG);
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('blank');
+  const [hasPendingImage, setHasPendingImage] = useState(false);
   const backgroundStyleRef = useRef<BackgroundStyle>('blank');
   const patternElementRef = useRef<SVGPatternElement | null>(null);
   titleRef.current = title;
@@ -409,6 +410,15 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
         appState.scrollY,
         appState.zoom.value,
       );
+
+      // Track Excalidraw's "waiting for user to click to place an image"
+      // state so we can render a hint overlay. pendingImageElementId is
+      // non-null only between file-pick and click-to-place; it resets to
+      // null on placement AND on Escape/tool-cancel. Using the functional
+      // setter lets React bail out when the value hasn't changed, so this
+      // is free on pointer-move frames.
+      const nextPending = appState.pendingImageElementId !== null;
+      setHasPendingImage((prev) => (prev === nextPending ? prev : nextPending));
 
       const version = getSceneVersion(elements);
       if (version === lastSceneVersionRef.current) return;
@@ -969,6 +979,36 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
               </svg>
             )}
           </div>
+          {hasPendingImage && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                position: 'absolute',
+                top: '24px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 5,
+                pointerEvents: 'none',
+                padding: '10px 16px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(24,24,42,0.9)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(174,137,255,0.35)',
+                boxShadow:
+                  '0 8px 32px rgba(174,137,255,0.15), 0 2px 8px rgba(0,0,0,0.4)',
+                color: '#ede9ff',
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                fontWeight: 500,
+                letterSpacing: '-0.005em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Click anywhere on the canvas to place your image
+            </div>
+          )}
           <Excalidraw
             initialData={initialData}
             onChange={handleChange}
