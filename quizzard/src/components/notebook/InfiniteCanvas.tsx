@@ -969,7 +969,6 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
                 export: {},
                 clearCanvas: true,
                 changeViewBackgroundColor: true,
-                toggleTheme: true,
               },
             }}
           >
@@ -1114,8 +1113,6 @@ export default function InfiniteCanvas({ notebookId, pageId }: InfiniteCanvasPro
                   </div>
                 </div>
               </MainMenu.ItemCustom>
-              <MainMenu.Separator />
-              <MainMenu.DefaultItems.ToggleTheme />
             </MainMenu>
 
             {/* Custom welcome screen with no "Welcome to Excalidraw" text. */}
