@@ -6,7 +6,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { TOGGLE_HEADING_STYLES, type ToggleLevel } from '@/lib/tiptap-toggle-heading';
 import { ChevronRight } from 'lucide-react';
 
-export default function ToggleHeadingView({ node, updateAttributes }: NodeViewProps) {
+export default function ToggleHeadingView({
+  node,
+  updateAttributes,
+  getPos,
+  editor,
+}: NodeViewProps) {
   const level = (node.attrs.level as ToggleLevel) || 1;
   const collapsed = !!node.attrs.collapsed;
   const summary = (node.attrs.summary as string) || '';
@@ -58,13 +63,25 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        // Focus into the content area
+        // Enter in the summary input ends the heading and drops the
+        // user into a fresh paragraph right after it — so they can
+        // keep typing body text without having to click anywhere.
+        // Auto-uncollapse first so the new paragraph isn't hidden by
+        // the position-collapse plugin.
         if (collapsed) {
           updateAttributes({ collapsed: false });
         }
+        const pos = typeof getPos === 'function' ? getPos() : null;
+        if (typeof pos !== 'number') return;
+        const afterPos = pos + node.nodeSize;
+        editor
+          .chain()
+          .insertContentAt(afterPos, { type: 'paragraph' })
+          .focus(afterPos + 1)
+          .run();
       }
     },
-    [collapsed, updateAttributes]
+    [collapsed, editor, getPos, node, updateAttributes]
   );
 
   return (
@@ -75,26 +92,31 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
         margin: '14px 0 2px 0',
       }}
     >
-      {/* Summary / heading row */}
+      {/* Summary / heading row.
+          The chevron is absolutely positioned in a left-side gutter
+          (left: -22px) so it doesn't eat inline space — the heading
+          text therefore starts flush with the editor's content left
+          edge, matching any sibling paragraphs beneath it. */}
       <div
         contentEditable={false}
         style={{
+          position: 'relative',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
           cursor: 'pointer',
           userSelect: 'none',
         }}
         onClick={toggleCollapsed}
       >
-        {/* Chevron */}
         <ChevronRight
           size={16}
           style={{
+            position: 'absolute',
+            left: '-22px',
+            top: '50%',
             color: 'rgba(140,82,255,0.55)',
-            flexShrink: 0,
+            transform: `translateY(-50%) rotate(${collapsed ? '0deg' : '90deg'})`,
             transition: 'transform 0.2s ease',
-            transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)',
           }}
         />
 
@@ -139,7 +161,7 @@ export default function ToggleHeadingView({ node, updateAttributes }: NodeViewPr
           opacity: collapsed ? 0 : 1,
         }}
       >
-        <div style={{ padding: '4px 0 4px 22px' }}>
+        <div style={{ padding: '4px 0 4px 0' }}>
           <NodeViewContent />
         </div>
       </div>
