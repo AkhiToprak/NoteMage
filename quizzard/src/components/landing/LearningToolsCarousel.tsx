@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import useEmblaCarousel from 'embla-carousel-react';
 import SectionHeader from './SectionHeader';
 
@@ -11,6 +12,7 @@ interface Tool {
   description: string;
   accent: string;
   placeholder: string;
+  docsHref: string;
 }
 
 const tools: Tool[] = [
@@ -23,6 +25,7 @@ const tools: Tool[] = [
     accent: '#ae89ff',
     placeholder:
       'https://placehold.co/620x400/161630/ae89ff/png?text=Flashcards',
+    docsHref: '/docs/flashcards',
   },
   {
     icon: 'quiz',
@@ -33,6 +36,7 @@ const tools: Tool[] = [
     accent: '#ffde59',
     placeholder:
       'https://placehold.co/620x400/14122c/ffde59/png?text=Quizzes',
+    docsHref: '/docs/quizzes',
   },
   {
     icon: 'slideshow',
@@ -43,6 +47,7 @@ const tools: Tool[] = [
     accent: '#b9c3ff',
     placeholder:
       'https://placehold.co/620x400/12102a/b9c3ff/png?text=Slides',
+    docsHref: '/docs/presentations',
   },
   {
     icon: 'account_tree',
@@ -53,6 +58,7 @@ const tools: Tool[] = [
     accent: '#8ce5a7',
     placeholder:
       'https://placehold.co/620x400/0f0d24/8ce5a7/png?text=Mind+Maps',
+    docsHref: '/docs/mind-maps',
   },
   {
     icon: 'event',
@@ -63,6 +69,7 @@ const tools: Tool[] = [
     accent: '#fd6f85',
     placeholder:
       'https://placehold.co/620x400/1a1030/fd6f85/png?text=Countdown',
+    docsHref: '/docs/exams-and-timers#exams',
   },
   {
     icon: 'bolt',
@@ -73,6 +80,7 @@ const tools: Tool[] = [
     accent: '#c9a6ff',
     placeholder:
       'https://placehold.co/620x400/160f2c/c9a6ff/png?text=XP',
+    docsHref: '/docs/xp-streaks-achievements',
   },
   {
     icon: 'timer',
@@ -83,6 +91,7 @@ const tools: Tool[] = [
     accent: '#ff9566',
     placeholder:
       'https://placehold.co/620x400/1a1025/ff9566/png?text=Pomodoro',
+    docsHref: '/docs/exams-and-timers#pomodoro',
   },
 ];
 
@@ -391,7 +400,10 @@ function ToolCard({ tool }: { tool: Tool }) {
           {tool.description}
         </p>
 
-        <div
+        <Link
+          href={tool.docsHref}
+          aria-label={`Explore ${tool.title} documentation`}
+          className="tool-explore"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -402,13 +414,39 @@ function ToolCard({ tool }: { tool: Tool }) {
             textTransform: 'uppercase',
             color: tool.accent,
             fontWeight: 600,
+            textDecoration: 'none',
+            cursor: 'pointer',
+            padding: '6px 10px',
+            margin: '-6px -10px',
+            borderRadius: 'var(--radius-sm)',
+            transition:
+              'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            outlineOffset: 3,
+            ['--tool-accent' as string]: tool.accent,
+          }}
+          onMouseEnter={(e) => {
+            const arrow = e.currentTarget.querySelector('span');
+            if (arrow) (arrow as HTMLElement).style.transform = 'translateX(3px)';
+            e.currentTarget.style.background = `${tool.accent}14`;
+          }}
+          onMouseLeave={(e) => {
+            const arrow = e.currentTarget.querySelector('span');
+            if (arrow) (arrow as HTMLElement).style.transform = 'translateX(0)';
+            e.currentTarget.style.background = 'transparent';
           }}
         >
           Explore
-          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontSize: 16,
+              transition:
+                'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          >
             arrow_forward
           </span>
-        </div>
+        </Link>
       </div>
     </div>
   );

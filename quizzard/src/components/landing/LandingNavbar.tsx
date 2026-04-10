@@ -25,6 +25,7 @@ export default function LandingNavbar() {
   const links = [
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How it works' },
+    { href: '/docs', label: 'Docs' },
     { href: '/pricing', label: 'Pricing' },
   ];
 

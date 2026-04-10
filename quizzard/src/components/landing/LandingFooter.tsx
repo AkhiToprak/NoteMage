@@ -16,10 +16,10 @@ const columns = [
   {
     title: 'Learn',
     links: [
+      { label: 'Docs', href: '/docs' },
       { label: 'How it works', href: '#how-it-works' },
       { label: 'Tutorials', href: '#' },
       { label: 'Study tips', href: '#' },
-      { label: 'Exam guides', href: '#' },
     ],
   },
   {
