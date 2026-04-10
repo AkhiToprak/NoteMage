@@ -1,13 +1,13 @@
 ---
-title: Scholar Chat
+title: Mage Chat
 description: The in-notebook AI tutor — how to give it context and what tools it can use.
 category: AI features
 order: 30
 ---
 
-Scholar Chat is Notemage's AI tutor. It runs on **Claude Haiku 4.5** (Anthropic) and lives inside every notebook. You can ask it to explain something, quiz you, summarize a chapter, build study materials, or just talk through a tough concept.
+Mage Chat is Notemage's AI tutor. When you create your account, you're asked to name your Mage, your Mage will then listen to this name. It runs on **Claude Haiku 4.5** (Anthropic) and lives inside every notebook. You can ask it to explain something, quiz you, summarize a chapter, build study materials, or just talk through a tough concept.
 
-What makes Scholar Chat different from a generic chatbot is that it can **read your notebook**. You pick which pages and documents you want it to use as context, and the AI reads them before responding.
+What makes Mage Chat different from a generic chatbot is that it can **read your notebook**. You pick which pages and documents you want it to use as context, and the AI reads them before responding.
 
 ## Starting a chat
 
@@ -24,7 +24,7 @@ When you start a chat (or as you go), you can attach:
 - One or more **pages** from the notebook.
 - One or more **uploaded documents**.
 
-Scholar Chat reads the text content of the things you attach. Attach the chapter you're studying, then ask "explain the part about diffraction" — it'll know what you mean.
+Mage Chat reads the text content of the things you attach. Attach the chapter you're studying, then ask "explain the part about diffraction" — it'll know what you mean.
 
 ## Streaming responses
 
@@ -32,7 +32,7 @@ Replies stream in token-by-token via Server-Sent Events, so you see the answer b
 
 ## Tools the AI can call
 
-Scholar Chat doesn't just talk — it can build things for you. The AI has access to a set of tools and decides when to call them based on what you ask:
+Mage Chat doesn't just talk — it can build things for you. The AI has access to a set of tools and decides when to call them based on what you ask:
 
 - **`create_flashcards`** — generates a flashcard deck. Each card has a question and an answer; the AI picks the title.
 - **`create_quiz`** — generates a multiple-choice quiz with hints and explanations.
@@ -53,10 +53,10 @@ The AI picks the right tool. The result shows up inside the chat, and (for flash
 
 ## Limits
 
-Scholar Chat usage counts against your monthly **token budget** plus a per-feature **message cap**:
+Mage Chat usage counts against your monthly **token budget** plus a per-feature **message cap**:
 
 - **Free** — 50 messages/month, 100K tokens/month.
 - **Plus** — 100 messages/month, 500K tokens/month.
-- **Pro** — unlimited messages, 1M tokens/month.
+- **Pro** — unlimited messages, 1M tokens/month \*fair use limit to avoid abuse, more than you'll ever need! .
 
 There's also a per-minute rate limit (~20 requests/minute) to keep the system responsive for everyone. See [Plans and limits](/docs/plans-and-limits).

@@ -37,17 +37,14 @@ A 1:1 thread between you and one other user. Notemage keeps DMs as a special "gr
 
 There are several distinct ways a notebook can leave your account:
 
-| Channel | Who sees it | When to use it |
-|---|---|---|
-| **Co-work session** | Friends you invite, in real time | Live group study, peer review |
-| **Group share** | Members of a study group / class | Async sharing of materials with the group |
-| **Publish** | Anyone with the link / public profile visitors | Showing off your notes, sharing publicly |
-
-Publishing a notebook also awards **+30 XP** ([XP and streaks](/docs/xp-streaks-achievements)), since it's a real act of contributing back to the community.
+| Channel             | Who sees it                      | When to use it                            |
+| ------------------- | -------------------------------- | ----------------------------------------- |
+| **Co-work session** | Friends you invite, in real time | Live group study, peer review             |
+| **Group share**     | Members of a study group / class | Async sharing of materials with the group |
 
 ## Public profiles
 
-Each user has a public profile page that other people can visit. It shows your level, streak, achievements, and any notebooks you've chosen to publish. It's read-only to other people — they can browse, but they can't change anything.
+Each user has a public profile page that other people can visit. It shows your level, streak and achievements. It's read-only to other people — they can browse, but they can't change anything.
 
 ## See also
 

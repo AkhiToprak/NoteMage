@@ -18,15 +18,6 @@ You can upload these directly to a notebook:
 
 Once a document is uploaded, its extracted text is stored alongside the original file. That extracted text is what Scholar Chat reads when you add the document as context, and it's what's used for AI summaries and study-tool generation.
 
-## Document summaries
-
-Each uploaded document can be summarized by AI in two flavours:
-
-- **Brief** — short, dense recap.
-- **Detailed** — section-by-section walkthrough.
-
-Summaries count against your monthly token budget. See [Plans and limits](/docs/plans-and-limits).
-
 ## OneNote import
 
 Notemage supports importing from Microsoft OneNote via OAuth. Connect your Microsoft account, pick a OneNote section, and Notemage will pull the pages in. Setup requires the Microsoft side to be configured for your account.

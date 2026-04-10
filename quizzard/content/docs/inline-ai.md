@@ -5,7 +5,7 @@ category: AI features
 order: 42
 ---
 
-Inline AI is the toolbar that pops up when you select text on a text page. Without leaving the page or opening Scholar Chat, you can ask the AI to rewrite, summarise, or expand the selection. The result streams back and replaces the selection in place.
+Inline AI is the toolbar that pops up when you select text on a text page. Without leaving the page or opening Mage Chat, you can ask the AI to rewrite, summarise, or expand the selection. The result streams back and replaces the selection in place.
 
 ## What it does
 

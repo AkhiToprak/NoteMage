@@ -11,17 +11,16 @@ Notemage has a lightweight progression system layered on top of your study habit
 
 You earn XP whenever you do something productive in the app. Concrete amounts:
 
-| Action | XP |
-|---|---|
-| Send a message in Scholar Chat | 5 |
-| Edit a page | 3 |
-| Create a page | 10 |
-| Upload a document | 15 |
-| Review a flashcard | 2 |
-| Complete a flashcard set | 25 |
-| Complete a quiz | 20 |
-| Get a perfect quiz score | 50 |
-| Publish a notebook | 30 |
+| Action                      | XP  |
+| --------------------------- | --- |
+| Send a message in Mage Chat | 5   |
+| Edit a page                 | 3   |
+| Create a page               | 10  |
+| Upload a document           | 15  |
+| Review a flashcard          | 2   |
+| Complete a flashcard set    | 25  |
+| Complete a quiz             | 20  |
+| Get a perfect quiz score    | 50  |
 
 Plus streak milestones (see below).
 
@@ -51,11 +50,11 @@ Hitting a streak length awards a one-time XP bonus:
 
 There are 18 achievements in total, grouped into five categories:
 
-- **Study** — for hitting study goals (e.g. *Daily goal*).
+- **Study** — for hitting study goals (e.g. _Daily goal_).
 - **Content** — for creating things in your notebooks.
-- **Social** — for friends and groups (e.g. *First friend*, *First group*).
-- **Streak** — for streak milestones (e.g. *7-day streak*).
-- **Special** — including a meta achievement, *All achievements*, that unlocks once you've collected the other 17.
+- **Social** — for friends and groups (e.g. _First friend_, _First group_).
+- **Streak** — for streak milestones (e.g. _7-day streak_).
+- **Special** — including a meta achievement, _All achievements_, that unlocks once you've collected the other 17.
 
 Each achievement shows your progress toward it (e.g. "5 / 7 days") so you can see what's next without guessing.
 

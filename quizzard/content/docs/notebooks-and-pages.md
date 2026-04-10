@@ -9,9 +9,9 @@ Notemage organizes your work into **notebooks → sections → pages**. A notebo
 
 ## Notebooks
 
-A notebook is the top-level container. It owns its sections, pages, documents, flashcard sets, quiz sets, study plans, and chats. You can have as many notebooks as you want, and you can group them into folders from the dashboard.
+A notebook is the top-level container. It owns its sections, pages, documents, flashcard sets, quiz sets, study plans, and chats. You can have as many notebooks as you want, and you can group them into folders from the Notebooks page.
 
-You can rate, share, and download notebooks (yours or other people's that have been published). Sharing is covered in [Groups and sharing](/docs/groups-and-sharing).
+You can share, or download shared notebooks. Sharing is covered in [Groups and sharing](/docs/groups-and-sharing).
 
 ## Sections
 
@@ -25,7 +25,7 @@ A page is what you actually read, write, and study from. Notemage has two kinds:
 
 ### Text pages
 
-Rich-text editor with formatting, headings, lists, links, and inline images. Most notes live here. Text pages are also what AI features chew on — when Scholar Chat reads a "page as context," it's reading the text content of that page.
+Rich-text editor with formatting, headings, lists, links, and inline images. Most notes live here. Text pages are also what AI features chew on — when Mage Chat reads a "page as context," it's reading the text content of that page.
 
 Inline AI tools (rewrite / summarize / expand) live in a selection toolbar on text pages. See [Inline AI](/docs/inline-ai).
 

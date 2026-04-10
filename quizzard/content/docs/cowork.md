@@ -36,10 +36,6 @@ Each session has its own chat sidebar so you can talk to the rest of the group w
 
 Only the host can end the session. When they do, everyone is disconnected. Re-starting later creates a fresh session.
 
-## Infrastructure note
-
-Co-work runs over a separate WebSocket server. If your self-hosted Notemage instance has the WS server unreachable, co-work will refuse to connect — the rest of the app keeps working. On the hosted version this is managed for you.
-
 ## See also
 
 - [Groups and sharing](/docs/groups-and-sharing) — for asynchronous sharing inside study groups.

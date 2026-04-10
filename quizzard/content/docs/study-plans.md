@@ -25,11 +25,11 @@ So a generated plan can say things like:
 
 ## Generating a plan
 
-Open Scholar Chat in the notebook and ask:
+Open Mage Chat in the notebook and ask:
 
 > "Build a 6-week study plan for the midterm using everything I've imported."
 
-Scholar Chat picks the `create_study_plan` tool. It looks at your notebook inventory, picks materials it thinks belong in each phase, and writes the plan. The plan opens at **/notebooks/[id]/study-plan/[planId]**.
+Mage Chat picks the `create_study_plan` tool. It looks at your notebook inventory, picks materials it thinks belong in each phase, and writes the plan. The plan opens at **/notebooks/[id]/study-plan/[planId]**.
 
 ## Tracking progress
 

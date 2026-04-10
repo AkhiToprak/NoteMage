@@ -29,7 +29,7 @@ If you fail to sign in five times in a row, the account is locked for one hour. 
 
 After signing in you land on **/dashboard**. From there you can:
 
-- Create a new notebook.
+- Manage To-Do's.
 - Open recent notebooks.
 - See your XP, level, and current study streak.
 - Add upcoming exams to the countdown.
@@ -39,12 +39,12 @@ The dashboard is the hub — everything else lives one click away.
 
 ## Your first notebook
 
-1. From the dashboard, hit **New notebook**.
-2. Give it a name and (optionally) a folder.
+1. From the Notebooks page, hit **New notebook**.
+2. Give it a name.
 3. Inside the notebook, create a **section**, then a **page**.
 4. Pages can be either a **text page** (rich editor) or a **canvas page** (Excalidraw drawing surface). Pick whichever fits the material.
 
-Once a page has content on it, the rest of Notemage opens up — you can ask Scholar Chat to explain it, generate flashcards from it, build a quiz, draft a presentation, or rough out a study plan.
+Once a page has content on it, the rest of Notemage opens up — you can ask your personal Mage Chat to explain it, generate flashcards from it, build a quiz, draft a presentation, or rough out a study plan.
 
 ## Where to go next
 

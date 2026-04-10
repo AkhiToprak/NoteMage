@@ -22,11 +22,11 @@ From a notebook, create a new quiz set and add questions one at a time. For each
 
 ### With AI
 
-Easier path: open Scholar Chat, attach the page you want to be tested on, and ask:
+Easier path: open Mage Chat, attach the page you want to be tested on, and ask:
 
 > "Make a 15-question quiz on this chapter, with hints and explanations for each."
 
-Scholar Chat calls the `create_quiz` tool and writes the questions. You can edit any of them afterwards.
+Mage Chat calls the `create_quiz` tool and writes the questions. You can edit any of them afterwards.
 
 ## Taking a quiz
 

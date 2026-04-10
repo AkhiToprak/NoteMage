@@ -15,17 +15,19 @@ Open a notebook → flashcards → **New flashcard set**. Type cards yourself, o
 
 ### 2. With AI
 
-Open Scholar Chat in the notebook, attach the page (or document) you want to study, and ask:
+Open Mage Chat in the notebook, attach the page (or document) you want to study, and ask:
 
 > "Make 25 flashcards from this page on the citric acid cycle."
 
-Scholar Chat picks the `create_flashcards` tool, drafts the deck, and saves it back to the notebook. You can edit any card afterwards.
+Mage Chat picks the `create_flashcards` tool, drafts the deck, and saves it back to the notebook. You can edit any card afterwards.
+
+Or simply click the AI icon in the toolbar while editing your textfile and tell it to create flashcards!
 
 ### 3. By import
 
 Notemage can import existing decks. The supported sources are:
 
-- **Quizlet** — paste a Quizlet set URL.
+- **Quizlet** — paste a csv export from Quizlet.
 - **CSV** — one card per row.
 - **JSON** — for power users moving decks between tools.
 
@@ -57,5 +59,5 @@ Manually-created and imported decks are unlimited on every plan. See [Plans and 
 ## Related docs
 
 - [Quizzes](/docs/quizzes) — multiple-choice tests, the natural counterpart to flashcards.
-- [Scholar Chat](/docs/scholar-chat) — how to ask the AI for a deck.
+- [Mage Chat](/docs/scholar-chat) — how to ask the AI for a deck.
 - [Presentations](/docs/presentations) — for the bigger story on PowerPoint exports.
