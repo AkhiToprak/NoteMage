@@ -173,8 +173,19 @@ export function UserAvatar({
   );
 
   if (!frame) {
+    // Mirror the effective radius onto the outer wrapper so any `border`
+    // callers pass via `style` (e.g. profile page's subtle purple ring)
+    // is rounded to match the inner image instead of showing as a square
+    // around a circle.
     return (
-      <div className={className} style={{ display: 'inline-flex', ...style }}>
+      <div
+        className={className}
+        style={{
+          display: 'inline-flex',
+          borderRadius: innerRadius,
+          ...style,
+        }}
+      >
         {inner}
       </div>
     );

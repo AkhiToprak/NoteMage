@@ -113,6 +113,13 @@ export default function ProfilePage() {
   });
   const [cosmeticsForm, setCosmeticsForm] =
     useState<CosmeticsSelection>(EMPTY_COSMETICS);
+  // Independent save state for the always-visible Appearance card so it
+  // can be edited without having to also enter the About edit mode.
+  const [cosmeticsDirty, setCosmeticsDirty] = useState(false);
+  const [cosmeticsSaving, setCosmeticsSaving] = useState(false);
+  const [cosmeticsFeedback, setCosmeticsFeedback] = useState<
+    { kind: 'saved' | 'error'; message: string } | null
+  >(null);
 
   // Mage level (computed from XP)
   const [mageLevel, setMageLevel] = useState<number | null>(null);
@@ -132,7 +139,20 @@ export default function ProfilePage() {
       .then((r) => r.json())
       .then((res) => {
         const d = res?.data ?? res;
-        if (d?.id) setProfile(d);
+        if (d?.id) {
+          setProfile(d);
+          // Seed the standalone Appearance card with whatever the user is
+          // currently wearing so the panel renders with the right
+          // selections highlighted on first paint.
+          setCosmeticsForm({
+            equippedTitleId: d.equippedTitleId ?? null,
+            fontId: d.nameStyle?.fontId ?? null,
+            colorId: d.nameStyle?.colorId ?? null,
+            equippedFrameId: d.equippedFrameId ?? null,
+            equippedBackgroundId: d.equippedBackgroundId ?? null,
+          });
+          setCosmeticsDirty(false);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -158,13 +178,9 @@ export default function ProfilePage() {
       profilePrivate: profile.profilePrivate,
       hideAchievements: profile.hideAchievements,
     });
-    setCosmeticsForm({
-      equippedTitleId: profile.equippedTitleId,
-      fontId: profile.nameStyle?.fontId ?? null,
-      colorId: profile.nameStyle?.colorId ?? null,
-      equippedFrameId: profile.equippedFrameId,
-      equippedBackgroundId: profile.equippedBackgroundId,
-    });
+    // cosmeticsForm lives in the always-visible Appearance card and is
+    // seeded from profile on mount — no need to re-seed here, and doing
+    // so would blow away any pending cosmetic selections.
     setEditing(true);
   };
 
@@ -265,6 +281,60 @@ export default function ProfilePage() {
       setModalError('Save failed. Please try again.');
     } finally {
       setModalSaving(false);
+    }
+  };
+
+  // Appearance card has its own save path — it's always visible (not
+  // gated on `editing`) so users can tweak cosmetics without touching
+  // their About details. PUT sends only cosmetic fields so we don't
+  // accidentally clobber anything else.
+  const handleCosmeticsChange = (next: CosmeticsSelection) => {
+    setCosmeticsForm(next);
+    setCosmeticsDirty(true);
+    setCosmeticsFeedback(null);
+  };
+
+  const handleSaveCosmetics = async () => {
+    if (cosmeticsSaving) return;
+    setCosmeticsSaving(true);
+    setCosmeticsFeedback(null);
+    try {
+      const hasNameStyle =
+        cosmeticsForm.fontId != null || cosmeticsForm.colorId != null;
+      const nameStylePayload = hasNameStyle
+        ? {
+            fontId: cosmeticsForm.fontId ?? undefined,
+            colorId: cosmeticsForm.colorId ?? undefined,
+          }
+        : null;
+
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nameStyle: nameStylePayload,
+          equippedTitleId: cosmeticsForm.equippedTitleId,
+          equippedFrameId: cosmeticsForm.equippedFrameId,
+          equippedBackgroundId: cosmeticsForm.equippedBackgroundId,
+        }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.error || 'Save failed');
+      }
+      const json = await res.json();
+      const updated = json?.data ?? json;
+      setProfile(updated);
+      await updateSession();
+      setCosmeticsDirty(false);
+      setCosmeticsFeedback({ kind: 'saved', message: 'Appearance saved' });
+    } catch (err) {
+      setCosmeticsFeedback({
+        kind: 'error',
+        message: err instanceof Error ? err.message : 'Save failed',
+      });
+    } finally {
+      setCosmeticsSaving(false);
     }
   };
 
@@ -890,61 +960,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* ── Appearance (unlockable cosmetics) ── */}
-          <div
-            style={{
-              borderTop: '1px solid rgba(170,168,200,0.1)',
-              paddingTop: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-            }}
-          >
-            <div>
-              <h4
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: '#e5e3ff',
-                  margin: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '18px', color: '#ae89ff' }}
-                >
-                  auto_awesome
-                </span>
-                Appearance
-              </h4>
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: '#8888a8',
-                  margin: '4px 0 0',
-                  lineHeight: 1.5,
-                }}
-              >
-                Level up to unlock new titles, fonts, colors, frames, and profile
-                backgrounds. Locked items show the required level.
-              </p>
-            </div>
-
-            <CosmeticsPanel
-              value={cosmeticsForm}
-              onChange={setCosmeticsForm}
-              previewUser={{
-                name: form.name || profile.name,
-                username: profile.username,
-                avatarUrl: profile.avatarUrl,
-              }}
-              compact={isPhone}
-            />
-          </div>
-
           {/* Save / Cancel */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
             <button
@@ -1000,6 +1015,138 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* ── Appearance (always-visible cosmetics studio) ──
+          Lives outside the About edit mode so users can tweak their
+          title/frame/background/name style at any time with a dedicated
+          save button. Seeded on mount from /api/user/profile. */}
+      <div
+        style={{
+          background: '#21213e',
+          borderRadius: isPhone ? '20px' : '24px',
+          padding: isPhone ? '20px' : '32px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <h3
+              style={{
+                fontSize: '15px',
+                fontWeight: 700,
+                color: '#e5e3ff',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '20px', color: '#ae89ff' }}
+              >
+                auto_awesome
+              </span>
+              Appearance
+            </h3>
+            <p
+              style={{
+                fontSize: '12px',
+                color: '#8888a8',
+                margin: '6px 0 0',
+                lineHeight: 1.5,
+                maxWidth: 520,
+              }}
+            >
+              Level up to unlock new titles, fonts, colors, frames and profile
+              backgrounds. Locked items show the level you need.
+            </p>
+          </div>
+
+          {/* Save button + feedback chip — right-aligned on desktop, wraps
+              underneath on narrow viewports. */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexShrink: 0,
+            }}
+          >
+            {cosmeticsFeedback && (
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color:
+                    cosmeticsFeedback.kind === 'saved' ? '#4efba5' : '#fd6f85',
+                }}
+              >
+                {cosmeticsFeedback.message}
+              </span>
+            )}
+            <button
+              onClick={handleSaveCosmetics}
+              disabled={!cosmeticsDirty || cosmeticsSaving}
+              style={{
+                padding: '10px 22px',
+                background:
+                  !cosmeticsDirty || cosmeticsSaving
+                    ? 'rgba(174,137,255,0.18)'
+                    : '#ae89ff',
+                color:
+                  !cosmeticsDirty || cosmeticsSaving ? '#aaa8c8' : '#2a0066',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor:
+                  !cosmeticsDirty || cosmeticsSaving ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+                transition:
+                  'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
+              }}
+              onMouseEnter={(e) => {
+                if (cosmeticsDirty && !cosmeticsSaving) {
+                  (e.currentTarget as HTMLButtonElement).style.transform =
+                    'scale(1.03)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  'scale(1)';
+              }}
+            >
+              {cosmeticsSaving
+                ? 'Saving…'
+                : cosmeticsDirty
+                  ? 'Save appearance'
+                  : 'Saved'}
+            </button>
+          </div>
+        </div>
+
+        <CosmeticsPanel
+          value={cosmeticsForm}
+          onChange={handleCosmeticsChange}
+          previewUser={{
+            name: profile.name,
+            username: profile.username,
+            avatarUrl: profile.avatarUrl,
+          }}
+          compact={isPhone}
+        />
+      </div>
 
       {/* Achievements Section */}
       <TrophyShelf />
