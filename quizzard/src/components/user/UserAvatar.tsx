@@ -132,6 +132,11 @@ export function UserAvatar({
       ? resolveFrameStyle(user?.equippedFrameId, size)
       : null;
 
+  // When a frame is equipped the wrapper is circular; force the inner image
+  // round too so the avatar doesn't look like a rounded square sitting inside
+  // a halo. Without a frame we honor the caller's `radius` prop.
+  const innerRadius = frame ? '9999px' : effectiveRadius;
+
   const inner = imageSrc ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -140,7 +145,7 @@ export function UserAvatar({
       style={{
         width: size,
         height: size,
-        borderRadius: effectiveRadius,
+        borderRadius: innerRadius,
         objectFit: 'cover',
         flexShrink: 0,
         display: 'block',
@@ -152,7 +157,7 @@ export function UserAvatar({
       style={{
         width: size,
         height: size,
-        borderRadius: effectiveRadius,
+        borderRadius: innerRadius,
         background: 'linear-gradient(135deg, #ae89ff 0%, #8348f6 100%)',
         display: 'flex',
         alignItems: 'center',

@@ -39,6 +39,7 @@ export default function HomeHeader() {
         avatarUrl?: string;
         tier?: string;
         role?: string;
+        equippedFrameId?: string | null;
       }
     | undefined;
 
@@ -234,17 +235,27 @@ export default function HomeHeader() {
                 onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
                 onMouseEnter={() => setHoveredAvatar(true)}
                 onMouseLeave={() => setHoveredAvatar(false)}
+                aria-label="Open account menu"
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  border: `2px solid ${hoveredAvatar || avatarMenuOpen ? COLORS.primary : 'transparent'}`,
+                  // No fixed dimensions: let the UserAvatar size itself so an
+                  // equipped frame's halo doesn't get clipped. The hover ring
+                  // is an outline (not border/overflow) so it can't distort
+                  // layout or crop the frame.
+                  border: 'none',
                   background: 'transparent',
                   cursor: 'pointer',
-                  padding: 0,
-                  overflow: 'hidden',
-                  transition: `border-color 0.2s ${EASING}`,
+                  padding: 2,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   flexShrink: 0,
+                  borderRadius: user?.equippedFrameId ? 9999 : 10,
+                  outline:
+                    hoveredAvatar || avatarMenuOpen
+                      ? `2px solid ${COLORS.primary}`
+                      : '2px solid transparent',
+                  outlineOffset: 1,
+                  transition: `outline-color 0.2s ${EASING}`,
                 }}
               >
                 <UserAvatar user={user} size={36} radius={8} />
