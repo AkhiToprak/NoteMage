@@ -676,9 +676,13 @@ export function CosmeticsPanel({
   const isOwned = React.useCallback(
     (id: string) => {
       if (!data) return false;
+      const entry = COSMETICS[id];
+      // Admin-only cosmetics are NEVER auto-owned. They use `requiredLevel: 1`
+      // purely as a sort sentinel; ownership must come from an explicit admin
+      // grant that writes a UserCosmetic row.
+      if (entry?.adminOnly) return data.owned.has(id);
       // Level-1 defaults are always owned even if the UserCosmetic row hasn't
       // been written yet — this mirrors the profile PUT validator.
-      const entry = COSMETICS[id];
       if (entry && entry.requiredLevel <= 1) return true;
       return data.owned.has(id);
     },

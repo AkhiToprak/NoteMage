@@ -292,13 +292,17 @@ export async function PUT(request: NextRequest) {
 
     // Ownership check: all referenced cosmetics must be in UserCosmetic for
     // this user. Allow-list the 'default' sentinels (level 1 entries) so
-    // users can always revert to the default without owning a row.
+    // users can always revert to the default without owning a row — EXCEPT
+    // adminOnly cosmetics, which also use `requiredLevel: 1` as a sort
+    // sentinel but must never be treated as auto-owned.
     if (cosmeticChecks.length > 0) {
       const idsToCheck = cosmeticChecks
         .map((c) => c.value)
         .filter((id) => {
           const entry = COSMETICS[id];
-          return entry ? entry.requiredLevel > 1 : false;
+          if (!entry) return false;
+          if (entry.adminOnly) return true;
+          return entry.requiredLevel > 1;
         });
       if (idsToCheck.length > 0) {
         const owned = await db.userCosmetic.findMany({

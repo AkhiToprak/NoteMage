@@ -272,7 +272,9 @@ export function CosmeticsShowcase({
 }: CosmeticsShowcaseProps) {
   // Resolve slugs to catalog entries, dropping any unknown ids and hiding
   // level-1 defaults (they're the baseline — everyone has them, showing them
-  // makes the showcase look uniform and uninteresting).
+  // makes the showcase look uniform and uninteresting). adminOnly entries
+  // are the exception: they use `requiredLevel: 1` only as a sort sentinel
+  // and are explicitly granted, so they should always appear in the showcase.
   const resolved = React.useMemo(() => {
     const entries: Cosmetic[] = [];
     const seen = new Set<string>();
@@ -281,7 +283,7 @@ export function CosmeticsShowcase({
       seen.add(id);
       const entry = COSMETICS[id];
       if (!entry) continue;
-      if (entry.requiredLevel <= 1) continue;
+      if (entry.requiredLevel <= 1 && !entry.adminOnly) continue;
       entries.push(entry);
     }
     return entries;
