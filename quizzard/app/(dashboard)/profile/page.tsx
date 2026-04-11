@@ -120,6 +120,10 @@ export default function ProfilePage() {
   const [cosmeticsFeedback, setCosmeticsFeedback] = useState<
     { kind: 'saved' | 'error'; message: string } | null
   >(null);
+  // Appearance card is collapsed by default so it doesn't push the page
+  // height on first visit. Auto-expands when the user has pending changes
+  // to ensure the Save button is reachable.
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
 
   // Mage level (computed from XP)
   const [mageLevel, setMageLevel] = useState<number | null>(null);
@@ -1016,30 +1020,49 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Appearance (always-visible cosmetics studio) ──
+      {/* ── Appearance (always-visible, toggleable cosmetics studio) ──
           Lives outside the About edit mode so users can tweak their
           title/frame/background/name style at any time with a dedicated
-          save button. Seeded on mount from /api/user/profile. */}
+          save button. Collapsed by default to keep the profile skimmable;
+          the header row stays a clickable region that expands/collapses
+          the panel. Seeded on mount from /api/user/profile. */}
       <div
         style={{
           background: '#21213e',
           borderRadius: isPhone ? '20px' : '24px',
-          padding: isPhone ? '20px' : '32px',
+          padding: isPhone ? '20px' : '28px 32px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
+          gap: appearanceOpen ? '20px' : 0,
+          transition: 'gap 0.25s cubic-bezier(0.22,1,0.36,1)',
         }}
       >
-        <div
+        {/* Header row: click anywhere to toggle. The Save button lives
+            inside this row and stops propagation so tapping Save doesn't
+            collapse the panel. */}
+        <button
+          type="button"
+          onClick={() => setAppearanceOpen((v) => !v)}
+          aria-expanded={appearanceOpen}
+          aria-controls="appearance-panel-body"
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             justifyContent: 'space-between',
             gap: '16px',
             flexWrap: 'wrap',
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            color: 'inherit',
+            fontFamily: 'inherit',
+            width: '100%',
           }}
         >
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <h3
               style={{
                 fontSize: '15px',
@@ -1048,7 +1071,7 @@ export default function ProfilePage() {
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '10px',
               }}
             >
               <span
@@ -1058,6 +1081,19 @@ export default function ProfilePage() {
                 auto_awesome
               </span>
               Appearance
+              <span
+                className="material-symbols-outlined"
+                aria-hidden
+                style={{
+                  fontSize: '20px',
+                  color: '#8888a8',
+                  marginLeft: 'auto',
+                  transform: appearanceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.25s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              >
+                expand_more
+              </span>
             </h3>
             <p
               style={{
@@ -1068,84 +1104,106 @@ export default function ProfilePage() {
                 maxWidth: 520,
               }}
             >
-              Level up to unlock new titles, fonts, colors, frames and profile
-              backgrounds. Locked items show the level you need.
+              {appearanceOpen
+                ? 'Level up to unlock new titles, fonts, colors, frames and profile backgrounds. Locked items show the level you need.'
+                : 'Titles, fonts, colors, frames and backgrounds. Tap to customize.'}
             </p>
           </div>
 
-          {/* Save button + feedback chip — right-aligned on desktop, wraps
-              underneath on narrow viewports. */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              flexShrink: 0,
-            }}
-          >
-            {cosmeticsFeedback && (
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color:
-                    cosmeticsFeedback.kind === 'saved' ? '#4efba5' : '#fd6f85',
-                }}
-              >
-                {cosmeticsFeedback.message}
-              </span>
-            )}
-            <button
-              onClick={handleSaveCosmetics}
-              disabled={!cosmeticsDirty || cosmeticsSaving}
+          {/* Save button + feedback chip — only reachable when expanded. */}
+          {appearanceOpen && (
+            <div
+              // Clicks on the save button / feedback chip must NOT toggle
+              // the panel, or the user would collapse the thing they just
+              // tried to save.
+              onClick={(e) => e.stopPropagation()}
               style={{
-                padding: '10px 22px',
-                background:
-                  !cosmeticsDirty || cosmeticsSaving
-                    ? 'rgba(174,137,255,0.18)'
-                    : '#ae89ff',
-                color:
-                  !cosmeticsDirty || cosmeticsSaving ? '#aaa8c8' : '#2a0066',
-                borderRadius: '12px',
-                border: 'none',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor:
-                  !cosmeticsDirty || cosmeticsSaving ? 'default' : 'pointer',
-                fontFamily: 'inherit',
-                transition:
-                  'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
-              }}
-              onMouseEnter={(e) => {
-                if (cosmeticsDirty && !cosmeticsSaving) {
-                  (e.currentTarget as HTMLButtonElement).style.transform =
-                    'scale(1.03)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform =
-                  'scale(1)';
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                flexShrink: 0,
               }}
             >
-              {cosmeticsSaving
-                ? 'Saving…'
-                : cosmeticsDirty
-                  ? 'Save appearance'
-                  : 'Saved'}
-            </button>
-          </div>
-        </div>
+              {cosmeticsFeedback && (
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color:
+                      cosmeticsFeedback.kind === 'saved'
+                        ? '#4efba5'
+                        : '#fd6f85',
+                  }}
+                >
+                  {cosmeticsFeedback.message}
+                </span>
+              )}
+              <span
+                role="button"
+                tabIndex={0}
+                aria-disabled={!cosmeticsDirty || cosmeticsSaving}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (cosmeticsDirty && !cosmeticsSaving) handleSaveCosmetics();
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    (e.key === 'Enter' || e.key === ' ') &&
+                    cosmeticsDirty &&
+                    !cosmeticsSaving
+                  ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSaveCosmetics();
+                  }
+                }}
+                style={{
+                  padding: '10px 22px',
+                  background:
+                    !cosmeticsDirty || cosmeticsSaving
+                      ? 'rgba(174,137,255,0.18)'
+                      : '#ae89ff',
+                  color:
+                    !cosmeticsDirty || cosmeticsSaving ? '#aaa8c8' : '#2a0066',
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor:
+                    !cosmeticsDirty || cosmeticsSaving ? 'default' : 'pointer',
+                  transition:
+                    'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                  userSelect: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                {cosmeticsSaving
+                  ? 'Saving…'
+                  : cosmeticsDirty
+                    ? 'Save appearance'
+                    : 'Saved'}
+              </span>
+            </div>
+          )}
+        </button>
 
-        <CosmeticsPanel
-          value={cosmeticsForm}
-          onChange={handleCosmeticsChange}
-          previewUser={{
-            name: profile.name,
-            username: profile.username,
-            avatarUrl: profile.avatarUrl,
-          }}
-          compact={isPhone}
-        />
+        {/* Collapsible body. Using display:none when closed keeps the
+            initial DOM lightweight and prevents the (expensive) cosmetics
+            rails from rendering for users who never open the panel. */}
+        {appearanceOpen && (
+          <div id="appearance-panel-body">
+            <CosmeticsPanel
+              value={cosmeticsForm}
+              onChange={handleCosmeticsChange}
+              previewUser={{
+                name: profile.name,
+                username: profile.username,
+                avatarUrl: profile.avatarUrl,
+              }}
+              compact={isPhone}
+            />
+          </div>
+        )}
       </div>
 
       {/* Achievements Section */}
