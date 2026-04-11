@@ -15,7 +15,18 @@ function getInitials(name?: string | null): string {
     .slice(0, 2);
 }
 
-type Section = 'account' | 'notifications' | 'goals' | 'subscription' | 'privacy' | 'admin';
+type Section = 'account' | 'notifications' | 'goals' | 'subscription' | 'privacy' | 'admin' | 'stats';
+
+interface AdminStats {
+  totalUsers: number;
+  freeUsers: number;
+  plusUsers: number;
+  proUsers: number;
+  avgWeeklyTokensPerUser: number;
+  weeklyTokensTotal: number;
+  totalRevenue: number;
+  waitlistCount: number;
+}
 
 interface AdminUser {
   id: string;
@@ -29,6 +40,81 @@ interface AdminUser {
   createdAt: string;
   notebookCount: number;
   postCount: number;
+}
+
+function StatCard({
+  icon,
+  accent,
+  label,
+  value,
+  sub,
+}: {
+  icon: string;
+  accent: string;
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div
+      style={{
+        background: '#161630',
+        borderRadius: '16px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        border: '1px solid rgba(70,69,96,0.2)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: `${accent}22`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ color: accent, fontSize: '18px' }}
+          >
+            {icon}
+          </span>
+        </div>
+        <span
+          style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#aaa8c8',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {label}
+        </span>
+      </div>
+      <div
+        style={{
+          fontSize: '28px',
+          fontWeight: 700,
+          color: '#e5e3ff',
+          fontFamily: 'var(--font-brand)',
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div style={{ fontSize: '12px', color: '#8888a8' }}>{sub}</div>
+      )}
+    </div>
+  );
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -337,6 +423,34 @@ export default function SettingsPage() {
   const [deleteConfirmUser, setDeleteConfirmUser] = useState<AdminUser | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Admin stats
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [adminStatsLoading, setAdminStatsLoading] = useState(false);
+  const [adminStatsError, setAdminStatsError] = useState<string | null>(null);
+
+  const fetchAdminStats = useCallback(async () => {
+    setAdminStatsLoading(true);
+    setAdminStatsError(null);
+    try {
+      const res = await fetch('/api/admin/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminStats(data.data);
+      } else {
+        setAdminStatsError('Failed to load stats');
+      }
+    } catch {
+      setAdminStatsError('Network error');
+    }
+    setAdminStatsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === 'stats' && isAdmin && !adminStats && !adminStatsLoading) {
+      fetchAdminStats();
+    }
+  }, [activeSection, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Avatar editor state
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -484,7 +598,10 @@ export default function SettingsPage() {
     { section: 'subscription', icon: 'credit_card', label: 'Subscription' },
     { section: 'privacy', icon: 'lock', label: 'Privacy & Security' },
     ...(isAdmin
-      ? [{ section: 'admin' as Section, icon: 'admin_panel_settings', label: 'User Management' }]
+      ? [
+          { section: 'admin' as Section, icon: 'admin_panel_settings', label: 'User Management' },
+          { section: 'stats' as Section, icon: 'query_stats', label: 'Platform Stats' },
+        ]
       : []),
   ];
 
@@ -2491,6 +2608,183 @@ export default function SettingsPage() {
                   >
                     Next
                   </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Admin: Platform Stats */}
+          {isAdmin && (
+            <section
+              style={{
+                background: '#1c1c38',
+                borderRadius: isPhone ? '20px' : '32px',
+                padding: isPhone ? '20px' : '32px',
+                display: activeSection === 'stats' ? 'flex' : 'none',
+                flexDirection: 'column',
+                gap: '24px',
+              }}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '16px',
+                      background: 'rgba(174,137,255,0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ color: '#ae89ff', fontSize: '24px' }}
+                    >
+                      query_stats
+                    </span>
+                  </div>
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: '22px',
+                        fontWeight: 700,
+                        color: '#e5e3ff',
+                        margin: '0 0 4px',
+                      }}
+                    >
+                      Platform Stats
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                      High-level numbers across the whole product.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={fetchAdminStats}
+                  disabled={adminStatsLoading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(174,137,255,0.25)',
+                    background: 'rgba(174,137,255,0.08)',
+                    color: '#ae89ff',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: adminStatsLoading ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                    opacity: adminStatsLoading ? 0.6 : 1,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                    refresh
+                  </span>
+                  Refresh
+                </button>
+              </div>
+
+              {adminStatsLoading && !adminStats && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '32px',
+                    color: '#aaa8c8',
+                    fontSize: '14px',
+                  }}
+                >
+                  Loading stats…
+                </div>
+              )}
+
+              {adminStatsError && (
+                <div
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    background: 'rgba(253,111,133,0.08)',
+                    border: '1px solid rgba(253,111,133,0.2)',
+                    color: '#fd6f85',
+                    fontSize: '13px',
+                  }}
+                >
+                  {adminStatsError}
+                </div>
+              )}
+
+              {adminStats && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: isPhone
+                      ? '1fr'
+                      : 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '16px',
+                  }}
+                >
+                  {/* Total users */}
+                  <StatCard
+                    icon="group"
+                    accent="#ae89ff"
+                    label="Total users"
+                    value={adminStats.totalUsers.toLocaleString()}
+                  />
+                  {/* Tier breakdown */}
+                  <StatCard
+                    icon="person"
+                    accent="#8888a8"
+                    label="Free users"
+                    value={adminStats.freeUsers.toLocaleString()}
+                  />
+                  <StatCard
+                    icon="workspace_premium"
+                    accent="#b9c3ff"
+                    label="Plus users"
+                    value={adminStats.plusUsers.toLocaleString()}
+                    sub={`$${(adminStats.plusUsers * 5).toLocaleString()} / mo`}
+                  />
+                  <StatCard
+                    icon="diamond"
+                    accent="#ffde59"
+                    label="Pro users"
+                    value={adminStats.proUsers.toLocaleString()}
+                    sub={`$${(adminStats.proUsers * 10).toLocaleString()} / mo`}
+                  />
+                  {/* Revenue */}
+                  <StatCard
+                    icon="payments"
+                    accent="#7ee3a0"
+                    label="Total monthly revenue"
+                    value={`$${adminStats.totalRevenue.toLocaleString()}`}
+                    sub="plus × $5 + pro × $10"
+                  />
+                  {/* Weekly tokens */}
+                  <StatCard
+                    icon="token"
+                    accent="#ae89ff"
+                    label="Avg tokens / user (7d)"
+                    value={adminStats.avgWeeklyTokensPerUser.toLocaleString()}
+                    sub={`${adminStats.weeklyTokensTotal.toLocaleString()} total`}
+                  />
+                  {/* Waitlist */}
+                  <StatCard
+                    icon="mark_email_read"
+                    accent="#b9c3ff"
+                    label="Waitlist signups"
+                    value={adminStats.waitlistCount.toLocaleString()}
+                  />
                 </div>
               )}
             </section>
