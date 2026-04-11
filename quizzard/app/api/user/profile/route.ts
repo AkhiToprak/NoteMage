@@ -403,6 +403,8 @@ export async function PUT(request: NextRequest) {
           location: true,
           school: true,
           lineOfWork: true,
+          instagramHandle: true,
+          linkedinUrl: true,
           profilePrivate: true,
           hideAchievements: true,
           customGreeting: true,
@@ -427,7 +429,10 @@ export async function PUT(request: NextRequest) {
     checkAndUnlockAchievements(userId).catch(console.error);
 
     return successResponse(updated);
-  } catch {
+  } catch (err) {
+    // Log the actual cause so silent 500s on /profile save are debuggable
+    // from Vercel logs instead of "loads briefly then nothing".
+    console.error('PUT /api/user/profile failed:', err);
     return internalErrorResponse();
   }
 }

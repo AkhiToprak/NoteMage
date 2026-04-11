@@ -2,8 +2,10 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import TrophyShelf from '@/components/features/TrophyShelf';
 import AvatarEditor from '@/components/ui/AvatarEditor';
+import ActivityHeatmap from '@/components/features/ActivityHeatmap';
+import SocialsCard from '@/components/features/SocialsCard';
+import RecentTrophies from '@/components/features/RecentTrophies';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
@@ -110,6 +112,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({
     name: '',
     bio: '',
@@ -138,6 +141,11 @@ export default function ProfilePage() {
 
   // Mage level (computed from XP)
   const [mageLevel, setMageLevel] = useState<number | null>(null);
+
+  // Friends count for the Socials bento card. The /api/user/profile (own)
+  // endpoint doesn't return this, so we hit /api/friends?status=accepted
+  // separately and use its `count` field.
+  const [friendsCount, setFriendsCount] = useState<number>(0);
 
   // Edit profile modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -178,6 +186,14 @@ export default function ProfilePage() {
       .then((res) => {
         const d = res?.data ?? res;
         if (d?.level !== undefined) setMageLevel(d.level);
+      })
+      .catch(() => {});
+
+    fetch('/api/friends?status=accepted')
+      .then((r) => r.json())
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (typeof d?.count === 'number') setFriendsCount(d.count);
       })
       .catch(() => {});
   }, []);
@@ -364,6 +380,7 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       // Cosmetics: collapse font/color into a single `nameStyle` object (or
       // null when both are unset) to match the profile PUT contract.
@@ -407,9 +424,17 @@ export default function ProfilePage() {
         // <UserName>/<UserAvatar> surface across the app re-paints.
         await updateSession();
         setEditing(false);
+      } else {
+        // Surface the server's reason instead of silently dropping. This used
+        // to be a `catch {}` no-op which made every 4xx look like "save just
+        // didn't do anything" — impossible to debug without devtools open.
+        const errJson = await res.json().catch(() => null);
+        setSaveError(
+          errJson?.error || `Save failed (${res.status} ${res.statusText})`
+        );
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -1024,6 +1049,31 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Save error — surfaced inline so failed saves stop looking like
+              silent no-ops. Server reasons (validation, 500s) all land here. */}
+          {saveError && (
+            <div
+              role="alert"
+              style={{
+                background: 'rgba(253,111,133,0.10)',
+                border: '1px solid rgba(253,111,133,0.30)',
+                color: '#fd6f85',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                error
+              </span>
+              {saveError}
+            </div>
+          )}
+
           {/* Save / Cancel */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
             <button
@@ -1267,8 +1317,41 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Achievements Section */}
-      <TrophyShelf />
+      {/* Bento: Socials + Activity. Mirrors the public profile layout
+          (`app/(dashboard)/profile/[username]/page.tsx`) so the edit page
+          and the public view share the same visual story. The activity
+          column uses minmax(0, 1fr) so the heatmap (which is wider than
+          ~440px) doesn't blow out the 720px parent — its internal
+          overflowX:auto kicks in and it scrolls horizontally inside its
+          own card. Friend request UI stays hidden because it's the user's
+          own profile (isOwnProfile + isAuthenticated short-circuit). */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isPhone
+            ? '1fr'
+            : 'minmax(220px, 260px) minmax(0, 1fr)',
+          gap: '24px',
+          alignItems: 'stretch',
+        }}
+      >
+        <SocialsCard
+          friendsCount={friendsCount}
+          instagramHandle={profile.instagramHandle ?? null}
+          linkedinUrl={profile.linkedinUrl ?? null}
+          friendshipStatus={null}
+          friendshipId={null}
+          username={profile.username}
+          isOwnProfile
+          isAuthenticated={Boolean(session?.user)}
+        />
+        <div style={{ minWidth: 0 }}>
+          <ActivityHeatmap userId={profile.id} />
+        </div>
+      </div>
+
+      {/* Trophy Board (recent + expandable to full shelf) */}
+      <RecentTrophies userId={profile.id} />
 
       {/* Edit Profile Modal */}
       {editModalOpen && profile && (

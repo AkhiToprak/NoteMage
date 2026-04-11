@@ -11,7 +11,6 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { ProfileBackground } from '@/components/cosmetics/ProfileBackground';
-import { CosmeticsShowcase } from '@/components/cosmetics/CosmeticsShowcase';
 import { COSMETICS } from '@/lib/cosmetics/catalog';
 
 interface PublicProfileData {
@@ -377,23 +376,17 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* Cosmetics Showcase — only when not private and there's something
-          beyond the level-1 defaults to show. The component itself renders
-          nothing when the filtered list is empty, so we can safely mount it
-          and rely on its internal guard. */}
-      {!isPrivate && profile.unlockedCosmeticIds && (
-        <CosmeticsShowcase
-          unlockedIds={profile.unlockedCosmeticIds}
-          isPhone={isPhone}
-        />
-      )}
-
-      {/* Bento: Socials + Activity side by side */}
+      {/* Bento: Socials + Activity side by side. The activity column uses
+          minmax(0, 1fr) so the heatmap (which is wider than ~440px) doesn't
+          blow out the 720px parent — instead its internal overflowX:auto
+          kicks in and the heatmap scrolls horizontally inside its own card. */}
       {!isPrivate && (
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isPhone ? '1fr' : 'minmax(220px, 260px) 1fr',
+            gridTemplateColumns: isPhone
+              ? '1fr'
+              : 'minmax(220px, 260px) minmax(0, 1fr)',
             gap: '24px',
             alignItems: 'stretch',
           }}
@@ -412,7 +405,9 @@ export default function PublicProfilePage() {
               setFriendshipId(id);
             }}
           />
-          <ActivityHeatmap userId={profile.id} />
+          <div style={{ minWidth: 0 }}>
+            <ActivityHeatmap userId={profile.id} />
+          </div>
         </div>
       )}
 
