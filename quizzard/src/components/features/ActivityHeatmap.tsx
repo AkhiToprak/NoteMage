@@ -16,6 +16,7 @@ interface TooltipState {
   count: number;
 }
 
+const DAYS_IN_WEEK = 7;
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 const MONTH_NAMES = [
   'Jan',
@@ -69,9 +70,21 @@ function toUtcDateStr(d: Date): string {
 interface ActivityHeatmapProps {
   /** When set, fetch this user's activity instead of the authed user's. */
   userId?: string;
+  /**
+   * Window size in weeks. Defaults to the dashboard preset (53 desktop /
+   * 26 phone). The profile bento passes ~13 (last 3 months) so the card
+   * doesn't dominate the page.
+   */
+  weeks?: number;
+  /** Subtitle override — defaults to "over the last year/6 months". */
+  subtitle?: string;
 }
 
-export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
+export default function ActivityHeatmap({
+  userId,
+  weeks,
+  subtitle,
+}: ActivityHeatmapProps = {}) {
   const { isPhone } = useBreakpoint();
   const [dayMap, setDayMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -83,17 +96,19 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
     count: 0,
   });
 
-  // The card now shows the last ~30 days (5 weeks × 7 days = 35 cells,
-  // ending today) so it stays glanceable inside the bento grid instead
-  // of dominating the page. Cells are sized via CSS grid + aspect-ratio
-  // so they stretch to fill the parent column width.
-  const CELL_GAP = isPhone ? 4 : 6;
-  const TOTAL_WEEKS = 5;
+  // Derive grid constants from breakpoint
+  const CELL_SIZE = isPhone ? 10 : 13;
+  const CELL_GAP = isPhone ? 2 : 3;
+  const TOTAL_WEEKS = weeks ?? (isPhone ? 26 : 53);
+  // Fetch enough days to cover the requested window plus a buffer for the
+  // partial leading week. +14 keeps us safe regardless of which day-of-week
+  // today happens to be.
+  const FETCH_DAYS = TOTAL_WEEKS * 7 + 14;
 
   useEffect(() => {
     const url = userId
-      ? `/api/user/activity-heatmap?days=35&userId=${encodeURIComponent(userId)}`
-      : '/api/user/activity-heatmap?days=35';
+      ? `/api/user/activity-heatmap?days=${FETCH_DAYS}&userId=${encodeURIComponent(userId)}`
+      : `/api/user/activity-heatmap?days=${FETCH_DAYS}`;
     setLoading(true);
     fetch(url)
       .then((r) => r.json())
@@ -107,7 +122,7 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, [userId, FETCH_DAYS]);
 
   // Build the grid: 53 columns x 7 rows, ending today.
   // Everything here is in UTC to stay in lockstep with the server, which
@@ -160,31 +175,24 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
       if (wrapperRect) {
         setTooltip({
           visible: true,
-          x: rect.left - wrapperRect.left + rect.width / 2,
+          x: rect.left - wrapperRect.left + CELL_SIZE / 2,
           y: rect.top - wrapperRect.top - 8,
           date,
           count,
         });
       }
     },
-    []
+    [CELL_SIZE]
   );
 
   const handleMouseLeave = useCallback(() => {
     setTooltip((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Bucket cells into a 7-row × TOTAL_WEEKS-col 2D array, indexed [row][col].
-  // Empty slots (before startDate or after today) stay null.
-  const grid: ((typeof cells)[number] | null)[][] = Array.from(
-    { length: 7 },
-    () => Array(TOTAL_WEEKS).fill(null)
-  );
-  for (const c of cells) {
-    if (c.week >= 0 && c.week < TOTAL_WEEKS) {
-      grid[c.day][c.week] = c;
-    }
-  }
+  const leftPadding = 36;
+  const topPadding = 20;
+  const gridWidth = TOTAL_WEEKS * (CELL_SIZE + CELL_GAP);
+  const gridHeight = DAYS_IN_WEEK * (CELL_SIZE + CELL_GAP);
 
   return (
     <div
@@ -207,7 +215,8 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
             Activity
           </h3>
           <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
-            Minutes in the app over the last 30 days
+            Minutes in the app over the last{' '}
+            {subtitle ?? (isPhone ? '6 months' : 'year')}
           </p>
         </div>
         <div
@@ -238,7 +247,7 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
       {loading ? (
         <div
           style={{
-            minHeight: '180px',
+            height: `${gridHeight + topPadding + 8}px`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -249,98 +258,77 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
           Loading activity...
         </div>
       ) : (
-        <div
-          data-heatmap-wrapper
-          style={{
-            position: 'relative',
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr',
-            gridTemplateRows: 'auto 1fr',
-            columnGap: '8px',
-            rowGap: '6px',
-            width: '100%',
-          }}
-        >
-          {/* Top-left corner (empty) */}
-          <div />
-
-          {/* Month labels row — laid out as a 5-column grid mirroring the
-              cell grid below so each label sits over its week. */}
+        <div data-heatmap-wrapper style={{ position: 'relative', overflow: 'visible' }}>
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${TOTAL_WEEKS}, 1fr)`,
-              gap: `${CELL_GAP}px`,
-              fontSize: '11px',
-              color: '#aaa8c8',
-              fontWeight: 500,
+              // Always 'auto' so the grid scrolls when the parent card is
+              // narrower than the heatmap (e.g. the 720px-capped profile
+              // page). On wider containers no scrollbar appears.
+              overflowX: 'auto',
+              overflowY: 'visible',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
-            {Array.from({ length: TOTAL_WEEKS }).map((_, w) => {
-              const label = monthLabels.find((m) => m.week === w)?.label ?? '';
-              return (
-                <div key={w} style={{ whiteSpace: 'nowrap' }}>
-                  {label}
+            <div
+              data-heatmap-container
+              style={{
+                position: 'relative',
+                width: `${leftPadding + gridWidth}px`,
+                height: `${topPadding + gridHeight}px`,
+              }}
+            >
+              {/* Month labels */}
+              {monthLabels.map((m, i) => (
+                <div
+                  key={`${m.label}-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${leftPadding + m.week * (CELL_SIZE + CELL_GAP)}px`,
+                    top: 0,
+                    fontSize: '11px',
+                    color: '#aaa8c8',
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {m.label}
                 </div>
-              );
-            })}
-          </div>
+              ))}
 
-          {/* Day labels column */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateRows: `repeat(7, 1fr)`,
-              gap: `${CELL_GAP}px`,
-              fontSize: '11px',
-              color: '#aaa8c8',
-              fontWeight: 500,
-            }}
-          >
-            {DAY_LABELS.map((label, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  minHeight: 0,
-                }}
-              >
-                {label}
-              </div>
-            ))}
-          </div>
+              {/* Day labels */}
+              {DAY_LABELS.map((label, i) =>
+                label ? (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: `${topPadding + i * (CELL_SIZE + CELL_GAP) + 1}px`,
+                      fontSize: '11px',
+                      color: '#aaa8c8',
+                      fontWeight: 500,
+                      width: `${leftPadding - 6}px`,
+                      textAlign: 'right',
+                    }}
+                  >
+                    {label}
+                  </div>
+                ) : null
+              )}
 
-          {/* Cell grid — 5 columns × 7 rows. aspect-ratio keeps cells
-              square as the column stretches with the parent. */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${TOTAL_WEEKS}, 1fr)`,
-              gridTemplateRows: `repeat(7, 1fr)`,
-              gap: `${CELL_GAP}px`,
-              gridAutoFlow: 'column',
-            }}
-          >
-            {Array.from({ length: TOTAL_WEEKS * 7 }).map((_, idx) => {
-              // gridAutoFlow: 'column' fills column-by-column, so idx maps
-              // to (col = floor(idx/7), row = idx%7) which is exactly the
-              // cell at grid[row][col].
-              const col = Math.floor(idx / 7);
-              const row = idx % 7;
-              const cell = grid[row][col];
-              if (!cell) {
-                return <div key={idx} style={{ aspectRatio: '1 / 1' }} />;
-              }
-              return (
+              {/* Grid cells */}
+              {cells.map((cell) => (
                 <div
                   key={cell.date}
                   onMouseEnter={(e) => handleMouseEnter(e, cell.date, cell.count)}
                   onMouseLeave={handleMouseLeave}
                   style={{
-                    aspectRatio: '1 / 1',
-                    borderRadius: '4px',
+                    position: 'absolute',
+                    left: `${leftPadding + cell.week * (CELL_SIZE + CELL_GAP)}px`,
+                    top: `${topPadding + cell.day * (CELL_SIZE + CELL_GAP)}px`,
+                    width: `${CELL_SIZE}px`,
+                    height: `${CELL_SIZE}px`,
+                    borderRadius: '3px',
                     background: getColor(cell.count),
                     cursor: 'pointer',
                     transition: 'opacity 0.15s',
@@ -352,11 +340,11 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
                     (e.currentTarget as HTMLDivElement).style.opacity = '1';
                   }}
                 />
-              );
-            })}
+              ))}
+            </div>
           </div>
 
-          {/* Tooltip */}
+          {/* Tooltip — rendered outside the scroll container to avoid clipping */}
           {tooltip.visible && (
             <div
               style={{

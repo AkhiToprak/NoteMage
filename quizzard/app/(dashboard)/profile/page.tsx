@@ -1346,7 +1346,7 @@ export default function ProfilePage() {
           isAuthenticated={Boolean(session?.user)}
         />
         <div style={{ minWidth: 0 }}>
-          <ActivityHeatmap userId={profile.id} />
+          <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />
         </div>
       </div>
 
