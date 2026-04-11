@@ -1,10 +1,20 @@
 import type { Metadata, Viewport } from 'next';
 import {
+  Abril_Fatface,
+  Bungee_Shade,
+  Cinzel,
   Epilogue,
+  IM_Fell_English_SC,
   JetBrains_Mono,
+  MedievalSharp,
+  Orbitron,
   Oswald,
+  Pacifico,
+  Permanent_Marker,
   Playfair_Display,
   Plus_Jakarta_Sans,
+  Press_Start_2P,
+  UnifrakturMaguntia,
 } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
@@ -49,6 +59,81 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+// ── Wild name-font unlockables ────────────────────────────────────────────
+// These are all cosmetic-only: loaded so equippable name fonts in
+// src/lib/cosmetics/catalog.ts have something to render. Each one is
+// single-weight where possible to keep the initial CSS payload small.
+
+const cinzel = Cinzel({
+  variable: '--font-cinzel',
+  subsets: ['latin'],
+  weight: ['500', '700', '900'],
+  display: 'swap',
+});
+
+const unifraktur = UnifrakturMaguntia({
+  variable: '--font-unifraktur',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const medievalSharp = MedievalSharp({
+  variable: '--font-medieval',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const imFellSc = IM_Fell_English_SC({
+  variable: '--font-imfell',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const abrilFatface = Abril_Fatface({
+  variable: '--font-abril',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const bungeeShade = Bungee_Shade({
+  variable: '--font-bungee',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const pacifico = Pacifico({
+  variable: '--font-pacifico',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const permanentMarker = Permanent_Marker({
+  variable: '--font-marker',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const pressStart = Press_Start_2P({
+  variable: '--font-pressstart',
+  subsets: ['latin'],
+  weight: ['400'],
+  display: 'swap',
+});
+
+const orbitron = Orbitron({
+  variable: '--font-orbitron',
+  subsets: ['latin'],
+  weight: ['500', '700', '900'],
+  display: 'swap',
+});
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -82,7 +167,24 @@ export default function RootLayout({
         <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
       </head>
       <body
-        className={`${epilogue.variable} ${oswald.variable} ${plusJakartaSans.variable} ${playfair.variable} ${jetbrainsMono.variable} antialiased`}
+        className={[
+          epilogue.variable,
+          oswald.variable,
+          plusJakartaSans.variable,
+          playfair.variable,
+          jetbrainsMono.variable,
+          cinzel.variable,
+          unifraktur.variable,
+          medievalSharp.variable,
+          imFellSc.variable,
+          abrilFatface.variable,
+          bungeeShade.variable,
+          pacifico.variable,
+          permanentMarker.variable,
+          pressStart.variable,
+          orbitron.variable,
+          'antialiased',
+        ].join(' ')}
       >
         <Providers>{children}</Providers>
       </body>

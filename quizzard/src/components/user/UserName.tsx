@@ -88,12 +88,13 @@ export function UserName({
     ? user?.username || user?.name || fallback
     : user?.name || user?.username || fallback;
   const resolved = plain ? {} : resolveNameStyle(user?.nameStyle ?? null);
-  // Split font from color/gradient. The font cascades from the OUTER element
-  // so nothing a caller passes via `style` can accidentally overwrite it
-  // (several surfaces hardcode `fontFamily: 'var(--font-display)'` on the
-  // outer wrapper — that used to silently defeat the cosmetic font). Color
-  // and gradient stay on the inner span so the equipped title doesn't get
-  // painted with the name's gradient.
+  // Pull the font out so we can apply it to BOTH the outer element and the
+  // inner span. Belt-and-braces: some call sites hardcode
+  // `fontFamily: 'var(--font-display)'` on the outer wrapper via `style`
+  // (silently defeating the cosmetic font through inheritance), and some
+  // wrappers further up the tree set their own fontFamily which would beat
+  // an outer-only declaration. Setting it on both the Element and the inner
+  // span guarantees the name itself always renders in the picked font.
   const { fontFamily: resolvedFont, ...resolvedColor } = resolved;
   const Element = as;
 
@@ -113,7 +114,17 @@ export function UserName({
         ...(resolvedFont ? { fontFamily: resolvedFont } : {}),
       }}
     >
-      <span style={resolvedColor}>{displayName}</span>
+      <span
+        style={{
+          // Re-assert the cosmetic font directly on the name span so nothing
+          // between here and the glyph can override it. Color/gradient stay
+          // here too so the equipped title doesn't inherit the gradient.
+          ...(resolvedFont ? { fontFamily: resolvedFont } : {}),
+          ...resolvedColor,
+        }}
+      >
+        {displayName}
+      </span>
       {titleLabel && (
         <span
           style={{

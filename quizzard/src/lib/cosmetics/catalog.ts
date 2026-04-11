@@ -128,6 +128,11 @@ export const COSMETICS: Record<string, Cosmetic> = {
   },
 
   // --- Name fonts ---------------------------------------------------------
+  // Each `css` value is the literal `font-family` string the browser will
+  // see on the name span. Ordering matters: we want (next/font var, explicit
+  // family name, generic fallback). The explicit family name is critical —
+  // without it, any environment that strips the next/font var (SSR hiccup,
+  // extension, pre-paint before the <link> lands) would collapse the font.
   'font.default': {
     id: 'font.default',
     type: 'nameFont',
@@ -139,33 +144,109 @@ export const COSMETICS: Record<string, Cosmetic> = {
     id: 'font.display',
     type: 'nameFont',
     label: 'Epilogue',
-    css: 'var(--font-display)',
+    css: "var(--font-epilogue), 'Epilogue', serif",
     requiredLevel: 3,
   },
   'font.brand': {
     id: 'font.brand',
     type: 'nameFont',
     label: 'Oswald',
-    css: 'var(--font-brand)',
+    css: "var(--font-oswald), 'Oswald', sans-serif",
     requiredLevel: 6,
   },
   'font.serif': {
     id: 'font.serif',
     type: 'nameFont',
     label: 'Playfair',
-    // `--font-serif` is wired to Playfair Display via next/font in
-    // app/layout.tsx → globals.css. Falling back to a raw font-family string
-    // here is a trap: Google Fonts isn't in the stylesheet, so the browser
-    // would silently render Georgia.
-    css: 'var(--font-serif)',
-    requiredLevel: 12,
+    css: "var(--font-playfair), 'Playfair Display', Georgia, serif",
+    requiredLevel: 8,
+  },
+  'font.cinzel': {
+    id: 'font.cinzel',
+    type: 'nameFont',
+    label: 'Cinzel',
+    description: 'Roman inscriptions, reborn.',
+    css: "var(--font-cinzel), 'Cinzel', serif",
+    requiredLevel: 9,
+  },
+  'font.imfell': {
+    id: 'font.imfell',
+    type: 'nameFont',
+    label: 'IM Fell',
+    description: 'Weathered renaissance small-caps.',
+    css: "var(--font-imfell), 'IM Fell English SC', serif",
+    requiredLevel: 11,
+  },
+  'font.abril': {
+    id: 'font.abril',
+    type: 'nameFont',
+    label: 'Abril',
+    description: 'Editorial display slab.',
+    css: "var(--font-abril), 'Abril Fatface', 'Playfair Display', serif",
+    requiredLevel: 13,
+  },
+  'font.pacifico': {
+    id: 'font.pacifico',
+    type: 'nameFont',
+    label: 'Pacifico',
+    description: 'Retro handwritten script.',
+    css: "var(--font-pacifico), 'Pacifico', cursive",
+    requiredLevel: 14,
+  },
+  'font.marker': {
+    id: 'font.marker',
+    type: 'nameFont',
+    label: 'Marker',
+    description: 'Ink on whiteboard.',
+    css: "var(--font-marker), 'Permanent Marker', cursive",
+    requiredLevel: 15,
+  },
+  'font.medieval': {
+    id: 'font.medieval',
+    type: 'nameFont',
+    label: 'Medieval',
+    description: 'Illuminated-manuscript blackletter.',
+    css: "var(--font-medieval), 'MedievalSharp', serif",
+    requiredLevel: 16,
   },
   'font.mono': {
     id: 'font.mono',
     type: 'nameFont',
     label: 'JetBrains',
-    css: 'var(--font-mono)',
+    css: "var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace",
     requiredLevel: 18,
+  },
+  'font.orbitron': {
+    id: 'font.orbitron',
+    type: 'nameFont',
+    label: 'Orbitron',
+    description: 'Retro-futurist geometry.',
+    css: "var(--font-orbitron), 'Orbitron', sans-serif",
+    requiredLevel: 19,
+  },
+  'font.pressstart': {
+    id: 'font.pressstart',
+    type: 'nameFont',
+    label: 'Press Start',
+    description: 'Pixel arcade legend.',
+    css: "var(--font-pressstart), 'Press Start 2P', 'Courier New', monospace",
+    requiredLevel: 21,
+  },
+  'font.unifraktur': {
+    id: 'font.unifraktur',
+    type: 'nameFont',
+    label: 'Fraktur',
+    description: 'Forbidden grimoire gothic.',
+    css: "var(--font-unifraktur), 'UnifrakturMaguntia', serif",
+    requiredLevel: 23,
+  },
+  'font.bungee': {
+    id: 'font.bungee',
+    type: 'nameFont',
+    label: 'Bungee',
+    description: 'Dimensional marquee display.',
+    css: "var(--font-bungee), 'Bungee Shade', Impact, sans-serif",
+    requiredLevel: 26,
   },
 
   // --- Name colors --------------------------------------------------------

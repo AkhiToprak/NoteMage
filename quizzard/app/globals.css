@@ -66,6 +66,27 @@
   /* Outline */
   --outline: #8888a8;
   --outline-variant: #555578;
+
+  /* ── Cosmetic name-font vars ──────────────────────────────────────────
+     Declared directly at :root (not only inside @theme inline) so they're
+     guaranteed to cascade to every element the browser paints a UserName
+     onto. Each references the next/font-generated variable from
+     app/layout.tsx, followed by a concrete font-family fallback so the
+     glyph is still correct if the next/font variable is stripped for any
+     reason. Keeping this list in sync with src/lib/cosmetics/catalog.ts.
+  */
+  --font-serif: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
+  --font-cinzel: var(--font-cinzel), 'Cinzel', serif;
+  --font-unifraktur: var(--font-unifraktur), 'UnifrakturMaguntia', 'Fraktur', serif;
+  --font-medieval: var(--font-medieval), 'MedievalSharp', serif;
+  --font-imfell: var(--font-imfell), 'IM Fell English SC', serif;
+  --font-abril: var(--font-abril), 'Abril Fatface', 'Playfair Display', serif;
+  --font-bungee: var(--font-bungee), 'Bungee Shade', 'Impact', sans-serif;
+  --font-pacifico: var(--font-pacifico), 'Pacifico', cursive;
+  --font-marker: var(--font-marker), 'Permanent Marker', cursive;
+  --font-pressstart: var(--font-pressstart), 'Press Start 2P', 'Courier New', monospace;
+  --font-orbitron: var(--font-orbitron), 'Orbitron', sans-serif;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
@@ -119,8 +140,8 @@
   --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
   --font-brand: var(--font-oswald), 'Oswald', sans-serif;
   --font-chat: var(--font-oswald), 'Oswald', sans-serif;
-  --font-serif: var(--font-playfair), 'Playfair Display', Georgia, serif;
-  --font-mono: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
+  /* Cosmetic-only fonts are declared at :root above — not duplicated here
+     because they aren't used by any Tailwind utility. */
 
   /* Border radius */
   --radius-sm: 0.5rem; /* 8px  */
