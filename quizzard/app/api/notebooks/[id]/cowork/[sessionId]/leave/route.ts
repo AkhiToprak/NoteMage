@@ -39,51 +39,31 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!participant) return notFoundResponse('Not an active participant');
 
-    let sessionEnded = false;
     await db.$transaction(async (tx) => {
       // Release all locks held by this user
       await tx.pageLock.deleteMany({
         where: { sessionId, lockedById: userId },
       });
 
-      // Mark participant as left
+      // Mark participant as left. We deliberately do NOT auto-end the
+      // session here, even if the host is the only one left. Ending the
+      // session is reserved to the host's explicit DELETE action — a
+      // non-host clicking Leave must never kick the host out of their
+      // own session. The host is free to sit in an empty session and
+      // wait for invitees, or end it themselves when done.
       await tx.coWorkParticipant.update({
         where: { id: participant.id },
         data: { isActive: false, leftAt: new Date() },
       });
-
-      // Check if host is the only one left — if so, auto-end session
-      const activeCount = await tx.coWorkParticipant.count({
-        where: { sessionId, isActive: true },
-      });
-
-      if (activeCount <= 1) {
-        await tx.pageLock.deleteMany({ where: { sessionId } });
-        await tx.coWorkParticipant.updateMany({
-          where: { sessionId, isActive: true },
-          data: { isActive: false, leftAt: new Date() },
-        });
-        await tx.coWorkSession.update({
-          where: { id: sessionId },
-          data: { isActive: false, endedAt: new Date() },
-        });
-        sessionEnded = true;
-      }
     });
 
-    // Real-time broadcast (fire-and-forget)
+    // Real-time broadcast — only the participant_left event. No
+    // session_ended here, ever. See the comment above.
     await wsEmit({
       room: `session:${sessionId}`,
       event: 'cowork:participant_left',
       data: { sessionId, userId },
     });
-    if (sessionEnded) {
-      await wsEmit({
-        room: `session:${sessionId}`,
-        event: 'cowork:session_ended',
-        data: { sessionId },
-      });
-    }
 
     return successResponse({ left: true });
   } catch {
