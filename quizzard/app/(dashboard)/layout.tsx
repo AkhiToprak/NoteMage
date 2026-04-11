@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import HomeHeader from '@/components/layout/HomeHeader';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 
@@ -25,6 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/auth/register');
     }
   }, [status, session, router]);
+
+  // Track minutes-in-app for the activity heatmap. Only runs when authed.
+  useStudyHeartbeat(status === 'authenticated');
   const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
   const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
   const isFullHeight = isNotebookWorkspace || isGroupDetail;

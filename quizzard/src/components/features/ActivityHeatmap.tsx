@@ -33,10 +33,15 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
-function getColor(count: number): string {
-  if (count === 0) return '#22223a';
-  if (count <= 2) return '#2d1f5e';
-  if (count <= 5) return '#6b3fa0';
+// `count` is now minutes spent in the app for the day. Tiers:
+//   0          → empty
+//   1–19       → light
+//   20–59      → mid
+//   60+        → full
+function getColor(minutes: number): string {
+  if (minutes === 0) return '#22223a';
+  if (minutes < 20) return '#2d1f5e';
+  if (minutes < 60) return '#6b3fa0';
   return '#ae89ff';
 }
 
@@ -180,8 +185,7 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
             Activity
           </h3>
           <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
-            {userId ? 'Contributions' : 'Your contributions'} over the last{' '}
-            {isPhone ? '6 months' : 'year'}
+            Minutes in the app over the last {isPhone ? '6 months' : 'year'}
           </p>
         </div>
         <div
@@ -194,14 +198,14 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
           }}
         >
           <span>Less</span>
-          {[0, 1, 3, 6].map((count) => (
+          {[0, 10, 30, 60].map((minutes) => (
             <div
-              key={count}
+              key={minutes}
               style={{
                 width: '12px',
                 height: '12px',
                 borderRadius: '3px',
-                background: getColor(count),
+                background: getColor(minutes),
               }}
             />
           ))}
@@ -330,7 +334,7 @@ export default function ActivityHeatmap({ userId }: ActivityHeatmapProps = {}) {
               }}
             >
               <strong>
-                {tooltip.count} {tooltip.count === 1 ? 'action' : 'actions'}
+                {tooltip.count} {tooltip.count === 1 ? 'minute' : 'minutes'}
               </strong>{' '}
               on {formatDate(tooltip.date)}
             </div>

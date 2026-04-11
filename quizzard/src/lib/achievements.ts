@@ -33,7 +33,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     badge: 'daily_goal',
     name: 'locked in',
-    description: 'Hit your daily goal once',
+    description: 'Spend an hour in the app in a single day',
     icon: 'my_location',
     category: 'study',
     checkCondition: (s) => s.dailyGoalHit,

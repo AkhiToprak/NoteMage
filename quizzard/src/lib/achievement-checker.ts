@@ -1,5 +1,13 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ACHIEVEMENTS, UserStats } from './achievements';
+
+/**
+ * Threshold (in minutes) for the "locked in" achievement — same value the
+ * heatmap uses for its "full color" tier. Hitting this many minutes in any
+ * single day, ever, unlocks the badge.
+ */
+const DAILY_GOAL_MINUTES = 60;
 
 /** All badge keys except the meta-achievement */
 const NON_META_BADGES = ACHIEVEMENTS.filter((a) => a.badge !== 'all_achievements').map(
@@ -57,14 +65,13 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       select: { id: true },
     }),
 
-    // User record for level, usernameChanged, scholarName, dailyGoal
+    // User record for level, usernameChanged, scholarName
     db.user.findUnique({
       where: { id: userId },
       select: {
         level: true,
         usernameChanged: true,
         scholarName: true,
-        dailyGoal: true,
       },
     }),
 
@@ -121,11 +128,19 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   }
 
   // ── Daily goal hit ──────────────────────────────────────────────────
-  const dailyGoal = userRecord?.dailyGoal ?? 10;
-  const dailyGoalDay = await db.activityEvent.findFirst({
-    where: { userId, type: 'page_edit', count: { gte: dailyGoal } },
-    select: { id: true },
-  });
+  // "locked in" unlocks once the user has any single day with >=
+  // DAILY_GOAL_MINUTES minutes recorded by the heartbeat. Raw SQL because
+  // Prisma's groupBy doesn't support HAVING on a derived column.
+  const dailyGoalRows = await db.$queryRaw<{ has_day: boolean }[]>(Prisma.sql`
+    SELECT EXISTS (
+      SELECT 1
+      FROM study_minutes
+      WHERE "userId" = ${userId}
+      GROUP BY DATE("minute")
+      HAVING COUNT(*) >= ${DAILY_GOAL_MINUTES}
+    ) AS has_day
+  `);
+  const dailyGoalHit = dailyGoalRows[0]?.has_day === true;
 
   return {
     notebookCount,
@@ -143,7 +158,7 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     canvasPageCount,
     allTodosDone: totalTodos > 0 && incompleteTodos === 0,
     scholarNameSet: !!userRecord?.scholarName,
-    dailyGoalHit: !!dailyGoalDay,
+    dailyGoalHit,
     totalAchievementsUnlocked: unlockedCount,
   };
 }

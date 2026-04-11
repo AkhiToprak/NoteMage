@@ -84,7 +84,7 @@ model User {
   notebookComments       NotebookComment[]
   notebookCommentVotes   NotebookCommentVote[]
   microsoftConnection    MicrosoftConnection?
-  activityEvents         ActivityEvent[]
+  studyMinutes           StudyMinute[]
   streak                 UserStreak?
   ownedGroups            StudyGroup[]       @relation("OwnedGroups")
   groupMemberships       StudyGroupMember[]
@@ -1005,20 +1005,21 @@ model FriendActivity {
 // ============================================================================
 // ACTIVITY TRACKING (Heatmap)
 // ============================================================================
+//
+// One row = one minute the user had the app open. The unique constraint on
+// (userId, minute) makes inserts idempotent across multi-tab heartbeats —
+// the heartbeat endpoint upserts with no-op on conflict. Daily totals for the
+// heatmap come from `COUNT(*) GROUP BY DATE(minute)`.
 
-model ActivityEvent {
-  id        String   @id @default(cuid())
-  userId    String
-  date      DateTime @db.Date
-  type      String   // "message" | "page_edit" | "quiz" | "flashcard_review" | "login"
-  count     Int      @default(1)
-  createdAt DateTime @default(now())
+model StudyMinute {
+  userId String
+  minute DateTime // truncated to the minute on insert
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, date, type])
-  @@index([userId, date])
-  @@map("activity_events")
+  @@id([userId, minute])
+  @@index([userId, minute])
+  @@map("study_minutes")
 }
 
 // ============================================================================

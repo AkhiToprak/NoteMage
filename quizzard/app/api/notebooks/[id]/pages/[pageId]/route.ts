@@ -9,7 +9,6 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
-import { recordActivity } from '@/lib/activity';
 import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
@@ -94,9 +93,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (!userId) return unauthorizedResponse();
 
     const { id: notebookId, pageId } = await params;
-
-    // Record activity (fire-and-forget)
-    recordActivity(userId, 'page_edit').catch(() => {});
 
     // Award XP and check achievements (fire-and-forget)
     awardXP(userId, 'page_edited').catch(console.error);

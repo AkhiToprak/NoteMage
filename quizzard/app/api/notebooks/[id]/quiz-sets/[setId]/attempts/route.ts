@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { recordActivity } from '@/lib/activity';
 import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import {
@@ -78,9 +77,6 @@ export async function POST(
       },
       include: { answers: true },
     });
-
-    // Record activity
-    await recordActivity(userId, 'quiz');
 
     // Award XP and check achievements (fire-and-forget)
     awardXP(userId, 'quiz_completed').catch(console.error);
