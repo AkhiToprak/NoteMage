@@ -36,6 +36,8 @@ export async function GET(
         location: true,
         school: true,
         lineOfWork: true,
+        instagramHandle: true,
+        linkedinUrl: true,
         profilePrivate: true,
         hideAchievements: true,
         createdAt: true,
@@ -59,6 +61,15 @@ export async function GET(
       orderBy: { unlockedAt: 'desc' },
     });
     const unlockedCosmeticIds = unlocks.map((row) => row.cosmeticId);
+
+    // Friends count for the Socials bento card. Only "accepted" friendships
+    // count, on either side of the relation.
+    const friendsCount = await db.friendship.count({
+      where: {
+        status: 'accepted',
+        OR: [{ requesterId: user.id }, { addresseeId: user.id }],
+      },
+    });
 
     const isOwnProfile = viewerId === user.id;
     let friendshipStatus: string | null = null;
@@ -109,6 +120,7 @@ export async function GET(
         equippedBackgroundId: user.equippedBackgroundId,
         customBackgroundUrl: user.customBackgroundUrl,
         unlockedCosmeticIds,
+        friendsCount,
         friendshipStatus,
         friendshipId,
       });
@@ -117,6 +129,7 @@ export async function GET(
     return successResponse({
       ...user,
       unlockedCosmeticIds,
+      friendsCount,
       friendshipStatus,
       friendshipId,
     });

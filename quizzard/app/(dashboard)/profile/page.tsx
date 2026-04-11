@@ -27,6 +27,8 @@ interface ProfileData {
   location: string | null;
   school: string | null;
   lineOfWork: string | null;
+  instagramHandle: string | null;
+  linkedinUrl: string | null;
   profilePrivate: boolean;
   hideAchievements: boolean;
   createdAt: string;
@@ -47,6 +49,8 @@ interface FormState {
   location: string;
   school: string;
   lineOfWork: string;
+  instagramHandle: string;
+  linkedinUrl: string;
   profilePrivate: boolean;
   hideAchievements: boolean;
 }
@@ -113,6 +117,8 @@ export default function ProfilePage() {
     location: '',
     school: '',
     lineOfWork: '',
+    instagramHandle: '',
+    linkedinUrl: '',
     profilePrivate: false,
     hideAchievements: false,
   });
@@ -185,6 +191,8 @@ export default function ProfilePage() {
       location: profile.location || '',
       school: profile.school || '',
       lineOfWork: profile.lineOfWork || '',
+      instagramHandle: profile.instagramHandle || '',
+      linkedinUrl: profile.linkedinUrl || '',
       profilePrivate: profile.profilePrivate,
       hideAchievements: profile.hideAchievements,
     });
@@ -378,6 +386,8 @@ export default function ProfilePage() {
           location: form.location || null,
           school: form.school || null,
           lineOfWork: form.lineOfWork || null,
+          instagramHandle: form.instagramHandle.trim() || null,
+          linkedinUrl: form.linkedinUrl.trim() || null,
           profilePrivate: form.profilePrivate,
           hideAchievements: form.hideAchievements,
           nameStyle: nameStylePayload,
@@ -851,6 +861,40 @@ export default function ProfilePage() {
                 onChange={(e) => setForm({ ...form, lineOfWork: e.target.value })}
                 maxLength={100}
                 placeholder="Your profession"
+                style={INPUT_STYLE}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
+                }}
+              />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>Instagram</label>
+              <input
+                type="text"
+                value={form.instagramHandle}
+                onChange={(e) => setForm({ ...form, instagramHandle: e.target.value })}
+                maxLength={30}
+                placeholder="yourhandle"
+                style={INPUT_STYLE}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
+                }}
+              />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>LinkedIn</label>
+              <input
+                type="url"
+                value={form.linkedinUrl}
+                onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })}
+                maxLength={200}
+                placeholder="https://www.linkedin.com/in/you"
                 style={INPUT_STYLE}
                 onFocus={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';

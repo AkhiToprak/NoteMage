@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
         location: true,
         school: true,
         lineOfWork: true,
+        instagramHandle: true,
+        linkedinUrl: true,
         profilePrivate: true,
         hideAchievements: true,
         customGreeting: true,
@@ -68,6 +70,8 @@ export async function PUT(request: NextRequest) {
       location,
       school,
       lineOfWork,
+      instagramHandle,
+      linkedinUrl,
       profilePrivate,
       hideAchievements,
       customGreeting,
@@ -162,6 +166,57 @@ export async function PUT(request: NextRequest) {
         return badRequestResponse('Line of work must be at most 100 characters');
       } else {
         data.lineOfWork = lineOfWork.trim() || null;
+      }
+    }
+
+    if (instagramHandle !== undefined) {
+      if (instagramHandle === null || instagramHandle === '') {
+        data.instagramHandle = null;
+      } else if (typeof instagramHandle !== 'string' || instagramHandle.length > 200) {
+        return badRequestResponse('Instagram handle must be at most 30 characters');
+      } else {
+        // Strip leading @ and any URL prefix so users can paste a full link.
+        const trimmed = instagramHandle
+          .trim()
+          .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+          .replace(/^@/, '')
+          .replace(/\/+$/, '');
+        if (!trimmed) {
+          data.instagramHandle = null;
+        } else if (trimmed.length > 30) {
+          return badRequestResponse('Instagram handle must be at most 30 characters');
+        } else if (!/^[a-zA-Z0-9._]+$/.test(trimmed)) {
+          return badRequestResponse(
+            'Instagram handle may only contain letters, numbers, dots, and underscores'
+          );
+        } else {
+          data.instagramHandle = trimmed;
+        }
+      }
+    }
+
+    if (linkedinUrl !== undefined) {
+      if (linkedinUrl === null || linkedinUrl === '') {
+        data.linkedinUrl = null;
+      } else if (typeof linkedinUrl !== 'string' || linkedinUrl.length > 200) {
+        return badRequestResponse('LinkedIn URL must be at most 200 characters');
+      } else {
+        const trimmed = linkedinUrl.trim();
+        let normalized: string;
+        if (/^https?:\/\//i.test(trimmed)) {
+          normalized = trimmed.replace(/^http:\/\//i, 'https://');
+        } else if (/^(www\.)?linkedin\.com\//i.test(trimmed)) {
+          normalized = `https://${trimmed}`;
+        } else {
+          normalized = `https://www.linkedin.com/in/${trimmed.replace(/^\/+/, '')}`;
+        }
+        if (!/^https:\/\/([a-z]{2,3}\.)?linkedin\.com\//i.test(normalized)) {
+          return badRequestResponse('Please enter a valid LinkedIn URL');
+        }
+        if (normalized.length > 200) {
+          return badRequestResponse('LinkedIn URL must be at most 200 characters');
+        }
+        data.linkedinUrl = normalized;
       }
     }
 
