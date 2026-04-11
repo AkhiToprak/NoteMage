@@ -203,7 +203,9 @@ export default function StartCoworkModal({
 
       registerHostedCoworkSession(payload);
       onClose();
-      router.push(coworkPageUrl(payload));
+      // Carry the origin group id so the host lands back in this chat
+      // when they end the session.
+      router.push(coworkPageUrl(payload, groupId));
     } catch {
       setError('Network error. Try again.');
       setCreating(false);

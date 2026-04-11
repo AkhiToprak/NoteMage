@@ -32,6 +32,11 @@ export default function PageEditorPage({
   const router = useRouter();
   const highlightTerm = searchParams.get('highlight') || undefined;
   const coworkParam = searchParams.get('cowork');
+  // The chat the user came from — set by `coworkPageUrl` on both the host
+  // start flow and every invite-card join. Used to route participants back
+  // to their origin chat on session-end / leave. Falls back to the notebook
+  // home if unset (e.g. someone deep-linked the URL manually).
+  const fromGroupId = searchParams.get('from');
   const { data: session } = useSession();
   const currentUserId =
     (session?.user as { id?: string } | undefined)?.id || null;
@@ -102,14 +107,21 @@ export default function PageEditorPage({
     };
   }, [coworkParam, notebookId]);
 
-  // When the session ends (host ended it, or polling/socket detected the
-  // inactive state), navigate the user back to the notebook home so they
-  // don't keep editing a page they might not actually own.
+  // When the session ends (host ended it, polling/socket detected the
+  // inactive state, or a non-host clicked Leave), send the user back to
+  // the chat they came from. That's the contract with the invite card —
+  // entering a session from a group chat should return you to the same
+  // chat, not drop you on a notebook page you might not even own.
+  // Fall back to the notebook home only if we don't know the origin.
   const handleSessionEnd = useCallback(() => {
     setCoworkSession(null);
     setCurrentCoworkSession(null);
-    router.push(`/notebooks/${notebookId}`);
-  }, [router, notebookId]);
+    if (fromGroupId) {
+      router.push(`/groups/${fromGroupId}`);
+    } else {
+      router.push(`/notebooks/${notebookId}`);
+    }
+  }, [router, notebookId, fromGroupId]);
 
   if (!pageType) {
     return (

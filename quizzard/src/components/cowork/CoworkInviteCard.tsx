@@ -101,7 +101,9 @@ export default function CoworkInviteCard({
     setError(null);
     try {
       await joinCoworkSession(payload, groupId);
-      router.push(coworkPageUrl(payload));
+      // Carry the origin group id into the session URL so we can send
+      // the user back to this exact chat on leave / session-end.
+      router.push(coworkPageUrl(payload, groupId));
     } catch (err) {
       const reason = (err as Error).message;
       if (reason === 'forbidden') {

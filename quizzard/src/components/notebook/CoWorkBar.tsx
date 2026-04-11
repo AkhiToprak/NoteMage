@@ -67,7 +67,9 @@ export default function CoWorkBar({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hoveredInvite, setHoveredInvite] = useState(false);
   const [hoveredEnd, setHoveredEnd] = useState(false);
+  const [hoveredLeave, setHoveredLeave] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   /**
    * Host-controlled "open editing" flag. When toggled on, everyone in the
    * session can edit the page even if the lock holder is someone else.
@@ -234,6 +236,26 @@ export default function CoWorkBar({
       // silent
     } finally {
       setEnding(false);
+    }
+  };
+
+  // Non-host leave flow. POSTs to the leave endpoint (releases locks,
+  // marks the participant inactive, auto-ends the session if the host is
+  // the only one left) and then fires the same onSessionEnd callback the
+  // host-ended path uses, so the parent routes the user back to their
+  // origin chat with a single code path.
+  const handleLeave = async () => {
+    setLeaving(true);
+    try {
+      await fetch(`/api/notebooks/${notebookId}/cowork/${sessionId}/leave`, {
+        method: 'POST',
+      });
+    } catch {
+      // silent — navigate away anyway; stale participant will be cleaned
+      // up by the server's next housekeeping pass.
+    } finally {
+      onSessionEnd?.();
+      setLeaving(false);
     }
   };
 
@@ -485,6 +507,40 @@ export default function CoWorkBar({
               stop_circle
             </span>
             {ending ? 'Ending…' : 'End'}
+          </button>
+        )}
+
+        {/* Leave session (non-host only). The host can't leave — they
+            must End, which is a destructive action for everyone else in
+            the room. Everyone else gets this softer exit that just
+            removes them from the participant list. */}
+        {!isHost && (
+          <button
+            onClick={handleLeave}
+            disabled={leaving}
+            onMouseEnter={() => setHoveredLeave(true)}
+            onMouseLeave={() => setHoveredLeave(false)}
+            title="Leave this session and return to the chat"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '5px 10px',
+              borderRadius: 7,
+              border: 'none',
+              background: hoveredLeave ? 'rgba(253,111,133,0.2)' : 'rgba(253,111,133,0.08)',
+              color: '#fd6f85',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: leaving ? 'wait' : 'pointer',
+              transition: `all 0.15s ${EASING}`,
+              fontFamily: 'inherit',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+              logout
+            </span>
+            {leaving ? 'Leaving…' : 'Leave'}
           </button>
         )}
       </div>

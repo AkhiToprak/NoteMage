@@ -45,9 +45,19 @@ const STORAGE_KEY = 'notemage.currentCoworkSession';
  * Build the deep link the host and each joiner lands on. Keeps the query
  * param shape in one place so we don't have to remember it at every call
  * site.
+ *
+ * `originGroupId` is the StudyGroup the user came from (the chat where the
+ * invite was posted, or where the host opened the start modal). Carrying it
+ * in the URL means we can route every participant back to that exact chat
+ * when the session ends or they leave — without relying on localStorage,
+ * which doesn't survive cross-tab joins or refreshes from a cold cache.
  */
-export function coworkPageUrl(payload: CoworkInvitePayload): string {
-  return `/notebooks/${payload.notebookId}/pages/${payload.pageId}?cowork=${payload.sessionId}`;
+export function coworkPageUrl(
+  payload: CoworkInvitePayload,
+  originGroupId?: string | null
+): string {
+  const base = `/notebooks/${payload.notebookId}/pages/${payload.pageId}?cowork=${payload.sessionId}`;
+  return originGroupId ? `${base}&from=${encodeURIComponent(originGroupId)}` : base;
 }
 
 /** Read the user's currently active cowork session from localStorage. */
