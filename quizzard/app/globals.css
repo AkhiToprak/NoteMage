@@ -87,6 +87,9 @@
   --font-marker: var(--font-marker), 'Permanent Marker', cursive;
   --font-pressstart: var(--font-pressstart), 'Press Start 2P', 'Courier New', monospace;
   --font-orbitron: var(--font-orbitron), 'Orbitron', sans-serif;
+  /* Admin-only Minecraft-flavoured font. Silkscreen is the closest public
+     Google Fonts match to Minecraft's chunky block glyphs. */
+  --font-minecraft: var(--font-minecraft), 'Silkscreen', 'Press Start 2P', 'Courier New', monospace;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */

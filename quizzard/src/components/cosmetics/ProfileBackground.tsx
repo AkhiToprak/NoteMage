@@ -14,6 +14,12 @@ import {
  */
 interface ProfileBackgroundProps {
   backgroundId?: string | null;
+  /**
+   * Admin-only custom background image URL. Overrides `backgroundId` when
+   * present. Set through the admin GIF upload flow; no catalog entry
+   * backs it so the catalog stays pure code.
+   */
+  customBackgroundUrl?: string | null;
   /** Border radius to match the parent surface (so we don't clip wrong). */
   radius?: number | string;
   /** Extra className on the wrapper. */
@@ -23,10 +29,52 @@ interface ProfileBackgroundProps {
 
 export function ProfileBackground({
   backgroundId,
+  customBackgroundUrl,
   radius = 24,
   className,
   style,
 }: ProfileBackgroundProps) {
+  // Admin custom background wins over every catalog entry. Rendered as a
+  // plain <img> so GIFs animate natively and the browser handles caching.
+  if (customBackgroundUrl) {
+    return (
+      <div
+        aria-hidden
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: radius,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          ...style,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={customBackgroundUrl}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+        {/* Readability falloff so light content on top still stands out. */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, rgba(17,17,38,0.18) 0%, rgba(17,17,38,0.55) 100%)',
+          }}
+        />
+      </div>
+    );
+  }
+
   const entry = backgroundId ? COSMETICS[backgroundId] : null;
   if (!entry || entry.type !== 'background') return null;
   const bg = entry as BackgroundCosmetic;

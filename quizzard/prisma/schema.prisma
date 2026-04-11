@@ -102,6 +102,11 @@ model User {
   equippedTitleId        String?
   equippedFrameId        String?
   equippedBackgroundId   String?
+  // Admin-only escape hatch: URL of a GIF/image uploaded by the admin that
+  // overrides the catalog-based profile background. If set AND the user has
+  // role = "admin", ProfileBackground renders this image as-is. Writes are
+  // gated to admin accounts inside /api/user/profile and the upload endpoint.
+  customBackgroundUrl    String?
   cosmetics              UserCosmetic[]
   exams                  Exam[]
   todos                  Todo[]

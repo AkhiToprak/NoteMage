@@ -30,6 +30,18 @@ interface BaseCosmetic {
   label: string;
   description?: string;
   requiredLevel: number;
+  /**
+   * Grant-only entries. When `true`, the cosmetic is NEVER auto-unlocked by
+   * the level-up pipeline — it only ever enters `UserCosmetic` via the admin
+   * grant endpoint. `requiredLevel` is still stored (set it to 1 for UI
+   * sorting) but the unlock checker ignores it.
+   *
+   * The profile PUT validator treats adminOnly items like any other non-L1
+   * cosmetic: it requires a matching `UserCosmetic` row before allowing
+   * equip. Admins who want to equip adminOnly items first grant the row to
+   * themselves via POST /api/admin/users/:id/cosmetics.
+   */
+  adminOnly?: boolean;
 }
 
 export interface TitleCosmetic extends BaseCosmetic {
@@ -125,6 +137,24 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'title',
     label: 'hacker',
     requiredLevel: 30,
+  },
+  // Admin-granted titles. `requiredLevel: 1` keeps the sort stable; the
+  // `adminOnly` flag is what actually blocks auto-unlocks.
+  'title.og-noter': {
+    id: 'title.og-noter',
+    type: 'title',
+    label: 'OG-Noter',
+    description: 'Granted to early supporters by the team.',
+    requiredLevel: 1,
+    adminOnly: true,
+  },
+  'title.tester': {
+    id: 'title.tester',
+    type: 'title',
+    label: 'Tester',
+    description: 'Granted to pre-release beta testers.',
+    requiredLevel: 1,
+    adminOnly: true,
   },
 
   // --- Name fonts ---------------------------------------------------------
@@ -247,6 +277,18 @@ export const COSMETICS: Record<string, Cosmetic> = {
     description: 'Dimensional marquee display.',
     css: "var(--font-bungee), 'Bungee Shade', Impact, sans-serif",
     requiredLevel: 26,
+  },
+  // Admin-only: chunky pixel block font reminiscent of a certain sandbox
+  // game. Never auto-granted; only appears on accounts the admin has
+  // specifically granted it to.
+  'font.minecraft': {
+    id: 'font.minecraft',
+    type: 'nameFont',
+    label: 'Minecraft',
+    description: 'Chunky pixel block — admin-granted only.',
+    css: "var(--font-minecraft), 'Silkscreen', 'Press Start 2P', monospace",
+    requiredLevel: 1,
+    adminOnly: true,
   },
 
   // --- Name colors --------------------------------------------------------
@@ -470,9 +512,19 @@ export function getCosmeticsByType<T extends CosmeticType>(
  * Returns every catalog entry the user is eligible for at the given level,
  * regardless of whether they've already unlocked it. Used by the unlock
  * checker to diff against existing UserCosmetic rows.
+ *
+ * `adminOnly` entries are intentionally filtered out here — they can only
+ * be granted via the admin user-management tools, never by leveling up.
+ * Without this filter, a single level-up would auto-unlock every admin-only
+ * cosmetic for every user in the app.
  */
 export function eligibleCosmeticIds(level: number): string[] {
   return Object.values(COSMETICS)
-    .filter((c) => c.requiredLevel <= level)
+    .filter((c) => !c.adminOnly && c.requiredLevel <= level)
     .map((c) => c.id);
+}
+
+/** Shortcut used by admin UIs that want to list every grant-only entry. */
+export function adminOnlyCosmetics(): Cosmetic[] {
+  return Object.values(COSMETICS).filter((c) => c.adminOnly === true);
 }

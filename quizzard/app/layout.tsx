@@ -14,6 +14,7 @@ import {
   Playfair_Display,
   Plus_Jakarta_Sans,
   Press_Start_2P,
+  Silkscreen,
   UnifrakturMaguntia,
 } from 'next/font/google';
 import './globals.css';
@@ -134,6 +135,17 @@ const orbitron = Orbitron({
   display: 'swap',
 });
 
+// Admin-only: Silkscreen is the closest Google Fonts gets to Minecraft's
+// chunky pixel font. Gated via `adminOnly: true` in the cosmetics catalog;
+// only users with a matching UserCosmetic row (granted by the admin tools)
+// can ever equip it.
+const silkscreen = Silkscreen({
+  variable: '--font-minecraft',
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  display: 'swap',
+});
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -183,6 +195,7 @@ export default function RootLayout({
           permanentMarker.variable,
           pressStart.variable,
           orbitron.variable,
+          silkscreen.variable,
           'antialiased',
         ].join(' ')}
       >

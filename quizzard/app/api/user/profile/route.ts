@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
         equippedTitleId: true,
         equippedFrameId: true,
         equippedBackgroundId: true,
+        customBackgroundUrl: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -74,6 +76,7 @@ export async function PUT(request: NextRequest) {
       equippedTitleId,
       equippedFrameId,
       equippedBackgroundId,
+      customBackgroundUrl,
     } = body;
 
     const data: Record<string, unknown> = {};
@@ -260,6 +263,33 @@ export async function PUT(request: NextRequest) {
       data[field] = value;
     }
 
+    // Admin-only: custom background URL. Must be a string that came from
+    // /api/uploads/signed-url with purpose 'admin-background'. We don't
+    // re-verify that path here (the upload endpoint already enforces admin
+    // role) but we DO reject any non-admin caller trying to write this
+    // field, so a regular user can't stick an arbitrary URL on their
+    // profile by hand-crafting a PUT.
+    if (customBackgroundUrl !== undefined) {
+      const caller = await db.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!caller || caller.role !== 'admin') {
+        return badRequestResponse('customBackgroundUrl is admin-only');
+      }
+      if (customBackgroundUrl === null || customBackgroundUrl === '') {
+        data.customBackgroundUrl = null;
+      } else if (
+        typeof customBackgroundUrl !== 'string' ||
+        !/^https?:\/\//i.test(customBackgroundUrl) ||
+        customBackgroundUrl.length > 2048
+      ) {
+        return badRequestResponse('customBackgroundUrl must be an http(s) URL');
+      } else {
+        data.customBackgroundUrl = customBackgroundUrl;
+      }
+    }
+
     // Ownership check: all referenced cosmetics must be in UserCosmetic for
     // this user. Allow-list the 'default' sentinels (level 1 entries) so
     // users can always revert to the default without owning a row.
@@ -322,6 +352,8 @@ export async function PUT(request: NextRequest) {
           equippedTitleId: true,
           equippedFrameId: true,
           equippedBackgroundId: true,
+          customBackgroundUrl: true,
+          role: true,
           createdAt: true,
         },
       });

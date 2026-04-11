@@ -14,6 +14,7 @@ import {
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { ProfileBackground } from './ProfileBackground';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 /**
  * `<CosmeticsPanel>` — the customization studio inside the profile edit form.
@@ -36,6 +37,13 @@ export interface CosmeticsSelection {
   colorId: string | null;
   equippedFrameId: string | null;
   equippedBackgroundId: string | null;
+  /**
+   * Admin-only override: URL of a GIF/image uploaded by an admin to replace
+   * their catalog background entirely. `null` for every non-admin, and for
+   * admins who haven't uploaded one yet. Overrides `equippedBackgroundId`
+   * everywhere <ProfileBackground> is rendered.
+   */
+  customBackgroundUrl: string | null;
 }
 
 interface CosmeticsPanelProps {
@@ -50,6 +58,12 @@ interface CosmeticsPanelProps {
   };
   /** Compact layout for phones — reduces preview padding. */
   compact?: boolean;
+  /**
+   * When true, the admin-only "Upload custom background" section renders.
+   * Purely additive — set to `false` (or omit) for normal users and they
+   * see the exact same panel they always have.
+   */
+  isAdmin?: boolean;
 }
 
 interface CosmeticsData {
@@ -632,6 +646,7 @@ export function CosmeticsPanel({
   onChange,
   previewUser,
   compact = false,
+  isAdmin = false,
 }: CosmeticsPanelProps) {
   const { data, loading, error } = useCosmetics();
 
@@ -704,6 +719,57 @@ export function CosmeticsPanel({
     },
     equippedTitleId: value.equippedTitleId,
     equippedFrameId: value.equippedFrameId,
+  };
+
+  // ── Admin-only GIF background uploader ───────────────────────────────
+  // Hoisted up here so the hook order stays stable regardless of the
+  // `isAdmin` prop. The upload itself targets the `admin-background`
+  // purpose, which re-checks the caller's role server-side.
+  const { upload: uploadAdminBg, isUploading: adminBgUploading, error: adminBgError } =
+    useDirectUpload();
+  const [adminBgFeedback, setAdminBgFeedback] = React.useState<string | null>(null);
+  const adminFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAdminBgPick = () => {
+    adminFileInputRef.current?.click();
+  };
+
+  const handleAdminBgFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the <input> so picking the same file twice still fires onChange.
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setAdminBgFeedback('Pick an image file (GIF, PNG, JPG, WebP).');
+      return;
+    }
+    // Generous cap — GIFs are often a few MB. 20 MB covers every sane case
+    // without letting someone accidentally ship a 200 MB file.
+    if (file.size > 20 * 1024 * 1024) {
+      setAdminBgFeedback('Max file size is 20 MB.');
+      return;
+    }
+    setAdminBgFeedback(null);
+    try {
+      const { publicUrl } = await uploadAdminBg(file, 'admin-background');
+      if (!publicUrl) {
+        setAdminBgFeedback('Upload succeeded but no public URL came back.');
+        return;
+      }
+      // Cache-bust so the preview immediately reflects the new upload even
+      // when Supabase's CDN would otherwise serve the previous object at
+      // the same path.
+      const bust = `${publicUrl}${publicUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      onChange({ ...value, customBackgroundUrl: bust });
+      setAdminBgFeedback('Uploaded — remember to hit Save.');
+    } catch {
+      setAdminBgFeedback('Upload failed. Try again.');
+    }
+  };
+
+  const clearAdminBg = () => {
+    onChange({ ...value, customBackgroundUrl: null });
+    setAdminBgFeedback('Custom background cleared — hit Save.');
   };
 
   // Rail handlers. Default entries clear the corresponding field.
@@ -813,6 +879,7 @@ export function CosmeticsPanel({
       >
         <ProfileBackground
           backgroundId={value.equippedBackgroundId}
+          customBackgroundUrl={value.customBackgroundUrl}
           radius={20}
         />
 
@@ -877,6 +944,136 @@ export function CosmeticsPanel({
           </p>
         </div>
       </div>
+
+      {/* ── Admin-only custom background uploader ── */}
+      {isAdmin && (
+        <div
+          style={{
+            position: 'relative',
+            borderRadius: 16,
+            border: '1px solid rgba(255,222,89,0.35)',
+            background:
+              'linear-gradient(135deg, rgba(255,222,89,0.08) 0%, rgba(174,137,255,0.06) 100%)',
+            padding: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ color: '#ffde59', fontSize: 22 }}
+            >
+              admin_panel_settings
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: '#ffde59',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                Admin · Custom Background
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: '#aaa8c8',
+                  marginTop: 2,
+                }}
+              >
+                Upload a GIF (or any image) and it overrides the catalog
+                background on your profile. Only you see this control.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleAdminBgPick}
+              disabled={adminBgUploading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '10px 16px',
+                borderRadius: 10,
+                border: 'none',
+                background: 'rgba(255,222,89,0.15)',
+                color: '#ffde59',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: adminBgUploading ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: adminBgUploading ? 0.65 : 1,
+                transition: `background 0.2s ${EASING}`,
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16 }}
+              >
+                {adminBgUploading ? 'progress_activity' : 'upload'}
+              </span>
+              {adminBgUploading ? 'Uploading…' : 'Upload GIF / image'}
+            </button>
+            {value.customBackgroundUrl && (
+              <button
+                type="button"
+                onClick={clearAdminBg}
+                disabled={adminBgUploading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: '1px solid rgba(253,111,133,0.35)',
+                  background: 'rgba(253,111,133,0.08)',
+                  color: '#fd6f85',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 16 }}
+                >
+                  close
+                </span>
+                Clear custom
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={adminFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAdminBgFile}
+            style={{ display: 'none' }}
+          />
+
+          {(adminBgFeedback || adminBgError) && (
+            <div
+              style={{
+                fontSize: 12,
+                color: adminBgError ? '#fd6f85' : '#aaa8c8',
+                fontStyle: 'italic',
+              }}
+            >
+              {adminBgError || adminBgFeedback}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Rails ── */}
       <Rail label="Title" hint="Shown next to your name">

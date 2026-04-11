@@ -31,6 +31,8 @@ interface PublicProfileData {
   equippedTitleId?: string | null;
   equippedFrameId?: string | null;
   equippedBackgroundId?: string | null;
+  /** Admin-only — overrides equippedBackgroundId when set. */
+  customBackgroundUrl?: string | null;
   unlockedCosmeticIds?: string[];
 }
 
@@ -229,6 +231,7 @@ export default function PublicProfilePage() {
       >
         <ProfileBackground
           backgroundId={profile.equippedBackgroundId}
+          customBackgroundUrl={profile.customBackgroundUrl}
           radius={headerRadius}
         />
         {/* Avatar */}

@@ -6,6 +6,7 @@ import {
   successResponse,
   badRequestResponse,
   unauthorizedResponse,
+  forbiddenResponse,
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
@@ -19,7 +20,8 @@ type Purpose =
   | 'post-image'
   | 'document'
   | 'section-import'
-  | 'flashcard-import';
+  | 'flashcard-import'
+  | 'admin-background';
 
 interface SignedUrlRequestBody {
   purpose: Purpose;
@@ -73,6 +75,7 @@ export async function POST(request: NextRequest) {
       'document',
       'section-import',
       'flashcard-import',
+      'admin-background',
     ];
     if (!validPurposes.includes(purpose)) {
       return badRequestResponse(`Invalid purpose: ${purpose}`);
@@ -211,6 +214,26 @@ export async function POST(request: NextRequest) {
 
         storagePath = `temp-imports/${userId}/${timestamp}-${sanitized}`;
         bucket = BUCKET_PRIVATE;
+        break;
+      }
+
+      case 'admin-background': {
+        // Admin-only custom profile background (GIF or still image). We
+        // re-check the role off the DB — never trust the JWT alone for
+        // destructive/privileged writes — and reject every non-admin call.
+        const caller = await db.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        });
+        if (!caller || caller.role !== 'admin') {
+          return forbiddenResponse('Admin access required');
+        }
+        if (!contentType.startsWith('image/')) {
+          return badRequestResponse('admin-background requires an image content type');
+        }
+        const ext = getExtensionFromContentType(contentType);
+        storagePath = `admin-backgrounds/${userId}-${Date.now()}.${ext}`;
+        bucket = BUCKET_PUBLIC;
         break;
       }
 

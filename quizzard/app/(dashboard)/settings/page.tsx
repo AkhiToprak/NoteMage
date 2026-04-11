@@ -568,6 +568,66 @@ export default function SettingsPage() {
     setDeleteConfirmUser(null);
   };
 
+  // ── Admin cosmetic grant/revoke ────────────────────────────────────────
+  // Drives the per-user grant menu in the admin user list. The three slugs
+  // here are the only adminOnly entries in the catalog; if a new adminOnly
+  // cosmetic is added, update this list so it shows up in the dropdown.
+  const ADMIN_GRANTABLE_COSMETICS: { id: string; label: string }[] = [
+    { id: 'title.og-noter', label: 'Title: OG-Noter' },
+    { id: 'title.tester', label: 'Title: Tester' },
+    { id: 'font.minecraft', label: 'Font: Minecraft' },
+  ];
+  const [grantFeedback, setGrantFeedback] = useState<{
+    userId: string;
+    kind: 'ok' | 'err';
+    msg: string;
+  } | null>(null);
+
+  const handleGrantCosmetic = async (userId: string, cosmeticId: string) => {
+    if (!cosmeticId) return;
+    setAdminActionLoading(userId);
+    setGrantFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/cosmetics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cosmeticId }),
+      });
+      if (res.ok) {
+        const label =
+          ADMIN_GRANTABLE_COSMETICS.find((c) => c.id === cosmeticId)?.label || cosmeticId;
+        setGrantFeedback({ userId, kind: 'ok', msg: `Granted ${label}` });
+      } else {
+        setGrantFeedback({ userId, kind: 'err', msg: 'Grant failed' });
+      }
+    } catch {
+      setGrantFeedback({ userId, kind: 'err', msg: 'Network error' });
+    }
+    setAdminActionLoading(null);
+  };
+
+  const handleRevokeCosmetic = async (userId: string, cosmeticId: string) => {
+    if (!cosmeticId) return;
+    setAdminActionLoading(userId);
+    setGrantFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/admin/users/${userId}/cosmetics?cosmeticId=${encodeURIComponent(cosmeticId)}`,
+        { method: 'DELETE' }
+      );
+      if (res.ok) {
+        const label =
+          ADMIN_GRANTABLE_COSMETICS.find((c) => c.id === cosmeticId)?.label || cosmeticId;
+        setGrantFeedback({ userId, kind: 'ok', msg: `Revoked ${label}` });
+      } else {
+        setGrantFeedback({ userId, kind: 'err', msg: 'Revoke failed' });
+      }
+    } catch {
+      setGrantFeedback({ userId, kind: 'err', msg: 'Network error' });
+    }
+    setAdminActionLoading(null);
+  };
+
   const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' });
   const [pwStatus, setPwStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
   const [pwLoading, setPwLoading] = useState(false);
@@ -2448,6 +2508,127 @@ export default function SettingsPage() {
                             >
                               Reason: {user.banReason}
                             </p>
+                          )}
+                        </div>
+
+                        {/* Admin cosmetic grant — available for EVERY user,
+                            including admins themselves, so I can grant
+                            OG-Noter / Tester / Minecraft to my own account
+                            without leaving the page. Rendered inline as a
+                            compact select + two buttons so it doesn't eat a
+                            whole modal. */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <select
+                            defaultValue=""
+                            id={`grant-${user.id}`}
+                            disabled={isUserLoading}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '10px',
+                              background: 'rgba(174,137,255,0.1)',
+                              color: '#e5e3ff',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              border: '1px solid rgba(174,137,255,0.25)',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              minWidth: '160px',
+                            }}
+                          >
+                            <option value="">Grant cosmetic…</option>
+                            {ADMIN_GRANTABLE_COSMETICS.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            disabled={isUserLoading}
+                            onClick={() => {
+                              const sel = document.getElementById(
+                                `grant-${user.id}`
+                              ) as HTMLSelectElement | null;
+                              if (sel && sel.value) handleGrantCosmetic(user.id, sel.value);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              border: 'none',
+                              background: 'rgba(174,137,255,0.18)',
+                              color: '#ae89ff',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              transition: 'background 0.15s',
+                            }}
+                            title="Grant selected cosmetic"
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '14px' }}
+                            >
+                              add
+                            </span>
+                            Grant
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isUserLoading}
+                            onClick={() => {
+                              const sel = document.getElementById(
+                                `grant-${user.id}`
+                              ) as HTMLSelectElement | null;
+                              if (sel && sel.value) handleRevokeCosmetic(user.id, sel.value);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              border: '1px solid rgba(253,111,133,0.35)',
+                              background: 'transparent',
+                              color: '#fd6f85',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                            }}
+                            title="Revoke selected cosmetic"
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '14px' }}
+                            >
+                              remove
+                            </span>
+                            Revoke
+                          </button>
+                          {grantFeedback?.userId === user.id && (
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontStyle: 'italic',
+                                color:
+                                  grantFeedback.kind === 'ok' ? '#4ade80' : '#fd6f85',
+                              }}
+                            >
+                              {grantFeedback.msg}
+                            </span>
                           )}
                         </div>
 

@@ -43,6 +43,7 @@ export async function GET(
         equippedTitleId: true,
         equippedFrameId: true,
         equippedBackgroundId: true,
+        customBackgroundUrl: true,
       },
     });
 
@@ -106,6 +107,7 @@ export async function GET(
         equippedTitleId: user.equippedTitleId,
         equippedFrameId: user.equippedFrameId,
         equippedBackgroundId: user.equippedBackgroundId,
+        customBackgroundUrl: user.customBackgroundUrl,
         unlockedCosmeticIds,
         friendshipStatus,
         friendshipId,

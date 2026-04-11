@@ -34,6 +34,10 @@ interface ProfileData {
   equippedTitleId: string | null;
   equippedFrameId: string | null;
   equippedBackgroundId: string | null;
+  // Admin-only fields. `customBackgroundUrl` overrides `equippedBackgroundId`
+  // when set; `role` gates the admin-only upload UI in <CosmeticsPanel>.
+  customBackgroundUrl: string | null;
+  role: string;
 }
 
 interface FormState {
@@ -53,6 +57,7 @@ const EMPTY_COSMETICS: CosmeticsSelection = {
   colorId: null,
   equippedFrameId: null,
   equippedBackgroundId: null,
+  customBackgroundUrl: null,
 };
 
 function formatDate(iso: string): string {
@@ -154,6 +159,7 @@ export default function ProfilePage() {
             colorId: d.nameStyle?.colorId ?? null,
             equippedFrameId: d.equippedFrameId ?? null,
             equippedBackgroundId: d.equippedBackgroundId ?? null,
+            customBackgroundUrl: d.customBackgroundUrl ?? null,
           });
           setCosmeticsDirty(false);
         }
@@ -320,6 +326,12 @@ export default function ProfilePage() {
           equippedTitleId: cosmeticsForm.equippedTitleId,
           equippedFrameId: cosmeticsForm.equippedFrameId,
           equippedBackgroundId: cosmeticsForm.equippedBackgroundId,
+          // Only admin accounts are allowed to write customBackgroundUrl
+          // (the API rejects the field otherwise). Omit the key entirely
+          // for regular users so their saves stay clean.
+          ...(profile?.role === 'admin'
+            ? { customBackgroundUrl: cosmeticsForm.customBackgroundUrl }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -372,6 +384,9 @@ export default function ProfilePage() {
           equippedTitleId: cosmeticsForm.equippedTitleId,
           equippedFrameId: cosmeticsForm.equippedFrameId,
           equippedBackgroundId: cosmeticsForm.equippedBackgroundId,
+          ...(profile?.role === 'admin'
+            ? { customBackgroundUrl: cosmeticsForm.customBackgroundUrl }
+            : {}),
         }),
       });
       if (res.ok) {
@@ -455,6 +470,7 @@ export default function ProfilePage() {
             unset renders nothing and the flat #21213e shows through. */}
         <ProfileBackground
           backgroundId={profile.equippedBackgroundId}
+          customBackgroundUrl={profile.customBackgroundUrl}
           radius={isPhone ? 20 : 24}
         />
 
@@ -1201,6 +1217,7 @@ export default function ProfilePage() {
                 avatarUrl: profile.avatarUrl,
               }}
               compact={isPhone}
+              isAdmin={profile.role === 'admin'}
             />
           </div>
         )}
