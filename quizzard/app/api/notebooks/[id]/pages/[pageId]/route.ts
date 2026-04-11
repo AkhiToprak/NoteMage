@@ -141,7 +141,18 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (content !== undefined && typeof content !== 'object') {
       return badRequestResponse('Content must be a JSON object');
     }
-    if (content !== undefined && JSON.stringify(content).length > 500_000) {
+    // Content size limit — split by page type. TipTap text pages should
+    // never need more than 500KB; anything larger is almost certainly a
+    // runaway edit. Canvas pages are a different shape entirely — they
+    // embed base64 image dataURLs inside `content.files` and store
+    // dense stroke arrays with per-point pressure values, so a
+    // legitimate canvas with a couple of photos or a complex drawing
+    // will easily cross 500KB. The cap here (10MB) matches the upper
+    // bound we've observed in real notebooks and stays well under
+    // Postgres' jsonb hard limits.
+    const maxContentBytes =
+      existing.pageType === 'canvas' ? 10 * 1024 * 1024 : 500_000;
+    if (content !== undefined && JSON.stringify(content).length > maxContentBytes) {
       return badRequestResponse('Content exceeds maximum size');
     }
     if (textContent !== undefined && typeof textContent !== 'string') {
