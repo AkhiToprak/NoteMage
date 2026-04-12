@@ -47,10 +47,8 @@ function LoginForm() {
   const handleOAuth = (provider: 'google' | 'apple') => {
     setError('');
     setOauthLoading(provider);
-    // callbackUrl points straight at /auth/register: the middleware will
-    // bounce completed-onboarding users to /dashboard automatically and
-    // keep incomplete users at the wizard, avoiding the / → /dashboard hop.
-    signIn(provider, { callbackUrl: '/auth/register' });
+    // Keep OAuth users on the login surface while signups are paused.
+    signIn(provider, { callbackUrl: '/auth/login' });
   };
 
   const handleSubmit = async (e: FormEvent) => {

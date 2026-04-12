@@ -248,14 +248,14 @@ export default function LandingNavbar() {
             }}
           />
           <Link
-            href="/auth/login"
+            href="/waitlist"
             style={{
               fontSize: 18,
               color: 'rgba(237, 233, 255, 0.72)',
               textDecoration: 'none',
             }}
           >
-            Log in
+            Join waitlist
           </Link>
           <Link
             href="/waitlist"
