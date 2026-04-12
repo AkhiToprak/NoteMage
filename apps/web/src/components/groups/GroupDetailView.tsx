@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import GroupChat from './GroupChat';
 import GroupSharedContent from './GroupSharedContent';
@@ -219,64 +220,89 @@ export default function GroupDetailView({ groupId }: Props) {
             arrow_back
           </span>
         </button>
-        {/* Avatar: DM shows other user's pic (circular), groups show group icon */}
+        {/* Avatar + title block: for DMs the whole identity row is clickable */}
         {isDM && otherUser ? (
-          <UserAvatar user={otherUser} size={32} radius="50%" />
-        ) : group.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={group.avatarUrl}
-            alt=""
-            style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'cover' }}
-          />
-        ) : (
-          <div
+          <Link
+            href={`/profile/${encodeURIComponent(otherUser.username)}`}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: isPhone ? 8 : 10,
+              flex: 1,
+              minWidth: 0,
+              textDecoration: 'none',
+              cursor: 'pointer',
             }}
+            title={`Open @${otherUser.username} profile`}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#fff' }}>
-              groups
-            </span>
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: COLORS.textPrimary,
-              letterSpacing: '-0.02em',
-              margin: 0,
-            }}
-          >
-            {isDM && otherUser ? (
-              <UserName
-                user={otherUser}
-                as="span"
+            <UserAvatar user={otherUser} size={32} radius="50%" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1
                 style={{
                   fontSize: 14,
                   fontWeight: 700,
                   color: COLORS.textPrimary,
                   letterSpacing: '-0.02em',
+                  margin: 0,
                 }}
+              >
+                <UserName
+                  user={otherUser}
+                  as="span"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: COLORS.textPrimary,
+                    letterSpacing: '-0.02em',
+                  }}
+                />
+              </h1>
+            </div>
+          </Link>
+        ) : (
+          <>
+            {group.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={group.avatarUrl}
+                alt=""
+                style={{ width: 28, height: 28, borderRadius: 8, objectFit: 'cover' }}
               />
             ) : (
-              group.name
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#fff' }}>
+                  groups
+                </span>
+              </div>
             )}
-          </h1>
-          {!isDM && (
-            <p style={{ fontSize: 11, color: COLORS.textMuted, margin: 0 }}>
-              {group.members.length} member{group.members.length !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: COLORS.textPrimary,
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                }}
+              >
+                {group.name}
+              </h1>
+              <p style={{ fontSize: 11, color: COLORS.textMuted, margin: 0 }}>
+                {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </>
+        )}
         <TimerWidget />
       </div>
 
