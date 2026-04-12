@@ -47,14 +47,9 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));
   }
 
-  // Auth pages (login/register) handling
+  // Signups are paused: hard-redirect register route to waitlist.
   if (pathname.startsWith('/auth/register')) {
-    if (!token) return withSecurityHeaders(NextResponse.next()); // Allow unauthenticated registration (temporarily re-enabled)
-    if (token.onboardingComplete) {
-      // Completed onboarding — block re-registration
-      return withSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
-    }
-    return withSecurityHeaders(NextResponse.next()); // Incomplete onboarding — allow access to finish
+    return withSecurityHeaders(NextResponse.redirect(new URL('/waitlist', request.url)));
   }
 
   // Already-authed users hitting /auth/login (e.g. the iPad shell boots
@@ -69,12 +64,9 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
   }
 
-  // Public pricing page — allow unauthenticated access
-  if (pathname === '/pricing') {
-    if (token && token.onboardingComplete) {
-      // Logged-in users can also view pricing
-      return withSecurityHeaders(NextResponse.next());
-    }
+  // Public marketing pages stay accessible on the web, including /waitlist.
+  // Native shell requests for these routes are already handled above.
+  if (isMarketingRoute(pathname)) {
     return withSecurityHeaders(NextResponse.next());
   }
 
