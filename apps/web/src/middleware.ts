@@ -25,6 +25,13 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.next()); // Incomplete onboarding — allow access to finish
   }
 
+  // Already-authed users hitting /auth/login (e.g. the iPad shell boots
+  // straight into this path) should bypass the form entirely.
+  if (pathname.startsWith('/auth/login') && token) {
+    const target = token.onboardingComplete ? '/dashboard' : '/auth/register';
+    return withSecurityHeaders(NextResponse.redirect(new URL(target, request.url)));
+  }
+
   // Authenticated users hitting "/" → redirect to /dashboard
   if (pathname === '/' && token) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
@@ -57,6 +64,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/auth/login',
     '/auth/register',
     '/dashboard/:path*',
     '/notebooks/:path*',
