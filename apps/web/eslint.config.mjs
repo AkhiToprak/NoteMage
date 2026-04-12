@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // Generated ws-server bundle (`pnpm build:ws`)
+    'ws-dist/**',
   ]),
 ]);
 
