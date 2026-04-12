@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import GroupChat from './GroupChat';
 import GroupSharedContent from './GroupSharedContent';
@@ -222,15 +221,20 @@ export default function GroupDetailView({ groupId }: Props) {
         </button>
         {/* Avatar + title block: for DMs the whole identity row is clickable */}
         {isDM && otherUser ? (
-          <Link
-            href={`/profile/${encodeURIComponent(otherUser.username)}`}
+          <button
+            type="button"
+            onClick={() => router.push(`/profile/${encodeURIComponent(otherUser.username)}`)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: isPhone ? 8 : 10,
               flex: 1,
               minWidth: 0,
-              textDecoration: 'none',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              margin: 0,
+              textAlign: 'left',
               cursor: 'pointer',
             }}
             title={`Open @${otherUser.username} profile`}
@@ -258,7 +262,7 @@ export default function GroupDetailView({ groupId }: Props) {
                 />
               </h1>
             </div>
-          </Link>
+          </button>
         ) : (
           <>
             {group.avatarUrl ? (
