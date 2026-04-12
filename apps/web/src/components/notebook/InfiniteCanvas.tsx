@@ -26,6 +26,7 @@ import type {
   OrderedExcalidrawElement,
 } from '@excalidraw/excalidraw/element/types';
 import { useCoworkSocket } from '@/lib/cowork-socket';
+import { isInsideNativeShell, nativeBridge } from '@/lib/native-bridge';
 import RemoteCursor from './RemoteCursor';
 import PageLockIndicator from './PageLockIndicator';
 
@@ -1092,6 +1093,29 @@ export default function InfiniteCanvas({
 
     document.addEventListener('pointerdown', handlePointerDown, true);
     return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [page]);
+
+  /* ─── Apple Pencil double-tap / squeeze → eraser ─────────────────────── *
+   * Apple Pencil 2 double-tap and Pencil Pro squeeze are NOT exposed to
+   * web pages by Safari/WKWebView, so the iOS shell wraps
+   * UIPencilInteraction in a Swift native module
+   * (apps/mobile/ios/Notemage/PencilInteractionModule.swift) and forwards
+   * a `pencilTap` event over the native bridge. We subscribe through
+   * `nativeBridge.onPencilTap` and toggle the eraser exactly the same
+   * way the barrel-button effect above does. When the page is loaded in
+   * a regular browser, `isInsideNativeShell()` returns false and the
+   * subscription is a no-op, so this code is safe in every context. */
+  useEffect(() => {
+    if (!page) return;
+    if (!isInsideNativeShell()) return;
+
+    const off = nativeBridge.onPencilTap(() => {
+      const api = excalidrawAPIRef.current;
+      if (!api) return;
+      const current = api.getAppState().activeTool.type;
+      api.setActiveTool({ type: current === 'eraser' ? 'freedraw' : 'eraser' });
+    });
+    return () => off();
   }, [page]);
 
   /* ─── Remap number shortcuts 1/2/3 → Text / Pen / Eraser ────────────── *

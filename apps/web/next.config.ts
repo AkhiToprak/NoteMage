@@ -1,6 +1,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // The native bridge contract lives in @notemage/shared as raw .ts so
+  // both Next (web) and Metro (mobile) consume the same source. Without
+  // this hint Next would refuse to compile a non-bundled workspace pkg.
+  transpilePackages: ['@notemage/shared'],
   serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
   outputFileTracingIncludes: {
     '/api/**': ['./node_modules/pdf-parse/**/*', './node_modules/pdf-parse/node_modules/**/*'],

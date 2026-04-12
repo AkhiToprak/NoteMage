@@ -1,0 +1,68 @@
+{
+  "name": "desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Notemage Windows desktop shell (Electron) — wraps https://notemage.app with native integrations.",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "pnpm build && electron .",
+    "dev": "pnpm build && electron . --dev",
+    "pack": "pnpm build && electron-builder --dir",
+    "dist": "pnpm build && electron-builder",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist release"
+  },
+  "dependencies": {
+    "@notemage/shared": "workspace:*",
+    "electron-log": "^5.2.0",
+    "electron-updater": "^6.3.9",
+    "electron-window-state": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.0"
+  },
+  "build": {
+    "appId": "app.notemage.desktop",
+    "productName": "Notemage",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "publisherName": "Notemage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Notemage"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AkhiToprak",
+        "repo": "NoteMage"
+      }
+    ]
+  }
+}
