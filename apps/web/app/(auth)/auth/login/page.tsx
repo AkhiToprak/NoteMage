@@ -528,7 +528,7 @@ function LoginForm() {
       >
         Don&apos;t have an account?{' '}
         <Link
-          href="/auth/register"
+          href="/waitlist"
           style={{ color: '#ffde59', fontWeight: 900, textDecoration: 'none' }}
         >
           Sign Up

@@ -243,7 +243,7 @@ export default function PricingPage() {
               <Link href="/auth/login" className="nlink">
                 Log in
               </Link>
-              <Link href="/auth/register" className="btn-cta-nav">
+              <Link href="/waitlist" className="btn-cta-nav">
                 Get Started
               </Link>
             </div>
@@ -276,7 +276,7 @@ export default function PricingPage() {
               key={key}
               tier={key}
               formattedPrice={formatPrice(TIERS[key].priceCHF)}
-              ctaHref={`/auth/register?tier=${key}`}
+              ctaHref={`/waitlist?tier=${key}`}
               ctaText={ctaText}
               isRevealed={cardsRevealed}
               delay={idx * 120}
@@ -354,7 +354,7 @@ export default function PricingPage() {
           Pick a plan and start learning in minutes.
         </p>
         <Link
-          href="/auth/register"
+          href="/waitlist"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -431,7 +431,7 @@ export default function PricingPage() {
           <Link href="/auth/login" className="nlink" style={{ fontSize: 14 }}>
             Log In
           </Link>
-          <Link href="/auth/register" className="nlink" style={{ fontSize: 14 }}>
+          <Link href="/waitlist" className="nlink" style={{ fontSize: 14 }}>
             Sign Up
           </Link>
         </div>

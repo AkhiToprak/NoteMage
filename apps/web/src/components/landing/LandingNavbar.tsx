@@ -138,7 +138,7 @@ export default function LandingNavbar() {
               Log in
             </Link>
             <Link
-              href="/auth/register"
+              href="/waitlist"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -258,7 +258,7 @@ export default function LandingNavbar() {
             Log in
           </Link>
           <Link
-            href="/auth/register"
+            href="/waitlist"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
