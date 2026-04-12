@@ -6,10 +6,10 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "pnpm build && electron .",
-    "dev": "pnpm build && electron . --dev",
-    "pack": "pnpm build && electron-builder --dir",
-    "dist": "pnpm build && electron-builder",
+    "start": "tsc -p tsconfig.json && electron .",
+    "dev": "tsc -p tsconfig.json && electron . --dev",
+    "pack": "tsc -p tsconfig.json && electron-builder --dir",
+    "dist": "tsc -p tsconfig.json && electron-builder",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist release"
   },

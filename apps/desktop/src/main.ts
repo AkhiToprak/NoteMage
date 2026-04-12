@@ -47,9 +47,22 @@ import type {
 } from '@notemage/shared';
 import { BRIDGE_EVENT, BRIDGE_INVOKE } from './ipc-channels';
 
-const APP_URL = process.env.NOTEMAGE_APP_URL ?? 'https://notemage.app';
-const APP_ORIGIN = new URL(APP_URL).origin;
+// Skip the marketing landing page entirely — the desktop shell is an
+// authenticated client, so boot straight into /auth/login. If the user
+// already has a valid NextAuth cookie, /auth/login redirects them onward
+// (handled in apps/web/src/middleware.ts). This mirrors the iOS shell,
+// which loads the same URL from apps/mobile/App.tsx.
+const APP_ORIGIN_URL = process.env.NOTEMAGE_APP_URL ?? 'https://notemage.app';
+const APP_ORIGIN = new URL(APP_ORIGIN_URL).origin;
+const APP_URL = `${APP_ORIGIN}/auth/login`;
 const IS_DEV = process.argv.includes('--dev') || !app.isPackaged;
+
+// Custom User-Agent tag so the web middleware can detect the shell and
+// redirect any marketing/landing route to /auth/login, even if the user
+// somehow navigates to `/` via JS or a stray link. Keep the tag short and
+// version-stamped so we can log-filter it later. The iOS shell will use
+// `NotemageShell/ios` once we wire the same thing through the RN WebView.
+const SHELL_USER_AGENT_TAG = `NotemageShell/windows-${app.getVersion()}`;
 
 // ── Logging ────────────────────────────────────────────────────────────────
 log.transports.file.level = 'info';
@@ -121,12 +134,41 @@ function createMainWindow(): BrowserWindow {
     },
   });
 
+  // Append our shell marker to the default Chromium UA string rather than
+  // replacing it — this keeps all browser-feature-sniffing on notemage.app
+  // working while still giving the web middleware a clean way to recognize
+  // shell traffic (`userAgent.includes('NotemageShell/')`).
+  const defaultUserAgent = win.webContents.getUserAgent();
+  win.webContents.setUserAgent(`${defaultUserAgent} ${SHELL_USER_AGENT_TAG}`);
+
   windowState.manage(win);
 
   win.once('ready-to-show', () => {
     win.show();
     win.focus();
+    if (IS_DEV) {
+      win.webContents.openDevTools({ mode: 'detach' });
+    }
   });
+
+  // Chatty navigation logging in dev so we can see which URL the shell
+  // actually ended up on. Noisy in production, which is why it's gated.
+  if (IS_DEV) {
+    win.webContents.on('did-start-loading', () => log.info('[nav] did-start-loading'));
+    win.webContents.on('did-navigate', (_event, url) => log.info('[nav] did-navigate →', url));
+    win.webContents.on('did-navigate-in-page', (_event, url) =>
+      log.info('[nav] did-navigate-in-page →', url),
+    );
+    win.webContents.on('did-fail-load', (_event, code, desc, url) =>
+      log.error('[nav] did-fail-load', { code, desc, url }),
+    );
+    win.webContents.on('did-finish-load', () => {
+      log.info('[nav] did-finish-load, current URL =', win.webContents.getURL());
+    });
+    win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      log.info('[renderer console]', { level, message, line, sourceId });
+    });
+  }
 
   // Don't quit on close — minimize to tray instead. The user quits
   // explicitly via the tray menu or the File menu.
