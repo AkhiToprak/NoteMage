@@ -412,6 +412,7 @@ export default function GroupDetailView({ groupId }: Props) {
             groupName={group?.name || ''}
             currentUserId={currentUserId}
             canChat={canChat}
+            isDirectMessage={isDM}
           />
         )}
         {activeTab === 'shared' && (

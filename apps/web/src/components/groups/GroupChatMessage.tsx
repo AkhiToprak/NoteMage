@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import SaveDestinationModal from './SaveDestinationModal';
 import CoworkInviteCard from '@/components/cowork/CoworkInviteCard';
 import type { CoworkInvitePayload } from '@/lib/cowork-join';
@@ -50,6 +51,7 @@ interface Props {
   groupId: string;
   currentUserId: string;
   isOwn: boolean;
+  isDirectMessage?: boolean;
 }
 
 function timeAgo(dateStr: string): string {
@@ -121,11 +123,42 @@ function ContentTypeIcon({ type }: { type: string }) {
   );
 }
 
-export default function GroupChatMessage({ message, groupId, currentUserId, isOwn }: Props) {
+export default function GroupChatMessage({
+  message,
+  groupId,
+  currentUserId,
+  isOwn,
+  isDirectMessage = false,
+}: Props) {
   const [saved, setSaved] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [resolvedSharedId, setResolvedSharedId] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  const canOpenSenderProfile =
+    isDirectMessage && !isOwn && Boolean(message.sender?.username && message.sender.username.length > 0);
+
+  const senderProfileHref = canOpenSenderProfile
+    ? `/profile/${encodeURIComponent(message.sender?.username || '')}`
+    : null;
+
+  const renderSenderName = (style?: React.CSSProperties, fallback?: string) => {
+    const senderNameNode = <UserName user={message.sender} showTitle fallback={fallback} style={style} />;
+    if (!senderProfileHref) return senderNameNode;
+    return (
+      <Link
+        href={senderProfileHref}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          textDecoration: 'none',
+          cursor: 'pointer',
+        }}
+        title={`Open @${message.sender?.username} profile`}
+      >
+        {senderNameNode}
+      </Link>
+    );
+  };
   // System message
   if (message.type === 'system') {
     return (
@@ -178,7 +211,7 @@ export default function GroupChatMessage({ message, groupId, currentUserId, isOw
             }}
           >
             {message.sender ? (
-              <UserName user={message.sender} showTitle fallback="A member" />
+              renderSenderName(undefined, 'A member')
             ) : (
               hostName
             )}{' '}
@@ -281,11 +314,7 @@ export default function GroupChatMessage({ message, groupId, currentUserId, isOw
             {isOwn ? (
               <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.yellow }}>You</span>
             ) : (
-              <UserName
-                user={message.sender}
-                showTitle
-                style={{ fontSize: 13, fontWeight: 700, color: COLORS.primary }}
-              />
+              renderSenderName({ fontSize: 13, fontWeight: 700, color: COLORS.primary })
             )}
             <span
               style={{
@@ -436,11 +465,7 @@ export default function GroupChatMessage({ message, groupId, currentUserId, isOw
           {isOwn ? (
             <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.yellow }}>You</span>
           ) : (
-            <UserName
-              user={message.sender}
-              showTitle
-              style={{ fontSize: 13, fontWeight: 700, color: COLORS.primary }}
-            />
+            renderSenderName({ fontSize: 13, fontWeight: 700, color: COLORS.primary })
           )}
           <span
             style={{

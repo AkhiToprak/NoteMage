@@ -26,6 +26,7 @@ interface Props {
   groupName: string;
   currentUserId: string;
   canChat?: boolean;
+  isDirectMessage?: boolean;
 }
 
 function LoadingSkeleton() {
@@ -60,7 +61,13 @@ function LoadingSkeleton() {
   );
 }
 
-export default function GroupChat({ groupId, groupName, currentUserId, canChat = true }: Props) {
+export default function GroupChat({
+  groupId,
+  groupName,
+  currentUserId,
+  canChat = true,
+  isDirectMessage = false,
+}: Props) {
   const { messages, loading, sending, hasMore, loadMore, sendMessage } = useGroupChat(groupId);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [startCoworkOpen, setStartCoworkOpen] = useState(false);
@@ -171,6 +178,7 @@ export default function GroupChat({ groupId, groupName, currentUserId, canChat =
             groupId={groupId}
             currentUserId={currentUserId}
             isOwn={msg.senderId === currentUserId}
+            isDirectMessage={isDirectMessage}
           />
         ))}
       </div>
