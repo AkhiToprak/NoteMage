@@ -160,7 +160,8 @@ async function extractWithPdfjs(
   pdfBuffer: Buffer,
   existingImages: ExtractedPdfImage[]
 ): Promise<void> {
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const { loadPdfjs } = await import('@/lib/pdfjs-node');
+  const pdfjsLib = await loadPdfjs();
 
   const doc = await pdfjsLib.getDocument({
     data: new Uint8Array(pdfBuffer),

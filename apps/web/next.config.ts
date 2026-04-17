@@ -6,19 +6,17 @@ const nextConfig: NextConfig = {
   // both Next (web) and Metro (mobile) consume the same source. Without
   // this hint Next would refuse to compile a non-bundled workspace pkg.
   transpilePackages: ['@notemage/shared'],
-  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
+  serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas'],
   // Monorepo: trace from the workspace root so pnpm-hoisted packages in
-  // ../../node_modules/.pnpm are reachable by include globs below.
+  // node_modules/.pnpm are reachable by the include globs below.
   outputFileTracingRoot: path.join(__dirname, '../../'),
   outputFileTracingIncludes: {
-    // pdf-parse v2 uses pdfjs-dist at runtime and dynamically imports
-    // the worker module; without explicit include globs the worker file
-    // is not bundled into the serverless output (Vercel lambda) and
-    // the first parse call fails with "Cannot find pdf.worker.mjs".
+    // pdfjs-dist dynamically imports its worker module at runtime.
+    // Without this explicit include the worker file is not bundled
+    // into the Vercel lambda and getDocument() fails with
+    // "Setting up fake worker failed: cannot find pdf.worker.mjs".
     '/api/**': [
-      './apps/web/node_modules/pdf-parse/**/*',
       './apps/web/node_modules/pdfjs-dist/**/*',
-      './node_modules/.pnpm/pdf-parse@*/**/*',
       './node_modules/.pnpm/pdfjs-dist@*/**/*',
     ],
   },

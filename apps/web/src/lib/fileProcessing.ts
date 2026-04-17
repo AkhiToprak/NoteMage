@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import { extractPdfText } from '@/lib/pdfjs-node';
 
 // Polyfill DOMMatrix, Path2D, ImageData for serverless environments (Vercel Lambda)
 // where @napi-rs/canvas native binaries are unavailable. pdfjs-dist requires these
@@ -29,11 +30,10 @@ export const ALLOWED_MIME_TYPES = [
 export async function extractText(buffer: Buffer, mimeType: string): Promise<string> {
   switch (mimeType) {
     case 'application/pdf': {
-      const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
-      const result = await parser.getText();
-      await parser.destroy();
-      return result.text;
+      // Direct pdfjs-dist path. We control the worker setup ourselves so we
+      // avoid pdf-parse's internal nested pdfjs-dist (different version,
+      // worker file not traced into the serverless bundle).
+      return extractPdfText(buffer);
     }
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
       const result = await mammoth.extractRawText({ buffer });
