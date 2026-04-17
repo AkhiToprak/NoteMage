@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { renderPdfToPngs } from '@/lib/pdf-client-render';
 
 interface SidebarPdfImportButtonProps {
   notebookId: string;
@@ -12,11 +13,15 @@ interface SidebarPdfImportButtonProps {
 
 /**
  * Top-level "Import PDF" button shown in the notebook sidebar.
- * Creates a new page named after the PDF file and imports its contents
- * (text + embedded images) via the existing section-import endpoint.
  *
- * If the notebook has no sections yet, an "Imports" section is created
- * on the fly so the user does not need to do that manually first.
+ * Each page of the PDF is rendered to a PNG in the browser, uploaded
+ * as a page image, and inserted as a resizableImage node. This avoids
+ * the near-impossible problem of recovering semantic structure from a
+ * PDF and gives the user pixel-perfect pages to draw / highlight on
+ * top of using the existing pen tooling.
+ *
+ * If the notebook has no sections, an "Imports" section is created
+ * on the fly.
  */
 export default function SidebarPdfImportButton({
   notebookId,
@@ -26,6 +31,7 @@ export default function SidebarPdfImportButton({
   const { upload } = useDirectUpload();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progressText, setProgressText] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +41,6 @@ export default function SidebarPdfImportButton({
     if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
       return json.data[0].id as string;
     }
-    // Create an "Imports" section on the fly
     const created = await fetch(`/api/notebooks/${notebookId}/sections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,38 +62,93 @@ export default function SidebarPdfImportButton({
       }
       setBusy(true);
       setError(null);
+      setProgressText('Rendering PDF…');
+
       try {
         const sectionId = await ensureSectionId();
-        const { storagePath } = await upload(file, 'section-import', {
-          notebookId,
-          sectionId,
+        const title = file.name.replace(/\.[^.]+$/, '');
+
+        // 1) Render all pages in the browser.
+        const pages = await renderPdfToPngs(file, {
+          onProgress: ({ current, total }) =>
+            setProgressText(`Rendering page ${current} / ${total}`),
         });
-        const res = await fetch(
-          `/api/notebooks/${notebookId}/sections/${sectionId}/import`,
+
+        if (pages.length === 0) throw new Error('No pages found in PDF');
+
+        // 2) Create the empty page so we have an id for uploads.
+        setProgressText('Creating page…');
+        const createRes = await fetch(
+          `/api/notebooks/${notebookId}/sections/${sectionId}/pages`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              storagePath,
-              fileName: file.name,
-              fileType: file.type,
-            }),
+            body: JSON.stringify({ title }),
           }
         );
-        const json = await res.json();
-        if (!res.ok || !json?.success) {
-          throw new Error(json?.error || `Import failed (${res.status})`);
+        const createJson = await createRes.json();
+        if (!createRes.ok || !createJson?.success || !createJson?.data?.id) {
+          throw new Error(createJson?.error || 'Failed to create page');
         }
+        const pageId: string = createJson.data.id;
+
+        // 3) Upload each rendered page and collect image nodes.
+        const imageNodes: unknown[] = [];
+        for (const page of pages) {
+          setProgressText(`Uploading page ${page.pageNumber} / ${pages.length}`);
+          const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
+            type: 'image/png',
+          });
+          const { storagePath } = await upload(pngFile, 'page-image', {
+            notebookId,
+            sectionId,
+            pageId,
+          });
+          const registerRes = await fetch(
+            `/api/notebooks/${notebookId}/pages/${pageId}/images`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storagePath, fileName: pngFile.name }),
+            }
+          );
+          const registerJson = await registerRes.json();
+          if (!registerJson?.success || !registerJson?.data?.url) continue;
+
+          imageNodes.push({
+            type: 'resizableImage',
+            attrs: {
+              src: registerJson.data.url,
+              alt: `${title} – page ${page.pageNumber}`,
+              width: null,
+            },
+          });
+        }
+
+        if (imageNodes.length === 0) {
+          throw new Error('Failed to upload any PDF pages');
+        }
+
+        // 4) Write the full page document.
+        setProgressText('Saving…');
+        const content = { type: 'doc', content: imageNodes };
+        const updateRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        });
+        if (!updateRes.ok) {
+          throw new Error(`Save failed (${updateRes.status})`);
+        }
+
         onImported();
-        const createdPageId = json?.data?.id;
-        if (createdPageId) {
-          router.push(`/notebooks/${notebookId}/pages/${createdPageId}`);
-        }
+        router.push(`/notebooks/${notebookId}/pages/${pageId}`);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Import failed');
         setTimeout(() => setError(null), 4000);
       } finally {
         setBusy(false);
+        setProgressText(null);
         if (inputRef.current) inputRef.current.value = '';
       }
     },
@@ -135,7 +195,7 @@ export default function SidebarPdfImportButton({
         {busy ? (
           <>
             <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            Importing PDF...
+            {progressText ?? 'Importing PDF…'}
           </>
         ) : (
           <>

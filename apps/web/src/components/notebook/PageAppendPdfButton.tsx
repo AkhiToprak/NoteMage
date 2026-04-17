@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { FileUp, Loader2 } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { renderPdfToPngs } from '@/lib/pdf-client-render';
 
 interface PageAppendPdfButtonProps {
   editor: Editor;
@@ -13,10 +14,9 @@ interface PageAppendPdfButtonProps {
 }
 
 /**
- * Toolbar button that appends the contents of a PDF (text + embedded
- * images) to the current page. The server extracts and persists images
- * + returns TipTap nodes, which the client inserts at the end of the
- * document so undo/redo and cursor behaviour stay natural.
+ * Toolbar button that renders a PDF to PNG pages in the browser and
+ * appends each page as a resizableImage node on the current page.
+ * Users can then annotate with the existing pen / highlight tools.
  */
 export default function PageAppendPdfButton({
   editor,
@@ -29,30 +29,44 @@ export default function PageAppendPdfButton({
   const [busy, setBusy] = useState(false);
 
   const handleFile = async (file: File) => {
-    if (file.type !== 'application/pdf') {
-      return;
-    }
+    if (file.type !== 'application/pdf') return;
     setBusy(true);
     try {
-      const { storagePath } = await upload(file, 'section-import', {
-        notebookId,
-        sectionId,
-      });
-      const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/append-pdf`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || `Append failed (${res.status})`);
+      const pages = await renderPdfToPngs(file);
+      const imageNodes: Array<Record<string, unknown>> = [];
+
+      for (const page of pages) {
+        const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
+          type: 'image/png',
+        });
+        const { storagePath } = await upload(pngFile, 'page-image', {
+          notebookId,
+          sectionId,
+          pageId,
+        });
+        const res = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, fileName: pngFile.name }),
+        });
+        const json = await res.json();
+        if (json?.success && json.data?.url) {
+          imageNodes.push({
+            type: 'resizableImage',
+            attrs: {
+              src: json.data.url,
+              alt: `${file.name} – page ${page.pageNumber}`,
+              width: null,
+            },
+          });
+        }
       }
-      const nodes = json?.data?.nodes as Array<Record<string, unknown>> | undefined;
-      if (nodes && nodes.length > 0) {
-        editor.chain().focus('end').insertContent(nodes).run();
+
+      if (imageNodes.length > 0) {
+        editor.chain().focus('end').insertContent(imageNodes).run();
       }
     } catch {
-      // Silent — toast infra is not wired for the toolbar here
+      // Silent — toolbar has no toast infra yet
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';

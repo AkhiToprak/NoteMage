@@ -5,8 +5,6 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:ws": "npx tsx ws-server.ts",
-    "prebuild": "node scripts/copy-pdf-worker.mjs",
-    "predev": "node scripts/copy-pdf-worker.mjs",
     "build": "next build",
     "build:ws": "esbuild ws-server.ts --bundle --platform=node --target=node22 --format=cjs --outfile=ws-dist/ws-server.cjs --external:@prisma/client --external:bufferutil --external:utf-8-validate",
     "start": "next start",
