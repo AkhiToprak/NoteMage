@@ -3,8 +3,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
-import { useCallback, useRef, useState, useEffect } from 'react';
-import { RectangleHorizontal, AlignLeft, AlignRight, Layers } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 
 /* ── Types ── */
 type HandlePosition = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
@@ -29,13 +28,6 @@ const HANDLES: HandleDef[] = [
     style: { bottom: -5, left: '50%', transform: 'translateX(-50%)' },
   },
   { pos: 'se', cursor: 'se-resize', style: { bottom: -5, right: -5 } },
-];
-
-const LAYOUT_OPTIONS: { mode: LayoutMode; icon: typeof RectangleHorizontal; label: string }[] = [
-  { mode: 'block', icon: RectangleHorizontal, label: 'Block' },
-  { mode: 'wrap-left', icon: AlignLeft, label: 'Wrap left' },
-  { mode: 'wrap-right', icon: AlignRight, label: 'Wrap right' },
-  { mode: 'behind', icon: Layers, label: 'Behind text' },
 ];
 
 const MIN_W = 80;
@@ -270,26 +262,6 @@ function ResizableImageView({ node, updateAttributes, selected }: NodeViewProps)
     return base;
   })();
 
-  /* ── Layout mode toolbar (click-outside to close) ── */
-  const [toolbarOpen, setToolbarOpen] = useState(false);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!selected) setToolbarOpen(false);
-  }, [selected]);
-
-  useEffect(() => {
-    if (!toolbarOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (toolbarRef.current && !toolbarRef.current.contains(e.target as globalThis.Node)) {
-        setToolbarOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [toolbarOpen]);
-
   return (
     <NodeViewWrapper
       style={wrapperStyle}
@@ -330,61 +302,6 @@ function ResizableImageView({ node, updateAttributes, selected }: NodeViewProps)
         />
       ))}
 
-      {/* ── Layout mode toolbar ── */}
-      {selected && (
-        <div
-          ref={toolbarRef}
-          contentEditable={false}
-          style={{
-            position: 'absolute',
-            top: layoutMode === 'behind' ? 0 : -44,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: '2px',
-            background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
-            borderRadius: '8px',
-            padding: '4px',
-            zIndex: 100,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-          }}
-        >
-          {LAYOUT_OPTIONS.map(({ mode, icon: Icon, label }) => (
-            <button
-              key={mode}
-              title={label}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                updateAttributes({ layoutMode: mode });
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 30,
-                height: 28,
-                borderRadius: '6px',
-                border: 'none',
-                background: layoutMode === mode ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: layoutMode === mode ? '#a47bff' : 'rgba(237,233,255,0.6)',
-                cursor: 'pointer',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={(e) => {
-                if (layoutMode !== mode)
-                  e.currentTarget.style.background = 'rgba(237,233,255,0.06)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background =
-                  layoutMode === mode ? 'rgba(140,82,255,0.18)' : 'transparent';
-              }}
-            >
-              <Icon size={16} />
-            </button>
-          ))}
-        </div>
-      )}
     </NodeViewWrapper>
   );
 }

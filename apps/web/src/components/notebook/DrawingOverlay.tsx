@@ -198,10 +198,20 @@ function TextAnnotation({
     y: number;
   } | null>(null);
 
-  // Sync draft only when transitioning into editing (not on every t.text update)
+  // Sync draft and imperatively focus when transitioning into editing.
+  // autoFocus inside <foreignObject> is unreliable across browsers, so we
+  // call focus() manually once the textarea is mounted.
   useEffect(() => {
     if (isEditing && !wasEditingRef.current) {
       setDraft(t.text);
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.focus();
+          const len = el.value.length;
+          el.setSelectionRange(len, len);
+        }
+      });
     }
     wasEditingRef.current = isEditing;
   }, [isEditing, t.text]);
@@ -554,6 +564,13 @@ export default function DrawingOverlay({
     []
   );
 
+  // Keep a ref to the freshest texts so createTextAt (captured by the
+  // SVG's pointerDown handler) never appends to a stale array.
+  const textsRef = useRef(texts);
+  useEffect(() => {
+    textsRef.current = texts;
+  }, [texts]);
+
   // Create a new text at a given point and enter edit mode
   const createTextAt = useCallback(
     (point: { x: number; y: number }) => {
@@ -570,11 +587,11 @@ export default function DrawingOverlay({
         fontSize: 15,
         offset: { x: 0, y: 0 },
       };
-      onTextsChange([...texts, newText]);
+      onTextsChange([...textsRef.current, newText]);
       setEditingTextId(newText.id);
       setSelectedId(newText.id);
     },
-    [texts, onTextsChange]
+    [onTextsChange]
   );
 
   // Handle pointer down
@@ -638,6 +655,7 @@ export default function DrawingOverlay({
       lineStyle,
       ruler,
       isPhone,
+      createTextAt,
     ]
   );
 

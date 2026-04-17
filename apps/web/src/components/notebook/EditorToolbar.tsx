@@ -1408,7 +1408,7 @@ export default function EditorToolbar({
         borderBottom: '1px solid rgba(140,82,255,0.1)',
         position: 'sticky',
         top: 0,
-        zIndex: 10,
+        zIndex: 200,
       }}
     >
       {isPhone && <style>{`.editor-toolbar-row::-webkit-scrollbar { display: none; }`}</style>}

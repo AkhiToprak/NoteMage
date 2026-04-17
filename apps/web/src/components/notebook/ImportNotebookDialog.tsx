@@ -1,8 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Loader2, ChevronRight, ChevronDown, Check, FileText, Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  X,
+  Loader2,
+  ChevronRight,
+  ChevronDown,
+  Check,
+  FileText,
+  FileUp,
+  Upload,
+} from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { renderPdfToPngs } from '@/lib/pdf-client-render';
 
 interface ImportNotebookDialogProps {
   notebookId: string;
@@ -10,7 +21,7 @@ interface ImportNotebookDialogProps {
   onClose: () => void;
 }
 
-type TabType = 'onenote' | 'goodnotes' | 'applenotes';
+type TabType = 'onenote' | 'goodnotes' | 'applenotes' | 'pdf';
 
 interface OneNoteSection {
   id: string;
@@ -107,6 +118,7 @@ export default function ImportNotebookDialog({
               ['onenote', 'OneNote'],
               ['goodnotes', 'GoodNotes'],
               ['applenotes', 'Apple Notes'],
+              ['pdf', 'PDF'],
             ] as const
           ).map(([tab, label]) => (
             <button
@@ -142,6 +154,7 @@ export default function ImportNotebookDialog({
             <GoodNotesTab notebookId={notebookId} onImported={onImported} />
           )}
           {activeTab === 'applenotes' && <AppleNotesTab />}
+          {activeTab === 'pdf' && <PdfTab notebookId={notebookId} onImported={onImported} />}
         </div>
       </div>
     </div>
@@ -935,6 +948,254 @@ function AppleNotesTab() {
           'In Notemage, open any section and click the Upload (↑) button to import the PDF as a page',
         ]}
       />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PDF Tab
+// ═══════════════════════════════════════════════════════════════════
+
+function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: () => void }) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [state, setState] = useState<'idle' | 'working' | 'success' | 'error'>('idle');
+  const [progress, setProgress] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const { upload } = useDirectUpload();
+
+  const ensureSectionId = useCallback(async (): Promise<string> => {
+    const res = await fetch(`/api/notebooks/${notebookId}/sections`);
+    const json = await res.json();
+    if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+      return json.data[0].id as string;
+    }
+    const created = await fetch(`/api/notebooks/${notebookId}/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Imports' }),
+    });
+    const createdJson = await created.json();
+    if (!createdJson?.success || !createdJson?.data?.id) {
+      throw new Error('Could not create a section for the imported PDF');
+    }
+    return createdJson.data.id as string;
+  }, [notebookId]);
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      if (file.type !== 'application/pdf') {
+        setErrorMessage('Please select a PDF file.');
+        setState('error');
+        return;
+      }
+
+      setState('working');
+      setErrorMessage('');
+      setProgress('Rendering PDF…');
+
+      try {
+        const sectionId = await ensureSectionId();
+        const title = file.name.replace(/\.[^.]+$/, '');
+
+        const pages = await renderPdfToPngs(file, {
+          onProgress: ({ current, total }) =>
+            setProgress(`Rendering page ${current} / ${total}`),
+        });
+
+        if (pages.length === 0) throw new Error('No pages found in PDF');
+
+        setProgress('Creating page…');
+        const createRes = await fetch(
+          `/api/notebooks/${notebookId}/sections/${sectionId}/pages`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title }),
+          }
+        );
+        const createJson = await createRes.json();
+        if (!createRes.ok || !createJson?.success || !createJson?.data?.id) {
+          throw new Error(createJson?.error || 'Failed to create page');
+        }
+        const pageId: string = createJson.data.id;
+
+        const imageNodes: unknown[] = [];
+        for (const page of pages) {
+          setProgress(`Uploading page ${page.pageNumber} / ${pages.length}`);
+          const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
+            type: 'image/png',
+          });
+          const { storagePath } = await upload(pngFile, 'page-image', {
+            notebookId,
+            sectionId,
+            pageId,
+          });
+          const registerRes = await fetch(
+            `/api/notebooks/${notebookId}/pages/${pageId}/images`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storagePath, fileName: pngFile.name }),
+            }
+          );
+          const registerJson = await registerRes.json();
+          if (!registerJson?.success || !registerJson?.data?.url) continue;
+
+          imageNodes.push({
+            type: 'resizableImage',
+            attrs: {
+              src: registerJson.data.url,
+              alt: `${title} – page ${page.pageNumber}`,
+              width: null,
+            },
+          });
+        }
+
+        if (imageNodes.length === 0) {
+          throw new Error('Failed to upload any PDF pages');
+        }
+
+        setProgress('Saving…');
+        const content = { type: 'doc', content: imageNodes };
+        const updateRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        });
+        if (!updateRes.ok) {
+          throw new Error(`Save failed (${updateRes.status})`);
+        }
+
+        setState('success');
+        onImported();
+        setTimeout(() => {
+          router.push(`/notebooks/${notebookId}/pages/${pageId}`);
+        }, 500);
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : 'Import failed');
+        setState('error');
+      } finally {
+        setProgress('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    },
+    [notebookId, ensureSectionId, onImported, upload, router]
+  );
+
+  return (
+    <div style={{ padding: '8px 0' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          marginBottom: '16px',
+        }}
+      >
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'rgba(140,82,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <FileUp size={20} style={{ color: '#c4a9ff' }} />
+        </div>
+        <div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff', margin: 0 }}>
+            Import PDF
+          </p>
+          <p style={{ fontSize: '11.5px', color: 'rgba(237,233,255,0.4)', margin: '2px 0 0' }}>
+            Each page becomes an editable image
+          </p>
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: '14px 16px',
+          borderRadius: '10px',
+          background: 'rgba(140,82,255,0.06)',
+          border: '1px solid rgba(140,82,255,0.1)',
+          marginBottom: '14px',
+        }}
+      >
+        <p
+          style={{
+            fontSize: '12.5px',
+            color: 'rgba(237,233,255,0.5)',
+            margin: 0,
+            lineHeight: 1.5,
+          }}
+        >
+          Each PDF page is rendered as a pixel-perfect image you can annotate, highlight, or draw on
+          with the pen tool. A new page is created inside your notebook.
+        </p>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+        }}
+      />
+
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={state === 'working' || state === 'success'}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          width: '100%',
+          marginTop: '4px',
+          padding: '12px',
+          borderRadius: '10px',
+          border: 'none',
+          cursor: state === 'working' ? 'progress' : 'pointer',
+          fontFamily: 'inherit',
+          fontSize: '14px',
+          fontWeight: 600,
+          background:
+            state === 'success'
+              ? 'rgba(74,222,128,0.15)'
+              : 'linear-gradient(135deg, rgba(140,82,255,0.8), rgba(81,112,255,0.7))',
+          color: state === 'success' ? '#4ade80' : '#fff',
+          opacity: state === 'working' ? 0.7 : 1,
+          transition: 'opacity 0.15s ease',
+        }}
+      >
+        {state === 'working' ? (
+          <>
+            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+            {progress || 'Importing PDF…'}
+          </>
+        ) : state === 'success' ? (
+          <>
+            <Check size={16} /> Imported!
+          </>
+        ) : (
+          <>
+            <FileUp size={16} /> Choose PDF file
+          </>
+        )}
+      </button>
+
+      {state === 'error' && errorMessage && (
+        <p style={{ fontSize: '12px', color: '#fd6f85', margin: '8px 0 0', textAlign: 'center' }}>
+          {errorMessage}
+        </p>
+      )}
     </div>
   );
 }
