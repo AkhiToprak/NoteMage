@@ -1,5 +1,40 @@
 import type { NextConfig } from 'next';
+import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+
+// Copy pdfjs-dist's worker file into src/lib/vendor/ so that it can be
+// referenced via new URL(..., import.meta.url) from pdfjs-node.ts and
+// thereby picked up by @vercel/nft / Turbopack asset tracing. We do
+// this unconditionally at config-load time because Vercel invokes
+// `next build` directly, bypassing pnpm lifecycle hooks.
+(function ensurePdfjsWorkerCopied() {
+  try {
+    // createRequire needs a file URL or absolute path. __dirname is
+    // always absolute; using it keeps this working whether the config
+    // is loaded as CJS or ESM and regardless of Next's internal shim.
+    const req = createRequire(path.join(__dirname, 'package.json'));
+    const src = req.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+    const destDir = path.join(__dirname, 'src', 'lib', 'vendor');
+    const dest = path.join(destDir, 'pdfjs-worker.mjs');
+    fs.mkdirSync(destDir, { recursive: true });
+    // Only copy when missing or source is newer — keeps dev rebuilds fast.
+    let shouldCopy = true;
+    if (fs.existsSync(dest)) {
+      const srcStat = fs.statSync(src);
+      const dstStat = fs.statSync(dest);
+      shouldCopy = srcStat.mtimeMs > dstStat.mtimeMs || srcStat.size !== dstStat.size;
+    }
+    if (shouldCopy) {
+      fs.copyFileSync(src, dest);
+      // eslint-disable-next-line no-console
+      console.log(`[next.config] Copied pdfjs worker → ${dest}`);
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[next.config] Failed to copy pdfjs worker:', err);
+  }
+})();
 
 const nextConfig: NextConfig = {
   // The native bridge contract lives in @notemage/shared as raw .ts so
