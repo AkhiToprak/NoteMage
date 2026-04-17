@@ -23,8 +23,15 @@ import TableHeader from '@tiptap/extension-table-header';
 import FontFamily from '@tiptap/extension-font-family';
 import { Loader } from 'lucide-react';
 import EditorToolbar from './EditorToolbar';
-import DrawingOverlay, { hydrateStrokes } from './DrawingOverlay';
-import type { StrokeData, EditorMode, ActiveTool, LineStyle, RulerState } from './DrawingOverlay';
+import DrawingOverlay, { hydrateStrokes, hydrateTexts } from './DrawingOverlay';
+import type {
+  StrokeData,
+  TextData,
+  EditorMode,
+  ActiveTool,
+  LineStyle,
+  RulerState,
+} from './DrawingOverlay';
 import { ResizableImage } from './ResizableImage';
 import { FontSize } from '@/lib/tiptap-font-size';
 import { InlineHeading } from '@/lib/tiptap-inline-heading';
@@ -158,6 +165,9 @@ export default function PageEditor({
     position: { x: 400, y: 300 },
   });
   const [strokes, setStrokes] = useState<StrokeData[]>([]);
+  const [texts, setTexts] = useState<TextData[]>([]);
+  const [textColor] = useState('#ede9ff');
+  const [textFontSize] = useState(16);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const titleRef = useRef(title);
@@ -444,7 +454,7 @@ export default function PageEditor({
   const saveDrawingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveDrawing = useCallback(
-    async (data: StrokeData[]) => {
+    async (data: (StrokeData | TextData)[]) => {
       try {
         await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/drawing`, {
           method: 'PUT',
@@ -458,13 +468,31 @@ export default function PageEditor({
     [notebookId, pageId]
   );
 
+  const scheduleDrawingSave = useCallback(
+    (nextStrokes: StrokeData[], nextTexts: TextData[]) => {
+      if (saveDrawingRef.current) clearTimeout(saveDrawingRef.current);
+      saveDrawingRef.current = setTimeout(
+        () => saveDrawing([...nextStrokes, ...nextTexts]),
+        1500
+      );
+    },
+    [saveDrawing]
+  );
+
   const handleStrokesChange = useCallback(
     (newStrokes: StrokeData[]) => {
       setStrokes(newStrokes);
-      if (saveDrawingRef.current) clearTimeout(saveDrawingRef.current);
-      saveDrawingRef.current = setTimeout(() => saveDrawing(newStrokes), 1500);
+      scheduleDrawingSave(newStrokes, texts);
     },
-    [saveDrawing]
+    [scheduleDrawingSave, texts]
+  );
+
+  const handleTextsChange = useCallback(
+    (newTexts: TextData[]) => {
+      setTexts(newTexts);
+      scheduleDrawingSave(strokes, newTexts);
+    },
+    [scheduleDrawingSave, strokes]
   );
 
   useEffect(() => {
@@ -484,7 +512,9 @@ export default function PageEditor({
           setPage(json.data);
           setTitle(json.data.title);
           if (json.data.drawingData) {
-            setStrokes(hydrateStrokes(json.data.drawingData as unknown[]));
+            const raw = json.data.drawingData as unknown[];
+            setStrokes(hydrateStrokes(raw));
+            setTexts(hydrateTexts(raw));
           }
         }
       } finally {
@@ -1220,7 +1250,10 @@ export default function PageEditor({
         onActiveToolChange={setActiveTool}
         ruler={ruler}
         onRulerToggle={() => setRuler((r) => ({ ...r, active: !r.active }))}
-        onClearDrawing={() => handleStrokesChange([])}
+        onClearDrawing={() => {
+          handleStrokesChange([]);
+          handleTextsChange([]);
+        }}
       />
 
       {/* ── Editor canvas (full width, infinite scroll) ── */}
@@ -1247,11 +1280,15 @@ export default function PageEditor({
           <DrawingOverlay
             strokes={strokes}
             onStrokesChange={handleStrokesChange}
+            texts={texts}
+            onTextsChange={handleTextsChange}
             mode={editorMode}
             activeTool={activeTool}
             penColor={penColor}
             penWidth={penWidth}
             lineStyle={lineStyle}
+            textColor={textColor}
+            textFontSize={textFontSize}
             ruler={ruler}
             onRulerChange={setRuler}
           />

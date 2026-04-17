@@ -15,7 +15,19 @@ export interface StrokeData {
   offset?: { x: number; y: number };
 }
 
-export type EditorMode = 'cursor' | 'pen';
+export interface TextData {
+  kind: 'text';
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  text: string;
+  color: string;
+  fontSize: number;
+  offset?: { x: number; y: number };
+}
+
+export type EditorMode = 'cursor' | 'pen' | 'text';
 export type ActiveTool = 'pen' | 'eraser';
 
 export interface RulerState {
@@ -27,11 +39,15 @@ export interface RulerState {
 interface DrawingOverlayProps {
   strokes: StrokeData[];
   onStrokesChange: (strokes: StrokeData[]) => void;
+  texts: TextData[];
+  onTextsChange: (texts: TextData[]) => void;
   mode: EditorMode;
   activeTool: ActiveTool;
   penColor: string;
   penWidth: number;
   lineStyle: LineStyle;
+  textColor: string;
+  textFontSize: number;
   ruler: RulerState;
   onRulerChange: (ruler: RulerState) => void;
 }
@@ -41,15 +57,38 @@ interface DrawingOverlayProps {
 /** Hydrate legacy stroke data that may lack id/lineStyle/offset */
 export function hydrateStrokes(raw: unknown[]): StrokeData[] {
   if (!Array.isArray(raw)) return [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return raw.map((s: any) => ({
-    id: (s.id as string) || crypto.randomUUID(),
-    points: (s.points as { x: number; y: number }[]) || [],
-    color: (s.color as string) || '#ede9ff',
-    width: (s.width as number) || 4,
-    lineStyle: (s.lineStyle as LineStyle) || 'solid',
-    offset: (s.offset as { x: number; y: number }) || { x: 0, y: 0 },
-  }));
+  return raw
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((s: any) => s && typeof s === 'object' && s.kind !== 'text')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((s: any) => ({
+      id: (s.id as string) || crypto.randomUUID(),
+      points: (s.points as { x: number; y: number }[]) || [],
+      color: (s.color as string) || '#ede9ff',
+      width: (s.width as number) || 4,
+      lineStyle: (s.lineStyle as LineStyle) || 'solid',
+      offset: (s.offset as { x: number; y: number }) || { x: 0, y: 0 },
+    }));
+}
+
+/** Hydrate text annotations from persisted drawing array */
+export function hydrateTexts(raw: unknown[]): TextData[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((t: any) => t && typeof t === 'object' && t.kind === 'text')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((t: any) => ({
+      kind: 'text' as const,
+      id: (t.id as string) || crypto.randomUUID(),
+      x: typeof t.x === 'number' ? t.x : 0,
+      y: typeof t.y === 'number' ? t.y : 0,
+      width: typeof t.width === 'number' ? t.width : 200,
+      text: typeof t.text === 'string' ? t.text : '',
+      color: typeof t.color === 'string' ? t.color : '#ede9ff',
+      fontSize: typeof t.fontSize === 'number' ? t.fontSize : 16,
+      offset: (t.offset as { x: number; y: number }) || { x: 0, y: 0 },
+    }));
 }
 
 function getStrokeDashArray(style: LineStyle, width: number): string | undefined {
@@ -114,14 +153,164 @@ function projectToRulerLine(
 const ERASER_HIT_RADIUS_DEFAULT = 16;
 const ERASER_HIT_RADIUS_PHONE = 24;
 
+interface TextAnnotationProps {
+  data: TextData;
+  dragOffset: { x: number; y: number } | null;
+  mode: EditorMode;
+  isSelected: boolean;
+  isEditing: boolean;
+  onSelect: () => void;
+  onBeginEdit: () => void;
+  onDragStart: (e: React.PointerEvent) => void;
+  onCommit: (value: string) => void;
+}
+
+function TextAnnotation({
+  data: t,
+  dragOffset,
+  mode,
+  isSelected,
+  isEditing,
+  onSelect,
+  onBeginEdit,
+  onDragStart,
+  onCommit,
+}: TextAnnotationProps) {
+  const [draft, setDraft] = useState(t.text);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      setDraft(t.text);
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (el) {
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      });
+    }
+  }, [isEditing, t.text]);
+
+  const ox = dragOffset?.x ?? t.offset?.x ?? 0;
+  const oy = dragOffset?.y ?? t.offset?.y ?? 0;
+  const padY = Math.max(2, t.fontSize * 0.2);
+  const padX = 4;
+  const displayText = isEditing ? draft : t.text;
+  const lines = Math.max(1, (displayText.match(/\n/g)?.length ?? 0) + 1);
+  const foHeight = Math.max(t.fontSize * 1.4, lines * t.fontSize * 1.4) + padY * 2;
+  const pointerEventsValue: 'none' | 'auto' = mode === 'pen' ? 'none' : 'auto';
+
+  const commonStyle: React.CSSProperties = {
+    width: t.width,
+    boxSizing: 'border-box',
+    padding: `${padY}px ${padX}px`,
+    color: t.color,
+    fontSize: t.fontSize,
+    lineHeight: 1.4,
+    fontFamily: 'inherit',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    borderRadius: 4,
+    margin: 0,
+    border: 'none',
+    outline: isEditing
+      ? '1.5px solid rgba(164,123,255,0.8)'
+      : isSelected
+        ? '1.5px dashed rgba(164,123,255,0.6)'
+        : 'none',
+    outlineOffset: 2,
+    background: isEditing ? 'rgba(26,26,54,0.35)' : 'transparent',
+  };
+
+  return (
+    <g transform={`translate(${ox}, ${oy})`} data-text-annotation="true">
+      <foreignObject
+        x={t.x - padX}
+        y={t.y - padY}
+        width={t.width + padX * 2}
+        height={foHeight}
+        style={{ pointerEvents: pointerEventsValue, overflow: 'visible' }}
+      >
+        {isEditing ? (
+          <textarea
+            ref={textareaRef}
+            data-text-annotation="true"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onBlur={() => onCommit(draft)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.currentTarget.blur();
+              }
+            }}
+            rows={lines}
+            style={{
+              ...commonStyle,
+              resize: 'none',
+              overflow: 'hidden',
+              minHeight: t.fontSize * 1.4,
+              cursor: 'text',
+            }}
+          />
+        ) : (
+          <div
+            data-text-annotation="true"
+            onPointerDown={(e) => {
+              if (mode === 'cursor') {
+                e.stopPropagation();
+                if (isSelected) onDragStart(e);
+                else onSelect();
+              } else if (mode === 'text') {
+                e.stopPropagation();
+                onBeginEdit();
+              }
+            }}
+            onDoubleClick={(e) => {
+              if (mode === 'cursor') {
+                e.stopPropagation();
+                onBeginEdit();
+              }
+            }}
+            style={{
+              ...commonStyle,
+              minHeight: t.fontSize * 1.4,
+              cursor:
+                mode === 'cursor'
+                  ? isSelected
+                    ? 'grab'
+                    : 'pointer'
+                  : mode === 'text'
+                    ? 'text'
+                    : 'default',
+              userSelect: 'none',
+            }}
+          >
+            {t.text || (
+              <span style={{ opacity: 0.4, fontStyle: 'italic' }}>
+                {mode === 'text' ? 'Text' : ''}
+              </span>
+            )}
+          </div>
+        )}
+      </foreignObject>
+    </g>
+  );
+}
+
 export default function DrawingOverlay({
   strokes,
   onStrokesChange,
+  texts,
+  onTextsChange,
   mode,
   activeTool,
   penColor,
   penWidth,
   lineStyle,
+  textColor,
+  textFontSize,
   ruler,
   onRulerChange,
 }: DrawingOverlayProps) {
@@ -130,8 +319,18 @@ export default function DrawingOverlay({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentStroke, setCurrentStroke] = useState<StrokeData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [svgHeight, setSvgHeight] = useState(1000);
   const isDrawing = useRef(false);
+  const textDragState = useRef<{
+    textId: string;
+    startX: number;
+    startY: number;
+    origOffset: { x: number; y: number };
+  } | null>(null);
+  const [textDragOffset, setTextDragOffset] = useState<{ id: string; x: number; y: number } | null>(
+    null
+  );
 
   // Drag state
   const dragState = useRef<{
@@ -187,9 +386,38 @@ export default function DrawingOverlay({
     []
   );
 
+  // Create a new text at a given point and enter edit mode
+  const createTextAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const newText: TextData = {
+        kind: 'text',
+        id: crypto.randomUUID(),
+        x: point.x,
+        y: point.y,
+        width: 220,
+        text: '',
+        color: textColor,
+        fontSize: textFontSize,
+        offset: { x: 0, y: 0 },
+      };
+      onTextsChange([...texts, newText]);
+      setEditingTextId(newText.id);
+      setSelectedId(newText.id);
+    },
+    [texts, onTextsChange, textColor, textFontSize]
+  );
+
   // Handle pointer down
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
+      if (mode === 'text') {
+        // Don't create a new text if the click originated on an existing text element
+        const target = e.target as Element;
+        if (target.closest('[data-text-annotation]')) return;
+        const point = getSvgPoint(e);
+        createTextAt(point);
+        return;
+      }
       if (mode !== 'pen') return;
       const point = getSvgPoint(e);
 
@@ -326,27 +554,93 @@ export default function DrawingOverlay({
     setDragOffset(null);
   }, [strokes, onStrokesChange, dragOffset]);
 
-  // Keyboard: Delete selected stroke, Escape to deselect
+  // Keyboard: Delete selected stroke/text, Escape to deselect
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!selectedId) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Don't intercept if user is typing in an input
+        const tgt = e.target as HTMLElement;
+        // Don't intercept if user is typing in an input/textarea/contentEditable
         if (
-          (e.target as HTMLElement).tagName === 'INPUT' ||
-          (e.target as HTMLElement).tagName === 'TEXTAREA'
+          tgt.tagName === 'INPUT' ||
+          tgt.tagName === 'TEXTAREA' ||
+          tgt.isContentEditable ||
+          editingTextId
         )
           return;
         e.preventDefault();
-        onStrokesChange(strokes.filter((s) => s.id !== selectedId));
+        if (texts.some((t) => t.id === selectedId)) {
+          onTextsChange(texts.filter((t) => t.id !== selectedId));
+        } else {
+          onStrokesChange(strokes.filter((s) => s.id !== selectedId));
+        }
         setSelectedId(null);
       } else if (e.key === 'Escape') {
         setSelectedId(null);
+        setEditingTextId(null);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, strokes, onStrokesChange]);
+  }, [selectedId, strokes, texts, onStrokesChange, onTextsChange, editingTextId]);
+
+  // ── Text drag handlers (cursor mode) ──
+  const handleTextDragStart = useCallback(
+    (e: React.PointerEvent, textId: string) => {
+      if (mode !== 'cursor') return;
+      e.stopPropagation();
+      const t = texts.find((tt) => tt.id === textId);
+      if (!t) return;
+      textDragState.current = {
+        textId,
+        startX: e.clientX,
+        startY: e.clientY,
+        origOffset: t.offset ?? { x: 0, y: 0 },
+      };
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    },
+    [mode, texts]
+  );
+
+  const handleTextDragMove = useCallback((e: React.PointerEvent) => {
+    if (!textDragState.current) return;
+    const dx = e.clientX - textDragState.current.startX;
+    const dy = e.clientY - textDragState.current.startY;
+    setTextDragOffset({
+      id: textDragState.current.textId,
+      x: textDragState.current.origOffset.x + dx,
+      y: textDragState.current.origOffset.y + dy,
+    });
+  }, []);
+
+  const handleTextDragEnd = useCallback(() => {
+    if (!textDragState.current || !textDragOffset) {
+      textDragState.current = null;
+      return;
+    }
+    const updated = texts.map((t) =>
+      t.id === textDragState.current!.textId
+        ? { ...t, offset: { x: textDragOffset.x, y: textDragOffset.y } }
+        : t
+    );
+    onTextsChange(updated);
+    textDragState.current = null;
+    setTextDragOffset(null);
+  }, [texts, onTextsChange, textDragOffset]);
+
+  const commitTextEdit = useCallback(
+    (textId: string, value: string) => {
+      const trimmed = value;
+      if (trimmed.length === 0) {
+        // Remove empty texts on blur
+        onTextsChange(texts.filter((t) => t.id !== textId));
+      } else {
+        onTextsChange(texts.map((t) => (t.id === textId ? { ...t, text: trimmed } : t)));
+      }
+      setEditingTextId((cur) => (cur === textId ? null : cur));
+    },
+    [texts, onTextsChange]
+  );
 
   // ── Ruler handlers ──
 
@@ -429,18 +723,22 @@ export default function DrawingOverlay({
         height={svgHeight}
         style={{
           display: 'block',
-          pointerEvents: mode === 'pen' ? 'auto' : 'none',
-          cursor: mode === 'pen' ? 'crosshair' : 'default',
+          pointerEvents: mode === 'pen' || mode === 'text' ? 'auto' : 'none',
+          cursor: mode === 'pen' ? 'crosshair' : mode === 'text' ? 'text' : 'default',
         }}
-        onPointerDown={mode === 'pen' ? handlePointerDown : handleBackgroundClick}
+        onPointerDown={
+          mode === 'pen' || mode === 'text' ? handlePointerDown : handleBackgroundClick
+        }
         onPointerMove={(e) => {
           if (mode === 'pen') handlePointerMove(e);
           if (dragState.current) handleDragMove(e);
+          if (textDragState.current) handleTextDragMove(e);
           if (rulerDrag.current) handleRulerPointerMove(e);
         }}
         onPointerUp={() => {
           if (mode === 'pen') handlePointerUp();
           if (dragState.current) handleDragEnd();
+          if (textDragState.current) handleTextDragEnd();
           if (rulerDrag.current) handleRulerPointerUp();
         }}
         onPointerLeave={() => {
@@ -521,6 +819,29 @@ export default function DrawingOverlay({
             style={{ pointerEvents: 'none' }}
           />
         )}
+
+        {/* Text annotations */}
+        {texts.map((t) => (
+          <TextAnnotation
+            key={t.id}
+            data={t}
+            dragOffset={
+              textDragOffset?.id === t.id
+                ? { x: textDragOffset.x, y: textDragOffset.y }
+                : null
+            }
+            mode={mode}
+            isSelected={selectedId === t.id}
+            isEditing={editingTextId === t.id}
+            onSelect={() => setSelectedId(t.id)}
+            onBeginEdit={() => {
+              setEditingTextId(t.id);
+              setSelectedId(t.id);
+            }}
+            onDragStart={(e) => handleTextDragStart(e, t.id)}
+            onCommit={(v) => commitTextEdit(t.id, v)}
+          />
+        ))}
 
         {/* Ruler */}
         {ruler.active && (

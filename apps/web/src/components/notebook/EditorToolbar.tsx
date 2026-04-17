@@ -29,6 +29,7 @@ import {
   CheckCircle,
   Lightbulb,
   MousePointer2,
+  Type,
   Eraser,
   Trash2,
   Ruler,
@@ -1541,7 +1542,7 @@ export default function EditorToolbar({
         />
         <GenerateDropdown notebookId={notebookId} pageId={pageId} />
         <Sep />
-        {/* Cursor / Pen mode toggle */}
+        {/* Cursor / Pen / Text mode toggle */}
         <ToolbarButton
           icon={MousePointer2}
           label="Cursor mode"
@@ -1553,6 +1554,12 @@ export default function EditorToolbar({
           label="Pen mode"
           isActive={editorMode === 'pen'}
           onClick={() => onModeChange('pen')}
+        />
+        <ToolbarButton
+          icon={Type}
+          label="Text mode"
+          isActive={editorMode === 'text'}
+          onClick={() => onModeChange('text')}
         />
         <Sep />
         <ToolbarButton
