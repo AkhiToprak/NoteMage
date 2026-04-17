@@ -620,8 +620,6 @@ export default function DrawingOverlay({
   // Create a new text at a given point and enter edit mode
   const createTextAt = useCallback(
     (point: { x: number; y: number }) => {
-      // Defaults mirror the .notemage-editor base style so new annotations
-      // match the surrounding body text.
       const newText: TextData = {
         kind: 'text',
         id: crypto.randomUUID(),
@@ -629,7 +627,9 @@ export default function DrawingOverlay({
         y: point.y,
         width: 220,
         text: '',
-        color: '#ede9ff',
+        // Share the pen color picker as the text color source so the
+        // "chosen color" in the toolbar applies to new annotations too.
+        color: penColor,
         fontSize: 15,
         offset: { x: 0, y: 0 },
       };
@@ -637,8 +637,15 @@ export default function DrawingOverlay({
       setEditingTextId(newText.id);
       setSelectedId(newText.id);
     },
-    [onTextsChange]
+    [onTextsChange, penColor]
   );
+
+  // Track editingTextId via a ref so the capture-phase handler (below)
+  // can check without forcing the effect to re-subscribe on every edit.
+  const editingTextIdRef = useRef(editingTextId);
+  useEffect(() => {
+    editingTextIdRef.current = editingTextId;
+  }, [editingTextId]);
 
   // ── Text-mode click interception at the parent level ──
   // The SVG overlay sits at z-index 100, but clicks over <img> elements
@@ -666,6 +673,19 @@ export default function DrawingOverlay({
       // Respect existing text annotations — their own handlers run after
       // this one in the bubble phase.
       if (target.closest('[data-text-annotation]')) return;
+
+      // If the user is currently editing a text, don't create a new one —
+      // let this click commit the in-flight edit via blur. Without this
+      // guard, clicking outside the textarea spawns an empty annotation
+      // AND preventDefault prevents the blur → the typed draft is lost.
+      if (editingTextIdRef.current) {
+        const active = document.activeElement as HTMLElement | null;
+        if (active && active.tagName === 'TEXTAREA') {
+          active.blur();
+        }
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
       const rect = container.getBoundingClientRect();
