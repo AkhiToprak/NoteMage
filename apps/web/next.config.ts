@@ -7,19 +7,12 @@ const nextConfig: NextConfig = {
   // this hint Next would refuse to compile a non-bundled workspace pkg.
   transpilePackages: ['@notemage/shared'],
   serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas'],
-  // Monorepo: trace from the workspace root so pnpm-hoisted packages in
-  // node_modules/.pnpm are reachable by the include globs below.
+  // Monorepo: trace from the workspace root so pnpm-hoisted packages
+  // are reachable. The pdfjs-dist worker file is bundled via a
+  // new URL(..., import.meta.url) reference in src/lib/pdfjs-node.ts
+  // (the file itself is copied into src/lib/vendor/ by the prebuild
+  // script), which @vercel/nft treats as a static asset dependency.
   outputFileTracingRoot: path.join(__dirname, '../../'),
-  outputFileTracingIncludes: {
-    // pdfjs-dist dynamically imports its worker module at runtime.
-    // Without this explicit include the worker file is not bundled
-    // into the Vercel lambda and getDocument() fails with
-    // "Setting up fake worker failed: cannot find pdf.worker.mjs".
-    '/api/**': [
-      './apps/web/node_modules/pdfjs-dist/**/*',
-      './node_modules/.pnpm/pdfjs-dist@*/**/*',
-    ],
-  },
   images: {
     remotePatterns: [
       {

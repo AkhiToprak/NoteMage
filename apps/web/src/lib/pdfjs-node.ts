@@ -1,28 +1,50 @@
-import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/**
+ * Absolute URL of the bundled pdfjs worker file. The worker is copied
+ * into src/lib/vendor/pdfjs-worker.mjs by the `prebuild` script — a
+ * `new URL(..., import.meta.url)` reference is the one pattern that
+ * @vercel/nft reliably treats as a static asset dependency, which gets
+ * the file shipped into the serverless output.
+ *
+ * On Vercel the resolved file path lives inside /var/task but may not
+ * be a valid ESM specifier (pdfjs does a dynamic import on it). We
+ * therefore copy the content to a stable /tmp path on first use and
+ * point GlobalWorkerOptions.workerSrc at the file:// URL of that copy.
+ */
+const WORKER_URL = new URL('./vendor/pdfjs-worker.mjs', import.meta.url);
+
+let workerTmpPath: string | null = null;
+
+function ensureWorkerOnDisk(): string {
+  if (workerTmpPath && fs.existsSync(workerTmpPath)) return workerTmpPath;
+
+  const srcPath = fileURLToPath(WORKER_URL);
+  const destPath = path.join(os.tmpdir(), 'pdfjs-pdf.worker.mjs');
+  if (!fs.existsSync(destPath)) {
+    fs.copyFileSync(srcPath, destPath);
+  }
+  workerTmpPath = destPath;
+  return destPath;
+}
+
 let workerConfigured = false;
 
-/**
- * Load pdfjs-dist with an explicit worker path. On Vercel serverless,
- * pdfjs's internal dynamic import() of pdf.worker.mjs fails ("Setting up
- * fake worker failed") because the worker file is not traced into the
- * lambda bundle. We resolve the worker from our own pdfjs-dist install
- * and hand pdfjs an absolute file:// URL, which also forces Next's
- * file tracing (via @vercel/nft) to include the worker module.
- */
 async function getPdfjs(): Promise<any> {
   const pdfjsLib: any = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
   if (!workerConfigured) {
     try {
-      const req = createRequire(import.meta.url);
-      const workerPath = req.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+      const workerPath = ensureWorkerOnDisk();
       pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
-    } catch {
-      // If resolution fails the dynamic-import fallback will run; log only.
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[pdfjs-node] Failed to set worker src:', err);
     }
     workerConfigured = true;
   }
@@ -31,9 +53,9 @@ async function getPdfjs(): Promise<any> {
 }
 
 /**
- * Extract plain text from a PDF buffer using pdfjs-dist directly.
- * Preserves paragraph-ish structure by inserting blank lines between
- * pages and respecting pdfjs's `hasEOL` hint between text runs.
+ * Extract plain text from a PDF buffer. Preserves basic paragraph
+ * structure by grouping page text and respecting pdfjs `hasEOL`
+ * hints between text runs.
  */
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   const pdfjsLib = await getPdfjs();
@@ -55,14 +77,9 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
     for (const item of content.items as any[]) {
       if (typeof item.str !== 'string') continue;
       pageText += item.str;
-      if (item.hasEOL) {
-        pageText += '\n';
-      } else {
-        pageText += ' ';
-      }
+      pageText += item.hasEOL ? '\n' : ' ';
     }
 
-    // Collapse runs of spaces and trim each line
     const cleaned = pageText
       .split('\n')
       .map((line) => line.replace(/ +/g, ' ').trim())
@@ -81,8 +98,8 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
 }
 
 /**
- * Re-export the already-loaded pdfjs module so other helpers (e.g.
- * image extractor) share the same worker setup.
+ * Shared pdfjs loader — other helpers (image extractor) reuse this so
+ * the worker is configured exactly once per lambda instance.
  */
 export async function loadPdfjs(): Promise<any> {
   return getPdfjs();

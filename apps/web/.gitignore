@@ -46,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated at build time by scripts/copy-pdf-worker.mjs
+/src/lib/vendor/pdfjs-worker.mjs
