@@ -640,6 +640,43 @@ export default function DrawingOverlay({
     [onTextsChange]
   );
 
+  // ── Text-mode click interception at the parent level ──
+  // The SVG overlay sits at z-index 100, but clicks over <img> elements
+  // inside the editor were still falling through — likely because
+  // ProseMirror's own pointerdown handler on the editor fires and the
+  // image's node-view stacking in some layouts wins over the overlay.
+  //
+  // Solution: when text mode is active, listen for pointerdown at the
+  // editor container in the CAPTURE phase. Capture-phase handlers run
+  // before any descendant's bubble-phase handlers (including
+  // ProseMirror's image selection and our own SVG handler), so we're
+  // guaranteed to see the click regardless of what's underneath the
+  // cursor. We skip events originating on existing text annotations so
+  // selecting/editing them still works.
+  useEffect(() => {
+    if (mode !== 'text') return;
+    const container = containerRef.current;
+    if (!container) return;
+    const parent = container.parentElement;
+    if (!parent) return;
+
+    const handler = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (!target) return;
+      // Respect existing text annotations — their own handlers run after
+      // this one in the bubble phase.
+      if (target.closest('[data-text-annotation]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = container.getBoundingClientRect();
+      const point = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      createTextAt(point);
+    };
+
+    parent.addEventListener('pointerdown', handler, true);
+    return () => parent.removeEventListener('pointerdown', handler, true);
+  }, [mode, createTextAt]);
+
   // Handle pointer down
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
