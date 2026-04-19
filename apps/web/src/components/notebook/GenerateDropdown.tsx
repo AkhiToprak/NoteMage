@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAiTask } from './AiTaskContext';
@@ -38,18 +38,55 @@ export default function GenerateDropdown({
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<GenerateType | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const router = useRouter();
   const { startAiTask, finishAiTask } = useAiTask();
   const { refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
 
-  // Close on outside click
+  // Close on outside click. Use pointerdown so it covers touch + mouse.
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handler = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (ref.current && ref.current.contains(target)) return;
+      if (menuRef.current && menuRef.current.contains(target)) return;
+      setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open]);
+
+  // Position the menu using fixed coords from the button's bounding rect.
+  // The toolbar row uses `overflow-x: auto` on phone, which would clip an
+  // absolutely-positioned child. Fixed positioning escapes that context.
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuPos(null);
+      return;
+    }
+    const update = () => {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const MENU_WIDTH = 220;
+      const GAP = 6;
+      const top = rect.bottom + GAP;
+      // Anchor the menu to the button, but clamp inside the viewport so it
+      // never overflows on narrow phones.
+      const desiredLeft = rect.left;
+      const maxLeft = window.innerWidth - MENU_WIDTH - 8;
+      const left = Math.max(8, Math.min(desiredLeft, maxLeft));
+      setMenuPos({ top, left });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
   }, [open]);
 
   const handleGenerate = useCallback(
@@ -115,7 +152,8 @@ export default function GenerateDropdown({
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onMouseDown={(e) => {
+        ref={buttonRef}
+        onPointerDown={(e) => {
           e.preventDefault();
           if (!disabled && !loading) setOpen((p) => !p);
         }}
@@ -155,19 +193,20 @@ export default function GenerateDropdown({
           <Sparkles size={15} />
         )}
       </button>
-      {open && (
+      {open && menuPos && (
         <div
+          ref={menuRef}
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 4px)',
-            left: 0,
+            position: 'fixed',
+            top: menuPos.top,
+            left: menuPos.left,
             background: '#1e1d35',
             border: '1px solid rgba(140,82,255,0.15)',
             borderRadius: '10px',
             padding: '4px',
-            zIndex: 100,
+            zIndex: 300,
             boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            minWidth: '200px',
+            width: '220px',
           }}
         >
           {OPTIONS.map(({ type, label, icon: Icon }) => {
@@ -175,7 +214,7 @@ export default function GenerateDropdown({
             return (
               <button
                 key={type}
-                onMouseDown={(e) => {
+                onPointerDown={(e) => {
                   e.preventDefault();
                   handleGenerate(type);
                 }}
@@ -185,7 +224,7 @@ export default function GenerateDropdown({
                   alignItems: 'center',
                   gap: '8px',
                   width: '100%',
-                  height: '32px',
+                  minHeight: '40px',
                   padding: '0 12px',
                   border: 'none',
                   borderRadius: '6px',
@@ -228,7 +267,7 @@ export default function GenerateDropdown({
                 }}
               />
               <button
-                onMouseDown={(e) => {
+                onPointerDown={(e) => {
                   e.preventDefault();
                   setOpen(false);
                   onEssayCheck();
@@ -239,7 +278,7 @@ export default function GenerateDropdown({
                   alignItems: 'center',
                   gap: '8px',
                   width: '100%',
-                  height: '32px',
+                  minHeight: '40px',
                   padding: '0 12px',
                   border: 'none',
                   borderRadius: '6px',

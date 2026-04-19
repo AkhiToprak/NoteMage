@@ -3,6 +3,7 @@
 import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useAiTask } from './AiTaskContext';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 /**
  * Floating toolbar that appears whenever the user has a non-trivial text
@@ -62,6 +63,7 @@ export default function InlineAIToolbar({
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [busyAction, setBusyAction] = useState<InlineAction | null>(null);
   const [hidden, setHidden] = useState(false);
+  const { isPhone } = useBreakpoint();
 
   const { startAiTask, finishAiTask } = useAiTask();
 
@@ -69,6 +71,7 @@ export default function InlineAIToolbar({
   // Used to restore selection + insert the AI text after the SSE stream.
   const pendingRangeRef = useRef<{ from: number; to: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Reset hidden flag whenever the editor's selection changes.
   // Without this, dismissing the toolbar with Escape would persist forever
@@ -104,9 +107,13 @@ export default function InlineAIToolbar({
       try {
         const start = view.coordsAtPos(from);
         const end = view.coordsAtPos(to);
-        // Toolbar sits 8px above the top of the selection, centered between
-        // the start and end x coordinates.
-        const top = Math.min(start.top, end.top) - 48;
+        // On phone, sit BELOW the selection so we don't collide with iOS's
+        // native callout (Copy / Look Up) that floats above the selection
+        // and intercepts taps. On desktop, keep the original above-selection
+        // placement.
+        const top = isPhone
+          ? Math.max(end.bottom, start.bottom) + 12
+          : Math.min(start.top, end.top) - 48;
         const left = (start.left + end.left) / 2;
         setPosition({ top, left });
       } catch {
@@ -120,12 +127,17 @@ export default function InlineAIToolbar({
     // in viewport coordinates.
     window.addEventListener('scroll', recompute, true);
     window.addEventListener('resize', recompute);
+    // Touch devices don't always fire selectionUpdate on every drag of the
+    // native handles — listen to the document's selectionchange so the
+    // toolbar tracks the selection while the user adjusts it.
+    document.addEventListener('selectionchange', recompute);
     return () => {
       editor.off('selectionUpdate', recompute);
       window.removeEventListener('scroll', recompute, true);
       window.removeEventListener('resize', recompute);
+      document.removeEventListener('selectionchange', recompute);
     };
-  }, [editor]);
+  }, [editor, isPhone]);
 
   // Abort any in-flight stream on unmount.
   useEffect(() => {
@@ -133,6 +145,23 @@ export default function InlineAIToolbar({
       abortRef.current?.abort();
     };
   }, []);
+
+  // Native non-passive touchstart listener so iOS doesn't collapse the
+  // selection before our preventDefault runs. React's synthetic touch
+  // handlers can be registered as passive, which would let the browser
+  // dismiss the selection callout (and the editor selection along with it)
+  // before we get a chance to block it.
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+    el.addEventListener('touchstart', block, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', block);
+    };
+  }, [position, hidden]);
 
   // Escape key dismisses the toolbar (until the user makes a new selection).
   useEffect(() => {
@@ -281,15 +310,24 @@ export default function InlineAIToolbar({
   // Clamp position to the viewport
   const clamped = useMemo(() => {
     if (!position) return null;
-    const TOOLBAR_WIDTH = 280;
+    // On phone the buttons are larger; reserve more horizontal room.
+    const TOOLBAR_WIDTH = isPhone ? 320 : 280;
+    const TOOLBAR_HEIGHT = isPhone ? 56 : 40;
     const halfWidth = TOOLBAR_WIDTH / 2;
     const left = Math.max(
       8 + halfWidth,
       Math.min(position.left, window.innerWidth - 8 - halfWidth)
     );
-    const top = Math.max(8, position.top);
+    // Clamp top so the toolbar never falls under the bottom edge (or below
+    // the on-screen keyboard, when the visualViewport API exposes it).
+    const viewportBottom =
+      typeof window !== 'undefined' && window.visualViewport
+        ? window.visualViewport.height + window.visualViewport.offsetTop
+        : window.innerHeight;
+    const maxTop = viewportBottom - TOOLBAR_HEIGHT - 8;
+    const top = Math.max(8, Math.min(position.top, maxTop));
     return { top, left };
-  }, [position]);
+  }, [position, isPhone]);
 
   if (!visible || !clamped) return null;
 
@@ -302,42 +340,47 @@ export default function InlineAIToolbar({
     background: 'rgba(20, 18, 44, 0.96)',
     border: '1px solid rgba(255, 222, 89, 0.32)',
     borderRadius: 999,
-    padding: '6px',
+    padding: isPhone ? '8px' : '6px',
     boxShadow:
       '0 16px 48px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(255, 222, 89, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     display: 'flex',
     alignItems: 'center',
-    gap: 4,
+    gap: isPhone ? 6 : 4,
     fontFamily: 'var(--font-sans)',
+    touchAction: 'none',
   };
 
   const buttonStyle = (active: boolean): CSSProperties => ({
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    padding: '7px 12px',
+    padding: isPhone ? '10px 14px' : '7px 12px',
+    minHeight: isPhone ? 40 : undefined,
     borderRadius: 999,
     border: 'none',
     background: active ? 'rgba(255, 222, 89, 0.2)' : 'transparent',
     color: active ? '#ffde59' : 'var(--on-surface)',
-    fontSize: 12,
+    fontSize: isPhone ? 13 : 12,
     fontWeight: 600,
     cursor: busyAction ? 'wait' : 'pointer',
     transition: 'background 0.2s ease, color 0.2s ease',
     fontFamily: 'var(--font-sans)',
+    touchAction: 'manipulation',
   });
 
   return (
     <div
+      ref={wrapperRef}
       role="toolbar"
       aria-label="Inline AI actions"
       style={wrapperStyle}
-      onMouseDown={(e) => {
-        // Critical: prevent the editor from losing focus / collapsing the
-        // selection when the toolbar is clicked. The actual button onClick
-        // still fires after this preventDefault.
+      onPointerDown={(e) => {
+        // Critical: prevent the editor (and on iOS, the native selection
+        // callout) from collapsing the selection when the toolbar is
+        // pressed. pointerdown covers mouse + touch + pen. The button's
+        // onClick / onPointerUp handlers still fire afterwards.
         e.preventDefault();
       }}
     >
