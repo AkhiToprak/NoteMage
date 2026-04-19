@@ -304,6 +304,22 @@ export default function InlineAIToolbar({
     [editor, busyAction, notebookId, pageId, onRequiresUpgrade, onError, startAiTask, finishAiTask]
   );
 
+  // Snapshot the editor selection at the earliest possible moment so the
+  // action handlers have it even after iOS Safari collapses the native
+  // selection during touchstart. pointerdown fires before iOS dismisses
+  // the selection callout; touchstart is a backstop for browsers where
+  // pointer events arrive late. Also opens a 600ms grace window during
+  // which selection-change recomputes are suppressed, so the bar stays
+  // pinned long enough for the synthesized click to land.
+  const captureSelection = useCallback(() => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (to - from >= MIN_SELECTION_CHARS) {
+      pendingRangeRef.current = { from, to };
+    }
+    interactionEndRef.current = Date.now() + 600;
+  }, [editor]);
+
   const visible = position !== null && !hidden && editor !== null;
 
   // Clamp position to the viewport
@@ -367,22 +383,6 @@ export default function InlineAIToolbar({
     fontFamily: 'var(--font-sans)',
     touchAction: 'manipulation',
   });
-
-  // Snapshot the editor selection at the earliest possible moment so the
-  // action handlers have it even after iOS Safari collapses the native
-  // selection during touchstart. pointerdown fires before iOS dismisses
-  // the selection callout; touchstart is a backstop for browsers where
-  // pointer events arrive late. Also opens a 600ms grace window during
-  // which selection-change recomputes are suppressed, so the bar stays
-  // pinned long enough for the synthesized click to land.
-  const captureSelection = useCallback(() => {
-    if (!editor) return;
-    const { from, to } = editor.state.selection;
-    if (to - from >= MIN_SELECTION_CHARS) {
-      pendingRangeRef.current = { from, to };
-    }
-    interactionEndRef.current = Date.now() + 600;
-  }, [editor]);
 
   return (
     <div
