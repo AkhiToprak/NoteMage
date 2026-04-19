@@ -71,7 +71,6 @@ export default function InlineAIToolbar({
   // Used to restore selection + insert the AI text after the SSE stream.
   const pendingRangeRef = useRef<{ from: number; to: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Reset hidden flag whenever the editor's selection changes.
   // Without this, dismissing the toolbar with Escape would persist forever
@@ -145,23 +144,6 @@ export default function InlineAIToolbar({
       abortRef.current?.abort();
     };
   }, []);
-
-  // Native non-passive touchstart listener so iOS doesn't collapse the
-  // selection before our preventDefault runs. React's synthetic touch
-  // handlers can be registered as passive, which would let the browser
-  // dismiss the selection callout (and the editor selection along with it)
-  // before we get a chance to block it.
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const block = (e: TouchEvent) => {
-      e.preventDefault();
-    };
-    el.addEventListener('touchstart', block, { passive: false });
-    return () => {
-      el.removeEventListener('touchstart', block);
-    };
-  }, [position, hidden]);
 
   // Escape key dismisses the toolbar (until the user makes a new selection).
   useEffect(() => {
@@ -349,7 +331,6 @@ export default function InlineAIToolbar({
     alignItems: 'center',
     gap: isPhone ? 6 : 4,
     fontFamily: 'var(--font-sans)',
-    touchAction: 'none',
   };
 
   const buttonStyle = (active: boolean): CSSProperties => ({
@@ -372,15 +353,15 @@ export default function InlineAIToolbar({
 
   return (
     <div
-      ref={wrapperRef}
       role="toolbar"
       aria-label="Inline AI actions"
       style={wrapperStyle}
-      onPointerDown={(e) => {
-        // Critical: prevent the editor (and on iOS, the native selection
-        // callout) from collapsing the selection when the toolbar is
-        // pressed. pointerdown covers mouse + touch + pen. The button's
-        // onClick / onPointerUp handlers still fire afterwards.
+      onMouseDown={(e) => {
+        // Critical: prevent the editor from losing focus / collapsing the
+        // selection when the toolbar is clicked. On iOS this is the
+        // *synthesized* mousedown that fires after touchend — calling
+        // preventDefault here suppresses the focus default without
+        // cancelling the click chain (unlike pointerdown, which would).
         e.preventDefault();
       }}
     >

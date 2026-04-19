@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAiTask } from './AiTaskContext';
@@ -40,12 +40,12 @@ export default function GenerateDropdown({
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const router = useRouter();
   const { startAiTask, finishAiTask } = useAiTask();
   const { refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
 
-  // Close on outside click. Use pointerdown so it covers touch + mouse.
+  // Close on outside click / tap. pointerdown fires for both mouse and
+  // touch on iOS Safari + Android Chrome.
   useEffect(() => {
     if (!open) return;
     const handler = (e: PointerEvent) => {
@@ -58,34 +58,25 @@ export default function GenerateDropdown({
     return () => document.removeEventListener('pointerdown', handler);
   }, [open]);
 
-  // Position the menu using fixed coords from the button's bounding rect.
-  // The toolbar row uses `overflow-x: auto` on phone, which would clip an
-  // absolutely-positioned child. Fixed positioning escapes that context.
-  useLayoutEffect(() => {
-    if (!open) {
-      setMenuPos(null);
-      return;
-    }
-    const update = () => {
+  // Reposition the menu on scroll/resize. Initial placement happens via the
+  // callback ref on the menu element so it never paints at the wrong spot.
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      const menu = menuRef.current;
       const btn = buttonRef.current;
-      if (!btn) return;
+      if (!menu || !btn) return;
       const rect = btn.getBoundingClientRect();
-      const MENU_WIDTH = 220;
-      const GAP = 6;
-      const top = rect.bottom + GAP;
-      // Anchor the menu to the button, but clamp inside the viewport so it
-      // never overflows on narrow phones.
-      const desiredLeft = rect.left;
-      const maxLeft = window.innerWidth - MENU_WIDTH - 8;
-      const left = Math.max(8, Math.min(desiredLeft, maxLeft));
-      setMenuPos({ top, left });
+      const menuWidth = menu.offsetWidth || 220;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+      menu.style.top = `${rect.bottom + 6}px`;
+      menu.style.left = `${left}px`;
     };
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
     return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
     };
   }, [open]);
 
@@ -153,8 +144,8 @@ export default function GenerateDropdown({
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         ref={buttonRef}
-        onPointerDown={(e) => {
-          e.preventDefault();
+        type="button"
+        onClick={() => {
           if (!disabled && !loading) setOpen((p) => !p);
         }}
         title="Generate from page"
@@ -193,13 +184,24 @@ export default function GenerateDropdown({
           <Sparkles size={15} />
         )}
       </button>
-      {open && menuPos && (
+      {open && (
         <div
-          ref={menuRef}
+          ref={(el) => {
+            menuRef.current = el;
+            // Compute position the moment the menu mounts so the user never
+            // sees it paint at the wrong spot (avoids the React state +
+            // double-render flash that broke the menu on phone).
+            if (!el || !buttonRef.current) return;
+            const rect = buttonRef.current.getBoundingClientRect();
+            const menuWidth = el.offsetWidth || 220;
+            const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+            el.style.top = `${rect.bottom + 6}px`;
+            el.style.left = `${left}px`;
+          }}
           style={{
             position: 'fixed',
-            top: menuPos.top,
-            left: menuPos.left,
+            top: 0,
+            left: 0,
             background: '#1e1d35',
             border: '1px solid rgba(140,82,255,0.15)',
             borderRadius: '10px',
@@ -214,8 +216,8 @@ export default function GenerateDropdown({
             return (
               <button
                 key={type}
-                onPointerDown={(e) => {
-                  e.preventDefault();
+                type="button"
+                onClick={() => {
                   handleGenerate(type);
                 }}
                 disabled={loading}
@@ -267,8 +269,8 @@ export default function GenerateDropdown({
                 }}
               />
               <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
+                type="button"
+                onClick={() => {
                   setOpen(false);
                   onEssayCheck();
                 }}
