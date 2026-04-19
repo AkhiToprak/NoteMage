@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAiTask } from './AiTaskContext';
@@ -37,12 +38,19 @@ export default function GenerateDropdown({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<GenerateType | null>(null);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { startAiTask, finishAiTask } = useAiTask();
   const { refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
+
+  // Portal target only exists in the browser; gate the createPortal call
+  // until after hydration so SSR/CSR markup matches.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close on outside click / tap. pointerdown fires for both mouse and
   // touch on iOS Safari + Android Chrome.
@@ -184,13 +192,15 @@ export default function GenerateDropdown({
           <Sparkles size={15} />
         )}
       </button>
-      {open && (
+      {open && mounted && createPortal(
         <div
           ref={(el) => {
             menuRef.current = el;
             // Compute position the moment the menu mounts so the user never
-            // sees it paint at the wrong spot (avoids the React state +
-            // double-render flash that broke the menu on phone).
+            // sees it paint at the wrong spot. Rendering through a portal
+            // into document.body bypasses any parent transform / overflow
+            // / backdrop-filter that could otherwise clip or contain a
+            // position:fixed child.
             if (!el || !buttonRef.current) return;
             const rect = buttonRef.current.getBoundingClientRect();
             const menuWidth = el.offsetWidth || 220;
@@ -206,7 +216,7 @@ export default function GenerateDropdown({
             border: '1px solid rgba(140,82,255,0.15)',
             borderRadius: '10px',
             padding: '4px',
-            zIndex: 300,
+            zIndex: 9999,
             boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             width: '220px',
           }}
@@ -306,7 +316,8 @@ export default function GenerateDropdown({
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

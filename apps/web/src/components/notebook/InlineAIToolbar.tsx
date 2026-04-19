@@ -71,6 +71,11 @@ export default function InlineAIToolbar({
   // Used to restore selection + insert the AI text after the SSE stream.
   const pendingRangeRef = useRef<{ from: number; to: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Timestamp until which we ignore selection-driven recomputes. Set when
+  // the user starts interacting with the toolbar so iOS Safari's
+  // touch-time selection collapse doesn't unmount the bar before the
+  // click registers.
+  const interactionEndRef = useRef(0);
 
   // Reset hidden flag whenever the editor's selection changes.
   // Without this, dismissing the toolbar with Escape would persist forever
@@ -95,6 +100,11 @@ export default function InlineAIToolbar({
     }
 
     const recompute = () => {
+      // Grace window after a tap on the toolbar — iOS Safari collapses the
+      // editor selection during touch which would otherwise unmount the
+      // bar before the click registers. Hold the last computed position.
+      if (Date.now() < interactionEndRef.current) return;
+
       const { state, view } = editor;
       const { from, to, empty } = state.selection;
 
@@ -161,17 +171,24 @@ export default function InlineAIToolbar({
     async (action: InlineAction) => {
       if (!editor || busyAction) return;
 
+      // Prefer the range captured on pointerdown (see captureSelection
+      // below). On iOS Safari the touch sequence collapses the editor
+      // selection BEFORE the synthesized click fires, so by the time this
+      // handler runs `state.selection` would be empty and we'd bail out
+      // here. The captured ref preserves the user's actual selection.
       const { state } = editor;
-      const { from, to } = state.selection;
-      if (to - from < MIN_SELECTION_CHARS) return;
-
-      // Snapshot the selection BEFORE the network call.
-      pendingRangeRef.current = { from, to };
+      let range = pendingRangeRef.current;
+      if (!range || range.to - range.from < MIN_SELECTION_CHARS) {
+        const { from, to } = state.selection;
+        if (to - from < MIN_SELECTION_CHARS) return;
+        range = { from, to };
+      }
+      pendingRangeRef.current = range;
 
       // Pull the plain text directly from the doc; this is what the AI
       // works on. We use the plain string (not the Markdown / JSON) so the
       // model isn't confused by ProseMirror node attributes.
-      const selectedText = state.doc.textBetween(from, to, '\n');
+      const selectedText = state.doc.textBetween(range.from, range.to, '\n');
 
       setBusyAction(action);
 
@@ -351,11 +368,29 @@ export default function InlineAIToolbar({
     touchAction: 'manipulation',
   });
 
+  // Snapshot the editor selection at the earliest possible moment so the
+  // action handlers have it even after iOS Safari collapses the native
+  // selection during touchstart. pointerdown fires before iOS dismisses
+  // the selection callout; touchstart is a backstop for browsers where
+  // pointer events arrive late. Also opens a 600ms grace window during
+  // which selection-change recomputes are suppressed, so the bar stays
+  // pinned long enough for the synthesized click to land.
+  const captureSelection = useCallback(() => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (to - from >= MIN_SELECTION_CHARS) {
+      pendingRangeRef.current = { from, to };
+    }
+    interactionEndRef.current = Date.now() + 600;
+  }, [editor]);
+
   return (
     <div
       role="toolbar"
       aria-label="Inline AI actions"
       style={wrapperStyle}
+      onPointerDown={captureSelection}
+      onTouchStart={captureSelection}
       onMouseDown={(e) => {
         // Critical: prevent the editor from losing focus / collapsing the
         // selection when the toolbar is clicked. On iOS this is the
@@ -363,6 +398,7 @@ export default function InlineAIToolbar({
         // preventDefault here suppresses the focus default without
         // cancelling the click chain (unlike pointerdown, which would).
         e.preventDefault();
+        captureSelection();
       }}
     >
       <div
