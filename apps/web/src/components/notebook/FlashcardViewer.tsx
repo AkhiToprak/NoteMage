@@ -1298,8 +1298,7 @@ export default function FlashcardViewer({
                 justifyContent: 'center',
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
-                boxShadow:
-                  '0 24px 60px rgba(140,82,255,0.18), 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.12)',
+                boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
                 background: 'linear-gradient(160deg, #0d0a1c 0%, #000000 55%, #07060f 100%)',
                 border: '1px solid rgba(174,137,255,0.38)',
                 color: '#f5f1ff',
@@ -1375,8 +1374,7 @@ export default function FlashcardViewer({
                 justifyContent: 'center',
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
-                boxShadow:
-                  '0 24px 60px rgba(81,112,255,0.18), 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(155,178,255,0.14)',
+                boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(155,178,255,0.12)',
                 background: 'linear-gradient(160deg, #14122a 0%, #000000 55%, #0c0a1c 100%)',
                 border: '1px solid rgba(120,148,255,0.38)',
                 color: '#eeeaff',
@@ -1855,10 +1853,8 @@ function NavButton({
             ? 'rgba(140,82,255,0.18)'
             : 'rgba(140,82,255,0.10)',
         color: disabled ? 'rgba(237,233,255,0.22)' : hovered ? '#ede4ff' : '#d6c2ff',
-        boxShadow:
-          !disabled && hovered ? '0 0 0 4px rgba(174,137,255,0.10), 0 6px 18px rgba(140,82,255,0.20)' : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background 0.15s ease, color 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease',
+        transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
       }}
     >
       {children}

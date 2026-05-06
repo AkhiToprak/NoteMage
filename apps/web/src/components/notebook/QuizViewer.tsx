@@ -959,8 +959,7 @@ export default function QuizViewer({
               borderRadius: '16px',
               padding: isPhone ? '20px 16px' : '28px 24px',
               marginBottom: '16px',
-              boxShadow:
-                '0 24px 60px rgba(140,82,255,0.18), 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.12)',
+              boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
             }}
           >
             <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
@@ -1755,16 +1754,8 @@ function NavButton({
             : hovered
               ? '#ede4ff'
               : '#d6c2ff',
-        boxShadow: highlight
-          ? hovered
-            ? '0 8px 24px rgba(140,82,255,0.45), 0 0 0 4px rgba(174,137,255,0.12)'
-            : '0 6px 18px rgba(140,82,255,0.30)'
-          : !disabled && hovered
-            ? '0 0 0 4px rgba(174,137,255,0.10), 0 6px 18px rgba(140,82,255,0.20)'
-            : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        transition:
-          'background 0.15s ease, color 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease',
+        transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
       }}
     >
       {children}
