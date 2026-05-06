@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronRight, Plus, Trash2, FileText, FileUp, Layers, HelpCircle } from 'lucide-react';
+import { ChevronRight, Plus, Trash2, FileUp, Layers, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import PageItem from '@/components/notebook/PageItem';
+import { TextFileIcon } from '@/components/icons/NavIcons';
 import FileImportDialog from '@/components/notebook/FileImportDialog';
 import UrlImportDialog from '@/components/notebook/UrlImportDialog';
 import type { SectionNode } from '@/components/notebook/SectionTree';
@@ -360,7 +361,7 @@ export default function SectionItem({
                 padding: '4px 10px 4px 38px',
               }}
             >
-              <FileText size={14} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+              <TextFileIcon size={14} color="rgba(237,233,255,0.3)" />
               <input
                 ref={pageInputRef}
                 type="text"

@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, Shapes } from 'lucide-react';
+import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 
 interface PageTypeSelectorProps {
   onSelect: (type: 'text' | 'canvas') => void;
@@ -99,7 +99,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
                 color: '#a47bff',
               }}
             >
-              <FileText size={24} />
+              <TextFileIcon size={24} />
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
@@ -151,7 +151,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
                 color: '#ffde59',
               }}
             >
-              <Shapes size={24} />
+              <CanvasIcon size={24} />
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>Canvas</div>

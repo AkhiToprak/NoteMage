@@ -91,6 +91,106 @@ export function NotebookIcon({ size = 24, color = 'currentColor', style }: NavIc
   );
 }
 
+export function CanvasIcon({ size = 24, color = 'currentColor', style }: NavIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0, ...style }}
+      aria-hidden="true"
+    >
+      <g clipPath="url(#canvas_icon_clip)">
+        <path
+          d="M10.97 2H8.96997C3.96997 2 1.96997 4 1.96997 9V15C1.96997 20 3.96997 22 8.96997 22H14.97C19.97 22 21.97 20 21.97 15V13"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M21.8799 3.56022C20.6499 6.63022 17.5599 10.8102 14.9799 12.8802L13.3999 14.1402C13.1999 14.2902 12.9999 14.4102 12.7699 14.5002C12.7699 14.3502 12.7599 14.2002 12.7399 14.0402C12.6499 13.3702 12.3499 12.7402 11.8099 12.2102C11.2599 11.6602 10.5999 11.3502 9.91994 11.2602C9.75994 11.2502 9.59994 11.2402 9.43994 11.2502C9.52994 11.0002 9.65994 10.7702 9.82994 10.5802L11.0899 9.00022C13.1599 6.42022 17.3499 3.31022 20.4099 2.08022C20.8799 1.90022 21.3399 2.04022 21.6299 2.33022C21.9299 2.63022 22.0699 3.09022 21.8799 3.56022Z"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12.78 14.4905C12.78 15.3705 12.44 16.2105 11.81 16.8505C11.32 17.3405 10.66 17.6805 9.86997 17.7805L7.89997 17.9905C6.82997 18.1105 5.90997 17.2005 6.02997 16.1105L6.23997 14.1405C6.42997 12.3905 7.88997 11.2705 9.44997 11.2405C9.60997 11.2305 9.76997 11.2405 9.92997 11.2505C10.61 11.3405 11.27 11.6505 11.82 12.2005C12.36 12.7405 12.66 13.3605 12.75 14.0305C12.77 14.1905 12.78 14.3505 12.78 14.4905Z"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M15.82 11.9795C15.82 9.88945 14.13 8.18945 12.03 8.18945"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <defs>
+        <clipPath id="canvas_icon_clip">
+          <rect width="24" height="24" fill="none" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
+
+export function TextFileIcon({ size = 24, color = 'currentColor', style }: NavIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0, ...style }}
+      aria-hidden="true"
+    >
+      <g clipPath="url(#textfile_icon_clip)">
+        <path
+          d="M22 10V15C22 20 20 22 15 22H9C4 22 2 20 2 15V9C2 4 4 2 9 2H14"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M22 10H18C15 10 14 9 14 6V2L22 10Z"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M7 13H13"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M7 17H11"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <defs>
+        <clipPath id="textfile_icon_clip">
+          <rect width="24" height="24" fill="none" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
+
 export function CoWorkIcon({ size = 24, color = 'currentColor', style }: NavIconProps) {
   return (
     <svg

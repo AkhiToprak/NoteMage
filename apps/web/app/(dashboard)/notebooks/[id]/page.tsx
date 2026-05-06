@@ -179,11 +179,11 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
         <div style={{ marginTop: '32px' }}>
           <div
             style={{
-              background: 'linear-gradient(170deg, #1c1c30 0%, #272746 60%)',
+              background: '#000000',
               borderRadius: '22px',
               padding: '26px',
-              border: '1px solid rgba(255,255,255,0.06)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px rgba(0,0,0,0.2)',
+              border: '1px solid rgba(140,82,255,0.18)',
+              boxShadow: 'inset 0 1px 0 rgba(174,137,255,0.06), 0 24px 48px rgba(0,0,0,0.4)',
             }}
           >
             <div

@@ -13,19 +13,18 @@ import {
   ChevronRight,
   Trash2,
   ChevronsLeft,
-  FileText,
   FilePlus,
   MessageSquare,
   Sparkles,
   Layers,
   HelpCircle,
-  Shapes,
   Search,
   SlidersHorizontal,
   Upload,
   Download,
   CalendarDays,
 } from 'lucide-react';
+import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import { getSectionColor } from '@/components/notebook/SectionListItem';
 import type { SectionNode } from '@/components/notebook/SectionTree';
@@ -1208,14 +1207,14 @@ function PageTreeRow({
         }}
       >
         {page.pageType === 'canvas' ? (
-          <Shapes
+          <CanvasIcon
             size={12}
-            style={{ color: isActive ? '#ffde59' : 'rgba(255,222,89,0.35)', flexShrink: 0 }}
+            color={isActive ? '#ffde59' : 'rgba(255,222,89,0.35)'}
           />
         ) : (
-          <FileText
+          <TextFileIcon
             size={12}
-            style={{ color: isActive ? accentColor : 'rgba(237,233,255,0.25)', flexShrink: 0 }}
+            color={isActive ? accentColor : 'rgba(237,233,255,0.25)'}
           />
         )}
         <span

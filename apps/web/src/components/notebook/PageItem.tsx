@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FileText, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 import type { PageSummary } from '@/components/notebook/SectionTree';
 
 interface PageLockInfo {
@@ -67,13 +68,17 @@ export default function PageItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <FileText
-        size={14}
-        style={{
-          color: isActive ? '#8c52ff' : 'rgba(237,233,255,0.3)',
-          flexShrink: 0,
-        }}
-      />
+      {page.pageType === 'canvas' ? (
+        <CanvasIcon
+          size={14}
+          color={isActive ? '#ffde59' : 'rgba(255,222,89,0.45)'}
+        />
+      ) : (
+        <TextFileIcon
+          size={14}
+          color={isActive ? '#8c52ff' : 'rgba(237,233,255,0.3)'}
+        />
+      )}
       <span
         style={{
           overflow: 'hidden',

@@ -84,7 +84,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
           flex: 1,
           minWidth: 0,
           overflow: 'hidden',
-          background: '#12112a',
+          background: '#000000',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
