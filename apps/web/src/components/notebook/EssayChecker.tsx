@@ -128,7 +128,7 @@ export default function EssayChecker({
           width: '600px',
           maxHeight: '80vh',
           background: '#000000',
-          border: '1px solid rgba(140,82,255,0.25)',
+          border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
@@ -143,7 +143,7 @@ export default function EssayChecker({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.15)',
+            borderBottom: '1px solid rgba(174,137,255,0.30)',
           }}
         >
           <h3
@@ -297,7 +297,7 @@ export default function EssayChecker({
                   padding: '16px',
                   borderRadius: '12px',
                   background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
                   marginBottom: '16px',
                 }}
               >

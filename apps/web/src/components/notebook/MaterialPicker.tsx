@@ -159,7 +159,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
           maxHeight: '70vh',
           background: '#1e1d35',
           borderRadius: '16px',
-          border: '1px solid rgba(140,82,255,0.2)',
+          border: '1px solid rgba(174,137,255,0.40)',
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'inherit',
@@ -173,7 +173,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>Add Materials</span>
@@ -197,7 +197,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
             display: 'flex',
             gap: '2px',
             padding: '8px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           {tabs.map((tab) => (
@@ -312,7 +312,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 20px',
-            borderTop: '1px solid rgba(140,82,255,0.1)',
+            borderTop: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           <span style={{ fontSize: '12px', color: 'rgba(196,169,255,0.4)' }}>

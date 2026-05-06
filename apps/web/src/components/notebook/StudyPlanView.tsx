@@ -394,7 +394,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
               marginTop: '16px',
               padding: isPhone ? '12px' : '16px',
               background: 'rgba(30,29,53,0.6)',
-              border: '1px solid rgba(140,82,255,0.15)',
+              border: '1px solid rgba(174,137,255,0.30)',
               borderRadius: '12px',
             }}
           >

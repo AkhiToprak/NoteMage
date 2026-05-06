@@ -107,7 +107,7 @@ export default function PagePanel() {
           width: '200px',
           minWidth: '200px',
           background: '#0a0918',
-          borderRight: '1px solid rgba(140,82,255,0.08)',
+          borderRight: '1px solid rgba(174,137,255,0.16)',
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
@@ -118,7 +118,7 @@ export default function PagePanel() {
         <div
           style={{
             padding: '14px 14px 10px',
-            borderBottom: '1px solid rgba(140,82,255,0.08)',
+            borderBottom: '1px solid rgba(174,137,255,0.16)',
             minHeight: '58px',
             display: 'flex',
             alignItems: 'center',
@@ -183,7 +183,7 @@ export default function PagePanel() {
         </div>
 
         {/* New chat button */}
-        <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(140,82,255,0.06)' }}>
+        <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(174,137,255,0.12)' }}>
           <Link
             href={`/notebooks/${notebookId}?new=1`}
             style={{ textDecoration: 'none', display: 'block' }}
@@ -231,7 +231,7 @@ export default function PagePanel() {
         width: '200px',
         minWidth: '200px',
         background: '#0a0918',
-        borderRight: '1px solid rgba(140,82,255,0.08)',
+        borderRight: '1px solid rgba(174,137,255,0.16)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -242,7 +242,7 @@ export default function PagePanel() {
       <div
         style={{
           padding: '14px 14px 10px',
-          borderBottom: '1px solid rgba(140,82,255,0.08)',
+          borderBottom: '1px solid rgba(174,137,255,0.16)',
           minHeight: '58px',
           display: 'flex',
           alignItems: 'center',
@@ -360,7 +360,7 @@ export default function PagePanel() {
       </div>
 
       {/* Add page button */}
-      <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(140,82,255,0.06)' }}>
+      <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(174,137,255,0.12)' }}>
         <button
           onClick={() => {
             if (activeSectionId) setIsCreating(true);

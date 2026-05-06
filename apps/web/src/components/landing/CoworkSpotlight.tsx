@@ -135,7 +135,7 @@ export default function CoworkSpotlight() {
                   padding: '12px 14px',
                   borderRadius: 'var(--radius-md)',
                   background: 'rgba(81, 112, 255, 0.06)',
-                  border: '1px solid rgba(81, 112, 255, 0.18)',
+                  border: '1px solid rgba(81, 112, 255, 0.36)',
                   fontSize: 13,
                   color: 'rgba(237, 233, 255, 0.8)',
                   fontFamily: 'var(--font-sans)',

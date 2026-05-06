@@ -35,7 +35,7 @@ export default function LandingFooter() {
         position: 'relative',
         padding: '96px 32px 48px',
         background: 'transparent',
-        borderTop: '1px solid rgba(140, 82, 255, 0.16)',
+        borderTop: '1px solid rgba(174, 137, 255, 0.32)',
         overflow: 'hidden',
       }}
     >
@@ -180,7 +180,7 @@ export default function LandingFooter() {
         <div
           style={{
             paddingTop: 32,
-            borderTop: '1px solid rgba(140, 82, 255, 0.14)',
+            borderTop: '1px solid rgba(174, 137, 255, 0.28)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',

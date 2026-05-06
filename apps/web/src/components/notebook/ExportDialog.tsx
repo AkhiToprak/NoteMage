@@ -179,7 +179,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#13122a',
-          border: '1px solid rgba(140,82,255,0.2)',
+          border: '1px solid rgba(174,137,255,0.40)',
           borderRadius: 16,
           width: 520,
           maxHeight: '80vh',
@@ -195,7 +195,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '18px 20px 14px',
-            borderBottom: '1px solid rgba(140,82,255,0.12)',
+            borderBottom: '1px solid rgba(174,137,255,0.24)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -250,7 +250,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               style={{
                 maxHeight: 200,
                 overflow: 'auto',
-                border: '1px solid rgba(140,82,255,0.1)',
+                border: '1px solid rgba(174,137,255,0.20)',
                 borderRadius: 10,
                 background: 'rgba(255,255,255,0.035)',
               }}
@@ -399,7 +399,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               </span>
               <div
                 style={{
-                  border: '1px solid rgba(140,82,255,0.1)',
+                  border: '1px solid rgba(174,137,255,0.20)',
                   borderRadius: 10,
                   background: 'rgba(255,255,255,0.035)',
                   overflow: 'hidden',
@@ -471,7 +471,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
         <div
           style={{
             padding: '14px 20px',
-            borderTop: '1px solid rgba(140,82,255,0.12)',
+            borderTop: '1px solid rgba(174,137,255,0.24)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

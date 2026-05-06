@@ -48,7 +48,7 @@ export default function SectionPanel() {
         width: '180px',
         minWidth: '180px',
         background: '#000000',
-        borderRight: '1px solid rgba(140,82,255,0.1)',
+        borderRight: '1px solid rgba(174,137,255,0.20)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -59,7 +59,7 @@ export default function SectionPanel() {
       <div
         style={{
           padding: '14px 14px 10px',
-          borderBottom: '1px solid rgba(140,82,255,0.1)',
+          borderBottom: '1px solid rgba(174,137,255,0.20)',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
@@ -184,7 +184,7 @@ export default function SectionPanel() {
           style={{
             margin: '0 10px',
             height: '1px',
-            background: 'rgba(140,82,255,0.25)',
+            background: 'rgba(174,137,255,0.45)',
           }}
         />
 
@@ -286,7 +286,7 @@ export default function SectionPanel() {
       </div>
 
       {/* Add section button */}
-      <div style={{ padding: '4px 10px 8px', borderTop: '1px solid rgba(140,82,255,0.08)' }}>
+      <div style={{ padding: '4px 10px 8px', borderTop: '1px solid rgba(174,137,255,0.16)' }}>
         <button
           data-new-section-btn
           onClick={() => setIsCreating(true)}

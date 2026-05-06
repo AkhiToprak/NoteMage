@@ -230,7 +230,7 @@ export default function GenerateDropdown({
             top: 0,
             left: 0,
             background: '#1e1d35',
-            border: '1px solid rgba(140,82,255,0.15)',
+            border: '1px solid rgba(174,137,255,0.30)',
             borderRadius: '10px',
             padding: '4px',
             zIndex: 9999,
@@ -290,7 +290,7 @@ export default function GenerateDropdown({
               <div
                 style={{
                   height: '1px',
-                  background: 'rgba(140,82,255,0.1)',
+                  background: 'rgba(174,137,255,0.20)',
                   margin: '4px 8px',
                 }}
               />

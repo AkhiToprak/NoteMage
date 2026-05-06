@@ -65,7 +65,7 @@ export default function LevelBadge({ level, size = 'md' }: LevelBadgeProps) {
             transform: 'translateX(-50%)',
             background: '#22223a',
             borderRadius: '8px',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             padding: '6px 12px',
             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             zIndex: 100,

@@ -369,7 +369,7 @@ function ColorPicker({
             left: '50%',
             transform: 'translateX(-50%)',
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '10px',
             padding: '10px',
             display: 'grid',
@@ -510,7 +510,7 @@ function FontFamilySelect({
             top: 'calc(100% + 4px)',
             left: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '8px',
             padding: '4px',
             zIndex: 100,
@@ -638,7 +638,7 @@ function FontSizeControl({
             top: 'calc(100% + 4px)',
             left: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '8px',
             padding: '4px',
             zIndex: 100,
@@ -772,7 +772,7 @@ function InlineScaleDropdown({
             top: 'calc(100% + 4px)',
             left: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '8px',
             padding: '4px',
             zIndex: 100,
@@ -919,7 +919,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
             top: 'calc(100% + 4px)',
             left: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '8px',
             padding: '4px',
             zIndex: 100,
@@ -1080,7 +1080,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
             top: 'calc(100% + 4px)',
             left: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '8px',
             padding: '8px',
             zIndex: 100,
@@ -1258,7 +1258,7 @@ function LineStylePicker({
             top: 'calc(100% + 4px)',
             left: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '8px',
             padding: '4px',
             zIndex: 100,
@@ -1378,7 +1378,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
             top: 'calc(100% + 6px)',
             right: 0,
             background: '#131228',
-            border: '1px solid rgba(140,82,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: 10,
             padding: '4px',
             zIndex: 100,
@@ -1481,7 +1481,7 @@ export default function EditorToolbar({
     <div
       style={{
         background: '#000000',
-        borderBottom: '1px solid rgba(140,82,255,0.1)',
+        borderBottom: '1px solid rgba(174,137,255,0.20)',
         position: 'sticky',
         top: 0,
         zIndex: 200,
@@ -1494,7 +1494,7 @@ export default function EditorToolbar({
         className={isPhone ? 'editor-toolbar-row' : undefined}
         style={{
           ...responsiveRowStyle,
-          borderBottom: '1px solid rgba(237,233,255,0.04)',
+          borderBottom: '1px solid rgba(237,233,255,0.08)',
           gap: '4px',
         }}
       >
@@ -1753,7 +1753,7 @@ export default function EditorToolbar({
           className={isPhone ? 'editor-toolbar-row' : undefined}
           style={{
             ...responsiveRowStyle,
-            borderTop: '1px solid rgba(237,233,255,0.04)',
+            borderTop: '1px solid rgba(237,233,255,0.08)',
             gap: '6px',
           }}
         >

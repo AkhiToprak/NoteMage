@@ -197,7 +197,7 @@ export default function DashboardAchievements() {
                     padding: '10px 14px',
                     background: '#272746',
                     borderRadius: '14px',
-                    border: '1px solid rgba(174,137,255,0.15)',
+                    border: '1px solid rgba(174,137,255,0.30)',
                     flex: '1 1 0',
                     minWidth: '0',
                   }}

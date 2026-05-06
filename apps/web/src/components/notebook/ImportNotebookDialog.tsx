@@ -70,7 +70,7 @@ export default function ImportNotebookDialog({
           maxHeight: '80vh',
           background: '#1e1d35',
           borderRadius: '16px',
-          border: '1px solid rgba(140,82,255,0.2)',
+          border: '1px solid rgba(174,137,255,0.40)',
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'inherit',
@@ -84,7 +84,7 @@ export default function ImportNotebookDialog({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>
@@ -110,7 +110,7 @@ export default function ImportNotebookDialog({
             display: 'flex',
             gap: '2px',
             padding: '10px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           {(
@@ -660,7 +660,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             justifyContent: 'flex-end',
             marginTop: '16px',
             paddingTop: '12px',
-            borderTop: '1px solid rgba(140,82,255,0.1)',
+            borderTop: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           <button
@@ -791,7 +791,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
           padding: '14px 16px',
           borderRadius: '10px',
           background: 'rgba(140,82,255,0.06)',
-          border: '1px solid rgba(140,82,255,0.1)',
+          border: '1px solid rgba(174,137,255,0.20)',
           marginBottom: '14px',
         }}
       >
@@ -922,7 +922,7 @@ function AppleNotesTab() {
           padding: '14px 16px',
           borderRadius: '10px',
           background: 'rgba(140,82,255,0.06)',
-          border: '1px solid rgba(140,82,255,0.1)',
+          border: '1px solid rgba(174,137,255,0.20)',
           marginBottom: '14px',
         }}
       >
@@ -1121,7 +1121,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           padding: '14px 16px',
           borderRadius: '10px',
           background: 'rgba(140,82,255,0.06)',
-          border: '1px solid rgba(140,82,255,0.1)',
+          border: '1px solid rgba(174,137,255,0.20)',
           marginBottom: '14px',
         }}
       >

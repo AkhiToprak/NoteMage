@@ -182,7 +182,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
               background: '#000000',
               borderRadius: '22px',
               padding: '26px',
-              border: '1px solid rgba(140,82,255,0.18)',
+              border: '1px solid rgba(174,137,255,0.36)',
               boxShadow: 'inset 0 1px 0 rgba(174,137,255,0.06), 0 24px 48px rgba(0,0,0,0.4)',
             }}
           >

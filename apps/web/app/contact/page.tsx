@@ -309,7 +309,7 @@ export default function ContactPage() {
               borderRadius: 'var(--radius-xl)',
               background:
                 'rgba(33, 33, 62, 0.6)',
-              border: '1px solid rgba(140, 82, 255, 0.22)',
+              border: '1px solid rgba(174, 137, 255, 0.45)',
               backdropFilter: 'blur(24px) saturate(140%)',
               WebkitBackdropFilter: 'blur(24px) saturate(140%)',
               boxShadow: '0 32px 64px rgba(174,137,255,0.08), 0 8px 24px rgba(0,0,0,0.4)',
@@ -324,7 +324,7 @@ export default function ContactPage() {
                 gap: 14,
                 marginBottom: 36,
                 paddingBottom: 24,
-                borderBottom: '1px solid rgba(140, 82, 255, 0.18)',
+                borderBottom: '1px solid rgba(174, 137, 255, 0.36)',
               }}
             >
               <div

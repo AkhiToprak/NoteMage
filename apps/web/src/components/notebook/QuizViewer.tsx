@@ -520,7 +520,7 @@ export default function QuizViewer({
               key={stat.label}
               style={{
                 background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
                 borderRadius: '12px',
                 padding: '14px 8px',
                 textAlign: 'center',
@@ -610,7 +610,7 @@ export default function QuizViewer({
                 width: '420px',
                 maxHeight: '500px',
                 background: '#000000',
-                border: '1px solid rgba(140,82,255,0.25)',
+                border: '1px solid rgba(174,137,255,0.45)',
                 borderRadius: '16px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -624,7 +624,7 @@ export default function QuizViewer({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '16px 20px',
-                  borderBottom: '1px solid rgba(140,82,255,0.15)',
+                  borderBottom: '1px solid rgba(174,137,255,0.30)',
                 }}
               >
                 <h3
@@ -853,7 +853,7 @@ export default function QuizViewer({
             maxWidth: isPhone ? '100%' : '480px',
             borderRadius: '16px',
             background: '#0a0a0a',
-            border: '1px solid rgba(140,82,255,0.3)',
+            border: '1px solid rgba(174,137,255,0.45)',
             padding: isPhone ? '16px' : '24px',
             display: 'flex',
             flexDirection: 'column',
@@ -1297,7 +1297,7 @@ export default function QuizViewer({
               width: '380px',
               maxHeight: '420px',
               background: '#000000',
-              border: '1px solid rgba(140,82,255,0.25)',
+              border: '1px solid rgba(174,137,255,0.45)',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
@@ -1311,7 +1311,7 @@ export default function QuizViewer({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '16px 20px',
-                borderBottom: '1px solid rgba(140,82,255,0.15)',
+                borderBottom: '1px solid rgba(174,137,255,0.30)',
               }}
             >
               <h3
@@ -1411,7 +1411,7 @@ export default function QuizViewer({
               width: '420px',
               maxHeight: '500px',
               background: '#000000',
-              border: '1px solid rgba(140,82,255,0.25)',
+              border: '1px solid rgba(174,137,255,0.45)',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
@@ -1425,7 +1425,7 @@ export default function QuizViewer({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '16px 20px',
-                borderBottom: '1px solid rgba(140,82,255,0.15)',
+                borderBottom: '1px solid rgba(174,137,255,0.30)',
               }}
             >
               <h3

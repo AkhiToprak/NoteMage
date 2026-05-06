@@ -193,7 +193,7 @@ export default function UsernameStep({
             padding: '12px 16px',
             marginBottom: '24px',
             background: 'rgba(174,137,255,0.08)',
-            border: '1px solid rgba(174,137,255,0.2)',
+            border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '14px',
           }}
         >

@@ -57,7 +57,7 @@ export default function MaintenancePage() {
           textAlign: 'center',
           boxShadow:
             '0 32px 64px rgba(174, 137, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.4)',
-          border: '1px solid rgba(174, 137, 255, 0.12)',
+          border: '1px solid rgba(174, 137, 255, 0.24)',
         }}
       >
         <div

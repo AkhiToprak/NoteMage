@@ -330,7 +330,7 @@ export default function FlashcardImportDialog({
           width: '520px',
           maxHeight: '85vh',
           background: '#1e1d35',
-          border: '1px solid rgba(140,82,255,0.25)',
+          border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
@@ -346,7 +346,7 @@ export default function FlashcardImportDialog({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.15)',
+            borderBottom: '1px solid rgba(174,137,255,0.30)',
             flexShrink: 0,
           }}
         >
@@ -386,7 +386,7 @@ export default function FlashcardImportDialog({
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid rgba(140,82,255,0.12)',
+            borderBottom: '1px solid rgba(174,137,255,0.24)',
             flexShrink: 0,
           }}
         >
@@ -777,7 +777,7 @@ export default function FlashcardImportDialog({
             justifyContent: 'flex-end',
             gap: '8px',
             padding: '12px 20px',
-            borderTop: '1px solid rgba(140,82,255,0.15)',
+            borderTop: '1px solid rgba(174,137,255,0.30)',
             flexShrink: 0,
           }}
         >

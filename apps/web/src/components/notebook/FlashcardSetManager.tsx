@@ -241,7 +241,7 @@ export default function FlashcardSetManager({
           width: '520px',
           maxHeight: '85vh',
           background: '#1e1d35',
-          border: '1px solid rgba(140,82,255,0.25)',
+          border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
@@ -257,7 +257,7 @@ export default function FlashcardSetManager({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.15)',
+            borderBottom: '1px solid rgba(174,137,255,0.30)',
             flexShrink: 0,
           }}
         >
@@ -383,7 +383,7 @@ export default function FlashcardSetManager({
                       <div
                         style={{
                           marginLeft: '12px',
-                          borderLeft: '2px solid rgba(140,82,255,0.15)',
+                          borderLeft: '2px solid rgba(174,137,255,0.30)',
                           paddingLeft: '10px',
                           paddingTop: '4px',
                           paddingBottom: '4px',
@@ -453,7 +453,7 @@ export default function FlashcardSetManager({
             justifyContent: 'space-between',
             gap: '8px',
             padding: '12px 20px',
-            borderTop: '1px solid rgba(140,82,255,0.15)',
+            borderTop: '1px solid rgba(174,137,255,0.30)',
             flexShrink: 0,
           }}
         >
@@ -904,7 +904,7 @@ function TitleDialog({
         style={{
           width: '340px',
           background: '#000000',
-          border: '1px solid rgba(140,82,255,0.3)',
+          border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '12px',
           padding: '20px',
           boxShadow: '0 12px 40px rgba(0,0,0,0.4)',

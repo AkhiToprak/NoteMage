@@ -387,7 +387,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 14px',
-          borderBottom: '1px solid rgba(81,112,255,0.12)',
+          borderBottom: '1px solid rgba(81,112,255,0.24)',
           background: 'rgba(81,112,255,0.04)',
         }}
       >

@@ -484,7 +484,7 @@ export default function DashboardPage() {
                   <div
                     style={{
                       marginTop: '16px',
-                      borderTop: '1px solid rgba(174,137,255,0.08)',
+                      borderTop: '1px solid rgba(174,137,255,0.16)',
                       paddingTop: '12px',
                     }}
                   >
@@ -1320,7 +1320,7 @@ export default function DashboardPage() {
       {dashboard !== null && notebookCount === 0 && (
         <section
           style={{
-            border: '2px dashed rgba(70,69,96,0.2)',
+            border: '2px dashed rgba(70,69,96,0.40)',
             borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
             padding: responsiveValue(bp, { phone: '26px', tablet: '32px', desktop: '48px' }),
             display: 'flex',

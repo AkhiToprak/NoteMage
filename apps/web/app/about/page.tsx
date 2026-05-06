@@ -291,7 +291,7 @@ export default function AboutPage() {
               borderRadius: 'var(--radius-xl)',
               background:
                 'rgba(174, 137, 255, 0.09)',
-              border: '1px solid rgba(174, 137, 255, 0.22)',
+              border: '1px solid rgba(174, 137, 255, 0.40)',
               textAlign: 'center',
               overflow: 'hidden',
               boxShadow: '0 32px 64px rgba(174,137,255,0.06), 0 8px 24px rgba(0,0,0,0.4)',
@@ -450,7 +450,7 @@ export default function AboutPage() {
             style={{
               height: 1,
               background:
-                'rgba(174, 137, 255, 0.32)',
+                'rgba(174, 137, 255, 0.50)',
               margin: '72px 0',
             }}
           />

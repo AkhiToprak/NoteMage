@@ -51,7 +51,7 @@ export default function AchievementToast({
           padding: '16px 20px',
           background: '#272746',
           borderRadius: '16px',
-          border: '1px solid rgba(255,222,89,0.3)',
+          border: '1px solid rgba(255,222,89,0.45)',
           boxShadow: '0 0 24px rgba(255,222,89,0.1), 0 8px 32px rgba(0,0,0,0.4)',
           maxWidth: '360px',
           animation: 'achievement-slide-in 0.4s cubic-bezier(0.22,1,0.36,1) forwards',

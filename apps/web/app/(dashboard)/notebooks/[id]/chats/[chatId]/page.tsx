@@ -347,7 +347,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
       <div
         style={{
           padding: isPhone ? '12px 14px' : '18px 28px',
-          borderBottom: '1px solid rgba(140,82,255,0.08)',
+          borderBottom: '1px solid rgba(174,137,255,0.16)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -456,7 +456,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           style={{
             padding: isPhone ? '10px 14px' : '10px 28px',
             background: 'rgba(255, 180, 50, 0.1)',
-            borderBottom: '1px solid rgba(255, 180, 50, 0.2)',
+            borderBottom: '1px solid rgba(255, 180, 50, 0.40)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -656,7 +656,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   padding: isPhone ? '10px 12px' : '12px 16px',
                   borderRadius: '16px 16px 16px 4px',
                   background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.16)',
                   color: '#ede9ff',
                   fontSize: '14px',
                   lineHeight: 1.65,
@@ -670,7 +670,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   padding: '12px 16px',
                   borderRadius: '16px 16px 16px 4px',
                   background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.16)',
                   display: 'flex',
                   gap: '4px',
                   alignItems: 'center',
@@ -752,7 +752,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
       <div
         style={{
           padding: isPhone ? '10px 10px 16px' : '16px 28px 24px',
-          borderTop: '1px solid rgba(140,82,255,0.06)',
+          borderTop: '1px solid rgba(174,137,255,0.12)',
           flexShrink: 0,
         }}
       >
@@ -879,7 +879,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               width: isPhone ? '100%' : '380px',
               zIndex: 11,
               background: '#0a0a0a',
-              borderLeft: '1px solid rgba(140,82,255,0.2)',
+              borderLeft: '1px solid rgba(174,137,255,0.40)',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '-16px 0 48px rgba(0,0,0,0.4)',
@@ -889,7 +889,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             <div
               style={{
                 padding: '20px 20px 16px',
-                borderBottom: '1px solid rgba(140,82,255,0.1)',
+                borderBottom: '1px solid rgba(174,137,255,0.20)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -970,7 +970,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   background: 'rgba(255,255,255,0.07)',
                   borderRadius: '10px',
                   padding: '4px',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.14)',
                 }}
               >
                 {(['notebook', 'upload'] as const).map((tab) => (
@@ -1019,7 +1019,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                     overflowY: 'auto',
                     background: 'rgba(255,255,255,0.025)',
                     borderRadius: '10px',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
                   }}
                 >
                   {sectionTree.length === 0 ? (
@@ -1146,7 +1146,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                         overflowY: 'auto',
                         background: 'rgba(255,255,255,0.025)',
                         borderRadius: '10px',
-                        border: '1px solid rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.12)',
                       }}
                     >
                       <div
@@ -1181,7 +1181,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                               padding: '9px 12px',
                               cursor: 'pointer',
                               background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                              borderTop: '1px solid rgba(255,255,255,0.06)',
+                              borderTop: '1px solid rgba(255,255,255,0.12)',
                               transition: 'background 0.1s',
                             }}
                           >
@@ -1229,7 +1229,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             <div
               style={{
                 padding: '14px 20px 20px',
-                borderTop: '1px solid rgba(140,82,255,0.08)',
+                borderTop: '1px solid rgba(174,137,255,0.16)',
                 marginTop: '14px',
               }}
             >
@@ -1304,7 +1304,7 @@ function PanelSectionItem({
           gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
         <span style={{ color: 'rgba(200,210,255,0.7)', display: 'flex' }}>
@@ -1344,7 +1344,7 @@ function PanelSectionItem({
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  borderBottom: '1px solid rgba(255,255,255,0.14)',
                   transition: 'background 0.1s',
                 }}
               >

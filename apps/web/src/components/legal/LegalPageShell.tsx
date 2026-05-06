@@ -267,7 +267,7 @@ export default function LegalPageShell({
                 flex: 1,
                 height: 1,
                 background:
-                  'rgba(174, 137, 255, 0.32)',
+                  'rgba(174, 137, 255, 0.50)',
               }}
             />
             <span
@@ -288,7 +288,7 @@ export default function LegalPageShell({
                 flex: 1,
                 height: 1,
                 background:
-                  'rgba(174, 137, 255, 0.32)',
+                  'rgba(174, 137, 255, 0.50)',
               }}
             />
           </div>

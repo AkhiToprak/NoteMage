@@ -36,8 +36,8 @@ export default function StatsStrip() {
         position: 'relative',
         padding: '72px 32px',
         background: 'transparent',
-        borderTop: '1px solid rgba(140, 82, 255, 0.12)',
-        borderBottom: '1px solid rgba(140, 82, 255, 0.12)',
+        borderTop: '1px solid rgba(174, 137, 255, 0.24)',
+        borderBottom: '1px solid rgba(174, 137, 255, 0.24)',
       }}
     >
       <div

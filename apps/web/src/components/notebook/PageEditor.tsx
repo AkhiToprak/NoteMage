@@ -1118,7 +1118,7 @@ export default function PageEditor({
         /* ── code block ── */
         .notemage-editor pre {
           background: rgba(140,82,255,0.06);
-          border: 1px solid rgba(140,82,255,0.15);
+          border: 1px solid rgba(174,137,255,0.30);
           padding: 16px 18px;
           border-radius: 10px;
           overflow-x: auto;
@@ -1182,7 +1182,7 @@ export default function PageEditor({
         }
         /* ── tables ── */
         .notemage-editor table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 14px 0; overflow: hidden; }
-        .notemage-editor td, .notemage-editor th { border: 1px solid rgba(140,82,255,0.18); padding: 8px 12px; vertical-align: top; position: relative; }
+        .notemage-editor td, .notemage-editor th { border: 1px solid rgba(174,137,255,0.36); padding: 8px 12px; vertical-align: top; position: relative; }
         .notemage-editor th { background: rgba(140,82,255,0.10); font-weight: 600; color: #c4b5fd; }
         .notemage-editor td { background: rgba(140,82,255,0.03); }
         .notemage-editor .selectedCell:after { content: ''; position: absolute; inset: 0; background: rgba(140,82,255,0.12); pointer-events: none; z-index: 2; }
@@ -1271,7 +1271,7 @@ export default function PageEditor({
             minute: '2-digit',
           })}
         </p>
-        <div style={{ height: '1px', background: 'rgba(140,82,255,0.1)', margin: '14px 0 0' }} />
+        <div style={{ height: '1px', background: 'rgba(174,137,255,0.20)', margin: '14px 0 0' }} />
       </div>
 
       {/* ── Toolbar ── */}

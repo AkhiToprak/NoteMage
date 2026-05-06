@@ -92,7 +92,7 @@ export default function HomeHeader() {
           background: 'rgba(0, 0, 0, 0.85)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          borderBottom: `1px solid ${COLORS.border}`,
+          borderBottom: '1px solid rgba(174,137,255,0.30)',
         }}
       >
         <div
@@ -271,7 +271,7 @@ export default function HomeHeader() {
                     marginTop: 8,
                     minWidth: 180,
                     background: COLORS.cardBg,
-                    border: `1px solid ${COLORS.border}`,
+                    border: '1px solid rgba(174,137,255,0.30)',
                     borderRadius: 14,
                     boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
                     padding: 6,
@@ -289,7 +289,7 @@ export default function HomeHeader() {
                   <div
                     style={{
                       padding: '10px 12px 8px',
-                      borderBottom: `1px solid ${COLORS.border}`,
+                      borderBottom: '1px solid rgba(174,137,255,0.30)',
                       marginBottom: 4,
                     }}
                   >
@@ -344,7 +344,7 @@ export default function HomeHeader() {
                   })}
 
                   <div
-                    style={{ borderTop: `1px solid ${COLORS.border}`, marginTop: 4, paddingTop: 4 }}
+                    style={{ borderTop: '1px solid rgba(174,137,255,0.30)', marginTop: 4, paddingTop: 4 }}
                   >
                     <button
                       onClick={() => signOut({ callbackUrl: '/auth/login' })}

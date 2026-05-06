@@ -54,7 +54,7 @@ function FAQAccordionItem({
   return (
     <div
       style={{
-        borderBottom: '1px solid rgba(85,85,120,0.12)',
+        borderBottom: '1px solid rgba(85,85,120,0.24)',
         opacity: isRevealed ? 1 : 0,
         transform: isRevealed ? 'translateY(0)' : 'translateY(16px)',
         transition: `opacity 0.5s cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 0.5s cubic-bezier(0.22,1,0.36,1) ${delay}ms`,

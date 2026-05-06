@@ -193,7 +193,7 @@ export default function PricingPage() {
           background: scrolled ? 'rgba(0, 0, 0, 0.88)' : 'transparent',
           backdropFilter: scrolled ? 'blur(24px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(174,137,255,0.1)' : '1px solid transparent',
+          borderBottom: scrolled ? '1px solid rgba(174,137,255,0.20)' : '1px solid transparent',
           transition:
             'background 0.35s cubic-bezier(0.22,1,0.36,1), backdrop-filter 0.35s, border-color 0.35s',
         }}
@@ -391,7 +391,7 @@ export default function PricingPage() {
         className="pricing-footer"
         style={{
           padding: '40px 48px',
-          borderTop: '1px solid rgba(174,137,255,0.08)',
+          borderTop: '1px solid rgba(174,137,255,0.16)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

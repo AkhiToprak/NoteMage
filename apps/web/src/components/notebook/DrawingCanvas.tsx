@@ -258,7 +258,7 @@ export default function DrawingCanvas({ drawingData, onSave, onClose }: DrawingC
           alignItems: 'center',
           gap: 8,
           background: '#131228',
-          border: '1px solid rgba(140,82,255,0.18)',
+          border: '1px solid rgba(174,137,255,0.36)',
           borderRadius: 10,
           padding: '6px 12px',
         }}

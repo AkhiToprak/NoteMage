@@ -179,7 +179,7 @@ export default function CreateChatModal({
           maxWidth: isPhone ? 'none' : 'calc(100vw - 40px)',
           maxHeight: isPhone ? 'none' : undefined,
           background: '#000000',
-          border: isPhone ? 'none' : '1px solid rgba(140,82,255,0.2)',
+          border: isPhone ? 'none' : '1px solid rgba(174,137,255,0.40)',
           borderRadius: isPhone ? 0 : '20px',
           boxShadow: isPhone
             ? 'none'
@@ -195,7 +195,7 @@ export default function CreateChatModal({
         <div
           style={{
             padding: isPhone ? '16px 16px 14px' : '22px 24px 18px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
@@ -368,7 +368,7 @@ export default function CreateChatModal({
                 background: 'rgba(255,255,255,0.07)',
                 borderRadius: '10px',
                 padding: '4px',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.14)',
               }}
             >
               {(['notebook', 'upload'] as const).map((tab) => (
@@ -405,7 +405,7 @@ export default function CreateChatModal({
                 style={{
                   background: 'rgba(255,255,255,0.025)',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
                   maxHeight: '200px',
                   overflowY: 'auto',
                 }}
@@ -521,7 +521,7 @@ export default function CreateChatModal({
                     style={{
                       background: 'rgba(255,255,255,0.025)',
                       borderRadius: '10px',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
                       maxHeight: '140px',
                       overflowY: 'auto',
                     }}
@@ -719,7 +719,7 @@ function SectionPickerItem({
           gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
         <span style={{ color: 'rgba(185,195,255,0.6)', display: 'flex' }}>
@@ -760,7 +760,7 @@ function SectionPickerItem({
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.07)',
+                  borderBottom: '1px solid rgba(255,255,255,0.14)',
                   transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => {

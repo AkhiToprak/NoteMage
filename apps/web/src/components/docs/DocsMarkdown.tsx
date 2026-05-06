@@ -49,7 +49,7 @@ const components: Components = {
           color: 'var(--on-surface)',
           margin: '56px 0 16px 0',
           paddingBottom: 12,
-          borderBottom: '1px solid rgba(174,137,255,0.14)',
+          borderBottom: '1px solid rgba(174,137,255,0.28)',
           position: 'relative',
           scrollMarginTop: 100,
         }}
@@ -236,7 +236,7 @@ const components: Components = {
     <hr
       style={{
         border: 'none',
-        borderTop: '1px solid rgba(174,137,255,0.18)',
+        borderTop: '1px solid rgba(174,137,255,0.36)',
         margin: '36px 0',
       }}
     />
@@ -266,7 +266,7 @@ const components: Components = {
       style={{
         overflowX: 'auto',
         margin: '20px 0 28px 0',
-        border: '1px solid rgba(174,137,255,0.18)',
+        border: '1px solid rgba(174,137,255,0.36)',
         borderRadius: 'var(--radius-md)',
       }}
     >
@@ -295,7 +295,7 @@ const components: Components = {
         letterSpacing: '0.1em',
         color: 'var(--primary)',
         fontWeight: 600,
-        borderBottom: '1px solid rgba(174,137,255,0.18)',
+        borderBottom: '1px solid rgba(174,137,255,0.36)',
       }}
     >
       {children}
@@ -305,7 +305,7 @@ const components: Components = {
     <td
       style={{
         padding: '12px 16px',
-        borderBottom: '1px solid rgba(174,137,255,0.08)',
+        borderBottom: '1px solid rgba(174,137,255,0.16)',
         color: 'rgba(238, 236, 255, 0.78)',
         fontSize: 14,
         lineHeight: 1.6,

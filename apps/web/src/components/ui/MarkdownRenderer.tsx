@@ -56,7 +56,7 @@ const bubbleComponents: Components = {
         lineHeight: 1.25,
         letterSpacing: '-0.01em',
         paddingBottom: '0.25em',
-        borderBottom: '1px solid rgba(174,137,255,0.15)',
+        borderBottom: '1px solid rgba(174,137,255,0.30)',
       }}
     >
       {children}
@@ -185,7 +185,7 @@ const bubbleComponents: Components = {
       style={{
         margin: '0.6em 0',
         background: 'rgba(0,0,0,0.4)',
-        border: '1px solid rgba(140,82,255,0.18)',
+        border: '1px solid rgba(174,137,255,0.36)',
         borderRadius: '8px',
         padding: '14px 16px',
         overflow: 'hidden',
@@ -214,7 +214,7 @@ const bubbleComponents: Components = {
     <hr
       style={{
         border: 'none',
-        borderTop: '1px solid rgba(140,82,255,0.2)',
+        borderTop: '1px solid rgba(174,137,255,0.40)',
         margin: '0.75em 0',
       }}
     />
@@ -248,7 +248,7 @@ const bubbleComponents: Components = {
     </div>
   ),
   thead: ({ children }) => (
-    <thead style={{ borderBottom: '2px solid rgba(140,82,255,0.3)' }}>{children}</thead>
+    <thead style={{ borderBottom: '2px solid rgba(174,137,255,0.45)' }}>{children}</thead>
   ),
   th: ({ children }) => (
     <th
@@ -269,7 +269,7 @@ const bubbleComponents: Components = {
     <td
       style={{
         padding: '8px 12px',
-        borderBottom: '1px solid rgba(140,82,255,0.1)',
+        borderBottom: '1px solid rgba(174,137,255,0.20)',
         color: 'rgba(229,227,255,0.8)',
       }}
     >

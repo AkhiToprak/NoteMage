@@ -268,7 +268,7 @@ export default function StartCoworkModal({
           style={{
             position: 'relative',
             padding: '24px 28px 16px',
-            borderBottom: '1px solid rgba(174, 137, 255, 0.12)',
+            borderBottom: '1px solid rgba(174, 137, 255, 0.24)',
           }}
         >
           <div
@@ -682,7 +682,7 @@ export default function StartCoworkModal({
         <div
           style={{
             padding: '16px 28px 20px',
-            borderTop: '1px solid rgba(174, 137, 255, 0.12)',
+            borderTop: '1px solid rgba(174, 137, 255, 0.24)',
             display: 'flex',
             alignItems: 'center',
             gap: 12,

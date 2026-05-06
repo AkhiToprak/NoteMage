@@ -162,7 +162,7 @@ export default function FeatureComparison() {
                   fontSize: 13,
                   fontWeight: 600,
                   color: 'var(--outline)',
-                  borderBottom: '1px solid rgba(85,85,120,0.15)',
+                  borderBottom: '1px solid rgba(85,85,120,0.30)',
                   width: '40%',
                 }}
               >
@@ -182,7 +182,7 @@ export default function FeatureComparison() {
                         : tier === 'Plus'
                           ? 'var(--primary)'
                           : 'var(--on-surface-variant)',
-                    borderBottom: '1px solid rgba(85,85,120,0.15)',
+                    borderBottom: '1px solid rgba(85,85,120,0.30)',
                     background: tier === 'Pro' ? 'rgba(255,222,89,0.03)' : 'transparent',
                   }}
                 >
@@ -269,7 +269,7 @@ export default function FeatureComparison() {
           <div
             key={catIdx}
             style={{
-              borderBottom: '1px solid rgba(85,85,120,0.12)',
+              borderBottom: '1px solid rgba(85,85,120,0.24)',
             }}
           >
             <button
@@ -315,7 +315,7 @@ export default function FeatureComparison() {
                     key={rowIdx}
                     style={{
                       padding: '12px 0',
-                      borderTop: rowIdx > 0 ? '1px solid rgba(85,85,120,0.06)' : 'none',
+                      borderTop: rowIdx > 0 ? '1px solid rgba(85,85,120,0.12)' : 'none',
                       opacity: expandedMobile === catIdx ? 1 : 0,
                       transition: 'opacity 0.3s cubic-bezier(0.22,1,0.36,1)',
                       transitionDelay: expandedMobile === catIdx ? `${rowIdx * 40}ms` : '0ms',

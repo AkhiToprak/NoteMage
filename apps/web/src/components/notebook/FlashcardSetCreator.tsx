@@ -94,7 +94,7 @@ export default function FlashcardSetCreator({
           width: '480px',
           maxHeight: '85vh',
           background: '#1e1d35',
-          border: '1px solid rgba(140,82,255,0.25)',
+          border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
@@ -110,7 +110,7 @@ export default function FlashcardSetCreator({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.15)',
+            borderBottom: '1px solid rgba(174,137,255,0.30)',
             flexShrink: 0,
           }}
         >
@@ -191,7 +191,7 @@ export default function FlashcardSetCreator({
               key={index}
               style={{
                 background: 'rgba(140,82,255,0.04)',
-                border: '1px solid rgba(140,82,255,0.12)',
+                border: '1px solid rgba(174,137,255,0.24)',
                 borderRadius: '10px',
                 padding: '12px',
                 display: 'flex',
@@ -331,7 +331,7 @@ export default function FlashcardSetCreator({
             justifyContent: 'flex-end',
             gap: '8px',
             padding: '12px 20px',
-            borderTop: '1px solid rgba(140,82,255,0.15)',
+            borderTop: '1px solid rgba(174,137,255,0.30)',
             flexShrink: 0,
           }}
         >

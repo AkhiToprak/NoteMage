@@ -27,7 +27,7 @@ const COLORS = {
   textSecondary: '#aaa8c8',
   textMuted: '#8888a8',
   error: '#fd6f85',
-  border: 'rgba(174,137,255,0.15)',
+  border: 'rgba(174,137,255,0.30)',
 } as const;
 
 type NavItem = {

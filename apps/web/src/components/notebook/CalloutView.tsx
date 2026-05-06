@@ -91,7 +91,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
               top: 'calc(100% + 4px)',
               left: 0,
               background: '#131228',
-              border: '1px solid rgba(140,82,255,0.2)',
+              border: '1px solid rgba(174,137,255,0.40)',
               borderRadius: '8px',
               padding: '4px',
               zIndex: 100,

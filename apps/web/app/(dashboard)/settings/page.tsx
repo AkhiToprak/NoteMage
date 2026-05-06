@@ -71,7 +71,7 @@ function StatCard({
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
-        border: '1px solid rgba(70,69,96,0.2)',
+        border: '1px solid rgba(70,69,96,0.40)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1092,7 +1092,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Change Password */}
-            <div style={{ paddingTop: '24px', borderTop: '1px solid rgba(70,69,96,0.1)' }}>
+            <div style={{ paddingTop: '24px', borderTop: '1px solid rgba(70,69,96,0.20)' }}>
               <h4
                 style={{ fontSize: '16px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 24px' }}
               >
@@ -2218,7 +2218,7 @@ export default function SettingsPage() {
                 padding: '16px',
                 borderRadius: '14px',
                 background: 'rgba(174,137,255,0.06)',
-                border: '1px solid rgba(174,137,255,0.1)',
+                border: '1px solid rgba(174,137,255,0.20)',
               }}
             >
               <span
@@ -3146,7 +3146,7 @@ export default function SettingsPage() {
                   width: '100%',
                   maxWidth: '440px',
                   boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
-                  border: '1px solid rgba(255,222,89,0.15)',
+                  border: '1px solid rgba(255,222,89,0.30)',
                 }}
               >
                 <h3

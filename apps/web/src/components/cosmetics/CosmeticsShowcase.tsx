@@ -225,7 +225,7 @@ function ShowcaseTile({ entry }: { entry: Cosmetic }) {
           borderRadius: 12,
           overflow: 'hidden',
           background: '#262646',
-          border: '1px solid rgba(136,136,168,0.18)',
+          border: '1px solid rgba(136,136,168,0.36)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
           transform: pulse ? 'scale(1.04)' : 'scale(1)',
           transition:

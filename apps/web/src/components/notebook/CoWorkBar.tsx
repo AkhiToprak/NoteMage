@@ -264,7 +264,7 @@ export default function CoWorkBar({
           gap: 12,
           padding: '8px 16px',
           background: 'rgba(174,137,255,0.06)',
-          borderBottom: '1px solid rgba(174,137,255,0.1)',
+          borderBottom: '1px solid rgba(174,137,255,0.20)',
           fontFamily: 'inherit',
         }}
       >

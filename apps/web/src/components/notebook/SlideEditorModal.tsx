@@ -170,7 +170,7 @@ export default function SlideEditorModal({
           maxHeight: isPhone ? 'none' : undefined,
           background: '#000000',
           borderRadius: isPhone ? 0 : '16px',
-          border: isPhone ? 'none' : '1px solid rgba(140,82,255,0.18)',
+          border: isPhone ? 'none' : '1px solid rgba(174,137,255,0.36)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -185,7 +185,7 @@ export default function SlideEditorModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: isPhone ? '12px 16px' : '16px 24px',
-            borderBottom: '1px solid rgba(140,82,255,0.12)',
+            borderBottom: '1px solid rgba(174,137,255,0.24)',
             flexShrink: 0,
           }}
         >
@@ -220,7 +220,7 @@ export default function SlideEditorModal({
                 gap: '6px',
                 padding: '8px 12px',
                 overflowX: 'auto',
-                borderBottom: '1px solid rgba(140,82,255,0.12)',
+                borderBottom: '1px solid rgba(174,137,255,0.24)',
                 flexShrink: 0,
                 alignItems: 'center',
               }}
@@ -279,7 +279,7 @@ export default function SlideEditorModal({
             <div
               style={{
                 width: isTablet ? '160px' : '200px',
-                borderRight: '1px solid rgba(140,82,255,0.12)',
+                borderRight: '1px solid rgba(174,137,255,0.24)',
                 overflowY: 'auto',
                 padding: '12px',
                 display: 'flex',
@@ -461,7 +461,7 @@ export default function SlideEditorModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: isPhone ? '10px 12px' : '14px 24px',
-            borderTop: '1px solid rgba(140,82,255,0.12)',
+            borderTop: '1px solid rgba(174,137,255,0.24)',
             flexShrink: 0,
             gap: isPhone ? '6px' : undefined,
             flexWrap: isPhone ? 'wrap' : undefined,

@@ -171,7 +171,7 @@ export default function StudyPlanCreator({
           maxHeight: '80vh',
           background: '#1e1d35',
           borderRadius: '16px',
-          border: '1px solid rgba(140,82,255,0.2)',
+          border: '1px solid rgba(174,137,255,0.40)',
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'inherit',
@@ -185,7 +185,7 @@ export default function StudyPlanCreator({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>
@@ -211,7 +211,7 @@ export default function StudyPlanCreator({
             display: 'flex',
             gap: '2px',
             padding: '10px 20px',
-            borderBottom: '1px solid rgba(140,82,255,0.1)',
+            borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           {(
@@ -432,7 +432,7 @@ export default function StudyPlanCreator({
             justifyContent: 'flex-end',
             gap: '8px',
             padding: '14px 20px',
-            borderTop: '1px solid rgba(140,82,255,0.1)',
+            borderTop: '1px solid rgba(174,137,255,0.20)',
           }}
         >
           <button

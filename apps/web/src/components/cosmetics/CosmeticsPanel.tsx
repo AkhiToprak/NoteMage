@@ -216,7 +216,7 @@ function SwatchShell({
           borderRadius: SWATCH_RADIUS,
           overflow: 'hidden',
           background: '#2a2a4c',
-          border: selected ? '2px solid #ae89ff' : '1px solid rgba(136,136,168,0.18)',
+          border: selected ? '2px solid #ae89ff' : '1px solid rgba(136,136,168,0.36)',
           boxShadow: selected
             ? '0 0 0 3px rgba(174,137,255,0.18), 0 8px 24px rgba(174,137,255,0.22)'
             : '0 2px 8px rgba(0,0,0,0.25)',
@@ -860,7 +860,7 @@ export function CosmeticsPanel({
           position: 'relative',
           borderRadius: 20,
           overflow: 'hidden',
-          border: '1px solid rgba(174,137,255,0.22)',
+          border: '1px solid rgba(174,137,255,0.40)',
           background: '#1c1c38',
           padding: previewPad,
           minHeight: 140,

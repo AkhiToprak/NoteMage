@@ -92,7 +92,7 @@ export default async function DocsPage({ params }: PageProps) {
             style={{
               marginTop: 64,
               paddingTop: 32,
-              borderTop: '1px solid rgba(174,137,255,0.16)',
+              borderTop: '1px solid rgba(174,137,255,0.32)',
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: 16,

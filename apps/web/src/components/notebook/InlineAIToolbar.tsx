@@ -357,7 +357,7 @@ export default function InlineAIToolbar({
     transform: 'translateX(-50%)',
     zIndex: 250,
     background: 'rgba(20, 18, 44, 0.96)',
-    border: '1px solid rgba(255, 222, 89, 0.32)',
+    border: '1px solid rgba(255, 222, 89, 0.45)',
     borderRadius: 999,
     padding: isPhone ? '8px' : '6px',
     boxShadow:

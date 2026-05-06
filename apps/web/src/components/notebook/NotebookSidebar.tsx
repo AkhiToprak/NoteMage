@@ -72,7 +72,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
         width: '256px',
         minWidth: '256px',
         background: '#000000',
-        borderRight: '1px solid rgba(140,82,255,0.12)',
+        borderRight: '1px solid rgba(174,137,255,0.24)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -83,7 +83,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
       <div
         style={{
           padding: '16px 14px 12px',
-          borderBottom: '1px solid rgba(140,82,255,0.1)',
+          borderBottom: '1px solid rgba(174,137,255,0.20)',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
@@ -167,7 +167,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
       <div
         style={{
           padding: '10px 14px',
-          borderTop: '1px solid rgba(140,82,255,0.1)',
+          borderTop: '1px solid rgba(174,137,255,0.20)',
         }}
       >
         <SidebarPdfImportButton notebookId={notebookId} onImported={fetchSections} />

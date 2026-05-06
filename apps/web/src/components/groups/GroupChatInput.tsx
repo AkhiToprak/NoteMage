@@ -135,7 +135,7 @@ export default function GroupChatInput({
                 padding: 6,
                 borderRadius: 14,
                 background: 'rgba(20, 18, 44, 0.96)',
-                border: '1px solid rgba(174, 137, 255, 0.28)',
+                border: '1px solid rgba(174, 137, 255, 0.45)',
                 boxShadow:
                   '0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(140, 82, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                 backdropFilter: 'blur(20px)',

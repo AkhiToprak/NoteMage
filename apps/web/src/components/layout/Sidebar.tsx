@@ -57,7 +57,7 @@ export default function Sidebar() {
         paddingBottom: '24px',
         zIndex: 40,
         overflowY: 'auto',
-        borderRight: '1px solid rgba(174,137,255,0.08)',
+        borderRight: '1px solid rgba(174,137,255,0.22)',
       }}
       className="custom-scrollbar"
     >
@@ -131,7 +131,7 @@ export default function Sidebar() {
       <div
         style={{
           padding: '0 16px',
-          borderTop: '1px solid rgba(70,69,96,0.2)',
+          borderTop: '1px solid rgba(70,69,96,0.40)',
           paddingTop: '12px',
         }}
       >
@@ -176,7 +176,7 @@ export default function Sidebar() {
       {/* Bottom: logout + user profile */}
       <div
         style={{
-          borderTop: '1px solid rgba(70,69,96,0.2)',
+          borderTop: '1px solid rgba(70,69,96,0.40)',
           paddingTop: '16px',
         }}
       >

@@ -498,7 +498,7 @@ function NotebooksPageContent() {
               </button>
 
               <div
-                style={{ height: '1px', background: 'rgba(174,137,255,0.08)', margin: '4px 6px' }}
+                style={{ height: '1px', background: 'rgba(174,137,255,0.20)', margin: '4px 6px' }}
               />
 
               {PRESETS.map((preset) => (

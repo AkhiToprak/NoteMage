@@ -945,7 +945,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Privacy Toggles */}
-          <div style={{ borderTop: '1px solid rgba(170,168,200,0.1)', paddingTop: '20px' }}>
+          <div style={{ borderTop: '1px solid rgba(170,168,200,0.20)', paddingTop: '20px' }}>
             <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 16px' }}>
               Privacy
             </h4>

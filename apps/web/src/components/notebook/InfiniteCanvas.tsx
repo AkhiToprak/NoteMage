@@ -1413,7 +1413,7 @@ export default function InfiniteCanvas({
             minute: '2-digit',
           })}
         </p>
-        <div style={{ height: '1px', background: 'rgba(140,82,255,0.1)', margin: '14px 0 0' }} />
+        <div style={{ height: '1px', background: 'rgba(174,137,255,0.20)', margin: '14px 0 0' }} />
       </div>
 
       {/* Canvas — absolute-inset wrapper gives Excalidraw a deterministic size */}

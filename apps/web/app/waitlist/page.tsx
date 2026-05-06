@@ -232,7 +232,7 @@ export default function WaitlistPage() {
             background: 'rgba(33, 33, 62, 0.6)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(140, 82, 255, 0.15)',
+            border: '1px solid rgba(174, 137, 255, 0.30)',
             borderRadius: '20px',
             padding: '48px 36px',
             boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 0 80px rgba(140,82,255,0.06)',

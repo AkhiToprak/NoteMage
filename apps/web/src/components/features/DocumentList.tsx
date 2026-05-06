@@ -238,7 +238,7 @@ export default function DocumentList({
               width: '520px',
               maxHeight: '600px',
               background: '#000000',
-              border: '1px solid rgba(140,82,255,0.25)',
+              border: '1px solid rgba(174,137,255,0.45)',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
@@ -253,7 +253,7 @@ export default function DocumentList({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '16px 20px',
-                borderBottom: '1px solid rgba(140,82,255,0.15)',
+                borderBottom: '1px solid rgba(174,137,255,0.30)',
               }}
             >
               <div>

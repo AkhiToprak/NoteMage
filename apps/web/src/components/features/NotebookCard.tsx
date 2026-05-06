@@ -277,7 +277,7 @@ export default function NotebookCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderTop: '1px solid rgba(70,69,96,0.05)',
+                borderTop: '1px solid rgba(70,69,96,0.10)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#aaa8c8' }}>

@@ -71,7 +71,7 @@ export default function PageLockIndicator({
         gap: 10,
         padding: '10px 20px',
         background: 'rgba(251,146,60,0.08)',
-        borderBottom: '1px solid rgba(251,146,60,0.15)',
+        borderBottom: '1px solid rgba(251,146,60,0.30)',
         animation: 'lockBannerIn 0.25s cubic-bezier(0.22,1,0.36,1)',
       }}
     >

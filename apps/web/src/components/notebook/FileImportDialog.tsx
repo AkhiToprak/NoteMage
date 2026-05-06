@@ -149,7 +149,7 @@ export default function FileImportDialog({
           maxWidth: '480px',
           background: '#000000',
           borderRadius: '16px',
-          border: '1px solid rgba(140,82,255,0.18)',
+          border: '1px solid rgba(174,137,255,0.36)',
           padding: '24px',
           fontFamily: 'inherit',
           color: '#ede9ff',

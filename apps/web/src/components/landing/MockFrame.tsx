@@ -52,7 +52,7 @@ export default function MockFrame({
           alignItems: 'center',
           gap: 12,
           padding: '12px 16px',
-          borderBottom: '1px solid rgba(140, 82, 255, 0.18)',
+          borderBottom: '1px solid rgba(174, 137, 255, 0.36)',
           background: '#16142e',
           minWidth: 0,
         }}

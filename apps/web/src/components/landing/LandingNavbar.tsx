@@ -40,7 +40,7 @@ export default function LandingNavbar() {
           zIndex: 60,
           padding: '16px 0',
           background: scrolled ? '#0e0c22' : 'transparent',
-          borderBottom: scrolled ? '1px solid rgba(140, 82, 255, 0.18)' : '1px solid transparent',
+          borderBottom: scrolled ? '1px solid rgba(174, 137, 255, 0.36)' : '1px solid transparent',
           transition:
             'background 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
@@ -237,7 +237,7 @@ export default function LandingNavbar() {
           <div
             style={{
               height: 1,
-              background: 'rgba(140, 82, 255, 0.2)',
+              background: 'rgba(174, 137, 255, 0.40)',
               margin: '16px 0',
             }}
           />

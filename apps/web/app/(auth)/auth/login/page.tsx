@@ -420,7 +420,7 @@ function LoginForm() {
             margin: '28px 0 20px',
           }}
         >
-          <div style={{ flex: 1, height: '1px', background: 'rgba(174,137,255,0.15)' }} />
+          <div style={{ flex: 1, height: '1px', background: 'rgba(174,137,255,0.30)' }} />
           <span
             style={{
               fontSize: '11px',
@@ -432,7 +432,7 @@ function LoginForm() {
           >
             or continue with
           </span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(174,137,255,0.15)' }} />
+          <div style={{ flex: 1, height: '1px', background: 'rgba(174,137,255,0.30)' }} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

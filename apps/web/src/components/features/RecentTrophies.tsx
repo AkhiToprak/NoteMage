@@ -231,7 +231,7 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
             fontWeight: 600,
             letterSpacing: '0.04em',
             paddingTop: '4px',
-            borderTop: '1px solid rgba(170,168,200,0.08)',
+            borderTop: '1px solid rgba(170,168,200,0.16)',
           }}
         >
           <span>
@@ -259,7 +259,7 @@ function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
         alignItems: 'center',
         gap: isPhone ? '14px' : '16px',
         padding: isPhone ? '14px 0' : '16px 0',
-        borderBottom: isLast ? 'none' : '1px solid rgba(170,168,200,0.08)',
+        borderBottom: isLast ? 'none' : '1px solid rgba(170,168,200,0.16)',
       }}
     >
       {/* Medal tile */}

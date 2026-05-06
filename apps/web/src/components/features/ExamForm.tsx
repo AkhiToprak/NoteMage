@@ -105,7 +105,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '20px 24px',
-              borderBottom: '1px solid rgba(174,137,255,0.1)',
+              borderBottom: '1px solid rgba(174,137,255,0.20)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
