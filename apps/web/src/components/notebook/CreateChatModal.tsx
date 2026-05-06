@@ -178,7 +178,7 @@ export default function CreateChatModal({
           height: isPhone ? '100dvh' : undefined,
           maxWidth: isPhone ? 'none' : 'calc(100vw - 40px)',
           maxHeight: isPhone ? 'none' : undefined,
-          background: 'linear-gradient(160deg, #000000 0%, #151530 100%)',
+          background: '#000000',
           border: isPhone ? 'none' : '1px solid rgba(140,82,255,0.2)',
           borderRadius: isPhone ? 0 : '20px',
           boxShadow: isPhone
@@ -210,7 +210,7 @@ export default function CreateChatModal({
                   height: '24px',
                   borderRadius: '7px',
                   background:
-                    'linear-gradient(135deg, rgba(140,82,255,0.5), rgba(81,112,255,0.35))',
+                    'rgba(140,82,255,0.5)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -647,7 +647,7 @@ export default function CreateChatModal({
                 border: 'none',
                 background: isCreating
                   ? 'rgba(140,82,255,0.4)'
-                  : 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                  : '#8c52ff',
                 color: '#fff',
                 fontSize: '13px',
                 fontWeight: 700,

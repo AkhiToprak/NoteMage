@@ -480,7 +480,7 @@ export default function ShareContentModal({
                         width: 36,
                         height: 36,
                         borderRadius: 10,
-                        background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple})`,
+                        background: COLORS.primary,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

@@ -62,7 +62,7 @@ export default function TierSelectionStep({
           fontWeight: 700,
           fontSize: '15px',
           cursor: loading ? 'wait' : 'pointer',
-          background: 'linear-gradient(135deg, #ae89ff, #8b5cf6)',
+          background: '#ae89ff',
           color: '#fff',
           opacity: loading ? 0.6 : 1,
           transition: 'opacity 0.2s',

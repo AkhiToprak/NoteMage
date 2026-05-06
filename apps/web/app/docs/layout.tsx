@@ -26,7 +26,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           pointerEvents: 'none',
           zIndex: 0,
           background:
-            'radial-gradient(1200px 700px at 12% -10%, rgba(174,137,255,0.16) 0%, transparent 55%), radial-gradient(900px 600px at 92% 8%, rgba(185,195,255,0.10) 0%, transparent 55%), radial-gradient(800px 500px at 50% 110%, rgba(255,222,89,0.06) 0%, transparent 60%)',
+            'rgba(174,137,255,0.16)',
         }}
       />
       <div

@@ -285,7 +285,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
             maxWidth: 'calc(100vw - 48px)',
             borderRadius: 20,
             overflow: 'hidden',
-            background: 'linear-gradient(180deg, #2d2d52 0%, #21213e 100%)',
+            background: '#2d2d52',
             border: '1px solid rgba(174,137,255,0.4)',
             transform: mounted
               ? 'translateX(0) translateY(0) scale(1)'
@@ -300,7 +300,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
             style={{
               height: 3,
               background:
-                'linear-gradient(90deg, transparent 0%, #ffde59 25%, #ff9566 50%, #ff5fa2 75%, transparent 100%)',
+                '#ff9566',
               backgroundSize: '200% 100%',
               animation: 'unlock-toast-shimmer 3s linear infinite',
             }}
@@ -443,7 +443,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                 gap: 8,
                 padding: '10px 16px',
                 borderRadius: 12,
-                background: 'linear-gradient(90deg, #ae89ff 0%, #ff6fa2 100%)',
+                background: '#ae89ff',
                 color: '#2a0066',
                 fontSize: 13,
                 fontWeight: 800,
@@ -508,7 +508,7 @@ function TitlePreview({ entry }: { entry: TitleCosmetic }) {
         alignItems: 'center',
         justifyContent: 'center',
         background:
-          'radial-gradient(60% 80% at 50% 50%, rgba(255,222,89,0.15) 0%, transparent 70%)',
+          'rgba(255,222,89,0.15)',
       }}
     >
       <span

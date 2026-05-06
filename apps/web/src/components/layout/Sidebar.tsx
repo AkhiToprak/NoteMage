@@ -94,7 +94,7 @@ export default function Sidebar() {
                 fontWeight: '500',
                 color: isActive ? '#ffffff' : '#b9c3ff',
                 background: isActive
-                  ? 'linear-gradient(90deg, #ae89ff 0%, rgba(174,137,255,0.2) 100%)'
+                  ? '#ae89ff'
                   : 'transparent',
                 transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
               }}

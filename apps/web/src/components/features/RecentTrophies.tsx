@@ -270,7 +270,7 @@ function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
           height: isPhone ? 48 : 56,
           borderRadius: 16,
           background:
-            'linear-gradient(135deg, rgba(174,137,255,0.18) 0%, rgba(131,72,246,0.10) 100%)',
+            'rgba(174,137,255,0.18)',
           border: '1px solid rgba(174,137,255,0.28)',
           display: 'flex',
           alignItems: 'center',

@@ -421,8 +421,7 @@ export default function UnifiedSidebar() {
               style={{
                 margin: '12px 14px',
                 height: '1px',
-                background:
-                  'linear-gradient(90deg, transparent, rgba(174,137,255,0.45), transparent)',
+                background: 'rgba(174,137,255,0.22)',
               }}
             />
 
@@ -454,7 +453,7 @@ export default function UnifiedSidebar() {
                   width: '20px',
                   height: '20px',
                   borderRadius: '5px',
-                  background: 'linear-gradient(135deg, rgba(140,82,255,0.5), rgba(81,112,255,0.4))',
+                  background: 'rgba(140,82,255,0.5)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1197,7 +1196,7 @@ function PageTreeRow({
           paddingTop: '5px',
           paddingBottom: '5px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',
@@ -1304,7 +1303,7 @@ function FlashcardSetTreeRow({
           paddingTop: '5px',
           paddingBottom: '5px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',
@@ -1421,7 +1420,7 @@ function FlashcardSetTreeSection() {
                 width: '16px',
                 height: '16px',
                 borderRadius: '4px',
-                background: 'linear-gradient(135deg, rgba(140,82,255,0.4), rgba(81,112,255,0.3))',
+                background: 'rgba(140,82,255,0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1653,7 +1652,7 @@ function QuizSetTreeSection() {
                 width: '16px',
                 height: '16px',
                 borderRadius: '4px',
-                background: 'linear-gradient(135deg, rgba(81,112,255,0.4), rgba(140,82,255,0.3))',
+                background: 'rgba(81,112,255,0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1888,7 +1887,7 @@ function StudyPlanTreeSection() {
                 width: '16px',
                 height: '16px',
                 borderRadius: '4px',
-                background: 'linear-gradient(135deg, rgba(140,82,255,0.4), rgba(81,112,255,0.3))',
+                background: 'rgba(140,82,255,0.4)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -2117,7 +2116,7 @@ function ChatTreeSection() {
               width: '16px',
               height: '16px',
               borderRadius: '4px',
-              background: 'linear-gradient(135deg, rgba(140,82,255,0.4), rgba(81,112,255,0.3))',
+              background: 'rgba(140,82,255,0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -2286,7 +2285,7 @@ function ChatTreeRow({
           gap: '5px',
           padding: '5px 14px 5px 22px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',
@@ -2450,7 +2449,7 @@ function FlashcardSetRow({
           gap: '7px',
           padding: '4px 14px 4px 52px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',
@@ -2543,7 +2542,7 @@ function QuizSetRow({
           gap: '7px',
           padding: '4px 14px 4px 52px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(140,82,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',
@@ -2643,7 +2642,7 @@ function QuizSetTreeRow({
           paddingTop: '5px',
           paddingBottom: '5px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',

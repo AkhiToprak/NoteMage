@@ -34,11 +34,7 @@ export default function AboutPage() {
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: [
-              'radial-gradient(900px 700px at 50% -10%, rgba(140, 82, 255, 0.16) 0%, transparent 55%)',
-              'radial-gradient(600px 480px at 88% 10%, rgba(255, 222, 89, 0.07) 0%, transparent 60%)',
-              'radial-gradient(420px 380px at 6% 85%, rgba(81, 112, 255, 0.09) 0%, transparent 60%)',
-            ].join(','),
+            background: 'rgba(140, 82, 255, 0.16)',
           }}
         />
         {/* Grain overlay */}
@@ -103,7 +99,7 @@ export default function AboutPage() {
               padding: '8px 18px',
               borderRadius: 'var(--radius-full)',
               background:
-                'linear-gradient(135deg, rgba(174, 137, 255, 0.18) 0%, rgba(255, 222, 89, 0.12) 100%)',
+                'rgba(174, 137, 255, 0.18)',
               border: '1px solid rgba(174, 137, 255, 0.3)',
               marginBottom: 40,
               backdropFilter: 'blur(10px)',
@@ -207,7 +203,7 @@ export default function AboutPage() {
             width: 640,
             height: 640,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(174, 137, 255, 0.09) 0%, transparent 70%)',
+            background: 'rgba(174, 137, 255, 0.09)',
             pointerEvents: 'none',
           }}
         />
@@ -220,7 +216,7 @@ export default function AboutPage() {
             width: 520,
             height: 520,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255, 222, 89, 0.05) 0%, transparent 70%)',
+            background: 'rgba(255, 222, 89, 0.05)',
             pointerEvents: 'none',
           }}
         />
@@ -294,7 +290,7 @@ export default function AboutPage() {
               padding: '60px 52px 52px',
               borderRadius: 'var(--radius-xl)',
               background:
-                'linear-gradient(135deg, rgba(174, 137, 255, 0.09) 0%, rgba(255, 222, 89, 0.045) 100%)',
+                'rgba(174, 137, 255, 0.09)',
               border: '1px solid rgba(174, 137, 255, 0.22)',
               textAlign: 'center',
               overflow: 'hidden',
@@ -454,7 +450,7 @@ export default function AboutPage() {
             style={{
               height: 1,
               background:
-                'linear-gradient(90deg, transparent, rgba(174, 137, 255, 0.32), transparent)',
+                'rgba(174, 137, 255, 0.32)',
               margin: '72px 0',
             }}
           />
@@ -495,7 +491,7 @@ export default function AboutPage() {
               width: 'min(460px, 100%)',
               margin: '112px auto 0',
               padding: '32px 36px 36px',
-              background: 'linear-gradient(180deg, #fff6d0 0%, #ffde59 100%)',
+              background: '#ffde59',
               color: '#2a2200',
               borderRadius: 6,
               boxShadow: '0 36px 72px rgba(255, 222, 89, 0.18), 0 16px 32px rgba(0, 0, 0, 0.45)',
@@ -514,7 +510,7 @@ export default function AboutPage() {
                 width: 96,
                 height: 24,
                 background:
-                  'repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 6px, rgba(255,255,255,0.3) 6px 12px)',
+                  'rgba(255,255,255,0.55)',
                 border: '1px solid rgba(255, 255, 255, 0.55)',
                 borderRadius: 2,
                 backdropFilter: 'blur(4px)',

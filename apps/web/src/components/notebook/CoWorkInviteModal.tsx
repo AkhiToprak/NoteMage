@@ -19,10 +19,10 @@ interface CoWorkInviteModalProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #ae89ff, #884efb)',
-  'linear-gradient(135deg, #ff89ae, #fb4e88)',
-  'linear-gradient(135deg, #89ffd4, #4efba5)',
-  'linear-gradient(135deg, #ffde59, #fbae4e)',
+  '#ae89ff',
+  '#ff89ae',
+  '#89ffd4',
+  '#ffde59',
 ];
 
 function getAvatarGradient(id: string): string {
@@ -164,7 +164,7 @@ export default function CoWorkInviteModal({
             left: 0,
             width: '100%',
             height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(174,137,255,0.4), transparent)',
+            background: 'rgba(174,137,255,0.4)',
           }}
         />
 
@@ -301,7 +301,7 @@ export default function CoWorkInviteModal({
                           ? '1.5px solid rgba(74,222,128,0.3)'
                           : '1.5px solid #555578',
                       background: isSelected
-                        ? 'linear-gradient(135deg, #ae89ff, #884efb)'
+                        ? '#ae89ff'
                         : isSent
                           ? 'rgba(74,222,128,0.12)'
                           : 'transparent',
@@ -421,8 +421,8 @@ export default function CoWorkInviteModal({
                 selected.size === 0
                   ? '#35355c'
                   : hoveredSend
-                    ? 'linear-gradient(135deg, #c4a6ff, #9b5fff)'
-                    : 'linear-gradient(135deg, #ae89ff, #884efb)',
+                    ? '#c4a6ff'
+                    : '#ae89ff',
               color: selected.size === 0 ? '#8888a8' : '#fff',
               fontSize: 13,
               fontWeight: 700,

@@ -849,7 +849,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
           background:
             uploadState === 'success'
               ? 'rgba(74,222,128,0.15)'
-              : 'linear-gradient(135deg, rgba(140,82,255,0.8), rgba(81,112,255,0.7))',
+              : 'rgba(140,82,255,0.8)',
           color: uploadState === 'success' ? '#4ade80' : '#fff',
           opacity: uploadState === 'uploading' ? 0.6 : 1,
           transition: 'opacity 0.15s ease',
@@ -1169,7 +1169,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           background:
             state === 'success'
               ? 'rgba(74,222,128,0.15)'
-              : 'linear-gradient(135deg, rgba(140,82,255,0.8), rgba(81,112,255,0.7))',
+              : 'rgba(140,82,255,0.8)',
           color: state === 'success' ? '#4ade80' : '#fff',
           opacity: state === 'working' ? 0.7 : 1,
           transition: 'opacity 0.15s ease',

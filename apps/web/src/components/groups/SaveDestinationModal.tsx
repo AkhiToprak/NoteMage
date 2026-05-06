@@ -577,7 +577,7 @@ export default function SaveDestinationModal({
                         <ItemRow
                           key={nb.id}
                           icon="auto_stories"
-                          iconBg={`linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`}
+                          iconBg={COLORS.primary}
                           iconColor="#fff"
                           label={nb.name}
                           sublabel={nb.subject || undefined}
@@ -812,7 +812,7 @@ export default function SaveDestinationModal({
                 background: saved
                   ? COLORS.success
                   : isNotebook || canSave
-                    ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`
+                    ? COLORS.primary
                     : COLORS.elevated,
                 color: saved ? '#000' : isNotebook || canSave ? '#fff' : COLORS.textMuted,
                 fontSize: 14,

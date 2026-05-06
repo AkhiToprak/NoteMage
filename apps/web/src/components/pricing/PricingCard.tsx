@@ -123,10 +123,10 @@ export default function PricingCard({
     right: 0,
     height: 1,
     background: isPro
-      ? 'linear-gradient(90deg, transparent, rgba(255,222,89,0.4), transparent)'
+      ? 'rgba(255,222,89,0.4)'
       : isPopular
-        ? 'linear-gradient(90deg, transparent, rgba(174,137,255,0.3), transparent)'
-        : 'linear-gradient(90deg, transparent, rgba(136,136,168,0.15), transparent)',
+        ? 'rgba(174,137,255,0.3)'
+        : 'rgba(136,136,168,0.15)',
     opacity: hovered || selected ? 1 : 0,
     transition: 'opacity 0.35s cubic-bezier(0.22,1,0.36,1)',
   };
@@ -145,7 +145,7 @@ export default function PricingCard({
             top: -13,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'linear-gradient(135deg, var(--tertiary-container), #f5c542)',
+            background: 'var(--tertiary-container)',
             color: '#22223a',
             fontSize: 11,
             fontWeight: 700,
@@ -198,7 +198,7 @@ export default function PricingCard({
       <div
         style={{
           height: 1,
-          background: `linear-gradient(90deg, transparent, ${accent.border}, transparent)`,
+          background: accent.border,
           opacity: 0.6,
         }}
       />
@@ -319,9 +319,9 @@ export default function PricingCard({
             fontSize: 14,
             textDecoration: 'none',
             background: isPro
-              ? 'linear-gradient(135deg, var(--tertiary-container), #f5c542)'
+              ? 'var(--tertiary-container)'
               : isPopular
-                ? 'linear-gradient(135deg, var(--primary), var(--primary-container))'
+                ? 'var(--primary)'
                 : 'var(--surface-container-high)',
             color: isPro ? '#22223a' : isPopular ? '#fff' : 'var(--on-surface-variant)',
             border: tier === 'FREE' ? '1px solid rgba(136,136,168,0.15)' : 'none',

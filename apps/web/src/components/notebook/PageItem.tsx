@@ -57,7 +57,7 @@ export default function PageItem({
         color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
         fontWeight: isActive ? 500 : 400,
         background: isActive
-          ? 'linear-gradient(135deg, rgba(140,82,255,0.25), rgba(81,112,255,0.15))'
+          ? 'rgba(140,82,255,0.25)'
           : hovered
             ? 'rgba(140,82,255,0.06)'
             : 'transparent',

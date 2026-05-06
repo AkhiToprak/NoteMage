@@ -241,8 +241,7 @@ body {
 /* ─── Notebook dot pattern ───────────────────────────────────────────── */
 
 .notebook-pattern {
-  background-image: radial-gradient(circle, rgba(174, 137, 255, 0.12) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: rgba(174, 137, 255, 0.12);
 }
 
 /* ─── Custom scrollbar ────────────────────────────────────────────────── */
@@ -264,12 +263,12 @@ body {
 /* ─── Gradient CTA ────────────────────────────────────────────────────── */
 
 .btn-primary-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  background: var(--primary);
   color: var(--on-primary-container);
 }
 
 .btn-primary-gradient:hover {
-  background: linear-gradient(135deg, var(--primary-fixed) 0%, var(--primary) 100%);
+  background: var(--primary-fixed);
 }
 
 /* ─── Tonal surface helpers ───────────────────────────────────────────── */

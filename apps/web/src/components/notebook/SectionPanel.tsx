@@ -184,7 +184,7 @@ export default function SectionPanel() {
           style={{
             margin: '0 10px',
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(140,82,255,0.25), transparent)',
+            background: 'rgba(140,82,255,0.25)',
           }}
         />
 
@@ -202,7 +202,7 @@ export default function SectionPanel() {
                 padding: '8px 10px',
                 borderRadius: '8px',
                 background: isMageView
-                  ? 'linear-gradient(135deg, rgba(140,82,255,0.2) 0%, rgba(81,112,255,0.12) 100%)'
+                  ? 'rgba(140,82,255,0.2)'
                   : 'transparent',
                 border: isMageView ? '1px solid rgba(140,82,255,0.3)' : '1px solid transparent',
                 cursor: 'pointer',
@@ -233,7 +233,7 @@ export default function SectionPanel() {
                     width: '32px',
                     height: '32px',
                     borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(140,82,255,0.4) 0%, transparent 70%)',
+                    background: 'rgba(140,82,255,0.4)',
                     pointerEvents: 'none',
                   }}
                 />
@@ -246,7 +246,7 @@ export default function SectionPanel() {
                   height: '22px',
                   borderRadius: '6px',
                   background: isMageView
-                    ? 'linear-gradient(135deg, rgba(140,82,255,0.4), rgba(81,112,255,0.3))'
+                    ? 'rgba(140,82,255,0.4)'
                     : 'rgba(140,82,255,0.12)',
                   display: 'flex',
                   alignItems: 'center',

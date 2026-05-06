@@ -362,7 +362,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               width: '28px',
               height: '28px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, rgba(140,82,255,0.4), rgba(81,112,255,0.3))',
+              background: 'rgba(140,82,255,0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -517,7 +517,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 width: '64px',
                 height: '64px',
                 borderRadius: '20px',
-                background: 'linear-gradient(135deg, rgba(140,82,255,0.2), rgba(81,112,255,0.15))',
+                background: 'rgba(140,82,255,0.2)',
                 border: '1px solid rgba(140,82,255,0.25)',
                 display: 'flex',
                 alignItems: 'center',
@@ -578,7 +578,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   flexShrink: 0,
                   marginRight: '10px',
                   marginTop: '2px',
-                  background: 'linear-gradient(135deg, rgba(140,82,255,0.3), rgba(81,112,255,0.2))',
+                  background: 'rgba(140,82,255,0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -608,7 +608,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background:
                   msg.role === 'user'
-                    ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+                    ? '#8c52ff'
                     : 'rgba(255,255,255,0.07)',
                 border: msg.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
                 color: '#ede9ff',
@@ -636,7 +636,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 borderRadius: '8px',
                 flexShrink: 0,
                 marginTop: '2px',
-                background: 'linear-gradient(135deg, rgba(140,82,255,0.3), rgba(81,112,255,0.2))',
+                background: 'rgba(140,82,255,0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -833,7 +833,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 border: 'none',
                 flexShrink: 0,
                 background: inputValue.trim()
-                  ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+                  ? '#8c52ff'
                   : 'rgba(140,82,255,0.2)',
                 color: inputValue.trim() ? '#fff' : 'rgba(255,255,255,0.3)',
                 cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
@@ -878,7 +878,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               bottom: 0,
               width: isPhone ? '100%' : '380px',
               zIndex: 11,
-              background: 'linear-gradient(160deg, #0a0a0a 0%, #050505 100%)',
+              background: '#0a0a0a',
               borderLeft: '1px solid rgba(140,82,255,0.2)',
               display: 'flex',
               flexDirection: 'column',
@@ -1243,7 +1243,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   border: 'none',
                   background: isSavingContext
                     ? 'rgba(140,82,255,0.4)'
-                    : 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                    : '#8c52ff',
                   color: '#fff',
                   fontSize: '14px',
                   fontWeight: 700,
@@ -1435,8 +1435,8 @@ function PresentationButton({ title, jsonData }: { title: string; jsonData: stri
           margin: '6px 0',
           borderRadius: '10px',
           background: hovered
-            ? 'linear-gradient(135deg, rgba(255,140,50,0.3), rgba(140,82,255,0.25))'
-            : 'linear-gradient(135deg, rgba(255,140,50,0.2), rgba(140,82,255,0.15))',
+            ? 'rgba(255,140,50,0.3)'
+            : 'rgba(255,140,50,0.2)',
           border: `1px solid ${hovered ? 'rgba(255,140,50,0.5)' : 'rgba(255,140,50,0.3)'}`,
           color: '#ffb380',
           fontSize: '13px',
@@ -1675,8 +1675,8 @@ function MessageContent({ content, notebookId }: { content: string; notebookId: 
             margin: '6px 0',
             borderRadius: '10px',
             background: isQuiz
-              ? 'linear-gradient(135deg, rgba(81,112,255,0.2), rgba(140,82,255,0.15))'
-              : 'linear-gradient(135deg, rgba(140,82,255,0.2), rgba(81,112,255,0.15))',
+              ? 'rgba(81,112,255,0.2)'
+              : 'rgba(140,82,255,0.2)',
             border: `1px solid ${isQuiz ? 'rgba(81,112,255,0.3)' : 'rgba(140,82,255,0.3)'}`,
             color: isQuiz ? '#93a8ff' : '#c4a9ff',
             fontSize: '13px',
@@ -1686,16 +1686,16 @@ function MessageContent({ content, notebookId }: { content: string; notebookId: 
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLAnchorElement).style.background = isQuiz
-              ? 'linear-gradient(135deg, rgba(81,112,255,0.3), rgba(140,82,255,0.25))'
-              : 'linear-gradient(135deg, rgba(140,82,255,0.3), rgba(81,112,255,0.25))';
+              ? 'rgba(81,112,255,0.3)'
+              : 'rgba(140,82,255,0.3)';
             (e.currentTarget as HTMLAnchorElement).style.borderColor = isQuiz
               ? 'rgba(81,112,255,0.5)'
               : 'rgba(140,82,255,0.5)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLAnchorElement).style.background = isQuiz
-              ? 'linear-gradient(135deg, rgba(81,112,255,0.2), rgba(140,82,255,0.15))'
-              : 'linear-gradient(135deg, rgba(140,82,255,0.2), rgba(81,112,255,0.15))';
+              ? 'rgba(81,112,255,0.2)'
+              : 'rgba(140,82,255,0.2)';
             (e.currentTarget as HTMLAnchorElement).style.borderColor = isQuiz
               ? 'rgba(81,112,255,0.3)'
               : 'rgba(140,82,255,0.3)';

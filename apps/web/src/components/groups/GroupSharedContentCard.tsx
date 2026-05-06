@@ -243,7 +243,7 @@ export default function GroupSharedContentCard({ item, groupId, canDelete, onDel
               width: 24,
               height: 24,
               borderRadius: '50%',
-              background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`,
+              background: COLORS.primary,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

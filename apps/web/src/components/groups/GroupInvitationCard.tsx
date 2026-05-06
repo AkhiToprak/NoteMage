@@ -71,7 +71,7 @@ export default function GroupInvitationCard({ invitation, onAccept, onDecline }:
             width: 48,
             height: 48,
             borderRadius: 12,
-            background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`,
+            background: COLORS.primary,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

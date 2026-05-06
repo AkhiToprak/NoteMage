@@ -321,7 +321,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
                   border: 'none',
                   background: uploading
                     ? '#6b5a99'
-                    : 'linear-gradient(135deg, #ae89ff 0%, #8348f6 100%)',
+                    : '#ae89ff',
                   color: '#ffffff',
                   fontSize: '14px',
                   fontWeight: 700,

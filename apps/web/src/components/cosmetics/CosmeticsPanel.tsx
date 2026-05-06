@@ -285,7 +285,7 @@ function SwatchShell({
             right: -6,
             padding: '3px 8px',
             borderRadius: 999,
-            background: 'linear-gradient(90deg, #ffde59 0%, #ff9566 70%, #ff5fa2 100%)',
+            background: '#ff9566',
             color: '#2a0066',
             fontSize: 9,
             fontWeight: 900,
@@ -599,7 +599,7 @@ function BackgroundSwatchBody({ entry }: { entry: BackgroundCosmetic }) {
           padding: '6px 8px 8px',
           display: 'flex',
           justifyContent: 'center',
-          background: 'linear-gradient(180deg, transparent 0%, rgba(17,17,38,0.7) 100%)',
+          background: 'rgba(17,17,38,0.7)',
         }}
       >
         <span
@@ -945,7 +945,7 @@ export function CosmeticsPanel({
             borderRadius: 16,
             border: '1px solid rgba(255,222,89,0.35)',
             background:
-              'linear-gradient(135deg, rgba(255,222,89,0.08) 0%, rgba(174,137,255,0.06) 100%)',
+              'rgba(255,222,89,0.08)',
             padding: 20,
             display: 'flex',
             flexDirection: 'column',

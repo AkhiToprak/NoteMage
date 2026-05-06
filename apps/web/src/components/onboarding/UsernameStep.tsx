@@ -331,7 +331,7 @@ export default function UsernameStep({
           style={{
             width: '100%',
             padding: '16px',
-            background: saving ? '#555578' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
+            background: saving ? '#555578' : '#ae89ff',
             border: 'none',
             borderRadius: '16px',
             color: saving ? '#aaa8c8' : '#2a0066',

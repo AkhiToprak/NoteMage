@@ -105,7 +105,7 @@ export default function SocialsCard({
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(120% 80% at 0% 0%, rgba(174,137,255,0.10) 0%, rgba(174,137,255,0) 55%)',
+            'rgba(174,137,255,0.10)',
           pointerEvents: 'none',
         }}
       />

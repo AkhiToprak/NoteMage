@@ -350,8 +350,8 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                   borderRadius: '3px',
                   background:
                     overallProgress === 100
-                      ? 'linear-gradient(90deg, rgba(74,222,128,0.7), rgba(74,222,128,0.9))'
-                      : 'linear-gradient(90deg, #8c52ff, #5170ff)',
+                      ? 'rgba(74,222,128,0.7)'
+                      : '#8c52ff',
                   width: `${overallProgress}%`,
                   transition: 'width 0.4s ease',
                 }}

@@ -309,7 +309,7 @@ export default function PricingPage() {
             width: 600,
             height: 600,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,222,89,0.06) 0%, transparent 70%)',
+            background: 'rgba(255,222,89,0.06)',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',

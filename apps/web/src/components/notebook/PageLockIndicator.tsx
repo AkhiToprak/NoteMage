@@ -15,10 +15,10 @@ interface PageLockIndicatorProps {
 }
 
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #ae89ff, #884efb)',
-  'linear-gradient(135deg, #ff89ae, #fb4e88)',
-  'linear-gradient(135deg, #89ffd4, #4efba5)',
-  'linear-gradient(135deg, #ffde59, #fbae4e)',
+  '#ae89ff',
+  '#ff89ae',
+  '#89ffd4',
+  '#ffde59',
 ];
 
 function getAvatarGradient(id: string): string {

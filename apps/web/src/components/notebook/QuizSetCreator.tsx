@@ -486,7 +486,7 @@ export default function QuizSetCreator({
               borderRadius: '8px',
               border: 'none',
               background: canSubmit
-                ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+                ? '#8c52ff'
                 : 'rgba(140,82,255,0.2)',
               color: canSubmit ? '#fff' : 'rgba(237,233,255,0.3)',
               fontSize: '13px',

@@ -169,7 +169,7 @@ export default function WaitlistPage() {
           width: '400px',
           height: '400px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(140,82,255,0.15) 0%, transparent 70%)',
+          background: 'rgba(140,82,255,0.15)',
           filter: 'blur(80px)',
           pointerEvents: 'none',
         }}
@@ -182,7 +182,7 @@ export default function WaitlistPage() {
           width: '350px',
           height: '350px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(81,112,255,0.12) 0%, transparent 70%)',
+          background: 'rgba(81,112,255,0.12)',
           filter: 'blur(80px)',
           pointerEvents: 'none',
         }}
@@ -198,7 +198,7 @@ export default function WaitlistPage() {
           width: '600px',
           height: '600px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(140,82,255,0.08) 0%, transparent 60%)',
+          background: 'rgba(140,82,255,0.08)',
           pointerEvents: 'none',
         }}
       />

@@ -241,7 +241,7 @@ export default function StartCoworkModal({
           flexDirection: 'column',
           borderRadius: 24,
           background:
-            'linear-gradient(180deg, rgba(28, 24, 56, 0.92) 0%, rgba(14, 12, 34, 0.94) 100%)',
+            'rgba(14, 12, 34, 0.94)',
           border: '1px solid rgba(174, 137, 255, 0.32)',
           boxShadow:
             '0 48px 120px rgba(140, 82, 255, 0.22), 0 16px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
@@ -258,7 +258,7 @@ export default function StartCoworkModal({
             width: 240,
             height: 240,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(81, 112, 255, 0.22) 0%, transparent 70%)',
+            background: 'rgba(81, 112, 255, 0.22)',
             pointerEvents: 'none',
           }}
         />
@@ -748,7 +748,7 @@ export default function StartCoworkModal({
               background:
                 !selectedPage || creating
                   ? 'rgba(255, 222, 89, 0.3)'
-                  : 'linear-gradient(135deg, #ffde59 0%, #ffc94a 100%)',
+                  : '#ffde59',
               color: '#2a2200',
               fontSize: 13,
               fontWeight: 800,

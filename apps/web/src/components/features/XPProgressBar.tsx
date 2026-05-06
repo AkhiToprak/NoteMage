@@ -60,7 +60,7 @@ export default function XPProgressBar({
             style={{
               height: '100%',
               width: `${progress}%`,
-              background: 'linear-gradient(90deg, #ae89ff 0%, #8348f6 100%)',
+              background: '#ae89ff',
               borderRadius: '5px',
               boxShadow: progress > 0 ? '0 0 10px rgba(174,137,255,0.4)' : 'none',
               transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',

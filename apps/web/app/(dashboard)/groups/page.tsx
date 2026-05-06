@@ -281,13 +281,7 @@ export default function GroupsPage() {
           100% { background-position: 200% 0; }
         }
         .groups-skeleton {
-          background: linear-gradient(
-            90deg,
-            ${COLORS.elevated} 25%,
-            ${COLORS.cardBg} 50%,
-            ${COLORS.elevated} 75%
-          );
-          background-size: 200% 100%;
+          background: ${COLORS.elevated};
           animation: groupsSkeleton 1.5s ease-in-out infinite;
         }
       `}</style>

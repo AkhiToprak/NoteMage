@@ -240,7 +240,7 @@ export default function EssayChecker({
                     padding: '8px 16px',
                     borderRadius: '8px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                    background: '#8c52ff',
                     color: '#fff',
                     fontSize: '13px',
                     fontWeight: 600,

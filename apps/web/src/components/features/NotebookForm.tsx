@@ -697,7 +697,7 @@ export default function NotebookForm({
                 background:
                   isLoading || !form.name.trim()
                     ? 'rgba(140,82,255,0.3)'
-                    : 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                    : '#8c52ff',
                 border: 'none',
                 fontFamily: 'inherit',
                 fontSize: '14px',

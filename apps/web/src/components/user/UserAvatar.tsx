@@ -57,7 +57,7 @@ function resolveFrameStyle(
       wrapper: {
         padding: 3,
         borderRadius: '9999px',
-        background: `conic-gradient(from 0deg, hsl(${hue},80%,70%), hsl(${(hue + 60) % 360},80%,70%), hsl(${hue},80%,70%))`,
+        background: `hsl(${hue},80%,70%)`,
         boxShadow: `0 0 ${Math.round(size / 3)}px hsl(${hue},80%,60%,0.45)`,
       },
     };
@@ -78,12 +78,7 @@ function resolveFrameStyle(
       wrapper: {
         padding: 4,
         borderRadius: '9999px',
-        background: `
-          radial-gradient(circle at 50% 50%,
-            hsla(${hue},90%,75%,0.95) 0%,
-            hsla(${hue},85%,60%,0.85) 55%,
-            hsla(${(hue + 30) % 360},90%,65%,0.9) 100%)
-        `,
+        background: `hsla(${hue},85%,60%,0.85)`,
         boxShadow: `
           0 0 0 1px hsla(${hue},100%,85%,0.45),
           0 0 ${Math.round(size / 2)}px hsla(${hue},90%,65%,0.55),
@@ -104,7 +99,7 @@ function resolveFrameStyle(
         padding: 4,
         borderRadius: '9999px',
         background:
-          'conic-gradient(from 180deg, #ff6b6b, #ffd93d, #6bcf7f, #4d9de0, #9d4edd, #ff6fa2, #ff6b6b)',
+          '#9d4edd',
         boxShadow: `0 0 ${Math.round(size / 2.5)}px rgba(174,137,255,0.35), 0 0 ${Math.round(size / 1.5)}px rgba(255,111,162,0.2)`,
       },
     };
@@ -155,7 +150,7 @@ export function UserAvatar({
         width: size,
         height: size,
         borderRadius: innerRadius,
-        background: 'linear-gradient(135deg, #ae89ff 0%, #8348f6 100%)',
+        background: '#ae89ff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

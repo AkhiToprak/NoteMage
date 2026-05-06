@@ -267,8 +267,7 @@ export default function GroupSharedContent({
 
       <style>{`
         .groups-skeleton {
-          background: linear-gradient(90deg, ${COLORS.cardBg} 25%, ${COLORS.elevated} 50%, ${COLORS.cardBg} 75%);
-          background-size: 200% 100%;
+          background: ${COLORS.elevated};
           animation: shimmer 1.5s infinite;
         }
         @keyframes shimmer {

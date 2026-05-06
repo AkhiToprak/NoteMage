@@ -36,10 +36,10 @@ const COLORS = {
 } as const;
 
 const AVATAR_COLORS = [
-  'linear-gradient(135deg, #ae89ff, #884efb)',
-  'linear-gradient(135deg, #ff89ae, #fb4e88)',
-  'linear-gradient(135deg, #89ffd4, #4efba5)',
-  'linear-gradient(135deg, #ffde59, #fbae4e)',
+  '#ae89ff',
+  '#ff89ae',
+  '#89ffd4',
+  '#ffde59',
 ];
 
 function getAvatarGradient(id: string): string {
@@ -109,7 +109,7 @@ export default function CommunitySidebar() {
       <div
         style={{
           borderRadius: 16,
-          background: 'linear-gradient(135deg, #8c52ff 0%, #6c3ce6 50%, #4c1db8 100%)',
+          background: '#8c52ff',
           padding: 22,
           position: 'relative',
           overflow: 'hidden',

@@ -45,8 +45,6 @@ export default function HowItWorks() {
           inset: 0,
           opacity: 0.4,
           pointerEvents: 'none',
-          maskImage: 'radial-gradient(ellipse at center, #000 30%, transparent 75%)',
-          WebkitMaskImage: 'radial-gradient(ellipse at center, #000 30%, transparent 75%)',
         }}
       />
 

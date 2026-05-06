@@ -85,8 +85,8 @@ export default function RecentNotebooksPanel() {
           padding: '16px 18px',
           borderRadius: 16,
           background: hoveredDashboard
-            ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple})`
-            : `linear-gradient(135deg, rgba(174,137,255,0.15), rgba(136,78,251,0.1))`,
+            ? COLORS.primary
+            : `rgba(174,137,255,0.15)`,
           border: `1px solid ${hoveredDashboard ? 'rgba(174,137,255,0.4)' : 'rgba(174,137,255,0.15)'}`,
           textDecoration: 'none',
           transition: `all 0.2s ${EASING}`,

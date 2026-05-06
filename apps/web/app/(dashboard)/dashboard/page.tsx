@@ -1077,7 +1077,7 @@ export default function DashboardPage() {
           {/* Study Goals */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #8348f6 0%, #001971 100%)',
+              background: '#8348f6',
               borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
               padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
               color: '#ffffff',

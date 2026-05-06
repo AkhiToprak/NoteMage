@@ -173,7 +173,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
               borderRadius: 8,
               border: 'none',
               background: hovered
-                ? 'linear-gradient(135deg, rgba(174,137,255,0.2), rgba(136,78,251,0.2))'
+                ? 'rgba(174,137,255,0.2)'
                 : 'rgba(174,137,255,0.12)',
               color: '#ae89ff',
               fontSize: 12,
@@ -365,7 +365,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
         borderRadius: 8,
         border: 'none',
         background: hovered
-          ? 'linear-gradient(135deg, #ae89ff, #884efb)'
+          ? '#ae89ff'
           : 'rgba(174,137,255,0.12)',
         color: hovered ? '#fff' : '#ae89ff',
         fontSize: 12,

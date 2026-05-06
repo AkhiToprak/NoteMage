@@ -402,7 +402,7 @@ export default function OnboardingWizard() {
             left: 0,
             right: 0,
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(174,137,255,0.4), transparent)',
+            background: 'rgba(174,137,255,0.4)',
             pointerEvents: 'none',
           }}
         />

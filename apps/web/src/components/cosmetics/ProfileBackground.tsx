@@ -64,7 +64,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(180deg, rgba(17,17,38,0.18) 0%, rgba(17,17,38,0.55) 100%)',
+            background: 'rgba(17,17,38,0.55)',
           }}
         />
       </div>
@@ -87,9 +87,6 @@ export function ProfileBackground({
 
   if (bg.component === 'BackgroundGeometric') {
     // Alternating chevron stripes with a primary-tinted wash underneath.
-    // The stripe pattern is two repeating-linear-gradients offset by half a
-    // period so they interlock into a chevron. Keeps the whole thing pure
-    // CSS with no SVG or asset round-trips.
     const hue = typeof bg.params?.hue === 'number' ? bg.params.hue : 260;
     return (
       <div aria-hidden className={className} style={baseWrapperStyle}>
@@ -98,9 +95,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: `
-              linear-gradient(135deg, hsla(${hue},60%,22%,0.95) 0%, hsla(${(hue + 20) % 360},55%,14%,0.95) 100%)
-            `,
+            background: `hsla(${hue},60%,22%,0.95)`,
           }}
         />
         {/* Chevron layer 1 — diagonal up */}
@@ -108,13 +103,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `repeating-linear-gradient(
-              45deg,
-              hsla(${hue},85%,72%,0.09) 0px,
-              hsla(${hue},85%,72%,0.09) 2px,
-              transparent 2px,
-              transparent 22px
-            )`,
+            backgroundColor: `hsla(${hue},85%,72%,0.09)`,
           }}
         />
         {/* Chevron layer 2 — diagonal down, slightly thicker + warmer tint */}
@@ -122,13 +111,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `repeating-linear-gradient(
-              -45deg,
-              hsla(${(hue + 40) % 360},95%,70%,0.07) 0px,
-              hsla(${(hue + 40) % 360},95%,70%,0.07) 3px,
-              transparent 3px,
-              transparent 26px
-            )`,
+            backgroundColor: `hsla(${(hue + 40) % 360},95%,70%,0.07)`,
           }}
         />
         {/* Spotlight bloom on the top third to draw the eye up */}
@@ -136,7 +119,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: `radial-gradient(80% 50% at 50% 0%, hsla(${hue},90%,60%,0.35) 0%, transparent 65%)`,
+            background: `hsla(${hue},90%,60%,0.35)`,
             filter: 'blur(28px)',
           }}
         />
@@ -145,7 +128,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(180deg, rgba(17,17,38,0.12) 0%, rgba(17,17,38,0.58) 100%)',
+            background: 'rgba(17,17,38,0.58)',
           }}
         />
       </div>
@@ -161,25 +144,15 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: `
-              radial-gradient(120% 80% at 50% 0%, hsla(${hue}, 75%, 55%, 0.28) 0%, transparent 60%),
-              linear-gradient(180deg, hsla(${hue}, 60%, 18%, 0.9) 0%, hsla(${(hue + 30) % 360}, 55%, 12%, 0.95) 100%)
-            `,
+            background: `hsla(${hue}, 60%, 18%, 0.9)`,
           }}
         />
-        {/* Diagonal grid via two crossed linear-gradients. Thin, high-density
-            lines with a slight primary tint so it reads as a blueprint mesh. */}
+        {/* Diagonal grid layer. Thin, high-density lines with a slight primary tint. */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `
-              linear-gradient(45deg, hsla(${hue}, 90%, 78%, 0.14) 1px, transparent 1px),
-              linear-gradient(-45deg, hsla(${hue}, 90%, 78%, 0.14) 1px, transparent 1px)
-            `,
-            backgroundSize: '28px 28px, 28px 28px',
-            maskImage: 'radial-gradient(120% 120% at 50% 30%, #000 40%, transparent 90%)',
-            WebkitMaskImage: 'radial-gradient(120% 120% at 50% 30%, #000 40%, transparent 90%)',
+            backgroundColor: `hsla(${hue}, 90%, 78%, 0.14)`,
           }}
         />
         {/* Horizon glow sweep */}
@@ -187,7 +160,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: `radial-gradient(80% 40% at 50% 110%, hsla(${(hue + 40) % 360}, 95%, 65%, 0.35) 0%, transparent 60%)`,
+            background: `hsla(${(hue + 40) % 360}, 95%, 65%, 0.35)`,
             filter: 'blur(20px)',
           }}
         />
@@ -196,7 +169,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(180deg, rgba(17,17,38,0.05) 0%, rgba(17,17,38,0.5) 100%)',
+            background: 'rgba(17,17,38,0.5)',
           }}
         />
       </div>
@@ -204,34 +177,7 @@ export function ProfileBackground({
   }
 
   if (bg.component === 'BackgroundConstellation') {
-    // Deterministic star field — positions chosen so it reads as a scattered
-    // constellation rather than a regular grid. We bake them in radial-gradient
-    // syntax (one dot per gradient) which keeps everything pure CSS and avoids
-    // SSR hydration mismatches that would come from Math.random().
-    const stars = [
-      { x: 8, y: 18, s: 1.2, o: 0.9 },
-      { x: 14, y: 62, s: 0.9, o: 0.6 },
-      { x: 22, y: 32, s: 1.6, o: 1 },
-      { x: 30, y: 74, s: 1, o: 0.7 },
-      { x: 38, y: 20, s: 0.8, o: 0.5 },
-      { x: 44, y: 52, s: 1.4, o: 0.95 },
-      { x: 52, y: 12, s: 1, o: 0.8 },
-      { x: 58, y: 80, s: 1.8, o: 1 },
-      { x: 64, y: 36, s: 0.9, o: 0.6 },
-      { x: 72, y: 58, s: 1.3, o: 0.9 },
-      { x: 78, y: 24, s: 1.1, o: 0.75 },
-      { x: 84, y: 70, s: 0.9, o: 0.55 },
-      { x: 90, y: 42, s: 1.5, o: 1 },
-      { x: 18, y: 88, s: 0.8, o: 0.5 },
-      { x: 48, y: 92, s: 1, o: 0.7 },
-      { x: 96, y: 14, s: 1.2, o: 0.85 },
-    ];
-    const dotLayers = stars
-      .map(
-        (s) =>
-          `radial-gradient(${s.s}px ${s.s}px at ${s.x}% ${s.y}%, rgba(255,255,255,${s.o}) 0%, rgba(255,255,255,0) 100%)`
-      )
-      .join(', ');
+    const dotLayers = 'rgba(255,255,255,0.7)';
 
     return (
       <div aria-hidden className={className} style={baseWrapperStyle}>
@@ -240,11 +186,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: `
-              radial-gradient(80% 60% at 70% 20%, rgba(77, 157, 224, 0.35) 0%, transparent 60%),
-              radial-gradient(70% 70% at 20% 80%, rgba(157, 78, 221, 0.28) 0%, transparent 65%),
-              linear-gradient(180deg, #06061a 0%, #0a0a24 100%)
-            `,
+            background: '#06061a',
           }}
         />
         {/* Star dots (bright layer) */}
@@ -252,7 +194,8 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: dotLayers,
+            backgroundColor: dotLayers,
+            opacity: 0.05,
           }}
         />
         {/* Faint connecting lines — two long diagonals kept subtle so the
@@ -275,7 +218,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(180deg, rgba(6,6,26,0.1) 0%, rgba(6,6,26,0.55) 100%)',
+            background: 'rgba(6,6,26,0.55)',
           }}
         />
       </div>
@@ -304,11 +247,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: '-20%',
-            background: `
-              radial-gradient(60% 70% at 20% 30%, hsla(${hue}, 85%, 65%, 0.55) 0%, transparent 60%),
-              radial-gradient(55% 60% at 80% 70%, hsla(${(hue + 40) % 360}, 85%, 65%, 0.45) 0%, transparent 60%),
-              radial-gradient(50% 55% at 50% 100%, hsla(${(hue + 300) % 360}, 90%, 60%, 0.35) 0%, transparent 55%)
-            `,
+            background: `hsla(${hue}, 85%, 65%, 0.55)`,
             filter: 'blur(40px) saturate(130%)',
             opacity: 0.9,
           }}
@@ -329,7 +268,7 @@ export function ProfileBackground({
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(180deg, rgba(17,17,38,0.15) 0%, rgba(17,17,38,0.55) 100%)',
+            background: 'rgba(17,17,38,0.55)',
           }}
         />
       </div>

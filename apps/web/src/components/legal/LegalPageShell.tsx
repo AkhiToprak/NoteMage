@@ -47,10 +47,7 @@ export default function LegalPageShell({
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: [
-              'radial-gradient(720px 520px at 50% -8%, rgba(140, 82, 255, 0.12) 0%, transparent 60%)',
-              'radial-gradient(420px 320px at 88% 6%, rgba(255, 222, 89, 0.04) 0%, transparent 60%)',
-            ].join(','),
+            background: 'rgba(140, 82, 255, 0.12)',
           }}
         />
         {/* Grain overlay for depth */}
@@ -86,7 +83,7 @@ export default function LegalPageShell({
               padding: '8px 18px',
               borderRadius: 'var(--radius-full)',
               background:
-                'linear-gradient(135deg, rgba(174, 137, 255, 0.18) 0%, rgba(255, 222, 89, 0.12) 100%)',
+                'rgba(174, 137, 255, 0.18)',
               border: '1px solid rgba(174, 137, 255, 0.3)',
               marginBottom: 32,
               backdropFilter: 'blur(10px)',
@@ -225,7 +222,7 @@ export default function LegalPageShell({
             width: 540,
             height: 540,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(174, 137, 255, 0.06) 0%, transparent 70%)',
+            background: 'rgba(174, 137, 255, 0.06)',
             pointerEvents: 'none',
           }}
         />
@@ -238,7 +235,7 @@ export default function LegalPageShell({
             width: 460,
             height: 460,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(81, 112, 255, 0.05) 0%, transparent 70%)',
+            background: 'rgba(81, 112, 255, 0.05)',
             pointerEvents: 'none',
           }}
         />
@@ -270,7 +267,7 @@ export default function LegalPageShell({
                 flex: 1,
                 height: 1,
                 background:
-                  'linear-gradient(90deg, transparent, rgba(174, 137, 255, 0.32), rgba(174, 137, 255, 0.18))',
+                  'rgba(174, 137, 255, 0.32)',
               }}
             />
             <span
@@ -291,7 +288,7 @@ export default function LegalPageShell({
                 flex: 1,
                 height: 1,
                 background:
-                  'linear-gradient(90deg, rgba(174, 137, 255, 0.18), rgba(174, 137, 255, 0.32), transparent)',
+                  'rgba(174, 137, 255, 0.32)',
               }}
             />
           </div>

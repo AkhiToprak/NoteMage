@@ -319,7 +319,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(60% 50% at 100% 0%, rgba(174,137,255,0.10) 0%, transparent 60%)',
+            'rgba(174,137,255,0.10)',
           pointerEvents: 'none',
         }}
       />

@@ -79,7 +79,7 @@ export default function StudyGroupCard({ group, hasUnread, onClick }: StudyGroup
               height: 40,
               borderRadius: 12,
               flexShrink: 0,
-              background: `linear-gradient(135deg, ${COLORS.primary}, #8348f6)`,
+              background: COLORS.primary,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

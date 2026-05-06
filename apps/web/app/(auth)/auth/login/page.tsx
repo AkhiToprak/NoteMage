@@ -200,7 +200,7 @@ function LoginForm() {
             width: '100%',
             height: '1px',
             background:
-              'linear-gradient(90deg, transparent 0%, rgba(174,137,255,0.4) 50%, transparent 100%)',
+              'rgba(174,137,255,0.4)',
           }}
         />
 
@@ -365,7 +365,7 @@ function LoginForm() {
             style={{
               width: '100%',
               padding: '16px',
-              background: loading ? '#464560' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
+              background: loading ? '#464560' : '#ae89ff',
               border: 'none',
               borderRadius: '16px',
               color: loading ? '#aaa8c8' : '#2a0066',

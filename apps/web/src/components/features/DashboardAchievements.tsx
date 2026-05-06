@@ -392,7 +392,7 @@ export default function DashboardAchievements() {
                           height: '100%',
                           width: `${pct}%`,
                           borderRadius: '3px',
-                          background: 'linear-gradient(90deg, #ae89ff, #8348f6)',
+                          background: '#ae89ff',
                           transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
                         }}
                       />

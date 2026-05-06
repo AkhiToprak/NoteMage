@@ -125,7 +125,7 @@ export default function CoworkInviteCard({
         padding: 18,
         borderRadius: 20,
         background:
-          'linear-gradient(135deg, rgba(174,137,255,0.10) 0%, rgba(81,112,255,0.06) 100%), rgba(14, 12, 34, 0.82)',
+          'rgba(14, 12, 34, 0.82)',
         border: `1px solid ${accentColor}55`,
         boxShadow:
           '0 16px 48px rgba(81,112,255,0.14), 0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)',
@@ -145,7 +145,7 @@ export default function CoworkInviteCard({
           width: 160,
           height: 160,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${accentColor}22 0%, transparent 70%)`,
+          background: `${accentColor}22`,
           pointerEvents: 'none',
         }}
       />
@@ -299,7 +299,7 @@ export default function CoworkInviteCard({
             background:
               joining || sessionState === 'loading'
                 ? 'rgba(255, 222, 89, 0.35)'
-                : 'linear-gradient(135deg, #ffde59 0%, #ffc94a 100%)',
+                : '#ffde59',
             color: '#2a2200',
             fontSize: 13,
             fontWeight: 800,

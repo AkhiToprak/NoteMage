@@ -881,7 +881,7 @@ export default function SettingsPage() {
                       width: isPhone ? '64px' : '96px',
                       height: isPhone ? '64px' : '96px',
                       borderRadius: isPhone ? '16px' : '24px',
-                      background: 'linear-gradient(135deg, #ae89ff 0%, #8348f6 100%)',
+                      background: '#ae89ff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1321,7 +1321,7 @@ export default function SettingsPage() {
                       padding: '10px 24px',
                       background: greetingLoading
                         ? 'rgba(174,137,255,0.3)'
-                        : 'linear-gradient(135deg, #ae89ff, #8348f6)',
+                        : '#ae89ff',
                       border: 'none',
                       borderRadius: '12px',
                       color: '#fff',
@@ -1474,7 +1474,7 @@ export default function SettingsPage() {
                       padding: '10px 24px',
                       background: mageNameLoading
                         ? 'rgba(174,137,255,0.3)'
-                        : 'linear-gradient(135deg, #ae89ff, #8348f6)',
+                        : '#ae89ff',
                       border: 'none',
                       borderRadius: '12px',
                       color: '#fff',
@@ -2545,8 +2545,8 @@ export default function SettingsPage() {
                             height: '40px',
                             borderRadius: '12px',
                             background: user.banned
-                              ? 'linear-gradient(135deg, #fd6f85 0%, #c8475d 100%)'
-                              : 'linear-gradient(135deg, #ae89ff 0%, #8348f6 100%)',
+                              ? '#fd6f85'
+                              : '#ae89ff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

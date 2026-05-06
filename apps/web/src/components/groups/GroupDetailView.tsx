@@ -278,7 +278,7 @@ export default function GroupDetailView({ groupId }: Props) {
                   width: 28,
                   height: 28,
                   borderRadius: 8,
-                  background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`,
+                  background: COLORS.primary,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

@@ -42,10 +42,10 @@ function fromServer(m: ServerMessage): ChatMessage {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #ae89ff, #884efb)',
-  'linear-gradient(135deg, #ff89ae, #fb4e88)',
-  'linear-gradient(135deg, #89ffd4, #4efba5)',
-  'linear-gradient(135deg, #ffde59, #fbae4e)',
+  '#ae89ff',
+  '#ff89ae',
+  '#89ffd4',
+  '#ffde59',
 ];
 
 function getAvatarGradient(id: string): string {
@@ -385,7 +385,7 @@ export default function CoWorkChat({
                       padding: '8px 12px',
                       borderRadius: isOwn ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                       background: isOwn
-                        ? 'linear-gradient(135deg, rgba(174,137,255,0.2), rgba(136,78,251,0.2))'
+                        ? 'rgba(174,137,255,0.2)'
                         : '#2d2d52',
                       fontSize: 13,
                       color: '#e5e3ff',
@@ -450,8 +450,8 @@ export default function CoWorkChat({
                 border: 'none',
                 background: input.trim()
                   ? hoveredSend
-                    ? 'linear-gradient(135deg, #c4a6ff, #9b5fff)'
-                    : 'linear-gradient(135deg, #ae89ff, #884efb)'
+                    ? '#c4a6ff'
+                    : '#ae89ff'
                   : '#35355c',
                 color: input.trim() ? '#fff' : '#8888a8',
                 cursor: input.trim() ? 'pointer' : 'not-allowed',

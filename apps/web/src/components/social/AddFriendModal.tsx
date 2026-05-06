@@ -498,13 +498,7 @@ export default function AddFriendModal({ open, onClose }: AddFriendModalProps) {
           100% { background-position: 200% 0; }
         }
         .shimmer-skeleton {
-          background: linear-gradient(
-            90deg,
-            ${COLORS.elevated} 25%,
-            ${COLORS.inputBg} 50%,
-            ${COLORS.elevated} 75%
-          );
-          background-size: 200% 100%;
+          background: ${COLORS.elevated};
           animation: shimmer 1.5s ease-in-out infinite;
         }
         .add-friend-modal-scrollbar::-webkit-scrollbar {

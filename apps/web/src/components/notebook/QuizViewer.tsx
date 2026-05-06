@@ -475,10 +475,10 @@ export default function QuizViewer({
             borderRadius: '50%',
             background:
               accuracy >= 70
-                ? 'linear-gradient(135deg, rgba(74,222,128,0.15), rgba(74,222,128,0.05))'
+                ? 'rgba(74,222,128,0.15)'
                 : accuracy >= 40
-                  ? 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))'
-                  : 'linear-gradient(135deg, rgba(252,165,165,0.15), rgba(252,165,165,0.05))',
+                  ? 'rgba(251,191,36,0.15)'
+                  : 'rgba(252,165,165,0.15)',
             border: `2px solid ${accuracy >= 70 ? 'rgba(74,222,128,0.4)' : accuracy >= 40 ? 'rgba(251,191,36,0.4)' : 'rgba(252,165,165,0.4)'}`,
             display: 'flex',
             flexDirection: 'column',
@@ -954,7 +954,7 @@ export default function QuizViewer({
           {/* Question text */}
           <div
             style={{
-              background: 'linear-gradient(160deg, #0d0a1c 0%, #000000 55%, #07060f 100%)',
+              background: '#000000',
               border: '1px solid rgba(174,137,255,0.38)',
               borderRadius: '16px',
               padding: isPhone ? '20px 16px' : '28px 24px',
@@ -1599,7 +1599,7 @@ const saveBtnStyle: React.CSSProperties = {
   padding: '8px 14px',
   borderRadius: '8px',
   border: 'none',
-  background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
+  background: '#8c52ff',
   color: '#fff',
   fontSize: '13px',
   cursor: 'pointer',
@@ -1741,7 +1741,7 @@ function NavButton({
             ? '1px solid rgba(174,137,255,0.12)'
             : `1px solid ${hovered ? 'rgba(174,137,255,0.55)' : 'rgba(174,137,255,0.32)'}`,
         background: highlight
-          ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+          ? '#8c52ff'
           : disabled
             ? 'rgba(140,82,255,0.03)'
             : hovered
@@ -1830,7 +1830,7 @@ function ActionButton({
         borderRadius: '10px',
         border: primary ? 'none' : '1px solid rgba(140,82,255,0.3)',
         background: primary
-          ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+          ? '#8c52ff'
           : hovered
             ? 'rgba(140,82,255,0.1)'
             : 'transparent',

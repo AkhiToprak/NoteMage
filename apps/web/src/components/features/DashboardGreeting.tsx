@@ -54,7 +54,7 @@ export default function DashboardGreeting({ userName }: DashboardGreetingProps) 
         fontWeight: 700,
         letterSpacing: '-0.03em',
         lineHeight: 1.2,
-        background: 'linear-gradient(135deg, var(--on-surface) 0%, var(--primary) 100%)',
+        background: 'var(--on-surface)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',

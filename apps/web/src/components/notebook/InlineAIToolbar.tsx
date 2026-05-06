@@ -408,7 +408,7 @@ export default function InlineAIToolbar({
           width: 26,
           height: 26,
           borderRadius: 8,
-          background: 'linear-gradient(135deg, #ffde59 0%, #ffc94a 100%)',
+          background: '#ffde59',
           color: '#2a2200',
           display: 'flex',
           alignItems: 'center',

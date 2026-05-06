@@ -466,7 +466,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           style={{
             width: '100%',
             padding: '16px',
-            background: loading ? '#555578' : 'linear-gradient(135deg, #ae89ff 0%, #884efb 100%)',
+            background: loading ? '#555578' : '#ae89ff',
             border: 'none',
             borderRadius: '16px',
             color: loading ? '#aaa8c8' : '#2a0066',

@@ -55,17 +55,17 @@ function getSubjectColor(subject: string) {
 
 /* ─── Cover gradients — no placeholder images ─── */
 const COVER_GRADIENTS = [
-  'linear-gradient(135deg, #1a0533 0%, #3d1a78 40%, #8c52ff 100%)',
-  'linear-gradient(135deg, #0d1a2e 0%, #1a3a5c 40%, #ffb142 100%)',
-  'linear-gradient(135deg, #0d2618 0%, #1a5c3a 40%, #4ecdc4 100%)',
-  'linear-gradient(135deg, #2e0d1a 0%, #5c1a3a 40%, #ff6b6b 100%)',
-  'linear-gradient(135deg, #1a1a0d 0%, #3a3a1a 40%, #ffde59 100%)',
-  'linear-gradient(135deg, #0d1a2e 0%, #1a3a5c 40%, #63cdff 100%)',
+  '#8c52ff',
+  '#ffb142',
+  '#4ecdc4',
+  '#ff6b6b',
+  '#ffde59',
+  '#63cdff',
 ];
 
 function getCoverGradient(id: string, color?: string): string {
   if (color) {
-    return `linear-gradient(135deg, ${color}22 0%, ${color}66 40%, ${color} 100%)`;
+    return color;
   }
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -216,7 +216,7 @@ function FeaturedNotebookCard({ notebook }: { notebook: CommunityNotebook }) {
                 width: 20,
                 height: 20,
                 borderRadius: 6,
-                background: `linear-gradient(135deg, ${notebook.color}, ${notebook.color}88)`,
+                background: notebook.color,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

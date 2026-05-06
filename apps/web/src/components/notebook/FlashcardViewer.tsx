@@ -722,7 +722,7 @@ export default function FlashcardViewer({
                 style={{
                   padding: '12px 24px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                  background: '#8c52ff',
                   border: 'none',
                   color: '#fff',
                   fontSize: '14px',
@@ -833,7 +833,7 @@ export default function FlashcardViewer({
               style={{
                 height: '100%',
                 width: `${(studyIndex / studyCards.length) * 100}%`,
-                background: 'linear-gradient(90deg, #8c52ff, #5170ff)',
+                background: '#8c52ff',
                 borderRadius: '2px',
                 transition: 'width 0.3s ease',
               }}
@@ -856,12 +856,12 @@ export default function FlashcardViewer({
               padding: isPhone ? '24px 16px' : '32px 24px',
               background:
                 swipingDirection === 'right'
-                  ? 'linear-gradient(135deg, rgba(74,222,128,0.15), #0a0a0a)'
+                  ? 'rgba(74,222,128,0.15)'
                   : swipingDirection === 'left'
-                    ? 'linear-gradient(135deg, rgba(252,165,165,0.15), #0a0a0a)'
+                    ? 'rgba(252,165,165,0.15)'
                     : studyFlipped
-                      ? 'linear-gradient(135deg, #1a1040, #0f1535)'
-                      : 'linear-gradient(135deg, #0a0a0a, #050505)',
+                      ? '#1a1040'
+                      : '#0a0a0a',
               border: `1px solid ${
                 swipingDirection === 'right'
                   ? 'rgba(74,222,128,0.4)'
@@ -1259,7 +1259,7 @@ export default function FlashcardViewer({
                   padding: '8px 14px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                  background: '#8c52ff',
                   color: '#fff',
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -1299,7 +1299,7 @@ export default function FlashcardViewer({
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
                 boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
-                background: 'linear-gradient(160deg, #0d0a1c 0%, #000000 55%, #07060f 100%)',
+                background: '#000000',
                 border: '1px solid rgba(174,137,255,0.38)',
                 color: '#f5f1ff',
               }}
@@ -1375,7 +1375,7 @@ export default function FlashcardViewer({
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
                 boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(155,178,255,0.12)',
-                background: 'linear-gradient(160deg, #14122a 0%, #000000 55%, #0c0a1c 100%)',
+                background: '#000000',
                 border: '1px solid rgba(120,148,255,0.38)',
                 color: '#eeeaff',
                 transform: 'rotateY(180deg)',
@@ -1701,7 +1701,7 @@ export default function FlashcardViewer({
                 padding: '7px 12px',
                 borderRadius: '8px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #8c52ff, #5170ff)',
+                background: '#8c52ff',
                 color: '#fff',
                 fontSize: '12px',
                 cursor: 'pointer',

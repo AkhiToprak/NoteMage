@@ -28,11 +28,7 @@ export default function MaintenancePage() {
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          background: [
-            'radial-gradient(900px 700px at 50% -10%, rgba(174, 137, 255, 0.16) 0%, transparent 55%)',
-            'radial-gradient(600px 480px at 88% 12%, rgba(255, 222, 89, 0.06) 0%, transparent 60%)',
-            'radial-gradient(520px 420px at 6% 90%, rgba(81, 112, 255, 0.10) 0%, transparent 60%)',
-          ].join(','),
+          background: 'rgba(174, 137, 255, 0.16)',
         }}
       />
       <div
@@ -82,7 +78,7 @@ export default function MaintenancePage() {
               inset: 0,
               borderRadius: 9999,
               background:
-                'radial-gradient(circle, rgba(174, 137, 255, 0.45) 0%, rgba(174, 137, 255, 0) 70%)',
+                'rgba(174, 137, 255, 0.45)',
               animation: 'nm-maint-pulse 2.4s ease-in-out infinite',
             }}
           />
@@ -123,7 +119,7 @@ export default function MaintenancePage() {
             margin: 0,
             marginBottom: 16,
             background:
-              'linear-gradient(135deg, #ffffff 0%, var(--primary-fixed) 100%)',
+              '#ffffff',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',

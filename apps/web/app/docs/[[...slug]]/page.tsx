@@ -274,7 +274,7 @@ function DocsSidebar({
                         color: active ? 'var(--on-surface)' : 'rgba(238, 236, 255, 0.62)',
                         textDecoration: 'none',
                         background: active
-                          ? 'linear-gradient(90deg, rgba(174,137,255,0.18) 0%, rgba(174,137,255,0.04) 100%)'
+                          ? 'rgba(174,137,255,0.18)'
                           : 'transparent',
                         borderLeft: active ? '2px solid var(--primary)' : '2px solid transparent',
                         position: 'relative',
@@ -350,7 +350,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
         Everything Notemage{' '}
         <span
           style={{
-            background: 'linear-gradient(135deg, #ae89ff 0%, #ffde59 100%)',
+            background: '#ae89ff',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -407,7 +407,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
                   padding: '22px 24px',
                   borderRadius: 'var(--radius-lg)',
                   background:
-                    'linear-gradient(180deg, rgba(28, 24, 56, 0.55) 0%, rgba(16, 14, 34, 0.65) 100%)',
+                    'rgba(16, 14, 34, 0.65)',
                   border: '1px solid rgba(174,137,255,0.18)',
                   textDecoration: 'none',
                   position: 'relative',
@@ -449,7 +449,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
         .docs-index-card:hover {
           transform: translateY(-3px);
           border-color: rgba(174,137,255,0.42) !important;
-          background: linear-gradient(180deg, rgba(36, 30, 72, 0.65) 0%, rgba(20, 17, 44, 0.7) 100%) !important;
+          background: rgba(20, 17, 44, 0.7) !important;
         }
         @media (max-width: 639px) {
           .docs-card-grid { grid-template-columns: 1fr !important; }

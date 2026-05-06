@@ -106,11 +106,7 @@ export default function ContactPage() {
             position: 'absolute',
             inset: 0,
             pointerEvents: 'none',
-            background: [
-              'radial-gradient(900px 700px at 50% -10%, rgba(140, 82, 255, 0.16) 0%, transparent 55%)',
-              'radial-gradient(600px 480px at 88% 10%, rgba(255, 222, 89, 0.07) 0%, transparent 60%)',
-              'radial-gradient(420px 380px at 6% 85%, rgba(81, 112, 255, 0.09) 0%, transparent 60%)',
-            ].join(','),
+            background: 'rgba(140, 82, 255, 0.16)',
           }}
         />
         {/* Grain */}
@@ -175,7 +171,7 @@ export default function ContactPage() {
               padding: '8px 18px',
               borderRadius: 'var(--radius-full)',
               background:
-                'linear-gradient(135deg, rgba(174, 137, 255, 0.18) 0%, rgba(255, 222, 89, 0.12) 100%)',
+                'rgba(174, 137, 255, 0.18)',
               border: '1px solid rgba(174, 137, 255, 0.3)',
               marginBottom: 40,
               backdropFilter: 'blur(10px)',
@@ -279,7 +275,7 @@ export default function ContactPage() {
             width: 600,
             height: 600,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(174, 137, 255, 0.08) 0%, transparent 70%)',
+            background: 'rgba(174, 137, 255, 0.08)',
             pointerEvents: 'none',
           }}
         />
@@ -292,7 +288,7 @@ export default function ContactPage() {
             width: 500,
             height: 500,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255, 222, 89, 0.05) 0%, transparent 70%)',
+            background: 'rgba(255, 222, 89, 0.05)',
             pointerEvents: 'none',
           }}
         />
@@ -312,7 +308,7 @@ export default function ContactPage() {
               padding: '48px 44px',
               borderRadius: 'var(--radius-xl)',
               background:
-                'linear-gradient(180deg, rgba(39, 39, 70, 0.72) 0%, rgba(33, 33, 62, 0.6) 100%)',
+                'rgba(33, 33, 62, 0.6)',
               border: '1px solid rgba(140, 82, 255, 0.22)',
               backdropFilter: 'blur(24px) saturate(140%)',
               WebkitBackdropFilter: 'blur(24px) saturate(140%)',
@@ -337,7 +333,7 @@ export default function ContactPage() {
                   height: 44,
                   borderRadius: 'var(--radius-md)',
                   background:
-                    'linear-gradient(135deg, rgba(174, 137, 255, 0.25) 0%, rgba(255, 222, 89, 0.14) 100%)',
+                    'rgba(174, 137, 255, 0.25)',
                   border: '1px solid rgba(174, 137, 255, 0.32)',
                   display: 'flex',
                   alignItems: 'center',
@@ -447,7 +443,7 @@ export default function ContactPage() {
                         padding: '10px 18px',
                         borderRadius: 'var(--radius-full)',
                         background: active
-                          ? 'linear-gradient(135deg, rgba(174, 137, 255, 0.28) 0%, rgba(255, 222, 89, 0.18) 100%)'
+                          ? 'rgba(174, 137, 255, 0.28)'
                           : 'rgba(33, 33, 62, 0.6)',
                         border: active
                           ? '1px solid rgba(174, 137, 255, 0.55)'

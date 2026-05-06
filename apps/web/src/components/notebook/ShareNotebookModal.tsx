@@ -768,9 +768,7 @@ export default function ShareNotebookModal({
           padding: '13px 20px',
           borderRadius: 12,
           border: 'none',
-          background: hoveredShareBtn
-            ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`
-            : `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple})`,
+          background: COLORS.primary,
           color: '#fff',
           fontSize: 14,
           fontWeight: 700,
@@ -1096,9 +1094,7 @@ export default function ShareNotebookModal({
               background:
                 selectedFriendIds.size === 0
                   ? COLORS.elevated
-                  : hoveredSendBtn
-                    ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple2})`
-                    : `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.deepPurple})`,
+                  : COLORS.primary,
               color: selectedFriendIds.size === 0 ? COLORS.textMuted : '#fff',
               fontSize: 14,
               fontWeight: 700,

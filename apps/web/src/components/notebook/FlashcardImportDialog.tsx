@@ -810,7 +810,7 @@ export default function FlashcardImportDialog({
                 border: 'none',
                 background:
                   parsedCards.length > 0 && pasteTitle.trim() && !pasteSubmitting
-                    ? 'linear-gradient(135deg, #8c52ff, #5170ff)'
+                    ? '#8c52ff'
                     : 'rgba(140,82,255,0.2)',
                 color:
                   parsedCards.length > 0 && pasteTitle.trim() && !pasteSubmitting

@@ -130,7 +130,7 @@ export default function PagePanel() {
               width: '16px',
               height: '16px',
               borderRadius: '4px',
-              background: 'linear-gradient(135deg, rgba(140,82,255,0.4), rgba(81,112,255,0.3))',
+              background: 'rgba(140,82,255,0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -433,7 +433,7 @@ function ChatRow({
           gap: '8px',
           padding: '7px 14px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',
@@ -527,7 +527,7 @@ function PageRow({
           gap: '8px',
           padding: '7px 14px',
           background: isActive
-            ? `linear-gradient(135deg, ${accentColor}18 0%, rgba(81,112,255,0.10) 100%)`
+            ? `${accentColor}18`
             : hovered
               ? 'rgba(237,233,255,0.04)'
               : 'transparent',

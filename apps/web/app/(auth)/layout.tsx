@@ -165,7 +165,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(circle at center, rgba(174,137,255,0.12) 0%, rgba(13,13,26,0) 70%)',
+            'rgba(174,137,255,0.12)',
           pointerEvents: 'none',
         }}
       />
@@ -178,7 +178,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           left: 0,
           width: '100%',
           height: '128px',
-          background: 'linear-gradient(to top, rgba(174,137,255,0.05), transparent)',
+          background: 'rgba(174,137,255,0.05)',
           pointerEvents: 'none',
         }}
       />
