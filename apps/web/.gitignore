@@ -1,0 +1,53 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# ws-server compiled bundle (built by `npm run build:ws`)
+/ws-dist
+
+# misc
+.DS_Store
+*.pem
+
+# user uploads (documents, images, avatars) — stored locally, not in git
+/uploads/
+/public/uploads/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# generated at next.config.ts load time
+/src/lib/vendor/pdfjs-worker.mjs
+/public/pdfjs-worker.mjs
+.env*.local

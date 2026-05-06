@@ -1,0 +1,534 @@
+@import 'tailwindcss';
+
+/* ─── Neon Scholar Design System ─────────────────────────────────────── */
+
+:root {
+  /* Primary */
+  --primary: #ae89ff;
+  --primary-container: #8348f6;
+  --primary-dim: #884efb;
+  --primary-fixed: #cdb5ff;
+  --primary-fixed-dim: #c1a4ff;
+  --on-primary: #2a0066;
+  --on-primary-container: #ffffff;
+  --on-primary-fixed: #330079;
+  --on-primary-fixed-variant: #5600c4;
+  --inverse-primary: #7232e4;
+
+  /* Secondary */
+  --secondary: #b9c3ff;
+  --secondary-container: #001971;
+  --secondary-dim: #4767f6;
+  --secondary-fixed: #dee1ff;
+  --secondary-fixed-dim: #cbd2ff;
+  --on-secondary: #002eb2;
+  --on-secondary-container: #8b9eff;
+  --on-secondary-fixed: #002db0;
+  --on-secondary-fixed-variant: #274bdb;
+
+  /* Tertiary / Highlight */
+  --tertiary: #ffedb3;
+  --tertiary-container: #ffde59;
+  --tertiary-dim: #f0d04c;
+  --tertiary-fixed: #ffde59;
+  --tertiary-fixed-dim: #f0d04c;
+  --on-tertiary: #695700;
+  --on-tertiary-container: #5f4f00;
+  --on-tertiary-fixed: #4a3d00;
+  --on-tertiary-fixed-variant: #6a5800;
+
+  /* Error */
+  --error: #fd6f85;
+  --error-container: #8a1632;
+  --error-dim: #c8475d;
+  --on-error: #490013;
+  --on-error-container: #ff97a3;
+
+  /* Surface */
+  --background: #1a1a36;
+  --surface: #1a1a36;
+  --surface-dim: #1a1a36;
+  --surface-bright: #3e3e68;
+  --surface-container-lowest: #10102a;
+  --surface-container-low: #21213e;
+  --surface-container: #272746;
+  --surface-container-high: #2d2d52;
+  --surface-container-highest: #35355c;
+  --surface-tint: #ae89ff;
+  --surface-variant: #35355c;
+  --on-surface: #eeecff;
+  --on-surface-variant: #c0bed8;
+  --on-background: #eeecff;
+  --foreground: #eeecff;
+  --inverse-surface: #fcf8ff;
+  --inverse-on-surface: #545363;
+
+  /* Outline */
+  --outline: #8888a8;
+  --outline-variant: #555578;
+
+  /* ── Cosmetic name-font vars ──────────────────────────────────────────
+     Declared directly at :root (not only inside @theme inline) so they're
+     guaranteed to cascade to every element the browser paints a UserName
+     onto. Each references the next/font-generated variable from
+     app/layout.tsx, followed by a concrete font-family fallback so the
+     glyph is still correct if the next/font variable is stripped for any
+     reason. Keeping this list in sync with src/lib/cosmetics/catalog.ts.
+  */
+  --font-serif: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
+  --font-cinzel: var(--font-cinzel), 'Cinzel', serif;
+  --font-unifraktur: var(--font-unifraktur), 'UnifrakturMaguntia', 'Fraktur', serif;
+  --font-medieval: var(--font-medieval), 'MedievalSharp', serif;
+  --font-imfell: var(--font-imfell), 'IM Fell English SC', serif;
+  --font-abril: var(--font-abril), 'Abril Fatface', 'Playfair Display', serif;
+  --font-bungee: var(--font-bungee), 'Bungee Shade', 'Impact', sans-serif;
+  --font-pacifico: var(--font-pacifico), 'Pacifico', cursive;
+  --font-marker: var(--font-marker), 'Permanent Marker', cursive;
+  --font-pressstart: var(--font-pressstart), 'Press Start 2P', 'Courier New', monospace;
+  --font-orbitron: var(--font-orbitron), 'Orbitron', sans-serif;
+  /* Admin-only Minecraft-flavoured font. Silkscreen is the closest public
+     Google Fonts match to Minecraft's chunky block glyphs. */
+  --font-minecraft: var(--font-minecraft), 'Silkscreen', 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
+
+@theme inline {
+  /* Colors */
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-primary-dim: var(--primary-dim);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-on-primary: var(--on-primary);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-inverse-primary: var(--inverse-primary);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-secondary-dim: var(--secondary-dim);
+  --color-on-secondary: var(--on-secondary);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+
+  --color-error: var(--error);
+  --color-error-container: var(--error-container);
+  --color-on-error: var(--on-error);
+  --color-on-error-container: var(--on-error-container);
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-variant: var(--surface-variant);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-foreground: var(--foreground);
+
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  /* Fonts */
+  --font-display: var(--font-epilogue), 'Epilogue', serif;
+  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-brand: var(--font-oswald), 'Oswald', sans-serif;
+  --font-chat: var(--font-oswald), 'Oswald', sans-serif;
+  /* Cosmetic-only fonts are declared at :root above — not duplicated here
+     because they aren't used by any Tailwind utility. */
+
+  /* Border radius */
+  --radius-sm: 0.5rem; /* 8px  */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  --radius-xl: 1.5rem; /* 24px */
+  --radius-full: 9999px;
+}
+
+/* ─── Base styles ─────────────────────────────────────────────────────── */
+
+html {
+  background: var(--background);
+  color: var(--on-surface);
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--background);
+  color: var(--on-surface);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ─── Global scrollbar: hidden everywhere ────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* ─── Material Symbols ────────────────────────────────────────────────── */
+
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  line-height: 1;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* ─── Font helpers ────────────────────────────────────────────────────── */
+
+.font-display {
+  font-family: var(--font-display);
+}
+.font-brand {
+  font-family: var(--font-brand);
+}
+
+/* ─── Glass panel ─────────────────────────────────────────────────────── */
+
+.glass-panel {
+  background: rgba(33, 33, 54, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-xl);
+}
+
+/* ─── Neon glow ───────────────────────────────────────────────────────── */
+
+.neon-glow {
+  box-shadow:
+    0 0 40px 12px rgba(174, 137, 255, 0.15),
+    0 0 80px 24px rgba(174, 137, 255, 0.08);
+}
+
+/* ─── Notebook dot pattern ───────────────────────────────────────────── */
+
+.notebook-pattern {
+  background-image: radial-gradient(circle, rgba(174, 137, 255, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ─── Custom scrollbar ────────────────────────────────────────────────── */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
+
+/* ─── Gradient CTA ────────────────────────────────────────────────────── */
+
+.btn-primary-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  color: var(--on-primary-container);
+}
+
+.btn-primary-gradient:hover {
+  background: linear-gradient(135deg, var(--primary-fixed) 0%, var(--primary) 100%);
+}
+
+/* ─── Tonal surface helpers ───────────────────────────────────────────── */
+
+.surface-elevated {
+  background: var(--surface-container);
+  border-radius: var(--radius-lg);
+}
+
+.surface-floating {
+  background: var(--surface-container-high);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 32px rgba(174, 137, 255, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Ambient shadow ──────────────────────────────────────────────────── */
+
+.shadow-ambient {
+  box-shadow:
+    0 32px 64px rgba(174, 137, 255, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Transitions (no transition-all) ────────────────────────────────── */
+
+.transition-spring {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── Input base ──────────────────────────────────────────────────────── */
+
+.ns-input {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  border-radius: var(--radius-md);
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+}
+
+.ns-input::placeholder {
+  color: var(--on-surface-variant);
+}
+
+.ns-input:focus {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+/* ─── Magic Cursor ────────────────────────────────────────────────────── */
+
+:root {
+  --mouse-sparkles-glow-rgb: 174 137 255;
+}
+
+.mouse-sparkles-star {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  width: 1em;
+  height: 1em;
+  animation-fill-mode: forwards;
+}
+
+.mouse-sparkles-glow-point {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgb(var(--mouse-sparkles-glow-rgb) / 0.6);
+  box-shadow: 0 0 6px 2px rgb(var(--mouse-sparkles-glow-rgb) / 0.4);
+}
+
+@keyframes fall-1 {
+  0% {
+    transform: translate(0px, 0px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(0.25);
+    opacity: 0;
+  }
+  5% {
+    transform: translate(10px, -10px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(25px, 200px) rotateX(180deg) rotateY(270deg) rotateZ(90deg) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes fall-2 {
+  0% {
+    transform: translate(0px, 0px) rotateX(-20deg) rotateY(10deg) scale(0.25);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(-10px, -5px) rotateX(-20deg) rotateY(10deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-10px, 160px) rotateX(-90deg) rotateY(45deg) scale(0.25);
+    opacity: 0;
+  }
+}
+
+@keyframes fall-3 {
+  0% {
+    transform: translate(0px, 0px) rotateX(0deg) rotateY(45deg) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(7px, 5px) rotateX(0deg) rotateY(45deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(20px, 120px) rotateX(-180deg) rotateY(-90deg) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* ─── Responsive Utilities ───────────────────────────────────────────── */
+/* Breakpoints: phone 0–767px · tablet 768–1023px · desktop 1024px+     */
+
+/* Responsive padding: 32px desktop, 20px tablet, 16px phone */
+.responsive-padding {
+  padding: 32px;
+}
+
+/* Responsive grids */
+.responsive-grid-3 {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.responsive-grid-2 {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.responsive-grid-auto {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* Visibility utilities */
+.hide-phone,
+.show-tablet-only,
+.show-desktop-only {
+  display: revert;
+}
+
+.show-phone-only {
+  display: none;
+}
+
+.hide-tablet-down {
+  display: revert;
+}
+
+/* ─── Tablet (768–1023px) ────────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-padding {
+    padding: 20px;
+  }
+
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .responsive-grid-auto {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  .hide-tablet-down {
+    display: none !important;
+  }
+}
+
+/* ─── Phone (0–767px) ────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .responsive-padding {
+    padding: 16px;
+  }
+
+  .responsive-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .responsive-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .responsive-grid-auto {
+    grid-template-columns: 1fr;
+  }
+
+  .hide-phone {
+    display: none !important;
+  }
+
+  .show-phone-only {
+    display: revert !important;
+  }
+
+  .hide-tablet-down {
+    display: none !important;
+  }
+
+  .full-width-phone {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure modal backdrops work with dvh */
+  .modal-fullscreen-phone {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure no text is smaller than 14px on phone */
+  body {
+    font-size: max(14px, 1em);
+  }
+}
+
+/* ─── Safe Area Insets (notched phones) ──────────────────────────────── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-all {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+}
+
+/* ─── Touch-friendly scrollbar hiding (for horizontal scroll strips) ── */
+.scroll-hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroll-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

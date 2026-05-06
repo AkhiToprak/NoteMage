@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "quizzard-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "/Users/toprakdemirel/Entwicklung/Quizzard/quizzard", "run", "dev"],
+      "name": "notemage-dev",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/usr/local/bin:$PATH && cd /Users/toprakdemirel/Entwicklung/Quizzard && pnpm dev:web"],
       "port": 3001,
       "autoPort": false
     }

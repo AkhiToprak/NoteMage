@@ -2,15 +2,21 @@
 
 ## Project Structure
 
-- **The Next.js app lives in `quizzard/`** (lowercase) — the working directory is `/Users/toprakdemirel/Entwicklung/Quizzard/quizzard/`.
-- The root `Quizzard/` (capital Q) contains only: `CLAUDE.md`, `brand_assets/`, `Dockerfile`, and other non-app files.
-- All source files, `app/`, `src/`, `package.json`, etc. are under `Quizzard/quizzard/`.
-- Brand assets are at `Quizzard/brand_assets/` (one level up from the app).
-- When running commands (e.g. `npm run dev`, `npx`, etc.), always `cd` into `Quizzard/quizzard/` first.
+- This repo is a **pnpm workspace monorepo** rooted at `/Users/toprakdemirel/Entwicklung/Quizzard/`.
+- **The Next.js app lives in `apps/web/`** — the working directory is `/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/`.
+- All source files, `app/`, `src/`, `package.json`, etc. are under `Quizzard/apps/web/`.
+- Shared TypeScript code (native bridge protocol, entitlement shapes) lives in `packages/shared/`.
+- The mobile (Expo) and desktop (Electron) shells will land in `apps/mobile/` and `apps/desktop/` in later phases.
+- Brand assets are at `Quizzard/brand_assets/` (two levels up from the app).
+- Run scripts from the repo root via pnpm filters: `pnpm dev:web`, `pnpm build:web`, `pnpm --filter web <script>`. You can also `cd apps/web && pnpm <script>` if you prefer.
 
 ## Always Do First
 
 - **Invoke the `frontend-design` skill** before writing any frontend code, every session, no exceptions.
+
+## Already shipped (don't re-flag)
+
+- **Stylus + barrel-button → eraser** on the canvas — implemented in `apps/web/src/components/notebook/InfiniteCanvas.tsx` lines 245–272. See `apps/web/docs/stylus-support.md` for the device matrix, known limitations (Apple Pencil has no barrel button, Wacom+macOS is driver-dependent), and the debug procedure before reporting it as broken.
 
 ## Reference Images
 
@@ -61,6 +67,21 @@
 - **Images:** Add a gradient overlay (`bg-gradient-to-t from-black/60`) and a color treatment layer with `mix-blend-multiply`.
 - **Spacing:** Use intentional, consistent spacing tokens — not random Tailwind steps.
 - **Depth:** Surfaces should have a layering system (base → elevated → floating), not all sit at the same z-plane.
+
+## Implementation Approach
+
+- **Break work into small phases** — implement one phase at a time, verify before moving on.
+- **Use subagents** for complex or parallel tasks to keep the main context clean.
+- **Ask questions** when things are uncertain or big decisions need to be made — don't assume.
+- **Follow plans strictly** when a plan document is provided (e.g. `tierplan.md`).
+
+## Figma Workflow
+
+- When a Figma URL (`figma.com/design/...`) is provided, invoke the `figma-implement-design` skill to read and implement the design.
+- Always adapt Figma MCP output to Neon Scholar conventions: inline style objects with CSS custom properties, Material Symbols Outlined icons, project font variables.
+- For partial updates (e.g., "update just the header"), read the design context, diff against the existing component, and apply only the changed parts. Preserve all existing logic.
+- On Education plan — conserve `get_design_context` calls. Use `get_screenshot` for minor visual tweaks and describe changes verbally when possible.
+- See `apps/web/.claude/rules/figma-design-system.md` for the full translation rules.
 
 ## Hard Rules
 

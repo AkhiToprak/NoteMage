@@ -1,5 +1,20 @@
 {
-  "dependencies": {
-    "puppeteer": "^24.39.1"
-  }
+  "name": "notemage",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "dev:desktop": "pnpm --filter desktop dev",
+    "build:desktop": "pnpm --filter desktop build",
+    "dist:desktop": "pnpm --filter desktop dist",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "format": "pnpm -r --if-present format",
+    "format:check": "pnpm -r --if-present format:check"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  },
+  "packageManager": "pnpm@9.12.0"
 }

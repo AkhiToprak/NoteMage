@@ -1,2 +1,24 @@
-quizzard/node_modules
-quizzard/.next
+**/node_modules
+**/.next
+**/.turbo
+**/.next/cache
+**/dist
+**/.vercel
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/*.log
+**/.DS_Store
+
+.git
+.github
+plans
+brand_assets
+notemagelogo.png
+README.md
+LICENSE
+
+apps/desktop
+apps/mobile
+temporary screenshots

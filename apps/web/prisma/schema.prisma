@@ -1,0 +1,1334 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Tier {
+  FREE
+  PLUS
+  PRO
+}
+
+// ============================================================================
+// USER MODELS
+// ============================================================================
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String?
+  password           String?   // Hashed with bcrypt; null for OAuth-only accounts
+  role               String    @default("user")  // "user" | "admin"
+  banned             Boolean   @default(false)    // Banned users cannot log in
+  banReason          String?                      // Optional reason shown to banned user
+  failedLoginAttempts Int      @default(0)         // Brute-force protection counter
+  lockedAt           DateTime?                     // Set when account is locked after too many failures
+  dailyGoal          Int       @default(10)  // Pages the user wants to write/study per day (kept for backward compat)
+  username           String    @unique       // 3-20 chars, alphanumeric + underscores only
+  avatarUrl          String?                 // URL to uploaded avatar image, null = default
+  bio                String?   @db.VarChar(160) // Short bio, max 160 chars
+  age                Int?
+  location           String?   @db.VarChar(100)
+  school             String?   @db.VarChar(100)
+  lineOfWork         String?   @db.VarChar(100)
+  instagramHandle    String?   @db.VarChar(30)  // Public IG username (no @), shown on Socials bento card
+  linkedinUrl        String?   @db.VarChar(200) // Full LinkedIn profile URL, shown on Socials bento card
+  customGreeting     String?   @db.VarChar(120) // Custom dashboard greeting, null = use random
+  scholarName        String?   @db.VarChar(30)  // Custom AI assistant name, null = "Scholar"
+  usernameChanged    Boolean   @default(false)    // Set to true when user changes their username
+  profilePrivate     Boolean   @default(false)    // If true, only friends see full profile
+  hideAchievements   Boolean   @default(false)    // If true, achievements hidden on public profile
+  tier               Tier      @default(FREE)
+  pendingTier        Tier?                       // Tier to switch to at end of current period (null = no change)
+  subscriptionPeriodEnd DateTime?                // When the current billing period ends (null = free / no active period)
+  stripeCustomerId     String?   @unique         // Stripe customer ID (cus_...)
+  stripeSubscriptionId String?   @unique         // Active Stripe subscription ID (sub_...)
+  onboardingComplete Boolean   @default(false)  // false until wizard step 4 is done
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Core relations
+  notebooks              Notebook[]
+  notebookFolders        NotebookFolder[]
+  chatMessages           ChatMessage[]
+
+  // Phase 1 — Social relations
+  studyGoals             StudyGoal[]
+  sentFriendRequests     Friendship[]       @relation("SentFriendRequests")
+  receivedFriendRequests Friendship[]       @relation("ReceivedFriendRequests")
+  notifications          Notification[]
+  posts                  Post[]
+  postVotes              PostVote[]
+  postComments           PostComment[]
+  commentVotes           CommentVote[]
+  pollVotes              PollVote[]
+  postVisibility         PostVisibility[]
+  sharedByMe             SharedNotebook[]   @relation("SharedByMe")
+  sharedWithMe           SharedNotebook[]   @relation("SharedWithMe")
+  notebookDownloads      NotebookDownload[]
+  notebookRatings        NotebookRating[]
+  notebookViews          NotebookView[]
+  friendActivities       FriendActivity[]
+  hostedSessions         CoWorkSession[]    @relation("HostedSessions")
+  coWorkJoined           CoWorkParticipant[]
+  pageLocks              PageLock[]
+  coWorkMessages         CoWorkMessage[]
+  lastSeenAt             DateTime?
+  notebookComments       NotebookComment[]
+  notebookCommentVotes   NotebookCommentVote[]
+  microsoftConnection    MicrosoftConnection?
+  studyMinutes           StudyMinute[]
+  streak                 UserStreak?
+  ownedGroups            StudyGroup[]       @relation("OwnedGroups")
+  groupMemberships       StudyGroupMember[]
+  sentGroupMessages      GroupMessage[]     @relation("SentGroupMessages")
+  sentInvitations        GroupInvitation[]  @relation("SentInvitations")
+  receivedInvitations    GroupInvitation[]  @relation("ReceivedInvitations")
+  sharedGroupContent     GroupSharedContent[] @relation("SharedGroupContent")
+  achievements           Achievement[]
+  xp                     Int                @default(0)
+  level                  Int                @default(1)
+  // Cosmetics — see src/lib/cosmetics/catalog.ts for the canonical list.
+  // nameStyle is denormalized so username rendering never needs a join.
+  // Shape: { fontId?: string, colorId?: string } — both reference catalog slugs.
+  nameStyle              Json?
+  equippedTitleId        String?
+  equippedFrameId        String?
+  equippedBackgroundId   String?
+  // Admin-only escape hatch: URL of a GIF/image uploaded by the admin that
+  // overrides the catalog-based profile background. If set AND the user has
+  // role = "admin", ProfileBackground renders this image as-is. Writes are
+  // gated to admin accounts inside /api/user/profile and the upload endpoint.
+  customBackgroundUrl    String?
+  cosmetics              UserCosmetic[]
+  exams                  Exam[]
+  todos                  Todo[]
+  usageRecords           UsageRecord[]
+  adminAuditLogs         AdminAuditLog[] @relation("AdminAuditLogs")
+  oauthAccounts          OAuthAccount[]
+
+  @@map("users")
+}
+
+// Linked OAuth/SSO accounts (Google, Apple, ...). One User may have many.
+// Silent same-email linking is gated by `User.password == null || !onboardingComplete`
+// in the NextAuth signIn callback — see src/auth/config.ts.
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   // "google" | "apple"
+  providerAccountId String
+  // Token columns kept nullable for future API access (e.g. Drive import) — cheap insurance.
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  expiresAt         Int?
+  idToken           String?  @db.Text
+  scope             String?
+  tokenType         String?
+  createdAt         DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+// ============================================================================
+// NOTEBOOK & DOCUMENT MODELS
+// ============================================================================
+
+model NotebookFolder {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  parentId  String?  // null = root level
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    NotebookFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  NotebookFolder[] @relation("FolderTree")
+  notebooks Notebook[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("notebook_folders")
+}
+
+model Notebook {
+  id            String    @id @default(cuid())
+  userId        String
+  folderId      String?   // null = root level (no folder)
+  name          String
+  description   String?
+  subject       String?   // e.g., "Biology", "History"
+  color         String?   // Hex color for UI
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder          NotebookFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  documents       Document[]
+  chatMessages    ChatMessage[]
+  chats           NotebookChat[]
+  sections        Section[]
+  shares          SharedNotebook[]
+  coWorkSessions  CoWorkSession[]
+  flashcardSets   FlashcardSet[]
+  quizSets        QuizSet[]
+  studyPlans      StudyPlan[]
+  studyGroups     StudyGroupNotebook[]
+  exams           Exam[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@map("notebooks")
+}
+
+model Document {
+  id            String    @id @default(cuid())
+  notebookId    String
+  fileName      String
+  filePath      String    // Local or S3 path
+  fileSize      Int       // In bytes
+  fileType      String    // e.g., "application/pdf"
+  textContent   String?   // Extracted text for LLM context
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  summaries     DocumentSummary[]
+
+  @@index([notebookId])
+  @@map("documents")
+}
+
+model DocumentSummary {
+  id         String   @id @default(cuid())
+  documentId String
+  length     String   // "brief" | "detailed"
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, length])
+  @@map("document_summaries")
+}
+
+// ============================================================================
+// CHAT & CONVERSATION MODELS
+// ============================================================================
+
+model NotebookChat {
+  id              String    @id @default(cuid())
+  notebookId      String
+  title           String    @default("New Chat")
+  contextPageIds  String[]  @default([])  // Page IDs from notebook fed as context
+  contextDocIds   String[]  @default([])  // Document IDs fed as context
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  notebook        Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  messages        ChatMessage[]
+  flashcardSets   FlashcardSet[]
+  quizSets        QuizSet[]
+
+  @@index([notebookId])
+  @@map("notebook_chats")
+}
+
+model ChatMessage {
+  id            String        @id @default(cuid())
+  notebookId    String
+  userId        String
+  chatId        String?       // Link to a specific chat session
+  role          String        // "user" or "assistant"
+  content       String        // The message text
+  tokens        Int?          // Number of tokens used (for cost tracking)
+  createdAt     DateTime      @default(now())
+
+  // Relations
+  notebook      Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat          NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([notebookId])
+  @@index([userId])
+  @@index([chatId])
+  @@map("chat_messages")
+}
+
+// ============================================================================
+// FLASHCARD MODELS
+// ============================================================================
+
+model FlashcardSet {
+  id         String        @id @default(cuid())
+  notebookId String
+  chatId     String?
+  messageId  String?       // assistant message that created this set
+  title      String
+  source     String        @default("ai") // "ai" | "manual" | "import" | "quizlet" | "anki"
+  sectionId  String?       // optional: link to a notebook section for publishing
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  notebook   Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  chat       NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  section    Section?      @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  flashcards Flashcard[]
+
+  @@index([notebookId])
+  @@index([chatId])
+  @@index([sectionId])
+  @@map("flashcard_sets")
+}
+
+model Flashcard {
+  id             String           @id @default(cuid())
+  flashcardSetId String
+  question       String
+  answer         String           @db.Text
+  sortOrder      Int              @default(0)
+  // Spaced repetition fields (SM-2 algorithm)
+  easeFactor     Float            @default(2.5)
+  interval       Int              @default(0)       // days until next review
+  repetitions    Int              @default(0)       // consecutive correct answers
+  nextReviewAt   DateTime?                          // null = never reviewed
+  lastReviewAt   DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  flashcardSet   FlashcardSet     @relation(fields: [flashcardSetId], references: [id], onDelete: Cascade)
+  images         FlashcardImage[]
+
+  @@index([flashcardSetId])
+  @@map("flashcards")
+}
+
+model FlashcardImage {
+  id          String    @id @default(cuid())
+  flashcardId String
+  side        String    // "front" | "back"
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@index([flashcardId])
+  @@map("flashcard_images")
+}
+
+// ============================================================================
+// QUIZ MODELS
+// ============================================================================
+
+model QuizSet {
+  id         String         @id @default(cuid())
+  notebookId String
+  chatId     String?
+  messageId  String?        // assistant message that created this set
+  title      String
+  sectionId  String?        // optional: link to a notebook section
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  notebook   Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  chat       NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  section    Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  questions  QuizQuestion[]
+  attempts   QuizAttempt[]
+
+  @@index([notebookId])
+  @@index([chatId])
+  @@index([sectionId])
+  @@map("quiz_sets")
+}
+
+model QuizQuestion {
+  id                 String   @id @default(cuid())
+  quizSetId          String
+  question           String
+  options            String[] // Array of 4 answer choices
+  correctIndex       Int      // 0-based index of the correct answer
+  hint               String?  // Optional hint text
+  correctExplanation String?  @db.Text // Shown when answer is correct
+  wrongExplanation   String?  @db.Text // Shown when answer is wrong
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  quizSet            QuizSet  @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  answers            QuizAnswer[]
+
+  @@index([quizSetId])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id         String       @id @default(cuid())
+  quizSetId  String
+  userId     String
+  score      Int
+  total      Int
+  percentage Float
+  timeSpent  Int?
+  createdAt  DateTime     @default(now())
+
+  quizSet    QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  answers    QuizAnswer[]
+
+  @@index([quizSetId])
+  @@index([userId, createdAt])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id          String       @id @default(cuid())
+  attemptId   String
+  questionId  String
+  selectedIdx Int
+  isCorrect   Boolean
+  createdAt   DateTime     @default(now())
+
+  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@map("quiz_answers")
+}
+
+// ============================================================================
+// SECTION & PAGE MODELS (OneNote-style notebook content)
+// ============================================================================
+
+model Section {
+  id            String    @id @default(cuid())
+  notebookId    String
+  parentId      String?   // null = top-level section; set = subsection
+  title         String
+  sortOrder     Int       @default(0)
+  color         String?   // Optional accent color override
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  notebook      Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  parent        Section?       @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Section[]      @relation("SectionTree")
+  pages         Page[]
+  flashcardSets FlashcardSet[]
+  quizSets      QuizSet[]
+
+  @@index([notebookId])
+  @@index([parentId])
+  @@map("sections")
+}
+
+model Page {
+  id            String    @id @default(cuid())
+  sectionId     String
+  title         String    @default("Untitled")
+  pageType      String    @default("text")   // "text" (TipTap editor) | "canvas" (infinite canvas)
+  content       Json?     // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
+  textContent   String?   // Plain text mirror for AI context + search
+  drawingData   Json?     // Array of stroke objects [{points, color, width}]
+  sortOrder     Int       @default(0)
+  sourceDocId   String?   // Set if this page was imported from a Document
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  section       Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  images        PageImage[]
+  locks         PageLock[]
+  revisions     PageRevision[]
+  contentAudits PageContentAudit[]
+
+  @@index([sectionId])
+  @@map("pages")
+}
+
+model PageImage {
+  id            String    @id @default(cuid())
+  pageId        String
+  fileName      String
+  filePath      String
+  fileSize      Int
+  mimeType      String
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  page          Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@map("page_images")
+}
+
+// ----------------------------------------------------------------------------
+// PageRevision — point-in-time snapshots of a page's content.
+//
+// Written by the PUT /pages/[pageId] handler on every successful content
+// update. Kept at ~50 most-recent-per-page by a trigger (see migration).
+// Exists for two reasons:
+//   1. Instant recovery if content is ever wiped (re-insert the last good
+//      row's content back into pages.content).
+//   2. Future product feature: user-facing version history / undo.
+// Snapshots are stored as JSONB so they compress well and indexing stays
+// cheap. Retention bounds total storage: 50 revisions * N pages.
+// ----------------------------------------------------------------------------
+model PageRevision {
+  id          String   @id @default(cuid())
+  pageId      String
+  title       String
+  content     Json     // Full TipTap JSON at snapshot time
+  textContent String?  // Plain text mirror at snapshot time
+  createdBy   String?  // User id of the save author, if known
+  createdAt   DateTime @default(now())
+
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+  @@map("page_revisions")
+}
+
+// ----------------------------------------------------------------------------
+// PageContentAudit — tamper-evident audit trail for page.content mutations.
+//
+// Written by the PUT /pages/[pageId] handler BEFORE the actual update, so
+// every attempted write is captured — successful or not. Includes client
+// request metadata (IP, user-agent) so that if a rogue write ever reaches
+// the DB we can trace it back to the exact session within seconds.
+//
+// `result` is 'accepted' | 'refused_empty_overwrite' | 'error'. Failed
+// writes are logged too — that's the whole point.
+// ----------------------------------------------------------------------------
+model PageContentAudit {
+  id              String   @id @default(cuid())
+  pageId          String
+  userId          String?
+  clientIp        String?
+  userAgent       String?
+  incomingIsEmpty Boolean
+  existingIsEmpty Boolean
+  result          String   // 'accepted' | 'refused_empty_overwrite' | 'error'
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+
+  page            Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+  @@index([result, createdAt])
+  @@map("page_content_audits")
+}
+
+// ============================================================================
+// PHASE 1 — SOCIAL FEATURE MODELS
+// ============================================================================
+
+// --- 1.2 Study Goals ---
+
+model StudyGoal {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "hours" | "pages" | "quizzes" | "notebooks"
+  target    Int      // e.g., 10 hours, 20 pages per week
+  current   Int      @default(0)
+  weekStart DateTime // Monday 00:00 UTC of the goal week — resets weekly
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, weekStart])
+  @@map("study_goals")
+}
+
+// --- Study Planning ---
+
+model StudyPlan {
+  id          String       @id @default(cuid())
+  notebookId  String
+  title       String
+  description String?      @db.Text
+  startDate   DateTime
+  endDate     DateTime
+  source      String       @default("manual") // "manual" | "ai"
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  notebook    Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  phases      StudyPhase[]
+  examId      String?      @unique
+  exam        Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
+
+  @@index([notebookId])
+  @@map("study_plans")
+}
+
+model StudyPhase {
+  id          String          @id @default(cuid())
+  planId      String
+  title       String
+  description String?         @db.Text
+  sortOrder   Int             @default(0)
+  startDate   DateTime
+  endDate     DateTime
+  status      String          @default("upcoming") // "upcoming" | "active" | "completed"
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  plan        StudyPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  materials   StudyMaterial[]
+
+  @@index([planId])
+  @@map("study_phases")
+}
+
+model StudyMaterial {
+  id          String     @id @default(cuid())
+  phaseId     String
+  type        String     // "page" | "flashcard_set" | "quiz_set" | "document"
+  referenceId String     // loose FK to the referenced resource
+  title       String     // denormalized title
+  completed   Boolean    @default(false)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+
+  phase       StudyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+  @@map("study_materials")
+}
+
+// --- Microsoft OneNote Connection ---
+
+model MicrosoftConnection {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scope        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("microsoft_connections")
+}
+
+// --- 1.3 Friendships ---
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("pending") // "pending" | "accepted" | "declined"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester   User     @relation("SentFriendRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("ReceivedFriendRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId])
+  @@map("friendships")
+}
+
+// --- 1.4 Notifications ---
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String                        // recipient
+  type      String                        // "friend_request" | "friend_accepted" | "notebook_shared" | "notebook_sent" | "co_work_invite" | "post_upvote" | "post_comment"
+  data      Json                          // flexible payload, varies by type
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// --- 1.5 Community Posts ---
+
+model Post {
+  id          String    @id @default(cuid())
+  authorId    String
+  content     String    @db.Text              // max ~2000 chars (enforced in API)
+  notebookRef String?                         // optional linked notebook ID
+  visibility  String    @default("public")    // "public" | "friends" | "specific"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  images      PostImage[]
+  poll        Poll?
+  votes       PostVote[]
+  comments    PostComment[]
+  visibleTo   PostVisibility[]               // only used when visibility = "specific"
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model PostImage {
+  id        String @id @default(cuid())
+  postId    String
+  url       String
+  sortOrder Int    @default(0)
+
+  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_images")
+}
+
+model PostVisibility {
+  id     String @id @default(cuid())
+  postId String
+  userId String
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_visibility")
+}
+
+model Poll {
+  id       String       @id @default(cuid())
+  postId   String       @unique
+  question String
+
+  post     Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options  PollOption[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id        String     @id @default(cuid())
+  pollId    String
+  text      String
+  sortOrder Int        @default(0)
+
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  id       String     @id @default(cuid())
+  optionId String
+  userId   String
+
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, userId])
+  @@map("poll_votes")
+}
+
+model PostVote {
+  id     String @id @default(cuid())
+  postId String
+  userId String
+  value  Int              // 1 = upvote, -1 = downvote
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_votes")
+}
+
+model PostComment {
+  id              String   @id @default(cuid())
+  postId          String
+  authorId        String
+  parentCommentId String?
+  content         String   @db.VarChar(500)
+  createdAt       DateTime @default(now())
+
+  post            Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent          PostComment?      @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         PostComment[]     @relation("CommentReplies")
+  votes           CommentVote[]
+
+  @@index([postId, createdAt])
+  @@index([parentCommentId])
+  @@map("post_comments")
+}
+
+model CommentVote {
+  id        String @id @default(cuid())
+  commentId String
+  userId    String
+  value     Int              // 1 = upvote, -1 = downvote
+
+  comment   PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@map("comment_votes")
+}
+
+// --- 1.6 Shared Notebooks ---
+
+model SharedNotebook {
+  id           String   @id @default(cuid())
+  notebookId   String
+  sharedById   String
+  sharedWithId String?                       // null = community upload
+  type         String                        // "copy" | "live_view"
+  visibility   String   @default("public")   // "public" | "friends" | "specific"
+  title        String?                       // Custom publish title (defaults to notebook name)
+  description  String?  @db.Text             // Blog-like description / body text
+  content       String?  @db.Text             // Rich text content (HTML) for the post body
+  coverImageUrl String?                       // Cover image URL
+  createdAt     DateTime @default(now())
+
+  notebook     Notebook              @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  sharedBy     User                  @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)
+  sharedWith   User?                 @relation("SharedWithMe", fields: [sharedWithId], references: [id], onDelete: Cascade)
+  images       SharedNotebookImage[]
+  tags         SharedNotebookTag[]
+  downloads    NotebookDownload[]
+  ratings      NotebookRating[]
+  views        NotebookView[]
+  comments     NotebookComment[]
+
+  @@index([notebookId])
+  @@index([sharedById])
+  @@index([sharedWithId])
+  @@index([visibility, createdAt])
+  @@map("shared_notebooks")
+}
+
+model SharedNotebookImage {
+  id              String         @id @default(cuid())
+  sharedNotebookId String
+  fileName        String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  sortOrder       Int            @default(0)
+  createdAt       DateTime       @default(now())
+
+  sharedNotebook  SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+
+  @@index([sharedNotebookId])
+  @@map("shared_notebook_images")
+}
+
+// --- 1.7 Co-Work Sessions ---
+
+model CoWorkSession {
+  id           String   @id @default(cuid())
+  notebookId   String
+  hostId       String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  endedAt      DateTime?
+
+  notebook     Notebook            @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  host         User                @relation("HostedSessions", fields: [hostId], references: [id], onDelete: Cascade)
+  participants CoWorkParticipant[]
+  pageLocks    PageLock[]
+  messages     CoWorkMessage[]
+
+  @@index([notebookId, isActive])
+  @@map("co_work_sessions")
+}
+
+model CoWorkParticipant {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  isActive  Boolean  @default(true)
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  session   CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@map("co_work_participants")
+}
+
+model PageLock {
+  id         String   @id @default(cuid())
+  sessionId  String
+  pageId     String
+  lockedById String
+  lockedAt   DateTime @default(now())
+  expiresAt  DateTime // lockedAt + 5 minutes — auto-expire stale locks
+
+  session    CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  page       Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  lockedBy   User          @relation(fields: [lockedById], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, pageId])
+  @@map("page_locks")
+}
+
+model CoWorkMessage {
+  id         String   @id @default(cuid())
+  sessionId  String
+  userId     String
+  text       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  session    CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("co_work_messages")
+}
+
+// ============================================================================
+// COMMUNITY METRICS & TAGS
+// ============================================================================
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique              // lowercased, trimmed, e.g. "react_hooks"
+  createdAt DateTime @default(now())
+
+  sharedNotebookTags SharedNotebookTag[]
+
+  @@index([name])
+  @@map("tags")
+}
+
+model SharedNotebookTag {
+  id               String         @id @default(cuid())
+  sharedNotebookId String
+  tagId            String
+
+  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  tag              Tag            @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedNotebookId, tagId])
+  @@index([tagId])
+  @@map("shared_notebook_tags")
+}
+
+model NotebookDownload {
+  id               String         @id @default(cuid())
+  sharedNotebookId String
+  userId           String
+  createdAt        DateTime       @default(now())
+
+  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedNotebookId, userId])
+  @@map("notebook_downloads")
+}
+
+model NotebookRating {
+  id               String         @id @default(cuid())
+  sharedNotebookId String
+  userId           String
+  value            Int            // 1-5
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedNotebookId, userId])
+  @@map("notebook_ratings")
+}
+
+model NotebookView {
+  id               String         @id @default(cuid())
+  sharedNotebookId String
+  userId           String
+  createdAt        DateTime       @default(now())
+
+  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedNotebookId, userId])
+  @@map("notebook_views")
+}
+
+model NotebookComment {
+  id               String   @id @default(cuid())
+  sharedNotebookId String
+  authorId         String
+  parentCommentId  String?
+  content          String   @db.VarChar(1000)
+  createdAt        DateTime @default(now())
+
+  sharedNotebook   SharedNotebook        @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  author           User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent           NotebookComment?      @relation("NotebookCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies          NotebookComment[]     @relation("NotebookCommentReplies")
+  votes            NotebookCommentVote[]
+
+  @@index([sharedNotebookId, createdAt])
+  @@index([parentCommentId])
+  @@map("notebook_comments")
+}
+
+model NotebookCommentVote {
+  id        String @id @default(cuid())
+  commentId String
+  userId    String
+  value     Int              // 1 = upvote, -1 = downvote
+
+  comment   NotebookComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@map("notebook_comment_votes")
+}
+
+model FriendActivity {
+  id           String   @id @default(cuid())
+  userId       String                    // who performed the action
+  type         String                    // "downloaded" | "published" | "rated"
+  targetName   String                    // notebook/item name for display
+  targetColor  String?                   // color for UI display
+  targetId     String?                   // optional link to SharedNotebook id
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("friend_activities")
+}
+
+// ============================================================================
+// ACTIVITY TRACKING (Heatmap)
+// ============================================================================
+//
+// One row = one minute the user had the app open. The unique constraint on
+// (userId, minute) makes inserts idempotent across multi-tab heartbeats —
+// the heartbeat endpoint upserts with no-op on conflict. Daily totals for the
+// heatmap come from `COUNT(*) GROUP BY DATE(minute)`.
+
+model StudyMinute {
+  userId String
+  minute DateTime // truncated to the minute on insert
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, minute])
+  @@index([userId, minute])
+  @@map("study_minutes")
+}
+
+// ============================================================================
+// STUDY GROUPS
+// ============================================================================
+
+model StudyGroup {
+  id          String             @id @default(cuid())
+  name        String
+  description String?            @db.VarChar(500)
+  ownerId     String
+  avatarUrl   String?
+  type        String             @default("study_group") // "study_group" | "class" | "direct"
+  allowMemberChat    Boolean    @default(true)  // Can members (students) send messages?
+  allowMemberSharing Boolean    @default(true)  // Can members (students) share content?
+  allowMemberInvites Boolean    @default(true)  // Can members (students) invite others?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  owner         User               @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
+  members       StudyGroupMember[]
+  notebooks     StudyGroupNotebook[]
+  messages      GroupMessage[]
+  invitations   GroupInvitation[]
+  sharedContent GroupSharedContent[]
+
+  @@index([ownerId])
+  @@index([type])
+  @@map("study_groups")
+}
+
+model StudyGroupMember {
+  id       String     @id @default(cuid())
+  groupId  String
+  userId   String
+  role       String     @default("member") // "owner" | "admin" | "member"
+  status     String     @default("accepted") // "pending" | "accepted" | "declined"
+  joinedAt   DateTime   @default(now())
+  lastReadAt DateTime?  // null = never read; set when user opens the group
+
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId, status])
+  @@map("study_group_members")
+}
+
+model StudyGroupNotebook {
+  id         String     @id @default(cuid())
+  groupId    String
+  notebookId String
+  addedById  String
+  addedAt    DateTime   @default(now())
+
+  group      StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  notebook   Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, notebookId])
+  @@map("study_group_notebooks")
+}
+
+// --- Group Invitations ---
+
+model GroupInvitation {
+  id        String     @id @default(cuid())
+  groupId   String
+  inviterId String
+  inviteeId String
+  status    String     @default("pending") // "pending" | "accepted" | "declined"
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter   User       @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee   User       @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, inviteeId])
+  @@index([inviteeId, status])
+  @@map("group_invitations")
+}
+
+// --- Group Messages (Chat) ---
+
+model GroupMessage {
+  id        String     @id @default(cuid())
+  groupId   String
+  senderId  String?    // null for system messages
+  type      String     @default("text") // "text" | "system" | "content_share"
+  content   String     @db.Text
+  metadata  Json?      // { contentType, contentId, contentTitle, fileName, fileUrl, ... }
+  createdAt DateTime   @default(now())
+
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    User?      @relation("SentGroupMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([groupId, createdAt])
+  @@index([senderId])
+  @@map("group_messages")
+}
+
+// --- Group Shared Content ---
+
+model GroupSharedContent {
+  id          String     @id @default(cuid())
+  groupId     String
+  sharedById  String
+  contentType String     // "notebook" | "folder" | "document" | "flashcard_set" | "quiz_set"
+  contentId   String     // ID of the referenced resource
+  title       String     // denormalized for display
+  description String?
+  metadata    Json?      // { color, subject, cardCount, questionCount, etc. }
+  createdAt   DateTime   @default(now())
+
+  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sharedBy    User       @relation("SharedGroupContent", fields: [sharedById], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, contentType, contentId])
+  @@index([groupId, createdAt])
+  @@index([sharedById])
+  @@map("group_shared_content")
+}
+
+// ============================================================================
+// GAMIFICATION: STREAKS
+// ============================================================================
+
+model UserStreak {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  currentStreak  Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastStudyDate  DateTime? @db.Date
+  freezesLeft    Int       @default(2)
+  freezesUsed    Int       @default(0)
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_streaks")
+}
+
+// ============================================================================
+// GAMIFICATION: ACHIEVEMENTS
+// ============================================================================
+
+model Achievement {
+  id         String   @id @default(cuid())
+  userId     String
+  badge      String   // unique key: "first_notebook", "100_messages", "30_day_streak", etc.
+  unlockedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badge])
+  @@index([userId])
+  @@map("achievements")
+}
+
+// ----------------------------------------------------------------------------
+// UserCosmetic — a row per (user, cosmetic) unlock.
+//
+// cosmeticId is a stable slug that references an entry in the code-side
+// catalog at src/lib/cosmetics/catalog.ts. Deliberately NO foreign key to a
+// Cosmetic table — the catalog lives in code so adding a new unlockable is a
+// typed, zero-migration change. The tradeoff is that orphaned rows may exist
+// if a catalog entry is ever removed; the renderer treats unknown slugs as
+// no-ops, so this is safe.
+// ----------------------------------------------------------------------------
+model UserCosmetic {
+  userId     String
+  cosmeticId String
+  unlockedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, cosmeticId])
+  @@index([userId])
+  @@map("user_cosmetics")
+}
+
+// ============================================================================
+// EXAMS
+// ============================================================================
+
+model Exam {
+  id         String     @id @default(cuid())
+  userId     String
+  notebookId String
+  title      String     // "Biology Final Exam"
+  examDate   DateTime
+  reminders  Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook   Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  studyPlan  StudyPlan?
+
+  @@index([userId, examDate])
+  @@map("exams")
+}
+
+// ============================================================================
+// TODOS
+// ============================================================================
+
+model Todo {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String   @db.VarChar(200)
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completed])
+  @@map("todos")
+}
+
+// ============================================================================
+// USAGE TRACKING
+// ============================================================================
+
+model UsageRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  featureType String   // e.g. "ai_flashcards", "ai_pptx", "ai_study_plan", "scholar_chat"
+  month       DateTime // First day of the month (UTC)
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureType, month])
+  @@index([userId, month])
+  @@map("usage_records")
+}
+
+// ============================================================================
+// ABUSE PREVENTION
+// ============================================================================
+
+/// Tracks every account registration by IP address.
+/// Records persist even when the associated account is deleted.
+/// Used to enforce a max-accounts-per-IP limit (resets after 12 months).
+model IpRegistration {
+  id        String   @id @default(cuid())
+  ip        String   // Client IP at registration time
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+  @@map("ip_registrations")
+}
+
+// ============================================================================
+// WAITLIST
+// ============================================================================
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("waitlist")
+}
+
+// --- Admin Audit Logging ---
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String   // e.g. "user.ban", "post.delete"
+  targetId  String   // ID of the affected resource
+  details   String?  @db.Text // Optional JSON details
+  createdAt DateTime @default(now())
+
+  admin     User     @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}

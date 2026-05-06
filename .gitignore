@@ -1,12 +1,16 @@
 node_modules/
+**/node_modules/
 .env
 .env.local
 .DS_Store
 .next/
+**/.next/
 dist/
+*.tsbuildinfo
 
-# user uploads
-quizzard/uploads/
+# user uploads (local-only, never committed)
+apps/web/uploads/
+apps/web/public/uploads/
 
 # claude worktrees
 .claude/worktrees/

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/node_modules/.bin/next",
+      "runtimeArgs": ["dev", "--webpack", "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web"],
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}
