@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quizzard Community Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Epilogue:wght@300;400;500;600;700&amp;family=Shrikhand&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed-variant": "#6c3a00",
+                        "on-secondary": "#3a3000",
+                        "surface-bright": "#383847",
+                        "tertiary-fixed-dim": "#ffb779",
+                        "surface": "#12121f",
+                        "on-surface": "#e3e0f4",
+                        "surface-container-highest": "#343342",
+                        "on-secondary-fixed-variant": "#544600",
+                        "outline": "#958da1",
+                        "on-tertiary-fixed": "#2e1500",
+                        "on-secondary-container": "#332900",
+                        "tertiary-container": "#d27c20",
+                        "tertiary": "#ffb779",
+                        "secondary-container": "#aa8f00",
+                        "surface-container-low": "#1a1a28",
+                        "surface-container-lowest": "#0d0d1a",
+                        "surface-container": "#1e1e2c",
+                        "on-primary-container": "#35007e",
+                        "background": "#12121f",
+                        "primary-fixed": "#eaddff",
+                        "outline-variant": "#4a4455",
+                        "tertiary-fixed": "#ffdcc1",
+                        "surface-variant": "#343342",
+                        "on-error": "#690005",
+                        "surface-tint": "#d1bcff",
+                        "primary-container": "#a277ff",
+                        "on-primary-fixed-variant": "#5800c8",
+                        "surface-container-high": "#292937",
+                        "on-secondary-fixed": "#221b00",
+                        "inverse-on-surface": "#2f2f3d",
+                        "error": "#ffb4ab",
+                        "inverse-primary": "#7131e3",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#e4c542",
+                        "error-container": "#93000a",
+                        "on-background": "#e30e4",
+                        "inverse-surface": "#e3e0f4",
+                        "secondary": "#e4c542",
+                        "on-tertiary": "#4c2700",
+                        "surface-dim": "#12121f",
+                        "primary-fixed-dim": "#d1bcff",
+                        "secondary-fixed": "#ffe16e",
+                        "primary": "#d1bcff",
+                        "on-tertiary-container": "#422100",
+                        "on-surface-variant": "#ccc3d8",
+                        "on-primary": "#3d008f",
+                        "on-primary-fixed": "#24005b"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Epilogue"],
+                        "label": ["Epilogue"],
+                        "display": ["Shrikhand"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full w-64 border-r border-gray-800 bg-[#0D0D1A] dark:bg-[#0D0D1A] flex flex-col py-8 px-4 z-50">
+<div class="text-xl font-bold text-[#8c52ff] mb-8 font-headline tracking-tighter">Quizzard</div>
+<nav class="flex-1 space-y-2">
+<!-- Dashboard -->
+<a class="flex items-center gap-3 px-4 py-3 rounded text-gray-400 hover:text-gray-200 hover:bg-gray-800/30 transition-all active:translate-x-1 duration-150 font-['Epilogue'] text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<!-- Notebooks -->
+<a class="flex items-center gap-3 px-4 py-3 rounded text-gray-400 hover:text-gray-200 hover:bg-gray-800/30 transition-all active:translate-x-1 duration-150 font-['Epilogue'] text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Notebooks</span>
+</a>
+<!-- Community (ACTIVE) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded text-[#8c52ff] font-bold border-r-2 border-[#8c52ff] bg-[#8c52ff]/10 transition-all active:translate-x-1 duration-150 font-['Epilogue'] text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span>Community</span>
+</a>
+<!-- Settings -->
+<a class="flex items-center gap-3 px-4 py-3 rounded text-gray-400 hover:text-gray-200 hover:bg-gray-800/30 transition-all active:translate-x-1 duration-150 font-['Epilogue'] text-sm font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-gray-800">
+<button class="w-full bg-[#8c52ff] text-white py-3 rounded-lg font-headline font-bold flex items-center justify-center gap-2 active:scale-95 duration-200">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                Create New
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 mr-80 min-h-screen p-8">
+<!-- Top App Bar Content -->
+<header class="flex justify-between items-center mb-10">
+<h1 class="font-display text-4xl text-primary tracking-wide">Community Hub</h1>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="bg-surface-container-high border-none rounded-full pl-10 pr-4 py-2 w-64 text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Search notebooks..." type="text"/>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-variant">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<!-- Navigation Tabs -->
+<div class="flex gap-8 border-b border-outline-variant mb-8 font-headline font-semibold text-lg">
+<button class="pb-4 border-b-2 border-secondary text-secondary">Public Library</button>
+<button class="pb-4 text-outline hover:text-on-surface transition-colors">Friends Feed</button>
+</div>
+<!-- Most Downloaded Section -->
+<section class="mb-12">
+<div class="flex justify-between items-end mb-6">
+<h2 class="font-headline font-bold text-2xl">Most Downloaded This Week</h2>
+<a class="text-primary text-sm font-bold flex items-center gap-1 hover:underline" href="#">
+                    View All <span class="material-symbols-outlined text-xs" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+<div class="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x">
+<!-- Featured Card 1 -->
+<div class="min-w-[320px] bg-surface-container rounded-xl overflow-hidden snap-start group border border-transparent hover:border-primary/30 transition-all">
+<div class="h-40 relative">
+<img class="w-full h-full object-cover" data-alt="conceptual dark clock gears with golden light reflections and mysterious atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuZQ4hcTSgyauoxFHjap4zFXtaYO0s5YJ6ls2Sc8r7GLx-BGn9xHgccLpRrS-CnTnf3pMLKXpaDIzloAHWxbU-BhYIwOdxAll0Ejq8Bl-MZdeQ_W_nd9tPlnDrDkeMhsM3BBJKBRMxdoih-z0uAcSh2Le3bhWO21ysdcY-N2A4xMa5B1LE9QmhumFW1U01Rr0S4IUEP9Kbu_kBrC2e17yuj3fjcXl3QnDKphM6LAhL08IDU9sb-hdUrc8eg88-yM2X4z3ETNSTf-A"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-secondary uppercase tracking-widest">Physics</div>
+</div>
+<div class="p-5">
+<h3 class="font-headline font-bold text-lg mb-2 group-hover:text-primary transition-colors">Quantum Mechanics Basics</h3>
+<p class="text-outline text-xs line-clamp-2 mb-4 font-body">Deep dive into wave-particle duality, uncertainty principles, and basic state vectors for mid-level students.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="professional male portrait avatar in circular frame with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsnwk1ykXqzNQqeXn4UUPtfDRQph8EN7Ab3ja4sAbdPULbpfb0GaziZjoQSAaokJUlDVwTdp7geQCmsbbe1dAq29NJYLUR_-04Etndo-13dUYUe3GO8HNrLiH0aqgz6LHlB5diTvRt-Ao-j5HQXqi3lcweGjul6o_sdJVfNBm8lsh3wAtzDikjoQBE_6KNJXlHlVSltvbFXUPrBvD9PjZqK3r-AlRiZyaf6XlWOWnKE1Ikg5_HUz00oXOARNAJIhrvEn8KlTBurB0"/>
+<span class="text-[10px] font-bold text-on-surface-variant">Dr. Aris</span>
+</div>
+<div class="flex items-center gap-3 text-outline text-[11px] font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm" data-icon="download">download</span> 1.2k</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm text-secondary" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span> 4.9</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Featured Card 2 -->
+<div class="min-w-[320px] bg-surface-container rounded-xl overflow-hidden snap-start group border border-transparent hover:border-primary/30 transition-all">
+<div class="h-40 relative">
+<img class="w-full h-full object-cover" data-alt="vibrant abstract digital art with flowing neon purple and yellow light waves on dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD49pdG9tTc20qidwMoluzgUBsD_SXLswxKyFK6rxslriZKVh-todnH5_M6nmCu3w6tld_OQweBGHOEjghlOATFQ5rtIffUxeurQ3xSpoSGGkQoWDRT5_9sjLvxDaBxlh0_q4Asmu9CsBtY1z0T--y4dEqyQZhRZM_ztzg5O43g8NOrJ0R9mx4rAwbee1lCiXksnKwjf2U2AKwnw3kVU7b97P29DclcyExuNrguUbSOjhVJBWC_sGbuuyPtFrEvYmmG2TASUbeDsGw"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-secondary uppercase tracking-widest">Design</div>
+</div>
+<div class="p-5">
+<h3 class="font-headline font-bold text-lg mb-2 group-hover:text-primary transition-colors">Color Theory Mastery</h3>
+<p class="text-outline text-xs line-clamp-2 mb-4 font-body">Everything about color psychology, contrast ratios, and building harmonious accessibility-first palettes.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="friendly female designer portrait avatar with warm soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsypNqFDka1YuP8erPGSHdgiurOk0zFcnNxD4NCPrHUioVw0ftx7Nl-X-vXpn65f_6HmXhbwGlc8lJ9yVhWwIWyxhehN98Fal60fSEOGfmHHO2-SsH_Ii34H76YQP3_8Dp7_x1Mfng4Uq0aaBxBkpS6fQoLle0hyVecuCOHst38GKLxCRfmZ2om8xXrt6al_mjCrNhJAXNnXV0-pUnJMP6GPRH0XBE5RsIaYYMxcppOzZGwGcMhcGZJ9VJrpc2f9ikKzVsQDxvADw"/>
+<span class="text-[10px] font-bold text-on-surface-variant">Lia Moon</span>
+</div>
+<div class="flex items-center gap-3 text-outline text-[11px] font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm" data-icon="download">download</span> 843</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm text-secondary" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span> 4.7</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Featured Card 3 -->
+<div class="min-w-[320px] bg-surface-container rounded-xl overflow-hidden snap-start group border border-transparent hover:border-primary/30 transition-all">
+<div class="h-40 relative">
+<img class="w-full h-full object-cover" data-alt="scientific laboratory flask with bubbling blue liquid and glowing futuristic microchips background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB67mSRkY_H-bHzu8_sqHj7CvDIYZtZCsot9HoPcnD7zCzFEdQSGhG9POWLq_6wxjRj3fspw8HxrsXPT7tKcjVWi9LPtI04TrE5pKjb2IQuCAJKD3pY2e-A9uOBsqH37i9iRsNfSd-Ta22jJd-_oSTEr_4Nj-jQOD6SyiSN6lMHzCB7UQ1FrDYniPFV3D5AY_dY_4mREtzE1NlgCfZY32ucfBI776S7pSTkqsupWLGOWMUyN8JE77PUJl1URV2dCJSth3Sgc6Qs9Ko"/>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-secondary uppercase tracking-widest">Biology</div>
+</div>
+<div class="p-5">
+<h3 class="font-headline font-bold text-lg mb-2 group-hover:text-primary transition-colors">Genetic Engineering 101</h3>
+<p class="text-outline text-xs line-clamp-2 mb-4 font-body">A comprehensive summary of CRISPR technology, ethical implications, and modern sequencing methods.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<img class="w-6 h-6 rounded-full" data-alt="male student portrait avatar with glasses and a friendly smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh4OmQ5GJBrBM0Uy9AOtaQlpH8SbAOhg4cFzHIWIj3Htd2LA31G3qs9Q2euswqfjh1b8sqBeDK8BK7Z6TG2Xzb8Lq4VJg78BNv8S58xuXbxcdm8puO_r9lYkEmQCOCUK65dIlpV6Cf5XPKdKAIbwFAR6qs4nEL1M9YezpwPMnJMt5t03y1G8CeK6snkj1XU2UwbxKQGzseR5MFzuX0W7deETTWx2o62LSo00V1vB7wKt1nx7QPZzbvtiWxArJaYF6_xKU9qndhMZY"/>
+<span class="text-[10px] font-bold text-on-surface-variant">Sam Chen</span>
+</div>
+<div class="flex items-center gap-3 text-outline text-[11px] font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm" data-icon="download">download</span> 652</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm text-secondary" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span> 4.8</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Library Explorer Section -->
+<section>
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+<h2 class="font-headline font-bold text-2xl">Library Explorer</h2>
+<div class="flex items-center gap-2 bg-surface-container-high p-1 rounded-lg self-start">
+<button class="px-4 py-1.5 rounded bg-surface-variant text-primary text-xs font-bold transition-all">Latest</button>
+<button class="px-4 py-1.5 rounded text-outline hover:text-on-surface text-xs font-bold transition-all">Most Popular</button>
+<button class="px-4 py-1.5 rounded text-outline hover:text-on-surface text-xs font-bold transition-all">Highest Rated</button>
+</div>
+</div>
+<!-- Bento-style Grid (IMAGE_15 inspiration) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Grid Item 1 (Medium Card) -->
+<div class="bg-surface-container p-4 rounded-xl flex flex-col justify-between h-48 border border-outline-variant/30 hover:shadow-2xl hover:shadow-primary/5 transition-all">
+<div>
+<div class="flex justify-between items-start mb-3">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+</div>
+<span class="text-[10px] font-bold text-secondary">History</span>
+</div>
+<h4 class="font-headline font-bold text-base mb-1">Ancient Roman Law</h4>
+<p class="text-outline text-[11px] font-body line-clamp-2">Summarized legislative structures from the Republic through the Empire.</p>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/20">
+<span class="text-[10px] font-medium text-outline">By Marcus Aurel</span>
+<button class="text-primary-container p-1 rounded hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined" data-icon="bookmark_add">bookmark_add</span>
+</button>
+</div>
+</div>
+<!-- Grid Item 2 (Medium Card) -->
+<div class="bg-surface-container p-4 rounded-xl flex flex-col justify-between h-48 border border-outline-variant/30 hover:shadow-2xl hover:shadow-primary/5 transition-all">
+<div>
+<div class="flex justify-between items-start mb-3">
+<div class="p-2 bg-secondary/10 rounded-lg text-secondary">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</div>
+<span class="text-[10px] font-bold text-secondary">Computer Science</span>
+</div>
+<h4 class="font-headline font-bold text-base mb-1">Tailwind CSS Advanced</h4>
+<p class="text-outline text-[11px] font-body line-clamp-2">Configuring custom plugins, JIT engine details and dynamic theming.</p>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/20">
+<span class="text-[10px] font-medium text-outline">By Sarah Dev</span>
+<button class="text-primary-container p-1 rounded hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined" data-icon="bookmark_add">bookmark_add</span>
+</button>
+</div>
+</div>
+<!-- Grid Item 3 (Medium Card) -->
+<div class="bg-surface-container p-4 rounded-xl flex flex-col justify-between h-48 border border-outline-variant/30 hover:shadow-2xl hover:shadow-primary/5 transition-all">
+<div>
+<div class="flex justify-between items-start mb-3">
+<div class="p-2 bg-tertiary/10 rounded-lg text-tertiary">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+</div>
+<span class="text-[10px] font-bold text-secondary">Philosophy</span>
+</div>
+<h4 class="font-headline font-bold text-base mb-1">Stoic Ethics Guide</h4>
+<p class="text-outline text-[11px] font-body line-clamp-2">Practical application of Epictetus and Seneca in modern professional life.</p>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/20">
+<span class="text-[10px] font-medium text-outline">By Julian S.</span>
+<button class="text-primary-container p-1 rounded hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined" data-icon="bookmark_add">bookmark_add</span>
+</button>
+</div>
+</div>
+<!-- Large Grid Item (Spanning) -->
+<div class="lg:col-span-2 bg-surface-container rounded-xl p-6 flex flex-col md:flex-row gap-6 border border-outline-variant/30 hover:shadow-2xl hover:shadow-primary/5 transition-all">
+<div class="flex-1">
+<div class="inline-flex items-center gap-2 text-primary bg-primary/10 px-3 py-1 rounded-full mb-4">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Community Favorite</span>
+</div>
+<h3 class="font-headline font-bold text-2xl mb-2">Sustainable Architecture Systems</h3>
+<p class="text-outline text-sm font-body mb-6">A deep dive into LEED certifications, passive heating models, and renewable material selection for residential projects.</p>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-headline font-bold text-sm flex items-center gap-2 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="cloud_download">cloud_download</span>
+                                Download Notebook
+                            </button>
+<span class="text-outline text-xs">Shared 2 days ago</span>
+</div>
+</div>
+<div class="w-full md:w-48 h-48 rounded-lg overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="modern glass and concrete architectural structure with reflections and sharp geometric lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1IhyEbjloCo-OdRwkNPixtX7b1KWrev5nHH4m349rFvTSs0qpP-kuiGZ7U91OllmVInBTCjNJQ-uChntHQx0_0Y2SI89yrsEJhrIFEYRsqw7cY7w87NjI5gWRXbn9pZIGqkJ_gfyFkeYLf3EpwNnI9y8839YYDrGBn_SeQwFsjbIkN-MCrNelcMPQs9xrU1P3gb4RbCaLGFTLsOdmmF5Vk5VdKq9WMXg55ZDOLpL42inmwLloDLqFXnrqOrEILUR6PxH6q0-mkHo"/>
+</div>
+</div>
+<!-- Grid Item 4 (Medium Card) -->
+<div class="bg-surface-container p-4 rounded-xl flex flex-col justify-between h-48 border border-outline-variant/30 hover:shadow-2xl hover:shadow-primary/5 transition-all">
+<div>
+<div class="flex justify-between items-start mb-3">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined" data-icon="language">language</span>
+</div>
+<span class="text-[10px] font-bold text-secondary">Languages</span>
+</div>
+<h4 class="font-headline font-bold text-base mb-1">N5 Japanese Vocab</h4>
+<p class="text-outline text-[11px] font-body line-clamp-2">Complete set of kanji and vocabulary needed for the JLPT N5 level.</p>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/20">
+<span class="text-[10px] font-medium text-outline">By Kenji T.</span>
+<button class="text-primary-container p-1 rounded hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined" data-icon="bookmark_add">bookmark_add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Right Sidebar -->
+<aside class="fixed right-0 top-0 h-full w-80 bg-surface-container-low border-l border-gray-800 p-8 z-40 overflow-y-auto">
+<!-- Share CTA -->
+<div class="bg-gradient-to-br from-[#8c52ff] to-[#5800c8] p-6 rounded-2xl mb-10 relative overflow-hidden group">
+<div class="relative z-10">
+<h3 class="font-headline font-bold text-xl text-white mb-2">Share Your Notebook</h3>
+<p class="text-white/80 text-xs mb-4">Help the community grow and earn rewards for every download.</p>
+<button class="w-full bg-secondary text-on-secondary font-headline font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sm" data-icon="upload">upload</span>
+                    Publish Now
+                </button>
+</div>
+<!-- Decorative circle -->
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
+</div>
+<!-- Recent Friend Updates -->
+<div>
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline font-bold text-lg">Friends Status</h3>
+<span class="text-primary text-[10px] font-bold cursor-pointer hover:underline">See All</span>
+</div>
+<div class="space-y-6">
+<!-- Friend 1 -->
+<div class="flex gap-4">
+<div class="relative shrink-0">
+<img class="w-10 h-10 rounded-full border-2 border-primary" data-alt="professional portrait of a young man with a warm smile in natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDO9RlSAqzP9ESeGT097qJRbri_F6D4jbTrrAlGQF6YoptAtgcUY2Y4za90JiSEI732rYbxU96U5a_r-l3idEBMdVtvmX6Ki_pkLAFUlT9HpoTCQqPbvdtm5G05qzyNx0tPLO2K-R4S_S2h0iYzecwDP-r2xi4QYCTiSy2VJW9mJEAoCwAFgFlOIhk2FsAU0EyYKde_DOU3CgwPJAxVmkhk4P4qYEEjxLkmpv77kvQA4RlSsajABdjoaVnp9j5JrTDjgEa--zZKcdU"/>
+<div class="absolute -right-1 -bottom-1 w-3 h-3 bg-green-500 border-2 border-surface-container-low rounded-full"></div>
+</div>
+<div>
+<h4 class="text-sm font-bold font-headline">Alex Thompson</h4>
+<p class="text-outline text-[11px] mb-2">Downloaded <span class="text-secondary font-semibold">Stoic Ethics</span></p>
+<span class="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant font-medium">2 mins ago</span>
+</div>
+</div>
+<!-- Friend 2 -->
+<div class="flex gap-4">
+<div class="relative shrink-0">
+<img class="w-10 h-10 rounded-full border-2 border-transparent" data-alt="stylish portrait of a woman looking at the camera with urban background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_mF8B5Ug2A6Qeo3ISt2c5dMk_JVsl24CYoNfTMG3qzhiXuSDQzrCMgR52isM6DW2Xr2Dsn8ExxUVKWZG81_Mk3JLTEzLAa7SZIuP83NIopFpTTcw3FOIxPPAGgTNgUnLsaWNc-LPtvl7A6Lo8g09Qa7w4RRNWxUQ3_En5_bnHe7QTnBQG7g7PH4kIoZisHgMtcf3oLAcmgq2Ou1QoFeRxd_BxnPfsHEfkLw_jO-YvbL4CR3xp2Gxb4_t_X4rSfIkHKjAKbCmB17E"/>
+<div class="absolute -right-1 -bottom-1 w-3 h-3 bg-gray-500 border-2 border-surface-container-low rounded-full"></div>
+</div>
+<div>
+<h4 class="text-sm font-bold font-headline">Sarah Miller</h4>
+<p class="text-outline text-[11px] mb-2">Created <span class="text-primary font-semibold">Web Flow Basics</span></p>
+<span class="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant font-medium">1 hour ago</span>
+</div>
+</div>
+<!-- Friend 3 -->
+<div class="flex gap-4">
+<div class="relative shrink-0">
+<img class="w-10 h-10 rounded-full border-2 border-primary" data-alt="candid portrait of a young man in casual attire with golden hour sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDO02QjMyxS70vTxDwHyBnFLtPsY9-_Unufr5fN4dxue5yb1x4OLZtteTDUeO-V5BihuqAmmOzVq9rkoD_gKLFbBbc_akjfvpAivkjegN6uk-WAQT8eSsxcq15V3gxXQbyiBS8o8rEsD2bMAxHtJjjMeSJNoZxlHiT42PNEZru3nLDnx1QDUV7p87efZ_Xcn8r5amojmvBZg8IsE8lyagcNHlD17kG_6NzyknDyYOr4Y6_X41Bsrp2L5myEbv0k4q2sbisoMJnfXXk"/>
+<div class="absolute -right-1 -bottom-1 w-3 h-3 bg-green-500 border-2 border-surface-container-low rounded-full"></div>
+</div>
+<div>
+<h4 class="text-sm font-bold font-headline">James Chen</h4>
+<p class="text-outline text-[11px] mb-2">Completed <span class="text-secondary font-semibold">History Quiz</span></p>
+<span class="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant font-medium">4 hours ago</span>
+</div>
+</div>
+<!-- Friend 4 -->
+<div class="flex gap-4 opacity-70">
+<div class="relative shrink-0">
+<img class="w-10 h-10 rounded-full border-2 border-transparent" data-alt="artistic black and white portrait of a woman with expressive eyes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV23-cRzJL-UjgheqUBChQUPpPu7Hnx-yq7Xn2NVcC22zqxuB-BKSCHEr5lS6RbfxD7JlM0vL1CwAfKgJqvvd0hol4R2weBGxy84g3LOyGNLmKIaux5fLllijKPv2zNs-lQmn95k-Xp7kP4exxRLk6twOxK5TkBRYT6grAsr_hvdF81Y9h6FepX3rXhh1UhLlLiq2Pn4nutuPFMG2d4VDpmhkWKbo-EBbkb8naumRGPFmnCi8S7IRdt76N8HEaEPZ8svBr_1jDkvE"/>
+<div class="absolute -right-1 -bottom-1 w-3 h-3 bg-gray-500 border-2 border-surface-container-low rounded-full"></div>
+</div>
+<div>
+<h4 class="text-sm font-bold font-headline">Elena Rossi</h4>
+<p class="text-outline text-[11px] mb-2">Updated profile bio</p>
+<span class="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant font-medium">Yesterday</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Community Suggestion -->
+<div class="mt-12 p-5 bg-surface-container rounded-xl border border-outline-variant/30">
+<h4 class="font-headline font-bold text-sm mb-3">Trending Tags</h4>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-primary cursor-pointer hover:bg-primary/20 transition-colors">#MCAT_Prep</span>
+<span class="px-3 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-secondary cursor-pointer hover:bg-secondary/20 transition-colors">#LSAT_Logic</span>
+<span class="px-3 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-tertiary cursor-pointer hover:bg-tertiary/20 transition-colors">#React_Hooks</span>
+<span class="px-3 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-outline cursor-pointer hover:bg-surface-variant transition-colors">#Global_History</span>
+</div>
+</div>
+</aside>
+</body></html>
