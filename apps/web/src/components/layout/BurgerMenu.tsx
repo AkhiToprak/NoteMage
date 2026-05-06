@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import TierBadge from '@/components/ui/TierBadge';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
+import { DashboardIcon, NotebookIcon, CoWorkIcon } from '@/components/icons/NavIcons';
 
 interface BurgerMenuProps {
   open: boolean;
@@ -17,22 +18,40 @@ interface BurgerMenuProps {
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#1a1a36',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
+  pageBg: '#000000',
+  cardBg: '#0a0a0a',
+  elevated: '#1c1c1c',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   textPrimary: '#e5e3ff',
   textSecondary: '#aaa8c8',
   textMuted: '#8888a8',
   error: '#fd6f85',
-  border: '#555578',
+  border: 'rgba(174,137,255,0.15)',
 } as const;
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { href: '/notebooks', label: 'Notebooks', icon: 'menu_book' },
-  { href: '/groups', label: 'Co-Work', icon: 'workspaces' },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: string | ((color: string) => ReactNode);
+};
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: (color) => <DashboardIcon size={22} color={color} />,
+  },
+  {
+    href: '/notebooks',
+    label: 'Notebooks',
+    icon: (color) => <NotebookIcon size={22} color={color} />,
+  },
+  {
+    href: '/groups',
+    label: 'Co-Work',
+    icon: (color) => <CoWorkIcon size={22} color={color} />,
+  },
   { href: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
@@ -205,15 +224,21 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
                   transition: `all 0.15s ${EASING}`,
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: 22,
-                    fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
-                  }}
-                >
-                  {item.icon}
-                </span>
+                {typeof item.icon === 'function' ? (
+                  item.icon(
+                    isActive ? COLORS.primary : isHovered ? COLORS.textPrimary : COLORS.textSecondary
+                  )
+                ) : (
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: 22,
+                      fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+                )}
                 {item.label}
                 {isActive && (
                   <div

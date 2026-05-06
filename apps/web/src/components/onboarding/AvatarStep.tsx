@@ -149,7 +149,7 @@ export default function AvatarStep({
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(26, 26, 54,0.7)',
+                background: 'rgba(0, 0, 0, 0.7)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

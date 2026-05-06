@@ -147,7 +147,7 @@ export default function WaitlistPage() {
       className="waitlist-outer"
       style={{
         minHeight: '100vh',
-        background: '#0d0d1a',
+        background: '#000000',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -361,7 +361,7 @@ export default function WaitlistPage() {
                       width: '100%',
                       padding: '14px 24px',
                       background: status === 'loading' ? '#ccb238' : '#ffde59',
-                      color: '#0d0d1a',
+                      color: '#000000',
                       fontFamily: 'var(--font-epilogue), sans-serif',
                       fontSize: '15px',
                       fontWeight: 700,

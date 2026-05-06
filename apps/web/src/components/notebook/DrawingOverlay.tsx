@@ -288,7 +288,7 @@ function TextAnnotation({
         ? '1.5px dashed rgba(164,123,255,0.6)'
         : 'none',
     outlineOffset: 2,
-    background: isEditing ? 'rgba(26,26,54,0.35)' : 'transparent',
+    background: isEditing ? 'rgba(0,0,0,0.35)' : 'transparent',
   };
 
   // ── Resize handlers ──
@@ -366,7 +366,7 @@ function TextAnnotation({
     position: 'absolute',
     width: 10,
     height: 10,
-    background: '#1a1a36',
+    background: '#000000',
     border: '1.5px solid rgba(164,123,255,0.8)',
     borderRadius: '50%',
     boxSizing: 'border-box',

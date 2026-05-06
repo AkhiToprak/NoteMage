@@ -229,7 +229,7 @@ export default function CoWorkChat({
             : hoveredToggle
               ? 'rgba(174,137,255,0.2)'
               : 'rgba(174,137,255,0.12)',
-          color: isOpen ? '#1a1a36' : '#ae89ff',
+          color: isOpen ? '#000000' : '#ae89ff',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -258,7 +258,7 @@ export default function CoWorkChat({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '2px solid #1a1a36',
+              border: '2px solid #000000',
             }}
           >
             {messages.length > 99 ? '99+' : messages.length}

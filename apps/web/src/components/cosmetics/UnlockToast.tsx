@@ -396,7 +396,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                 height: 92,
                 borderRadius: 14,
                 overflow: 'hidden',
-                background: '#1a1a36',
+                background: '#000000',
                 border: '1px solid rgba(136,136,168,0.25)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
               }}

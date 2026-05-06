@@ -102,7 +102,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: 'rgba(26, 26, 54,0.9)',
+              background: 'rgba(0, 0, 0, 0.9)',
               border: '1px solid rgba(140,82,255,0.15)',
               color: 'rgba(237,233,255,0.5)',
               cursor: 'pointer',
@@ -117,7 +117,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
-              e.currentTarget.style.background = 'rgba(26, 26, 54,0.9)';
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
             }}
           >
             <ChevronsRight size={15} />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -10,12 +10,31 @@ import AddFriendModal from '@/components/social/AddFriendModal';
 import TierBadge from '@/components/ui/TierBadge';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
+import { DashboardIcon, NotebookIcon, CoWorkIcon } from '@/components/icons/NavIcons';
 
-const navLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+type NavLink = {
+  href: string;
+  label: string;
+  icon: string | ((color: string) => ReactNode);
+};
+
+const navLinks: NavLink[] = [
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: (color) => <DashboardIcon size={22} color={color} />,
+  },
   { href: '/profile', label: 'Profile', icon: 'person' },
-  { href: '/notebooks', label: 'Notebooks', icon: 'auto_stories' },
-  { href: '/groups', label: 'Co-Work', icon: 'workspaces' },
+  {
+    href: '/notebooks',
+    label: 'Notebooks',
+    icon: (color) => <NotebookIcon size={22} color={color} />,
+  },
+  {
+    href: '/groups',
+    label: 'Co-Work',
+    icon: (color) => <CoWorkIcon size={22} color={color} />,
+  },
   { href: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
@@ -30,7 +49,7 @@ export default function Sidebar() {
         width: '256px',
         minWidth: '256px',
         height: '100vh',
-        background: '#1a1a36',
+        background: '#000000',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
@@ -38,6 +57,7 @@ export default function Sidebar() {
         paddingBottom: '24px',
         zIndex: 40,
         overflowY: 'auto',
+        borderRight: '1px solid rgba(174,137,255,0.08)',
       }}
       className="custom-scrollbar"
     >
@@ -80,7 +100,7 @@ export default function Sidebar() {
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  (e.currentTarget as HTMLAnchorElement).style.background = '#22223a';
+                  (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(174,137,255,0.08)';
                   (e.currentTarget as HTMLAnchorElement).style.transform = 'translateX(4px)';
                 }
               }}
@@ -91,12 +111,16 @@ export default function Sidebar() {
                 }
               }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '22px', flexShrink: 0 }}
-              >
-                {icon}
-              </span>
+              {typeof icon === 'function' ? (
+                icon(isActive ? '#ffffff' : '#b9c3ff')
+              ) : (
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '22px', flexShrink: 0 }}
+                >
+                  {icon}
+                </span>
+              )}
               {label}
             </Link>
           );
@@ -177,7 +201,7 @@ export default function Sidebar() {
             transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#22223a';
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.08)';
             (e.currentTarget as HTMLButtonElement).style.transform = 'translateX(4px)';
           }}
           onMouseLeave={(e) => {

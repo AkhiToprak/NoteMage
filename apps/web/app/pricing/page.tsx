@@ -201,7 +201,7 @@ export default function PricingPage() {
           height: 64,
           display: 'flex',
           alignItems: 'center',
-          background: scrolled ? 'rgba(26, 26, 54,0.88)' : 'transparent',
+          background: scrolled ? 'rgba(0, 0, 0, 0.88)' : 'transparent',
           backdropFilter: scrolled ? 'blur(24px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
           borderBottom: scrolled ? '1px solid rgba(174,137,255,0.1)' : '1px solid transparent',

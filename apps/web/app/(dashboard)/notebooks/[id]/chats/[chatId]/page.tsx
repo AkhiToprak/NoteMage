@@ -352,7 +352,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: isPhone ? '8px' : '16px',
-          background: 'rgba(26, 26, 54,0.6)',
+          background: 'rgba(0, 0, 0, 0.6)',
           flexShrink: 0,
         }}
       >
@@ -878,7 +878,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               bottom: 0,
               width: isPhone ? '100%' : '380px',
               zIndex: 11,
-              background: 'linear-gradient(160deg, #1a1a36 0%, #151530 100%)',
+              background: 'linear-gradient(160deg, #0a0a0a 0%, #050505 100%)',
               borderLeft: '1px solid rgba(140,82,255,0.2)',
               display: 'flex',
               flexDirection: 'column',

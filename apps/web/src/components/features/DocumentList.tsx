@@ -237,7 +237,7 @@ export default function DocumentList({
             style={{
               width: '520px',
               maxHeight: '600px',
-              background: '#1a1a36',
+              background: '#000000',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               display: 'flex',

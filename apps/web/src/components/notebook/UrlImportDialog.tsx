@@ -113,7 +113,7 @@ export default function UrlImportDialog({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: '#1a1a36',
+          background: '#000000',
           borderRadius: '16px',
           border: '1px solid rgba(140,82,255,0.18)',
           padding: '24px',

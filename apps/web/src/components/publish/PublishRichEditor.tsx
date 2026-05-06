@@ -311,7 +311,7 @@ export default function PublishRichEditor({ content, onChange }: PublishRichEdit
             color: ${COLORS.textSecondary};
           }
           .publish-rich-editor .tiptap pre {
-            background: #1a1a36;
+            background: #000000;
             border-radius: 8px;
             padding: 16px;
             margin: 12px 0;

@@ -45,17 +45,17 @@
   --on-error-container: #ff97a3;
 
   /* Surface */
-  --background: #1a1a36;
-  --surface: #1a1a36;
-  --surface-dim: #1a1a36;
-  --surface-bright: #3e3e68;
-  --surface-container-lowest: #10102a;
-  --surface-container-low: #21213e;
-  --surface-container: #272746;
-  --surface-container-high: #2d2d52;
-  --surface-container-highest: #35355c;
+  --background: #000000;
+  --surface: #000000;
+  --surface-dim: #000000;
+  --surface-bright: #2a2a2a;
+  --surface-container-lowest: #050505;
+  --surface-container-low: #0f0f0f;
+  --surface-container: #161616;
+  --surface-container-high: #1f1f1f;
+  --surface-container-highest: #262626;
   --surface-tint: #ae89ff;
-  --surface-variant: #35355c;
+  --surface-variant: #262626;
   --on-surface: #eeecff;
   --on-surface-variant: #c0bed8;
   --on-background: #eeecff;

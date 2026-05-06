@@ -609,7 +609,7 @@ export default function QuizViewer({
               style={{
                 width: '420px',
                 maxHeight: '500px',
-                background: '#1a1a36',
+                background: '#000000',
                 border: '1px solid rgba(140,82,255,0.25)',
                 borderRadius: '16px',
                 display: 'flex',
@@ -836,7 +836,7 @@ export default function QuizViewer({
             width: '100%',
             maxWidth: isPhone ? '100%' : '480px',
             borderRadius: '16px',
-            background: '#1a1833',
+            background: '#0a0a0a',
             border: '1px solid rgba(140,82,255,0.3)',
             padding: isPhone ? '16px' : '24px',
             display: 'flex',
@@ -938,7 +938,7 @@ export default function QuizViewer({
           {/* Question text */}
           <div
             style={{
-              background: 'linear-gradient(145deg, #1a1833 0%, #1a1a36 50%, #120f24 100%)',
+              background: 'linear-gradient(145deg, #0a0a0a 0%, #000000 50%, #050505 100%)',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               padding: isPhone ? '20px 16px' : '28px 24px',
@@ -1280,7 +1280,7 @@ export default function QuizViewer({
             style={{
               width: '380px',
               maxHeight: '420px',
-              background: '#1a1a36',
+              background: '#000000',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               display: 'flex',
@@ -1394,7 +1394,7 @@ export default function QuizViewer({
             style={{
               width: '420px',
               maxHeight: '500px',
-              background: '#1a1a36',
+              background: '#000000',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               display: 'flex',

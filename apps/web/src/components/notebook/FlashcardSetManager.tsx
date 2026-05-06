@@ -903,7 +903,7 @@ function TitleDialog({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '340px',
-          background: '#1a1a36',
+          background: '#000000',
           border: '1px solid rgba(140,82,255,0.3)',
           borderRadius: '12px',
           padding: '20px',

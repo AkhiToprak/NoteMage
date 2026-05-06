@@ -14,7 +14,7 @@ import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
 const COLORS = {
-  pageBg: '#1a1a36',
+  pageBg: '#000000',
   cardBg: '#21213e',
   elevated: '#2d2d52',
   primary: '#ae89ff',

@@ -11,7 +11,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const C = {
-  pageBg: '#1a1a36',
+  pageBg: '#000000',
   cardBg: 'rgba(33, 33, 62,0.92)',
   elevated: '#2d2d52',
   inputBg: '#35355c',

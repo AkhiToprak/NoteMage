@@ -6,7 +6,7 @@ import ShareContentModal from './ShareContentModal';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 const COLORS = {
-  pageBg: '#1a1a36',
+  pageBg: '#000000',
   cardBg: '#21213e',
   elevated: '#2d2d52',
   inputBg: '#35355c',

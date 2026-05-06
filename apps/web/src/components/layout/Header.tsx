@@ -29,7 +29,7 @@ export default function Header() {
         justifyContent: 'space-between',
         position: 'sticky',
         top: 0,
-        background: 'rgba(26, 26, 54,0.8)',
+        background: 'rgba(0, 0, 0, 0.8)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         zIndex: 30,

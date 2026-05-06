@@ -297,7 +297,7 @@ export default function CoWorkBar({
               key={p.id}
               title={p.user.name || p.user.username}
               style={{
-                border: '2px solid #1a1a36',
+                border: '2px solid #000000',
                 borderRadius: 8,
                 marginLeft: i > 0 ? -8 : 0,
                 zIndex: shown.length - i,
@@ -315,7 +315,7 @@ export default function CoWorkBar({
                 width: 28,
                 height: 28,
                 borderRadius: 8,
-                border: '2px solid #1a1a36',
+                border: '2px solid #000000',
                 marginLeft: -8,
                 background: '#35355c',
                 display: 'flex',

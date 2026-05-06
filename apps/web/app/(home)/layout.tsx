@@ -27,7 +27,7 @@ export default function HomeLayout({ children }: { children: React.ReactNode }) 
       <div
         style={{
           height: '100vh',
-          background: '#0d0d1a',
+          background: '#000000',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -52,7 +52,7 @@ export default function HomeLayout({ children }: { children: React.ReactNode }) 
     <div
       style={{
         minHeight: '100vh',
-        background: '#0d0d1a',
+        background: '#000000',
         color: '#e5e3ff',
         display: 'flex',
         flexDirection: 'column',

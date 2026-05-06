@@ -580,7 +580,7 @@ export default function FlashcardViewer({
         >
           <div
             style={{
-              background: '#1a1833',
+              background: '#0a0a0a',
               borderRadius: '24px',
               padding: isPhone ? '32px 20px' : '48px 40px',
               border: '1px solid rgba(140,82,255,0.2)',
@@ -856,12 +856,12 @@ export default function FlashcardViewer({
               padding: isPhone ? '24px 16px' : '32px 24px',
               background:
                 swipingDirection === 'right'
-                  ? 'linear-gradient(135deg, rgba(74,222,128,0.15), #1a1833)'
+                  ? 'linear-gradient(135deg, rgba(74,222,128,0.15), #0a0a0a)'
                   : swipingDirection === 'left'
-                    ? 'linear-gradient(135deg, rgba(252,165,165,0.15), #1a1833)'
+                    ? 'linear-gradient(135deg, rgba(252,165,165,0.15), #0a0a0a)'
                     : studyFlipped
                       ? 'linear-gradient(135deg, #1a1040, #0f1535)'
-                      : 'linear-gradient(135deg, #1a1833, #141230)',
+                      : 'linear-gradient(135deg, #0a0a0a, #050505)',
               border: `1px solid ${
                 swipingDirection === 'right'
                   ? 'rgba(74,222,128,0.4)'
@@ -1033,7 +1033,7 @@ export default function FlashcardViewer({
               width: '100%',
               height: '100%',
               borderRadius: '16px',
-              background: '#1a1833',
+              background: '#0a0a0a',
               border: '1px solid rgba(140,82,255,0.3)',
               padding: '24px',
               display: 'flex',
@@ -1289,7 +1289,7 @@ export default function FlashcardViewer({
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
                 boxShadow: '0 8px 32px rgba(140,82,255,0.15), 0 2px 8px rgba(0,0,0,0.3)',
-                background: 'linear-gradient(145deg, #1a1833 0%, #1a1a36 50%, #120f24 100%)',
+                background: 'linear-gradient(145deg, #0a0a0a 0%, #000000 50%, #050505 100%)',
                 border: '1px solid rgba(140,82,255,0.25)',
                 color: '#ede9ff',
               }}
@@ -1361,7 +1361,7 @@ export default function FlashcardViewer({
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
                 boxShadow: '0 8px 32px rgba(81,112,255,0.12), 0 2px 8px rgba(0,0,0,0.3)',
-                background: 'linear-gradient(145deg, #1e1a3a 0%, #1a1a36 50%, #131128 100%)',
+                background: 'linear-gradient(145deg, #1e1a3a 0%, #000000 50%, #131128 100%)',
                 border: '1px solid rgba(81,112,255,0.2)',
                 color: 'rgba(237,233,255,0.85)',
                 transform: 'rotateY(180deg)',
@@ -1498,7 +1498,7 @@ export default function FlashcardViewer({
             style={{
               width: '380px',
               maxHeight: '420px',
-              background: '#1a1a36',
+              background: '#000000',
               border: '1px solid rgba(140,82,255,0.25)',
               borderRadius: '16px',
               display: 'flex',
@@ -1598,7 +1598,7 @@ export default function FlashcardViewer({
             marginTop: '20px',
             width: '100%',
             maxWidth: '360px',
-            background: '#1a1833',
+            background: '#0a0a0a',
             border: '1px solid rgba(140,82,255,0.3)',
             borderRadius: '12px',
             padding: '16px',

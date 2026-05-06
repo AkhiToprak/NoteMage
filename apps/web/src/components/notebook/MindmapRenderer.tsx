@@ -375,7 +375,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
         width: '100%',
         borderRadius: '12px',
         border: '1px solid rgba(81,112,255,0.25)',
-        background: 'linear-gradient(145deg, #1a1833 0%, #1a1a36 50%, #120f24 100%)',
+        background: 'linear-gradient(145deg, #0a0a0a 0%, #000000 50%, #050505 100%)',
         overflow: 'hidden',
         margin: '8px 0',
       }}

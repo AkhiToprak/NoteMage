@@ -168,7 +168,7 @@ export default function SlideEditorModal({
           maxWidth: isPhone ? 'none' : '1000px',
           height: isPhone ? '100dvh' : '80vh',
           maxHeight: isPhone ? 'none' : undefined,
-          background: '#1a1a36',
+          background: '#000000',
           borderRadius: isPhone ? 0 : '16px',
           border: isPhone ? 'none' : '1px solid rgba(140,82,255,0.18)',
           overflow: 'hidden',

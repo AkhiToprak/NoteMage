@@ -178,7 +178,7 @@ export default function CreateChatModal({
           height: isPhone ? '100dvh' : undefined,
           maxWidth: isPhone ? 'none' : 'calc(100vw - 40px)',
           maxHeight: isPhone ? 'none' : undefined,
-          background: 'linear-gradient(160deg, #1a1a36 0%, #151530 100%)',
+          background: 'linear-gradient(160deg, #000000 0%, #151530 100%)',
           border: isPhone ? 'none' : '1px solid rgba(140,82,255,0.2)',
           borderRadius: isPhone ? 0 : '20px',
           boxShadow: isPhone

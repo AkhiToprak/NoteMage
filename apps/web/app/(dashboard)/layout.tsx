@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             flexDirection: 'column',
             height: '100dvh',
             overflow: 'hidden',
-            background: '#1a1a36',
+            background: '#000000',
           }}
         >
           {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}

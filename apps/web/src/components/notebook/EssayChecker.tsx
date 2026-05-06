@@ -127,7 +127,7 @@ export default function EssayChecker({
         style={{
           width: '600px',
           maxHeight: '80vh',
-          background: '#1a1a36',
+          background: '#000000',
           border: '1px solid rgba(140,82,255,0.25)',
           borderRadius: '16px',
           display: 'flex',

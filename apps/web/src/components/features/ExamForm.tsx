@@ -90,7 +90,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
           style={{
             width: '440px',
             maxWidth: '90vw',
-            background: '#1a1a36',
+            background: '#000000',
             border: '1px solid rgba(174,137,255,0.2)',
             borderRadius: '20px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
