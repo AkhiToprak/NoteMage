@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { TimerProvider } from '@/contexts/TimerContext';
 
 export default function HomeLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -49,16 +50,18 @@ export default function HomeLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#000000',
-        color: '#e5e3ff',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {children}
-    </div>
+    <TimerProvider>
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#000000',
+          color: '#e5e3ff',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {children}
+      </div>
+    </TimerProvider>
   );
 }
