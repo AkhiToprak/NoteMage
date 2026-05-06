@@ -24,17 +24,61 @@ export async function GET(request: NextRequest) {
       where.parentId = parentId;
     }
 
-    const folders = await db.notebookFolder.findMany({
-      where,
-      orderBy: { name: 'asc' },
-      include: {
-        _count: {
-          select: { children: true, notebooks: true },
+    const [folders, allFolders, allNotebooks] = await Promise.all([
+      db.notebookFolder.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        include: {
+          _count: {
+            select: { children: true, notebooks: true },
+          },
         },
-      },
-    });
+      }),
+      db.notebookFolder.findMany({
+        where: { userId },
+        select: { id: true, parentId: true },
+      }),
+      db.notebook.findMany({
+        where: { userId, subject: { not: null }, folderId: { not: null } },
+        select: { folderId: true, subject: true },
+      }),
+    ]);
 
-    return successResponse(folders);
+    const childrenByParent = new Map<string, string[]>();
+    for (const f of allFolders) {
+      if (!f.parentId) continue;
+      const arr = childrenByParent.get(f.parentId) ?? [];
+      arr.push(f.id);
+      childrenByParent.set(f.parentId, arr);
+    }
+
+    const subjectsByFolder = new Map<string, Set<string>>();
+    for (const nb of allNotebooks) {
+      if (!nb.folderId || !nb.subject) continue;
+      const set = subjectsByFolder.get(nb.folderId) ?? new Set<string>();
+      set.add(nb.subject);
+      subjectsByFolder.set(nb.folderId, set);
+    }
+
+    const collectDescendantSubjects = (folderId: string): string[] => {
+      const out = new Set<string>();
+      const stack = [folderId];
+      while (stack.length > 0) {
+        const id = stack.pop()!;
+        const own = subjectsByFolder.get(id);
+        if (own) for (const s of own) out.add(s);
+        const children = childrenByParent.get(id);
+        if (children) stack.push(...children);
+      }
+      return Array.from(out);
+    };
+
+    const result = folders.map((f) => ({
+      ...f,
+      descendantSubjects: collectDescendantSubjects(f.id),
+    }));
+
+    return successResponse(result);
   } catch {
     return internalErrorResponse();
   }

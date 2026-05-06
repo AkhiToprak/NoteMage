@@ -9,6 +9,7 @@ export interface FolderData {
   parentId: string | null;
   updatedAt: string;
   _count: { children: number; notebooks: number };
+  descendantSubjects?: string[];
 }
 
 interface FolderCardProps {

@@ -319,6 +319,15 @@ function NotebooksPageContent() {
       ? notebooks
       : notebooks.filter((nb) => getPresetForSubject(nb.subject)?.label === activeFilter);
 
+  const filteredFolders =
+    activeFilter === 'All Subjects'
+      ? folders
+      : folders.filter((folder) =>
+          (folder.descendantSubjects ?? []).some(
+            (s) => getPresetForSubject(s)?.label === activeFilter
+          )
+        );
+
   return (
     <div
       style={{
@@ -783,7 +792,7 @@ function NotebooksPageContent() {
           }}
         >
           {/* Folders first */}
-          {folders.map((folder) => (
+          {filteredFolders.map((folder) => (
             <FolderCard
               key={folder.id}
               folder={folder}
