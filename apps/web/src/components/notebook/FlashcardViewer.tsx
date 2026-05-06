@@ -992,10 +992,11 @@ export default function FlashcardViewer({
         style={{
           fontSize: '20px',
           fontWeight: 700,
-          color: '#ede9ff',
-          margin: '0 0 8px',
+          color: '#f5f1ff',
+          margin: '0 0 10px',
           textAlign: 'center',
           fontFamily: 'inherit',
+          letterSpacing: '-0.02em',
         }}
       >
         {title}
@@ -1004,14 +1005,23 @@ export default function FlashcardViewer({
       {/* Progress */}
       <div
         style={{
-          fontSize: '13px',
-          color: 'rgba(237,233,255,0.4)',
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          gap: '4px',
+          padding: '5px 12px',
           marginBottom: '24px',
+          borderRadius: '999px',
+          border: '1px solid rgba(174,137,255,0.22)',
+          background: 'rgba(174,137,255,0.06)',
+          fontSize: '12px',
+          color: 'rgba(237,233,255,0.55)',
+          fontVariantNumeric: 'tabular-nums',
+          letterSpacing: '0.04em',
         }}
       >
-        <span style={{ color: '#c4a9ff', fontWeight: 600 }}>{currentIndex + 1}</span>
-        {' / '}
-        {cards.length}
+        <span style={{ color: '#d6c2ff', fontWeight: 700 }}>{currentIndex + 1}</span>
+        <span style={{ color: 'rgba(237,233,255,0.3)' }}>/</span>
+        <span>{cards.length}</span>
       </div>
 
       {/* Card container */}
@@ -1288,10 +1298,11 @@ export default function FlashcardViewer({
                 justifyContent: 'center',
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
-                boxShadow: '0 8px 32px rgba(140,82,255,0.15), 0 2px 8px rgba(0,0,0,0.3)',
-                background: 'linear-gradient(145deg, #0a0a0a 0%, #000000 50%, #050505 100%)',
-                border: '1px solid rgba(140,82,255,0.25)',
-                color: '#ede9ff',
+                boxShadow:
+                  '0 24px 60px rgba(140,82,255,0.18), 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.12)',
+                background: 'linear-gradient(160deg, #0d0a1c 0%, #000000 55%, #07060f 100%)',
+                border: '1px solid rgba(174,137,255,0.38)',
+                color: '#f5f1ff',
               }}
             >
               <div
@@ -1300,6 +1311,7 @@ export default function FlashcardViewer({
                   maxWidth: '100%',
                   wordWrap: 'break-word',
                   textAlign: 'center',
+                  lineHeight: 1.55,
                 }}
               >
                 {card && <MarkdownRenderer content={card.question} />}
@@ -1336,13 +1348,16 @@ export default function FlashcardViewer({
               <div
                 style={{
                   position: 'absolute',
-                  bottom: '20px',
-                  fontSize: '11px',
-                  color: 'rgba(196,169,255,0.3)',
+                  bottom: '18px',
+                  fontSize: '10px',
+                  color: 'rgba(214,194,255,0.62)',
                   fontFamily: 'inherit',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.18em',
+                  fontWeight: 600,
                 }}
               >
-                Click or press Space to flip
+                Space to flip
               </div>
             </div>
 
@@ -1360,10 +1375,11 @@ export default function FlashcardViewer({
                 justifyContent: 'center',
                 alignItems: 'center',
                 padding: isPhone ? '24px 20px' : '40px',
-                boxShadow: '0 8px 32px rgba(81,112,255,0.12), 0 2px 8px rgba(0,0,0,0.3)',
-                background: 'linear-gradient(145deg, #1e1a3a 0%, #000000 50%, #131128 100%)',
-                border: '1px solid rgba(81,112,255,0.2)',
-                color: 'rgba(237,233,255,0.85)',
+                boxShadow:
+                  '0 24px 60px rgba(81,112,255,0.18), 0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(155,178,255,0.14)',
+                background: 'linear-gradient(160deg, #14122a 0%, #000000 55%, #0c0a1c 100%)',
+                border: '1px solid rgba(120,148,255,0.38)',
+                color: '#eeeaff',
                 transform: 'rotateY(180deg)',
               }}
             >
@@ -1830,11 +1846,19 @@ function NavButton({
         width: '44px',
         height: '44px',
         borderRadius: '12px',
-        border: '1px solid rgba(140,82,255,0.2)',
-        background: hovered && !disabled ? 'rgba(140,82,255,0.15)' : 'rgba(140,82,255,0.06)',
-        color: disabled ? 'rgba(237,233,255,0.15)' : '#c4a9ff',
+        border: disabled
+          ? '1px solid rgba(174,137,255,0.12)'
+          : `1px solid ${hovered ? 'rgba(174,137,255,0.55)' : 'rgba(174,137,255,0.32)'}`,
+        background: disabled
+          ? 'rgba(140,82,255,0.03)'
+          : hovered
+            ? 'rgba(140,82,255,0.18)'
+            : 'rgba(140,82,255,0.10)',
+        color: disabled ? 'rgba(237,233,255,0.22)' : hovered ? '#ede4ff' : '#d6c2ff',
+        boxShadow:
+          !disabled && hovered ? '0 0 0 4px rgba(174,137,255,0.10), 0 6px 18px rgba(140,82,255,0.20)' : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background 0.15s ease',
+        transition: 'background 0.15s ease, color 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease',
       }}
     >
       {children}
