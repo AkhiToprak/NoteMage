@@ -34,7 +34,7 @@ export default function BentoFeatures() {
       style={{
         position: 'relative',
         padding: '128px 32px',
-        background: '#000000',
+        background: 'transparent',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>

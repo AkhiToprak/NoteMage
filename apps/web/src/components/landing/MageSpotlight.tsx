@@ -9,7 +9,7 @@ export default function MageSpotlight() {
       style={{
         position: 'relative',
         padding: '128px 32px',
-        background: '#181734',
+        background: 'transparent',
         overflow: 'hidden',
       }}
     >

@@ -33,7 +33,7 @@ export default function HowItWorks() {
       style={{
         position: 'relative',
         padding: '128px 32px',
-        background: '#161534',
+        background: 'transparent',
       }}
     >
       {/* dot grid overlay */}

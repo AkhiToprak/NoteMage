@@ -117,7 +117,7 @@ export default function LearningToolsCarousel() {
       style={{
         position: 'relative',
         padding: '128px 0',
-        background: '#000000',
+        background: 'transparent',
         overflow: 'hidden',
       }}
     >

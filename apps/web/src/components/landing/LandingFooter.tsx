@@ -34,7 +34,7 @@ export default function LandingFooter() {
       style={{
         position: 'relative',
         padding: '96px 32px 48px',
-        background: '#0e0d20',
+        background: 'transparent',
         borderTop: '1px solid rgba(140, 82, 255, 0.16)',
         overflow: 'hidden',
       }}

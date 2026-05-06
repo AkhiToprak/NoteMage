@@ -35,7 +35,7 @@ export default function StatsStrip() {
       style={{
         position: 'relative',
         padding: '72px 32px',
-        background: '#000000',
+        background: 'transparent',
         borderTop: '1px solid rgba(140, 82, 255, 0.12)',
         borderBottom: '1px solid rgba(140, 82, 255, 0.12)',
       }}
