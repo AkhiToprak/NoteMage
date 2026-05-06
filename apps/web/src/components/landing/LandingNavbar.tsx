@@ -23,8 +23,7 @@ export default function LandingNavbar() {
   }, [menuOpen]);
 
   const links = [
-    { href: '#features', label: 'Features' },
-    { href: '#how-it-works', label: 'How it works' },
+    { href: '/about', label: 'About' },
     { href: '/docs', label: 'Docs' },
     { href: '/pricing', label: 'Pricing' },
   ];
@@ -86,8 +85,11 @@ export default function LandingNavbar() {
               display: 'flex',
               listStyle: 'none',
               margin: 0,
-              padding: 0,
-              gap: 36,
+              padding: 6,
+              gap: 4,
+              background: 'rgba(174, 137, 255, 0.06)',
+              border: '1px solid rgba(174, 137, 255, 0.14)',
+              borderRadius: 'var(--radius-full)',
             }}
           >
             {links.map((l) => (
@@ -95,16 +97,26 @@ export default function LandingNavbar() {
                 <Link
                   href={l.href}
                   style={{
-                    fontSize: 14,
+                    display: 'inline-block',
+                    fontSize: 13,
                     fontWeight: 500,
                     color: 'rgba(237, 233, 255, 0.72)',
                     textDecoration: 'none',
                     fontFamily: 'var(--font-sans)',
                     letterSpacing: '0.01em',
-                    transition: 'color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                    padding: '8px 16px',
+                    borderRadius: 'var(--radius-full)',
+                    transition:
+                      'color 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--on-surface)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(237, 233, 255, 0.72)')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--on-surface)';
+                    e.currentTarget.style.background = 'rgba(174, 137, 255, 0.12)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'rgba(237, 233, 255, 0.72)';
+                    e.currentTarget.style.background = 'transparent';
+                  }}
                 >
                   {l.label}
                 </Link>

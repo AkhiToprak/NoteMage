@@ -291,22 +291,6 @@ export default function PricingPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Background glow */}
-        <div
-          style={{
-            position: 'absolute',
-            width: 600,
-            height: 600,
-            borderRadius: '50%',
-            background: 'rgba(255,222,89,0.06)',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-            filter: 'blur(40px)',
-          }}
-        />
-
         <h2
           style={{
             fontFamily: 'var(--font-display)',

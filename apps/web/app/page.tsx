@@ -12,7 +12,6 @@ import CoworkSpotlight from '@/components/landing/CoworkSpotlight';
 import LearningToolsCarousel from '@/components/landing/LearningToolsCarousel';
 import BentoFeatures from '@/components/landing/BentoFeatures';
 import HowItWorks from '@/components/landing/HowItWorks';
-import StatsStrip from '@/components/landing/StatsStrip';
 import FinalCta from '@/components/landing/FinalCta';
 import LandingFooter from '@/components/landing/LandingFooter';
 import { isInsideNativeShell } from '@/lib/native-bridge';
@@ -57,7 +56,6 @@ export default function LandingPage() {
       <LearningToolsCarousel />
       <BentoFeatures />
       <HowItWorks />
-      <StatsStrip />
       <FinalCta />
       <LandingFooter />
 

@@ -175,9 +175,6 @@ function LoginForm() {
         >
           Welcome back
         </h1>
-        <p style={{ color: '#aaa8c8', fontSize: '17px', margin: 0 }}>
-          Continue your quest for knowledge.
-        </p>
       </div>
 
       {/* Card */}

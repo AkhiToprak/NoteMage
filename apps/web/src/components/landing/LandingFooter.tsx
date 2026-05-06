@@ -177,40 +177,6 @@ export default function LandingFooter() {
           ))}
         </div>
 
-        <div
-          style={{
-            paddingTop: 32,
-            borderTop: '1px solid rgba(174, 137, 255, 0.28)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 16,
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: 13,
-              color: 'rgba(237, 233, 255, 0.4)',
-              fontFamily: 'var(--font-sans)',
-            }}
-          >
-            © 2026 Notemage. Crafted with curiosity and a lot of coffee.
-          </p>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 11,
-              color: 'var(--primary)',
-              fontFamily: 'var(--font-brand)',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
-            ✦ Status: All spells operational
-          </p>
-        </div>
       </div>
 
       <style jsx>{`
