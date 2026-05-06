@@ -263,6 +263,7 @@ export default function PricingCard({
               {limit === 0 && (
                 <span
                   style={{
+                    display: 'inline-block',
                     marginLeft: 6,
                     padding: '1px 6px',
                     borderRadius: 999,
