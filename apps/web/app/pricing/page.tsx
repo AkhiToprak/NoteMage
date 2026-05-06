@@ -6,6 +6,7 @@ import PricingCard from '@/components/pricing/PricingCard';
 import PricingHero from '@/components/pricing/PricingHero';
 import FeatureComparison from '@/components/pricing/FeatureComparison';
 import FAQ from '@/components/pricing/FAQ';
+import { BGPattern } from '@/components/ui/bg-pattern';
 import { TIERS, type TierKey } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
@@ -31,12 +32,20 @@ export default function PricingPage() {
   return (
     <main
       style={{
-        background: 'var(--background)',
+        position: 'relative',
+        isolation: 'isolate',
+        background: '#000000',
         color: 'var(--on-surface)',
         minHeight: '100vh',
         overflowX: 'hidden',
       }}
     >
+      <BGPattern
+        variant="dots"
+        size={22}
+        fill="rgba(174, 137, 255, 0.14)"
+        style={{ position: 'fixed' }}
+      />
       {/* ── GLOBAL STYLES ── */}
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
