@@ -99,11 +99,11 @@ export default function HomeHeader() {
           style={{
             maxWidth: 1400,
             margin: '0 auto',
-            padding: isPhone ? '0 12px' : isTablet ? '0 16px' : '0 20px',
-            height: isPhone ? 56 : 64,
+            padding: isPhone ? '0 14px' : isTablet ? '0 16px' : '0 20px',
+            height: isPhone ? 60 : 64,
             display: 'flex',
             alignItems: 'center',
-            gap: isPhone ? 8 : 16,
+            gap: isPhone ? 10 : 16,
           }}
         >
           {/* Burger button */}

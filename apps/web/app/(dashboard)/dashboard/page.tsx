@@ -353,7 +353,7 @@ export default function DashboardPage() {
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '32px' }),
+        gap: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
       }}
     >
       {/* Greeting */}
@@ -372,7 +372,7 @@ export default function DashboardPage() {
                 overflowX: 'auto',
                 scrollSnapType: 'x mandatory',
                 WebkitOverflowScrolling: 'touch',
-                gap: '16px',
+                gap: '18px',
                 paddingBottom: '4px',
                 scrollbarWidth: 'none',
               }
@@ -728,7 +728,7 @@ export default function DashboardPage() {
           style={{
             background: '#21213e',
             borderRadius: '20px',
-            padding: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+            padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
           }}
         >
           <XPProgressBar
@@ -755,7 +755,7 @@ export default function DashboardPage() {
         style={{
           background: '#21213e',
           borderRadius: '20px',
-          padding: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+          padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
         }}
       >
         <div
@@ -775,7 +775,7 @@ export default function DashboardPage() {
             </span>
             <h2
               style={{
-                fontSize: responsiveValue(bp, { phone: '16px', tablet: '17px', desktop: '18px' }),
+                fontSize: responsiveValue(bp, { phone: '18px', tablet: '17px', desktop: '18px' }),
                 fontWeight: 700,
                 color: '#e5e3ff',
                 margin: 0,
@@ -876,15 +876,15 @@ export default function DashboardPage() {
               tablet: '2fr 1fr',
               desktop: '3fr 1fr',
             }),
-            gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+            gap: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
           }}
         >
           {/* Recent Activity */}
           <div
             style={{
               background: '#272746',
-              borderRadius: responsiveValue(bp, { phone: '20px', tablet: '24px', desktop: '32px' }),
-              padding: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '32px' }),
+              borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
+              padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -895,7 +895,7 @@ export default function DashboardPage() {
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
                 marginBottom: responsiveValue(bp, {
-                  phone: '16px',
+                  phone: '18px',
                   tablet: '20px',
                   desktop: '32px',
                 }),
@@ -905,7 +905,7 @@ export default function DashboardPage() {
                 <h2
                   style={{
                     fontSize: responsiveValue(bp, {
-                      phone: '16px',
+                      phone: '18px',
                       tablet: '17px',
                       desktop: '18px',
                     }),
@@ -1078,8 +1078,8 @@ export default function DashboardPage() {
           <div
             style={{
               background: 'linear-gradient(135deg, #8348f6 0%, #001971 100%)',
-              borderRadius: responsiveValue(bp, { phone: '20px', tablet: '24px', desktop: '32px' }),
-              padding: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '32px' }),
+              borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
+              padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
               color: '#ffffff',
               display: 'flex',
               flexDirection: 'column',
@@ -1104,7 +1104,7 @@ export default function DashboardPage() {
               <h2
                 style={{
                   fontFamily: 'var(--font-brand)',
-                  fontSize: responsiveValue(bp, { phone: '22px', tablet: '26px', desktop: '30px' }),
+                  fontSize: responsiveValue(bp, { phone: '24px', tablet: '26px', desktop: '30px' }),
                   fontWeight: 400,
                   margin: '0 0 16px',
                   lineHeight: 1.1,
@@ -1321,8 +1321,8 @@ export default function DashboardPage() {
         <section
           style={{
             border: '2px dashed rgba(70,69,96,0.2)',
-            borderRadius: responsiveValue(bp, { phone: '20px', tablet: '24px', desktop: '32px' }),
-            padding: responsiveValue(bp, { phone: '24px', tablet: '32px', desktop: '48px' }),
+            borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
+            padding: responsiveValue(bp, { phone: '26px', tablet: '32px', desktop: '48px' }),
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -1351,7 +1351,7 @@ export default function DashboardPage() {
           </div>
           <h3
             style={{
-              fontSize: responsiveValue(bp, { phone: '18px', tablet: '19px', desktop: '20px' }),
+              fontSize: responsiveValue(bp, { phone: '20px', tablet: '19px', desktop: '20px' }),
               fontWeight: 700,
               color: '#e5e3ff',
               margin: '0 0 8px',

@@ -93,7 +93,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
   });
 
   // Derive grid constants from breakpoint
-  const CELL_SIZE = isPhone ? 10 : 13;
+  const CELL_SIZE = isPhone ? 11 : 13;
   const CELL_GAP = isPhone ? 2 : 3;
   const TOTAL_WEEKS = weeks ?? (isPhone ? 26 : 53);
   // Fetch enough days to cover the requested window plus a buffer for the
@@ -210,7 +210,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
       style={{
         background: '#21213e',
         borderRadius: '24px',
-        padding: isPhone ? '16px' : '24px',
+        padding: isPhone ? '18px' : '24px',
       }}
     >
       <div

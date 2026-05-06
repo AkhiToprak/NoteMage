@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               minHeight: 0,
               overflowX: 'hidden',
               overflowY: isFullHeight ? 'hidden' : 'auto',
-              padding: isFullHeight ? '0' : isPhone ? '16px' : isTablet ? '20px' : '32px',
+              padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
               color: '#e5e3ff',
               display: isFullHeight ? 'flex' : undefined,
               flexDirection: isFullHeight ? 'column' : undefined,

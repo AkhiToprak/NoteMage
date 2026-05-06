@@ -47,7 +47,7 @@ export default function DashboardGreeting({ userName }: DashboardGreetingProps) 
           'opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
         fontFamily: 'var(--font-display)',
         fontSize: responsiveValue(bp, {
-          phone: '22px',
+          phone: '24px',
           tablet: '28px',
           desktop: '34px',
         }),
