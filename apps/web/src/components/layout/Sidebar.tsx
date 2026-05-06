@@ -62,7 +62,7 @@ export default function Sidebar() {
       className="custom-scrollbar"
     >
       {/* Logo */}
-      <Link href="/home" style={{ padding: '0 24px', marginBottom: '8px', display: 'block' }}>
+      <Link href="/dashboard" style={{ padding: '0 24px', marginBottom: '8px', display: 'block' }}>
         <Image
           src="/logo_trimmed.png"
           alt="Notemage"

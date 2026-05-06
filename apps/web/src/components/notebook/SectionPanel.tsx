@@ -65,7 +65,7 @@ export default function SectionPanel() {
           gap: '8px',
         }}
       >
-        <Link href="/home">
+        <Link href="/dashboard">
           <Image
             src="/logo_trimmed.png"
             alt="Notemage"

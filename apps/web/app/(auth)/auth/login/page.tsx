@@ -73,7 +73,7 @@ function LoginForm() {
           setOauthLoading(null);
           return;
         }
-        router.push('/home');
+        router.push('/dashboard');
       } catch {
         // User cancelled or the bridge rejected — silently reset.
         setOauthLoading(null);
@@ -109,7 +109,7 @@ function LoginForm() {
           setError('Invalid email or password');
         }
       } else if (result?.ok) {
-        router.push('/home');
+        router.push('/dashboard');
       }
     } catch {
       setError('Something went wrong. Please try again.');

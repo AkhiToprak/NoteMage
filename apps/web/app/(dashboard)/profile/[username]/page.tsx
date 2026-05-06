@@ -130,7 +130,7 @@ export default function PublicProfilePage() {
           No user with the username &quot;{username}&quot; exists.
         </p>
         <Link
-          href="/home"
+          href="/dashboard"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

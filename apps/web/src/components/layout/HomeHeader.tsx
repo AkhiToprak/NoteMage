@@ -133,7 +133,7 @@ export default function HomeHeader() {
 
           {/* Logo */}
           <Link
-            href="/home"
+            href="/dashboard"
             style={{
               display: isPhone ? 'none' : 'flex',
               alignItems: 'center',

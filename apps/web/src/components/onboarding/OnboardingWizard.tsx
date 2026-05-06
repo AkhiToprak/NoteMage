@@ -287,7 +287,7 @@ export default function OnboardingWizard() {
       });
       // Refresh the JWT token so middleware sees onboardingComplete: true
       await updateSession();
-      router.push('/home');
+      router.push('/dashboard');
     } catch {
       setStepError(5, 'Something went wrong. Please try again.');
       setLoading(false);
