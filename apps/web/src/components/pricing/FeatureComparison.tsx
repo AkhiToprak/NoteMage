@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { CanvasIcon, NotebookIcon, TextFileIcon } from '@/components/icons/NavIcons';
 
 interface FeatureRow {
   name: string;
-  icon: string;
+  /** Either a Material Symbols icon name, or a custom SVG element from NavIcons. */
+  icon: string | ReactElement;
   free: string;
   plus: string;
   pro: string;
@@ -50,9 +52,9 @@ const COMPARISON_DATA: FeatureCategory[] = [
   {
     category: 'Study Tools',
     features: [
-      { name: 'Notebooks', icon: 'menu_book', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Text Files', icon: 'description', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Canvas Files', icon: 'draw', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Notebooks', icon: <NotebookIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Text Files', icon: <TextFileIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
       { name: 'Flashcard Creator', icon: 'style', free: '✓', plus: '✓', pro: '✓' },
       { name: 'Quiz Creator', icon: 'quiz', free: '✓', plus: '✓', pro: '✓' },
       { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
@@ -228,16 +230,28 @@ export default function FeatureComparison() {
                         gap: 10,
                       }}
                     >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{
-                          fontSize: 18,
-                          color: 'var(--outline)',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {feature.icon}
-                      </span>
+                      {typeof feature.icon === 'string' ? (
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
+                            fontSize: 18,
+                            color: 'var(--outline)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {feature.icon}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            color: 'var(--outline)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {feature.icon}
+                        </span>
+                      )}
                       {feature.name}
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px 16px' }}>
