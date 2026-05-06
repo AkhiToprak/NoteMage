@@ -117,7 +117,7 @@ export default function LearningToolsCarousel() {
       style={{
         position: 'relative',
         padding: '128px 0',
-        background: '#15142e',
+        background: '#000000',
         overflow: 'hidden',
       }}
     >
@@ -306,7 +306,7 @@ function ToolCard({ tool }: { tool: Tool }) {
             width: 44,
             height: 44,
             borderRadius: 'var(--radius-md)',
-            background: '#10102a',
+            background: '#000000',
             border: `1px solid ${tool.accent}66`,
             display: 'flex',
             alignItems: 'center',

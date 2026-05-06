@@ -9,7 +9,7 @@ export default function AboutPage() {
       className="nm-about"
       style={{
         position: 'relative',
-        background: '#15142e',
+        background: '#000000',
         color: '#ede9ff',
         fontFamily: 'var(--font-sans)',
         minHeight: '100vh',

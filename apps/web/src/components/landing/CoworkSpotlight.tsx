@@ -8,7 +8,7 @@ export default function CoworkSpotlight() {
       style={{
         position: 'relative',
         padding: '128px 32px',
-        background: '#15142e',
+        background: '#000000',
         overflow: 'hidden',
       }}
     >

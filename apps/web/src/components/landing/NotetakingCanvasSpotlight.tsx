@@ -22,7 +22,7 @@ export default function NotetakingCanvasSpotlight() {
       style={{
         position: 'relative',
         padding: '128px 32px',
-        background: '#15142e',
+        background: '#000000',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>

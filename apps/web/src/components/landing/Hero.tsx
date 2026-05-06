@@ -12,7 +12,7 @@ export default function Hero() {
         paddingTop: 140,
         paddingBottom: 100,
         overflow: 'hidden',
-        background: '#15142e',
+        background: '#000000',
       }}
     >
       {/* Grain overlay */}
