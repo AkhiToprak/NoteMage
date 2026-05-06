@@ -80,82 +80,6 @@ export default function HeroCarousel() {
 
   return (
     <div className="hero-carousel" style={{ position: 'relative', width: '100%' }}>
-      {/* Floating stickers for depth — hidden on mobile */}
-      <div
-        aria-hidden
-        className="hero-sticker hero-sticker-tl"
-        style={{
-          position: 'absolute',
-          top: -56,
-          left: -20,
-          zIndex: 3,
-          padding: '10px 16px',
-          borderRadius: 'var(--radius-full)',
-          background: '#14122c',
-          border: '1px solid rgba(255, 222, 89, 0.35)',
-          boxShadow: '0 16px 40px rgba(255, 222, 89, 0.1), 0 4px 12px rgba(0,0,0,0.4)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          animation: 'nm-float 6s ease-in-out infinite',
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ffde59' }}>
-          auto_awesome
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: 12,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: '#ffde59',
-          }}
-        >
-          Mage is typing…
-        </span>
-      </div>
-
-      <div
-        aria-hidden
-        className="hero-sticker hero-sticker-br"
-        style={{
-          position: 'absolute',
-          bottom: 84,
-          right: -40,
-          zIndex: 3,
-          padding: '10px 14px',
-          borderRadius: 'var(--radius-full)',
-          background: '#14122c',
-          border: '1px solid rgba(174, 137, 255, 0.35)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          animation: 'nm-float 7s ease-in-out infinite 1.2s',
-        }}
-      >
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: '#8ce5a7',
-            boxShadow: '0 0 10px #8ce5a7',
-          }}
-        />
-        <span
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: 12,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'rgba(237, 233, 255, 0.78)',
-          }}
-        >
-          3 friends studying
-        </span>
-      </div>
-
       {/* Embla viewport */}
       <div
         ref={emblaRef}
@@ -299,15 +223,6 @@ export default function HeroCarousel() {
         .hero-slide {
           flex: 0 0 92%;
         }
-        @keyframes nm-float {
-          0%,
-          100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
         @media (max-width: 1023px) {
           .hero-slide {
             flex: 0 0 96%;
@@ -316,14 +231,6 @@ export default function HeroCarousel() {
         @media (max-width: 767px) {
           .hero-slide {
             flex: 0 0 100%;
-          }
-          .hero-sticker {
-            display: none !important;
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .hero-sticker {
-            animation: none !important;
           }
         }
       `}</style>
