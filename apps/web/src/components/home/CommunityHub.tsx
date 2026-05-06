@@ -23,7 +23,7 @@ type FilterTab = 'latest' | 'popular';
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  pageBg: '#0d0d1a',
+  pageBg: '#000000',
   surface: '#12121f',
   cardBg: '#121222',
   elevated: '#1d1d33',

@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
 const COLORS = {
-  bg: '#0d0d1a',
+  bg: '#000000',
   surface: '#151528',
   cardBg: '#1a1a30',
   primary: '#8c52ff',
