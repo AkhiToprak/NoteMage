@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 
 export default function LandingNavbar() {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -55,28 +57,30 @@ export default function LandingNavbar() {
             gap: 32,
           }}
         >
-          <Link
-            href="/"
-            aria-label="Notemage home"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              textDecoration: 'none',
-            }}
-          >
-            <Image
-              src="/logo_trimmed.png"
-              alt="Notemage"
-              width={256}
-              height={96}
-              priority
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+            <Link
+              href="/"
+              aria-label="Notemage home"
               style={{
-                height: 40,
-                width: 'auto',
-                objectFit: 'contain',
+                display: 'flex',
+                alignItems: 'center',
+                textDecoration: 'none',
               }}
-            />
-          </Link>
+            >
+              <Image
+                src="/logo_trimmed.png"
+                alt="Notemage"
+                width={256}
+                height={96}
+                priority
+                style={{
+                  height: 40,
+                  width: 'auto',
+                  objectFit: 'contain',
+                }}
+              />
+            </Link>
+          </div>
 
           {/* Desktop links */}
           <ul
@@ -92,41 +96,47 @@ export default function LandingNavbar() {
               borderRadius: 'var(--radius-full)',
             }}
           >
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  style={{
-                    display: 'inline-block',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: 'rgba(237, 233, 255, 0.72)',
-                    textDecoration: 'none',
-                    fontFamily: 'var(--font-sans)',
-                    letterSpacing: '0.01em',
-                    padding: '8px 16px',
-                    borderRadius: 'var(--radius-full)',
-                    transition:
-                      'color 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--on-surface)';
-                    e.currentTarget.style.background = 'rgba(174, 137, 255, 0.12)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'rgba(237, 233, 255, 0.72)';
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
+            {links.map((l) => {
+              const isActive = pathname === l.href;
+              return (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    style={{
+                      display: 'inline-block',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: isActive ? 'var(--on-surface)' : 'rgba(237, 233, 255, 0.72)',
+                      textDecoration: 'none',
+                      fontFamily: 'var(--font-sans)',
+                      letterSpacing: '0.01em',
+                      padding: '8px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      background: isActive ? 'rgba(174, 137, 255, 0.16)' : 'transparent',
+                      transition:
+                        'color 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isActive) return;
+                      e.currentTarget.style.color = 'var(--on-surface)';
+                      e.currentTarget.style.background = 'rgba(174, 137, 255, 0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isActive) return;
+                      e.currentTarget.style.color = 'rgba(237, 233, 255, 0.72)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
 
           <div
             className="hide-tablet-down"
-            style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}
           >
             <Link
               href="/auth/login"

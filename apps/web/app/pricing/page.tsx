@@ -1,27 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import PricingCard from '@/components/pricing/PricingCard';
 import PricingHero from '@/components/pricing/PricingHero';
 import FeatureComparison from '@/components/pricing/FeatureComparison';
 import FAQ from '@/components/pricing/FAQ';
+import LandingNavbar from '@/components/landing/LandingNavbar';
 import { BGPattern } from '@/components/ui/bg-pattern';
 import { TIERS, type TierKey } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 export default function PricingPage() {
-  const [scrolled, setScrolled] = useState(false);
   const { formatPrice } = useCurrency();
   const { ref: cardsRef, isRevealed: cardsRevealed } = useScrollReveal();
   const { ref: ctaRef, isRevealed: ctaRevealed } = useScrollReveal();
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 48);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   const tiers: { key: TierKey; ctaText: string }[] = [
     { key: 'FREE', ctaText: 'Get Started Free' },
@@ -60,32 +53,6 @@ export default function PricingPage() {
         }
         .nlink:hover { opacity: 1; }
 
-        .btn-cta-nav {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: var(--tertiary-container);
-          color: #22223a;
-          font-weight: 700;
-          font-size: 14px;
-          padding: 9px 20px;
-          border-radius: var(--radius-md);
-          border: none;
-          text-decoration: none;
-          cursor: pointer;
-          box-shadow: 0 2px 12px rgba(255,222,89,0.2);
-          transition: transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.22s cubic-bezier(0.22,1,0.36,1);
-        }
-        .btn-cta-nav:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 24px rgba(255,222,89,0.3);
-        }
-        .btn-cta-nav:active { transform: translateY(0); }
-        .btn-cta-nav:focus-visible {
-          outline: 2px solid var(--tertiary-container);
-          outline-offset: 3px;
-        }
-
         .grain {
           position: fixed;
           inset: 0;
@@ -120,8 +87,6 @@ export default function PricingPage() {
 
         /* ── Responsive: Tablet (768–1023px) ── */
         @media (min-width: 768px) and (max-width: 1023px) {
-          .nav-links { display: none !important; }
-          .pricing-nav { padding: 0 24px !important; }
           .pricing-hero { padding: 140px 24px 60px !important; }
           .pricing-cards-grid {
             flex-wrap: wrap !important;
@@ -138,9 +103,6 @@ export default function PricingPage() {
 
         /* ── Responsive: Phone (max-width 767px) ── */
         @media (max-width: 767px) {
-          .nav-links { display: none !important; }
-          .nav-auth { gap: 8px !important; }
-          .pricing-nav { padding: 0 16px !important; }
           .pricing-hero { padding: 120px 16px 40px !important; }
           .pricing-cards-grid {
             flex-direction: column !important;
@@ -178,67 +140,7 @@ export default function PricingPage() {
       <div className="grain" />
 
       {/* ── NAVBAR ── */}
-      <nav
-        className="pricing-nav"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-          padding: '0 40px',
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          background: scrolled ? 'rgba(0, 0, 0, 0.88)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(24px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(174,137,255,0.20)' : '1px solid transparent',
-          transition:
-            'background 0.35s cubic-bezier(0.22,1,0.36,1), backdrop-filter 0.35s, border-color 0.35s',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1200,
-            width: '100%',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          {/* Logo */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo_trimmed.png"
-              alt="Notemage"
-              style={{ height: 40, width: 'auto', display: 'block' }}
-            />
-          </Link>
-
-          {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-            <div className="nav-links" style={{ display: 'flex', gap: 36 }}>
-              <Link href="/pricing" className="nlink" style={{ opacity: 1 }}>
-                Pricing
-              </Link>
-              <Link href="/#how-it-works" className="nlink">
-                How It Works
-              </Link>
-            </div>
-            <div className="nav-auth" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <Link href="/auth/login" className="nlink">
-                Log in
-              </Link>
-              <Link href="/waitlist" className="btn-cta-nav">
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <LandingNavbar />
 
       {/* ── HERO ── */}
       <PricingHero />
