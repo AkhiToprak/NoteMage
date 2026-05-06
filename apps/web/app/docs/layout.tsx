@@ -10,14 +10,14 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   return (
     <div
       style={{
-        background: 'var(--background)',
+        background: '#000000',
         color: 'var(--on-surface)',
         minHeight: '100vh',
         position: 'relative',
         overflowX: 'hidden',
       }}
     >
-      {/* Atmospheric backdrop — same vocabulary as the rest of the marketing site */}
+      {/* Subtle purple atmosphere — soft accent on top of the black base */}
       <div
         aria-hidden
         style={{
@@ -25,8 +25,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           inset: 0,
           pointerEvents: 'none',
           zIndex: 0,
-          background:
-            'rgba(174,137,255,0.16)',
+          background: 'rgba(174,137,255,0.05)',
         }}
       />
       <div
