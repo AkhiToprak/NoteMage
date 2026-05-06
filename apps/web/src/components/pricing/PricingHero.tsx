@@ -24,57 +24,6 @@ export default function PricingHero() {
         textAlign: 'center',
       }}
     >
-      {/* ── Aurora gradient mesh ── */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          overflow: 'hidden',
-          pointerEvents: 'none',
-        }}
-      >
-        <div
-          className="aurora-orb-1"
-          style={{
-            position: 'absolute',
-            width: 900,
-            height: 900,
-            borderRadius: '50%',
-            background: 'rgba(174,137,255,0.1)',
-            top: '-20%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            filter: 'blur(60px)',
-          }}
-        />
-        <div
-          className="aurora-orb-2"
-          style={{
-            position: 'absolute',
-            width: 500,
-            height: 500,
-            borderRadius: '50%',
-            background: 'rgba(185,195,255,0.06)',
-            top: '50%',
-            right: '5%',
-            filter: 'blur(40px)',
-          }}
-        />
-        <div
-          className="aurora-orb-3"
-          style={{
-            position: 'absolute',
-            width: 400,
-            height: 400,
-            borderRadius: '50%',
-            background: 'rgba(255,222,89,0.04)',
-            bottom: '5%',
-            left: '10%',
-            filter: 'blur(50px)',
-          }}
-        />
-      </div>
-
       {/* Just "Pricing" — large and clean */}
       <h1
         style={{

@@ -87,25 +87,6 @@ export default function PricingPage() {
         }
 
         /* Aurora blob keyframes — transform only for GPU compositing */
-        @keyframes aurora-drift-1 {
-          0%, 100% { transform: translateX(-50%) translate(0, 0); }
-          33% { transform: translateX(-50%) translate(30px, -20px); }
-          66% { transform: translateX(-50%) translate(-20px, 15px); }
-        }
-        @keyframes aurora-drift-2 {
-          0%, 100% { transform: translate(0, 0); }
-          33% { transform: translate(-25px, 20px); }
-          66% { transform: translate(15px, -15px); }
-        }
-        @keyframes aurora-drift-3 {
-          0%, 100% { transform: translate(0, 0); }
-          33% { transform: translate(20px, 10px); }
-          66% { transform: translate(-15px, -20px); }
-        }
-        .aurora-orb-1 { animation: aurora-drift-1 20s ease-in-out infinite; }
-        .aurora-orb-2 { animation: aurora-drift-2 25s ease-in-out infinite; }
-        .aurora-orb-3 { animation: aurora-drift-3 22s ease-in-out infinite; }
-
         /* Popular badge float */
         @keyframes badge-float {
           0%, 100% { transform: translateX(-50%) translateY(0); }
@@ -179,7 +160,6 @@ export default function PricingPage() {
 
         /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
-          .aurora-orb-1, .aurora-orb-2, .aurora-orb-3,
           .popular-badge { animation: none !important; }
           * { transition-duration: 0.01ms !important; }
         }
