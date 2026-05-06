@@ -107,7 +107,7 @@ export default function UnifiedSidebar() {
         width: '280px',
         minWidth: '280px',
         background: '#000000',
-        borderRight: '1px solid rgba(140,82,255,0.1)',
+        borderRight: '1px solid rgba(174,137,255,0.22)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -118,7 +118,7 @@ export default function UnifiedSidebar() {
       <div
         style={{
           padding: '14px 14px 10px',
-          borderBottom: '1px solid rgba(140,82,255,0.1)',
+          borderBottom: '1px solid rgba(174,137,255,0.22)',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
@@ -422,7 +422,7 @@ export default function UnifiedSidebar() {
                 margin: '12px 14px',
                 height: '1px',
                 background:
-                  'linear-gradient(90deg, transparent, rgba(140,82,255,0.25), transparent)',
+                  'linear-gradient(90deg, transparent, rgba(174,137,255,0.45), transparent)',
               }}
             />
 
