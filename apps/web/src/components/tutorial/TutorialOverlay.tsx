@@ -70,6 +70,20 @@ export function TutorialOverlay() {
       return;
     }
 
+    // Targets like the empty-state "Create Notebook" CTA can sit far below
+    // the fold. Without scrolling them into view, the four-frame backdrop
+    // covers the whole viewport while the spotlight + tooltip render
+    // off-screen, so the tour looks frozen.
+    const initial = target.getBoundingClientRect();
+    const fullyVisible =
+      initial.top >= 0 &&
+      initial.left >= 0 &&
+      initial.bottom <= window.innerHeight &&
+      initial.right <= window.innerWidth;
+    if (!fullyVisible) {
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+    }
+
     const measure = () => {
       setRect(target.getBoundingClientRect());
       setViewport({ w: window.innerWidth, h: window.innerHeight });
