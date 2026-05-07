@@ -19,7 +19,8 @@ import type {
   TutorialTargetKey,
 } from './types';
 
-const STORAGE_KEY = 'notemage-tutorial';
+const STORAGE_PREFIX = 'notemage-tutorial';
+const LEGACY_STORAGE_KEY = 'notemage-tutorial';
 
 const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'welcome',
@@ -30,10 +31,22 @@ const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'complete',
 ];
 
-function readStored(): TutorialPersistedState {
+/**
+ * Per-user storage key. Keying by userId prevents one user's tour state
+ * (e.g. completedAt/dismissedAt) from leaking into another account on the
+ * same browser — without this, the second user signs up and the welcome
+ * tour silently bails because the first user's localStorage still says
+ * "already done".
+ */
+function storageKey(userId: string): string {
+  return `${STORAGE_PREFIX}:${userId}`;
+}
+
+function readStored(userId: string | null | undefined): TutorialPersistedState {
   if (typeof window === 'undefined') return {};
+  if (!userId) return {};
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey(userId));
     if (!raw) return {};
     const parsed = JSON.parse(raw) as TutorialPersistedState;
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -42,12 +55,22 @@ function readStored(): TutorialPersistedState {
   }
 }
 
-function writeStored(state: TutorialPersistedState) {
+function writeStored(userId: string | null | undefined, state: TutorialPersistedState) {
   if (typeof window === 'undefined') return;
+  if (!userId) return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(storageKey(userId), JSON.stringify(state));
   } catch {
     /* ignore quota / private mode */
+  }
+}
+
+function clearLegacyKey() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    /* ignore */
   }
 }
 
@@ -99,6 +122,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const { data: session, update: updateSession } = useSession();
   const onboardingComplete = session?.user?.onboardingComplete === true;
   const serverState = session?.user?.tutorialState;
+  const userId = session?.user?.id ?? null;
 
   const [step, setStep] = useState<TutorialStep>('idle');
   const [hydrated, setHydrated] = useState(false);
@@ -108,16 +132,20 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const targetsRef = useRef<Map<TutorialTargetKey, HTMLElement>>(new Map());
   const persistedRef = useRef<TutorialPersistedState>({});
 
+  // Hydrate per-user state once we know who the user is. Re-runs on userId
+  // change so a fresh signup on the same browser starts from a clean slate.
   useEffect(() => {
-    const stored = readStored();
+    if (!userId) return;
+    clearLegacyKey();
+    const stored = readStored(userId);
     persistedRef.current = stored;
 
-    if (stored.step && ACTIVE_RESUMABLE_STEPS.includes(stored.step)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe localStorage hydration; same pattern as ThemeContext
-      setStep(stored.step);
-    }
+    const resumable =
+      stored.step && ACTIVE_RESUMABLE_STEPS.includes(stored.step) ? stored.step : 'idle';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe localStorage hydration; same pattern as ThemeContext
+    setStep(resumable);
     setHydrated(true);
-  }, []);
+  }, [userId]);
 
   // Reconcile with server: if completedAt/dismissedAt is set server-side but
   // local mirror doesn't know yet, adopt it and stand the tour down.
@@ -137,13 +165,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     if (mutated) {
       persistedRef.current = mutated;
-      writeStored(mutated);
+      writeStored(userId, mutated);
       if (step !== 'idle' && step !== 'complete') {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- adopt server's terminal state
         setStep('idle');
       }
     }
-  }, [hydrated, serverState, step]);
+  }, [hydrated, serverState, step, userId]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -158,14 +186,17 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setStep('welcome');
     const next: TutorialPersistedState = { ...stored, step: 'welcome' };
     persistedRef.current = next;
-    writeStored(next);
+    writeStored(userId, next);
     void patchServer({ step: 'welcome' });
-  }, [hydrated, step, pathname, onboardingComplete, serverState]);
+  }, [hydrated, step, pathname, onboardingComplete, serverState, userId]);
 
-  const persist = useCallback((next: TutorialPersistedState) => {
-    persistedRef.current = next;
-    writeStored(next);
-  }, []);
+  const persist = useCallback(
+    (next: TutorialPersistedState) => {
+      persistedRef.current = next;
+      writeStored(userId, next);
+    },
+    [userId]
+  );
 
   const start = useCallback(() => {
     setStep('step-1-dashboard');
@@ -222,13 +253,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const restart = useCallback(() => {
     setResult(null);
     persistedRef.current = { step: 'welcome' };
-    writeStored(persistedRef.current);
+    writeStored(userId, persistedRef.current);
     setStep('welcome');
     void patchServer({ reset: true }).then(() => {
       void patchServer({ step: 'welcome' });
       void updateSession();
     });
-  }, [updateSession]);
+  }, [updateSession, userId]);
 
   const register = useCallback((key: TutorialTargetKey, el: HTMLElement) => {
     targetsRef.current.set(key, el);
