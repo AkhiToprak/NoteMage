@@ -6,6 +6,7 @@ import { useTutorial } from './TutorialContext';
 import { TutorialTooltip } from './TutorialTooltip';
 import { WelcomeModal } from './WelcomeModal';
 import { CompletionModal } from './CompletionModal';
+import { SkipConfirmDialog } from './SkipConfirmDialog';
 import { STEP_CONFIG } from './steps';
 import type { TutorialStep } from './types';
 
@@ -29,6 +30,7 @@ export function TutorialOverlay() {
     h: typeof window === 'undefined' ? 0 : window.innerHeight,
   });
   const [mounted, setMounted] = useState(false);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- gate portal rendering until after first client paint to avoid SSR mismatch
@@ -37,13 +39,19 @@ export function TutorialOverlay() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- close any stale confirmation when the step changes
+    setShowSkipConfirm(false);
+  }, [step]);
+
+  useEffect(() => {
     if (!isTargetBoundStep(step)) return;
+    if (showSkipConfirm) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') skip();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [step, skip]);
+  }, [step, skip, showSkipConfirm]);
 
   useEffect(() => {
     if (!isTargetBoundStep(step)) {
@@ -106,7 +114,11 @@ export function TutorialOverlay() {
   return createPortal(
     <>
       {config.renderBackdrop && rect && (
-        <FourFrameBackdrop rect={rect} viewport={viewport} onClick={skip} />
+        <FourFrameBackdrop
+          rect={rect}
+          viewport={viewport}
+          onClick={() => setShowSkipConfirm(true)}
+        />
       )}
       {config.renderBackdrop && rect && <SpotlightRing rect={rect} />}
       <TutorialTooltip
@@ -116,6 +128,15 @@ export function TutorialOverlay() {
         placement={config.tooltipPlacement}
         onSkip={skip}
       />
+      {showSkipConfirm && (
+        <SkipConfirmDialog
+          onConfirm={() => {
+            setShowSkipConfirm(false);
+            skip();
+          }}
+          onCancel={() => setShowSkipConfirm(false)}
+        />
+      )}
     </>,
     document.body
   );
