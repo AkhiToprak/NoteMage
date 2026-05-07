@@ -339,14 +339,14 @@ export default function OnboardingWizard() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: '40px',
+          marginBottom: step === 2 && !showPayment ? '24px' : '40px',
         }}
       >
         <div
           style={{
-            width: '80px',
-            height: '80px',
-            marginBottom: '24px',
+            width: step === 2 && !showPayment ? '64px' : '80px',
+            height: step === 2 && !showPayment ? '64px' : '80px',
+            marginBottom: step === 2 && !showPayment ? '16px' : '24px',
             background: '#35355c',
             borderRadius: '20px',
             display: 'flex',
@@ -358,8 +358,8 @@ export default function OnboardingWizard() {
           <Image
             src="/logo_trimmed.png"
             alt="Notemage"
-            width={56}
-            height={56}
+            width={step === 2 && !showPayment ? 44 : 56}
+            height={step === 2 && !showPayment ? 44 : 56}
             style={{ objectFit: 'contain' }}
             priority
           />
@@ -367,7 +367,7 @@ export default function OnboardingWizard() {
         <h1
           style={{
             fontFamily: 'var(--font-brand)',
-            fontSize: '44px',
+            fontSize: step === 2 && !showPayment ? '34px' : '44px',
             fontWeight: 400,
             color: '#ae89ff',
             margin: '0 0 8px',
@@ -387,7 +387,7 @@ export default function OnboardingWizard() {
         style={{
           background: '#21213e',
           borderRadius: '32px',
-          padding: '40px',
+          padding: step === 2 && !showPayment ? '28px 32px 32px' : '40px',
           boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
           position: 'relative',
           overflow: 'hidden',
@@ -414,7 +414,7 @@ export default function OnboardingWizard() {
         <div
           key={step}
           style={{
-            marginTop: '32px',
+            marginTop: step === 2 && !showPayment ? '20px' : '32px',
             animation: 'fadeSlide 0.35s cubic-bezier(0.22,1,0.36,1)',
           }}
         >

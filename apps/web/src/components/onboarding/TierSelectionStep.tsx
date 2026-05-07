@@ -22,16 +22,13 @@ export default function TierSelectionStep({
   const { formatPrice } = useCurrency();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <p style={{ color: '#aaa8c8', fontSize: '14px', margin: 0, textAlign: 'center' }}>
-        Choose a plan to get started. You can change this anytime.
-      </p>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div
         style={{
           display: 'flex',
           gap: '16px',
           justifyContent: 'center',
+          alignItems: 'stretch',
         }}
       >
         {(['FREE', 'PLUS', 'PRO'] as TierKey[]).map((tier) => (
@@ -41,6 +38,7 @@ export default function TierSelectionStep({
             selected={selectedTier === tier}
             onSelect={onSelect}
             formattedPrice={formatPrice(TIERS[tier].priceCHF)}
+            compact
           />
         ))}
       </div>
@@ -51,25 +49,36 @@ export default function TierSelectionStep({
         </p>
       )}
 
-      <button
-        onClick={onNext}
-        disabled={loading}
+      <div
         style={{
-          alignSelf: 'center',
-          padding: '14px 48px',
-          borderRadius: '14px',
-          border: 'none',
-          fontWeight: 700,
-          fontSize: '15px',
-          cursor: loading ? 'wait' : 'pointer',
-          background: '#ae89ff',
-          color: '#fff',
-          opacity: loading ? 0.6 : 1,
-          transition: 'opacity 0.2s',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
         }}
       >
-        {loading ? 'Saving…' : selectedTier === 'FREE' ? 'Continue' : 'Continue to Payment'}
-      </button>
+        <button
+          onClick={onNext}
+          disabled={loading}
+          style={{
+            padding: '14px 48px',
+            borderRadius: '14px',
+            border: 'none',
+            fontWeight: 700,
+            fontSize: '15px',
+            cursor: loading ? 'wait' : 'pointer',
+            background: '#ae89ff',
+            color: '#fff',
+            opacity: loading ? 0.6 : 1,
+            transition: 'opacity 0.2s',
+          }}
+        >
+          {loading ? 'Saving…' : selectedTier === 'FREE' ? 'Continue' : 'Continue to Payment'}
+        </button>
+        <p style={{ color: '#aaa8c8', fontSize: '12px', margin: 0 }}>
+          You can change your plan anytime.
+        </p>
+      </div>
     </div>
   );
 }

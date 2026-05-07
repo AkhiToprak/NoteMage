@@ -12,6 +12,8 @@ interface PricingCardProps {
   formattedPrice?: string;
   isRevealed?: boolean;
   delay?: number;
+  /** Tighter spacing/typography for embedded contexts like the onboarding wizard. */
+  compact?: boolean;
 }
 
 const FEATURE_LABELS: Record<FeatureType, string> = {
@@ -69,6 +71,7 @@ export default function PricingCard({
   formattedPrice,
   isRevealed = true,
   delay = 0,
+  compact = false,
 }: PricingCardProps) {
   const config = TIERS[tier];
   const accent = ACCENT[tier];
@@ -80,6 +83,14 @@ export default function PricingCard({
   const displayPrice =
     formattedPrice ?? (config.priceCHF === 0 ? 'Free' : `CHF ${config.priceCHF}`);
 
+  const cardPadding = compact
+    ? isPro
+      ? '28px 22px 22px'
+      : '20px 22px 22px'
+    : isPro
+      ? '40px 32px 36px'
+      : '32px 32px 36px';
+
   const cardStyle: React.CSSProperties = {
     position: 'relative',
     background: selected
@@ -89,10 +100,10 @@ export default function PricingCard({
         : 'var(--surface-container-low)',
     border: `1px solid ${selected ? accent.text : accent.border}`,
     borderRadius: 'var(--radius-xl)',
-    padding: isPro ? '40px 32px 36px' : '32px 32px 36px',
+    padding: cardPadding,
     display: 'flex',
     flexDirection: 'column',
-    gap: 20,
+    gap: compact ? 12 : 20,
     flex: '1 1 0',
     minWidth: 0,
     maxWidth: 400,
@@ -165,7 +176,7 @@ export default function PricingCard({
       <h3
         style={{
           margin: 0,
-          fontSize: 18,
+          fontSize: compact ? 16 : 18,
           fontWeight: 700,
           color: accent.text,
           fontFamily: 'var(--font-display)',
@@ -179,7 +190,7 @@ export default function PricingCard({
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
         <span
           style={{
-            fontSize: 40,
+            fontSize: compact ? 30 : 40,
             fontWeight: 800,
             color: 'var(--on-surface)',
             letterSpacing: '-0.03em',
@@ -211,7 +222,7 @@ export default function PricingCard({
           listStyle: 'none',
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
+          gap: compact ? 8 : 12,
           flex: 1,
         }}
       >
@@ -222,7 +233,7 @@ export default function PricingCard({
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              fontSize: 14,
+              fontSize: compact ? 13 : 14,
               color: 'var(--on-surface-variant)',
               lineHeight: 1.4,
             }}
