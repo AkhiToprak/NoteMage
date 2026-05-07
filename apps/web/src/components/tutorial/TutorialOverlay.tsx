@@ -70,10 +70,16 @@ export function TutorialOverlay() {
       return;
     }
 
+    const measure = () => {
+      setRect(target.getBoundingClientRect());
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    };
+
     // Targets like the empty-state "Create Notebook" CTA can sit far below
-    // the fold. Without scrolling them into view, the four-frame backdrop
-    // covers the whole viewport while the spotlight + tooltip render
-    // off-screen, so the tour looks frozen.
+    // the fold. Use an instant (non-smooth) scrollIntoView so the rect is
+    // already in viewport before we measure — otherwise the four-frame
+    // backdrop blankets the screen while the smooth scroll is in flight
+    // and the tour looks frozen.
     const initial = target.getBoundingClientRect();
     const fullyVisible =
       initial.top >= 0 &&
@@ -81,14 +87,14 @@ export function TutorialOverlay() {
       initial.bottom <= window.innerHeight &&
       initial.right <= window.innerWidth;
     if (!fullyVisible) {
-      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' });
     }
 
-    const measure = () => {
-      setRect(target.getBoundingClientRect());
-      setViewport({ w: window.innerWidth, h: window.innerHeight });
-    };
     measure();
+    // Belt-and-suspenders: some scroll containers settle a frame after
+    // scrollIntoView (e.g. when layout is still flushing), so re-measure
+    // on the next frame to avoid a stale rect.
+    const rafId = requestAnimationFrame(measure);
 
     const ro = new ResizeObserver(measure);
     ro.observe(target);
@@ -105,6 +111,7 @@ export function TutorialOverlay() {
     vv?.addEventListener('scroll', measure);
 
     return () => {
+      cancelAnimationFrame(rafId);
       ro.disconnect();
       main?.removeEventListener('scroll', measure);
       window.removeEventListener('scroll', measure);
