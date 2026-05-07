@@ -6,6 +6,7 @@ import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceCon
 import CreateChatModal from '@/components/notebook/CreateChatModal';
 import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
+import { useTutorial } from '@/components/tutorial/TutorialContext';
 
 interface ExamItem {
   id: string;
@@ -34,6 +35,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
   const [notebookExams, setNotebookExams] = useState<ExamItem[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
   const skipRedirectRef = useRef(false);
+  const { step: tutorialStep, advance: tutorialAdvance, skip: tutorialSkip } = useTutorial();
 
   // Fetch exams
   useEffect(() => {
@@ -54,9 +56,12 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
       skipRedirectRef.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowCreateModal(true);
+      if (tutorialStep === 'step-3-workspace') {
+        tutorialAdvance('step-4-chat-modal');
+      }
       router.replace(`/notebooks/${id}`);
     }
-  }, [searchParams, id, router]);
+  }, [searchParams, id, router, tutorialStep, tutorialAdvance]);
 
   // Redirect to last-opened page or first page
   useEffect(() => {
@@ -129,8 +134,18 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
 
   const handleChatCreated = (chatId: string) => {
     setShowCreateModal(false);
+    if (tutorialStep === 'step-4-chat-modal') {
+      tutorialAdvance('complete');
+    }
     refreshChats();
     router.push(`/notebooks/${id}/chats/${chatId}`);
+  };
+
+  const handleCreateModalClose = () => {
+    setShowCreateModal(false);
+    if (tutorialStep === 'step-4-chat-modal') {
+      tutorialSkip();
+    }
   };
 
   // Build section tree for modal
@@ -308,7 +323,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
             notebookName={notebook?.name ?? ''}
             sections={sectionTree}
             documents={[]}
-            onClose={() => setShowCreateModal(false)}
+            onClose={handleCreateModalClose}
             onCreate={handleChatCreated}
           />
         )}

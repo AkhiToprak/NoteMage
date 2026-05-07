@@ -6,6 +6,7 @@ import { X, Upload, BookOpen, Check, Loader2, ChevronDown, ChevronRight } from '
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { getMageName } from '@/lib/scholar';
+import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
 
 interface PageRef {
   id: string;
@@ -56,6 +57,7 @@ export default function CreateChatModal({
   const { isPhone } = useBreakpoint();
   const { data: session } = useSession();
   const mageName = getMageName(session?.user?.scholarName);
+  const tutorialModalRef = useTutorialTarget('chat-modal');
   const [title, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState<'notebook' | 'upload'>('notebook');
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
@@ -168,6 +170,7 @@ export default function CreateChatModal({
 
       {/* Modal */}
       <div
+        ref={tutorialModalRef}
         style={{
           position: 'fixed',
           top: isPhone ? 0 : '50%',

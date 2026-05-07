@@ -36,6 +36,7 @@ export async function hydrateTokenFromDb(
       equippedTitleId: true,
       equippedFrameId: true,
       equippedBackgroundId: true,
+      tutorialState: true,
     },
   });
   if (!freshUser) return;
@@ -50,6 +51,10 @@ export async function hydrateTokenFromDb(
   token.equippedTitleId = freshUser.equippedTitleId ?? undefined;
   token.equippedFrameId = freshUser.equippedFrameId ?? undefined;
   token.equippedBackgroundId = freshUser.equippedBackgroundId ?? undefined;
+  token.tutorialState =
+    (freshUser.tutorialState as
+      | { step?: string; completedAt?: string; dismissedAt?: string }
+      | null) ?? undefined;
 }
 
 // Providers are constructed conditionally so the app still boots in dev
@@ -117,6 +122,7 @@ export const authOptions: NextAuthOptions = {
             equippedTitleId: true,
             equippedFrameId: true,
             equippedBackgroundId: true,
+            tutorialState: true,
             banned: true,
             banReason: true,
             failedLoginAttempts: true,
@@ -211,6 +217,10 @@ export const authOptions: NextAuthOptions = {
           equippedTitleId: user.equippedTitleId ?? undefined,
           equippedFrameId: user.equippedFrameId ?? undefined,
           equippedBackgroundId: user.equippedBackgroundId ?? undefined,
+          tutorialState:
+            (user.tutorialState as
+              | { step?: string; completedAt?: string; dismissedAt?: string }
+              | null) ?? undefined,
         };
       },
     }),
@@ -294,6 +304,7 @@ export const authOptions: NextAuthOptions = {
           equippedTitleId?: string;
           equippedFrameId?: string;
           equippedBackgroundId?: string;
+          tutorialState?: { step?: string; completedAt?: string; dismissedAt?: string };
         };
         token.id = user.id;
         token.username = u.username;
@@ -306,6 +317,7 @@ export const authOptions: NextAuthOptions = {
         token.equippedTitleId = u.equippedTitleId;
         token.equippedFrameId = u.equippedFrameId;
         token.equippedBackgroundId = u.equippedBackgroundId;
+        token.tutorialState = u.tutorialState;
       }
 
       // OAuth sign-in: user.id was set by the signIn callback (either
@@ -336,6 +348,7 @@ export const authOptions: NextAuthOptions = {
         session.user.equippedTitleId = token.equippedTitleId;
         session.user.equippedFrameId = token.equippedFrameId;
         session.user.equippedBackgroundId = token.equippedBackgroundId;
+        session.user.tutorialState = token.tutorialState;
       }
       return session;
     },

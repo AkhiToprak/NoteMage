@@ -3,7 +3,10 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import AvatarEditor from '@/components/ui/AvatarEditor';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTutorial } from '@/components/tutorial/TutorialContext';
 
 function getInitials(name?: string | null): string {
   if (!name) return '?';
@@ -17,6 +20,7 @@ function getInitials(name?: string | null): string {
 
 type Section =
   | 'account'
+  | 'appearance'
   | 'notifications'
   | 'goals'
   | 'subscription'
@@ -158,6 +162,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
   const { isPhone } = useBreakpoint();
+  const { preference: themePreference, resolved: resolvedTheme } = useTheme();
+  const { restart: restartTutorial } = useTutorial();
   const [activeSection, setActiveSection] = useState<Section>('account');
 
   const [notifications, setNotifications] = useState({
@@ -752,6 +758,7 @@ export default function SettingsPage() {
 
   const navItems: { section: Section; icon: string; label: string }[] = [
     { section: 'account', icon: 'person', label: 'Account Details' },
+    { section: 'appearance', icon: 'palette', label: 'Appearance' },
     { section: 'notifications', icon: 'notifications_active', label: 'Notifications' },
     { section: 'goals', icon: 'track_changes', label: 'Study Goals' },
     { section: 'subscription', icon: 'credit_card', label: 'Subscription' },
@@ -1508,6 +1515,157 @@ export default function SettingsPage() {
                   {mageNameStatus.msg}
                 </p>
               )}
+            </div>
+          </section>
+
+          {/* Welcome tour */}
+          <section
+            style={{
+              background: '#272746',
+              borderRadius: isPhone ? '20px' : '32px',
+              padding: isPhone ? '20px' : '32px',
+              display: activeSection === 'account' ? 'flex' : 'none',
+              flexDirection: isPhone ? 'column' : 'row',
+              alignItems: isPhone ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: '20px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '16px',
+                  background: 'rgba(174,137,255,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                >
+                  tour
+                </span>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                  Welcome tour
+                </h3>
+                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
+                  Re-take the 60-second tour that walks you through your first notebook and chat.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                restartTutorial();
+              }}
+              style={{
+                padding: '12px 22px',
+                background: '#ae89ff',
+                border: 'none',
+                borderRadius: '12px',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 700,
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 8px 24px rgba(174,137,255,0.3)',
+                transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                flexShrink: 0,
+                alignSelf: isPhone ? 'stretch' : 'auto',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+              }}
+            >
+              Re-take tour
+            </button>
+          </section>
+
+          {/* Appearance */}
+          <section
+            style={{
+              background: '#272746',
+              borderRadius: isPhone ? '20px' : '32px',
+              padding: isPhone ? '20px' : '32px',
+              display: activeSection === 'appearance' ? 'flex' : 'none',
+              flexDirection: 'column',
+              gap: '32px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '16px',
+                  background: 'rgba(174,137,255,0.32)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                >
+                  palette
+                </span>
+              </div>
+              <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                Appearance
+              </h3>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: isPhone ? 'column' : 'row',
+                alignItems: isPhone ? 'flex-start' : 'center',
+                justifyContent: 'space-between',
+                gap: isPhone ? '16px' : '24px',
+                padding: '16px',
+                background: '#21213e',
+                borderRadius: '16px',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: '#e5e3ff',
+                    margin: '0 0 2px',
+                  }}
+                >
+                  Color theme
+                </p>
+                <p style={{ fontSize: '12px', color: '#aaa8c8', margin: 0 }}>
+                  Choose Light, Dark, or System (follows your device).{' '}
+                  {themePreference === 'system' && (
+                    <>
+                      Currently using <strong>{resolvedTheme}</strong> via system.
+                    </>
+                  )}
+                </p>
+              </div>
+              <ThemeToggle />
             </div>
           </section>
 

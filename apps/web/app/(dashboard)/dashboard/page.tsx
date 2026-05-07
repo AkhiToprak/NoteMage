@@ -12,6 +12,8 @@ import DashboardAchievements from '@/components/features/DashboardAchievements';
 import DashboardGreeting from '@/components/features/DashboardGreeting';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
+import { useTutorial } from '@/components/tutorial/TutorialContext';
+import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
 
 interface RecentItem {
   id: string;
@@ -126,6 +128,10 @@ export default function DashboardPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [activeCard, setActiveCard] = useState(0);
   const { isPhone, isTablet, isDesktop, bp } = useBreakpoint();
+  const { step: tutorialStep } = useTutorial();
+  const tutorialCtaRef = useTutorialTarget('dashboard-cta');
+  const ctaHref =
+    tutorialStep === 'step-1-dashboard' ? '/notebooks?tutorial=1' : '/notebooks';
 
   useEffect(() => {
     fetch('/api/notebooks?folderId=all')
@@ -1371,7 +1377,8 @@ export default function DashboardPage() {
             No notebooks yet. Create your first one to get started on your notemage journey.
           </p>
           <Link
-            href="/notebooks"
+            ref={tutorialCtaRef}
+            href={ctaHref}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -39,6 +39,7 @@ import QuizSetCreator from '@/components/notebook/QuizSetCreator';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import TimerWidget from '@/components/layout/TimerWidget';
+import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UnifiedSidebar — OneNote-style sidebar with Files + Chats
@@ -2072,6 +2073,7 @@ function ChatTreeSection() {
   const mageName = getMageName(session?.user?.scholarName);
   const { notebookId, chats, activeChatId, refreshChats } = useNotebookWorkspace();
   const [expanded, setExpanded] = useState(true);
+  const chatCreateRef = useTutorialTarget('chat-create');
 
   const handleDeleteChat = useCallback(
     async (chatId: string, e: React.MouseEvent) => {
@@ -2139,6 +2141,7 @@ function ChatTreeSection() {
         </div>
 
         <Link
+          ref={chatCreateRef}
           href={`/notebooks/${notebookId}?new=1`}
           onClick={(e) => e.stopPropagation()}
           title="New chat"

@@ -53,6 +53,8 @@ model User {
   stripeCustomerId     String?   @unique         // Stripe customer ID (cus_...)
   stripeSubscriptionId String?   @unique         // Active Stripe subscription ID (sub_...)
   onboardingComplete Boolean   @default(false)  // false until wizard step 4 is done
+  // Welcome tour state — { step: TutorialStep, completedAt?: ISO, dismissedAt?: ISO }
+  tutorialState      Json      @default("{}")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

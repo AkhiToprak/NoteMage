@@ -15,6 +15,7 @@ export interface UserStats {
   allTodosDone: boolean;
   scholarNameSet: boolean;
   dailyGoalHit: boolean;
+  tutorialCompleted: boolean;
   totalAchievementsUnlocked: number;
 }
 
@@ -83,6 +84,15 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.allTodosDone,
     getProgress: (s) => ({ current: s.allTodosDone ? 1 : 0, target: 1 }),
+  },
+  {
+    badge: 'apprentice_mage',
+    name: 'Apprentice Mage',
+    description: 'Complete the welcome tour',
+    icon: 'school',
+    category: 'study',
+    checkCondition: (s) => s.tutorialCompleted,
+    getProgress: (s) => ({ current: s.tutorialCompleted ? 1 : 0, target: 1 }),
   },
 
   // ── Content ─────────────────────────────────────────────────────────
@@ -197,8 +207,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: 'Get all achievements',
     icon: 'auto_awesome',
     category: 'special',
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 17,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 17), target: 17 }),
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 18,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 18), target: 18 }),
   },
 ];
 

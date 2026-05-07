@@ -14,6 +14,7 @@ import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
+import { useTutorial } from '@/components/tutorial/TutorialContext';
 
 const ALL_LABEL = 'All Subjects';
 
@@ -83,6 +84,8 @@ function NotebooksPageContent() {
   const router = useRouter();
   const { isPhone, isTablet, bp } = useBreakpoint();
   const currentFolderId = searchParams.get('folder') || null;
+  const tutorialParam = searchParams.get('tutorial');
+  const { step: tutorialStep, advance: tutorialAdvance, skip: tutorialSkip } = useTutorial();
 
   const [notebooks, setNotebooks] = useState<NotebookData[]>([]);
   const [folders, setFolders] = useState<FolderData[]>([]);
@@ -159,6 +162,14 @@ function NotebooksPageContent() {
   }, [fetchContents]);
 
   useEffect(() => {
+    if (tutorialParam !== '1') return;
+    setShowForm(true);
+    if (tutorialStep === 'step-1-dashboard') {
+      tutorialAdvance('step-2-notebook-form');
+    }
+  }, [tutorialParam, tutorialStep, tutorialAdvance]);
+
+  useEffect(() => {
     if (!filterOpen) return;
     const handler = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
@@ -187,6 +198,10 @@ function NotebooksPageContent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ presetId: data.presetId }),
           }).catch(() => {});
+        }
+        if (tutorialStep === 'step-2-notebook-form' && json.data?.id) {
+          tutorialAdvance('step-3-workspace');
+          router.push(`/notebooks/${json.data.id}`);
         }
         await fetchContents();
       }
@@ -1017,6 +1032,9 @@ function NotebooksPageContent() {
           onCancel={() => {
             setShowForm(false);
             setEditingNotebook(null);
+            if (tutorialStep === 'step-2-notebook-form') {
+              tutorialSkip();
+            }
           }}
           isLoading={formLoading}
         />

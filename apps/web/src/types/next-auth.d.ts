@@ -8,6 +8,12 @@ export interface NameStyleSession {
   colorId?: string;
 }
 
+export interface TutorialStateSession {
+  step?: string;
+  completedAt?: string;
+  dismissedAt?: string;
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -22,6 +28,7 @@ declare module 'next-auth' {
       equippedTitleId?: string;
       equippedFrameId?: string;
       equippedBackgroundId?: string;
+      tutorialState?: TutorialStateSession;
     } & DefaultSession['user'];
   }
 }
@@ -39,5 +46,6 @@ declare module 'next-auth/jwt' {
     equippedTitleId?: string;
     equippedFrameId?: string;
     equippedBackgroundId?: string;
+    tutorialState?: TutorialStateSession;
   }
 }

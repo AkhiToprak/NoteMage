@@ -8,6 +8,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
+import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
@@ -34,34 +35,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isFullHeight = isNotebookWorkspace || isGroupDetail;
 
   return (
-    <TimerProvider>
-      <UnlockProvider>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100dvh',
-            overflow: 'hidden',
-            background: 'var(--background)',
-          }}
-        >
-          {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
-          <main
+    <TutorialProvider>
+      <TimerProvider>
+        <UnlockProvider>
+          <div
             style={{
-              flex: 1,
-              minHeight: 0,
-              overflowX: 'hidden',
-              overflowY: isFullHeight ? 'hidden' : 'auto',
-              padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-              color: 'var(--on-surface)',
-              display: isFullHeight ? 'flex' : undefined,
-              flexDirection: isFullHeight ? 'column' : undefined,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100dvh',
+              overflow: 'hidden',
+              background: 'var(--background)',
             }}
           >
-            {children}
-          </main>
-        </div>
-      </UnlockProvider>
-    </TimerProvider>
+            {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
+            <main
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowX: 'hidden',
+                overflowY: isFullHeight ? 'hidden' : 'auto',
+                padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
+                color: 'var(--on-surface)',
+                display: isFullHeight ? 'flex' : undefined,
+                flexDirection: isFullHeight ? 'column' : undefined,
+              }}
+            >
+              {children}
+            </main>
+          </div>
+        </UnlockProvider>
+      </TimerProvider>
+    </TutorialProvider>
   );
 }

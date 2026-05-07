@@ -15,6 +15,7 @@ export const XP_REWARDS = {
   streak_milestone_7: 100,
   streak_milestone_30: 500,
   streak_milestone_100: 2000,
+  tutorial_complete: 50,
 } as const;
 
 export type XPAction = keyof typeof XP_REWARDS;

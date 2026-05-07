@@ -65,13 +65,14 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       select: { id: true },
     }),
 
-    // User record for level, usernameChanged, scholarName
+    // User record for level, usernameChanged, scholarName, tutorial state
     db.user.findUnique({
       where: { id: userId },
       select: {
         level: true,
         usernameChanged: true,
         scholarName: true,
+        tutorialState: true,
       },
     }),
 
@@ -142,6 +143,10 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   `);
   const dailyGoalHit = dailyGoalRows[0]?.has_day === true;
 
+  const tutorialState = (userRecord?.tutorialState ?? null) as
+    | { completedAt?: string }
+    | null;
+
   return {
     notebookCount,
     currentStreak: streak?.currentStreak ?? 0,
@@ -159,6 +164,7 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     allTodosDone: totalTodos > 0 && incompleteTodos === 0,
     scholarNameSet: !!userRecord?.scholarName,
     dailyGoalHit,
+    tutorialCompleted: !!tutorialState?.completedAt,
     totalAchievementsUnlocked: unlockedCount,
   };
 }
