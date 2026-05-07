@@ -33,6 +33,11 @@ model User {
   failedLoginAttempts Int      @default(0)         // Brute-force protection counter
   lockedAt           DateTime?                     // Set when account is locked after too many failures
   dailyGoal          Int       @default(10)  // Pages the user wants to write/study per day (kept for backward compat)
+  // Personal targets — null = not set
+  dailyStudyMinutesGoal Int?
+  weeklyStudyPlansGoal  Int?
+  weeklyNotesGoal       Int?
+  weeklyChatsGoal       Int?
   username           String    @unique       // 3-20 chars, alphanumeric + underscores only
   avatarUrl          String?                 // URL to uploaded avatar image, null = default
   bio                String?   @db.VarChar(160) // Short bio, max 160 chars
@@ -64,7 +69,6 @@ model User {
   chatMessages           ChatMessage[]
 
   // Phase 1 — Social relations
-  studyGoals             StudyGoal[]
   sentFriendRequests     Friendship[]       @relation("SentFriendRequests")
   receivedFriendRequests Friendship[]       @relation("ReceivedFriendRequests")
   notifications          Notification[]
@@ -545,25 +549,6 @@ model PageContentAudit {
 // ============================================================================
 // PHASE 1 — SOCIAL FEATURE MODELS
 // ============================================================================
-
-// --- 1.2 Study Goals ---
-
-model StudyGoal {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String   // "hours" | "pages" | "quizzes" | "notebooks"
-  target    Int      // e.g., 10 hours, 20 pages per week
-  current   Int      @default(0)
-  weekStart DateTime // Monday 00:00 UTC of the goal week — resets weekly
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, weekStart])
-  @@map("study_goals")
-}
 
 // --- Study Planning ---
 

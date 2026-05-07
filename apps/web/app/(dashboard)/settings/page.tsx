@@ -7,6 +7,12 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
+import {
+  GOAL_CONFIGS,
+  EMPTY_GOAL_VALUES,
+  type GoalKey,
+  type GoalValues,
+} from '@/components/onboarding/StudyGoalsStep';
 
 function getInitials(name?: string | null): string {
   if (!name) return '?';
@@ -172,7 +178,7 @@ export default function SettingsPage() {
     weeklyReport: false,
   });
 
-  const [studyGoals, setStudyGoals] = useState<{ type: string; target: number }[]>([]);
+  const [studyGoals, setStudyGoals] = useState<GoalValues>({ ...EMPTY_GOAL_VALUES });
   const [goalCustomInputs, setGoalCustomInputs] = useState<Record<string, string>>({});
   const [goalStatus, setGoalStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(
     null
@@ -384,69 +390,37 @@ export default function SettingsPage() {
       .then((r) => r.json())
       .then((res) => {
         const d = res?.data ?? res;
-        if (Array.isArray(d?.goals)) {
-          setStudyGoals(
-            d.goals.map((g: { type: string; target: number }) => ({
-              type: g.type,
-              target: g.target,
-            }))
-          );
+        if (d && typeof d === 'object') {
+          setStudyGoals({
+            dailyStudyMinutesGoal: d.dailyStudyMinutesGoal ?? null,
+            weeklyStudyPlansGoal: d.weeklyStudyPlansGoal ?? null,
+            weeklyNotesGoal: d.weeklyNotesGoal ?? null,
+            weeklyChatsGoal: d.weeklyChatsGoal ?? null,
+          });
         }
       })
       .catch(() => {});
   }, []);
 
-  const GOAL_CONFIGS = [
-    {
-      type: 'hours',
-      icon: 'schedule',
-      label: 'Study Hours / Week',
-      unit: 'hrs',
-      presets: [5, 10, 15, 20],
-    },
-    {
-      type: 'pages',
-      icon: 'description',
-      label: 'Pages Written / Week',
-      unit: 'pgs',
-      presets: [5, 10, 20, 50],
-    },
-    {
-      type: 'quizzes',
-      icon: 'psychology',
-      label: 'Quizzes / Week',
-      unit: 'quiz',
-      presets: [3, 5, 10, 20],
-    },
-    {
-      type: 'notebooks',
-      icon: 'auto_stories',
-      label: 'Notebooks / Week',
-      unit: 'nb',
-      presets: [1, 2, 3, 5],
-    },
-  ];
-
-  const getStudyGoal = (type: string) => studyGoals.find((g) => g.type === type);
-
   const toggleStudyGoal = (config: (typeof GOAL_CONFIGS)[number]) => {
-    const existing = getStudyGoal(config.type);
-    if (existing) {
-      setStudyGoals(studyGoals.filter((g) => g.type !== config.type));
-    } else {
-      setStudyGoals([...studyGoals, { type: config.type, target: config.presets[1] }]);
-    }
+    setStudyGoals((prev) => ({
+      ...prev,
+      [config.key]: prev[config.key] === null ? config.presets[1] : null,
+    }));
   };
 
-  const setStudyGoalTarget = (type: string, target: number) => {
-    setStudyGoals(studyGoals.map((g) => (g.type === type ? { ...g, target } : g)));
+  const setStudyGoalTarget = (key: GoalKey, target: number) => {
+    setStudyGoals((prev) => ({ ...prev, [key]: target }));
   };
 
-  const handleGoalCustomInput = (type: string, value: string) => {
-    setGoalCustomInputs((prev) => ({ ...prev, [type]: value }));
+  const handleGoalCustomInput = (
+    config: (typeof GOAL_CONFIGS)[number],
+    value: string
+  ) => {
+    setGoalCustomInputs((prev) => ({ ...prev, [config.key]: value }));
     const num = parseInt(value, 10);
-    if (!isNaN(num) && num > 0) {
-      setStudyGoalTarget(type, num);
+    if (!isNaN(num) && num >= config.min && num <= config.max) {
+      setStudyGoalTarget(config.key, num);
     }
   };
 
@@ -458,7 +432,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/user/study-goals', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goals: studyGoals }),
+        body: JSON.stringify(studyGoals),
       });
       if (res.ok) {
         setGoalStatus({ type: 'success', msg: 'Study goals updated!' });
@@ -1811,7 +1785,7 @@ export default function SettingsPage() {
               style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
             >
               <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: 1.6 }}>
-                Track what matters to you. Your page goal also drives the dashboard progress bar.
+                Pick the targets that matter to you. Tap a card to enable or clear a goal.
               </p>
 
               {/* Goal Cards Grid */}
@@ -1823,12 +1797,13 @@ export default function SettingsPage() {
                 }}
               >
                 {GOAL_CONFIGS.map((config) => {
-                  const goal = getStudyGoal(config.type);
-                  const isSelected = !!goal;
+                  const target = studyGoals[config.key];
+                  const isSelected = target !== null;
+                  const mageNameTrimmed = mageNameInput.trim();
 
                   return (
                     <div
-                      key={config.type}
+                      key={config.key}
                       onClick={() => toggleStudyGoal(config)}
                       style={{
                         background: '#2d2d52',
@@ -1866,10 +1841,10 @@ export default function SettingsPage() {
                           transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
                         }}
                       >
-                        {config.label}
+                        {config.label(mageNameTrimmed)}
                       </p>
 
-                      {isSelected && goal ? (
+                      {isSelected && target !== null ? (
                         <p
                           style={{
                             margin: '0 0 12px',
@@ -1878,7 +1853,7 @@ export default function SettingsPage() {
                             color: '#ae89ff',
                           }}
                         >
-                          {goal.target} / week
+                          {target} {config.unit} / {config.cadence}
                         </p>
                       ) : (
                         <p style={{ margin: '0 0 0', fontSize: '11px', color: '#555578' }}>
@@ -1898,14 +1873,14 @@ export default function SettingsPage() {
                         >
                           {config.presets.map((preset) => {
                             const isActive =
-                              goal?.target === preset && !goalCustomInputs[config.type];
+                              target === preset && !goalCustomInputs[config.key];
                             return (
                               <button
                                 key={preset}
                                 type="button"
                                 onClick={() => {
-                                  setGoalCustomInputs((prev) => ({ ...prev, [config.type]: '' }));
-                                  setStudyGoalTarget(config.type, preset);
+                                  setGoalCustomInputs((prev) => ({ ...prev, [config.key]: '' }));
+                                  setStudyGoalTarget(config.key, preset);
                                 }}
                                 style={{
                                   background: isActive ? '#ae89ff' : '#35355c',
@@ -1926,14 +1901,15 @@ export default function SettingsPage() {
                           })}
                           <input
                             type="number"
-                            min={1}
+                            min={config.min}
+                            max={config.max}
                             placeholder="?"
-                            value={goalCustomInputs[config.type] || ''}
-                            onChange={(e) => handleGoalCustomInput(config.type, e.target.value)}
+                            value={goalCustomInputs[config.key] || ''}
+                            onChange={(e) => handleGoalCustomInput(config, e.target.value)}
                             style={{
                               width: '52px',
                               background: '#35355c',
-                              border: goalCustomInputs[config.type]
+                              border: goalCustomInputs[config.key]
                                 ? '1px solid #ae89ff'
                                 : '1px solid #555578',
                               borderRadius: '8px',

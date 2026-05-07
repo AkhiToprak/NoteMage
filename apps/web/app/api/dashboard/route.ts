@@ -20,15 +20,30 @@ export async function GET(request: NextRequest) {
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+    const todayUtcStart = new Date();
+    todayUtcStart.setUTCHours(0, 0, 0, 0);
     const weekStart = getCurrentWeekStart();
 
-    const [user, notebooks, todayPageCount, studyGoals] = await Promise.all([
+    const [
+      user,
+      notebooks,
+      todayPageCount,
+      todayMinutesCount,
+      weekNotesCount,
+      weekChatsCount,
+      weekPlans,
+    ] = await Promise.all([
       db.user.findUnique({
         where: { id: userId },
-        select: { dailyGoal: true },
+        select: {
+          dailyGoal: true,
+          dailyStudyMinutesGoal: true,
+          weeklyStudyPlansGoal: true,
+          weeklyNotesGoal: true,
+          weeklyChatsGoal: true,
+        },
       }),
 
-      // Recent 3 notebooks sorted by last updated
       db.notebook.findMany({
         where: { userId },
         orderBy: { updatedAt: 'desc' },
@@ -46,22 +61,53 @@ export async function GET(request: NextRequest) {
         },
       }),
 
-      // Pages updated today across all user's notebooks
       db.page.count({
         where: {
           updatedAt: { gte: todayStart },
-          section: {
-            notebook: { userId },
-          },
+          section: { notebook: { userId } },
         },
       }),
 
-      // Current week's study goals
-      db.studyGoal.findMany({
-        where: { userId, weekStart },
-        select: { type: true, target: true, current: true },
+      db.studyMinute.count({
+        where: { userId, minute: { gte: todayUtcStart } },
+      }),
+
+      db.page.count({
+        where: {
+          createdAt: { gte: weekStart },
+          section: { notebook: { userId } },
+        },
+      }),
+
+      db.notebookChat.count({
+        where: {
+          createdAt: { gte: weekStart },
+          notebook: { userId },
+        },
+      }),
+
+      db.studyPlan.findMany({
+        where: {
+          notebook: { userId },
+          createdAt: { lte: new Date() },
+          phases: { some: {} },
+        },
+        select: {
+          id: true,
+          phases: { select: { status: true, updatedAt: true } },
+        },
       }),
     ]);
+
+    const weekPlansCompleted = weekPlans.filter((plan) => {
+      if (plan.phases.length === 0) return false;
+      if (!plan.phases.every((phase) => phase.status === 'completed')) return false;
+      const lastUpdated = plan.phases.reduce(
+        (latest, phase) => (phase.updatedAt > latest ? phase.updatedAt : latest),
+        plan.phases[0].updatedAt
+      );
+      return lastUpdated >= weekStart;
+    }).length;
 
     const recentActivity = notebooks.map((nb) => {
       const totalPages = nb.sections.reduce((sum, s) => sum + s._count.pages, 0);
@@ -79,7 +125,18 @@ export async function GET(request: NextRequest) {
       dailyGoal: user?.dailyGoal ?? 10,
       todayPages: todayPageCount,
       recentActivity,
-      studyGoals: studyGoals.map((g) => ({ type: g.type, target: g.target, current: g.current })),
+      goals: {
+        dailyStudyMinutes: user?.dailyStudyMinutesGoal ?? null,
+        weeklyStudyPlans: user?.weeklyStudyPlansGoal ?? null,
+        weeklyNotes: user?.weeklyNotesGoal ?? null,
+        weeklyChats: user?.weeklyChatsGoal ?? null,
+      },
+      progress: {
+        todayStudyMinutes: todayMinutesCount,
+        weekStudyPlansCompleted: weekPlansCompleted,
+        weekNotesCreated: weekNotesCount,
+        weekChatsCreated: weekChatsCount,
+      },
     });
   } catch {
     return internalErrorResponse();

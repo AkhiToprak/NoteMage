@@ -24,25 +24,37 @@ interface RecentItem {
   pageCount: number;
 }
 
-interface StudyGoalData {
-  type: string;
-  target: number;
-  current: number;
+interface UserGoals {
+  dailyStudyMinutes: number | null;
+  weeklyStudyPlans: number | null;
+  weeklyNotes: number | null;
+  weeklyChats: number | null;
+}
+
+interface GoalProgress {
+  todayStudyMinutes: number;
+  weekStudyPlansCompleted: number;
+  weekNotesCreated: number;
+  weekChatsCreated: number;
 }
 
 interface DashboardData {
   dailyGoal: number;
   todayPages: number;
   recentActivity: RecentItem[];
-  studyGoals?: StudyGoalData[];
+  goals?: UserGoals;
+  progress?: GoalProgress;
 }
 
-const GOAL_META: Record<string, { icon: string; label: string; unit: string }> = {
-  hours: { icon: 'schedule', label: 'Study Hours', unit: 'hrs' },
-  pages: { icon: 'description', label: 'Pages Written', unit: 'pgs' },
-  quizzes: { icon: 'psychology', label: 'Quizzes', unit: 'quiz' },
-  notebooks: { icon: 'auto_stories', label: 'Notebooks', unit: 'nb' },
-};
+interface GoalRow {
+  key: keyof UserGoals;
+  icon: string;
+  label: string;
+  unit: string;
+  cadence: 'today' | 'this week';
+  current: number;
+  target: number;
+}
 
 interface TodoItem {
   id: string;
@@ -284,8 +296,56 @@ export default function DashboardPage() {
     setActiveCard(Math.round(el.scrollLeft / cardWidth));
   };
 
-  const hasStudyGoals = (dashboard?.studyGoals ?? []).length > 0;
-  const hasPagesGoal = (dashboard?.studyGoals ?? []).some((g) => g.type === 'pages');
+  const goals = dashboard?.goals;
+  const progress = dashboard?.progress;
+  const goalRows: GoalRow[] = [];
+  if (goals && progress) {
+    if (goals.dailyStudyMinutes !== null) {
+      goalRows.push({
+        key: 'dailyStudyMinutes',
+        icon: 'schedule',
+        label: 'Study Time',
+        unit: 'min',
+        cadence: 'today',
+        current: progress.todayStudyMinutes,
+        target: goals.dailyStudyMinutes,
+      });
+    }
+    if (goals.weeklyStudyPlans !== null) {
+      goalRows.push({
+        key: 'weeklyStudyPlans',
+        icon: 'event_available',
+        label: 'Study Plans',
+        unit: 'plans',
+        cadence: 'this week',
+        current: progress.weekStudyPlansCompleted,
+        target: goals.weeklyStudyPlans,
+      });
+    }
+    if (goals.weeklyNotes !== null) {
+      goalRows.push({
+        key: 'weeklyNotes',
+        icon: 'edit_note',
+        label: 'Notes',
+        unit: 'notes',
+        cadence: 'this week',
+        current: progress.weekNotesCreated,
+        target: goals.weeklyNotes,
+      });
+    }
+    if (goals.weeklyChats !== null) {
+      goalRows.push({
+        key: 'weeklyChats',
+        icon: 'auto_awesome',
+        label: 'Mage Chats',
+        unit: 'chats',
+        cadence: 'this week',
+        current: progress.weekChatsCreated,
+        target: goals.weeklyChats,
+      });
+    }
+  }
+  const hasStudyGoals = goalRows.length > 0;
   const goalProgress = dashboard
     ? Math.min(100, Math.round((dashboard.todayPages / dashboard.dailyGoal) * 100))
     : 0;
@@ -1105,7 +1165,7 @@ export default function DashboardPage() {
                   marginBottom: '16px',
                 }}
               >
-                {hasStudyGoals ? 'Weekly Goals' : 'Daily Goal'}
+                {hasStudyGoals ? 'Your Goals' : 'No Goals Set'}
               </span>
               <h2
                 style={{
@@ -1116,65 +1176,36 @@ export default function DashboardPage() {
                   lineHeight: 1.1,
                 }}
               >
-                {hasPagesGoal
-                  ? goalProgress >= 100
-                    ? 'Goal Complete!'
-                    : 'Keep Going'
-                  : hasStudyGoals
-                    ? 'Your Goals'
-                    : goalProgress >= 100
-                      ? 'Goal Complete!'
-                      : 'Keep Going'}
+                {!hasStudyGoals
+                  ? 'Set Your First Goal'
+                  : goalRows.every((g) => g.current >= g.target)
+                    ? 'All Goals Complete!'
+                    : 'Keep Going'}
               </h2>
-              {/* Only show pages summary text if the user has a pages goal or no study goals at all */}
-              {(hasPagesGoal || !hasStudyGoals) && (
-                <p
-                  style={{
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.8)',
-                    lineHeight: '1.7',
-                    margin: '0 0 32px',
-                  }}
-                >
-                  {dashboard === null
-                    ? 'Loading your progress…'
-                    : goalProgress >= 100
-                      ? `You wrote ${dashboard.todayPages} pages today. Amazing work — you hit your daily target!`
-                      : `${dashboard.todayPages} of ${dashboard.dailyGoal} pages written today. ${dashboard.dailyGoal - dashboard.todayPages} more to reach your goal.`}
-                </p>
-              )}
-              {/* If user only has non-pages goals, show a generic subtitle */}
-              {!hasPagesGoal && hasStudyGoals && (
-                <p
-                  style={{
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.8)',
-                    lineHeight: '1.7',
-                    margin: '0 0 32px',
-                  }}
-                >
-                  Track your weekly targets below.
-                </p>
-              )}
+              <p
+                style={{
+                  fontSize: '13px',
+                  color: 'rgba(255,255,255,0.8)',
+                  lineHeight: '1.7',
+                  margin: '0 0 32px',
+                }}
+              >
+                {dashboard === null
+                  ? 'Loading your progress…'
+                  : hasStudyGoals
+                    ? 'Track your daily and weekly targets below.'
+                    : 'Head to Settings to pick the targets that matter to you.'}
+              </p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {/* Show all active study goals */}
-              {hasStudyGoals ? (
+              {hasStudyGoals && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {(dashboard?.studyGoals ?? []).map((goal) => {
-                    const meta = GOAL_META[goal.type];
-                    if (!meta) return null;
-                    // For pages goals, use the auto-tracked todayPages vs dailyGoal
-                    const isPagesGoal = goal.type === 'pages';
-                    const currentValue = isPagesGoal ? (dashboard?.todayPages ?? 0) : goal.current;
-                    const targetValue = isPagesGoal
-                      ? (dashboard?.dailyGoal ?? goal.target)
-                      : goal.target;
-                    const pct = Math.min(100, Math.round((currentValue / targetValue) * 100));
+                  {goalRows.map((row) => {
+                    const pct = Math.min(100, Math.round((row.current / row.target) * 100));
                     return (
                       <div
-                        key={goal.type}
+                        key={row.key}
                         style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
                       >
                         <span
@@ -1186,7 +1217,7 @@ export default function DashboardPage() {
                             fontVariationSettings: pct >= 100 ? "'FILL' 1" : "'FILL' 0",
                           }}
                         >
-                          {pct >= 100 ? 'check_circle' : meta.icon}
+                          {pct >= 100 ? 'check_circle' : row.icon}
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
@@ -1199,11 +1230,10 @@ export default function DashboardPage() {
                             }}
                           >
                             <span style={{ color: 'rgba(255,255,255,0.9)' }}>
-                              {meta.label}
-                              {isPagesGoal ? ' (today)' : ''}
+                              {row.label} ({row.cadence})
                             </span>
                             <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                              {currentValue}/{targetValue} {meta.unit}
+                              {row.current}/{row.target} {row.unit}
                             </span>
                           </div>
                           <div
@@ -1230,8 +1260,8 @@ export default function DashboardPage() {
                     );
                   })}
                 </div>
-              ) : (
-                /* Fallback: no study goals set — show legacy pages progress */
+              )}
+              {!hasStudyGoals && dashboard !== null && (
                 <div>
                   <div
                     style={{
@@ -1244,7 +1274,7 @@ export default function DashboardPage() {
                       marginBottom: '8px',
                     }}
                   >
-                    <span>Progress</span>
+                    <span>Pages today</span>
                     <span>{goalProgress}%</span>
                   </div>
                   <div
@@ -1271,7 +1301,7 @@ export default function DashboardPage() {
               )}
 
               <Link
-                href="/notebooks"
+                href={hasStudyGoals ? '/notebooks' : '/settings'}
                 style={{
                   display: 'block',
                   width: '100%',
@@ -1299,7 +1329,11 @@ export default function DashboardPage() {
                   (e.currentTarget as HTMLAnchorElement).style.color = '#8348f6';
                 }}
               >
-                {goalProgress >= 100 ? 'Keep Going' : 'Start Writing'}
+                {hasStudyGoals
+                  ? goalRows.every((g) => g.current >= g.target)
+                    ? 'Keep Going'
+                    : 'Start Studying'
+                  : 'Set Goals'}
               </Link>
               <p
                 style={{

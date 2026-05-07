@@ -10,7 +10,7 @@ import UsernameStep from './UsernameStep';
 import TierSelectionStep from './TierSelectionStep';
 import PaymentStep from './PaymentStep';
 import AvatarStep from './AvatarStep';
-import StudyGoalsStep from './StudyGoalsStep';
+import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoalsStep';
 import ScholarNameStep from './ScholarNameStep';
 import type { TierKey } from '@/lib/tiers';
 
@@ -33,7 +33,7 @@ interface FormData {
   selectedTier: TierKey;
   avatarUrl: string | null;
   scholarName: string;
-  studyGoals: { type: string; target: number }[];
+  goals: GoalValues;
 }
 
 const CREDENTIALS_STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Mage', 'Goals'];
@@ -58,7 +58,7 @@ const INITIAL_FORM: FormData = {
   selectedTier: 'FREE',
   avatarUrl: null,
   scholarName: '',
-  studyGoals: [],
+  goals: { ...EMPTY_GOAL_VALUES },
 };
 
 export default function OnboardingWizard() {
@@ -275,7 +275,7 @@ export default function OnboardingWizard() {
   };
 
   // ── Step 5: Goals ─────────────────────────────────────────────────────────
-  const submitOnboarding = async (goals: { type: string; target: number }[]) => {
+  const submitOnboarding = async (goals: GoalValues) => {
     clearStepError(5);
     setLoading(true);
     try {
@@ -283,7 +283,7 @@ export default function OnboardingWizard() {
       await fetch('/api/user/onboarding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studyGoals: goals, scholarName }),
+        body: JSON.stringify({ goals, scholarName }),
       });
       // Refresh the JWT token so middleware sees onboardingComplete: true
       await updateSession();
@@ -294,8 +294,8 @@ export default function OnboardingWizard() {
     }
   };
 
-  const handleGoalsFinish = () => submitOnboarding(formData.studyGoals);
-  const handleGoalsSkip = () => submitOnboarding([]);
+  const handleGoalsFinish = () => submitOnboarding(formData.goals);
+  const handleGoalsSkip = () => submitOnboarding({ ...EMPTY_GOAL_VALUES });
 
   const stepSubtitle =
     step === 1
@@ -520,8 +520,9 @@ export default function OnboardingWizard() {
 
           {step === 5 && (
             <StudyGoalsStep
-              goals={formData.studyGoals}
-              onChange={(goals) => setFormData((prev) => ({ ...prev, studyGoals: goals }))}
+              goals={formData.goals}
+              mageName={formData.scholarName.trim()}
+              onChange={(goals) => setFormData((prev) => ({ ...prev, goals }))}
               onFinish={handleGoalsFinish}
               onSkip={handleGoalsSkip}
               loading={loading}

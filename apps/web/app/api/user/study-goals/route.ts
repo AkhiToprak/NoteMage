@@ -8,16 +8,50 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 
-const VALID_GOAL_TYPES = ['hours', 'pages', 'quizzes', 'notebooks'] as const;
+export type GoalKey =
+  | 'dailyStudyMinutesGoal'
+  | 'weeklyStudyPlansGoal'
+  | 'weeklyNotesGoal'
+  | 'weeklyChatsGoal';
 
-function getCurrentWeekStart(): Date {
-  const now = new Date();
-  const day = now.getUTCDay(); // 0 = Sunday, 1 = Monday ...
-  const diff = day === 0 ? -6 : 1 - day; // offset to Monday
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + diff);
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday;
+const GOAL_KEYS: readonly GoalKey[] = [
+  'dailyStudyMinutesGoal',
+  'weeklyStudyPlansGoal',
+  'weeklyNotesGoal',
+  'weeklyChatsGoal',
+] as const;
+
+const GOAL_BOUNDS: Record<GoalKey, { min: number; max: number }> = {
+  dailyStudyMinutesGoal: { min: 1, max: 1440 },
+  weeklyStudyPlansGoal: { min: 1, max: 100 },
+  weeklyNotesGoal: { min: 1, max: 1000 },
+  weeklyChatsGoal: { min: 1, max: 1000 },
+};
+
+export function validateGoals(
+  input: unknown
+): { ok: true; data: Partial<Record<GoalKey, number | null>> } | { ok: false; error: string } {
+  if (!input || typeof input !== 'object') {
+    return { ok: false, error: 'goals must be an object' };
+  }
+  const out: Partial<Record<GoalKey, number | null>> = {};
+  for (const key of GOAL_KEYS) {
+    if (!(key in (input as Record<string, unknown>))) continue;
+    const raw = (input as Record<string, unknown>)[key];
+    if (raw === null) {
+      out[key] = null;
+      continue;
+    }
+    if (typeof raw !== 'number' || !Number.isInteger(raw)) {
+      return { ok: false, error: `${key} must be an integer or null` };
+    }
+    const { min, max } = GOAL_BOUNDS[key];
+    if (raw < min || raw > max) {
+      return { ok: false, error: `${key} must be between ${min} and ${max}` };
+    }
+    out[key] = raw;
+  }
+  return { ok: true, data: out };
 }
 
 export async function GET(request: NextRequest) {
@@ -25,14 +59,22 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const weekStart = getCurrentWeekStart();
-
-    const goals = await db.studyGoal.findMany({
-      where: { userId, weekStart },
-      select: { type: true, target: true },
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        dailyStudyMinutesGoal: true,
+        weeklyStudyPlansGoal: true,
+        weeklyNotesGoal: true,
+        weeklyChatsGoal: true,
+      },
     });
 
-    return successResponse({ goals });
+    return successResponse(user ?? {
+      dailyStudyMinutesGoal: null,
+      weeklyStudyPlansGoal: null,
+      weeklyNotesGoal: null,
+      weeklyChatsGoal: null,
+    });
   } catch {
     return internalErrorResponse();
   }
@@ -44,52 +86,21 @@ export async function PUT(request: NextRequest) {
     if (!userId) return unauthorizedResponse();
 
     const body = await request.json().catch(() => ({}));
-    const { goals = [] } = body as {
-      goals?: { type: string; target: number }[];
-    };
+    const result = validateGoals(body);
+    if (!result.ok) return badRequestResponse(result.error);
 
-    if (!Array.isArray(goals)) {
-      return badRequestResponse('goals must be an array');
-    }
-
-    for (const goal of goals) {
-      if (!VALID_GOAL_TYPES.includes(goal.type as (typeof VALID_GOAL_TYPES)[number])) {
-        return badRequestResponse('Invalid goal type');
-      }
-      if (!Number.isInteger(goal.target) || goal.target < 1 || goal.target > 10_000) {
-        return badRequestResponse('Goal target must be a positive integer up to 10000');
-      }
-    }
-
-    const weekStart = getCurrentWeekStart();
-
-    await db.$transaction(async (tx) => {
-      await tx.studyGoal.deleteMany({
-        where: { userId, weekStart },
-      });
-
-      if (goals.length > 0) {
-        await tx.studyGoal.createMany({
-          data: goals.map((g) => ({
-            userId,
-            type: g.type,
-            target: g.target,
-            weekStart,
-          })),
-        });
-      }
-
-      // Sync pages goal → User.dailyGoal for dashboard
-      const pagesGoal = goals.find((g) => g.type === 'pages');
-      if (pagesGoal) {
-        await tx.user.update({
-          where: { id: userId },
-          data: { dailyGoal: Math.min(200, Math.max(1, Math.ceil(pagesGoal.target / 7))) },
-        });
-      }
+    const updated = await db.user.update({
+      where: { id: userId },
+      data: result.data,
+      select: {
+        dailyStudyMinutesGoal: true,
+        weeklyStudyPlansGoal: true,
+        weeklyNotesGoal: true,
+        weeklyChatsGoal: true,
+      },
     });
 
-    return successResponse({ success: true });
+    return successResponse(updated);
   } catch {
     return internalErrorResponse();
   }

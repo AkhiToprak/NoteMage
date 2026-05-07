@@ -2,61 +2,88 @@
 
 import { useState } from 'react';
 
-interface Goal {
-  type: string;
-  target: number;
-}
+export type GoalKey =
+  | 'dailyStudyMinutesGoal'
+  | 'weeklyStudyPlansGoal'
+  | 'weeklyNotesGoal'
+  | 'weeklyChatsGoal';
+
+export type GoalValues = Record<GoalKey, number | null>;
 
 interface StudyGoalsStepProps {
-  goals: Goal[];
-  onChange: (goals: Goal[]) => void;
+  goals: GoalValues;
+  mageName: string;
+  onChange: (goals: GoalValues) => void;
   onFinish: () => void;
   onSkip: () => void;
   loading: boolean;
   error: string;
 }
 
-interface GoalConfig {
-  type: string;
+export interface GoalConfig {
+  key: GoalKey;
   icon: string;
-  label: string;
+  label: (mageName: string) => string;
+  cadence: 'day' | 'week';
   unit: string;
   presets: number[];
+  min: number;
+  max: number;
 }
 
-const GOAL_CONFIGS: GoalConfig[] = [
+export const GOAL_CONFIGS: GoalConfig[] = [
   {
-    type: 'hours',
+    key: 'dailyStudyMinutesGoal',
     icon: 'schedule',
-    label: 'Study Hours / Week',
-    unit: 'hrs',
-    presets: [5, 10, 15, 20],
+    label: () => 'Study Time',
+    cadence: 'day',
+    unit: 'min',
+    presets: [5, 15, 30, 60],
+    min: 1,
+    max: 1440,
   },
   {
-    type: 'pages',
-    icon: 'description',
-    label: 'Pages Written / Week',
-    unit: 'pgs',
-    presets: [5, 10, 20, 50],
-  },
-  {
-    type: 'quizzes',
-    icon: 'psychology',
-    label: 'Quizzes / Week',
-    unit: 'quiz',
-    presets: [3, 5, 10, 20],
-  },
-  {
-    type: 'notebooks',
-    icon: 'auto_stories',
-    label: 'Notebooks / Week',
-    unit: 'nb',
+    key: 'weeklyStudyPlansGoal',
+    icon: 'event_available',
+    label: () => 'Finish Study Plans',
+    cadence: 'week',
+    unit: 'plans',
     presets: [1, 2, 3, 5],
+    min: 1,
+    max: 100,
+  },
+  {
+    key: 'weeklyNotesGoal',
+    icon: 'edit_note',
+    label: () => 'Take Notes',
+    cadence: 'week',
+    unit: 'notes',
+    presets: [3, 5, 10, 20],
+    min: 1,
+    max: 1000,
+  },
+  {
+    key: 'weeklyChatsGoal',
+    icon: 'auto_awesome',
+    label: (mageName) => `Consult ${mageName || 'your Mage'}`,
+    cadence: 'week',
+    unit: 'chats',
+    presets: [3, 5, 10, 20],
+    min: 1,
+    max: 1000,
   },
 ];
 
+export const EMPTY_GOAL_VALUES: GoalValues = {
+  dailyStudyMinutesGoal: null,
+  weeklyStudyPlansGoal: null,
+  weeklyNotesGoal: null,
+  weeklyChatsGoal: null,
+};
+
 export default function StudyGoalsStep({
   goals,
+  mageName,
   onChange,
   onFinish,
   onSkip,
@@ -66,28 +93,24 @@ export default function StudyGoalsStep({
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  const getGoal = (type: string) => goals.find((g) => g.type === type);
-
   const toggleGoal = (config: GoalConfig) => {
-    const existing = getGoal(config.type);
-    if (existing) {
-      // Deselect
-      onChange(goals.filter((g) => g.type !== config.type));
+    const current = goals[config.key];
+    if (current !== null) {
+      onChange({ ...goals, [config.key]: null });
     } else {
-      // Select with default preset
-      onChange([...goals, { type: config.type, target: config.presets[1] }]);
+      onChange({ ...goals, [config.key]: config.presets[1] });
     }
   };
 
-  const setTarget = (type: string, target: number) => {
-    onChange(goals.map((g) => (g.type === type ? { ...g, target } : g)));
+  const setTarget = (key: GoalKey, target: number) => {
+    onChange({ ...goals, [key]: target });
   };
 
-  const handleCustomInput = (type: string, value: string) => {
-    setCustomInputs((prev) => ({ ...prev, [type]: value }));
+  const handleCustomInput = (config: GoalConfig, value: string) => {
+    setCustomInputs((prev) => ({ ...prev, [config.key]: value }));
     const num = parseInt(value, 10);
-    if (!isNaN(num) && num > 0) {
-      setTarget(type, num);
+    if (!isNaN(num) && num >= config.min && num <= config.max) {
+      setTarget(config.key, num);
     }
   };
 
@@ -95,10 +118,10 @@ export default function StudyGoalsStep({
     <>
       <div style={{ marginBottom: '28px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
-          Set your weekly goals
+          Set your goals
         </h2>
         <p style={{ fontSize: '14px', color: '#aaa8c8', margin: 0, lineHeight: '1.6' }}>
-          Track what matters to you. You can change these anytime.
+          Pick what matters to you. You can change these anytime.
         </p>
       </div>
 
@@ -117,7 +140,6 @@ export default function StudyGoalsStep({
         </div>
       )}
 
-      {/* Goal Cards Grid */}
       <div
         style={{
           display: 'grid',
@@ -127,15 +149,15 @@ export default function StudyGoalsStep({
         }}
       >
         {GOAL_CONFIGS.map((config) => {
-          const goal = getGoal(config.type);
-          const isSelected = !!goal;
-          const isHovered = hoveredCard === config.type;
+          const target = goals[config.key];
+          const isSelected = target !== null;
+          const isHovered = hoveredCard === config.key;
 
           return (
             <div
-              key={config.type}
+              key={config.key}
               onClick={() => toggleGoal(config)}
-              onMouseEnter={() => setHoveredCard(config.type)}
+              onMouseEnter={() => setHoveredCard(config.key)}
               onMouseLeave={() => setHoveredCard(null)}
               style={{
                 background: '#2d2d52',
@@ -153,7 +175,6 @@ export default function StudyGoalsStep({
                 userSelect: 'none',
               }}
             >
-              {/* Icon */}
               <span
                 className="material-symbols-outlined"
                 style={{
@@ -168,7 +189,6 @@ export default function StudyGoalsStep({
                 {config.icon}
               </span>
 
-              {/* Label */}
               <p
                 style={{
                   margin: '0 0 4px',
@@ -179,11 +199,10 @@ export default function StudyGoalsStep({
                   transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
                 }}
               >
-                {config.label}
+                {config.label(mageName)}
               </p>
 
-              {/* Status or hint */}
-              {isSelected && goal ? (
+              {isSelected && target !== null ? (
                 <p
                   style={{
                     margin: '0 0 12px',
@@ -192,7 +211,7 @@ export default function StudyGoalsStep({
                     color: '#ae89ff',
                   }}
                 >
-                  {goal.target} / week
+                  {target} {config.unit} / {config.cadence}
                 </p>
               ) : (
                 <p style={{ margin: '0 0 0', fontSize: '11px', color: '#555578' }}>
@@ -200,20 +219,19 @@ export default function StudyGoalsStep({
                 </p>
               )}
 
-              {/* Presets & custom (only when selected) */}
               {isSelected && (
                 <div
                   onClick={(e) => e.stopPropagation()}
                   style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}
                 >
                   {config.presets.map((preset) => {
-                    const isActive = goal?.target === preset && !customInputs[config.type];
+                    const isActive = target === preset && !customInputs[config.key];
                     return (
                       <button
                         key={preset}
                         onClick={() => {
-                          setCustomInputs((prev) => ({ ...prev, [config.type]: '' }));
-                          setTarget(config.type, preset);
+                          setCustomInputs((prev) => ({ ...prev, [config.key]: '' }));
+                          setTarget(config.key, preset);
                         }}
                         style={{
                           background: isActive ? '#ae89ff' : '#35355c',
@@ -232,17 +250,19 @@ export default function StudyGoalsStep({
                       </button>
                     );
                   })}
-                  {/* Custom input */}
                   <input
                     type="number"
-                    min={1}
+                    min={config.min}
+                    max={config.max}
                     placeholder="?"
-                    value={customInputs[config.type] || ''}
-                    onChange={(e) => handleCustomInput(config.type, e.target.value)}
+                    value={customInputs[config.key] || ''}
+                    onChange={(e) => handleCustomInput(config, e.target.value)}
                     style={{
                       width: '52px',
                       background: '#35355c',
-                      border: customInputs[config.type] ? '1px solid #ae89ff' : '1px solid #555578',
+                      border: customInputs[config.key]
+                        ? '1px solid #ae89ff'
+                        : '1px solid #555578',
                       borderRadius: '8px',
                       padding: '4px 8px',
                       color: '#e5e3ff',
@@ -258,7 +278,6 @@ export default function StudyGoalsStep({
         })}
       </div>
 
-      {/* Buttons */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <button
           onClick={onFinish}
