@@ -30,9 +30,21 @@ function constantTimeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
+function normalizeEnvToken(raw: string | undefined): string {
+  if (!raw) return '';
+  let v = raw.trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1);
+  }
+  return v;
+}
+
 export function isValidBypassToken(value: string | null | undefined): boolean {
-  const expected = process.env.SIGNUP_BYPASS_TOKEN;
-  if (!expected || expected.length === 0) return false;
+  const expected = normalizeEnvToken(process.env.SIGNUP_BYPASS_TOKEN);
+  if (expected.length === 0) return false;
   if (typeof value !== 'string' || value.length === 0) return false;
   return constantTimeEqual(value, expected);
 }
