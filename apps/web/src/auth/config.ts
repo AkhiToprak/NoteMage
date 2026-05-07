@@ -7,6 +7,7 @@ import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { getIpFromHeaders } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
+import { hasSignupBypassFromAppCookies } from '@/lib/signup-bypass';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -263,6 +264,8 @@ export const authOptions: NextAuthOptions = {
         // ignore
       }
 
+      const allowNewUser = await hasSignupBypassFromAppCookies();
+
       const resolution = await findOrCreateOAuthUser({
         provider,
         providerAccountId,
@@ -270,13 +273,17 @@ export const authOptions: NextAuthOptions = {
         name: (user.name ?? p.name ?? null) as string | null,
         avatarUrl: (user.image ?? p.picture ?? null) as string | null,
         ip,
+        allowNewUser,
       });
 
       if (!resolution.ok) {
         // Surface OAuthAccountExists as a redirect to the error page on the
-        // login surface; banned/ip_cap stay opaque (return false).
+        // login surface; banned/ip_cap/signup_disabled stay opaque.
         if (resolution.reason === 'account_exists') {
           return '/auth/login?error=OAuthAccountExists';
+        }
+        if (resolution.reason === 'signup_disabled') {
+          return '/waitlist';
         }
         return false;
       }

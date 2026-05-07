@@ -17,7 +17,7 @@ export type OAuthProvider = 'google' | 'apple';
 
 export type OAuthUserResolution =
   | { ok: true; userId: string }
-  | { ok: false; reason: 'banned' | 'account_exists' | 'ip_cap' };
+  | { ok: false; reason: 'banned' | 'account_exists' | 'ip_cap' | 'signup_disabled' };
 
 export interface OAuthUserInput {
   provider: OAuthProvider;
@@ -26,10 +26,13 @@ export interface OAuthUserInput {
   name: string | null;
   avatarUrl: string | null;
   ip: string; // 'unknown' if the caller can't determine it
+  // Pre-launch gate: when false, brand-new account creation is blocked
+  // (existing OAuth links and email-based silent links still work).
+  allowNewUser: boolean;
 }
 
 export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAuthUserResolution> {
-  const { provider, providerAccountId, email, name, avatarUrl, ip } = input;
+  const { provider, providerAccountId, email, name, avatarUrl, ip, allowNewUser } = input;
 
   // 1. Already linked? Just log in.
   const existingLink = await db.oAuthAccount.findUnique({
@@ -66,7 +69,10 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
     return { ok: true, userId: existingByEmail.id };
   }
 
-  // 3. New user — IP cap, then create User + OAuthAccount.
+  // 3. New user — pre-launch gate, IP cap, then create User + OAuthAccount.
+  if (!allowNewUser) {
+    return { ok: false, reason: 'signup_disabled' };
+  }
   const cap = await enforceIpCap(ip);
   if (!cap.ok) {
     return { ok: false, reason: 'ip_cap' };

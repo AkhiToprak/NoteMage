@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import {
+  SIGNUP_BYPASS_COOKIE,
+  SIGNUP_BYPASS_COOKIE_MAX_AGE,
+  SIGNUP_BYPASS_QUERY_PARAM,
+  hasSignupBypass,
+  isValidBypassToken,
+} from '@/lib/signup-bypass';
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -122,9 +129,26 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));
   }
 
-  // Signups are paused: hard-redirect register route to waitlist.
+  // Signups are paused. A pre-launch bypass cookie unlocks the register
+  // route end-to-end. Visiting `/auth/register?key=<SIGNUP_BYPASS_TOKEN>`
+  // sets the cookie via the handshake below and redirects to a clean URL.
   if (pathname.startsWith('/auth/register')) {
-    return withSecurityHeaders(NextResponse.redirect(new URL('/waitlist', request.url)));
+    const queryToken = request.nextUrl.searchParams.get(SIGNUP_BYPASS_QUERY_PARAM);
+    if (queryToken && isValidBypassToken(queryToken)) {
+      const cleanUrl = new URL(pathname, request.url);
+      const response = NextResponse.redirect(cleanUrl);
+      response.cookies.set(SIGNUP_BYPASS_COOKIE, queryToken, {
+        httpOnly: true,
+        secure: request.nextUrl.protocol === 'https:',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: SIGNUP_BYPASS_COOKIE_MAX_AGE,
+      });
+      return withSecurityHeaders(response);
+    }
+    if (!hasSignupBypass(request)) {
+      return withSecurityHeaders(NextResponse.redirect(new URL('/waitlist', request.url)));
+    }
   }
 
   // Already-authed users hitting /auth/login (e.g. the iPad shell boots

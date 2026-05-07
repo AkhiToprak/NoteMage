@@ -4,11 +4,21 @@ import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { enforceIpCap, validateUserUsername } from '@/lib/registration';
+import { hasSignupBypass } from '@/lib/signup-bypass';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
   try {
+    // Pre-launch gate: middleware redirects /auth/register without a bypass
+    // cookie, but a direct POST would skip that — re-check here.
+    if (!hasSignupBypass(request)) {
+      return NextResponse.json(
+        { success: false, error: 'Signups are paused.' },
+        { status: 403 }
+      );
+    }
+
     // Rate limit: 5 registration attempts per IP per hour (in-memory, resets on restart)
     const ip = getClientIp(request);
     const rl = await rateLimit(`register:${ip}`, 50, 60 * 60 * 1000); // Temporarily raised for testing (was 5)
