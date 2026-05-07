@@ -89,7 +89,7 @@ export default function HomeHeader() {
           position: 'sticky',
           top: 0,
           zIndex: 50,
-          background: 'rgba(0, 0, 0, 0.85)',
+          background: 'color-mix(in srgb, var(--background) 85%, transparent)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           borderBottom: '1px solid rgba(174,137,255,0.30)',

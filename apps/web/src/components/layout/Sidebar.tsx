@@ -11,6 +11,7 @@ import TierBadge from '@/components/ui/TierBadge';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { DashboardIcon, NotebookIcon, CoWorkIcon } from '@/components/icons/NavIcons';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 type NavLink = {
   href: string;
@@ -49,7 +50,7 @@ export default function Sidebar() {
         width: '256px',
         minWidth: '256px',
         height: '100vh',
-        background: '#000000',
+        background: 'var(--background)',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
@@ -171,6 +172,17 @@ export default function Sidebar() {
           </span>
           New Quiz
         </button>
+      </div>
+
+      {/* Theme toggle */}
+      <div
+        style={{
+          padding: '0 16px',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <ThemeToggle compact />
       </div>
 
       {/* Bottom: logout + user profile */}

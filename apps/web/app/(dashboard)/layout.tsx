@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             flexDirection: 'column',
             height: '100dvh',
             overflow: 'hidden',
-            background: '#000000',
+            background: 'var(--background)',
           }}
         >
           {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               overflowX: 'hidden',
               overflowY: isFullHeight ? 'hidden' : 'auto',
               padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               display: isFullHeight ? 'flex' : undefined,
               flexDirection: isFullHeight ? 'column' : undefined,
             }}

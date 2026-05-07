@@ -92,6 +92,30 @@
   --font-minecraft: var(--font-minecraft), 'Silkscreen', 'Press Start 2P', 'Courier New', monospace;
 }
 
+/* ─── Light theme overrides (data-theme="light") ──────────────────────── */
+
+[data-theme='light'] {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-dim: #f1f1f5;
+  --surface-bright: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f7f7fb;
+  --surface-container: #f1f1f5;
+  --surface-container-high: #e9e9ef;
+  --surface-container-highest: #e1e1e9;
+  --surface-variant: #ececf2;
+  --on-surface: #1a1a2e;
+  --on-surface-variant: #555578;
+  --on-background: #1a1a2e;
+  --foreground: #1a1a2e;
+  --inverse-surface: #1a1a2e;
+  --inverse-on-surface: #f1f1f5;
+
+  --outline: #8888a8;
+  --outline-variant: #d4d4dc;
+}
+
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
 
 @theme inline {
