@@ -81,55 +81,6 @@ const TABS: { key: CoWorkTab; label: string; icon: string }[] = [
   { key: 'dms', label: 'Direct Messages', icon: 'chat' },
 ];
 
-function ComingSoon({
-  icon,
-  title,
-  description,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 12,
-        padding: '100px 16px',
-      }}
-    >
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 56, color: COLORS.textMuted, opacity: 0.5 }}
-      >
-        {icon}
-      </span>
-      <span style={{ fontSize: 20, fontWeight: 700, color: COLORS.textPrimary }}>{title}</span>
-      <span
-        style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', maxWidth: 360 }}
-      >
-        {description}
-      </span>
-      <span
-        style={{
-          marginTop: 8,
-          padding: '6px 16px',
-          borderRadius: 9999,
-          background: `${COLORS.primary}1a`,
-          color: COLORS.primary,
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: '0.05em',
-        }}
-      >
-        COMING SOON
-      </span>
-    </div>
-  );
-}
-
 export default function GroupsPage() {
   const router = useRouter();
   const { data: session } = useSession();
