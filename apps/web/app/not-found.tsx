@@ -17,7 +17,7 @@ export default function NotFound() {
         textAlign: 'center',
       }}
     >
-      <Mascot pose="thinking" size="xl" idle="sway" priority />
+      <Mascot pose="sad" size="xl" idle="sway" priority />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <span
           style={{

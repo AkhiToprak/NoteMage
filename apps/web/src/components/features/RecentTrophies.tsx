@@ -197,7 +197,7 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
             gap: '10px',
           }}
         >
-          <Mascot pose="thinking" size="md" idle="sway" />
+          <Mascot pose="sleeping" size="md" idle="sway" />
           No achievements unlocked yet.
         </div>
       ) : (

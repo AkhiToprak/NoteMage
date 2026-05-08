@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Mascot, fireMascotConfetti, type MascotOneShot } from '@/components/mascot';
 
 interface AchievementToastProps {
   badge: string;
@@ -16,6 +17,9 @@ export default function AchievementToast({
   icon,
   onClose,
 }: AchievementToastProps) {
+  const toastRef = useRef<HTMLDivElement | null>(null);
+  const [oneShot, setOneShot] = useState<MascotOneShot | null>('celebrate');
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -40,6 +44,7 @@ export default function AchievementToast({
         }
       `}</style>
       <div
+        ref={toastRef}
         style={{
           position: 'fixed',
           bottom: '24px',
@@ -57,6 +62,26 @@ export default function AchievementToast({
           animation: 'achievement-slide-in 0.4s cubic-bezier(0.22,1,0.36,1) forwards',
         }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            top: '-32px',
+            right: '20px',
+            pointerEvents: 'none',
+          }}
+        >
+          <Mascot
+            pose="celebrate"
+            size="sm"
+            idle="bounce"
+            oneShot={oneShot}
+            onOneShotEnd={() => {
+              fireMascotConfetti({ origin: toastRef.current });
+              setOneShot(null);
+            }}
+            alt={`Achievement unlocked: ${name}`}
+          />
+        </div>
         {/* Icon */}
         <div
           style={{

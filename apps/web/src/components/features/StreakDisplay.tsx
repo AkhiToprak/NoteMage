@@ -1,6 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Mascot, fireMascotConfetti, type MascotOneShot } from '@/components/mascot';
+
+const STREAK_MILESTONES = [3, 7, 30, 100, 365] as const;
+
+function streakMilestoneFor(n: number): number | null {
+  let hit: number | null = null;
+  for (const m of STREAK_MILESTONES) {
+    if (n >= m) hit = m;
+  }
+  return hit;
+}
 
 interface StreakInfo {
   currentStreak: number;
@@ -32,6 +43,8 @@ function getMilestone(streak: number): string | null {
 export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
   const [streak, setStreak] = useState<StreakInfo | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [mascotOneShot, setMascotOneShot] = useState<MascotOneShot | null>(null);
+  const mascotRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetch('/api/user/streak')
@@ -46,11 +59,30 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
       .catch(() => {});
   }, [onStreakLoaded]);
 
+  const milestoneHit = useMemo(
+    () => (streak ? streakMilestoneFor(streak.currentStreak) : null),
+    [streak],
+  );
+
+  useEffect(() => {
+    if (milestoneHit === null) return;
+    if (typeof window === 'undefined') return;
+    const key = `streak-celebrated-${milestoneHit}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, '1');
+    } catch {
+      return;
+    }
+    setMascotOneShot('celebrate');
+  }, [milestoneHit]);
+
   if (!streak) return null;
 
   const color = getStreakColor(streak.currentStreak);
   const milestone = getMilestone(streak.currentStreak);
   const isAtRisk = !streak.isActiveToday && streak.currentStreak > 0;
+  const showCelebrateMascot = milestoneHit !== null;
 
   return (
     <div
@@ -65,6 +97,20 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
           gap: '4px',
         }}
       >
+        {showCelebrateMascot && (
+          <div ref={mascotRef} style={{ display: 'inline-flex' }}>
+            <Mascot
+              pose="celebrate"
+              size="sm"
+              idle="bounce"
+              oneShot={mascotOneShot}
+              onOneShotEnd={() => {
+                fireMascotConfetti({ origin: mascotRef.current });
+                setMascotOneShot(null);
+              }}
+            />
+          </div>
+        )}
         <span
           className="material-symbols-outlined"
           style={{

@@ -30,7 +30,7 @@ export default function Error({
         textAlign: 'center',
       }}
     >
-      <Mascot pose="thinking" size="lg" idle="sway" priority />
+      <Mascot pose="sad" size="lg" idle="sway" priority />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <h1
           style={{

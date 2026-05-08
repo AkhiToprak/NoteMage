@@ -154,7 +154,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
             fontSize: '13px',
           }}
         >
-          <Mascot pose="thinking" size="md" idle="sway" />
+          <Mascot pose="sleeping" size="md" idle="sway" />
           No achievements unlocked yet — start studying to earn your first.
         </div>
       )}

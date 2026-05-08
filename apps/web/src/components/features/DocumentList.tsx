@@ -93,7 +93,7 @@ export default function DocumentList({
           fontSize: '13px',
         }}
       >
-        <Mascot pose="holding-scroll" size="md" idle="sway" />
+        <Mascot pose="sleeping" size="md" idle="sway" />
         No documents yet — upload one to get started.
       </div>
     );

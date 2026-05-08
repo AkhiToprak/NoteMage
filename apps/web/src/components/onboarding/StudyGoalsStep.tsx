@@ -140,7 +140,7 @@ export default function StudyGoalsStep({
                 justifyContent: 'center',
                 boxShadow: '0 6px 16px rgba(77,255,145,0.35), 0 0 0 3px #21213e',
                 animation:
-                  'goalCheckIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both',
+                  'mascotStepIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
                 willChange: 'transform, opacity',
               }}
             >
@@ -405,10 +405,9 @@ export default function StudyGoalsStep({
       </div>
 
       <style>{`
-        @keyframes goalCheckIn {
-          0% { transform: translateY(8px) scale(0.4); opacity: 0; }
-          60% { transform: translateY(0) scale(1.15); opacity: 1; }
-          100% { transform: translateY(0) scale(1); opacity: 1; }
+        @keyframes mascotStepIn {
+          from { transform: translateY(12px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
           [data-mascot-check] { animation: none !important; }
