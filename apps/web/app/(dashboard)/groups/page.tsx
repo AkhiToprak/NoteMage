@@ -9,6 +9,8 @@ import CreateGroupModal from '@/components/social/CreateGroupModal';
 import GroupInvitationCard from '@/components/groups/GroupInvitationCard';
 import DMCard from '@/components/groups/DMCard';
 import StartDMModal from '@/components/groups/StartDMModal';
+import { CoworkShowcaseModal } from '@/components/groups/cowork-showcase/CoworkShowcaseModal';
+import { useCoworkShowcase } from '@/components/groups/cowork-showcase/useCoworkShowcase';
 
 interface GroupMember {
   userId: string;
@@ -152,6 +154,7 @@ export default function GroupsPage() {
       inviter: { id: string; name: string | null; username: string; avatarUrl: string | null };
     }>
   >([]);
+  const { isOpen: showcaseOpen, dismiss: dismissShowcase } = useCoworkShowcase();
 
   const fetchInvitations = useCallback(async () => {
     try {
@@ -712,6 +715,10 @@ export default function GroupsPage() {
       />
 
       <StartDMModal open={showDMModal} onClose={() => setShowDMModal(false)} />
+
+      {showcaseOpen && (
+        <CoworkShowcaseModal onDismiss={dismissShowcase} onCardClick={setActiveTab} />
+      )}
     </>
   );
 }

@@ -311,7 +311,7 @@ export const authOptions: NextAuthOptions = {
           equippedTitleId?: string;
           equippedFrameId?: string;
           equippedBackgroundId?: string;
-          tutorialState?: { step?: string; completedAt?: string; dismissedAt?: string };
+          tutorialState?: { step?: string; completedAt?: string; dismissedAt?: string; seenShowcases?: string[] };
         };
         token.id = user.id;
         token.username = u.username;

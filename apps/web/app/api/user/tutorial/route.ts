@@ -23,6 +23,7 @@ interface TutorialStateShape {
   step?: string;
   completedAt?: string;
   dismissedAt?: string;
+  seenShowcases?: string[];
 }
 
 export async function PATCH(request: NextRequest) {
@@ -34,6 +35,7 @@ export async function PATCH(request: NextRequest) {
       step?: string;
       dismissedAt?: string | null;
       reset?: boolean;
+      markShowcaseSeen?: string;
     };
 
     if (body.reset === true) {
@@ -63,6 +65,17 @@ export async function PATCH(request: NextRequest) {
       } else {
         next.dismissedAt = body.dismissedAt;
       }
+    }
+    if (
+      typeof body.markShowcaseSeen === 'string' &&
+      body.markShowcaseSeen.length > 0 &&
+      body.markShowcaseSeen.length <= 64
+    ) {
+      const seen = Array.isArray(current.seenShowcases) ? [...current.seenShowcases] : [];
+      if (!seen.includes(body.markShowcaseSeen)) {
+        seen.push(body.markShowcaseSeen);
+      }
+      next.seenShowcases = seen;
     }
 
     const updated = await db.user.update({

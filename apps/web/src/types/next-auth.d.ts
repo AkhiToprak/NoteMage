@@ -12,6 +12,7 @@ export interface TutorialStateSession {
   step?: string;
   completedAt?: string;
   dismissedAt?: string;
+  seenShowcases?: string[];
 }
 
 declare module 'next-auth' {
