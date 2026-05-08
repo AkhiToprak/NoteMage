@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTutorial } from './TutorialContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { Mascot, fireMascotConfetti } from '@/components/mascot';
 
 export function CompletionModal() {
   const { complete, result } = useTutorial();
   const { isPhone } = useBreakpoint();
   const [opacity, setOpacity] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
+
+  const mascotRef = useRef<HTMLDivElement | null>(null);
 
   const apprenticeUnlocked =
     result?.achievements.some((a) => a.badge === 'apprentice_mage') ?? false;
@@ -97,22 +100,29 @@ export function CompletionModal() {
         >
           <Image src="/logo_trimmed.png" alt="NoteMage" width={140} height={48} />
         </div>
-        <span
-          aria-hidden="true"
-          className="material-symbols-outlined filled"
+        <div
+          ref={mascotRef}
           style={{
-            fontSize: 48,
-            color: 'var(--primary)',
+            display: 'flex',
+            justifyContent: 'center',
             marginBottom: 12,
-            display: 'inline-block',
             opacity,
             transform: itemTransform,
             transition: itemTransition,
             transitionDelay: enterDelay(1),
           }}
         >
-          check_circle
-        </span>
+          <Mascot
+            pose="graduation"
+            size="lg"
+            idle="float"
+            oneShot="celebrate"
+            onOneShotEnd={() => {
+              fireMascotConfetti({ origin: mascotRef.current });
+            }}
+            priority
+          />
+        </div>
         <h2
           id="tutorial-complete-title"
           style={{

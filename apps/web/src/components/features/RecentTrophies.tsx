@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { ACHIEVEMENTS } from '@/lib/achievements';
+import { Mascot } from '@/components/mascot';
 
 // Lazy-load the full grid — most viewers never expand it, so this keeps
 // the initial trophy-board card lean.
@@ -190,20 +191,13 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
             textAlign: 'center',
             color: '#8888a8',
             fontSize: '13px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '10px',
           }}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: '32px',
-              display: 'block',
-              marginBottom: '8px',
-              opacity: 0.5,
-              color: '#6a6a8c',
-            }}
-          >
-            emoji_events
-          </span>
+          <Mascot pose="thinking" size="md" idle="sway" />
           No achievements unlocked yet.
         </div>
       ) : (

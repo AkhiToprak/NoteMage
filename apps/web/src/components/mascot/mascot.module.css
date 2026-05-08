@@ -1,0 +1,403 @@
+.root {
+  display: inline-block;
+  position: relative;
+  line-height: 0;
+}
+
+.image {
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
+}
+
+.figure {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 90%;
+}
+
+.imageStack {
+  display: inline-block;
+  position: relative;
+  line-height: 0;
+}
+
+.flip {
+  transform: scaleX(-1);
+}
+
+.blinkLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  animation: mascotBlink 5s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes mascotBlink {
+  0%,
+  94% {
+    opacity: 0;
+  }
+  96.4%,
+  98% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mascotBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.bounce {
+  display: inline-block;
+  animation: mascotBounce 2.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes mascotFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.6deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(0.6deg);
+  }
+}
+
+.float {
+  display: inline-block;
+  animation: mascotFloat 4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transform-origin: 50% 80%;
+  will-change: transform;
+}
+
+@keyframes mascotSway {
+  0%,
+  100% {
+    transform: rotate(-1.2deg);
+  }
+  50% {
+    transform: rotate(1.2deg);
+  }
+}
+
+.sway {
+  display: inline-block;
+  animation: mascotSway 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transform-origin: 50% 90%;
+  will-change: transform;
+}
+
+.pulse {
+  position: absolute;
+  width: 14%;
+  height: 14%;
+  top: 36%;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.pulse::before,
+.pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  will-change: transform, opacity;
+}
+
+.pulse::before {
+  background: rgba(174, 137, 255, 0.55);
+  animation: mascotPulseDot 1.6s ease-out infinite;
+}
+
+.pulse::after {
+  border: 2px solid rgba(174, 137, 255, 0.55);
+  animation: mascotPulseRing 1.6s ease-out infinite;
+}
+
+@keyframes mascotPulseDot {
+  0% {
+    transform: scale(0);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+
+@keyframes mascotPulseRing {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.pulseLeft {
+  left: 8%;
+}
+
+.pulseRight {
+  right: 8%;
+}
+
+@keyframes mascotStepIn {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.stepIn {
+  animation: mascotStepIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes mascotStepOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+.stepOut {
+  animation: mascotStepOut 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes mascotCast {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-9deg) scale(1.04);
+  }
+  55% {
+    transform: rotate(3deg) scale(1.02);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.cast {
+  animation: mascotCast 700ms cubic-bezier(0.4, 0.05, 0.2, 1) both;
+  will-change: transform;
+}
+
+@keyframes mascotCelebrate {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-14px) scale(1.06);
+  }
+  55% {
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.celebrate {
+  animation: mascotCelebrate 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform;
+}
+
+.wandSparkle {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wandSparkleDot {
+  position: absolute;
+  width: 9%;
+  height: 9%;
+  border-radius: 9999px;
+  background: rgba(255, 222, 89, 0.95);
+  box-shadow:
+    0 0 6px 1px rgba(255, 222, 89, 0.55),
+    0 0 12px 3px rgba(255, 222, 89, 0.3);
+  will-change: transform, opacity;
+  transform: scale(0);
+  opacity: 0;
+  animation: mascotWandSparkleDot 2s ease-in-out infinite;
+}
+
+@keyframes mascotWandSparkleDot {
+  0%,
+  85%,
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  20%,
+  60% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+}
+
+.burst {
+  position: absolute;
+  top: 22%;
+  right: 18%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.burstDot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12%;
+  height: 12%;
+  min-width: 6px;
+  min-height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 222, 89, 1);
+  box-shadow:
+    0 0 8px 2px rgba(255, 222, 89, 0.6),
+    0 0 16px 4px rgba(174, 137, 255, 0.35);
+  will-change: transform, opacity;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+}
+
+.burstDot1 {
+  animation: mascotBurst1 700ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+}
+
+.burstDot2 {
+  animation: mascotBurst2 700ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+}
+
+.burstDot3 {
+  animation: mascotBurst3 700ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  background: rgba(174, 137, 255, 1);
+  box-shadow:
+    0 0 8px 2px rgba(174, 137, 255, 0.6),
+    0 0 16px 4px rgba(255, 222, 89, 0.3);
+}
+
+@keyframes mascotBurst1 {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(180%, -260%) scale(1.1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(280%, -380%) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes mascotBurst2 {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(280%, -120%) scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(420%, -180%) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes mascotBurst3 {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate(40%, -340%) scale(1.2);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(80%, -520%) scale(0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bounce,
+  .float,
+  .sway,
+  .stepIn,
+  .stepOut,
+  .cast,
+  .celebrate,
+  .wandSparkleDot,
+  .burstDot1,
+  .burstDot2,
+  .burstDot3,
+  .blinkLayer {
+    animation: none;
+  }
+
+  .pulse::before,
+  .pulse::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .wandSparkleDot,
+  .burstDot {
+    opacity: 0;
+  }
+}

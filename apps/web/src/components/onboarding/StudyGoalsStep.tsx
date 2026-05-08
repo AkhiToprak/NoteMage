@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Mascot } from '@/components/mascot';
 
 export type GoalKey =
   | 'dailyStudyMinutesGoal'
@@ -114,8 +115,49 @@ export default function StudyGoalsStep({
     }
   };
 
+  const setGoalCount = Object.values(goals).filter((v) => v !== null).length;
+
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+          <Mascot pose="holding-scroll" size="md" idle="sway" />
+          {setGoalCount > 0 && (
+            <span
+              key={setGoalCount}
+              data-mascot-check
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                top: '-2px',
+                right: '-4px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '9999px',
+                background: '#4dff91',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 16px rgba(77,255,145,0.35), 0 0 0 3px #21213e',
+                animation:
+                  'goalCheckIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both',
+                willChange: 'transform, opacity',
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '18px',
+                  color: '#0c2a14',
+                  fontVariationSettings: "'FILL' 1, 'wght' 700",
+                }}
+              >
+                check
+              </span>
+            </span>
+          )}
+        </div>
+      </div>
       <div style={{ marginBottom: '28px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
           Set your goals
@@ -361,6 +403,17 @@ export default function StudyGoalsStep({
           Skip for now
         </button>
       </div>
+
+      <style>{`
+        @keyframes goalCheckIn {
+          0% { transform: translateY(8px) scale(0.4); opacity: 0; }
+          60% { transform: translateY(0) scale(1.15); opacity: 1; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-mascot-check] { animation: none !important; }
+        }
+      `}</style>
     </>
   );
 }

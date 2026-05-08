@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { ACHIEVEMENTS } from '@/lib/achievements';
+import { Mascot } from '@/components/mascot';
 
 type Category = 'all' | 'content' | 'study' | 'streak' | 'social' | 'special';
 
@@ -139,6 +140,24 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
           {totalUnlocked} / {totalCount} unlocked
         </div>
       </div>
+
+      {totalUnlocked === 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '20px 12px',
+            textAlign: 'center',
+            color: '#8888a8',
+            fontSize: '13px',
+          }}
+        >
+          <Mascot pose="thinking" size="md" idle="sway" />
+          No achievements unlocked yet — start studying to earn your first.
+        </div>
+      )}
 
       {/* Tabs */}
       <div

@@ -5,6 +5,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe
 import { getStripe } from '@/lib/stripe-client';
 import type { TierKey } from '@/lib/tiers';
 import { TIERS } from '@/lib/tiers';
+import { Mascot } from '@/components/mascot';
 
 interface PaymentStepProps {
   tier: TierKey;
@@ -38,6 +39,7 @@ export default function PaymentStep({ tier, onSuccess, onBack, error }: PaymentS
   if (initError) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <Mascot pose="holding-scroll" size="md" idle="sway" />
         <div
           style={{
             display: 'flex',
@@ -69,6 +71,9 @@ export default function PaymentStep({ tier, onSuccess, onBack, error }: PaymentS
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <Mascot pose="holding-scroll" size="md" idle="sway" />
+      </div>
       {/* Header with back button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={onBack} style={backButtonStyle}>

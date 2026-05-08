@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Mascot } from '@/components/mascot';
 
 /**
  * OAuth onboarding step 1: pick a real username to replace the `oauth_*`
@@ -177,6 +178,9 @@ export default function UsernameStep({
 
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <Mascot pose="holding-pen" size="md" idle="bounce" />
+      </div>
       <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
         Pick a username
       </h2>

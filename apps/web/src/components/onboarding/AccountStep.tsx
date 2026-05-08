@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Mascot } from '@/components/mascot';
 
 interface AccountStepData {
   username: string;
@@ -170,6 +171,9 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
 
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <Mascot pose="wave" size="md" idle="float" />
+      </div>
       <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 24px' }}>
         Create Account
       </h2>

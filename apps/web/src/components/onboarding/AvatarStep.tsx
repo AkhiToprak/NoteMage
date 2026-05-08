@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
+import { Mascot } from '@/components/mascot';
 
 interface AvatarStepProps {
   username: string;
@@ -84,6 +85,9 @@ export default function AvatarStep({
 
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <Mascot pose="default" size="md" idle="bounce" />
+      </div>
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
         <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
           Choose your avatar

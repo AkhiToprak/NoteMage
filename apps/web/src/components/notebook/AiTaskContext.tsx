@@ -27,6 +27,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Mascot, type MascotOneShot } from '@/components/mascot';
 
 export interface AiTask {
   id: string;
@@ -129,17 +130,49 @@ function useAiTasks(): AiTask[] {
 
 function AiStatusIndicator() {
   const tasks = useAiTasks();
+  const [mascotVisible, setMascotVisible] = useState(false);
+  const [mascotOneShot, setMascotOneShot] = useState<MascotOneShot | null>(null);
 
-  // Skip the fixed-position wrapper entirely when nothing is running so
-  // the DOM stays clean and the wrapper can't accidentally swallow clicks.
-  if (tasks.length === 0) return null;
+  // State machine: mascot mounts on first task with step-in, stays through
+  // any number of tasks, fires `cast` when the queue empties, then unmounts.
+  // A new task arriving mid-cast cancels the cast so we don't disappear
+  // while AI is still working.
+  /* eslint-disable react-hooks/set-state-in-effect -- state-machine transitions
+     respond to upstream `tasks` count changing in context; the animation
+     lifetime makes this a legitimate effect-driven sync. */
+  useEffect(() => {
+    if (tasks.length > 0) {
+      if (!mascotVisible) {
+        setMascotVisible(true);
+        setMascotOneShot('step-in');
+      } else if (mascotOneShot === 'cast') {
+        setMascotOneShot(null);
+      }
+    } else if (mascotVisible && mascotOneShot === null) {
+      setMascotOneShot('cast');
+    }
+  }, [tasks.length, mascotVisible, mascotOneShot]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  if (tasks.length === 0 && !mascotVisible) return null;
+
+  const handleOneShotEnd = () => {
+    if (mascotOneShot === 'cast') {
+      setMascotVisible(false);
+    }
+    setMascotOneShot(null);
+  };
 
   return (
     <>
       <div
         role="status"
         aria-live="polite"
-        aria-label={`${tasks.length} AI task${tasks.length === 1 ? '' : 's'} running`}
+        aria-label={
+          tasks.length > 0
+            ? `${tasks.length} AI task${tasks.length === 1 ? '' : 's'} running`
+            : undefined
+        }
         style={{
           position: 'fixed',
           right: 24,
@@ -149,6 +182,7 @@ function AiStatusIndicator() {
           zIndex: 900,
           display: 'flex',
           flexDirection: 'column-reverse',
+          alignItems: 'flex-end',
           gap: 8,
           pointerEvents: 'none',
         }}
@@ -156,12 +190,22 @@ function AiStatusIndicator() {
         {tasks.map((task) => (
           <AiTaskPill key={task.id} label={task.label} />
         ))}
+        {mascotVisible && (
+          <span
+            aria-hidden="true"
+            style={{ display: 'inline-flex', paddingRight: 8 }}
+          >
+            <Mascot
+              pose="holding-wand"
+              size="sm"
+              idle="bounce"
+              oneShot={mascotOneShot}
+              onOneShotEnd={handleOneShotEnd}
+            />
+          </span>
+        )}
       </div>
       <style>{`
-        @keyframes ai-status-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
         @keyframes ai-status-pulse {
           0%, 100% {
             box-shadow:
@@ -219,18 +263,16 @@ function AiTaskPill({ label }: { label: string }) {
       }}
     >
       <span
-        className="material-symbols-outlined"
         aria-hidden
         style={{
-          fontSize: 18,
-          color: '#c4a9ff',
-          animation: 'ai-status-spin 1s linear infinite',
-          display: 'inline-block',
-          lineHeight: 1,
+          width: 6,
+          height: 6,
+          borderRadius: 9999,
+          background: '#c4a9ff',
+          boxShadow: '0 0 6px rgba(196, 169, 255, 0.7)',
+          flexShrink: 0,
         }}
-      >
-        progress_activity
-      </span>
+      />
       <span>{label}</span>
     </div>
   );

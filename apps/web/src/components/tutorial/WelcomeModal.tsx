@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTutorial } from './TutorialContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { Mascot } from '@/components/mascot';
 
 export function WelcomeModal() {
   const { start, skip } = useTutorial();
@@ -90,22 +91,19 @@ export function WelcomeModal() {
         >
           <Image src="/logo_trimmed.png" alt="NoteMage" width={140} height={48} priority />
         </div>
-        <span
-          aria-hidden="true"
-          className="material-symbols-outlined"
+        <div
           style={{
-            fontSize: 36,
-            color: 'var(--primary)',
+            display: 'flex',
+            justifyContent: 'center',
             marginBottom: 12,
-            display: 'inline-block',
             opacity,
             transform: itemTransform,
             transition: itemTransition,
             transitionDelay: enterDelay(1),
           }}
         >
-          auto_awesome
-        </span>
+          <Mascot pose="wave" size="lg" idle="float" priority />
+        </div>
         <h2
           id="tutorial-welcome-title"
           style={{

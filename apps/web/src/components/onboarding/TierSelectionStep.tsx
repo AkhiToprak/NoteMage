@@ -3,6 +3,7 @@
 import PricingCard from '@/components/pricing/PricingCard';
 import { TIERS, type TierKey } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
+import { Mascot } from '@/components/mascot';
 
 interface TierSelectionStepProps {
   selectedTier: TierKey;
@@ -23,6 +24,9 @@ export default function TierSelectionStep({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <Mascot pose="thinking" size="md" idle="sway" />
+      </div>
       <div
         style={{
           display: 'flex',

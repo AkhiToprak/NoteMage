@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Mascot, type MascotPose } from '@/components/mascot';
 
 interface Props {
   title: string;
@@ -107,6 +108,18 @@ function computePosition(
   return { top, left, width: TOOLTIP_WIDTH };
 }
 
+function pickPointingPose(
+  placement: 'auto' | 'fixed-top-right',
+  rect: DOMRect | null
+): Extract<MascotPose, 'pointing-left' | 'pointing-right'> {
+  if (placement === 'fixed-top-right') return 'pointing-left';
+  if (!rect) return 'pointing-left';
+  // For auto placement the tooltip's left edge sits at (or near) rect.left,
+  // so the mascot at the tooltip's leading edge is around rect.left + 24.
+  // If the target's center is right of that, point right; otherwise left.
+  return rect.width > 48 ? 'pointing-right' : 'pointing-left';
+}
+
 export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: Props) {
   const [opacity, setOpacity] = useState(0);
   const [safeArea, setSafeArea] = useState<SafeArea>({ top: 0, right: 0, bottom: 0, left: 0 });
@@ -135,6 +148,7 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
   }, []);
 
   const positionStyle = computePosition(targetRect, placement, safeArea, isPhone);
+  const pointingPose = pickPointingPose(placement, targetRect);
 
   return (
     <div
@@ -157,10 +171,20 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
         ...positionStyle,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <Mascot
+          key={title}
+          pose={pointingPose}
+          size="sm"
+          idle="bounce"
+          oneShot="step-in"
+          pointerPulse
+        />
         <h4
           style={{
             margin: 0,
+            flex: 1,
+            minWidth: 0,
             fontSize: 16,
             fontWeight: 700,
             fontFamily: 'var(--font-display)',

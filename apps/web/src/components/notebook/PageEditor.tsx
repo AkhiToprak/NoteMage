@@ -50,6 +50,7 @@ import InlineAIToolbar from './InlineAIToolbar';
 import UpsellToast from '@/components/ui/UpsellToast';
 import RemoteCursor from './RemoteCursor';
 import { useCoworkSocket } from '@/lib/cowork-socket';
+import { Mascot } from '@/components/mascot';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
@@ -152,6 +153,7 @@ export default function PageEditor({
   const [notFound, setNotFound] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [lockedByOther, setLockedByOther] = useState(false);
+  const [isEditorEmpty, setIsEditorEmpty] = useState(true);
 
   // Drawing state
   const [editorMode, setEditorMode] = useState<EditorMode>('cursor');
@@ -847,7 +849,20 @@ export default function PageEditor({
       // non-empty, which is legitimate and must save).
       lastKnownContentWasEmptyRef.current = true;
     }
+    setIsEditorEmpty(lastKnownContentWasEmptyRef.current);
   }, [editor, pageId, page?.id, page?.content]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const sync = () => {
+      const empty = isEffectivelyEmptyTiptapDoc(editor.getJSON() as Record<string, unknown>);
+      setIsEditorEmpty((prev) => (prev === empty ? prev : empty));
+    };
+    editor.on('update', sync);
+    return () => {
+      editor.off('update', sync);
+    };
+  }, [editor]);
 
   /* ─── Cowork: live document sync when viewing as a non-editor ─────── *
    * When the participant is locked out (host holds the lock and "open
@@ -1340,6 +1355,21 @@ export default function PageEditor({
             onSelectedTextChange={setSelectedTextAnnotation}
             textDefaults={textDefaults}
           />
+          {isEditorEmpty && !title.trim() && editorMode === 'cursor' && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                bottom: isPhone ? 16 : 24,
+                right: isPhone ? 16 : 24,
+                pointerEvents: 'none',
+                opacity: 0.85,
+                zIndex: 1,
+              }}
+            >
+              <Mascot pose="holding-pen" size="sm" idle="bounce" />
+            </div>
+          )}
         </div>
       </div>
 

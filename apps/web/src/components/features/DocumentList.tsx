@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FileText, Trash2, Loader, Sparkles, X } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { Mascot } from '@/components/mascot';
 
 export interface DocumentItem {
   id: string;
@@ -78,7 +79,25 @@ export default function DocumentList({
     }
   };
 
-  if (documents.length === 0) return null;
+  if (documents.length === 0) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '24px 12px',
+          textAlign: 'center',
+          color: 'rgba(237,233,255,0.45)',
+          fontSize: '13px',
+        }}
+      >
+        <Mascot pose="holding-scroll" size="md" idle="sway" />
+        No documents yet — upload one to get started.
+      </div>
+    );
+  }
 
   return (
     <>
