@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { TutorialContext } from '@/components/tutorial/TutorialContext';
 
@@ -46,7 +46,6 @@ async function patchServer() {
 
 export function useCoworkShowcase(): { isOpen: boolean; dismiss: () => void } {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const tutorial = useContext(TutorialContext);
 
@@ -54,11 +53,22 @@ export function useCoworkShowcase(): { isOpen: boolean; dismiss: () => void } {
   const onboardingComplete = session?.user?.onboardingComplete === true;
   const serverSeen = session?.user?.tutorialState?.seenShowcases?.includes(SHOWCASE_KEY) === true;
   const tourActive = tutorial !== null && tutorial.step !== 'idle';
-  const forceReplay = searchParams?.get('showcase') === SHOWCASE_KEY;
 
   const [hydrated, setHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  // Read on mount via window rather than useSearchParams() — the latter forces
+  // the page out of static rendering and breaks `next build` prerender.
+  const [forceReplay, setForceReplay] = useState(false);
   const dismissedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('showcase') === SHOWCASE_KEY) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only read of URL search; can't be derived from props
+      setForceReplay(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!userId) {
