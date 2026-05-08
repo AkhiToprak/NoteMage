@@ -357,7 +357,7 @@ export default function OnboardingWizard() {
         >
           <Image
             src="/logo_trimmed.png"
-            alt="Notemage"
+            alt="NoteMage"
             width={step === 2 && !showPayment ? 44 : 56}
             height={step === 2 && !showPayment ? 44 : 56}
             style={{ objectFit: 'contain' }}
@@ -366,16 +366,16 @@ export default function OnboardingWizard() {
         </div>
         <h1
           style={{
-            fontFamily: 'var(--font-brand)',
+            fontFamily: 'var(--font-display)',
             fontSize: step === 2 && !showPayment ? '34px' : '44px',
-            fontWeight: 400,
+            fontWeight: 800,
             color: '#ae89ff',
             margin: '0 0 8px',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.035em',
             textAlign: 'center',
           }}
         >
-          Notemage AI
+          NoteMage
         </h1>
         <p style={{ color: '#aaa8c8', fontSize: '17px', margin: 0, textAlign: 'center' }}>
           {stepSubtitle}
