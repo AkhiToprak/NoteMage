@@ -119,7 +119,7 @@ export default function StudyGoalsStep({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
           <Mascot pose="holding-scroll" size="md" idle="sway" />
           {setGoalCount > 0 && (
@@ -158,11 +158,11 @@ export default function StudyGoalsStep({
           )}
         </div>
       </div>
-      <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+      <div style={{ marginBottom: '14px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
           Set your goals
         </h2>
-        <p style={{ fontSize: '14px', color: '#aaa8c8', margin: 0, lineHeight: '1.6' }}>
+        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: '1.6' }}>
           Pick what matters to you. You can change these anytime.
         </p>
       </div>
@@ -170,12 +170,12 @@ export default function StudyGoalsStep({
       {error && (
         <div
           style={{
-            padding: '12px 16px',
+            padding: '10px 14px',
             borderRadius: '12px',
             background: 'rgba(253,111,133,0.12)',
             color: '#fd6f85',
-            fontSize: '14px',
-            marginBottom: '20px',
+            fontSize: '13px',
+            marginBottom: '12px',
           }}
         >
           {error}
@@ -186,8 +186,8 @@ export default function StudyGoalsStep({
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '12px',
-          marginBottom: '32px',
+          gap: '10px',
+          marginBottom: '16px',
         }}
       >
         {GOAL_CONFIGS.map((config) => {
@@ -203,8 +203,8 @@ export default function StudyGoalsStep({
               onMouseLeave={() => setHoveredCard(null)}
               style={{
                 background: '#2d2d52',
-                borderRadius: '20px',
-                padding: '20px',
+                borderRadius: '18px',
+                padding: '14px 16px',
                 border: isSelected
                   ? '2px solid #ae89ff'
                   : isHovered
@@ -320,16 +320,16 @@ export default function StudyGoalsStep({
         })}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           onClick={onFinish}
           disabled={loading}
           style={{
             width: '100%',
-            padding: '16px',
+            padding: '13px',
             background: loading ? '#555578' : '#ae89ff',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: loading ? '#aaa8c8' : '#2a0066',
             fontSize: '16px',
             fontWeight: 700,
@@ -382,12 +382,12 @@ export default function StudyGoalsStep({
           disabled={loading}
           style={{
             width: '100%',
-            padding: '14px',
+            padding: '10px',
             background: 'transparent',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: '#8888a8',
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
             fontFamily: 'inherit',

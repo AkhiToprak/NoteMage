@@ -49,14 +49,14 @@ export default function ScholarNameStep({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="default" size="md" idle="bounce" />
       </div>
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
           Name your Mage
         </h2>
-        <p style={{ fontSize: '14px', color: '#aaa8c8', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
           Give your AI study assistant a unique name.
         </p>
       </div>
@@ -64,12 +64,12 @@ export default function ScholarNameStep({
       {displayError && (
         <div
           style={{
-            padding: '12px 16px',
+            padding: '10px 14px',
             borderRadius: '12px',
             background: 'rgba(253,111,133,0.12)',
             color: '#fd6f85',
-            fontSize: '14px',
-            marginBottom: '20px',
+            fontSize: '13px',
+            marginBottom: '14px',
           }}
         >
           {displayError}
@@ -81,14 +81,14 @@ export default function ScholarNameStep({
         style={{
           display: 'flex',
           justifyContent: 'center',
-          marginBottom: '28px',
+          marginBottom: '14px',
         }}
       >
         <div
           style={{
             background: '#2d2d52',
-            borderRadius: '20px',
-            padding: '20px 24px',
+            borderRadius: '18px',
+            padding: '14px 20px',
             border: '1px solid #555578',
             maxWidth: '320px',
             width: '100%',
@@ -97,24 +97,24 @@ export default function ScholarNameStep({
         >
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '44px',
+              height: '44px',
               borderRadius: '50%',
               background: '#ae89ff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 12px',
+              margin: '0 auto 8px',
               boxShadow: '0 0 0 4px rgba(174,137,255,0.2), 0 8px 32px rgba(174,137,255,0.2)',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#fff' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '22px', color: '#fff' }}>
               auto_awesome
             </span>
           </div>
           <p
             style={{
-              fontSize: '15px',
+              fontSize: '14px',
               color: '#c0bed8',
               margin: 0,
               lineHeight: 1.5,
@@ -127,7 +127,7 @@ export default function ScholarNameStep({
       </div>
 
       {/* Name Input */}
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <div style={{ position: 'relative' }}>
           <input
             type="text"
@@ -139,11 +139,11 @@ export default function ScholarNameStep({
             maxLength={MAX_LENGTH}
             style={{
               width: '100%',
-              padding: '16px',
+              padding: '12px 16px',
               paddingRight: '60px',
               background: '#272746',
               border: `1px solid ${inputFocused ? 'rgba(174,137,255,0.5)' : '#555578'}`,
-              borderRadius: '16px',
+              borderRadius: '14px',
               color: '#e5e3ff',
               fontSize: '16px',
               fontFamily: 'inherit',
@@ -168,16 +168,16 @@ export default function ScholarNameStep({
       </div>
 
       {/* Buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           onClick={handleNext}
           disabled={loading}
           style={{
             width: '100%',
-            padding: '16px',
+            padding: '13px',
             background: loading ? '#555578' : '#ae89ff',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: loading ? '#aaa8c8' : '#2a0066',
             fontSize: '16px',
             fontWeight: 700,
@@ -221,12 +221,12 @@ export default function ScholarNameStep({
           disabled={loading}
           style={{
             width: '100%',
-            padding: '14px',
+            padding: '10px',
             background: 'transparent',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: '#8888a8',
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
             fontFamily: 'inherit',

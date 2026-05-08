@@ -339,16 +339,16 @@ export default function OnboardingWizard() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: step === 2 && !showPayment ? '24px' : '40px',
+          marginBottom: step === 2 && !showPayment ? '14px' : '18px',
         }}
       >
         <div
           style={{
-            width: step === 2 && !showPayment ? '64px' : '80px',
-            height: step === 2 && !showPayment ? '64px' : '80px',
-            marginBottom: step === 2 && !showPayment ? '16px' : '24px',
+            width: step === 2 && !showPayment ? '48px' : '56px',
+            height: step === 2 && !showPayment ? '48px' : '56px',
+            marginBottom: step === 2 && !showPayment ? '10px' : '12px',
             background: '#35355c',
-            borderRadius: '20px',
+            borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -358,8 +358,8 @@ export default function OnboardingWizard() {
           <Image
             src="/logo_trimmed.png"
             alt="NoteMage"
-            width={step === 2 && !showPayment ? 44 : 56}
-            height={step === 2 && !showPayment ? 44 : 56}
+            width={step === 2 && !showPayment ? 32 : 40}
+            height={step === 2 && !showPayment ? 32 : 40}
             style={{ objectFit: 'contain' }}
             priority
           />
@@ -367,17 +367,17 @@ export default function OnboardingWizard() {
         <h1
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: step === 2 && !showPayment ? '34px' : '44px',
+            fontSize: step === 2 && !showPayment ? '26px' : '32px',
             fontWeight: 800,
             color: '#ae89ff',
-            margin: '0 0 8px',
+            margin: '0 0 4px',
             letterSpacing: '-0.035em',
             textAlign: 'center',
           }}
         >
           NoteMage
         </h1>
-        <p style={{ color: '#aaa8c8', fontSize: '17px', margin: 0, textAlign: 'center' }}>
+        <p style={{ color: '#aaa8c8', fontSize: '15px', margin: 0, textAlign: 'center' }}>
           {stepSubtitle}
         </p>
       </div>
@@ -386,8 +386,8 @@ export default function OnboardingWizard() {
       <div
         style={{
           background: '#21213e',
-          borderRadius: '32px',
-          padding: step === 2 && !showPayment ? '28px 32px 32px' : '40px',
+          borderRadius: '24px',
+          padding: step === 2 && !showPayment ? '20px 28px 24px' : '24px 32px 28px',
           boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
           position: 'relative',
           overflow: 'hidden',
@@ -414,7 +414,7 @@ export default function OnboardingWizard() {
         <div
           key={step}
           style={{
-            marginTop: step === 2 && !showPayment ? '20px' : '32px',
+            marginTop: step === 2 && !showPayment ? '16px' : '20px',
             animation: 'fadeSlide 0.35s cubic-bezier(0.22,1,0.36,1)',
           }}
         >
@@ -535,7 +535,7 @@ export default function OnboardingWizard() {
       {/* Footer links */}
       <div
         style={{
-          marginTop: '32px',
+          marginTop: '16px',
           display: 'flex',
           justifyContent: 'center',
           gap: '32px',

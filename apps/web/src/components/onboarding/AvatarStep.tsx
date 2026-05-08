@@ -71,13 +71,13 @@ export default function AvatarStep({
   const cardBase: React.CSSProperties = {
     flex: 1,
     background: '#2d2d52',
-    borderRadius: '20px',
-    padding: '20px 16px',
+    borderRadius: '18px',
+    padding: '14px 14px',
     border: '1px solid #555578',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '10px',
+    gap: '8px',
     cursor: 'pointer',
     transition: 'border-color 0.2s cubic-bezier(0.22,1,0.36,1)',
     position: 'relative',
@@ -85,14 +85,14 @@ export default function AvatarStep({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="default" size="md" idle="bounce" />
       </div>
-      <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
           Choose your avatar
         </h2>
-        <p style={{ fontSize: '14px', color: '#aaa8c8', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
           This is how the community will see you.
         </p>
       </div>
@@ -100,12 +100,12 @@ export default function AvatarStep({
       {displayError && (
         <div
           style={{
-            padding: '12px 16px',
+            padding: '10px 14px',
             borderRadius: '12px',
             background: 'rgba(253,111,133,0.12)',
             color: '#fd6f85',
-            fontSize: '14px',
-            marginBottom: '20px',
+            fontSize: '13px',
+            marginBottom: '14px',
           }}
         >
           {displayError}
@@ -113,11 +113,11 @@ export default function AvatarStep({
       )}
 
       {/* Avatar Preview */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
         <div
           style={{
-            width: '120px',
-            height: '120px',
+            width: '96px',
+            height: '96px',
             borderRadius: '50%',
             overflow: 'hidden',
             background: '#ae89ff',
@@ -139,7 +139,7 @@ export default function AvatarStep({
             <span
               style={{
                 fontFamily: 'var(--font-brand)',
-                fontSize: '48px',
+                fontSize: '40px',
                 color: '#fff',
                 lineHeight: 1,
                 userSelect: 'none',
@@ -172,7 +172,7 @@ export default function AvatarStep({
       </div>
 
       {/* Option Cards */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', gap: '14px', marginBottom: '18px' }}>
         {/* Upload Card */}
         <div
           style={{
@@ -245,19 +245,19 @@ export default function AvatarStep({
       </div>
 
       {/* Buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <button
           onClick={onNext}
           disabled={loading || isUploadBusy}
           style={{
             width: '100%',
-            padding: '16px',
+            padding: '13px',
             background:
               loading || uploading
                 ? '#555578'
                 : '#ae89ff',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: loading || uploading ? '#aaa8c8' : '#2a0066',
             fontSize: '16px',
             fontWeight: 700,
@@ -301,12 +301,12 @@ export default function AvatarStep({
           disabled={loading || isUploadBusy}
           style={{
             width: '100%',
-            padding: '14px',
+            padding: '10px',
             background: 'transparent',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: '#8888a8',
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: 600,
             cursor: loading || uploading ? 'not-allowed' : 'pointer',
             fontFamily: 'inherit',

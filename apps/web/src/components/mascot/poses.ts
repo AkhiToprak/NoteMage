@@ -24,10 +24,10 @@ export type MascotOneShot =
   | 'step-out';
 
 export const SIZE_PX: Record<MascotSize, number> = {
-  sm: 48,
-  md: 96,
-  lg: 160,
-  xl: 240,
+  sm: 56,
+  md: 108,
+  lg: 176,
+  xl: 264,
 };
 
 export interface PoseEntry {

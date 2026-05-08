@@ -178,13 +178,13 @@ export default function UsernameStep({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="holding-pen" size="md" idle="bounce" />
       </div>
-      <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
         Pick a username
       </h2>
-      <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 24px' }}>
+      <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '0 0 16px' }}>
         This is how other mages will find you. You can change it later from settings.
       </p>
 
@@ -194,8 +194,8 @@ export default function UsernameStep({
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            padding: '12px 16px',
-            marginBottom: '24px',
+            padding: '10px 14px',
+            marginBottom: '14px',
             background: 'rgba(174,137,255,0.08)',
             border: '1px solid rgba(174,137,255,0.40)',
             borderRadius: '14px',

@@ -129,10 +129,10 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '16px 16px 16px 48px',
+    padding: '12px 16px 12px 48px',
     background: '#35355c',
     border: 'none',
-    borderRadius: '16px',
+    borderRadius: '14px',
     color: '#e5e3ff',
     fontSize: '15px',
     fontFamily: 'inherit',
@@ -160,10 +160,10 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: 600,
     color: '#b9c3ff',
-    marginBottom: '8px',
+    marginBottom: '6px',
     paddingLeft: '4px',
   };
 
@@ -171,22 +171,22 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="wave" size="md" idle="float" />
       </div>
-      <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 24px' }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 14px' }}>
         Create Account
       </h2>
 
       {displayError && (
         <div
           style={{
-            padding: '12px 16px',
+            padding: '10px 14px',
             borderRadius: '12px',
             background: 'rgba(253,111,133,0.12)',
             color: '#fd6f85',
-            fontSize: '14px',
-            marginBottom: '24px',
+            fontSize: '13px',
+            marginBottom: '14px',
           }}
         >
           {displayError}
@@ -195,7 +195,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
 
       <form
         onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
       >
         {/* Username */}
         <div>
@@ -469,10 +469,10 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           disabled={loading}
           style={{
             width: '100%',
-            padding: '16px',
+            padding: '13px',
             background: loading ? '#555578' : '#ae89ff',
             border: 'none',
-            borderRadius: '16px',
+            borderRadius: '14px',
             color: loading ? '#aaa8c8' : '#2a0066',
             fontSize: '16px',
             fontWeight: 700,

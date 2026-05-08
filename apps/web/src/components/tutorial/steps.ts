@@ -26,6 +26,6 @@ export const STEP_CONFIG: Partial<Record<TutorialStep, StepConfig>> = {
     body: 'Name is optional. Pick any pages or files you want the AI to see, then hit Start Chat.',
     targetKey: 'chat-modal',
     renderBackdrop: false,
-    tooltipPlacement: 'fixed-top-right',
+    tooltipPlacement: 'fixed-bottom-left',
   },
 };

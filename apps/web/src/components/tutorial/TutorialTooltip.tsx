@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Mascot, type MascotPose } from '@/components/mascot';
 
 interface Props {
   title: string;
   body: string;
   targetRect: DOMRect | null;
-  placement: 'auto' | 'fixed-top-right';
+  placement: 'auto' | 'fixed-top-right' | 'fixed-bottom-left';
   onSkip: () => void;
 }
 
 const TOOLTIP_WIDTH = 320;
-const TOOLTIP_GUESS_HEIGHT = 150;
-const GAP = 12;
+const TOOLTIP_GUESS_HEIGHT = 220;
+const GAP = 16;
 const MARGIN = 16;
 
 interface SafeArea {
@@ -47,14 +47,32 @@ function readSafeArea(): SafeArea {
 
 function computePosition(
   rect: DOMRect | null,
-  placement: 'auto' | 'fixed-top-right',
+  placement: 'auto' | 'fixed-top-right' | 'fixed-bottom-left',
   safeArea: SafeArea,
-  isPhone: boolean
+  isPhone: boolean,
+  tooltipHeight: number
 ): React.CSSProperties {
   const topInset = MARGIN + safeArea.top;
   const rightInset = MARGIN + safeArea.right;
   const leftInset = MARGIN + safeArea.left;
   const bottomInset = MARGIN + safeArea.bottom;
+
+  if (placement === 'fixed-bottom-left') {
+    if (isPhone) {
+      return {
+        bottom: bottomInset,
+        left: leftInset,
+        right: rightInset,
+        width: 'auto',
+        maxWidth: `calc(100vw - ${leftInset + rightInset}px)`,
+      };
+    }
+    return {
+      bottom: bottomInset,
+      left: leftInset,
+      width: `min(${TOOLTIP_WIDTH}px, calc(100vw - ${leftInset + rightInset}px))`,
+    };
+  }
 
   if (placement === 'fixed-top-right' || !rect) {
     if (isPhone) {
@@ -76,14 +94,14 @@ function computePosition(
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const usableHeight = vh - bottomInset;
+  const h = tooltipHeight || TOOLTIP_GUESS_HEIGHT;
 
   if (isPhone) {
     const placeBelow =
-      usableHeight - rect.bottom >= TOOLTIP_GUESS_HEIGHT + GAP &&
-      rect.bottom + GAP >= topInset;
+      usableHeight - rect.bottom >= h + GAP && rect.bottom + GAP >= topInset;
     const top = placeBelow
       ? rect.bottom + GAP
-      : Math.max(topInset, rect.top - TOOLTIP_GUESS_HEIGHT - GAP);
+      : Math.max(topInset, rect.top - h - GAP);
     return {
       top,
       left: leftInset,
@@ -94,10 +112,10 @@ function computePosition(
   }
 
   const spaceBelow = usableHeight - rect.bottom;
-  const placeBelow = spaceBelow >= TOOLTIP_GUESS_HEIGHT + GAP;
+  const placeBelow = spaceBelow >= h + GAP;
   const top = placeBelow
     ? rect.bottom + GAP
-    : Math.max(topInset, rect.top - TOOLTIP_GUESS_HEIGHT - GAP);
+    : Math.max(topInset, rect.top - h - GAP);
 
   let left = rect.left;
   if (left + TOOLTIP_WIDTH + rightInset > vw) {
@@ -109,14 +127,12 @@ function computePosition(
 }
 
 function pickPointingPose(
-  placement: 'auto' | 'fixed-top-right',
+  placement: 'auto' | 'fixed-top-right' | 'fixed-bottom-left',
   rect: DOMRect | null
 ): Extract<MascotPose, 'pointing-left' | 'pointing-right'> {
   if (placement === 'fixed-top-right') return 'pointing-left';
+  if (placement === 'fixed-bottom-left') return 'pointing-right';
   if (!rect) return 'pointing-left';
-  // For auto placement the tooltip's left edge sits at (or near) rect.left,
-  // so the mascot at the tooltip's leading edge is around rect.left + 24.
-  // If the target's center is right of that, point right; otherwise left.
   return rect.width > 48 ? 'pointing-right' : 'pointing-left';
 }
 
@@ -125,6 +141,8 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
   const [safeArea, setSafeArea] = useState<SafeArea>({ top: 0, right: 0, bottom: 0, left: 0 });
   const [isPhone, setIsPhone] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [tooltipHeight, setTooltipHeight] = useState(0);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -147,11 +165,24 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
     };
   }, []);
 
-  const positionStyle = computePosition(targetRect, placement, safeArea, isPhone);
+  // Measure rendered tooltip so 'auto' placement can avoid clipping the target
+  // when the tooltip is taller than the guess (and reposition above/below).
+  useLayoutEffect(() => {
+    const el = tooltipRef.current;
+    if (!el) return;
+    const measure = () => setTooltipHeight(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [title, body]);
+
+  const positionStyle = computePosition(targetRect, placement, safeArea, isPhone, tooltipHeight);
   const pointingPose = pickPointingPose(placement, targetRect);
 
   return (
     <div
+      ref={tooltipRef}
       role="dialog"
       aria-live="polite"
       style={{

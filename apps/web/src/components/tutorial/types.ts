@@ -32,5 +32,5 @@ export interface StepConfig {
   body: string;
   targetKey?: TutorialTargetKey;
   renderBackdrop: boolean;
-  tooltipPlacement: 'auto' | 'fixed-top-right';
+  tooltipPlacement: 'auto' | 'fixed-top-right' | 'fixed-bottom-left';
 }
