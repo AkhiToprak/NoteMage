@@ -290,6 +290,7 @@ export default function InfiniteCanvas({
   const [bgColor, setBgColor] = useState<string>(DEFAULT_BG);
   const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>('blank');
   const [hasPendingImage, setHasPendingImage] = useState(false);
+  const [uiHidden, setUiHidden] = useState(false);
   const backgroundStyleRef = useRef<BackgroundStyle>('blank');
   const patternElementRef = useRef<SVGPatternElement | null>(null);
   titleRef.current = title;
@@ -1201,6 +1202,14 @@ export default function InfiniteCanvas({
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
+        /* Hide all Excalidraw chrome but keep the canvas interactive.
+         * .layer-ui__wrapper is a sibling to the drawing canvas, so
+         * collapsing it leaves keyboard shortcuts and pointer drawing
+         * untouched — the user can still draw via 1/2/3 (Text/Pen/Eraser). */
+        .canvas-ui-hidden .excalidraw .layer-ui__wrapper {
+          display: none !important;
+        }
+
         /* ─── De-brand Excalidraw ─────────────────────────────────────
          * Excalidraw is MIT-licensed so we're allowed to hide its
          * branded UI. The library sidebar and the default burger menu
@@ -1350,8 +1359,8 @@ export default function InfiniteCanvas({
       `}</style>
 
       {/* Title + save status */}
-      <div style={{ padding: '32px 56px 0', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+      <div style={{ padding: '18px 40px 0', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
           <input
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
@@ -1363,14 +1372,42 @@ export default function InfiniteCanvas({
               border: 'none',
               outline: 'none',
               fontFamily: 'inherit',
-              fontSize: '32px',
+              fontSize: '22px',
               fontWeight: 700,
               color: '#ede9ff',
-              letterSpacing: '-0.04em',
+              letterSpacing: '-0.03em',
               lineHeight: 1.2,
               padding: 0,
             }}
           />
+          <button
+            type="button"
+            onClick={() => setUiHidden((v) => !v)}
+            aria-pressed={uiHidden}
+            aria-label={uiHidden ? 'Show drawing toolbar' : 'Hide drawing toolbar'}
+            title={uiHidden ? 'Show drawing toolbar' : 'Hide drawing toolbar'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '26px',
+              height: '26px',
+              padding: 0,
+              borderRadius: '6px',
+              background: uiHidden ? 'rgba(174,137,255,0.14)' : 'rgba(237,233,255,0.04)',
+              border: uiHidden
+                ? '1px solid rgba(174,137,255,0.45)'
+                : '1px solid rgba(237,233,255,0.10)',
+              color: uiHidden ? 'rgba(206,184,255,0.95)' : 'rgba(237,233,255,0.55)',
+              cursor: 'pointer',
+              transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              {uiHidden ? 'visibility_off' : 'visibility'}
+            </span>
+          </button>
           <div
             style={{
               display: 'flex',
@@ -1413,12 +1450,16 @@ export default function InfiniteCanvas({
             minute: '2-digit',
           })}
         </p>
-        <div style={{ height: '1px', background: 'rgba(174,137,255,0.20)', margin: '14px 0 0' }} />
+        <div style={{ height: '1px', background: 'rgba(174,137,255,0.20)', margin: '10px 0 0' }} />
       </div>
 
       {/* Canvas — absolute-inset wrapper gives Excalidraw a deterministic size */}
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-        <div ref={canvasWrapperRef} style={{ position: 'absolute', inset: 0 }}>
+        <div
+          ref={canvasWrapperRef}
+          className={uiHidden ? 'canvas-ui-hidden' : undefined}
+          style={{ position: 'absolute', inset: 0 }}
+        >
           {/* Pattern overlay — paints the user's real base color plus the
               selected pattern BEHIND Excalidraw. When a pattern is active,
               Excalidraw's own canvas is rendered with 'transparent' so this
