@@ -55,7 +55,7 @@ export function ContextualMascot({
       className={className}
       style={{ display: 'inline-flex', lineHeight: 0, cursor: 'pointer' }}
     >
-      <Mascot pose={displayPose} size={size} idle={displayIdle} alt={alt} />
+      <Mascot pose={displayPose} size={size} idle={displayIdle} alt={alt} blink={false} />
     </span>
   );
 }
