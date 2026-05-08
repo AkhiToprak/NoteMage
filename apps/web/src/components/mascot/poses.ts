@@ -41,63 +41,63 @@ export const SILHOUETTE_SRC = '/mascot/default-silhouette-32.png';
 
 export const POSES: Record<MascotPose, PoseEntry> = {
   default: {
-    src: '/mascot/default.png',
-    blinkSrc: '/mascot/default-blink.png',
+    src: '/mascot/default-v2.png',
+    blinkSrc: '/mascot/default-blink-v2.png',
     recommendedSize: 'md',
     recommendedIdle: 'bounce',
   },
   wave: {
-    src: '/mascot/wave.png',
+    src: '/mascot/wave-v2.png',
     recommendedSize: 'lg',
     recommendedIdle: 'float',
   },
   'pointing-left': {
-    src: '/mascot/pointing-left.png',
+    src: '/mascot/pointing-left-v2.png',
     recommendedSize: 'sm',
     recommendedIdle: 'bounce',
   },
   'pointing-right': {
-    src: '/mascot/pointing-right.png',
+    src: '/mascot/pointing-right-v2.png',
     recommendedSize: 'sm',
     recommendedIdle: 'bounce',
   },
   'holding-wand': {
-    src: '/mascot/holding-wand.png',
+    src: '/mascot/holding-wand-v2.png',
     recommendedSize: 'sm',
     recommendedIdle: 'bounce',
   },
   thinking: {
-    src: '/mascot/thinking.png',
+    src: '/mascot/thinking-v2.png',
     recommendedSize: 'md',
     recommendedIdle: 'sway',
   },
   'holding-scroll': {
-    src: '/mascot/holding-scroll.png',
+    src: '/mascot/holding-scroll-v2.png',
     recommendedSize: 'md',
     recommendedIdle: 'sway',
   },
   'holding-pen': {
-    src: '/mascot/holding-pen.png',
+    src: '/mascot/holding-pen-v2.png',
     recommendedSize: 'md',
     recommendedIdle: 'bounce',
   },
   graduation: {
-    src: '/mascot/graduation.png',
+    src: '/mascot/graduation-v2.png',
     recommendedSize: 'lg',
     recommendedIdle: 'float',
   },
   celebrate: {
-    src: '/mascot/celebrate.png',
+    src: '/mascot/celebrate-v2.png',
     recommendedSize: 'sm',
     recommendedIdle: 'bounce',
   },
   sleeping: {
-    src: '/mascot/sleeping.png',
+    src: '/mascot/sleeping-v2.png',
     recommendedSize: 'md',
     recommendedIdle: 'sway',
   },
   sad: {
-    src: '/mascot/sad.png',
+    src: '/mascot/sad-v2.png',
     recommendedSize: 'lg',
     recommendedIdle: 'none',
   },
