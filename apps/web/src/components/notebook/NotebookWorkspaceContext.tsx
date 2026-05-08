@@ -81,6 +81,10 @@ export function useNotebookWorkspace() {
   return ctx;
 }
 
+export function useNotebookWorkspaceOptional(): WorkspaceContextValue | null {
+  return useContext(NotebookWorkspaceContext);
+}
+
 export function NotebookWorkspaceProvider({
   notebookId,
   children,

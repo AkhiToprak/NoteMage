@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import Image from 'next/image';
 import Link from 'next/link';
 import BurgerMenu from './BurgerMenu';
 import NotificationBell from './NotificationBell';
@@ -13,6 +12,7 @@ import TierBadge from '@/components/ui/TierBadge';
 import TimerWidget from './TimerWidget';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
+import { ContextualMascot, useMascotContextPose } from '@/components/mascot';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
@@ -44,6 +44,7 @@ export default function HomeHeader() {
     | undefined;
 
   const { isPhone, isTablet, isDesktop } = useBreakpoint();
+  const mascotContext = useMascotContextPose();
 
   const [burgerOpen, setBurgerOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
@@ -131,23 +132,34 @@ export default function HomeHeader() {
             </span>
           </button>
 
-          {/* Logo */}
           <Link
             href="/dashboard"
             style={{
               display: isPhone ? 'none' : 'flex',
               alignItems: 'center',
+              gap: 8,
               textDecoration: 'none',
               flexShrink: 0,
             }}
           >
-            <Image
-              src="/logo_trimmed.png"
-              alt="Notemage"
-              width={isTablet ? 100 : 120}
-              height={32}
-              style={{ objectFit: 'contain' }}
+            <ContextualMascot
+              pose={mascotContext.pose}
+              idle={mascotContext.idle}
+              alt="NoteMage mascot"
             />
+            <span
+              style={{
+                fontFamily: 'var(--font-brand)',
+                fontSize: isTablet ? 18 : 20,
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+                color: COLORS.primary,
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              NoteMage
+            </span>
           </Link>
 
           {/* Search bar */}

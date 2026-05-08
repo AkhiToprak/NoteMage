@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { getMageName } from '@/lib/scholar';
 import Link from 'next/link';
-import Image from 'next/image';
+import { ContextualMascot, useMascotContextPose } from '@/components/mascot';
 import {
   ArrowLeft,
   Plus,
@@ -48,6 +48,7 @@ import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
 export default function UnifiedSidebar() {
   const { notebookId, notebook, sections, refreshSections, setSidebarCollapsed } =
     useNotebookWorkspace();
+  const mascotContext = useMascotContextPose();
   const { data: session } = useSession();
   const mageName = getMageName(session?.user?.scholarName);
 
@@ -125,14 +126,34 @@ export default function UnifiedSidebar() {
           gap: '8px',
         }}
       >
-        <Link href="/dashboard">
-          <Image
-            src="/logo_trimmed.png"
-            alt="Notemage"
-            width={120}
-            height={30}
-            style={{ objectFit: 'contain', objectPosition: 'left', cursor: 'pointer' }}
+        <Link
+          href="/dashboard"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <ContextualMascot
+            pose={mascotContext.pose}
+            idle={mascotContext.idle}
+            alt="NoteMage mascot"
           />
+          <span
+            style={{
+              fontFamily: 'var(--font-brand)',
+              fontSize: 20,
+              fontWeight: 500,
+              letterSpacing: '0.02em',
+              color: '#ae89ff',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            NoteMage
+          </span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Link

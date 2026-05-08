@@ -4,6 +4,30 @@ Plan for shipping the NoteMage spellbook mascot across the web app: tour, onboar
 
 ---
 
+## 2026-05-08 update — current state of truth
+
+The pose set and integration approach changed since this doc was first written. Treat the sections below as historical context; the canonical set now lives in `apps/web/src/components/mascot/poses.ts`.
+
+**Dropped from scope:** `celebrate` and `sad`. References to them in §2.3, §5.9, §5.11, and §6 are stale.
+
+**Added (12 new poses, all commissioned and processed into `apps/web/public/mascot/`):**
+
+- **Contextual sidebar set (5)** — `writing`, `painting`, `holding-flashcards`, `quizzing`, `chatting`. Drive the topbar/sidebar mascot lockup, tied to route + active notebook tab.
+- **Hover pool (6)** — `wink`, `peek`, `shrug`, `bow`, `head-tilt`, `hide-behind-hat`. Random pose held while the user hovers the sidebar mascot; snaps back to the route pose on mouse-leave (option a — "alive companion who freezes in pose for you").
+- **Empty state (1)** — `sleeping` (re-commissioned, replaces the earlier draft).
+
+**New runtime pieces:**
+
+- `useMascotContextPose()` — derives `{ pose, idle }` from `usePathname()` + the optional `useNotebookWorkspaceOptional()` accessor. Per-tab inside the notebook (text → `writing`, canvas → `painting`, flashcards → `holding-flashcards`, quiz → `quizzing`, chat → `chatting`, study plan → `holding-scroll`).
+- `ContextualMascot` — wraps `Mascot` with the hover state machine: random pick from `HOVER_POSES` excluding the last shown, releases on `mouseleave`/`blur`.
+- First-time `wave` on `/dashboard` is gated by `localStorage['notemage:mascot:dashboard-waved']` and lasts 4 s.
+
+**Wired into:** `components/layout/HomeHeader.tsx` and `components/notebook/UnifiedSidebar.tsx` (the two surfaces that previously rendered the `(logo)NoteMage` lockup). The wordmark remains; only the leading icon was swapped.
+
+**Asset processing notes:** sources arrived at 1254×1254 with no alpha (solid black background). Stripped via `magick … -fuzz 6% -fill none -floodfill +0+0 black …` from each corner, resized to 720×720, palette-quantized to 192 colors. Outputs sit at 30–65 KB per pose with intact alpha.
+
+---
+
 ## 1. Goals
 
 - One reusable `<Mascot />` component used everywhere — never `<img src="...">` inline.
