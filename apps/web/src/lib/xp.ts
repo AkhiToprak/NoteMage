@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
-import { checkCosmeticUnlocks } from '@/lib/cosmetics/unlock';
 
 export const XP_REWARDS = {
   message_sent: 5,
@@ -72,7 +71,6 @@ export async function awardXP(
     });
 
     checkAndUnlockAchievements(userId).catch(console.error);
-    checkCosmeticUnlocks(userId, calculatedLevel).catch(console.error);
   }
 
   return { newXP: user.xp, newLevel: calculatedLevel, leveledUp };

@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getLevelFromXP } from '@/lib/xp';
-import { checkCosmeticUnlocks } from '@/lib/cosmetics/unlock';
 import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
 
 /**
@@ -30,12 +29,6 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    // Backfill: make sure every cosmetic the user is currently eligible for
-    // has a UserCosmetic row. Critical for accounts that leveled up BEFORE
-    // the cosmetics system was deployed (their awardXP calls never ran the
-    // unlock pipeline, so their catalog is empty even at high levels) and
-    // cheap otherwise thanks to the skipDuplicates insert + idempotent
-    // ownership check inside checkCosmeticUnlocks.
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { xp: true },
@@ -43,7 +36,6 @@ export async function GET(request: NextRequest) {
     if (!user) return unauthorizedResponse();
 
     const { level } = getLevelFromXP(user.xp);
-    await checkCosmeticUnlocks(userId, level).catch(() => {});
 
     const owned = await db.userCosmetic.findMany({
       where: { userId },
