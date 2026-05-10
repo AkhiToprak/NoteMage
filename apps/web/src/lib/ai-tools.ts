@@ -19,6 +19,27 @@ export interface QuizToolInput {
   }[];
 }
 
+// QUIZ_TOOL_V2 — Phase 1 enables MC only. Phase 2A/2B agents widen the
+// `kind` enum and add per-kind payload variants.
+export interface QuizToolV2McQuestion {
+  kind: 'mc';
+  prompt: string;
+  hint?: string;
+  correctExplanation?: string;
+  wrongExplanation?: string;
+  payload: {
+    options: string[];
+    correctIndex: number;
+  };
+}
+
+export type QuizToolV2Question = QuizToolV2McQuestion;
+
+export interface QuizToolV2Input {
+  title: string;
+  questions: QuizToolV2Question[];
+}
+
 export interface MindmapToolInput {
   title: string;
   markdown: string;
@@ -145,6 +166,78 @@ export const QUIZ_TOOL: Anthropic.Messages.Tool = {
           required: ['question', 'options', 'correctIndex'],
         },
         description: 'Array of quiz question objects',
+        minItems: 1,
+      },
+    },
+    required: ['title', 'questions'],
+  },
+};
+
+// QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Phase 1 ships it with
+// `kind` restricted to 'mc' so existing AI behavior is unchanged when the tool
+// is wired up. Phase 2A/2B agents widen the `kind` enum and add per-kind
+// payload variants as new question types ship. Until then, callers should
+// keep using QUIZ_TOOL — this export is the new shape for future call sites
+// and the migration target during Phase 7.
+export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
+  name: 'create_quiz_v2',
+  description:
+    'Create a quiz where each question carries an explicit `kind` discriminator and a kind-specific `payload`. Phase 1 supports only `kind: "mc"` (multiple choice) with 4 options and one correct index. Use this tool for new quiz-generation flows that target the kind-aware question engine.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      title: {
+        type: 'string',
+        description: 'A short, descriptive title for the quiz (e.g. "Cell Biology Quiz")',
+      },
+      questions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            kind: {
+              type: 'string',
+              enum: ['mc'],
+              description: 'The question kind. Only "mc" is supported in this release.',
+            },
+            prompt: {
+              type: 'string',
+              description: 'The question prompt shown to the student.',
+            },
+            hint: {
+              type: 'string',
+              description: 'Optional hint shown on demand.',
+            },
+            correctExplanation: {
+              type: 'string',
+              description: 'Explanation shown when the student answers correctly.',
+            },
+            wrongExplanation: {
+              type: 'string',
+              description: 'Explanation shown when the student answers incorrectly.',
+            },
+            payload: {
+              type: 'object',
+              description: 'Kind-specific answer data. For "mc": options + correctIndex.',
+              properties: {
+                options: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Exactly 4 answer choices.',
+                  minItems: 4,
+                  maxItems: 4,
+                },
+                correctIndex: {
+                  type: 'number',
+                  description: 'The 0-based index of the correct answer (0-3).',
+                },
+              },
+              required: ['options', 'correctIndex'],
+            },
+          },
+          required: ['kind', 'prompt', 'payload'],
+        },
+        description: 'Array of quiz question objects.',
         minItems: 1,
       },
     },

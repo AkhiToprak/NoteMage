@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
+import { grade } from '@/lib/quiz-grading';
 import {
   successResponse,
   createdResponse,
@@ -44,12 +45,24 @@ export async function POST(
       return badRequestResponse('Answers are required');
     }
 
-    // Calculate score
+    // Calculate score via the kind-aware grader. MC questions on legacy rows
+    // (payload = null) fall back to the `options` + `correctIndex` columns
+    // inside grade(); newer rows whose payload carries the answer key use
+    // that. Either way the comparison is centralized in one place so Phase
+    // 2A/2B agents only need to extend grade(), not this route.
     const questionMap = new Map(quizSet.questions.map((q) => [q.id, q]));
     let score = 0;
     const answerRecords = answers.map((a) => {
       const question = questionMap.get(a.questionId);
-      const isCorrect = question ? question.correctIndex === a.selectedIdx : false;
+      if (!question) {
+        return { questionId: a.questionId, selectedIdx: a.selectedIdx, isCorrect: false };
+      }
+      const { isCorrect } = grade(
+        question.kind,
+        question.payload,
+        { options: question.options, correctIndex: question.correctIndex },
+        a.selectedIdx
+      );
       if (isCorrect) score++;
       return {
         questionId: a.questionId,
