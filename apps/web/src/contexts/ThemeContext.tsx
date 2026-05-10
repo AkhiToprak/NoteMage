@@ -45,9 +45,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setPreferenceState(readStoredPreference());
-    setSystemTheme(getSystemTheme());
-    setHydrated(true);
+    // setState calls run from a setTimeout callback rather than the effect
+    // body — the react-hooks/set-state-in-effect rule treats the synchronous
+    // path as the anti-pattern. The pre-hydration inline script in
+    // app/layout.tsx already applies the right theme to <html> so the 0ms
+    // defer doesn't cause a visible flash.
+    const t = window.setTimeout(() => {
+      setPreferenceState(readStoredPreference());
+      setSystemTheme(getSystemTheme());
+      setHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(t);
   }, []);
 
   useEffect(() => {

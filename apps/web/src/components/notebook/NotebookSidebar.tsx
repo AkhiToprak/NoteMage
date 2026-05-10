@@ -32,18 +32,10 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
     return match?.[1];
   })();
 
-  const fetchNotebook = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/notebooks/${notebookId}`);
-      const json = await res.json();
-      if (json.success && json.data) {
-        setNotebook({ name: json.data.name, color: json.data.color });
-      }
-    } catch {
-      // silent
-    }
-  }, [notebookId]);
-
+  // fetchSections is kept as a useCallback because it's also wired as
+  // onRefresh / onCreated / onImported below. The mount fetches inline
+  // their setState into a .then() callback so the rule against synchronous
+  // setState-in-effect doesn't flag the call sites.
   const fetchSections = useCallback(async () => {
     try {
       const res = await fetch(`/api/notebooks/${notebookId}/sections`);
@@ -58,11 +50,28 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
   }, [notebookId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchNotebook();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchSections();
-  }, [fetchNotebook, fetchSections]);
+    fetch(`/api/notebooks/${notebookId}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setNotebook({ name: json.data.name, color: json.data.color });
+        }
+      })
+      .catch(() => {
+        // silent
+      });
+
+    fetch(`/api/notebooks/${notebookId}/sections`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setSections(buildSectionTree(json.data as SectionData[]));
+        }
+      })
+      .catch(() => {
+        // silent
+      });
+  }, [notebookId]);
 
   const accentColor = notebook?.color || '#8c52ff';
 

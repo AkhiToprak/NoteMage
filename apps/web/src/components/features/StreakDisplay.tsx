@@ -51,10 +51,25 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
       .then((r) => r.json())
       .then((res) => {
         const data = res?.data ?? res;
-        if (data?.currentStreak !== undefined) {
-          setStreak(data);
-          onStreakLoaded?.(data);
+        if (data?.currentStreak === undefined) return;
+
+        const milestone = streakMilestoneFor(data.currentStreak);
+        let oneShot: MascotOneShot | null = null;
+        if (milestone !== null && typeof window !== 'undefined') {
+          const key = `streak-celebrated-${milestone}`;
+          try {
+            if (!window.sessionStorage.getItem(key)) {
+              window.sessionStorage.setItem(key, '1');
+              oneShot = 'celebrate';
+            }
+          } catch {
+            // sessionStorage unavailable (private mode, etc.) — skip the oneShot.
+          }
         }
+
+        setStreak(data);
+        if (oneShot) setMascotOneShot(oneShot);
+        onStreakLoaded?.(data);
       })
       .catch(() => {});
   }, [onStreakLoaded]);
@@ -63,19 +78,6 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
     () => (streak ? streakMilestoneFor(streak.currentStreak) : null),
     [streak],
   );
-
-  useEffect(() => {
-    if (milestoneHit === null) return;
-    if (typeof window === 'undefined') return;
-    const key = `streak-celebrated-${milestoneHit}`;
-    try {
-      if (window.sessionStorage.getItem(key)) return;
-      window.sessionStorage.setItem(key, '1');
-    } catch {
-      return;
-    }
-    setMascotOneShot('celebrate');
-  }, [milestoneHit]);
 
   if (!streak) return null;
 
