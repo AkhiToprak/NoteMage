@@ -64,12 +64,13 @@ const tools: Tool[] = [
     docsHref: '/docs/exams-and-timers#exams',
   },
   {
-    icon: 'bolt',
-    tag: 'Level up',
-    title: 'XP + Streaks',
-    description: 'Earn XP for every page, quiz, and study session. Keep your streak alive.',
+    icon: 'local_fire_department',
+    tag: 'Stay consistent',
+    title: 'Streaks + Achievements',
+    description:
+      'Build a daily streak, rack up achievements, and unlock cosmetics for your profile.',
     accent: '#c9a6ff',
-    placeholder: 'https://placehold.co/620x400/160f2c/c9a6ff/png?text=XP',
+    placeholder: 'https://placehold.co/620x400/160f2c/c9a6ff/png?text=Streaks',
     docsHref: '/docs/xp-streaks-achievements',
   },
   {

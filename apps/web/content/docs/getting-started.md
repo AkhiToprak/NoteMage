@@ -31,7 +31,7 @@ After signing in you land on **/dashboard**. From there you can:
 
 - Manage To-Do's.
 - Open recent notebooks.
-- See your XP, level, and current study streak.
+- See your current study streak and recent achievements.
 - Add upcoming exams to the countdown.
 - Track daily study goals.
 

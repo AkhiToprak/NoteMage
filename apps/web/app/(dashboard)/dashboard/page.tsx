@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import ActivityHeatmap from '@/components/features/ActivityHeatmap';
 import StreakDisplay from '@/components/features/StreakDisplay';
-import XPProgressBar from '@/components/features/XPProgressBar';
 import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
 import DashboardAchievements from '@/components/features/DashboardAchievements';
@@ -61,13 +60,6 @@ interface TodoItem {
   text: string;
   completed: boolean;
   createdAt: string;
-}
-
-interface XPData {
-  currentXP: number;
-  nextLevelXP: number;
-  level: number;
-  totalXP: number;
 }
 
 interface ExamItem {
@@ -132,7 +124,6 @@ export default function DashboardPage() {
   const [streakValue, setStreakValue] = useState<string>('—');
   const [streakIsActive, setStreakIsActive] = useState(false);
   const [freezesLeft, setFreezeesLeft] = useState(0);
-  const [xpData, setXPData] = useState<XPData | null>(null);
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
@@ -175,16 +166,6 @@ export default function DashboardPage() {
           setStreakValue(String(d.currentStreak));
           setStreakIsActive(d.isActiveToday);
           setFreezeesLeft(d.freezesLeft);
-        }
-      })
-      .catch(() => {});
-
-    fetch('/api/user/xp')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (d?.level !== undefined) {
-          setXPData(d);
         }
       })
       .catch(() => {});
@@ -786,24 +767,6 @@ export default function DashboardPage() {
             />
           ))}
         </div>
-      )}
-
-      {/* XP Progress */}
-      {xpData && (
-        <section
-          style={{
-            background: '#21213e',
-            borderRadius: '20px',
-            padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
-          }}
-        >
-          <XPProgressBar
-            currentXP={xpData.currentXP}
-            nextLevelXP={xpData.nextLevelXP}
-            level={xpData.level}
-            totalXP={xpData.totalXP}
-          />
-        </section>
       )}
 
       {/* Activity Heatmap */}

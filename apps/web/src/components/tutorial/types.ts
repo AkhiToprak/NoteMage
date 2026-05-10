@@ -20,9 +20,6 @@ export interface TutorialPersistedState {
 }
 
 export interface TutorialCompletionResult {
-  xpAwarded: number;
-  newLevel?: number;
-  leveledUp: boolean;
   achievements: { badge: string; name: string }[];
   alreadyComplete: boolean;
 }

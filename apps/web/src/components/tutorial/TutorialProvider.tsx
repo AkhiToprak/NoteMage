@@ -97,18 +97,12 @@ async function postComplete(): Promise<TutorialCompletionResult | null> {
     const json = (await res.json()) as {
       success?: boolean;
       data?: {
-        xpAwarded?: number;
-        newLevel?: number;
-        leveledUp?: boolean;
         achievements?: { badge: string; name: string }[];
         alreadyComplete?: boolean;
       };
     };
     if (!json.success || !json.data) return null;
     return {
-      xpAwarded: json.data.xpAwarded ?? 0,
-      newLevel: json.data.newLevel,
-      leveledUp: json.data.leveledUp ?? false,
       achievements: json.data.achievements ?? [],
       alreadyComplete: json.data.alreadyComplete ?? false,
     };
