@@ -29,7 +29,7 @@ export const GREETINGS: string[] = [
   'Rumor has it {name} is about to crush it.',
   '{name} just buffed their intelligence stat.',
   'Oh snap, {name}\u2019s back!',
-  'Level up incoming for {name}.',
+  'Glow up incoming for {name}.',
   'Did someone say {name}? Because we did.',
   'The world is {name}\u2019s classroom.',
   'Here we go again, {name}.',
