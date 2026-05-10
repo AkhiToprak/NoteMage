@@ -17,6 +17,11 @@ export interface UserStats {
   dailyGoalHit: boolean;
   tutorialCompleted: boolean;
   totalAchievementsUnlocked: number;
+  // PR 1 — fields backing the 5 new achievement-bound triggers.
+  chatMessageCount: number;
+  flashcardReviewCount: number;
+  documentCount: number;
+  quizSetCount: number;
 }
 
 export interface AchievementDef {
@@ -27,6 +32,17 @@ export interface AchievementDef {
   category: 'study' | 'social' | 'streak' | 'content' | 'special';
   checkCondition: (stats: UserStats) => boolean;
   getProgress: (stats: UserStats) => { current: number; target: number };
+  /**
+   * Cosmetic catalog ids (see src/lib/cosmetics/catalog.ts) granted when this
+   * achievement is unlocked for the first time. Empty array means the
+   * achievement grants nothing — this is the case for `first_level_up`, which
+   * is being removed in PR 3.
+   *
+   * Wired through `unlockCosmeticsForAchievement(userId, badge)` from the
+   * achievement checker. Kept alongside the level-bound unlock path during PR
+   * 1; the level path is removed in PR 3.
+   */
+  unlocks: string[];
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = [
@@ -39,6 +55,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.dailyGoalHit,
     getProgress: (s) => ({ current: s.dailyGoalHit ? 1 : 0, target: 1 }),
+    unlocks: ['title.flashcard-fiend', 'bg.mesh'],
   },
   {
     badge: 'all_wrong_quiz',
@@ -48,6 +65,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.hasAllWrongQuiz,
     getProgress: (s) => ({ current: s.hasAllWrongQuiz ? 1 : 0, target: 1 }),
+    unlocks: ['font.pacifico'],
   },
   {
     badge: 'perfect_first_try',
@@ -57,6 +75,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.hasPerfectFirstTry,
     getProgress: (s) => ({ current: s.hasPerfectFirstTry ? 1 : 0, target: 1 }),
+    unlocks: ['frame.glow-emerald'],
   },
   {
     badge: 'first_level_up',
@@ -66,6 +85,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.userLevel >= 2,
     getProgress: (s) => ({ current: Math.min(s.userLevel - 1, 1), target: 1 }),
+    // Achievement is being killed in PR 3; intentionally grants nothing.
+    unlocks: [],
   },
   {
     badge: 'first_exam',
@@ -75,6 +96,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.examCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.examCount, 1), target: 1 }),
+    unlocks: ['font.serif'],
   },
   {
     badge: 'all_todos_done',
@@ -84,6 +106,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.allTodosDone,
     getProgress: (s) => ({ current: s.allTodosDone ? 1 : 0, target: 1 }),
+    unlocks: [],
   },
   {
     badge: 'apprentice_mage',
@@ -93,6 +116,27 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.tutorialCompleted,
     getProgress: (s) => ({ current: s.tutorialCompleted ? 1 : 0, target: 1 }),
+    unlocks: ['title.apprentice', 'font.display'],
+  },
+  {
+    badge: 'first_chat',
+    name: 'talking to myself',
+    description: 'Send your first message to your mage assistant',
+    icon: 'chat',
+    category: 'study',
+    checkCondition: (s) => s.chatMessageCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.chatMessageCount, 1), target: 1 }),
+    unlocks: ['font.imfell', 'frame.glow-purple'],
+  },
+  {
+    badge: 'flashcard_grind',
+    name: 'spaced repetition',
+    description: 'Review 50 flashcards',
+    icon: 'style',
+    category: 'study',
+    checkCondition: (s) => s.flashcardReviewCount >= 50,
+    getProgress: (s) => ({ current: Math.min(s.flashcardReviewCount, 50), target: 50 }),
+    unlocks: ['font.cinzel'],
   },
 
   // ── Content ─────────────────────────────────────────────────────────
@@ -104,6 +148,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'content',
     checkCondition: (s) => s.notebookCount >= 10,
     getProgress: (s) => ({ current: Math.min(s.notebookCount, 10), target: 10 }),
+    unlocks: ['frame.cosmic', 'bg.aurora-purple'],
   },
   {
     badge: 'first_folder',
@@ -113,6 +158,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'content',
     checkCondition: (s) => s.folderCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.folderCount, 1), target: 1 }),
+    unlocks: ['frame.glow-ember'],
   },
   {
     badge: 'first_canvas',
@@ -122,6 +168,27 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'content',
     checkCondition: (s) => s.canvasPageCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.canvasPageCount, 1), target: 1 }),
+    unlocks: ['font.marker', 'bg.geometric-violet'],
+  },
+  {
+    badge: 'first_upload',
+    name: 'loaded in',
+    description: 'Upload your first document',
+    icon: 'upload_file',
+    category: 'content',
+    checkCondition: (s) => s.documentCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.documentCount, 1), target: 1 }),
+    unlocks: ['font.brand'],
+  },
+  {
+    badge: 'first_quiz_created',
+    name: 'quizmaster',
+    description: 'Create your first quiz',
+    icon: 'quiz',
+    category: 'content',
+    checkCondition: (s) => s.quizSetCount >= 1,
+    getProgress: (s) => ({ current: Math.min(s.quizSetCount, 1), target: 1 }),
+    unlocks: ['font.orbitron'],
   },
 
   // ── Streak ──────────────────────────────────────────────────────────
@@ -133,6 +200,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'streak',
     checkCondition: (s) => s.currentStreak >= 7,
     getProgress: (s) => ({ current: Math.min(s.currentStreak, 7), target: 7 }),
+    unlocks: ['title.night-owl', 'bg.aurora-emerald'],
+  },
+  {
+    badge: '30_day_streak',
+    name: 'ok we get it',
+    description: 'Log in for 30 days straight',
+    icon: 'whatshot',
+    category: 'streak',
+    checkCondition: (s) => s.currentStreak >= 30,
+    getProgress: (s) => ({ current: Math.min(s.currentStreak, 30), target: 30 }),
+    unlocks: ['title.polymath', 'frame.pulse-aqua', 'bg.geometric-ember'],
   },
 
   // ── Social ──────────────────────────────────────────────────────────
@@ -144,6 +222,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.friendCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.friendCount, 1), target: 1 }),
+    unlocks: ['frame.pulse-rose'],
   },
   {
     badge: 'first_group',
@@ -153,6 +232,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.groupCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.groupCount, 1), target: 1 }),
+    unlocks: ['font.abril'],
   },
   {
     badge: 'username_changed',
@@ -162,6 +242,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.usernameChanged,
     getProgress: (s) => ({ current: s.usernameChanged ? 1 : 0, target: 1 }),
+    unlocks: ['title.scholar'],
   },
   {
     badge: 'first_share',
@@ -171,6 +252,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.sharedNotebookCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.sharedNotebookCount, 1), target: 1 }),
+    unlocks: ['font.pressstart'],
   },
   {
     badge: 'share_study_material',
@@ -180,6 +262,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.sharedStudyMaterialCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.sharedStudyMaterialCount, 1), target: 1 }),
+    unlocks: ['font.medieval'],
   },
   {
     badge: '20_friends',
@@ -189,6 +272,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.friendCount >= 20,
     getProgress: (s) => ({ current: Math.min(s.friendCount, 20), target: 20 }),
+    unlocks: ['font.bungee', 'bg.aurora-sunset'],
   },
   {
     badge: 'scholar_renamed',
@@ -198,6 +282,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'social',
     checkCondition: (s) => s.scholarNameSet,
     getProgress: (s) => ({ current: s.scholarNameSet ? 1 : 0, target: 1 }),
+    unlocks: ['font.mono'],
   },
 
   // ── Special ─────────────────────────────────────────────────────────
@@ -207,8 +292,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: 'Get all achievements',
     icon: 'auto_awesome',
     category: 'special',
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 18,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 18), target: 18 }),
+    // Threshold tracks every non-meta achievement; updated when the list
+    // grows. PR 1 adds 5 new achievements -> 18 + 5 = 23 non-meta entries.
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 23,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 23), target: 23 }),
+    unlocks: [
+      'title.archmage',
+      'font.unifraktur',
+      'bg.constellation',
+      'frame.prism',
+      'color.primary',
+    ],
   },
 ];
 
