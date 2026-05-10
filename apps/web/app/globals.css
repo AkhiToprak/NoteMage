@@ -4,68 +4,68 @@
 
 :root {
   /* Primary */
-  --primary: #ae89ff;
-  --primary-container: #8348f6;
-  --primary-dim: #884efb;
-  --primary-fixed: #cdb5ff;
-  --primary-fixed-dim: #c1a4ff;
-  --on-primary: #2a0066;
+  --primary: #d1bcff;
+  --primary-container: #a479f8;
+  --primary-dim: #aa80fc;
+  --primary-fixed: #efe8ff;
+  --primary-fixed-dim: #e4d7ff;
+  --on-primary: #3f0099;
   --on-primary-container: #ffffff;
-  --on-primary-fixed: #330079;
-  --on-primary-fixed-variant: #5600c4;
-  --inverse-primary: #7232e4;
+  --on-primary-fixed: #4800ac;
+  --on-primary-fixed-variant: #6c00f7;
+  --inverse-primary: #915fea;
 
   /* Secondary */
-  --secondary: #b9c3ff;
-  --secondary-container: #001971;
-  --secondary-dim: #4767f6;
-  --secondary-fixed: #dee1ff;
-  --secondary-fixed-dim: #cbd2ff;
-  --on-secondary: #002eb2;
-  --on-secondary-container: #8b9eff;
-  --on-secondary-fixed: #002db0;
-  --on-secondary-fixed-variant: #274bdb;
+  --secondary: #ecefff;
+  --secondary-container: #0024a4;
+  --secondary-dim: #788ff8;
+  --secondary-fixed: #ffffff;
+  --secondary-fixed-dim: #fefeff;
+  --on-secondary: #003be5;
+  --on-secondary-container: #bec9ff;
+  --on-secondary-fixed: #003ae3;
+  --on-secondary-fixed-variant: #536fe2;
 
   /* Tertiary / Highlight */
-  --tertiary: #ffedb3;
-  --tertiary-container: #ffde59;
-  --tertiary-dim: #f0d04c;
-  --tertiary-fixed: #ffde59;
-  --tertiary-fixed-dim: #f0d04c;
-  --on-tertiary: #695700;
-  --on-tertiary-container: #5f4f00;
-  --on-tertiary-fixed: #4a3d00;
-  --on-tertiary-fixed-variant: #6a5800;
+  --tertiary: #fff9e6;
+  --tertiary-container: #ffe88c;
+  --tertiary-dim: #f4dc7b;
+  --tertiary-fixed: #ffe88c;
+  --tertiary-fixed-dim: #f4dc7b;
+  --on-tertiary: #9c8100;
+  --on-tertiary-container: #927900;
+  --on-tertiary-fixed: #7d6700;
+  --on-tertiary-fixed-variant: #9d8200;
 
   /* Error */
-  --error: #fd6f85;
-  --error-container: #8a1632;
-  --error-dim: #c8475d;
-  --on-error: #490013;
-  --on-error-container: #ff97a3;
+  --error: #fea1b0;
+  --error-container: #b61d42;
+  --error-dim: #d46e80;
+  --on-error: #7c0020;
+  --on-error-container: #ffcad0;
 
   /* Surface */
-  --background: #000000;
-  --surface: #000000;
-  --surface-dim: #000000;
-  --surface-bright: #2a2a2a;
-  --surface-container-lowest: #050505;
-  --surface-container-low: #0f0f0f;
-  --surface-container: #161616;
-  --surface-container-high: #1f1f1f;
-  --surface-container-highest: #262626;
-  --surface-tint: #ae89ff;
-  --surface-variant: #262626;
-  --on-surface: #eeecff;
-  --on-surface-variant: #c0bed8;
-  --on-background: #eeecff;
-  --foreground: #eeecff;
-  --inverse-surface: #fcf8ff;
-  --inverse-on-surface: #545363;
+  --background: #1a1a1a;
+  --surface: #1a1a1a;
+  --surface-dim: #1a1a1a;
+  --surface-bright: #444444;
+  --surface-container-lowest: #1e1e1e;
+  --surface-container-low: #282828;
+  --surface-container: #303030;
+  --surface-container-high: #383838;
+  --surface-container-highest: #404040;
+  --surface-tint: #d1bcff;
+  --surface-variant: #404040;
+  --on-surface: #ffffff;
+  --on-surface-variant: #dfdeeb;
+  --on-background: #ffffff;
+  --foreground: #ffffff;
+  --inverse-surface: #ffffff;
+  --inverse-on-surface: #6c6a7f;
 
   /* Outline */
-  --outline: #8888a8;
-  --outline-variant: #555578;
+  --outline: #a5a5be;
+  --outline-variant: #6a6a96;
 
   /* ── Cosmetic name-font vars ──────────────────────────────────────────
      Declared directly at :root (not only inside @theme inline) so they're
@@ -97,23 +97,23 @@
 [data-theme='light'] {
   --background: #ffffff;
   --surface: #ffffff;
-  --surface-dim: #f1f1f5;
+  --surface-dim: #ffffff;
   --surface-bright: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #f7f7fb;
-  --surface-container: #f1f1f5;
-  --surface-container-high: #e9e9ef;
-  --surface-container-highest: #e1e1e9;
-  --surface-variant: #ececf2;
-  --on-surface: #1a1a2e;
-  --on-surface-variant: #555578;
-  --on-background: #1a1a2e;
-  --foreground: #1a1a2e;
-  --inverse-surface: #1a1a2e;
-  --inverse-on-surface: #f1f1f5;
+  --surface-container-low: #ffffff;
+  --surface-container: #ffffff;
+  --surface-container-high: #ffffff;
+  --surface-container-highest: #fefeff;
+  --surface-variant: #ffffff;
+  --on-surface: #2c2c4f;
+  --on-surface-variant: #6a6a96;
+  --on-background: #2c2c4f;
+  --foreground: #2c2c4f;
+  --inverse-surface: #2c2c4f;
+  --inverse-on-surface: #ffffff;
 
-  --outline: #8888a8;
-  --outline-variant: #d4d4dc;
+  --outline: #a5a5be;
+  --outline-variant: #f0f0f3;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
