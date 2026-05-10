@@ -101,8 +101,6 @@ model User {
   receivedInvitations    GroupInvitation[]  @relation("ReceivedInvitations")
   sharedGroupContent     GroupSharedContent[] @relation("SharedGroupContent")
   achievements           Achievement[]
-  xp                     Int                @default(0)
-  level                  Int                @default(1)
   // Cosmetics — see src/lib/cosmetics/catalog.ts for the canonical list.
   // nameStyle is denormalized so username rendering never needs a join.
   // Shape: { fontId?: string, colorId?: string } — both reference catalog slugs.
