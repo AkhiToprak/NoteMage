@@ -108,34 +108,22 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     }),
   ]);
 
-  // ── New triggers for PR 1 (achievement-bound cosmetics) ─────────────
-  // Run as a separate Promise.all so the existing block above stays
-  // diff-friendly. These are independent counts; no sequential logic.
   const [
     chatMessageCount,
     flashcardReviewAgg,
     documentCount,
     quizSetCount,
   ] = await Promise.all([
-    // Mage-assistant messages authored by the user. role='user' filters out
-    // assistant replies. Anchored on the userId index already on
-    // chat_messages so this stays a cheap count.
     db.chatMessage.count({ where: { userId, role: 'user' } }),
 
-    // Flashcard reviews — the SR pipeline doesn't store a per-review row,
-    // it only bumps `repetitions` on the Flashcard. Sum that across every
-    // flashcard the user owns to get a total review count. Traverses
-    // Flashcard -> FlashcardSet -> Notebook -> User.
+    // SR bumps Flashcard.repetitions; no per-review row exists, so sum.
     db.flashcard.aggregate({
       _sum: { repetitions: true },
       where: { flashcardSet: { notebook: { userId } } },
     }),
 
-    // Documents the user has uploaded into any of their notebooks.
     db.document.count({ where: { notebook: { userId } } }),
 
-    // Quiz sets created in any of the user's notebooks (AI-generated +
-    // manual both count — the achievement is "created any quiz").
     db.quizSet.count({ where: { notebook: { userId } } }),
   ]);
 
@@ -261,11 +249,6 @@ export async function checkAndUnlockAchievements(
       unlockedBadges.add(a.badge);
     }
 
-    // PR 1 — fan out cosmetic unlocks for each newly-granted achievement.
-    // Runs in parallel with the level-bound path in xp.ts; both write to
-    // UserCosmetic and rely on its compound primary key (userId, cosmeticId)
-    // for idempotency. Errors per-achievement are logged but don't block
-    // the rest — same fire-and-forget posture as the level-up path.
     await Promise.all(
       newlyUnlocked.map((a) =>
         unlockCosmeticsForAchievement(userId, a.badge).catch((err) => {
@@ -311,9 +294,6 @@ export async function checkAndUnlockAchievements(
           icon: metaDef.icon,
         });
 
-        // PR 1 — grant the meta-achievement's cosmetic bundle the same way
-        // pass 1 does. Wrapped because this branch only runs when the
-        // create succeeded above (the catch swallows races).
         await unlockCosmeticsForAchievement(userId, metaDef.badge).catch(
           (err) => {
             console.error(

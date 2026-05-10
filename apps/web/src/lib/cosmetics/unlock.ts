@@ -57,20 +57,7 @@ export async function checkCosmeticUnlocks(
   return { newlyUnlocked };
 }
 
-/**
- * Grants every cosmetic mapped to `achievementKey` that the user doesn't
- * already own, and emits one `cosmetic_unlocked` notification per grant.
- *
- * Called from the achievement checker right after a new `Achievement` row is
- * created. Designed to run in parallel with the legacy
- * `checkCosmeticUnlocks(userId, newLevel)` path during PR 1 — both write to
- * `UserCosmetic` and rely on its compound PK for idempotency. PR 3 deletes
- * the level path entirely.
- *
- * Idempotent. Safe to call again with the same key — `skipDuplicates` on the
- * cosmetic insert plus a pre-filter on owned ids keeps notifications from
- * double-firing.
- */
+/** Grants cosmetics from `def.unlocks`. Idempotent. */
 export async function unlockCosmeticsForAchievement(
   userId: string,
   achievementKey: string,
@@ -81,15 +68,11 @@ export async function unlockCosmeticsForAchievement(
   const cosmeticIds = def.unlocks;
   if (cosmeticIds.length === 0) return;
 
-  // Drop ids that aren't in the catalog so a typo in the achievement
-  // mapping can't crash the unlock pipeline. Renderers ignore unknown
-  // slugs anyway, but we'd still rather not insert dead rows.
+  // Drop unknown ids defensively — a typo in the mapping shouldn't insert dead rows.
   const validIds = cosmeticIds.filter((id) => COSMETICS[id] !== undefined);
   if (validIds.length === 0) return;
 
-  // Skip rows the user already owns so we don't fire a duplicate
-  // notification on re-checks. The DB still has skipDuplicates as a
-  // safety net for race conditions.
+  // Pre-filter owned to suppress duplicate notifications on re-checks.
   const existing = await db.userCosmetic.findMany({
     where: { userId, cosmeticId: { in: validIds } },
     select: { cosmeticId: true },
@@ -114,9 +97,6 @@ export async function unlockCosmeticsForAchievement(
             cosmeticId,
             label: entry?.label ?? cosmeticId,
             cosmeticType: entry?.type ?? 'unknown',
-            // Source tag lets the toast / notification UI distinguish
-            // achievement-driven unlocks from level-driven ones if it
-            // wants to. PR 3 will drop the level source entirely.
             source: 'achievement',
             achievementKey,
           },

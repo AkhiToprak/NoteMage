@@ -17,7 +17,6 @@ export interface UserStats {
   dailyGoalHit: boolean;
   tutorialCompleted: boolean;
   totalAchievementsUnlocked: number;
-  // PR 1 — fields backing the 5 new achievement-bound triggers.
   chatMessageCount: number;
   flashcardReviewCount: number;
   documentCount: number;
@@ -32,16 +31,6 @@ export interface AchievementDef {
   category: 'study' | 'social' | 'streak' | 'content' | 'special';
   checkCondition: (stats: UserStats) => boolean;
   getProgress: (stats: UserStats) => { current: number; target: number };
-  /**
-   * Cosmetic catalog ids (see src/lib/cosmetics/catalog.ts) granted when this
-   * achievement is unlocked for the first time. Empty array means the
-   * achievement grants nothing — this is the case for `first_level_up`, which
-   * is being removed in PR 3.
-   *
-   * Wired through `unlockCosmeticsForAchievement(userId, badge)` from the
-   * achievement checker. Kept alongside the level-bound unlock path during PR
-   * 1; the level path is removed in PR 3.
-   */
   unlocks: string[];
 }
 
@@ -85,7 +74,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'study',
     checkCondition: (s) => s.userLevel >= 2,
     getProgress: (s) => ({ current: Math.min(s.userLevel - 1, 1), target: 1 }),
-    // Achievement is being killed in PR 3; intentionally grants nothing.
     unlocks: [],
   },
   {
@@ -292,8 +280,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: 'Get all achievements',
     icon: 'auto_awesome',
     category: 'special',
-    // Threshold tracks every non-meta achievement; updated when the list
-    // grows. PR 1 adds 5 new achievements -> 18 + 5 = 23 non-meta entries.
+    // Bump when adding a non-meta achievement.
     checkCondition: (s) => s.totalAchievementsUnlocked >= 23,
     getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 23), target: 23 }),
     unlocks: [
