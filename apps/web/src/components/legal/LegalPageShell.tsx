@@ -82,8 +82,7 @@ export default function LegalPageShell({
               gap: 10,
               padding: '8px 18px',
               borderRadius: 'var(--radius-full)',
-              background:
-                'rgba(174, 137, 255, 0.18)',
+              background: 'rgba(174, 137, 255, 0.18)',
               border: '1px solid rgba(174, 137, 255, 0.3)',
               marginBottom: 32,
               backdropFilter: 'blur(10px)',
@@ -266,8 +265,7 @@ export default function LegalPageShell({
               style={{
                 flex: 1,
                 height: 1,
-                background:
-                  'rgba(174, 137, 255, 0.50)',
+                background: 'rgba(174, 137, 255, 0.50)',
               }}
             />
             <span
@@ -287,8 +285,7 @@ export default function LegalPageShell({
               style={{
                 flex: 1,
                 height: 1,
-                background:
-                  'rgba(174, 137, 255, 0.50)',
+                background: 'rgba(174, 137, 255, 0.50)',
               }}
             />
           </div>

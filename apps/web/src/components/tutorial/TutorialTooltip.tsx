@@ -97,11 +97,8 @@ function computePosition(
   const h = tooltipHeight || TOOLTIP_GUESS_HEIGHT;
 
   if (isPhone) {
-    const placeBelow =
-      usableHeight - rect.bottom >= h + GAP && rect.bottom + GAP >= topInset;
-    const top = placeBelow
-      ? rect.bottom + GAP
-      : Math.max(topInset, rect.top - h - GAP);
+    const placeBelow = usableHeight - rect.bottom >= h + GAP && rect.bottom + GAP >= topInset;
+    const top = placeBelow ? rect.bottom + GAP : Math.max(topInset, rect.top - h - GAP);
     return {
       top,
       left: leftInset,
@@ -113,9 +110,7 @@ function computePosition(
 
   const spaceBelow = usableHeight - rect.bottom;
   const placeBelow = spaceBelow >= h + GAP;
-  const top = placeBelow
-    ? rect.bottom + GAP
-    : Math.max(topInset, rect.top - h - GAP);
+  const top = placeBelow ? rect.bottom + GAP : Math.max(topInset, rect.top - h - GAP);
 
   let left = rect.left;
   if (left + TOOLTIP_WIDTH + rightInset > vw) {

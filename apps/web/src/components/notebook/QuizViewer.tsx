@@ -1829,11 +1829,7 @@ function ActionButton({
         padding: '10px 20px',
         borderRadius: '10px',
         border: primary ? 'none' : '1px solid rgba(140,82,255,0.3)',
-        background: primary
-          ? '#8c52ff'
-          : hovered
-            ? 'rgba(140,82,255,0.1)'
-            : 'transparent',
+        background: primary ? '#8c52ff' : hovered ? 'rgba(140,82,255,0.1)' : 'transparent',
         color: primary ? '#fff' : '#c4a9ff',
         fontSize: '13px',
         fontWeight: 600,

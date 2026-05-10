@@ -42,8 +42,7 @@ export default function BentoFeatures() {
           eyebrow="And the rest"
           title={
             <>
-              Built like an app{' '}
-              <span style={{ color: '#ae89ff' }}>you’ll actually open.</span>
+              Built like an app <span style={{ color: '#ae89ff' }}>you’ll actually open.</span>
             </>
           }
           description="The small things that don’t fit on a carousel but make the day-to-day feel good."

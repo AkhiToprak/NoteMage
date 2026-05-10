@@ -2,7 +2,7 @@
 
 ## Context
 
-**Problem.** Users repeatedly say the app is "confusing at first." The existing pre-app `OnboardingWizard` (account → tier → avatar → scholar name → goals) collects data but doesn't *teach* the app — once registration completes, users land on `/dashboard` with no guidance for creating their first notebook or chat.
+**Problem.** Users repeatedly say the app is "confusing at first." The existing pre-app `OnboardingWizard` (account → tier → avatar → scholar name → goals) collects data but doesn't _teach_ the app — once registration completes, users land on `/dashboard` with no guidance for creating their first notebook or chat.
 
 **Solution.** A skippable, spotlight-style guided tour that auto-fires on the first `/dashboard` load after registration and walks the user through:
 

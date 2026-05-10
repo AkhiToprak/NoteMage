@@ -5,7 +5,7 @@ import { COSMETICS } from './catalog';
 /** Grants cosmetics from `def.unlocks`. Idempotent. */
 export async function unlockCosmeticsForAchievement(
   userId: string,
-  achievementKey: string,
+  achievementKey: string
 ): Promise<void> {
   const def = getAchievementDef(achievementKey);
   if (!def) return;

@@ -47,7 +47,7 @@ export function useMascotContextPose(): MascotContextPose {
 function derivePose(
   pathname: string,
   workspace: ReturnType<typeof useNotebookWorkspaceOptional>,
-  showFirstWave: boolean,
+  showFirstWave: boolean
 ): MascotPose {
   if (pathname === '/dashboard') {
     return showFirstWave ? 'wave' : 'default';

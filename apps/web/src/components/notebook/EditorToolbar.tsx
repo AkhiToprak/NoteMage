@@ -169,15 +169,17 @@ interface EditorToolbarProps {
     underline: boolean;
     strike: boolean;
   };
-  onTextDefaultsUpdate?: (updates: Partial<{
-    color: string;
-    fontSize: number;
-    fontFamily?: string;
-    bold: boolean;
-    italic: boolean;
-    underline: boolean;
-    strike: boolean;
-  }>) => void;
+  onTextDefaultsUpdate?: (
+    updates: Partial<{
+      color: string;
+      fontSize: number;
+      fontFamily?: string;
+      bold: boolean;
+      italic: boolean;
+      underline: boolean;
+      strike: boolean;
+    }>
+  ) => void;
 }
 
 /*

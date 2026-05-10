@@ -252,10 +252,7 @@ export default function AvatarStep({
           style={{
             width: '100%',
             padding: '13px',
-            background:
-              loading || uploading
-                ? '#555578'
-                : '#ae89ff',
+            background: loading || uploading ? '#555578' : '#ae89ff',
             border: 'none',
             borderRadius: '14px',
             color: loading || uploading ? '#aaa8c8' : '#2a0066',

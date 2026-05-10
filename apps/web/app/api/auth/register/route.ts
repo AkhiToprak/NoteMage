@@ -13,10 +13,7 @@ export async function POST(request: NextRequest) {
     // Pre-launch gate: middleware redirects /auth/register without a bypass
     // cookie, but a direct POST would skip that — re-check here.
     if (!hasSignupBypass(request)) {
-      return NextResponse.json(
-        { success: false, error: 'Signups are paused.' },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: 'Signups are paused.' }, { status: 403 });
     }
 
     // Rate limit: 5 registration attempts per IP per hour (in-memory, resets on restart)

@@ -212,8 +212,7 @@ export default function CreateChatModal({
                   width: '24px',
                   height: '24px',
                   borderRadius: '7px',
-                  background:
-                    'rgba(140,82,255,0.5)',
+                  background: 'rgba(140,82,255,0.5)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -648,9 +647,7 @@ export default function CreateChatModal({
                 padding: '10px 24px',
                 borderRadius: '10px',
                 border: 'none',
-                background: isCreating
-                  ? 'rgba(140,82,255,0.4)'
-                  : '#8c52ff',
+                background: isCreating ? 'rgba(140,82,255,0.4)' : '#8c52ff',
                 color: '#fff',
                 fontSize: '13px',
                 fontWeight: 700,

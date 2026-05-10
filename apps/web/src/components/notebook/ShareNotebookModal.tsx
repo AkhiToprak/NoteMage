@@ -1091,10 +1091,7 @@ export default function ShareNotebookModal({
               padding: '13px 20px',
               borderRadius: 12,
               border: 'none',
-              background:
-                selectedFriendIds.size === 0
-                  ? COLORS.elevated
-                  : COLORS.primary,
+              background: selectedFriendIds.size === 0 ? COLORS.elevated : COLORS.primary,
               color: selectedFriendIds.size === 0 ? COLORS.textMuted : '#fff',
               fontSize: 14,
               fontWeight: 700,

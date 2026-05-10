@@ -18,12 +18,7 @@ interface CoWorkInviteModalProps {
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
-const AVATAR_GRADIENTS = [
-  '#ae89ff',
-  '#ff89ae',
-  '#89ffd4',
-  '#ffde59',
-];
+const AVATAR_GRADIENTS = ['#ae89ff', '#ff89ae', '#89ffd4', '#ffde59'];
 
 function getAvatarGradient(id: string): string {
   let hash = 0;
@@ -417,12 +412,7 @@ export default function CoWorkInviteModal({
               padding: '10px 20px',
               borderRadius: 12,
               border: 'none',
-              background:
-                selected.size === 0
-                  ? '#35355c'
-                  : hoveredSend
-                    ? '#c4a6ff'
-                    : '#ae89ff',
+              background: selected.size === 0 ? '#35355c' : hoveredSend ? '#c4a6ff' : '#ae89ff',
               color: selected.size === 0 ? '#8888a8' : '#fff',
               fontSize: 13,
               fontWeight: 700,

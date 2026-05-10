@@ -235,8 +235,7 @@ function buildRowsForTable(lines: Line[], columns: number[]): Cell[][] {
   const rows: Cell[][] = [];
   let currentRow: Cell[] | null = null;
 
-  const newRow = (): Cell[] =>
-    columns.map(() => ({ text: '', startX: 0, endX: 0 }));
+  const newRow = (): Cell[] => columns.map(() => ({ text: '', startX: 0, endX: 0 }));
 
   for (const line of lines) {
     const hits = new Map<number, Cell>();
@@ -353,9 +352,7 @@ function textLinesToParagraphText(lines: Line[]): string {
  * following word — that false-positived on "FÜR DIE".
  */
 function collapseLetterSpacing(paragraph: string): string {
-  return paragraph.replace(/(?:\b[A-ZÄÖÜ] ){2,}[A-ZÄÖÜ]\b/g, (match) =>
-    match.replace(/ /g, '')
-  );
+  return paragraph.replace(/(?:\b[A-ZÄÖÜ] ){2,}[A-ZÄÖÜ]\b/g, (match) => match.replace(/ /g, ''));
 }
 
 /**
@@ -363,7 +360,10 @@ function collapseLetterSpacing(paragraph: string): string {
  * the canonical column layout, and peel off table regions. Non-table
  * regions flow through the text → pdfTextToTipTapJSON pipeline.
  */
-async function processPage(page: any, pdfTextToTipTapJSON: (t: string) => any): Promise<TipTapNode[]> {
+async function processPage(
+  page: any,
+  pdfTextToTipTapJSON: (t: string) => any
+): Promise<TipTapNode[]> {
   const viewport = page.getViewport({ scale: 1 });
   const pageHeight: number = viewport.height;
   const content = await page.getTextContent();
@@ -420,7 +420,10 @@ async function processPage(page: any, pdfTextToTipTapJSON: (t: string) => any): 
     } else if (rows.length === 1) {
       // Degenerate: one row reads more naturally as text.
       const row = rows[0];
-      const text = row.map((c) => c.text).filter(Boolean).join(' — ');
+      const text = row
+        .map((c) => c.text)
+        .filter(Boolean)
+        .join(' — ');
       if (text.trim()) {
         const doc = pdfTextToTipTapJSON(text);
         for (const n of doc.content) nodes.push(n);

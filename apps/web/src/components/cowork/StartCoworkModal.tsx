@@ -240,8 +240,7 @@ export default function StartCoworkModal({
           display: 'flex',
           flexDirection: 'column',
           borderRadius: 24,
-          background:
-            'rgba(14, 12, 34, 0.94)',
+          background: 'rgba(14, 12, 34, 0.94)',
           border: '1px solid rgba(174, 137, 255, 0.32)',
           boxShadow:
             '0 48px 120px rgba(140, 82, 255, 0.22), 0 16px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
@@ -745,10 +744,7 @@ export default function StartCoworkModal({
               padding: '11px 22px',
               border: 'none',
               borderRadius: 12,
-              background:
-                !selectedPage || creating
-                  ? 'rgba(255, 222, 89, 0.3)'
-                  : '#ffde59',
+              background: !selectedPage || creating ? 'rgba(255, 222, 89, 0.3)' : '#ffde59',
               color: '#2a2200',
               fontSize: 13,
               fontWeight: 800,

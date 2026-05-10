@@ -74,43 +74,47 @@ interface DrawingOverlayProps {
 /** Hydrate legacy stroke data that may lack id/lineStyle/offset */
 export function hydrateStrokes(raw: unknown[]): StrokeData[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter((s: any) => s && typeof s === 'object' && s.kind !== 'text')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((s: any) => ({
-      id: (s.id as string) || crypto.randomUUID(),
-      points: (s.points as { x: number; y: number }[]) || [],
-      color: (s.color as string) || '#ede9ff',
-      width: (s.width as number) || 4,
-      lineStyle: (s.lineStyle as LineStyle) || 'solid',
-      offset: (s.offset as { x: number; y: number }) || { x: 0, y: 0 },
-    }));
+  return (
+    raw
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((s: any) => s && typeof s === 'object' && s.kind !== 'text')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((s: any) => ({
+        id: (s.id as string) || crypto.randomUUID(),
+        points: (s.points as { x: number; y: number }[]) || [],
+        color: (s.color as string) || '#ede9ff',
+        width: (s.width as number) || 4,
+        lineStyle: (s.lineStyle as LineStyle) || 'solid',
+        offset: (s.offset as { x: number; y: number }) || { x: 0, y: 0 },
+      }))
+  );
 }
 
 /** Hydrate text annotations from persisted drawing array */
 export function hydrateTexts(raw: unknown[]): TextData[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter((t: any) => t && typeof t === 'object' && t.kind === 'text')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((t: any) => ({
-      kind: 'text' as const,
-      id: (t.id as string) || crypto.randomUUID(),
-      x: typeof t.x === 'number' ? t.x : 0,
-      y: typeof t.y === 'number' ? t.y : 0,
-      width: typeof t.width === 'number' ? t.width : 200,
-      text: typeof t.text === 'string' ? t.text : '',
-      color: typeof t.color === 'string' ? t.color : '#ede9ff',
-      fontSize: typeof t.fontSize === 'number' ? t.fontSize : 16,
-      offset: (t.offset as { x: number; y: number }) || { x: 0, y: 0 },
-      fontFamily: typeof t.fontFamily === 'string' ? t.fontFamily : undefined,
-      bold: !!t.bold,
-      italic: !!t.italic,
-      underline: !!t.underline,
-      strike: !!t.strike,
-    }));
+  return (
+    raw
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((t: any) => t && typeof t === 'object' && t.kind === 'text')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((t: any) => ({
+        kind: 'text' as const,
+        id: (t.id as string) || crypto.randomUUID(),
+        x: typeof t.x === 'number' ? t.x : 0,
+        y: typeof t.y === 'number' ? t.y : 0,
+        width: typeof t.width === 'number' ? t.width : 200,
+        text: typeof t.text === 'string' ? t.text : '',
+        color: typeof t.color === 'string' ? t.color : '#ede9ff',
+        fontSize: typeof t.fontSize === 'number' ? t.fontSize : 16,
+        offset: (t.offset as { x: number; y: number }) || { x: 0, y: 0 },
+        fontFamily: typeof t.fontFamily === 'string' ? t.fontFamily : undefined,
+        bold: !!t.bold,
+        italic: !!t.italic,
+        underline: !!t.underline,
+        strike: !!t.strike,
+      }))
+  );
 }
 
 function getStrokeDashArray(style: LineStyle, width: number): string | undefined {
@@ -329,7 +333,8 @@ function TextAnnotation({
     const minWidth = 40;
     const newWidth = Math.max(minWidth, s.origWidth + sx);
 
-    const isCorner = s.handle === 'nw' || s.handle === 'ne' || s.handle === 'sw' || s.handle === 'se';
+    const isCorner =
+      s.handle === 'nw' || s.handle === 'ne' || s.handle === 'sw' || s.handle === 'se';
     const scale = newWidth / s.origWidth;
     const newFontSize = isCorner ? Math.max(8, s.origFontSize * scale) : s.origFontSize;
     const newHeight = s.origLines * newFontSize * 1.4;
@@ -459,41 +464,44 @@ function TextAnnotation({
           {/* Resize handles (cursor mode, when selected and not editing) */}
           {showHandles && (
             <>
-              {(
-                [
-                  { h: 'nw' as const, top: handleMargin - 5, left: handleMargin - 5, cursor: 'nw-resize' },
-                  {
-                    h: 'ne' as const,
-                    top: handleMargin - 5,
-                    left: handleMargin + liveWidth - 5,
-                    cursor: 'ne-resize',
-                  },
-                  {
-                    h: 'sw' as const,
-                    top: handleMargin + contentHeight - 5,
-                    left: handleMargin - 5,
-                    cursor: 'sw-resize',
-                  },
-                  {
-                    h: 'se' as const,
-                    top: handleMargin + contentHeight - 5,
-                    left: handleMargin + liveWidth - 5,
-                    cursor: 'se-resize',
-                  },
-                  {
-                    h: 'w' as const,
-                    top: handleMargin + contentHeight / 2 - 5,
-                    left: handleMargin - 5,
-                    cursor: 'w-resize',
-                  },
-                  {
-                    h: 'e' as const,
-                    top: handleMargin + contentHeight / 2 - 5,
-                    left: handleMargin + liveWidth - 5,
-                    cursor: 'e-resize',
-                  },
-                ]
-              ).map((handle) => (
+              {[
+                {
+                  h: 'nw' as const,
+                  top: handleMargin - 5,
+                  left: handleMargin - 5,
+                  cursor: 'nw-resize',
+                },
+                {
+                  h: 'ne' as const,
+                  top: handleMargin - 5,
+                  left: handleMargin + liveWidth - 5,
+                  cursor: 'ne-resize',
+                },
+                {
+                  h: 'sw' as const,
+                  top: handleMargin + contentHeight - 5,
+                  left: handleMargin - 5,
+                  cursor: 'sw-resize',
+                },
+                {
+                  h: 'se' as const,
+                  top: handleMargin + contentHeight - 5,
+                  left: handleMargin + liveWidth - 5,
+                  cursor: 'se-resize',
+                },
+                {
+                  h: 'w' as const,
+                  top: handleMargin + contentHeight / 2 - 5,
+                  left: handleMargin - 5,
+                  cursor: 'w-resize',
+                },
+                {
+                  h: 'e' as const,
+                  top: handleMargin + contentHeight / 2 - 5,
+                  left: handleMargin + liveWidth - 5,
+                  cursor: 'e-resize',
+                },
+              ].map((handle) => (
                 <div
                   key={handle.h}
                   data-text-annotation="true"
@@ -1200,9 +1208,7 @@ export default function DrawingOverlay({
             key={t.id}
             data={t}
             dragOffset={
-              textDragOffset?.id === t.id
-                ? { x: textDragOffset.x, y: textDragOffset.y }
-                : null
+              textDragOffset?.id === t.id ? { x: textDragOffset.x, y: textDragOffset.y } : null
             }
             mode={mode}
             isSelected={selectedId === t.id}

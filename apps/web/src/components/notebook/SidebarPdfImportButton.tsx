@@ -78,14 +78,11 @@ export default function SidebarPdfImportButton({
 
         // 2) Create the empty page so we have an id for uploads.
         setProgressText('Creating page…');
-        const createRes = await fetch(
-          `/api/notebooks/${notebookId}/sections/${sectionId}/pages`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title }),
-          }
-        );
+        const createRes = await fetch(`/api/notebooks/${notebookId}/sections/${sectionId}/pages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title }),
+        });
         const createJson = await createRes.json();
         if (!createRes.ok || !createJson?.success || !createJson?.data?.id) {
           throw new Error(createJson?.error || 'Failed to create page');
@@ -104,14 +101,11 @@ export default function SidebarPdfImportButton({
             sectionId,
             pageId,
           });
-          const registerRes = await fetch(
-            `/api/notebooks/${notebookId}/pages/${pageId}/images`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storagePath, fileName: pngFile.name }),
-            }
-          );
+          const registerRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storagePath, fileName: pngFile.name }),
+          });
           const registerJson = await registerRes.json();
           if (!registerJson?.success || !registerJson?.data?.url) continue;
 

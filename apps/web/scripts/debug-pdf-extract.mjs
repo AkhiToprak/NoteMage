@@ -42,7 +42,11 @@ for (let p = 1; p <= doc.numPages; p++) {
     const y = Math.round(it.transform[5]);
     // fuzzy match within ±2
     let key = null;
-    for (const k of lineMap.keys()) if (Math.abs(k - y) <= 2) { key = k; break; }
+    for (const k of lineMap.keys())
+      if (Math.abs(k - y) <= 2) {
+        key = k;
+        break;
+      }
     if (key === null) key = y;
     const arr = lineMap.get(key) || [];
     arr.push(it);

@@ -13,7 +13,6 @@ export default function MageSpotlight() {
         overflow: 'hidden',
       }}
     >
-
       <div
         style={{
           position: 'relative',
@@ -26,8 +25,7 @@ export default function MageSpotlight() {
           eyebrow="Personal Mage"
           title={
             <>
-              Meet your{' '}
-              <span style={{ color: '#ae89ff' }}>personal tutor.</span>
+              Meet your <span style={{ color: '#ae89ff' }}>personal tutor.</span>
             </>
           }
           description="Ask anything, anywhere in your notebook. Mage reads your pages, your PDFs, your slides — and answers with citations you can actually trust."

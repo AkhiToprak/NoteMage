@@ -226,7 +226,11 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
               >
                 {typeof item.icon === 'function' ? (
                   item.icon(
-                    isActive ? COLORS.primary : isHovered ? COLORS.textPrimary : COLORS.textSecondary
+                    isActive
+                      ? COLORS.primary
+                      : isHovered
+                        ? COLORS.textPrimary
+                        : COLORS.textSecondary
                   )
                 ) : (
                   <span

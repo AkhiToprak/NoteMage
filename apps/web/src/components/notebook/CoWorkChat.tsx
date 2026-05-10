@@ -41,12 +41,7 @@ function fromServer(m: ServerMessage): ChatMessage {
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
-const AVATAR_GRADIENTS = [
-  '#ae89ff',
-  '#ff89ae',
-  '#89ffd4',
-  '#ffde59',
-];
+const AVATAR_GRADIENTS = ['#ae89ff', '#ff89ae', '#89ffd4', '#ffde59'];
 
 function getAvatarGradient(id: string): string {
   let hash = 0;
@@ -384,9 +379,7 @@ export default function CoWorkChat({
                       maxWidth: '85%',
                       padding: '8px 12px',
                       borderRadius: isOwn ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                      background: isOwn
-                        ? 'rgba(174,137,255,0.2)'
-                        : '#2d2d52',
+                      background: isOwn ? 'rgba(174,137,255,0.2)' : '#2d2d52',
                       fontSize: 13,
                       color: '#e5e3ff',
                       lineHeight: 1.5,
@@ -448,11 +441,7 @@ export default function CoWorkChat({
                 height: 36,
                 borderRadius: 10,
                 border: 'none',
-                background: input.trim()
-                  ? hoveredSend
-                    ? '#c4a6ff'
-                    : '#ae89ff'
-                  : '#35355c',
+                background: input.trim() ? (hoveredSend ? '#c4a6ff' : '#ae89ff') : '#35355c',
                 color: input.trim() ? '#fff' : '#8888a8',
                 cursor: input.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',

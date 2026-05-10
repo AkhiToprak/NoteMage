@@ -44,10 +44,7 @@ const FIGURE_ONE_SHOT_CLASS: Partial<Record<MascotOneShot, string>> = {
   celebrate: styles.celebrate,
 };
 
-const BURST_ONE_SHOTS: ReadonlySet<MascotOneShot> = new Set<MascotOneShot>([
-  'cast',
-  'sparkle',
-]);
+const BURST_ONE_SHOTS: ReadonlySet<MascotOneShot> = new Set<MascotOneShot>(['cast', 'sparkle']);
 
 const BURST_TIMEOUT_MS = 720;
 
@@ -67,8 +64,7 @@ export function Mascot({
 }: MascotProps) {
   const px = SIZE_PX[size];
   const { src, blinkSrc } = POSES[pose];
-  const showPulse =
-    pointerPulse && (pose === 'pointing-left' || pose === 'pointing-right');
+  const showPulse = pointerPulse && (pose === 'pointing-left' || pose === 'pointing-right');
   const showWandSparkle = (wandSparkle ?? pose === 'holding-wand') && pose === 'holding-wand';
   const showBurst = oneShot !== null && BURST_ONE_SHOTS.has(oneShot);
   const showBlink = (blink ?? pose === 'default') && Boolean(blinkSrc);
@@ -130,9 +126,7 @@ export function Mascot({
       <span className={IDLE_CLASS[idle]}>
         <span ref={figureRef} className={styles.figure}>
           <span
-            className={[styles.imageStack, flip ? styles.flip : null]
-              .filter(Boolean)
-              .join(' ')}
+            className={[styles.imageStack, flip ? styles.flip : null].filter(Boolean).join(' ')}
           >
             <Image
               src={src}

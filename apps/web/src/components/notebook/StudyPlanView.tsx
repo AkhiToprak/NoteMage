@@ -348,10 +348,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 style={{
                   height: '100%',
                   borderRadius: '3px',
-                  background:
-                    overallProgress === 100
-                      ? 'rgba(74,222,128,0.7)'
-                      : '#8c52ff',
+                  background: overallProgress === 100 ? 'rgba(74,222,128,0.7)' : '#8c52ff',
                   width: `${overallProgress}%`,
                   transition: 'width 0.4s ease',
                 }}

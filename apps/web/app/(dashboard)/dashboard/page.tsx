@@ -133,8 +133,7 @@ export default function DashboardPage() {
   const { isPhone, isTablet, isDesktop, bp } = useBreakpoint();
   const { step: tutorialStep } = useTutorial();
   const tutorialCtaRef = useTutorialTarget('dashboard-cta');
-  const ctaHref =
-    tutorialStep === 'step-1-dashboard' ? '/notebooks?tutorial=1' : '/notebooks';
+  const ctaHref = tutorialStep === 'step-1-dashboard' ? '/notebooks?tutorial=1' : '/notebooks';
 
   useEffect(() => {
     fetch('/api/notebooks?folderId=all')

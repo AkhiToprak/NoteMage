@@ -33,10 +33,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 function normalizeEnvToken(raw: string | undefined): string {
   if (!raw) return '';
   let v = raw.replace(/\s+/g, '');
-  if (
-    (v.startsWith('"') && v.endsWith('"')) ||
-    (v.startsWith("'") && v.endsWith("'"))
-  ) {
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
     v = v.slice(1, -1);
   }
   return v;

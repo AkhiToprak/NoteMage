@@ -924,8 +924,7 @@ export function CosmeticsPanel({
             position: 'relative',
             borderRadius: 16,
             border: '1px solid rgba(255,222,89,0.35)',
-            background:
-              'rgba(255,222,89,0.08)',
+            background: 'rgba(255,222,89,0.08)',
             padding: 20,
             display: 'flex',
             flexDirection: 'column',

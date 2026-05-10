@@ -136,7 +136,13 @@ export default function LandingNavbar() {
 
           <div
             className="hide-tablet-down"
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 12,
+            }}
           >
             <Link
               href="/auth/login"

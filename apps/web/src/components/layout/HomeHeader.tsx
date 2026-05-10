@@ -356,7 +356,11 @@ export default function HomeHeader() {
                   })}
 
                   <div
-                    style={{ borderTop: '1px solid rgba(174,137,255,0.30)', marginTop: 4, paddingTop: 4 }}
+                    style={{
+                      borderTop: '1px solid rgba(174,137,255,0.30)',
+                      marginTop: 4,
+                      paddingTop: 4,
+                    }}
                   >
                     <button
                       onClick={() => signOut({ callbackUrl: '/auth/login' })}

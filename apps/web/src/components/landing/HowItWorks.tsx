@@ -53,8 +53,7 @@ export default function HowItWorks() {
           eyebrow="How it works"
           title={
             <>
-              Three steps to your{' '}
-              <span style={{ color: '#ae89ff' }}>first spell.</span>
+              Three steps to your <span style={{ color: '#ae89ff' }}>first spell.</span>
             </>
           }
           description="No tutorial hell. You'll be studying with AI in under 60 seconds."

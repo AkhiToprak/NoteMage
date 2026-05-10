@@ -1,11 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import type {
-  TutorialCompletionResult,
-  TutorialStep,
-  TutorialTargetKey,
-} from './types';
+import type { TutorialCompletionResult, TutorialStep, TutorialTargetKey } from './types';
 
 export interface TutorialContextValue {
   step: TutorialStep;

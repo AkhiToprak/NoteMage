@@ -694,10 +694,7 @@ export default function NotebookForm({
                 flex: 2,
                 padding: '11px',
                 borderRadius: '12px',
-                background:
-                  isLoading || !form.name.trim()
-                    ? 'rgba(140,82,255,0.3)'
-                    : '#8c52ff',
+                background: isLoading || !form.name.trim() ? 'rgba(140,82,255,0.3)' : '#8c52ff',
                 border: 'none',
                 fontFamily: 'inherit',
                 fontSize: '14px',

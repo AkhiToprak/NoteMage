@@ -492,10 +492,7 @@ export default function PageEditor({
   const scheduleDrawingSave = useCallback(
     (nextStrokes: StrokeData[], nextTexts: TextData[]) => {
       if (saveDrawingRef.current) clearTimeout(saveDrawingRef.current);
-      saveDrawingRef.current = setTimeout(
-        () => saveDrawing([...nextStrokes, ...nextTexts]),
-        1500
-      );
+      saveDrawingRef.current = setTimeout(() => saveDrawing([...nextStrokes, ...nextTexts]), 1500);
     },
     [saveDrawing]
   );
@@ -1314,9 +1311,7 @@ export default function PageEditor({
         selectedTextAnnotation={selectedTextAnnotation}
         onAnnotationUpdate={updateSelectedAnnotation}
         textDefaults={textDefaults}
-        onTextDefaultsUpdate={(updates) =>
-          setTextDefaults((cur) => ({ ...cur, ...updates }))
-        }
+        onTextDefaultsUpdate={(updates) => setTextDefaults((cur) => ({ ...cur, ...updates }))}
       />
 
       {/* ── Editor canvas (full width, infinite scroll) ── */}

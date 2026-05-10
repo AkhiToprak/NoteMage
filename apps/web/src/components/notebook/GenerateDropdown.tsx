@@ -209,140 +209,142 @@ export default function GenerateDropdown({
           <Sparkles size={15} />
         )}
       </button>
-      {open && mounted && createPortal(
-        <div
-          ref={(el) => {
-            menuRef.current = el;
-            // Compute position the moment the menu mounts so the user never
-            // sees it paint at the wrong spot. Rendering through a portal
-            // into document.body bypasses any parent transform / overflow
-            // / backdrop-filter that could otherwise clip or contain a
-            // position:fixed child.
-            if (!el || !buttonRef.current) return;
-            const rect = buttonRef.current.getBoundingClientRect();
-            const menuWidth = el.offsetWidth || 220;
-            const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
-            el.style.top = `${rect.bottom + 6}px`;
-            el.style.left = `${left}px`;
-          }}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            background: '#1e1d35',
-            border: '1px solid rgba(174,137,255,0.30)',
-            borderRadius: '10px',
-            padding: '4px',
-            zIndex: 9999,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            width: '220px',
-          }}
-        >
-          {OPTIONS.map(({ type, label, icon: Icon }) => {
-            const isThisLoading = loading && loadingType === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onPointerUp={() => fireOnce(() => handleGenerate(type))}
-                onClick={() => fireOnce(() => handleGenerate(type))}
-                disabled={loading}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  width: '100%',
-                  minHeight: '40px',
-                  padding: '0 12px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: 'transparent',
-                  color: loading && !isThisLoading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
-                  fontSize: '13px',
-                  fontFamily: 'inherit',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.1s',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+      {open &&
+        mounted &&
+        createPortal(
+          <div
+            ref={(el) => {
+              menuRef.current = el;
+              // Compute position the moment the menu mounts so the user never
+              // sees it paint at the wrong spot. Rendering through a portal
+              // into document.body bypasses any parent transform / overflow
+              // / backdrop-filter that could otherwise clip or contain a
+              // position:fixed child.
+              if (!el || !buttonRef.current) return;
+              const rect = buttonRef.current.getBoundingClientRect();
+              const menuWidth = el.offsetWidth || 220;
+              const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+              el.style.top = `${rect.bottom + 6}px`;
+              el.style.left = `${left}px`;
+            }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              background: '#1e1d35',
+              border: '1px solid rgba(174,137,255,0.30)',
+              borderRadius: '10px',
+              padding: '4px',
+              zIndex: 9999,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              width: '220px',
+            }}
+          >
+            {OPTIONS.map(({ type, label, icon: Icon }) => {
+              const isThisLoading = loading && loadingType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onPointerUp={() => fireOnce(() => handleGenerate(type))}
+                  onClick={() => fireOnce(() => handleGenerate(type))}
+                  disabled={loading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    minHeight: '40px',
+                    padding: '0 12px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: loading && !isThisLoading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.1s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  {isThisLoading ? (
+                    <Loader2
+                      size={14}
+                      style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <Icon size={14} style={{ flexShrink: 0 }} />
+                  )}
+                  <span>{isThisLoading ? 'Generating...' : label}</span>
+                </button>
+              );
+            })}
+            {onEssayCheck && (
+              <>
+                <div
+                  style={{
+                    height: '1px',
+                    background: 'rgba(174,137,255,0.20)',
+                    margin: '4px 8px',
+                  }}
+                />
+                <button
+                  type="button"
+                  onPointerUp={() =>
+                    fireOnce(() => {
+                      setOpen(false);
+                      onEssayCheck();
+                    })
                   }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                {isThisLoading ? (
-                  <Loader2
-                    size={14}
-                    style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}
-                  />
-                ) : (
-                  <Icon size={14} style={{ flexShrink: 0 }} />
-                )}
-                <span>{isThisLoading ? 'Generating...' : label}</span>
-              </button>
-            );
-          })}
-          {onEssayCheck && (
-            <>
-              <div
-                style={{
-                  height: '1px',
-                  background: 'rgba(174,137,255,0.20)',
-                  margin: '4px 8px',
-                }}
-              />
-              <button
-                type="button"
-                onPointerUp={() =>
-                  fireOnce(() => {
-                    setOpen(false);
-                    onEssayCheck();
-                  })
-                }
-                onClick={() =>
-                  fireOnce(() => {
-                    setOpen(false);
-                    onEssayCheck();
-                  })
-                }
-                disabled={loading}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  width: '100%',
-                  minHeight: '40px',
-                  padding: '0 12px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: 'transparent',
-                  color: loading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
-                  fontSize: '13px',
-                  fontFamily: 'inherit',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.1s',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                  onClick={() =>
+                    fireOnce(() => {
+                      setOpen(false);
+                      onEssayCheck();
+                    })
                   }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                <SpellCheck size={14} style={{ flexShrink: 0 }} />
-                <span>Check Grammar & Spelling</span>
-              </button>
-            </>
-          )}
-        </div>,
-        document.body
-      )}
+                  disabled={loading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    minHeight: '40px',
+                    padding: '0 12px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: loading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.1s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <SpellCheck size={14} style={{ flexShrink: 0 }} />
+                  <span>Check Grammar & Spelling</span>
+                </button>
+              </>
+            )}
+          </div>,
+          document.body
+        )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );

@@ -172,9 +172,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
               padding: '6px 12px',
               borderRadius: 8,
               border: 'none',
-              background: hovered
-                ? 'rgba(174,137,255,0.2)'
-                : 'rgba(174,137,255,0.12)',
+              background: hovered ? 'rgba(174,137,255,0.2)' : 'rgba(174,137,255,0.12)',
               color: '#ae89ff',
               fontSize: 12,
               fontWeight: 700,
@@ -364,9 +362,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
         padding: '6px 12px',
         borderRadius: 8,
         border: 'none',
-        background: hovered
-          ? '#ae89ff'
-          : 'rgba(174,137,255,0.12)',
+        background: hovered ? '#ae89ff' : 'rgba(174,137,255,0.12)',
         color: hovered ? '#fff' : '#ae89ff',
         fontSize: 12,
         fontWeight: 700,
