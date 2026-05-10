@@ -18,7 +18,7 @@ import { ProfileBackground } from './ProfileBackground';
  * `<CosmeticsShowcase>` — a compact gallery of everything a user has earned.
  *
  * Shown on public profile pages below the header. Read-only: clicking a tile
- * only flashes a level hint (nothing to select). We group by type and collapse
+ * gives a tactile pulse (nothing to select). We group by type and collapse
  * each group into a single horizontal strip so the profile page doesn't turn
  * into an endless scroller.
  *
@@ -186,8 +186,7 @@ function BackgroundTileBody({ entry }: { entry: BackgroundCosmetic }) {
 }
 
 // ---------------------------------------------------------------------------
-// Tile — single unlock. Read-only. Hovering surfaces the label + level. The
-// level pill flashes when clicked to give a bit of tactile feedback without
+// Tile — single unlock. Read-only. Clicking gives a tactile pulse without
 // actually doing anything (there's no edit affordance on a public profile).
 // ---------------------------------------------------------------------------
 function ShowcaseTile({ entry }: { entry: Cosmetic }) {
@@ -203,7 +202,7 @@ function ShowcaseTile({ entry }: { entry: Cosmetic }) {
         setPulse(true);
         window.setTimeout(() => setPulse(false), 500);
       }}
-      title={`${entry.label} · Lvl ${entry.requiredLevel}`}
+      title={entry.label}
       style={{
         position: 'relative',
         width,
@@ -225,38 +224,14 @@ function ShowcaseTile({ entry }: { entry: Cosmetic }) {
           borderRadius: 12,
           overflow: 'hidden',
           background: '#262646',
-          border: '1px solid rgba(136,136,168,0.36)',
+          border: pulse ? '1px solid rgba(174,137,255,0.55)' : '1px solid rgba(136,136,168,0.36)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
           transform: pulse ? 'scale(1.04)' : 'scale(1)',
           transition:
-            'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
         <TileBody entry={entry} />
-      </div>
-
-      {/* Level pill — bottom right */}
-      <div
-        style={{
-          position: 'absolute',
-          right: 6,
-          bottom: 6,
-          padding: '2px 7px',
-          borderRadius: 999,
-          background: pulse ? '#ae89ff' : 'rgba(17,17,38,0.75)',
-          color: pulse ? '#2a0066' : '#e5e3ff',
-          fontSize: 9,
-          fontWeight: 800,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-brand)',
-          backdropFilter: 'blur(4px)',
-          transition:
-            'background 0.25s cubic-bezier(0.22, 1, 0.36, 1), color 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
-          pointerEvents: 'none',
-        }}
-      >
-        Lvl {entry.requiredLevel}
       </div>
     </button>
   );

@@ -19,13 +19,13 @@ import { useDirectUpload } from '@/hooks/useDirectUpload';
 /**
  * `<CosmeticsPanel>` — the customization studio inside the profile edit form.
  *
- * Self-contained: fetches the user's level + owned cosmetic ids on mount, then
+ * Self-contained: fetches the user's owned cosmetic ids on mount, then
  * renders five scrollable picker rails (Title / Name Font / Name Color / Avatar
  * Frame / Profile Background) above a live preview of the user's card. All
  * selection state is lifted to the parent via `value` / `onChange` so the
  * parent save flow can POST it back through the existing profile PUT.
  *
- * Locked entries show a level pill. Clicking them briefly highlights the pill
+ * Locked entries show a lock icon. Clicking them briefly highlights the icon
  * instead of changing selection. `font.default` / `color.default` / `frame.default`
  * / `bg.default` are treated as "clear" — selecting them stores `null` on the
  * corresponding equipped* field.
@@ -67,7 +67,6 @@ interface CosmeticsPanelProps {
 }
 
 interface CosmeticsData {
-  level: number;
   owned: Set<string>;
   /** Map of slug -> ms-since-epoch unlock timestamp. */
   unlockedAt: Record<string, number>;
@@ -113,7 +112,7 @@ function useCosmetics() {
       .then((res) => {
         if (cancelled) return;
         const d = res?.data ?? res;
-        if (typeof d?.level === 'number' && Array.isArray(d?.owned)) {
+        if (Array.isArray(d?.owned)) {
           const unlockedAt: Record<string, number> = {};
           const raw = (d?.unlockedAt ?? {}) as Record<string, string>;
           for (const [slug, iso] of Object.entries(raw)) {
@@ -121,7 +120,6 @@ function useCosmetics() {
             if (!Number.isNaN(t)) unlockedAt[slug] = t;
           }
           setData({
-            level: d.level,
             owned: new Set<string>(d.owned),
             unlockedAt,
           });
@@ -145,11 +143,10 @@ function useCosmetics() {
 
 // ---------------------------------------------------------------------------
 // Reusable swatch shell. Handles owned/locked/selected visual states, keyboard
-// focus, and the "locked: shake + flash level pill" click affordance.
+// focus, and the "locked: shake + flash" click affordance.
 // ---------------------------------------------------------------------------
 interface SwatchShellProps {
   label: string;
-  requiredLevel: number;
   owned: boolean;
   selected: boolean;
   onSelect: () => void;
@@ -162,7 +159,6 @@ interface SwatchShellProps {
 
 function SwatchShell({
   label,
-  requiredLevel,
   owned,
   selected,
   onSelect,
@@ -189,7 +185,7 @@ function SwatchShell({
       onClick={handleClick}
       aria-pressed={selected}
       aria-disabled={locked}
-      title={locked ? `Unlocks at level ${requiredLevel}` : label}
+      title={locked ? `${label} — locked` : label}
       className="cosmetic-swatch-btn"
       style={{
         position: 'relative',
@@ -237,10 +233,8 @@ function SwatchShell({
             inset: 0,
             borderRadius: SWATCH_RADIUS,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 4,
             background: 'rgba(17,17,38,0.35)',
             backdropFilter: 'blur(1px)',
             pointerEvents: 'none',
@@ -249,28 +243,14 @@ function SwatchShell({
           <span
             className="material-symbols-outlined"
             style={{
-              fontSize: 18,
-              color: '#e5e3ff',
-              opacity: 0.85,
+              fontSize: 22,
+              color: lockHint ? '#ae89ff' : '#e5e3ff',
+              opacity: lockHint ? 1 : 0.85,
               textShadow: '0 2px 8px rgba(0,0,0,0.45)',
+              transition: `color 0.25s ${EASING}, opacity 0.25s ${EASING}`,
             }}
           >
             lock
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '2px 8px',
-              borderRadius: 999,
-              background: lockHint ? '#ae89ff' : 'rgba(255,255,255,0.12)',
-              color: lockHint ? '#2a0066' : '#e5e3ff',
-              transition: `background 0.25s ${EASING}, color 0.25s ${EASING}`,
-            }}
-          >
-            Lvl {requiredLevel}
           </span>
         </div>
       )}
@@ -932,7 +912,7 @@ export function CosmeticsPanel({
               color: '#6a6a8c',
             }}
           >
-            Live preview · Level {data.level}
+            Live preview
           </p>
         </div>
       </div>
@@ -1063,7 +1043,6 @@ export function CosmeticsPanel({
         {/* Explicit "no title" option */}
         <SwatchShell
           label="No title"
-          requiredLevel={1}
           owned
           selected={titleSelection === null}
           onSelect={() => onChange({ ...value, equippedTitleId: null })}
@@ -1086,7 +1065,6 @@ export function CosmeticsPanel({
           <SwatchShell
             key={t.id}
             label={t.label}
-            requiredLevel={t.requiredLevel}
             owned={isOwned(t.id)}
             selected={titleSelection === t.id}
             onSelect={() => selectTitle(t.id)}
@@ -1102,7 +1080,6 @@ export function CosmeticsPanel({
           <SwatchShell
             key={f.id}
             label={f.label}
-            requiredLevel={f.requiredLevel}
             owned={isOwned(f.id)}
             selected={fontSelection === f.id}
             onSelect={() => selectFont(f.id)}
@@ -1119,7 +1096,6 @@ export function CosmeticsPanel({
           <SwatchShell
             key={c.id}
             label={c.label}
-            requiredLevel={c.requiredLevel}
             owned={isOwned(c.id)}
             selected={colorSelection === c.id}
             onSelect={() => selectColor(c.id)}
@@ -1136,7 +1112,6 @@ export function CosmeticsPanel({
           <SwatchShell
             key={f.id}
             label={f.label}
-            requiredLevel={f.requiredLevel}
             owned={isOwned(f.id)}
             selected={frameSelection === f.id}
             onSelect={() => selectFrame(f.id)}
@@ -1153,7 +1128,6 @@ export function CosmeticsPanel({
           <SwatchShell
             key={b.id}
             label={b.label}
-            requiredLevel={b.requiredLevel}
             owned={isOwned(b.id)}
             selected={backgroundSelection === b.id}
             onSelect={() => selectBackground(b.id)}

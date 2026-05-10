@@ -56,4 +56,4 @@ A common loop:
 3. Hit Pomodoro — pick 25/5 or whatever rhythm works for you.
 4. Study, take the break, repeat.
 
-The XP system ([XP, streaks, achievements](/docs/xp-streaks-achievements)) is rewarding the actions you take during those Pomodoros, so the streak takes care of itself if you keep showing up.
+The streak system ([streaks and achievements](/docs/xp-streaks-achievements)) tracks the actions you take during those Pomodoros, so it takes care of itself if you keep showing up.

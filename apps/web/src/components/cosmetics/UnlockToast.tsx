@@ -43,14 +43,13 @@ interface PendingUnlock {
   cosmeticId: string;
   cosmeticType: CosmeticType;
   label: string;
-  requiredLevel: number;
   createdAt: string;
 }
 
 interface UnlockContextValue {
   /** Imperatively enqueue an unlock by cosmetic slug. Rarely needed — the
-   *  provider polls automatically — but exposed for XP-mutating components
-   *  that want to trigger the toast without waiting for the poll. */
+   *  provider polls automatically — but exposed for callers that want to
+   *  trigger the toast without waiting for the poll. */
   enqueueBySlug: (slug: string) => void;
 }
 
@@ -169,8 +168,8 @@ export function UnlockProvider({ children }: { children: React.ReactNode }) {
     };
   }, [current, dismiss]);
 
-  // Imperative enqueue — used by XP-mutating components that know a slug has
-  // just been unlocked and don't want to wait for the poll.
+  // Imperative enqueue — used by callers that know a slug has just been
+  // unlocked and don't want to wait for the poll.
   const enqueueBySlug = React.useCallback((slug: string) => {
     const entry = COSMETICS[slug];
     if (!entry) return;
@@ -186,7 +185,6 @@ export function UnlockProvider({ children }: { children: React.ReactNode }) {
         cosmeticId: slug,
         cosmeticType: entry.type,
         label: entry.label,
-        requiredLevel: entry.requiredLevel,
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -404,7 +402,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
               <PreviewBody entry={entry} />
             </div>
 
-            {/* Label + level */}
+            {/* Label */}
             <div>
               <div
                 style={{
@@ -428,7 +426,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                   fontWeight: 700,
                 }}
               >
-                Unlocked at level {unlock.requiredLevel}
+                Just unlocked
               </div>
             </div>
 

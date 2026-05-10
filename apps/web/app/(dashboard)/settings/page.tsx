@@ -214,19 +214,6 @@ export default function SettingsPage() {
     msg: string;
   } | null>(null);
 
-  // Mage level (computed from XP)
-  const [mageLevel, setMageLevel] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch('/api/user/xp')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (d?.level !== undefined) setMageLevel(d.level);
-      })
-      .catch(() => {});
-  }, []);
-
   useEffect(() => {
     fetch('/api/user/profile')
       .then((r) => r.json())
@@ -915,9 +902,11 @@ export default function SettingsPage() {
                 >
                   {session?.user?.name ?? 'Mage'}
                 </h3>
-                <p style={{ fontSize: '13px', color: '#b9c3ff', fontWeight: 500, margin: 0 }}>
-                  Mage Level {mageLevel ?? '—'}
-                </p>
+                {session?.user?.username && (
+                  <p style={{ fontSize: '13px', color: '#b9c3ff', fontWeight: 500, margin: 0 }}>
+                    @{session.user.username}
+                  </p>
+                )}
               </div>
             </div>
 

@@ -136,9 +136,6 @@ export default function ProfilePage() {
   // to ensure the Save button is reachable.
   const [appearanceOpen, setAppearanceOpen] = useState(false);
 
-  // Mage level (computed from XP)
-  const [mageLevel, setMageLevel] = useState<number | null>(null);
-
   // Friends count for the Socials bento card. The /api/user/profile (own)
   // endpoint doesn't return this, so we hit /api/friends?status=accepted
   // separately and use its `count` field.
@@ -177,14 +174,6 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-
-    fetch('/api/user/xp')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (d?.level !== undefined) setMageLevel(d.level);
-      })
-      .catch(() => {});
 
     fetch('/api/friends?status=accepted')
       .then((r) => r.json())
@@ -553,32 +542,6 @@ export default function ProfilePage() {
         >
           @{profile.username}
         </p>
-
-        {/* Mage Level */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 12px',
-            background: 'rgba(174,137,255,0.12)',
-            border: '1px solid rgba(174,137,255,0.3)',
-            borderRadius: '20px',
-            marginBottom: '12px',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '14px', color: '#ae89ff' }}
-          >
-            auto_awesome
-          </span>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#ae89ff' }}>
-            Mage Level {mageLevel ?? '—'}
-          </span>
-        </div>
 
         {/* Member Since */}
         <div
@@ -1228,7 +1191,7 @@ export default function ProfilePage() {
               }}
             >
               {appearanceOpen
-                ? 'Level up to unlock new titles, fonts, colors, frames and profile backgrounds. Locked items show the level you need.'
+                ? 'Earn achievements to unlock new titles, fonts, colors, frames and profile backgrounds.'
                 : 'Titles, fonts, colors, frames and backgrounds. Tap to customize.'}
             </p>
           </div>

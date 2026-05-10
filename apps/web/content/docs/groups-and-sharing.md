@@ -44,9 +44,9 @@ There are several distinct ways a notebook can leave your account:
 
 ## Public profiles
 
-Each user has a public profile page that other people can visit. It shows your level, streak and achievements. It's read-only to other people — they can browse, but they can't change anything.
+Each user has a public profile page that other people can visit. It shows your streak and achievements. It's read-only to other people — they can browse, but they can't change anything.
 
 ## See also
 
 - [Co-work](/docs/cowork) — for the real-time side of collaboration.
-- [XP, streaks, and achievements](/docs/xp-streaks-achievements) — friends, groups, and publishing all unlock achievements.
+- [Streaks and achievements](/docs/xp-streaks-achievements) — friends, groups, and publishing all unlock achievements.

@@ -19,7 +19,6 @@ export function CompletionModal() {
   // Result hasn't arrived yet — assume the optimistic award is happening.
   // If the server later says alreadyComplete, the result will overwrite this.
   const showApprentice = result === null || apprenticeUnlocked;
-  const xpAwarded = result === null ? 50 : result.alreadyComplete ? 0 : result.xpAwarded;
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -155,7 +154,7 @@ export function CompletionModal() {
           Your first notebook and chat are live. Add notes, ask questions, make quizzes — your call from here.
         </p>
 
-        {(xpAwarded > 0 || showApprentice) && (
+        {showApprentice && (
           <div
             style={{
               display: 'flex',
@@ -168,95 +167,47 @@ export function CompletionModal() {
               transitionDelay: enterDelay(4),
             }}
           >
-            {xpAwarded > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 16px',
-                  background: 'var(--surface-container-high)',
-                  border: '1px solid var(--outline-variant)',
-                  borderRadius: 'var(--radius-md)',
-                  textAlign: 'left',
-                }}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 16px',
+                background: 'var(--surface-container-high)',
+                border: '1px solid var(--outline-variant)',
+                borderRadius: 'var(--radius-md)',
+                textAlign: 'left',
+              }}
+            >
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined filled"
+                style={{ fontSize: 22, color: 'var(--primary)' }}
               >
-                <span
-                  aria-hidden="true"
-                  className="material-symbols-outlined filled"
-                  style={{ fontSize: 22, color: 'var(--primary)' }}
+                school
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                  }}
                 >
-                  bolt
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: 'var(--on-surface)',
-                    }}
-                  >
-                    +{xpAwarded} XP awarded
-                  </p>
-                  {result?.leveledUp && result.newLevel !== undefined && (
-                    <p
-                      style={{
-                        margin: '2px 0 0',
-                        fontSize: 12,
-                        color: 'var(--on-surface-variant)',
-                      }}
-                    >
-                      Level up — you&apos;re now level {result.newLevel}.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {showApprentice && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 16px',
-                  background: 'var(--surface-container-high)',
-                  border: '1px solid var(--outline-variant)',
-                  borderRadius: 'var(--radius-md)',
-                  textAlign: 'left',
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  className="material-symbols-outlined filled"
-                  style={{ fontSize: 22, color: 'var(--primary)' }}
+                  Apprentice Mage unlocked
+                </p>
+                <p
+                  style={{
+                    margin: '2px 0 0',
+                    fontSize: 12,
+                    color: 'var(--on-surface-variant)',
+                  }}
                 >
-                  school
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: 'var(--on-surface)',
-                    }}
-                  >
-                    Apprentice Mage unlocked
-                  </p>
-                  <p
-                    style={{
-                      margin: '2px 0 0',
-                      fontSize: 12,
-                      color: 'var(--on-surface-variant)',
-                    }}
-                  >
-                    Complete the welcome tour
-                  </p>
-                </div>
+                  Complete the welcome tour
+                </p>
               </div>
-            )}
+            </div>
           </div>
         )}
 

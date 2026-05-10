@@ -107,7 +107,7 @@ When Figma returns colors, map them to CSS variables:
 
 - UI components: `src/components/ui/` (TierBadge, MarkdownRenderer, etc.)
 - Layout components: `src/components/layout/` (Header, Sidebar, HomeHeader)
-- Feature components: `src/components/features/` (NotebookCard, XPProgressBar, etc.)
+- Feature components: `src/components/features/` (NotebookCard, StreakDisplay, etc.)
 - Domain-specific: `src/components/{community,social,notebook,pricing,search,publish,onboarding,forms,home}/`
 - Use `@/components/` path alias for imports
 - IMPORTANT: Always check for existing components before creating new ones
