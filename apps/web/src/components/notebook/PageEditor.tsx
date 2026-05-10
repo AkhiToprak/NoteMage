@@ -157,7 +157,7 @@ export default function PageEditor({
 
   // Drawing state
   const [editorMode, setEditorMode] = useState<EditorMode>('cursor');
-  const [penColor, setPenColor] = useState('#ede9ff');
+  const [penColor, setPenColor] = useState('var(--on-surface)');
   const [penWidth, setPenWidth] = useState(4);
   const [lineStyle, setLineStyle] = useState<LineStyle>('solid');
   const [activeTool, setActiveTool] = useState<ActiveTool>('pen');
@@ -182,7 +182,7 @@ export default function PageEditor({
     underline: boolean;
     strike: boolean;
   }>({
-    color: '#ede9ff',
+    color: 'var(--on-surface)',
     fontSize: 15,
     bold: false,
     italic: false,
@@ -1052,7 +1052,7 @@ export default function PageEditor({
             width: '240px',
             height: '28px',
             borderRadius: '8px',
-            background: 'rgba(237,233,255,0.08)',
+            background: 'rgb(var(--notebook-ink-rgb) / 0.08)',
             marginBottom: '24px',
             animation: 'pulse 1.5s ease-in-out infinite',
           }}
@@ -1064,7 +1064,7 @@ export default function PageEditor({
               width: `${w * 100}%`,
               height: '14px',
               borderRadius: '6px',
-              background: 'rgba(237,233,255,0.05)',
+              background: 'rgb(var(--notebook-ink-rgb) / 0.05)',
               marginBottom: '12px',
               animation: `pulse 1.5s ease-in-out infinite ${i * 0.1}s`,
             }}
@@ -1085,7 +1085,7 @@ export default function PageEditor({
           minHeight: '400px',
         }}
       >
-        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgba(237,233,255,0.3)' }}>
+        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>
           Page not found.
         </p>
       </div>
@@ -1103,7 +1103,7 @@ export default function PageEditor({
           min-height: 100%;
           font-family: 'DM Sans', sans-serif;
           font-size: 15px;
-          color: #ede9ff;
+          color: var(--on-surface);
           line-height: 1.75;
           caret-color: #a47bff;
         }
@@ -1124,7 +1124,7 @@ export default function PageEditor({
         .notemage-editor li { margin: 3px 0; display: list-item !important; }
         .notemage-editor li p { margin: 0; }
         /* ── blockquote ── */
-        .notemage-editor blockquote { border-left: 3px solid #8c52ff; padding-left: 16px; color: rgba(237,233,255,0.6); margin: 12px 0; }
+        .notemage-editor blockquote { border-left: 3px solid #8c52ff; padding-left: 16px; color: rgb(var(--notebook-ink-rgb) / 0.6); margin: 12px 0; }
         /* ── inline code ── */
         .notemage-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; color: #c4a9ff; }
         /* ── code block ── */
@@ -1138,12 +1138,12 @@ export default function PageEditor({
           font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
           font-size: 13px;
           line-height: 1.65;
-          color: #ede9ff;
+          color: var(--on-surface);
           position: relative;
           z-index: auto;
         }
         .notemage-editor pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; display: block; }
-        .notemage-editor .code-block-wrapper select option { background: #1a1428; color: #e0daf8; }
+        .notemage-editor .code-block-wrapper select option { background: var(--surface-container-low); color: #e0daf8; }
         /* ── syntax highlighting tokens ── */
         .notemage-editor .hljs-keyword,
         .notemage-editor .hljs-selector-tag,
@@ -1187,7 +1187,7 @@ export default function PageEditor({
         /* ── placeholder ── */
         .notemage-editor p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
-          color: rgba(237,233,255,0.2);
+          color: rgb(var(--notebook-ink-rgb) / 0.2);
           pointer-events: none;
           float: left;
           height: 0;
@@ -1235,7 +1235,7 @@ export default function PageEditor({
               fontFamily: 'inherit',
               fontSize: isPhone ? '24px' : '32px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               letterSpacing: '-0.04em',
               lineHeight: 1.2,
               padding: 0,
@@ -1251,7 +1251,7 @@ export default function PageEditor({
               fontSize: '11px',
               color:
                 saveStatus === 'saved'
-                  ? 'rgba(237,233,255,0.2)'
+                  ? 'rgb(var(--notebook-ink-rgb) / 0.2)'
                   : saveStatus === 'saving'
                     ? 'rgba(140,82,255,0.6)'
                     : 'rgba(249,115,22,0.6)',
@@ -1270,7 +1270,7 @@ export default function PageEditor({
           style={{
             fontFamily: 'inherit',
             fontSize: '11px',
-            color: 'rgba(237,233,255,0.22)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.22)',
             margin: '0 0 0 2px',
           }}
         >

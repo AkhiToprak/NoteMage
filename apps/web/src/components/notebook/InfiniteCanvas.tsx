@@ -67,7 +67,7 @@ type PersistedScene = {
   files: BinaryFiles;
 };
 
-const DEFAULT_BG = '#0d0c1f';
+const DEFAULT_BG = 'var(--notebook-page)';
 
 /** SVG pattern tile sizes per style (in scene units). Width=0 means no pattern. */
 const PATTERN_BASE: Record<BackgroundStyle, { width: number; height: number }> = {
@@ -135,7 +135,7 @@ function getLuminance(hex: string): number {
  * reads as subtle paper texture, not a loud grid.
  */
 function getInkColor(hex: string): string {
-  return getLuminance(hex) < 0.5 ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.14)';
+  return getLuminance(hex) < 0.5 ? 'rgb(var(--notebook-ink-rgb) / 0.12)' : 'rgba(0,0,0,0.14)';
 }
 
 /**
@@ -196,7 +196,7 @@ function renderPatternBody(style: BackgroundStyle, ink: string) {
  * apart at a glance.
  */
 function StyleTileSwatch({ style }: { style: BackgroundStyle }) {
-  const ink = 'rgba(237,233,255,0.55)';
+  const ink = 'rgb(var(--notebook-ink-rgb) / 0.55)';
   const bg = 'rgba(0,0,0,0.3)';
   if (style === 'blank') {
     return (
@@ -1150,7 +1150,7 @@ export default function InfiniteCanvas({
             width: '240px',
             height: '28px',
             borderRadius: '8px',
-            background: 'rgba(237,233,255,0.08)',
+            background: 'rgb(var(--notebook-ink-rgb) / 0.08)',
             marginBottom: '24px',
             animation: 'pulse 1.5s ease-in-out infinite',
           }}
@@ -1160,7 +1160,7 @@ export default function InfiniteCanvas({
             width: '100%',
             height: '400px',
             borderRadius: '12px',
-            background: 'rgba(237,233,255,0.04)',
+            background: 'rgb(var(--notebook-ink-rgb) / 0.04)',
             animation: 'pulse 1.5s ease-in-out infinite 0.1s',
           }}
         />
@@ -1179,7 +1179,7 @@ export default function InfiniteCanvas({
           minHeight: '400px',
         }}
       >
-        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgba(237,233,255,0.3)' }}>
+        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>
           Page not found.
         </p>
       </div>
@@ -1374,7 +1374,7 @@ export default function InfiniteCanvas({
               fontFamily: 'inherit',
               fontSize: '22px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               letterSpacing: '-0.03em',
               lineHeight: 1.2,
               padding: 0,
@@ -1394,11 +1394,11 @@ export default function InfiniteCanvas({
               height: '26px',
               padding: 0,
               borderRadius: '6px',
-              background: uiHidden ? 'rgba(174,137,255,0.14)' : 'rgba(237,233,255,0.04)',
+              background: uiHidden ? 'rgba(174,137,255,0.14)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
               border: uiHidden
                 ? '1px solid rgba(174,137,255,0.45)'
-                : '1px solid rgba(237,233,255,0.10)',
-              color: uiHidden ? 'rgba(206,184,255,0.95)' : 'rgba(237,233,255,0.55)',
+                : '1px solid rgb(var(--notebook-ink-rgb) / 0.10)',
+              color: uiHidden ? 'rgba(206,184,255,0.95)' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
               cursor: 'pointer',
               transition: 'background 0.15s, border-color 0.15s, color 0.15s',
               flexShrink: 0,
@@ -1418,7 +1418,7 @@ export default function InfiniteCanvas({
               fontSize: '11px',
               color:
                 saveStatus === 'saved'
-                  ? 'rgba(237,233,255,0.2)'
+                  ? 'rgb(var(--notebook-ink-rgb) / 0.2)'
                   : saveStatus === 'saving'
                     ? 'rgba(140,82,255,0.6)'
                     : 'rgba(249,115,22,0.6)',
@@ -1437,7 +1437,7 @@ export default function InfiniteCanvas({
           style={{
             fontFamily: 'inherit',
             fontSize: '11px',
-            color: 'rgba(237,233,255,0.22)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.22)',
             margin: '0 0 0 2px',
           }}
         >
@@ -1513,12 +1513,12 @@ export default function InfiniteCanvas({
                 pointerEvents: 'none',
                 padding: '10px 16px',
                 borderRadius: 'var(--radius-full)',
-                background: 'rgba(33, 33, 54,0.9)',
+                background: 'color-mix(in srgb, var(--surface-container) 90%, transparent)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 border: '1px solid rgba(174,137,255,0.35)',
                 boxShadow: '0 8px 32px rgba(174,137,255,0.15), 0 2px 8px rgba(0,0,0,0.4)',
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 fontFamily: 'inherit',
                 fontSize: '13px',
                 fontWeight: 500,
@@ -1592,7 +1592,7 @@ export default function InfiniteCanvas({
                     style={{
                       fontSize: '11px',
                       fontWeight: 500,
-                      color: 'rgba(237,233,255,0.5)',
+                      color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                       letterSpacing: '0.02em',
                       padding: '0 2px',
                     }}
@@ -1629,7 +1629,7 @@ export default function InfiniteCanvas({
                             borderRadius: '6px',
                             border: selected
                               ? '1px solid rgba(174,137,255,0.9)'
-                              : '1px solid rgba(237,233,255,0.12)',
+                              : '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                             background: selected ? 'rgba(174,137,255,0.12)' : 'rgba(0,0,0,0.35)',
                             cursor: 'pointer',
                             padding: 0,
@@ -1666,7 +1666,7 @@ export default function InfiniteCanvas({
                         height: '16px',
                         borderRadius: '4px',
                         background: bgColor,
-                        border: '1px solid rgba(237,233,255,0.15)',
+                        border: '1px solid rgb(var(--notebook-ink-rgb) / 0.15)',
                         flexShrink: 0,
                       }}
                     />
@@ -1677,9 +1677,9 @@ export default function InfiniteCanvas({
                       style={{
                         flex: 1,
                         background: 'rgba(0,0,0,0.35)',
-                        border: '1px solid rgba(237,233,255,0.12)',
+                        border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                         borderRadius: '5px',
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                         fontFamily: 'inherit',
                         fontSize: '11px',
                         padding: '4px 6px',

@@ -80,7 +80,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
       style={{
         width: '256px',
         minWidth: '256px',
-        background: '#000000',
+        background: 'var(--surface)',
         borderRight: '1px solid rgba(174,137,255,0.24)',
         display: 'flex',
         flexDirection: 'column',
@@ -117,7 +117,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
           onMouseEnter={() => setBackHovered(true)}
           onMouseLeave={() => setBackHovered(false)}
         >
-          <ArrowLeft size={16} style={{ color: 'rgba(237,233,255,0.5)' }} />
+          <ArrowLeft size={16} style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.5)' }} />
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
@@ -134,7 +134,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -193,7 +193,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
             borderRadius: '6px',
             border: '1px solid rgba(140,82,255,0.15)',
             background: newSectionHovered ? 'rgba(140,82,255,0.08)' : 'transparent',
-            color: newSectionHovered ? 'rgba(237,233,255,0.7)' : 'rgba(237,233,255,0.4)',
+            color: newSectionHovered ? 'rgb(var(--notebook-ink-rgb) / 0.7)' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: 500,

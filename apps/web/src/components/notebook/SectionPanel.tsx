@@ -47,7 +47,7 @@ export default function SectionPanel() {
       style={{
         width: '180px',
         minWidth: '180px',
-        background: '#000000',
+        background: 'var(--surface)',
         borderRight: '1px solid rgba(174,137,255,0.20)',
         display: 'flex',
         flexDirection: 'column',
@@ -88,15 +88,15 @@ export default function SectionPanel() {
               background: 'transparent',
               border: 'none',
               textDecoration: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               flexShrink: 0,
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(237,233,255,0.8)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.8)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(237,233,255,0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
             }}
           >
             <ArrowLeft size={14} />
@@ -114,7 +114,7 @@ export default function SectionPanel() {
             style={{
               fontSize: '13px',
               fontWeight: 600,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -144,7 +144,7 @@ export default function SectionPanel() {
               borderLeft: '3px solid rgba(140,82,255,0.4)',
             }}
           >
-            <FolderPlus size={12} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+            <FolderPlus size={12} style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }} />
             <input
               ref={inputRef}
               type="text"
@@ -169,7 +169,7 @@ export default function SectionPanel() {
                 padding: '3px 7px',
                 fontFamily: 'inherit',
                 fontSize: '12px',
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 outline: 'none',
               }}
             />
@@ -296,7 +296,7 @@ export default function SectionPanel() {
             borderRadius: '5px',
             border: '1px solid rgba(140,82,255,0.12)',
             background: 'transparent',
-            color: 'rgba(237,233,255,0.35)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
             fontFamily: 'inherit',
             fontSize: '11px',
             fontWeight: 500,
@@ -305,11 +305,11 @@ export default function SectionPanel() {
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.07)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.6)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.6)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.35)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.35)';
           }}
         >
           <Plus size={12} />

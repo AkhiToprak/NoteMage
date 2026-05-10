@@ -67,6 +67,15 @@
   --outline: #a5a5be;
   --outline-variant: #6a6a96;
 
+  /* Notebook surface tokens. The *-rgb triplets are space-separated so
+     callers can compose translucent variants with the modern
+     `rgb(var(--token) / alpha)` syntax (same pattern as
+     --mouse-sparkles-glow-rgb below). */
+  --notebook-page: #1a1933;
+  --notebook-page-rgb: 26 25 51;
+  --notebook-ink-rgb: 237 233 255;
+  --notebook-accent-rgb: 174 137 255;
+
   /* ── Cosmetic name-font vars ──────────────────────────────────────────
      Declared directly at :root (not only inside @theme inline) so they're
      guaranteed to cascade to every element the browser paints a UserName
@@ -114,6 +123,12 @@
 
   --outline: #a5a5be;
   --outline-variant: #f0f0f3;
+
+  /* Notebook surface tokens — paper-white page with dark ink. Accent stays
+     purple in both themes (the brand purple reads on light too). */
+  --notebook-page: #fffef9;
+  --notebook-page-rgb: 255 254 249;
+  --notebook-ink-rgb: 44 44 79;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
