@@ -38,6 +38,12 @@ COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages packages
 COPY apps/web apps/web
+# pnpm puts the per-workspace dep symlinks (e.g. zod for @notemage/shared)
+# under packages/<pkg>/node_modules. The COPY of `packages` above is from
+# the build context, which has no node_modules, so without this line
+# Turbopack can't resolve `import { z } from 'zod'` in
+# packages/shared/src/quiz.ts during `next build`.
+COPY --from=deps /repo/packages/shared/node_modules ./packages/shared/node_modules
 
 ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_SENTRY_DSN
