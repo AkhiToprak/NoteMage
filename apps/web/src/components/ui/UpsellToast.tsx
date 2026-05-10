@@ -76,8 +76,7 @@ export default function UpsellToast({
         zIndex: 300,
         maxWidth: 460,
         width: 'calc(100% - 32px)',
-        background:
-          'rgba(20, 18, 44, 0.96)',
+        background: 'rgba(20, 18, 44, 0.96)',
         border: '1px solid rgba(255, 222, 89, 0.45)',
         borderRadius: 14,
         padding: '14px 16px 14px 14px',

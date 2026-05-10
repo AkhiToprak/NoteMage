@@ -124,8 +124,7 @@ export default function CoworkInviteCard({
         maxWidth: 420,
         padding: 18,
         borderRadius: 20,
-        background:
-          'rgba(14, 12, 34, 0.82)',
+        background: 'rgba(14, 12, 34, 0.82)',
         border: `1px solid ${accentColor}55`,
         boxShadow:
           '0 16px 48px rgba(81,112,255,0.14), 0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)',
@@ -297,9 +296,7 @@ export default function CoworkInviteCard({
             border: 'none',
             borderRadius: 12,
             background:
-              joining || sessionState === 'loading'
-                ? 'rgba(255, 222, 89, 0.35)'
-                : '#ffde59',
+              joining || sessionState === 'loading' ? 'rgba(255, 222, 89, 0.35)' : '#ffde59',
             color: '#2a2200',
             fontSize: 13,
             fontWeight: 800,

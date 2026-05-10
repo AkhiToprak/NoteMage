@@ -301,7 +301,6 @@ function ResizableImageView({ node, updateAttributes, selected }: NodeViewProps)
           }}
         />
       ))}
-
     </NodeViewWrapper>
   );
 }

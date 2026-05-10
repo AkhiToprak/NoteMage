@@ -196,8 +196,7 @@ function LoginForm() {
             left: 0,
             width: '100%',
             height: '1px',
-            background:
-              'rgba(174,137,255,0.4)',
+            background: 'rgba(174,137,255,0.4)',
           }}
         />
 

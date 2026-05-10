@@ -201,9 +201,7 @@ export default function SectionPanel() {
                 gap: '8px',
                 padding: '8px 10px',
                 borderRadius: '8px',
-                background: isMageView
-                  ? 'rgba(140,82,255,0.2)'
-                  : 'transparent',
+                background: isMageView ? 'rgba(140,82,255,0.2)' : 'transparent',
                 border: isMageView ? '1px solid rgba(140,82,255,0.3)' : '1px solid transparent',
                 cursor: 'pointer',
                 transition: 'background 0.15s ease, border-color 0.15s ease',
@@ -245,9 +243,7 @@ export default function SectionPanel() {
                   width: '22px',
                   height: '22px',
                   borderRadius: '6px',
-                  background: isMageView
-                    ? 'rgba(140,82,255,0.4)'
-                    : 'rgba(140,82,255,0.12)',
+                  background: isMageView ? 'rgba(140,82,255,0.4)' : 'rgba(140,82,255,0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

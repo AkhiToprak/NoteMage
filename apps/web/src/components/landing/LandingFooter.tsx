@@ -39,7 +39,6 @@ export default function LandingFooter() {
         overflow: 'hidden',
       }}
     >
-
       <div
         style={{
           maxWidth: 1280,
@@ -176,7 +175,6 @@ export default function LandingFooter() {
             </div>
           ))}
         </div>
-
       </div>
 
       <style jsx>{`

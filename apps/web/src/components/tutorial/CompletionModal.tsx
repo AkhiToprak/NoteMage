@@ -64,9 +64,7 @@ export function CompletionModal() {
         paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
         paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
         opacity,
-        transition: reduceMotion
-          ? 'none'
-          : 'opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: reduceMotion ? 'none' : 'opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
     >
       <div
@@ -81,9 +79,7 @@ export function CompletionModal() {
           textAlign: 'center',
           boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
           transform: opacity === 0 ? 'translateY(12px)' : 'translateY(0)',
-          transition: reduceMotion
-            ? 'none'
-            : 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: reduceMotion ? 'none' : 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
         <div
@@ -151,7 +147,8 @@ export function CompletionModal() {
             transitionDelay: enterDelay(3),
           }}
         >
-          Your first notebook and chat are live. Add notes, ask questions, make quizzes — your call from here.
+          Your first notebook and chat are live. Add notes, ask questions, make quizzes — your call
+          from here.
         </p>
 
         {showApprentice && (
@@ -233,9 +230,7 @@ export function CompletionModal() {
               fontFamily: 'inherit',
               cursor: 'pointer',
               width: '100%',
-              transition: reduceMotion
-                ? 'none'
-                : 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+              transition: reduceMotion ? 'none' : 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
             }}
             onMouseEnter={(e) => {
               if (!reduceMotion) {

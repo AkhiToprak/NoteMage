@@ -319,9 +319,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
                   padding: '12px',
                   borderRadius: '12px',
                   border: 'none',
-                  background: uploading
-                    ? '#6b5a99'
-                    : '#ae89ff',
+                  background: uploading ? '#6b5a99' : '#ae89ff',
                   color: '#ffffff',
                   fontSize: '14px',
                   fontWeight: 700,

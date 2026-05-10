@@ -76,7 +76,7 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
 
   const milestoneHit = useMemo(
     () => (streak ? streakMilestoneFor(streak.currentStreak) : null),
-    [streak],
+    [streak]
   );
 
   if (!streak) return null;

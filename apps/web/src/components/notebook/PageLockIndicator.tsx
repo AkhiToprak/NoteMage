@@ -14,12 +14,7 @@ interface PageLockIndicatorProps {
   currentUserId: string;
 }
 
-const AVATAR_GRADIENTS = [
-  '#ae89ff',
-  '#ff89ae',
-  '#89ffd4',
-  '#ffde59',
-];
+const AVATAR_GRADIENTS = ['#ae89ff', '#ff89ae', '#89ffd4', '#ffde59'];
 
 function getAvatarGradient(id: string): string {
   let hash = 0;

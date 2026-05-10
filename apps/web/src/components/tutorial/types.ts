@@ -7,11 +7,7 @@ export type TutorialStep =
   | 'step-4-chat-modal'
   | 'complete';
 
-export type TutorialTargetKey =
-  | 'dashboard-cta'
-  | 'notebook-form'
-  | 'chat-create'
-  | 'chat-modal';
+export type TutorialTargetKey = 'dashboard-cta' | 'notebook-form' | 'chat-create' | 'chat-modal';
 
 export interface TutorialPersistedState {
   step?: TutorialStep;

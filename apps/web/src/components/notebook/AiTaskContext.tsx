@@ -191,10 +191,7 @@ function AiStatusIndicator() {
           <AiTaskPill key={task.id} label={task.label} />
         ))}
         {mascotVisible && (
-          <span
-            aria-hidden="true"
-            style={{ display: 'inline-flex', paddingRight: 8 }}
-          >
+          <span aria-hidden="true" style={{ display: 'inline-flex', paddingRight: 8 }}>
             <Mascot
               pose="holding-wand"
               size="sm"

@@ -104,8 +104,7 @@ export default function SocialsCard({
         style={{
           position: 'absolute',
           inset: 0,
-          background:
-            'rgba(174,137,255,0.10)',
+          background: 'rgba(174,137,255,0.10)',
           pointerEvents: 'none',
         }}
       />

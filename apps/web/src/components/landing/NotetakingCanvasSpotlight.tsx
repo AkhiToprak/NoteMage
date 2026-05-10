@@ -30,8 +30,7 @@ export default function NotetakingCanvasSpotlight() {
           eyebrow="Two canvases. One notebook."
           title={
             <>
-              Type it, or{' '}
-              <span style={{ color: '#ae89ff' }}>draw it.</span>
+              Type it, or <span style={{ color: '#ae89ff' }}>draw it.</span>
             </>
           }
           description="Some ideas are words. Others are arrows and doodles. Notemage supports both, inside every notebook, without ever switching tabs."

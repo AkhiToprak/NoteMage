@@ -273,9 +273,7 @@ function DocsSidebar({
                         fontWeight: active ? 600 : 500,
                         color: active ? 'var(--on-surface)' : 'rgba(238, 236, 255, 0.62)',
                         textDecoration: 'none',
-                        background: active
-                          ? 'rgba(174,137,255,0.18)'
-                          : 'transparent',
+                        background: active ? 'rgba(174,137,255,0.18)' : 'transparent',
                         borderLeft: active ? '2px solid var(--primary)' : '2px solid transparent',
                         position: 'relative',
                       }}
@@ -406,8 +404,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
                   display: 'block',
                   padding: '22px 24px',
                   borderRadius: 'var(--radius-lg)',
-                  background:
-                    'rgba(16, 14, 34, 0.65)',
+                  background: 'rgba(16, 14, 34, 0.65)',
                   border: '1px solid rgba(174,137,255,0.18)',
                   textDecoration: 'none',
                   position: 'relative',

@@ -41,9 +41,7 @@ export function ContextualMascot({
 
   const displayPose = hoverPose ?? pose;
   const displayIdle =
-    hoverPose !== null
-      ? POSES[hoverPose].recommendedIdle
-      : (idle ?? POSES[pose].recommendedIdle);
+    hoverPose !== null ? POSES[hoverPose].recommendedIdle : (idle ?? POSES[pose].recommendedIdle);
 
   return (
     <span

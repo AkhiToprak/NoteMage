@@ -98,8 +98,7 @@ function resolveFrameStyle(
       wrapper: {
         padding: 4,
         borderRadius: '9999px',
-        background:
-          '#9d4edd',
+        background: '#9d4edd',
         boxShadow: `0 0 ${Math.round(size / 2.5)}px rgba(174,137,255,0.35), 0 0 ${Math.round(size / 1.5)}px rgba(255,111,162,0.2)`,
       },
     };

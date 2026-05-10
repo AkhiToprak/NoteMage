@@ -139,8 +139,7 @@ export default function StudyGoalsStep({
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 6px 16px rgba(77,255,145,0.35), 0 0 0 3px #21213e',
-                animation:
-                  'mascotStepIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
+                animation: 'mascotStepIn 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
                 willChange: 'transform, opacity',
               }}
             >
@@ -302,9 +301,7 @@ export default function StudyGoalsStep({
                     style={{
                       width: '52px',
                       background: '#35355c',
-                      border: customInputs[config.key]
-                        ? '1px solid #ae89ff'
-                        : '1px solid #555578',
+                      border: customInputs[config.key] ? '1px solid #ae89ff' : '1px solid #555578',
                       borderRadius: '8px',
                       padding: '4px 8px',
                       color: '#e5e3ff',

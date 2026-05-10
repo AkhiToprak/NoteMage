@@ -107,12 +107,7 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     }),
   ]);
 
-  const [
-    chatMessageCount,
-    flashcardReviewAgg,
-    documentCount,
-    quizSetCount,
-  ] = await Promise.all([
+  const [chatMessageCount, flashcardReviewAgg, documentCount, quizSetCount] = await Promise.all([
     db.chatMessage.count({ where: { userId, role: 'user' } }),
 
     // SR bumps Flashcard.repetitions; no per-review row exists, so sum.
@@ -162,9 +157,7 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   `);
   const dailyGoalHit = dailyGoalRows[0]?.has_day === true;
 
-  const tutorialState = (userRecord?.tutorialState ?? null) as
-    | { completedAt?: string }
-    | null;
+  const tutorialState = (userRecord?.tutorialState ?? null) as { completedAt?: string } | null;
 
   return {
     notebookCount,
@@ -250,10 +243,7 @@ export async function checkAndUnlockAchievements(
     await Promise.all(
       newlyUnlocked.map((a) =>
         unlockCosmeticsForAchievement(userId, a.badge).catch((err) => {
-          console.error(
-            `unlockCosmeticsForAchievement failed for ${a.badge}:`,
-            err
-          );
+          console.error(`unlockCosmeticsForAchievement failed for ${a.badge}:`, err);
         })
       )
     );
@@ -292,14 +282,9 @@ export async function checkAndUnlockAchievements(
           icon: metaDef.icon,
         });
 
-        await unlockCosmeticsForAchievement(userId, metaDef.badge).catch(
-          (err) => {
-            console.error(
-              `unlockCosmeticsForAchievement failed for ${metaDef.badge}:`,
-              err
-            );
-          }
-        );
+        await unlockCosmeticsForAchievement(userId, metaDef.badge).catch((err) => {
+          console.error(`unlockCosmeticsForAchievement failed for ${metaDef.badge}:`, err);
+        });
       } catch {
         // Ignore P2002 unique constraint violation (race condition)
       }

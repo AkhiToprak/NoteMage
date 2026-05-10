@@ -55,8 +55,7 @@ export default function MaintenancePage() {
           flexDirection: 'column',
           alignItems: 'center',
           textAlign: 'center',
-          boxShadow:
-            '0 32px 64px rgba(174, 137, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.4)',
+          boxShadow: '0 32px 64px rgba(174, 137, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.4)',
           border: '1px solid rgba(174, 137, 255, 0.24)',
         }}
       >
@@ -77,8 +76,7 @@ export default function MaintenancePage() {
               position: 'absolute',
               inset: 0,
               borderRadius: 9999,
-              background:
-                'rgba(174, 137, 255, 0.45)',
+              background: 'rgba(174, 137, 255, 0.45)',
               animation: 'nm-maint-pulse 2.4s ease-in-out infinite',
             }}
           />
@@ -89,8 +87,7 @@ export default function MaintenancePage() {
               height: 14,
               borderRadius: 9999,
               background: 'var(--primary)',
-              boxShadow:
-                '0 0 0 6px rgba(174, 137, 255, 0.18), 0 0 24px rgba(174, 137, 255, 0.55)',
+              boxShadow: '0 0 0 6px rgba(174, 137, 255, 0.18), 0 0 24px rgba(174, 137, 255, 0.55)',
             }}
           />
         </div>
@@ -118,8 +115,7 @@ export default function MaintenancePage() {
             lineHeight: 1.1,
             margin: 0,
             marginBottom: 16,
-            background:
-              '#ffffff',
+            background: '#ffffff',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -139,8 +135,8 @@ export default function MaintenancePage() {
             maxWidth: 380,
           }}
         >
-          We&rsquo;re moving to a new home. Notemage will be available again as
-          soon as the move is complete &mdash; usually within an hour.
+          We&rsquo;re moving to a new home. Notemage will be available again as soon as the move is
+          complete &mdash; usually within an hour.
         </p>
 
         <div
@@ -188,7 +184,8 @@ export default function MaintenancePage() {
           margin: 0,
         }}
       >
-        Need us? <a
+        Need us?{' '}
+        <a
           href="mailto:hello@notemage.app"
           style={{ color: 'var(--primary-fixed)', textDecoration: 'none' }}
         >

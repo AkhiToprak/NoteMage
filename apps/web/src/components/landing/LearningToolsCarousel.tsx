@@ -127,8 +127,7 @@ export default function LearningToolsCarousel() {
           eyebrow="Study toolkit"
           title={
             <>
-              All your study tools,{' '}
-              <span style={{ color: '#ffde59' }}>one tap away.</span>
+              All your study tools, <span style={{ color: '#ffde59' }}>one tap away.</span>
             </>
           }
           description="Turn any page into a quiz, a flashcard deck, a mind map, or a polished slide export — without opening a single other app."

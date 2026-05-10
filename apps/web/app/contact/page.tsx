@@ -170,8 +170,7 @@ export default function ContactPage() {
               gap: 10,
               padding: '8px 18px',
               borderRadius: 'var(--radius-full)',
-              background:
-                'rgba(174, 137, 255, 0.18)',
+              background: 'rgba(174, 137, 255, 0.18)',
               border: '1px solid rgba(174, 137, 255, 0.3)',
               marginBottom: 40,
               backdropFilter: 'blur(10px)',
@@ -307,8 +306,7 @@ export default function ContactPage() {
               position: 'relative',
               padding: '48px 44px',
               borderRadius: 'var(--radius-xl)',
-              background:
-                'rgba(33, 33, 62, 0.6)',
+              background: 'rgba(33, 33, 62, 0.6)',
               border: '1px solid rgba(174, 137, 255, 0.45)',
               backdropFilter: 'blur(24px) saturate(140%)',
               WebkitBackdropFilter: 'blur(24px) saturate(140%)',
@@ -332,8 +330,7 @@ export default function ContactPage() {
                   width: 44,
                   height: 44,
                   borderRadius: 'var(--radius-md)',
-                  background:
-                    'rgba(174, 137, 255, 0.25)',
+                  background: 'rgba(174, 137, 255, 0.25)',
                   border: '1px solid rgba(174, 137, 255, 0.32)',
                   display: 'flex',
                   alignItems: 'center',
@@ -442,9 +439,7 @@ export default function ContactPage() {
                       style={{
                         padding: '10px 18px',
                         borderRadius: 'var(--radius-full)',
-                        background: active
-                          ? 'rgba(174, 137, 255, 0.28)'
-                          : 'rgba(33, 33, 62, 0.6)',
+                        background: active ? 'rgba(174, 137, 255, 0.28)' : 'rgba(33, 33, 62, 0.6)',
                         border: active
                           ? '1px solid rgba(174, 137, 255, 0.55)'
                           : '1px solid rgba(140, 82, 255, 0.22)',

@@ -94,14 +94,13 @@ export default function Sidebar() {
                 fontSize: '15px',
                 fontWeight: '500',
                 color: isActive ? '#ffffff' : '#b9c3ff',
-                background: isActive
-                  ? '#ae89ff'
-                  : 'transparent',
+                background: isActive ? '#ae89ff' : 'transparent',
                 transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(174,137,255,0.08)';
+                  (e.currentTarget as HTMLAnchorElement).style.background =
+                    'rgba(174,137,255,0.08)';
                   (e.currentTarget as HTMLAnchorElement).style.transform = 'translateX(4px)';
                 }
               }}

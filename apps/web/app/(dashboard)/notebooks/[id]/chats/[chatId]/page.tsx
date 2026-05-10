@@ -606,10 +606,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                       : '70%',
                 padding: isPhone ? '10px 12px' : '12px 16px',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background:
-                  msg.role === 'user'
-                    ? '#8c52ff'
-                    : 'rgba(255,255,255,0.07)',
+                background: msg.role === 'user' ? '#8c52ff' : 'rgba(255,255,255,0.07)',
                 border: msg.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
                 color: '#ede9ff',
                 fontSize: '14px',
@@ -832,9 +829,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 borderRadius: '9px',
                 border: 'none',
                 flexShrink: 0,
-                background: inputValue.trim()
-                  ? '#8c52ff'
-                  : 'rgba(140,82,255,0.2)',
+                background: inputValue.trim() ? '#8c52ff' : 'rgba(140,82,255,0.2)',
                 color: inputValue.trim() ? '#fff' : 'rgba(255,255,255,0.3)',
                 cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',
@@ -1241,9 +1236,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   padding: '11px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: isSavingContext
-                    ? 'rgba(140,82,255,0.4)'
-                    : '#8c52ff',
+                  background: isSavingContext ? 'rgba(140,82,255,0.4)' : '#8c52ff',
                   color: '#fff',
                   fontSize: '14px',
                   fontWeight: 700,
@@ -1434,9 +1427,7 @@ function PresentationButton({ title, jsonData }: { title: string; jsonData: stri
           padding: '8px 14px',
           margin: '6px 0',
           borderRadius: '10px',
-          background: hovered
-            ? 'rgba(255,140,50,0.3)'
-            : 'rgba(255,140,50,0.2)',
+          background: hovered ? 'rgba(255,140,50,0.3)' : 'rgba(255,140,50,0.2)',
           border: `1px solid ${hovered ? 'rgba(255,140,50,0.5)' : 'rgba(255,140,50,0.3)'}`,
           color: '#ffb380',
           fontSize: '13px',
@@ -1674,9 +1665,7 @@ function MessageContent({ content, notebookId }: { content: string; notebookId: 
             padding: '8px 14px',
             margin: '6px 0',
             borderRadius: '10px',
-            background: isQuiz
-              ? 'rgba(81,112,255,0.2)'
-              : 'rgba(140,82,255,0.2)',
+            background: isQuiz ? 'rgba(81,112,255,0.2)' : 'rgba(140,82,255,0.2)',
             border: `1px solid ${isQuiz ? 'rgba(81,112,255,0.3)' : 'rgba(140,82,255,0.3)'}`,
             color: isQuiz ? '#93a8ff' : '#c4a9ff',
             fontSize: '13px',

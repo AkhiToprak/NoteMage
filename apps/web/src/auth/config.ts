@@ -53,9 +53,11 @@ export async function hydrateTokenFromDb(
   token.equippedFrameId = freshUser.equippedFrameId ?? undefined;
   token.equippedBackgroundId = freshUser.equippedBackgroundId ?? undefined;
   token.tutorialState =
-    (freshUser.tutorialState as
-      | { step?: string; completedAt?: string; dismissedAt?: string }
-      | null) ?? undefined;
+    (freshUser.tutorialState as {
+      step?: string;
+      completedAt?: string;
+      dismissedAt?: string;
+    } | null) ?? undefined;
 }
 
 // Providers are constructed conditionally so the app still boots in dev
@@ -219,9 +221,11 @@ export const authOptions: NextAuthOptions = {
           equippedFrameId: user.equippedFrameId ?? undefined,
           equippedBackgroundId: user.equippedBackgroundId ?? undefined,
           tutorialState:
-            (user.tutorialState as
-              | { step?: string; completedAt?: string; dismissedAt?: string }
-              | null) ?? undefined,
+            (user.tutorialState as {
+              step?: string;
+              completedAt?: string;
+              dismissedAt?: string;
+            } | null) ?? undefined,
         };
       },
     }),
@@ -311,7 +315,12 @@ export const authOptions: NextAuthOptions = {
           equippedTitleId?: string;
           equippedFrameId?: string;
           equippedBackgroundId?: string;
-          tutorialState?: { step?: string; completedAt?: string; dismissedAt?: string; seenShowcases?: string[] };
+          tutorialState?: {
+            step?: string;
+            completedAt?: string;
+            dismissedAt?: string;
+            seenShowcases?: string[];
+          };
         };
         token.id = user.id;
         token.username = u.username;

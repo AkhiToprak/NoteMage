@@ -3,11 +3,7 @@ import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
-import {
-  successResponse,
-  unauthorizedResponse,
-  internalErrorResponse,
-} from '@/lib/api-response';
+import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
 
 interface TutorialStateShape {
   step?: string;

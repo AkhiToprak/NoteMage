@@ -55,9 +55,7 @@ export function SkipConfirmDialog({ onConfirm, onCancel }: Props) {
         paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
         paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
         opacity,
-        transition: reduceMotion
-          ? 'none'
-          : 'opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: reduceMotion ? 'none' : 'opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
     >
       <div
@@ -71,9 +69,7 @@ export function SkipConfirmDialog({ onConfirm, onCancel }: Props) {
           maxWidth: 360,
           boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
           transform: opacity === 0 ? 'translateY(8px)' : 'translateY(0)',
-          transition: reduceMotion
-            ? 'none'
-            : 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: reduceMotion ? 'none' : 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
         <h3

@@ -188,14 +188,8 @@ function FourFrameBackdrop({
 
   return (
     <>
-      <div
-        onClick={onClick}
-        style={{ ...frame, top: 0, left: 0, right: 0, height: top }}
-      />
-      <div
-        onClick={onClick}
-        style={{ ...frame, top: bottom, left: 0, right: 0, bottom: 0 }}
-      />
+      <div onClick={onClick} style={{ ...frame, top: 0, left: 0, right: 0, height: top }} />
+      <div onClick={onClick} style={{ ...frame, top: bottom, left: 0, right: 0, bottom: 0 }} />
       <div
         onClick={onClick}
         style={{ ...frame, top, left: 0, width: left, height: bottom - top }}
@@ -225,8 +219,7 @@ function SpotlightRing({ rect }: { rect: DOMRect }) {
         width: rect.width + SPOTLIGHT_PAD * 2,
         height: rect.height + SPOTLIGHT_PAD * 2,
         borderRadius: SPOTLIGHT_RADIUS,
-        boxShadow:
-          '0 0 0 2px rgba(174,137,255,0.55), 0 0 24px 4px rgba(174,137,255,0.30)',
+        boxShadow: '0 0 0 2px rgba(174,137,255,0.55), 0 0 24px 4px rgba(174,137,255,0.30)',
         pointerEvents: 'none',
         zIndex: 1100,
       }}

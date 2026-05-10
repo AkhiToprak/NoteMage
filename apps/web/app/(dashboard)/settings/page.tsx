@@ -400,10 +400,7 @@ export default function SettingsPage() {
     setStudyGoals((prev) => ({ ...prev, [key]: target }));
   };
 
-  const handleGoalCustomInput = (
-    config: (typeof GOAL_CONFIGS)[number],
-    value: string
-  ) => {
+  const handleGoalCustomInput = (config: (typeof GOAL_CONFIGS)[number], value: string) => {
     setGoalCustomInputs((prev) => ({ ...prev, [config.key]: value }));
     const num = parseInt(value, 10);
     if (!isNaN(num) && num >= config.min && num <= config.max) {
@@ -1289,9 +1286,7 @@ export default function SettingsPage() {
                     disabled={greetingLoading}
                     style={{
                       padding: '10px 24px',
-                      background: greetingLoading
-                        ? 'rgba(174,137,255,0.3)'
-                        : '#ae89ff',
+                      background: greetingLoading ? 'rgba(174,137,255,0.3)' : '#ae89ff',
                       border: 'none',
                       borderRadius: '12px',
                       color: '#fff',
@@ -1442,9 +1437,7 @@ export default function SettingsPage() {
                     disabled={mageNameLoading}
                     style={{
                       padding: '10px 24px',
-                      background: mageNameLoading
-                        ? 'rgba(174,137,255,0.3)'
-                        : '#ae89ff',
+                      background: mageNameLoading ? 'rgba(174,137,255,0.3)' : '#ae89ff',
                       border: 'none',
                       borderRadius: '12px',
                       color: '#fff',
@@ -1861,8 +1854,7 @@ export default function SettingsPage() {
                           }}
                         >
                           {config.presets.map((preset) => {
-                            const isActive =
-                              target === preset && !goalCustomInputs[config.key];
+                            const isActive = target === preset && !goalCustomInputs[config.key];
                             return (
                               <button
                                 key={preset}
@@ -2667,9 +2659,7 @@ export default function SettingsPage() {
                             width: '40px',
                             height: '40px',
                             borderRadius: '12px',
-                            background: user.banned
-                              ? '#fd6f85'
-                              : '#ae89ff',
+                            background: user.banned ? '#fd6f85' : '#ae89ff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

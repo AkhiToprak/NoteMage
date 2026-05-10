@@ -846,10 +846,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
           fontFamily: 'inherit',
           fontSize: '14px',
           fontWeight: 600,
-          background:
-            uploadState === 'success'
-              ? 'rgba(74,222,128,0.15)'
-              : 'rgba(140,82,255,0.8)',
+          background: uploadState === 'success' ? 'rgba(74,222,128,0.15)' : 'rgba(140,82,255,0.8)',
           color: uploadState === 'success' ? '#4ade80' : '#fff',
           opacity: uploadState === 'uploading' ? 0.6 : 1,
           transition: 'opacity 0.15s ease',
@@ -999,21 +996,17 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
         const title = file.name.replace(/\.[^.]+$/, '');
 
         const pages = await renderPdfToPngs(file, {
-          onProgress: ({ current, total }) =>
-            setProgress(`Rendering page ${current} / ${total}`),
+          onProgress: ({ current, total }) => setProgress(`Rendering page ${current} / ${total}`),
         });
 
         if (pages.length === 0) throw new Error('No pages found in PDF');
 
         setProgress('Creating page…');
-        const createRes = await fetch(
-          `/api/notebooks/${notebookId}/sections/${sectionId}/pages`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title }),
-          }
-        );
+        const createRes = await fetch(`/api/notebooks/${notebookId}/sections/${sectionId}/pages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title }),
+        });
         const createJson = await createRes.json();
         if (!createRes.ok || !createJson?.success || !createJson?.data?.id) {
           throw new Error(createJson?.error || 'Failed to create page');
@@ -1031,14 +1024,11 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
             sectionId,
             pageId,
           });
-          const registerRes = await fetch(
-            `/api/notebooks/${notebookId}/pages/${pageId}/images`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ storagePath, fileName: pngFile.name }),
-            }
-          );
+          const registerRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storagePath, fileName: pngFile.name }),
+          });
           const registerJson = await registerRes.json();
           if (!registerJson?.success || !registerJson?.data?.url) continue;
 
@@ -1166,10 +1156,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           fontFamily: 'inherit',
           fontSize: '14px',
           fontWeight: 600,
-          background:
-            state === 'success'
-              ? 'rgba(74,222,128,0.15)'
-              : 'rgba(140,82,255,0.8)',
+          background: state === 'success' ? 'rgba(74,222,128,0.15)' : 'rgba(140,82,255,0.8)',
           color: state === 'success' ? '#4ade80' : '#fff',
           opacity: state === 'working' ? 0.7 : 1,
           transition: 'opacity 0.15s ease',

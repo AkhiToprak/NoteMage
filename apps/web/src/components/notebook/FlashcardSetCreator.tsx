@@ -360,9 +360,7 @@ export default function FlashcardSetCreator({
               padding: '8px 16px',
               borderRadius: '8px',
               border: 'none',
-              background: canSubmit
-                ? '#8c52ff'
-                : 'rgba(140,82,255,0.2)',
+              background: canSubmit ? '#8c52ff' : 'rgba(140,82,255,0.2)',
               color: canSubmit ? '#fff' : 'rgba(237,233,255,0.3)',
               fontSize: '13px',
               cursor: canSubmit ? 'pointer' : 'not-allowed',

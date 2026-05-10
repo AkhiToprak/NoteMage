@@ -12,7 +12,6 @@ export default function CoworkSpotlight() {
         overflow: 'hidden',
       }}
     >
-
       <div
         style={{
           position: 'relative',
@@ -92,8 +91,7 @@ export default function CoworkSpotlight() {
               margin: '0 0 20px 0',
             }}
           >
-            Study alone.{' '}
-            <span style={{ color: '#b9c3ff', fontStyle: 'italic' }}>Together.</span>
+            Study alone. <span style={{ color: '#b9c3ff', fontStyle: 'italic' }}>Together.</span>
           </h2>
 
           <p

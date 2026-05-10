@@ -263,8 +263,7 @@ function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
           width: isPhone ? 48 : 56,
           height: isPhone ? 48 : 56,
           borderRadius: 16,
-          background:
-            'rgba(174,137,255,0.18)',
+          background: 'rgba(174,137,255,0.18)',
           border: '1px solid rgba(174,137,255,0.28)',
           display: 'flex',
           alignItems: 'center',

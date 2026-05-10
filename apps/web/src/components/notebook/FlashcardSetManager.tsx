@@ -496,9 +496,7 @@ export default function FlashcardSetManager({
                   padding: '8px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: canMerge
-                    ? '#8c52ff'
-                    : 'rgba(140,82,255,0.2)',
+                  background: canMerge ? '#8c52ff' : 'rgba(140,82,255,0.2)',
                   color: canMerge ? '#fff' : 'rgba(237,233,255,0.3)',
                   fontSize: '13px',
                   cursor: canMerge ? 'pointer' : 'not-allowed',
@@ -524,9 +522,7 @@ export default function FlashcardSetManager({
                   padding: '8px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: canSplit
-                    ? '#8c52ff'
-                    : 'rgba(140,82,255,0.2)',
+                  background: canSplit ? '#8c52ff' : 'rgba(140,82,255,0.2)',
                   color: canSplit ? '#fff' : 'rgba(237,233,255,0.3)',
                   fontSize: '13px',
                   cursor: canSplit ? 'pointer' : 'not-allowed',
@@ -972,9 +968,7 @@ function TitleDialog({
               padding: '8px 14px',
               borderRadius: '8px',
               border: 'none',
-              background: canConfirm
-                ? '#8c52ff'
-                : 'rgba(140,82,255,0.2)',
+              background: canConfirm ? '#8c52ff' : 'rgba(140,82,255,0.2)',
               color: canConfirm ? '#fff' : 'rgba(237,233,255,0.3)',
               fontSize: '13px',
               cursor: canConfirm ? 'pointer' : 'not-allowed',

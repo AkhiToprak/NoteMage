@@ -69,12 +69,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return successResponse(user ?? {
-      dailyStudyMinutesGoal: null,
-      weeklyStudyPlansGoal: null,
-      weeklyNotesGoal: null,
-      weeklyChatsGoal: null,
-    });
+    return successResponse(
+      user ?? {
+        dailyStudyMinutesGoal: null,
+        weeklyStudyPlansGoal: null,
+        weeklyNotesGoal: null,
+        weeklyChatsGoal: null,
+      }
+    );
   } catch {
     return internalErrorResponse();
   }

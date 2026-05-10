@@ -297,8 +297,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
           <div
             style={{
               height: 3,
-              background:
-                '#ff9566',
+              background: '#ff9566',
               backgroundSize: '200% 100%',
               animation: 'unlock-toast-shimmer 3s linear infinite',
             }}
@@ -505,8 +504,7 @@ function TitlePreview({ entry }: { entry: TitleCosmetic }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background:
-          'rgba(255,222,89,0.15)',
+        background: 'rgba(255,222,89,0.15)',
       }}
     >
       <span

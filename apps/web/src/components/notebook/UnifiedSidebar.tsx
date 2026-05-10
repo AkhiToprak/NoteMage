@@ -1228,15 +1228,9 @@ function PageTreeRow({
         }}
       >
         {page.pageType === 'canvas' ? (
-          <CanvasIcon
-            size={12}
-            color={isActive ? '#ffde59' : 'rgba(255,222,89,0.35)'}
-          />
+          <CanvasIcon size={12} color={isActive ? '#ffde59' : 'rgba(255,222,89,0.35)'} />
         ) : (
-          <TextFileIcon
-            size={12}
-            color={isActive ? accentColor : 'rgba(237,233,255,0.25)'}
-          />
+          <TextFileIcon size={12} color={isActive ? accentColor : 'rgba(237,233,255,0.25)'} />
         )}
         <span
           style={{

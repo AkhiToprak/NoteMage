@@ -69,15 +69,9 @@ export default function PageItem({
       onMouseLeave={() => setHovered(false)}
     >
       {page.pageType === 'canvas' ? (
-        <CanvasIcon
-          size={14}
-          color={isActive ? '#ffde59' : 'rgba(255,222,89,0.45)'}
-        />
+        <CanvasIcon size={14} color={isActive ? '#ffde59' : 'rgba(255,222,89,0.45)'} />
       ) : (
-        <TextFileIcon
-          size={14}
-          color={isActive ? '#8c52ff' : 'rgba(237,233,255,0.3)'}
-        />
+        <TextFileIcon size={14} color={isActive ? '#8c52ff' : 'rgba(237,233,255,0.3)'} />
       )}
       <span
         style={{
