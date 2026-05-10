@@ -268,32 +268,64 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
     setUploadError(null);
     setIsUploading(true);
     try {
-      const { storagePath } = await directUpload(file, 'document', { notebookId });
-      const res = await fetch(`/api/notebooks/${notebookId}/documents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
-      });
-      const json = await res.json();
-      if (json.success && json.data?.id) {
-        await fetchDocs();
-        const newDocIds = new Set([...selectedDocIds, json.data.id]);
-        setSelectedDocIds(newDocIds);
+      let storagePath: string;
+      try {
+        const result = await directUpload(file, 'document', { notebookId });
+        storagePath = result.storagePath;
+      } catch (err) {
+        console.error('[mage-upload] direct-upload failed', err);
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        setUploadError(`Upload failed: ${message}`);
+        return;
+      }
 
-        // Auto-save: immediately add the uploaded document to the chat's context
-        // so the AI can reference it without requiring a manual "Update Context" click
+      let docRes: Response;
+      try {
+        docRes = await fetch(`/api/notebooks/${notebookId}/documents`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
+        });
+      } catch (err) {
+        console.error('[mage-upload] documents POST request failed', err);
+        const message = err instanceof Error ? err.message : 'Network error';
+        setUploadError(`Document save failed: ${message}`);
+        return;
+      }
+
+      if (!docRes.ok) {
+        const body = await docRes.text().catch(() => '');
+        console.error('[mage-upload] documents POST non-OK', docRes.status, body);
+        setUploadError(`Document save failed (HTTP ${docRes.status})`);
+        return;
+      }
+
+      const json = await docRes.json().catch((err) => {
+        console.error('[mage-upload] documents POST JSON parse failed', err);
+        return null;
+      });
+
+      if (!json || !json.success || !json.data?.id) {
+        console.error('[mage-upload] documents POST returned error payload', json);
+        setUploadError(json?.error ?? 'Upload failed. Please try again.');
+        return;
+      }
+
+      await fetchDocs();
+      const newDocIds = new Set([...selectedDocIds, json.data.id]);
+      setSelectedDocIds(newDocIds);
+
+      try {
         await fetch(`/api/notebooks/${notebookId}/chats/${chatId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contextDocIds: [...newDocIds] }),
         });
-        // Update local chat state to reflect the new context
         setChat((prev) => (prev ? { ...prev, contextDocIds: [...newDocIds] } : prev));
-      } else {
-        setUploadError(json.error ?? 'Upload failed. Please try again.');
+      } catch (err) {
+        console.warn('[mage-upload] chat context PATCH failed', err);
+        setUploadError('Document uploaded but failed to attach to chat — try Update Context.');
       }
-    } catch {
-      setUploadError('Network error. Please try again.');
     } finally {
       setIsUploading(false);
     }
