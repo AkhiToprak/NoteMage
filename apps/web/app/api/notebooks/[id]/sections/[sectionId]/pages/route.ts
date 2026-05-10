@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import {
   createdResponse,
@@ -47,8 +46,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
     });
 
-    // Award XP and check achievements (fire-and-forget)
-    awardXP(userId, 'page_created').catch(console.error);
     checkAndUnlockAchievements(userId).catch(console.error);
 
     return createdResponse(page);

@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 
 function toDateString(date: Date): string {
@@ -66,16 +65,6 @@ export async function updateStreak(userId: string) {
     },
   });
 
-  // Award XP for streak milestones (fire-and-forget)
-  if (newCurrentStreak === 7) {
-    awardXP(userId, 'streak_milestone_7').catch(console.error);
-  }
-  if (newCurrentStreak === 30) {
-    awardXP(userId, 'streak_milestone_30').catch(console.error);
-  }
-  if (newCurrentStreak === 100) {
-    awardXP(userId, 'streak_milestone_100').catch(console.error);
-  }
   if ([7, 30, 100].includes(newCurrentStreak)) {
     checkAndUnlockAchievements(userId).catch(console.error);
   }

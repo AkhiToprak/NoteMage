@@ -1,21 +1,17 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { getLevelFromXP } from '@/lib/xp';
 import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
 
 /**
  * GET /api/user/cosmetics
  *
- * Returns the authenticated user's unlocked cosmetics plus the level data the
- * profile customization UI needs to render locked states.
- *
- * The catalog itself lives in code (`src/lib/cosmetics/catalog.ts`) and is
- * imported directly on the client — we only round-trip the user-specific bits.
+ * Returns the authenticated user's unlocked cosmetics. The catalog itself
+ * lives in code (`src/lib/cosmetics/catalog.ts`) and is imported directly on
+ * the client — we only round-trip the user-specific bits.
  *
  * Shape:
  * {
- *   level: number,       // computed from total XP
  *   owned: string[],     // cosmetic slugs the user has in UserCosmetic
  *   unlockedAt: Record<string, string>, // slug -> ISO timestamp of unlock,
  *                                       // used by the UI to show a NEW badge
@@ -29,14 +25,6 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { xp: true },
-    });
-    if (!user) return unauthorizedResponse();
-
-    const { level } = getLevelFromXP(user.xp);
-
     const owned = await db.userCosmetic.findMany({
       where: { userId },
       select: { cosmeticId: true, unlockedAt: true },
@@ -49,7 +37,6 @@ export async function GET(request: NextRequest) {
     }
 
     return successResponse({
-      level,
       owned: owned.map((row) => row.cosmeticId),
       unlockedAt,
     });

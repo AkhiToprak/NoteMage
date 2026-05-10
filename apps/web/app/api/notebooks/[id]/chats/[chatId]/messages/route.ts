@@ -13,7 +13,6 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { checkTokenBudget } from '@/lib/token-budget';
@@ -70,8 +69,6 @@ export async function POST(request: NextRequest, { params }: Params) {
     const token = await getToken({ req: request });
     const mageName = getMageName(token?.scholarName as string | undefined);
 
-    // Award XP and check achievements (fire-and-forget)
-    awardXP(userId, 'message_sent').catch(console.error);
     checkAndUnlockAchievements(userId).catch(console.error);
 
     // Per-IP request rate limit: 20 requests per minute

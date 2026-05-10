@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import {
   successResponse,
@@ -30,9 +29,6 @@ export async function POST(request: NextRequest) {
     if (current.completedAt) {
       return successResponse({
         tutorialState: current,
-        xpAwarded: 0,
-        leveledUp: false,
-        newLevel: undefined,
         achievements: [] as { badge: string; name: string }[],
         alreadyComplete: true,
       });
@@ -50,15 +46,10 @@ export async function POST(request: NextRequest) {
       data: { tutorialState: next as unknown as Prisma.InputJsonValue },
     });
 
-    const xpResult = await awardXP(userId, 'tutorial_complete');
     const newAchievements = await checkAndUnlockAchievements(userId);
 
     return successResponse({
       tutorialState: next,
-      xpAwarded: 50,
-      newXP: xpResult.newXP,
-      newLevel: xpResult.newLevel,
-      leveledUp: xpResult.leveledUp,
       achievements: newAchievements,
       alreadyComplete: false,
     });

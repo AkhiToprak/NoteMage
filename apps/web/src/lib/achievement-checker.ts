@@ -66,11 +66,10 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       select: { id: true },
     }),
 
-    // User record for level, usernameChanged, scholarName, tutorial state
+    // User record for usernameChanged, scholarName, tutorial state
     db.user.findUnique({
       where: { id: userId },
       select: {
-        level: true,
         usernameChanged: true,
         scholarName: true,
         tutorialState: true,
@@ -175,7 +174,6 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     groupCount,
     hasAllWrongQuiz: !!allWrongAttempt,
     hasPerfectFirstTry,
-    userLevel: userRecord?.level ?? 1,
     usernameChanged: userRecord?.usernameChanged ?? false,
     examCount,
     folderCount,

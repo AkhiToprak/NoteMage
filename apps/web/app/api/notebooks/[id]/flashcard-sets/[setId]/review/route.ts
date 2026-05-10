@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { sm2 } from '@/lib/spaced-repetition';
-import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import {
   successResponse,
@@ -53,8 +52,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
     });
 
-    // Award XP and check achievements (fire-and-forget)
-    awardXP(userId, 'flashcard_reviewed').catch(console.error);
     checkAndUnlockAchievements(userId).catch(console.error);
 
     return successResponse(updated);

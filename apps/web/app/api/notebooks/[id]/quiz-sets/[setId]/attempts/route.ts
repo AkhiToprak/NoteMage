@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { awardXP } from '@/lib/xp';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import {
   successResponse,
@@ -78,11 +77,6 @@ export async function POST(
       include: { answers: true },
     });
 
-    // Award XP and check achievements (fire-and-forget)
-    awardXP(userId, 'quiz_completed').catch(console.error);
-    if (percentage === 100) {
-      awardXP(userId, 'quiz_perfect_score').catch(console.error);
-    }
     checkAndUnlockAchievements(userId).catch(console.error);
 
     return createdResponse(attempt);

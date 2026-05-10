@@ -454,22 +454,6 @@ export function getCosmeticsByType<T extends CosmeticType>(
   );
 }
 
-/**
- * Returns every catalog entry the user is eligible for at the given level,
- * regardless of whether they've already unlocked it. Used by the unlock
- * checker to diff against existing UserCosmetic rows.
- *
- * `adminOnly` entries are intentionally filtered out here — they can only
- * be granted via the admin user-management tools, never by leveling up.
- * Without this filter, a single level-up would auto-unlock every admin-only
- * cosmetic for every user in the app.
- */
-export function eligibleCosmeticIds(level: number): string[] {
-  return Object.values(COSMETICS)
-    .filter((c) => !c.adminOnly && c.requiredLevel <= level)
-    .map((c) => c.id);
-}
-
 /** Shortcut used by admin UIs that want to list every grant-only entry. */
 export function adminOnlyCosmetics(): Cosmetic[] {
   return Object.values(COSMETICS).filter((c) => c.adminOnly === true);

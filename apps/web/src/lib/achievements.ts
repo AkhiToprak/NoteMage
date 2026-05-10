@@ -6,7 +6,6 @@ export interface UserStats {
   groupCount: number;
   hasAllWrongQuiz: boolean;
   hasPerfectFirstTry: boolean;
-  userLevel: number;
   usernameChanged: boolean;
   examCount: number;
   folderCount: number;
@@ -65,16 +64,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     checkCondition: (s) => s.hasPerfectFirstTry,
     getProgress: (s) => ({ current: s.hasPerfectFirstTry ? 1 : 0, target: 1 }),
     unlocks: ['frame.glow-emerald'],
-  },
-  {
-    badge: 'first_level_up',
-    name: 'levels to this game',
-    description: 'Level up once',
-    icon: 'upgrade',
-    category: 'study',
-    checkCondition: (s) => s.userLevel >= 2,
-    getProgress: (s) => ({ current: Math.min(s.userLevel - 1, 1), target: 1 }),
-    unlocks: [],
   },
   {
     badge: 'first_exam',
@@ -281,8 +270,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: 'auto_awesome',
     category: 'special',
     // Bump when adding a non-meta achievement.
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 23,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 23), target: 23 }),
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 22,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 22), target: 22 }),
     unlocks: [
       'title.archmage',
       'font.unifraktur',
