@@ -18,6 +18,20 @@ enum Tier {
   PRO
 }
 
+// Question kinds for QuizQuestion.kind — added in Phase 1 (Question Engine v2).
+// Schema mirrors packages/shared/src/quiz.ts QUESTION_KINDS exactly.
+// Phase 1 ships only `mc` end-to-end; Phase 2A/2B agents wire the rest.
+enum QuestionKind {
+  mc
+  true_false
+  fill_blank
+  word_bank
+  match_pairs
+  sentence_reorder
+  equation
+  translation
+}
+
 // ============================================================================
 // USER MODELS
 // ============================================================================
@@ -368,11 +382,18 @@ model QuizSet {
 }
 
 model QuizQuestion {
-  id                 String   @id @default(cuid())
+  id                 String       @id @default(cuid())
   quizSetId          String
+  // Phase 1: `kind` discriminates the question type; existing MC rows backfill
+  // to 'mc' via the migration default. `payload` carries kind-specific data
+  // for new (non-MC) questions; MC rows stay on the legacy `options` +
+  // `correctIndex` columns until the Phase 7 backfill ports them and drops
+  // the legacy columns.
+  kind               QuestionKind @default(mc)
+  payload            Json?
   question           String
-  options            String[] // Array of 4 answer choices
-  correctIndex       Int      // 0-based index of the correct answer
+  options            String[] // Array of 4 answer choices (legacy MC; see kind/payload above)
+  correctIndex       Int      // 0-based index of the correct answer (legacy MC)
   hint               String?  // Optional hint text
   correctExplanation String?  @db.Text // Shown when answer is correct
   wrongExplanation   String?  @db.Text // Shown when answer is wrong
