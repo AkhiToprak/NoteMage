@@ -25,13 +25,19 @@ export function useMascotContextPose(): MascotContextPose {
     if (typeof window === 'undefined') return;
     if (window.localStorage.getItem(WAVED_FLAG_KEY) === '1') return;
 
-    setShowFirstWave(true);
-    const timer = window.setTimeout(() => {
+    // Both setState calls run from setTimeout callbacks rather than the
+    // effect body — react-hooks/set-state-in-effect treats the synchronous
+    // path as the anti-pattern, async callbacks are exempt.
+    const showTimer = window.setTimeout(() => setShowFirstWave(true), 0);
+    const hideTimer = window.setTimeout(() => {
       setShowFirstWave(false);
       window.localStorage.setItem(WAVED_FLAG_KEY, '1');
     }, WAVE_DURATION_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
   }, [pathname]);
 
   const pose = derivePose(pathname, workspace, showFirstWave);

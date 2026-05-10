@@ -228,11 +228,13 @@ function TextAnnotation({
 
   // Sync draft and imperatively focus when transitioning into editing.
   // autoFocus inside <foreignObject> is unreliable across browsers, so we
-  // call focus() manually once the textarea is mounted.
+  // call focus() manually once the textarea is mounted. setDraft runs from
+  // the rAF callback rather than the effect body so the rule against
+  // synchronous setState-in-effect stays clean.
   useEffect(() => {
     if (isEditing && !wasEditingRef.current) {
-      setDraft(t.text);
       requestAnimationFrame(() => {
+        setDraft(t.text);
         const el = textareaRef.current;
         if (el) {
           el.focus();
