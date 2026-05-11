@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
+import { getMageName } from '@/lib/scholar';
 
 // Phase 8 — single entry point for turning a notebook into a Learn Path.
 // File selection is a shared step at the top: the user picks (or unchecks)
@@ -88,6 +90,8 @@ export default function LearnNotebookSetup({
   onClose,
 }: LearnNotebookSetupProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const mageName = getMageName(session?.user?.scholarName);
   const [tab, setTab] = useState<TabType>('ai');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -446,7 +450,7 @@ export default function LearnNotebookSetup({
             }}
           >
             {([
-              ['ai', 'AI auto-build', 'auto_fix_high'],
+              ['ai', mageName, 'auto_fix_high'],
               ['manual', 'Manual phases', 'tune'],
             ] as const).map(([id, label, icon]) => (
               <button
@@ -486,6 +490,7 @@ export default function LearnNotebookSetup({
               onGoalsChange={setAiGoals}
               selectedCount={selectedCount}
               allSelected={allSelected}
+              mageName={mageName}
             />
           ) : (
             <ManualTab
@@ -819,6 +824,7 @@ function AiTab({
   onGoalsChange,
   selectedCount,
   allSelected,
+  mageName,
 }: {
   durationDays: number;
   onDurationChange: (n: number) => void;
@@ -826,6 +832,7 @@ function AiTab({
   onGoalsChange: (g: string) => void;
   selectedCount: number;
   allSelected: boolean;
+  mageName: string;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -837,7 +844,7 @@ function AiTab({
           lineHeight: 1.5,
         }}
       >
-        NoteMage will build a Duolingo-style path from{' '}
+        {mageName} will build a Duolingo-style path from{' '}
         <strong style={{ color: 'var(--on-surface)' }}>
           {allSelected
             ? 'every note in this notebook'
