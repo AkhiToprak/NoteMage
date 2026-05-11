@@ -149,7 +149,7 @@ export default function UrlImportDialog({
               cursor: 'pointer',
               padding: '4px',
               borderRadius: '6px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -160,7 +160,7 @@ export default function UrlImportDialog({
               e.currentTarget.style.background = 'rgba(140,82,255,0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+              e.currentTarget.style.color = 'var(--ink-50)';
               e.currentTarget.style.background = 'none';
             }}
             aria-label="Close"
@@ -208,7 +208,7 @@ export default function UrlImportDialog({
               style={{
                 margin: 0,
                 fontSize: '13px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                color: 'var(--ink-50)',
                 textAlign: 'center',
                 lineHeight: '1.5',
               }}
@@ -312,7 +312,7 @@ export default function UrlImportDialog({
                 style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                  color: 'var(--ink-70)',
                 }}
               >
                 Fetching and extracting content...
@@ -385,7 +385,7 @@ export default function UrlImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+              color: 'var(--ink-70)',
               cursor: 'pointer',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
@@ -395,7 +395,7 @@ export default function UrlImportDialog({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.08)';
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.7)';
+              e.currentTarget.style.color = 'var(--ink-70)';
             }}
           >
             Cancel
@@ -414,7 +414,7 @@ export default function UrlImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: isDisabled ? 'rgb(var(--notebook-ink-rgb) / 0.3)' : 'var(--on-surface)',
+              color: isDisabled ? 'var(--ink-30)' : 'var(--on-surface)',
               cursor: isDisabled ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s ease',
             }}

@@ -181,7 +181,7 @@ export default function GenerateDropdown({
           borderRadius: '6px',
           border: 'none',
           background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: open ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: open ? '#a47bff' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -192,14 +192,14 @@ export default function GenerateDropdown({
         }}
         onMouseEnter={(e) => {
           if (!open && !disabled && !loading) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!open && !disabled && !loading) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
@@ -259,10 +259,7 @@ export default function GenerateDropdown({
                     border: 'none',
                     borderRadius: '6px',
                     background: 'transparent',
-                    color:
-                      loading && !isThisLoading
-                        ? 'rgb(var(--notebook-ink-rgb) / 0.3)'
-                        : 'var(--on-surface)',
+                    color: loading && !isThisLoading ? 'var(--ink-30)' : 'var(--on-surface)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     cursor: loading ? 'not-allowed' : 'pointer',
@@ -324,7 +321,7 @@ export default function GenerateDropdown({
                     border: 'none',
                     borderRadius: '6px',
                     background: 'transparent',
-                    color: loading ? 'rgb(var(--notebook-ink-rgb) / 0.3)' : 'var(--on-surface)',
+                    color: loading ? 'var(--ink-30)' : 'var(--on-surface)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     cursor: loading ? 'not-allowed' : 'pointer',

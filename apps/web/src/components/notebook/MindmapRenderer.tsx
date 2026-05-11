@@ -169,10 +169,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
       text.setAttribute('y', String(node.y));
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('dominant-baseline', 'central');
-      text.setAttribute(
-        'fill',
-        isRoot ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.85)'
-      );
+      text.setAttribute('fill', isRoot ? 'var(--on-surface)' : 'var(--ink-80)');
       text.setAttribute('font-size', String(fontSize));
       text.setAttribute('font-weight', isRoot ? '700' : '500');
       text.setAttribute('font-family', "'DM Sans', sans-serif");
@@ -349,7 +346,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
     const maxC = isRoot ? 22 : Math.floor(rx/3.5);
     const txt = n.name.length > maxC ? n.name.slice(0,maxC-1)+'\\u2026' : n.name;
     const t = el('text', { x:n.x, y:n.y, 'text-anchor':'middle', 'dominant-baseline':'central',
-      fill: isRoot?'var(--on-surface)':'rgb(var(--notebook-ink-rgb) / 0.85)', 'font-size':fs, 'font-weight':isRoot?'700':'500',
+      fill: isRoot?'var(--on-surface)':'var(--ink-80)', 'font-size':fs, 'font-weight':isRoot?'700':'500',
       'font-family': "'Segoe UI',system-ui,sans-serif" });
     t.textContent = txt;
     if (n.name.length > maxC) { const ti = el('title',{}); ti.textContent = n.name; t.appendChild(ti); }
@@ -457,7 +454,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+              color: 'var(--ink-30)',
               fontSize: '13px',
               fontFamily: 'inherit',
             }}
@@ -503,7 +500,7 @@ function ToolbarButton({
         borderRadius: '6px',
         border: '1px solid rgba(81,112,255,0.15)',
         background: hovered ? 'rgba(81,112,255,0.12)' : 'transparent',
-        color: hovered ? '#93a8ff' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+        color: hovered ? '#93a8ff' : 'var(--ink-40)',
         cursor: 'pointer',
         transition: 'background 0.12s, color 0.12s',
       }}

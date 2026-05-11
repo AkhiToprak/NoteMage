@@ -550,7 +550,7 @@ export default function FlashcardViewer({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+          color: 'var(--ink-40)',
           fontFamily: 'inherit',
         }}
       >
@@ -616,7 +616,7 @@ export default function FlashcardViewer({
             <p
               style={{
                 fontSize: '14px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                color: 'var(--ink-50)',
                 margin: '0 0 24px',
               }}
             >
@@ -757,7 +757,7 @@ export default function FlashcardViewer({
                   borderRadius: '12px',
                   background: 'transparent',
                   border: '1px solid rgba(140,82,255,0.2)',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
+                  color: 'var(--ink-60)',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -808,7 +808,7 @@ export default function FlashcardViewer({
               borderRadius: '8px',
               border: '1px solid rgba(140,82,255,0.2)',
               background: 'transparent',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               fontSize: '12px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -825,7 +825,7 @@ export default function FlashcardViewer({
               display: 'flex',
               justifyContent: 'space-between',
               fontSize: '11px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               marginBottom: '6px',
             }}
           >
@@ -898,7 +898,7 @@ export default function FlashcardViewer({
             <div
               style={{
                 fontSize: '10px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                color: 'var(--ink-30)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em',
                 marginBottom: '16px',
@@ -1027,13 +1027,13 @@ export default function FlashcardViewer({
           border: '1px solid rgba(174,137,255,0.22)',
           background: 'rgba(174,137,255,0.06)',
           fontSize: '12px',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.55)',
+          color: 'var(--ink-50)',
           fontVariantNumeric: 'tabular-nums',
           letterSpacing: '0.04em',
         }}
       >
         <span style={{ color: '#d6c2ff', fontWeight: 700 }}>{currentIndex + 1}</span>
-        <span style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>/</span>
+        <span style={{ color: 'var(--ink-30)' }}>/</span>
         <span>{cards.length}</span>
       </div>
 
@@ -1067,7 +1067,7 @@ export default function FlashcardViewer({
             <label
               style={{
                 fontSize: '11px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}
@@ -1093,7 +1093,7 @@ export default function FlashcardViewer({
             <label
               style={{
                 fontSize: '11px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}
@@ -1131,7 +1131,7 @@ export default function FlashcardViewer({
                     <label
                       style={{
                         fontSize: '11px',
-                        color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                        color: 'var(--ink-40)',
                         textTransform: 'uppercase',
                         letterSpacing: '0.08em',
                       }}
@@ -1153,7 +1153,7 @@ export default function FlashcardViewer({
                         borderRadius: '6px',
                         border: '1px solid rgba(140,82,255,0.2)',
                         background: 'rgba(140,82,255,0.08)',
-                        color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                        color: 'var(--ink-50)',
                         fontSize: '11px',
                         cursor: 'pointer',
                         fontFamily: 'inherit',
@@ -1219,7 +1219,7 @@ export default function FlashcardViewer({
                     <div
                       style={{
                         fontSize: '11px',
-                        color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
+                        color: 'var(--ink-20)',
                         padding: '4px 0',
                       }}
                     >
@@ -1253,9 +1253,9 @@ export default function FlashcardViewer({
                   gap: '4px',
                   padding: '8px 14px',
                   borderRadius: '8px',
-                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+                  border: '1px solid var(--ink-12)',
                   background: 'transparent',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                  color: 'var(--ink-50)',
                   fontSize: '13px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
@@ -1560,7 +1560,7 @@ export default function FlashcardViewer({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: 'var(--ink-40)',
                   cursor: 'pointer',
                   padding: '4px',
                   display: 'flex',
@@ -1585,7 +1585,7 @@ export default function FlashcardViewer({
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '40px 0',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    color: 'var(--ink-30)',
                   }}
                 >
                   <Loader2 size={20} className="animate-spin" />
@@ -1596,7 +1596,7 @@ export default function FlashcardViewer({
                     padding: '32px 16px',
                     textAlign: 'center',
                     fontSize: '13px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    color: 'var(--ink-30)',
                   }}
                 >
                   No sections in this notebook yet.
@@ -1637,7 +1637,7 @@ export default function FlashcardViewer({
           <label
             style={{
               fontSize: '11px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -1664,7 +1664,7 @@ export default function FlashcardViewer({
           <label
             style={{
               fontSize: '11px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -1698,9 +1698,9 @@ export default function FlashcardViewer({
               style={{
                 padding: '7px 12px',
                 borderRadius: '8px',
-                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+                border: '1px solid var(--ink-12)',
                 background: 'transparent',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                color: 'var(--ink-50)',
                 fontSize: '12px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -1784,7 +1784,7 @@ function SectionPickerNode({
               border: 'none',
               padding: '0',
               cursor: 'pointer',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+              color: 'var(--ink-30)',
               display: 'flex',
             }}
           >
@@ -1865,7 +1865,7 @@ function NavButton({
           : hovered
             ? 'rgba(140,82,255,0.18)'
             : 'rgba(140,82,255,0.10)',
-        color: disabled ? 'rgb(var(--notebook-ink-rgb) / 0.22)' : hovered ? '#ede4ff' : '#d6c2ff',
+        color: disabled ? 'var(--ink-20)' : hovered ? '#ede4ff' : '#d6c2ff',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
       }}
@@ -1911,7 +1911,7 @@ function SmallButton({
             : 'rgba(252,165,165,0.6)'
           : hovered
             ? '#c4a9ff'
-            : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+            : 'var(--ink-40)',
         fontSize: '12px',
         cursor: 'pointer',
         fontFamily: 'inherit',
@@ -1972,7 +1972,7 @@ function DropdownButton({
             : hovered
               ? 'rgba(140,82,255,0.1)'
               : 'transparent',
-          color: open || hovered ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+          color: open || hovered ? '#c4a9ff' : 'var(--ink-40)',
           fontSize: '12px',
           cursor: 'pointer',
           fontFamily: 'inherit',
@@ -2056,7 +2056,7 @@ function DropdownItem({
             : 'rgba(252,165,165,0.6)'
           : hovered
             ? '#c4a9ff'
-            : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+            : 'var(--ink-50)',
         fontSize: '12px',
         cursor: 'pointer',
         fontFamily: 'inherit',

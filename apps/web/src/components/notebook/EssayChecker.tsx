@@ -165,7 +165,7 @@ export default function EssayChecker({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
@@ -279,7 +279,7 @@ export default function EssayChecker({
                 size={28}
                 style={{ color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
               />
-              <span style={{ fontSize: '13px', color: 'rgb(var(--notebook-ink-rgb) / 0.4)' }}>
+              <span style={{ fontSize: '13px', color: 'var(--ink-40)' }}>
                 Analyzing your text...
               </span>
             </div>
@@ -296,8 +296,8 @@ export default function EssayChecker({
                   gap: '16px',
                   padding: '16px',
                   borderRadius: '12px',
-                  background: 'rgb(var(--notebook-ink-rgb) / 0.03)',
-                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                  background: 'var(--ink-04)',
+                  border: '1px solid var(--ink-12)',
                   marginBottom: '16px',
                 }}
               >
@@ -336,7 +336,7 @@ export default function EssayChecker({
                   <div
                     style={{
                       fontSize: '13px',
-                      color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                      color: 'var(--ink-50)',
                       lineHeight: 1.5,
                     }}
                   >
@@ -357,9 +357,9 @@ export default function EssayChecker({
                       borderRadius: '6px',
                       border: !filterType
                         ? '1px solid rgba(140,82,255,0.4)'
-                        : '1px solid rgb(var(--notebook-ink-rgb) / 0.06)',
+                        : '1px solid var(--ink-08)',
                       background: !filterType ? 'rgba(140,82,255,0.15)' : 'transparent',
-                      color: !filterType ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                      color: !filterType ? '#c4a9ff' : 'var(--ink-40)',
                       fontSize: '11px',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -377,12 +377,9 @@ export default function EssayChecker({
                         style={{
                           padding: '4px 10px',
                           borderRadius: '6px',
-                          border: `1px solid ${filterType === type ? colors.border : 'rgb(var(--notebook-ink-rgb) / 0.06)'}`,
+                          border: `1px solid ${filterType === type ? colors.border : 'var(--ink-08)'}`,
                           background: filterType === type ? colors.bg : 'transparent',
-                          color:
-                            filterType === type
-                              ? colors.text
-                              : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                          color: filterType === type ? colors.text : 'var(--ink-40)',
                           fontSize: '11px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -469,7 +466,7 @@ export default function EssayChecker({
                           <div
                             style={{
                               fontSize: '13px',
-                              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                              color: 'var(--ink-50)',
                               textDecoration: 'line-through',
                               marginBottom: '4px',
                             }}
@@ -492,7 +489,7 @@ export default function EssayChecker({
                         <div
                           style={{
                             fontSize: '12px',
-                            color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                            color: 'var(--ink-40)',
                             lineHeight: 1.5,
                           }}
                         >

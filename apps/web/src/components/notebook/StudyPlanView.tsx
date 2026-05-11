@@ -266,7 +266,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
             style={{
               width: '100%',
               fontSize: '14px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
+              color: 'var(--ink-60)',
               background: 'rgba(140,82,255,0.06)',
               border: '1px solid rgba(140,82,255,0.2)',
               borderRadius: '8px',
@@ -285,9 +285,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
             }}
             style={{
               fontSize: '14px',
-              color: plan.description
-                ? 'rgb(var(--notebook-ink-rgb) / 0.5)'
-                : 'rgb(var(--notebook-ink-rgb) / 0.2)',
+              color: plan.description ? 'var(--ink-50)' : 'var(--ink-20)',
               margin: '0 0 4px',
               lineHeight: 1.6,
               cursor: 'pointer',

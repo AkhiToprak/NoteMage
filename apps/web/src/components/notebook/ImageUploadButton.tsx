@@ -89,7 +89,7 @@ export default function ImageUploadButton({
           borderRadius: '8px',
           border: 'none',
           background: 'transparent',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -100,13 +100,13 @@ export default function ImageUploadButton({
         }}
         onMouseEnter={(e) => {
           if (!isUploading) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.8)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+          e.currentTarget.style.color = 'var(--ink-50)';
         }}
       >
         {isUploading ? (

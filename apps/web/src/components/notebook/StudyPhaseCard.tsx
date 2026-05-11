@@ -334,7 +334,7 @@ export default function StudyPhaseCard({
               <p
                 style={{
                   fontSize: '12.5px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
+                  color: 'var(--ink-40)',
                   margin: '0 0 12px',
                   lineHeight: 1.5,
                 }}
@@ -371,7 +371,7 @@ export default function StudyPhaseCard({
               <p
                 style={{
                   fontSize: '12px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
+                  color: 'var(--ink-20)',
                   margin: '8px 0',
                 }}
               >
@@ -421,9 +421,7 @@ export default function StudyPhaseCard({
                       <span
                         style={{
                           fontSize: '13px',
-                          color: mat.completed
-                            ? 'rgb(var(--notebook-ink-rgb) / 0.3)'
-                            : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                          color: mat.completed ? 'var(--ink-30)' : 'var(--ink-70)',
                           textDecoration: mat.completed ? 'line-through' : 'none',
                           flex: 1,
                           overflow: 'hidden',

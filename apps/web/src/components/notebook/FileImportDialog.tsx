@@ -183,7 +183,7 @@ export default function FileImportDialog({
               cursor: 'pointer',
               padding: '4px',
               borderRadius: '6px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -194,7 +194,7 @@ export default function FileImportDialog({
               e.currentTarget.style.background = 'rgba(140,82,255,0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+              e.currentTarget.style.color = 'var(--ink-50)';
               e.currentTarget.style.background = 'none';
             }}
             aria-label="Close"
@@ -262,7 +262,7 @@ export default function FileImportDialog({
                   style={{
                     margin: 0,
                     fontSize: '12px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                    color: 'var(--ink-40)',
                   }}
                 >
                   PDF, DOCX, PPTX, XLSX, TXT, MD — max 10MB
@@ -329,7 +329,7 @@ export default function FileImportDialog({
                   style={{
                     margin: 0,
                     fontSize: '12px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                    color: 'var(--ink-40)',
                   }}
                 >
                   Click to try again
@@ -357,7 +357,7 @@ export default function FileImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+              color: 'var(--ink-70)',
               cursor: 'pointer',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
@@ -367,7 +367,7 @@ export default function FileImportDialog({
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.08)';
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.7)';
+              e.currentTarget.style.color = 'var(--ink-70)';
             }}
           >
             Cancel

@@ -186,7 +186,7 @@ export default function CreateChatModal({
           borderRadius: isPhone ? 0 : '20px',
           boxShadow: isPhone
             ? 'none'
-            : '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgb(var(--notebook-ink-rgb) / 0.07) inset',
+            : '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px var(--ink-08) inset',
           fontFamily: 'inherit',
           overflow: isPhone ? 'auto' : 'hidden',
           margin: isPhone ? 0 : undefined,
@@ -248,8 +248,8 @@ export default function CreateChatModal({
               height: '28px',
               borderRadius: '8px',
               border: 'none',
-              background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              background: 'var(--ink-08)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -258,15 +258,12 @@ export default function CreateChatModal({
               transition: 'background 0.12s, color 0.12s',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                'rgb(var(--notebook-ink-rgb) / 0.1)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-12)';
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                'rgb(var(--notebook-ink-rgb) / 0.07)';
-              (e.currentTarget as HTMLButtonElement).style.color =
-                'rgb(var(--notebook-ink-rgb) / 0.4)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-08)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-40)';
             }}
           >
             <X size={14} />
@@ -305,7 +302,7 @@ export default function CreateChatModal({
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
-                background: 'rgb(var(--notebook-ink-rgb) / 0.06)',
+                background: 'var(--ink-08)',
                 border: '1px solid rgba(140,82,255,0.2)',
                 borderRadius: '10px',
                 padding: '10px 14px',
@@ -370,10 +367,10 @@ export default function CreateChatModal({
                 display: 'flex',
                 gap: '4px',
                 marginBottom: '12px',
-                background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
+                background: 'var(--ink-08)',
                 borderRadius: '10px',
                 padding: '4px',
-                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
+                border: '1px solid var(--ink-12)',
               }}
             >
               {(['notebook', 'upload'] as const).map((tab) => (
@@ -408,9 +405,9 @@ export default function CreateChatModal({
             {activeTab === 'notebook' ? (
               <div
                 style={{
-                  background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
+                  background: 'var(--ink-04)',
                   borderRadius: '10px',
-                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                  border: '1px solid var(--ink-12)',
                   maxHeight: '200px',
                   overflowY: 'auto',
                 }}
@@ -447,9 +444,7 @@ export default function CreateChatModal({
                   style={{
                     borderRadius: '10px',
                     border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
-                    background: isDragging
-                      ? 'rgba(140,82,255,0.05)'
-                      : 'rgb(var(--notebook-ink-rgb) / 0.035)',
+                    background: isDragging ? 'rgba(140,82,255,0.05)' : 'var(--ink-04)',
                     padding: '20px',
                     display: 'flex',
                     alignItems: 'center',
@@ -526,9 +521,9 @@ export default function CreateChatModal({
                 {documents.length > 0 && (
                   <div
                     style={{
-                      background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
+                      background: 'var(--ink-04)',
                       borderRadius: '10px',
-                      border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                      border: '1px solid var(--ink-12)',
                       maxHeight: '140px',
                       overflowY: 'auto',
                     }}
@@ -582,7 +577,7 @@ export default function CreateChatModal({
                           <span
                             style={{
                               fontSize: '12px',
-                              color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                              color: 'var(--ink-70)',
                               flex: 1,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -627,7 +622,7 @@ export default function CreateChatModal({
               style={{
                 padding: '10px 20px',
                 borderRadius: '10px',
-                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+                border: '1px solid var(--ink-08)',
                 background: 'transparent',
                 color: 'rgba(185,195,255,0.5)',
                 fontSize: '13px',
@@ -637,8 +632,7 @@ export default function CreateChatModal({
                 transition: 'background 0.12s, color 0.12s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  'rgb(var(--notebook-ink-rgb) / 0.07)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-08)';
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
               }}
               onMouseLeave={(e) => {
@@ -727,7 +721,7 @@ function SectionPickerItem({
           gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+          borderBottom: '1px solid var(--ink-12)',
         }}
       >
         <span style={{ color: 'rgba(185,195,255,0.6)', display: 'flex' }}>
@@ -768,13 +762,12 @@ function SectionPickerItem({
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
+                  borderBottom: '1px solid var(--ink-12)',
                   transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => {
                   if (!isSelected)
-                    (e.currentTarget as HTMLDivElement).style.background =
-                      'rgb(var(--notebook-ink-rgb) / 0.07)';
+                    (e.currentTarget as HTMLDivElement).style.background = 'var(--ink-08)';
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected)
@@ -800,7 +793,7 @@ function SectionPickerItem({
                 <span
                   style={{
                     fontSize: '12px',
-                    color: isSelected ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.6)',
+                    color: isSelected ? 'var(--on-surface)' : 'var(--ink-60)',
                     flex: 1,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',

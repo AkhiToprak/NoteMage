@@ -104,7 +104,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
               borderRadius: 7,
               background: 'color-mix(in srgb, var(--surface-container) 90%, transparent)',
               border: '1px solid rgba(140,82,255,0.15)',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -112,11 +112,11 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
               transition: 'color 0.15s, background 0.15s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.9)';
+              e.currentTarget.style.color = 'var(--ink-80)';
               e.currentTarget.style.background = 'rgba(140,82,255,0.18)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+              e.currentTarget.style.color = 'var(--ink-50)';
               e.currentTarget.style.background =
                 'color-mix(in srgb, var(--surface-container) 90%, transparent)';
             }}

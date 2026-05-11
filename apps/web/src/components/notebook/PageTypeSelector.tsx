@@ -50,7 +50,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
           style={{
             fontFamily: 'inherit',
             fontSize: '13px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+            color: 'var(--ink-40)',
             marginBottom: '20px',
             textAlign: 'center',
           }}
@@ -108,7 +108,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               <div
                 style={{
                   fontSize: '11px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: 'var(--ink-40)',
                   lineHeight: 1.5,
                 }}
               >
@@ -164,7 +164,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               <div
                 style={{
                   fontSize: '11px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: 'var(--ink-40)',
                   lineHeight: 1.5,
                 }}
               >
@@ -185,17 +185,17 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             borderRadius: '8px',
             border: 'none',
             background: 'transparent',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+            color: 'var(--ink-30)',
             fontFamily: 'inherit',
             fontSize: '12px',
             cursor: 'pointer',
             transition: 'color 0.15s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.6)';
+            e.currentTarget.style.color = 'var(--ink-60)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.35)';
+            e.currentTarget.style.color = 'var(--ink-30)';
           }}
         >
           Cancel

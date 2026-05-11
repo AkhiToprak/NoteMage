@@ -133,7 +133,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
             borderRadius: 8,
             border: `1.5px solid ${hovered ? 'rgba(174,137,255,0.4)' : 'rgba(140,82,255,0.2)'}`,
             background: hovered ? 'rgba(174,137,255,0.1)' : 'transparent',
-            color: hovered ? '#ae89ff' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
+            color: hovered ? '#ae89ff' : 'var(--ink-50)',
             fontSize: 12,
             fontWeight: 600,
             cursor: actionLoading ? 'wait' : 'pointer',

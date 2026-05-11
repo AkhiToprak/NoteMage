@@ -56,21 +56,21 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '2px',
-            background: 'rgb(var(--notebook-ink-rgb) / 0.06)',
-            border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+            background: 'var(--ink-08)',
+            border: '1px solid var(--ink-12)',
             borderRadius: '6px',
             padding: '3px 6px',
             cursor: 'pointer',
             fontSize: '16px',
             lineHeight: 1,
             transition: 'background 0.15s',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
+            color: 'var(--ink-60)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.1)';
+            e.currentTarget.style.background = 'var(--ink-12)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+            e.currentTarget.style.background = 'var(--ink-08)';
           }}
           title="Change callout type"
         >
@@ -118,7 +118,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                     borderRadius: '6px',
                     border: 'none',
                     background: calloutType === t ? 'rgba(140,82,255,0.18)' : 'transparent',
-                    color: calloutType === t ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                    color: calloutType === t ? '#a47bff' : 'var(--ink-70)',
                     fontFamily: 'inherit',
                     fontSize: '13px',
                     cursor: 'pointer',
@@ -126,7 +126,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                     transition: 'background 0.1s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                    e.currentTarget.style.background = 'var(--ink-08)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background =

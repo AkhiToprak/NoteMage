@@ -278,7 +278,7 @@ export default function FlashcardImportDialog({
 
   const labelStyle: React.CSSProperties = {
     fontSize: '11px',
-    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+    color: 'var(--ink-40)',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
     display: 'block',
@@ -291,7 +291,7 @@ export default function FlashcardImportDialog({
     borderRadius: '6px',
     border: isActive ? '1px solid rgba(140,82,255,0.5)' : '1px solid rgba(140,82,255,0.15)',
     background: isActive ? 'rgba(140,82,255,0.15)' : 'rgba(140,82,255,0.04)',
-    color: isActive ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+    color: isActive ? '#c4a9ff' : 'var(--ink-50)',
     fontSize: '11px',
     fontWeight: 600,
     fontFamily: 'inherit',
@@ -366,7 +366,7 @@ export default function FlashcardImportDialog({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
@@ -375,7 +375,7 @@ export default function FlashcardImportDialog({
               e.currentTarget.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
+              e.currentTarget.style.color = 'var(--ink-40)';
             }}
           >
             <X size={16} />
@@ -407,7 +407,7 @@ export default function FlashcardImportDialog({
                   border: 'none',
                   borderBottom: isActive ? '2px solid #8c52ff' : '2px solid transparent',
                   background: isActive ? 'rgba(140,82,255,0.06)' : 'transparent',
-                  color: isActive ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: isActive ? '#c4a9ff' : 'var(--ink-40)',
                   fontSize: '12px',
                   fontWeight: 600,
                   fontFamily: 'inherit',
@@ -415,10 +415,10 @@ export default function FlashcardImportDialog({
                   transition: 'color 0.15s ease, background 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.6)';
+                  if (!isActive) e.currentTarget.style.color = 'var(--ink-60)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
+                  if (!isActive) e.currentTarget.style.color = 'var(--ink-40)';
                 }}
               >
                 <Icon size={14} />
@@ -513,7 +513,7 @@ export default function FlashcardImportDialog({
                         style={{
                           margin: 0,
                           fontSize: '11px',
-                          color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+                          color: 'var(--ink-30)',
                         }}
                       >
                         {activeTab === 'anki' ? '.apkg files' : '.csv, .xlsx, .xls files'} — max
@@ -579,7 +579,7 @@ export default function FlashcardImportDialog({
                         style={{
                           margin: 0,
                           fontSize: '11px',
-                          color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+                          color: 'var(--ink-30)',
                         }}
                       >
                         Click to try again
@@ -707,8 +707,7 @@ export default function FlashcardImportDialog({
                   style={{
                     margin: 0,
                     fontSize: '12px',
-                    color:
-                      parsedCards.length > 0 ? '#4ade80' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                    color: parsedCards.length > 0 ? '#4ade80' : 'var(--ink-40)',
                     fontWeight: 600,
                   }}
                 >
@@ -744,9 +743,7 @@ export default function FlashcardImportDialog({
                       }}
                     >
                       <span style={{ flex: 1, opacity: 0.8 }}>{truncate(card.question, 40)}</span>
-                      <span style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}>
-                        →
-                      </span>
+                      <span style={{ color: 'var(--ink-30)', flexShrink: 0 }}>→</span>
                       <span style={{ flex: 1, opacity: 0.6 }}>{truncate(card.answer, 40)}</span>
                     </div>
                   ))}
@@ -755,7 +752,7 @@ export default function FlashcardImportDialog({
                       style={{
                         padding: '6px 12px',
                         fontSize: '11px',
-                        color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+                        color: 'var(--ink-30)',
                       }}
                     >
                       ...and {parsedCards.length - 5} more
@@ -789,9 +786,9 @@ export default function FlashcardImportDialog({
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+              border: '1px solid var(--ink-12)',
               background: 'transparent',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               fontSize: '13px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -818,7 +815,7 @@ export default function FlashcardImportDialog({
                 color:
                   parsedCards.length > 0 && pasteTitle.trim() && !pasteSubmitting
                     ? 'var(--on-surface)'
-                    : 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    : 'var(--ink-30)',
                 fontSize: '13px',
                 cursor:
                   parsedCards.length > 0 && pasteTitle.trim() && !pasteSubmitting

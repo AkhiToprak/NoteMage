@@ -638,9 +638,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                       : '70%',
                 padding: isPhone ? '10px 12px' : '12px 16px',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: msg.role === 'user' ? '#8c52ff' : 'rgb(var(--notebook-ink-rgb) / 0.07)',
-                border:
-                  msg.role === 'user' ? 'none' : '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+                background: msg.role === 'user' ? '#8c52ff' : 'var(--ink-08)',
+                border: msg.role === 'user' ? 'none' : '1px solid var(--ink-08)',
                 color: 'var(--on-surface)',
                 fontSize: '14px',
                 lineHeight: 1.65,
@@ -685,8 +684,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   maxWidth: isPhone ? '88%' : '70%',
                   padding: isPhone ? '10px 12px' : '12px 16px',
                   borderRadius: '16px 16px 16px 4px',
-                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
-                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.16)',
+                  background: 'var(--ink-08)',
+                  border: '1px solid var(--ink-12)',
                   color: 'var(--on-surface)',
                   fontSize: '14px',
                   lineHeight: 1.65,
@@ -699,8 +698,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 style={{
                   padding: '12px 16px',
                   borderRadius: '16px 16px 16px 4px',
-                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
-                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.16)',
+                  background: 'var(--ink-08)',
+                  border: '1px solid var(--ink-12)',
                   display: 'flex',
                   gap: '4px',
                   alignItems: 'center',
@@ -791,7 +790,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             display: 'flex',
             gap: '10px',
             alignItems: 'flex-end',
-            background: 'rgb(var(--notebook-ink-rgb) / 0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(140,82,255,0.15)',
             borderRadius: '14px',
             padding: '12px 14px',
@@ -863,9 +862,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 border: 'none',
                 flexShrink: 0,
                 background: inputValue.trim() ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                color: inputValue.trim()
-                  ? 'var(--on-surface)'
-                  : 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                color: inputValue.trim() ? 'var(--on-surface)' : 'var(--ink-30)',
                 cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
@@ -943,8 +940,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   height: '26px',
                   borderRadius: '7px',
                   border: 'none',
-                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  background: 'var(--ink-08)',
+                  color: 'var(--ink-40)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -952,15 +949,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   transition: 'background 0.12s, color 0.12s',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgb(var(--notebook-ink-rgb) / 0.1)';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-12)';
                   (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgb(var(--notebook-ink-rgb) / 0.07)';
-                  (e.currentTarget as HTMLButtonElement).style.color =
-                    'rgb(var(--notebook-ink-rgb) / 0.4)';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-08)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-40)';
                 }}
               >
                 <X size={13} />
@@ -999,10 +993,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 style={{
                   display: 'flex',
                   gap: '4px',
-                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
+                  background: 'var(--ink-08)',
                   borderRadius: '10px',
                   padding: '4px',
-                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
+                  border: '1px solid var(--ink-12)',
                 }}
               >
                 {(['notebook', 'upload'] as const).map((tab) => (
@@ -1049,9 +1043,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   style={{
                     flex: 1,
                     overflowY: 'auto',
-                    background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
+                    background: 'var(--ink-04)',
                     borderRadius: '10px',
-                    border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                    border: '1px solid var(--ink-12)',
                   }}
                 >
                   {sectionTree.length === 0 ? (
@@ -1106,9 +1100,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                     style={{
                       borderRadius: '10px',
                       border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
-                      background: isDragging
-                        ? 'rgba(140,82,255,0.05)'
-                        : 'rgb(var(--notebook-ink-rgb) / 0.035)',
+                      background: isDragging ? 'rgba(140,82,255,0.05)' : 'var(--ink-04)',
                       padding: '18px',
                       display: 'flex',
                       alignItems: 'center',
@@ -1178,9 +1170,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                       style={{
                         flex: 1,
                         overflowY: 'auto',
-                        background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
+                        background: 'var(--ink-04)',
                         borderRadius: '10px',
-                        border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                        border: '1px solid var(--ink-12)',
                       }}
                     >
                       <div
@@ -1215,7 +1207,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                               padding: '9px 12px',
                               cursor: 'pointer',
                               background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                              borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                              borderTop: '1px solid var(--ink-12)',
                               transition: 'background 0.1s',
                             }}
                           >
@@ -1240,7 +1232,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                             <span
                               style={{
                                 fontSize: '13px',
-                                color: 'rgb(var(--notebook-ink-rgb) / 0.85)',
+                                color: 'var(--ink-80)',
                                 flex: 1,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -1338,7 +1330,7 @@ function PanelSectionItem({
           gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+          borderBottom: '1px solid var(--ink-12)',
         }}
       >
         <span style={{ color: 'rgba(200,210,255,0.7)', display: 'flex' }}>
@@ -1378,7 +1370,7 @@ function PanelSectionItem({
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
+                  borderBottom: '1px solid var(--ink-12)',
                   transition: 'background 0.1s',
                 }}
               >
@@ -1401,7 +1393,7 @@ function PanelSectionItem({
                 <span
                   style={{
                     fontSize: '13px',
-                    color: isSelected ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.75)',
+                    color: isSelected ? '#f0edff' : 'var(--ink-70)',
                     flex: 1,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -1514,7 +1506,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
       <div
         style={{
           fontSize: '12px',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
+          color: 'var(--ink-40)',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
@@ -1581,7 +1573,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
             <div
               style={{
                 fontSize: '11px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
+                color: 'var(--ink-40)',
                 marginTop: '4px',
               }}
             >

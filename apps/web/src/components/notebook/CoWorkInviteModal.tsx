@@ -278,7 +278,7 @@ export default function CoWorkInviteModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered && !isSent
-                        ? 'rgb(var(--notebook-ink-rgb) / 0.07)'
+                        ? 'var(--ink-08)'
                         : 'transparent',
                     transition: `background 0.12s ${EASING}`,
                     marginBottom: 2,

@@ -383,7 +383,7 @@ export default function StudyPlanCreator({
                 <p
                   style={{
                     fontSize: '12.5px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                    color: 'var(--ink-50)',
                     margin: 0,
                     lineHeight: 1.6,
                   }}

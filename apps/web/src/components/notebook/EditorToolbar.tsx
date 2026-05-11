@@ -258,7 +258,7 @@ function ToolbarButton({
         borderRadius: '6px',
         border: 'none',
         background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-        color: isActive ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+        color: isActive ? '#a47bff' : 'var(--ink-50)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -269,14 +269,14 @@ function ToolbarButton({
       }}
       onMouseEnter={(e) => {
         if (!disabled && !isActive) {
-          e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-          e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+          e.currentTarget.style.background = 'var(--ink-08)';
+          e.currentTarget.style.color = 'var(--ink-80)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
           e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+          e.currentTarget.style.color = 'var(--ink-50)';
         }
       }}
     >
@@ -292,7 +292,7 @@ function Sep() {
       style={{
         width: '1px',
         height: '18px',
-        background: 'rgb(var(--notebook-ink-rgb) / 0.08)',
+        background: 'var(--ink-08)',
         margin: '0 2px',
         flexShrink: 0,
       }}
@@ -340,7 +340,7 @@ function ColorPicker({
           borderRadius: '6px',
           border: 'none',
           background: !!activeColor ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: !!activeColor ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: !!activeColor ? '#a47bff' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -350,14 +350,14 @@ function ColorPicker({
         }}
         onMouseEnter={(e) => {
           if (!activeColor) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!activeColor) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
@@ -395,10 +395,7 @@ function ColorPicker({
                 height: '24px',
                 borderRadius: '6px',
                 background: c,
-                border:
-                  activeColor === c
-                    ? '2px solid #a47bff'
-                    : '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                border: activeColor === c ? '2px solid #a47bff' : '1px solid var(--ink-12)',
                 cursor: 'pointer',
                 transition: 'transform 0.1s',
               }}
@@ -421,12 +418,12 @@ function ColorPicker({
               gridColumn: '1 / -1',
               height: '22px',
               borderRadius: '6px',
-              background: 'rgb(var(--notebook-ink-rgb) / 0.05)',
-              border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+              background: 'var(--ink-04)',
+              border: '1px solid var(--ink-12)',
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: '10px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               marginTop: '2px',
             }}
           >
@@ -493,9 +490,9 @@ function FontFamilySelect({
           height: '28px',
           padding: '0 8px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
-          background: open ? 'rgba(140,82,255,0.12)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+          border: '1px solid var(--ink-12)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'var(--ink-04)',
+          color: 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -546,7 +543,7 @@ function FontFamilySelect({
                 borderRadius: '6px',
                 border: 'none',
                 background: current === f.label ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: current === f.label ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: current === f.label ? '#a47bff' : 'var(--ink-70)',
                 fontFamily: f.value || 'inherit',
                 fontSize: '13px',
                 cursor: 'pointer',
@@ -554,7 +551,7 @@ function FontFamilySelect({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -622,9 +619,9 @@ function FontSizeControl({
           height: '28px',
           padding: '0 7px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
-          background: open ? 'rgba(140,82,255,0.12)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+          border: '1px solid var(--ink-12)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'var(--ink-04)',
+          color: 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -675,7 +672,7 @@ function FontSizeControl({
                 borderRadius: '5px',
                 border: 'none',
                 background: currentSize === s ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: currentSize === s ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: currentSize === s ? '#a47bff' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -683,7 +680,7 @@ function FontSizeControl({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -741,14 +738,14 @@ function InlineScaleDropdown({
           height: '28px',
           padding: '0 7px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+          border: '1px solid var(--ink-12)',
           background:
             activeLevel !== null
               ? 'rgba(140,82,255,0.22)'
               : open
                 ? 'rgba(140,82,255,0.12)'
-                : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: activeLevel !== null ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                : 'var(--ink-04)',
+          color: activeLevel !== null ? '#a47bff' : 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -757,12 +754,12 @@ function InlineScaleDropdown({
         }}
         onMouseEnter={(e) => {
           if (activeLevel === null && !open) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
+            e.currentTarget.style.background = 'var(--ink-08)';
           }
         }}
         onMouseLeave={(e) => {
           if (activeLevel === null && !open) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.04)';
+            e.currentTarget.style.background = 'var(--ink-04)';
           }
         }}
       >
@@ -803,7 +800,7 @@ function InlineScaleDropdown({
                 borderRadius: '5px',
                 border: 'none',
                 background: activeLevel === level ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: activeLevel === level ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: activeLevel === level ? '#a47bff' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '13px',
                 fontWeight: level <= 2 ? 700 : 600,
@@ -812,7 +809,7 @@ function InlineScaleDropdown({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -838,17 +835,17 @@ function InlineScaleDropdown({
               borderRadius: '5px',
               border: 'none',
               background: 'transparent',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               fontFamily: 'inherit',
               fontSize: '11px',
               cursor: 'pointer',
               textAlign: 'left',
               marginTop: '2px',
-              borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.06)',
+              borderTop: '1px solid var(--ink-08)',
               paddingTop: '6px',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+              e.currentTarget.style.background = 'var(--ink-08)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -893,7 +890,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
           borderRadius: '6px',
           border: 'none',
           background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: isActive ? '#a47bff' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -903,14 +900,14 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
         }}
         onMouseEnter={(e) => {
           if (!isActive) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!isActive) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
@@ -950,7 +947,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                   borderRadius: '6px',
                   border: 'none',
                   background: 'transparent',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                  color: 'var(--ink-70)',
                   fontFamily: 'inherit',
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -958,7 +955,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                   transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                  e.currentTarget.style.background = 'var(--ink-08)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
@@ -997,17 +994,17 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                 borderRadius: '5px',
                 border: 'none',
                 background: 'transparent',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 fontFamily: 'inherit',
                 fontSize: '11px',
                 cursor: 'pointer',
                 textAlign: 'left',
                 marginTop: '2px',
-                borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.06)',
+                borderTop: '1px solid var(--ink-08)',
                 paddingTop: '6px',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
@@ -1054,7 +1051,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
           borderRadius: '6px',
           border: 'none',
           background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: isActive ? '#a47bff' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1064,14 +1061,14 @@ function TableGridPicker({ editor }: { editor: Editor }) {
         }}
         onMouseEnter={(e) => {
           if (!isActive) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!isActive) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
@@ -1131,7 +1128,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
               textAlign: 'center',
               marginTop: '4px',
               fontSize: '11px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               fontFamily: 'inherit',
             }}
           >
@@ -1231,9 +1228,9 @@ function LineStylePicker({
           height: '28px',
           padding: '0 8px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
-          background: open ? 'rgba(140,82,255,0.12)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+          border: '1px solid var(--ink-12)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'var(--ink-04)',
+          color: 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '11px',
           cursor: 'pointer',
@@ -1247,7 +1244,7 @@ function LineStylePicker({
             y1="6"
             x2="26"
             y2="6"
-            stroke="rgb(var(--notebook-ink-rgb) / 0.7)"
+            stroke="var(--ink-70)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeDasharray={current.dasharray ?? 'none'}
@@ -1287,7 +1284,7 @@ function LineStylePicker({
                 borderRadius: '6px',
                 border: 'none',
                 background: value === ls.value ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: value === ls.value ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: value === ls.value ? '#a47bff' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -1295,7 +1292,7 @@ function LineStylePicker({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -1308,7 +1305,7 @@ function LineStylePicker({
                   y1="5"
                   x2="30"
                   y2="5"
-                  stroke={value === ls.value ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.6)'}
+                  stroke={value === ls.value ? '#a47bff' : 'var(--ink-60)'}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeDasharray={ls.dasharray ?? 'none'}
@@ -1365,7 +1362,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
           borderRadius: 6,
           border: 'none',
           background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: open ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: open ? '#a47bff' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1498,7 +1495,7 @@ export default function EditorToolbar({
         className={isPhone ? 'editor-toolbar-row' : undefined}
         style={{
           ...responsiveRowStyle,
-          borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+          borderBottom: '1px solid var(--ink-08)',
           gap: '4px',
         }}
       >
@@ -1757,7 +1754,7 @@ export default function EditorToolbar({
           className={isPhone ? 'editor-toolbar-row' : undefined}
           style={{
             ...responsiveRowStyle,
-            borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+            borderTop: '1px solid var(--ink-08)',
             gap: '6px',
           }}
         >

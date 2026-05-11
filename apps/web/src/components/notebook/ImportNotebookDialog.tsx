@@ -368,7 +368,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           <p
             style={{
               fontSize: '12.5px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
+              color: 'var(--ink-40)',
               margin: 0,
               lineHeight: 1.5,
               maxWidth: '320px',
@@ -452,7 +452,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           <p
             style={{
               fontSize: '12.5px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               margin: 0,
               lineHeight: 1.6,
             }}
@@ -562,7 +562,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
       {/* Notebook tree */}
       {notebooks.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px 0' }}>
-          <p style={{ fontSize: '13px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--ink-30)', margin: 0 }}>
             No OneNote notebooks found in your Microsoft account.
           </p>
         </div>
@@ -652,9 +652,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                         <span
                           style={{
                             fontSize: '12.5px',
-                            color: isSelected
-                              ? 'var(--on-surface)'
-                              : 'rgb(var(--notebook-ink-rgb) / 0.55)',
+                            color: isSelected ? 'var(--on-surface)' : 'var(--ink-50)',
                           }}
                         >
                           {section.displayName}
@@ -799,7 +797,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
           <p
             style={{
               fontSize: '11.5px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               margin: '2px 0 0',
             }}
           >
@@ -820,7 +818,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
         <p
           style={{
             fontSize: '12.5px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+            color: 'var(--ink-50)',
             margin: '0 0 4px',
             lineHeight: 1.5,
           }}
@@ -933,7 +931,7 @@ function AppleNotesTab() {
           <p
             style={{
               fontSize: '11.5px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               margin: '2px 0 0',
             }}
           >
@@ -954,7 +952,7 @@ function AppleNotesTab() {
         <p
           style={{
             fontSize: '12.5px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+            color: 'var(--ink-50)',
             margin: '0 0 4px',
             lineHeight: 1.5,
           }}
@@ -1131,7 +1129,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           <p
             style={{
               fontSize: '11.5px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               margin: '2px 0 0',
             }}
           >
@@ -1152,7 +1150,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
         <p
           style={{
             fontSize: '12.5px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+            color: 'var(--ink-50)',
             margin: 0,
             lineHeight: 1.5,
           }}
@@ -1234,7 +1232,7 @@ function CenteredMessage({ text, loading }: { text: string; loading?: boolean })
         justifyContent: 'center',
         gap: '10px',
         padding: '48px 0',
-        color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+        color: 'var(--ink-40)',
         fontSize: '13px',
       }}
     >
@@ -1272,7 +1270,7 @@ function InstructionSteps({ steps }: { steps: string[] }) {
           <p
             style={{
               fontSize: '12.5px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.55)',
+              color: 'var(--ink-50)',
               margin: 0,
               lineHeight: 1.5,
               paddingTop: '2px',

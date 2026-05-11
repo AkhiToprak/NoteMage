@@ -110,7 +110,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
           background: isActive
             ? 'rgba(140,82,255,0.12)'
             : hovered
-              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
+              ? 'var(--ink-04)'
               : 'transparent',
           borderLeft: `3px solid ${isActive ? color : hovered ? color + '80' : color + '50'}`,
           transition: 'background 0.12s ease, border-color 0.12s ease',
@@ -126,7 +126,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
           style={{
             display: 'flex',
             flexShrink: 0,
-            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+            color: 'var(--ink-30)',
             marginLeft: '-4px',
             width: '14px',
           }}
@@ -151,7 +151,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
             fontFamily: 'inherit',
             fontSize: depth === 0 ? '13px' : '12px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.65)',
+            color: isActive ? 'var(--on-surface)' : 'var(--ink-60)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -178,7 +178,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -186,8 +186,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 (e.currentTarget as HTMLButtonElement).style.color = '#a47bff';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  'rgb(var(--notebook-ink-rgb) / 0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
               <FolderPlus size={11} />
@@ -206,7 +205,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -214,8 +213,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  'rgb(var(--notebook-ink-rgb) / 0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
               <Trash2 size={11} />
@@ -238,10 +236,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
             borderLeft: '3px solid rgba(140,82,255,0.4)',
           }}
         >
-          <FolderPlus
-            size={11}
-            style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
-          />
+          <FolderPlus size={11} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
           <input
             ref={childInputRef}
             type="text"

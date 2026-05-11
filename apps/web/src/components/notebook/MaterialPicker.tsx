@@ -235,7 +235,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               style={{
                 textAlign: 'center',
                 padding: '40px 0',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                color: 'var(--ink-30)',
                 fontSize: '13px',
               }}
             >
@@ -246,7 +246,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               style={{
                 textAlign: 'center',
                 padding: '40px 0',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
+                color: 'var(--ink-20)',
                 fontSize: '13px',
               }}
             >
@@ -293,7 +293,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                   <span
                     style={{
                       fontSize: '13px',
-                      color: isChecked ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.6)',
+                      color: isChecked ? 'var(--on-surface)' : 'var(--ink-60)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',

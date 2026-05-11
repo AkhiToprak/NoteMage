@@ -130,7 +130,7 @@ export default function FlashcardSetCreator({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
@@ -156,7 +156,7 @@ export default function FlashcardSetCreator({
             <label
               style={{
                 fontSize: '11px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 display: 'block',
@@ -209,7 +209,7 @@ export default function FlashcardSetCreator({
                 <span
                   style={{
                     fontSize: '11px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    color: 'var(--ink-30)',
                     fontWeight: 600,
                   }}
                 >
@@ -340,9 +340,9 @@ export default function FlashcardSetCreator({
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+              border: '1px solid var(--ink-12)',
               background: 'transparent',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               fontSize: '13px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -361,7 +361,7 @@ export default function FlashcardSetCreator({
               borderRadius: '8px',
               border: 'none',
               background: canSubmit ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-              color: canSubmit ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
+              color: canSubmit ? 'var(--on-surface)' : 'var(--ink-30)',
               fontSize: '13px',
               cursor: canSubmit ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',

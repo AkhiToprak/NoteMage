@@ -159,7 +159,7 @@ export default function PagePanel() {
               <p
                 style={{
                   fontSize: '12px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
+                  color: 'var(--ink-20)',
                   margin: 0,
                   lineHeight: 1.5,
                 }}
@@ -263,7 +263,7 @@ export default function PagePanel() {
               style={{
                 fontSize: '12px',
                 fontWeight: 600,
-                color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: 'var(--ink-70)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 overflow: 'hidden',
@@ -275,9 +275,7 @@ export default function PagePanel() {
             </span>
           </div>
         ) : (
-          <span style={{ fontSize: '12px', color: 'rgb(var(--notebook-ink-rgb) / 0.25)' }}>
-            Select a section
-          </span>
+          <span style={{ fontSize: '12px', color: 'var(--ink-20)' }}>Select a section</span>
         )}
       </div>
 
@@ -288,7 +286,7 @@ export default function PagePanel() {
             <p
               style={{
                 fontSize: '12px',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
+                color: 'var(--ink-20)',
                 margin: 0,
                 lineHeight: 1.5,
               }}
@@ -326,10 +324,7 @@ export default function PagePanel() {
               borderLeft: `2px solid ${accentColor}60`,
             }}
           >
-            <FilePlus
-              size={12}
-              style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
-            />
+            <FilePlus size={12} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
             <input
               ref={inputRef}
               type="text"
@@ -379,9 +374,7 @@ export default function PagePanel() {
             borderRadius: '5px',
             border: '1px solid rgba(140,82,255,0.1)',
             background: 'transparent',
-            color: activeSectionId
-              ? 'rgb(var(--notebook-ink-rgb) / 0.35)'
-              : 'rgb(var(--notebook-ink-rgb) / 0.15)',
+            color: activeSectionId ? 'var(--ink-30)' : 'var(--ink-12)',
             fontFamily: 'inherit',
             fontSize: '11px',
             fontWeight: 500,
@@ -391,15 +384,14 @@ export default function PagePanel() {
           onMouseEnter={(e) => {
             if (activeSectionId) {
               (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.07)';
-              (e.currentTarget as HTMLButtonElement).style.color =
-                'rgb(var(--notebook-ink-rgb) / 0.6)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-60)';
             }
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
             (e.currentTarget as HTMLButtonElement).style.color = activeSectionId
-              ? 'rgb(var(--notebook-ink-rgb) / 0.35)'
-              : 'rgb(var(--notebook-ink-rgb) / 0.15)';
+              ? 'var(--ink-30)'
+              : 'var(--ink-12)';
           }}
         >
           <Plus size={12} />
@@ -438,11 +430,7 @@ function ChatRow({
           alignItems: 'center',
           gap: '8px',
           padding: '7px 14px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
-              : 'transparent',
+          background: isActive ? `${accentColor}18` : hovered ? 'var(--ink-04)' : 'transparent',
           borderLeft: isActive ? `2px solid ${accentColor}` : '2px solid transparent',
           transition: 'background 0.1s ease',
           cursor: 'pointer',
@@ -451,7 +439,7 @@ function ChatRow({
         <MessageSquare
           size={13}
           style={{
-            color: isActive ? accentColor : 'rgb(var(--notebook-ink-rgb) / 0.25)',
+            color: isActive ? accentColor : 'var(--ink-20)',
             flexShrink: 0,
           }}
         />
@@ -462,7 +450,7 @@ function ChatRow({
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.6)',
+            color: isActive ? 'var(--on-surface)' : 'var(--ink-60)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -484,7 +472,7 @@ function ChatRow({
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+              color: 'var(--ink-30)',
               padding: 0,
               flexShrink: 0,
             }}
@@ -492,8 +480,7 @@ function ChatRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color =
-                'rgb(var(--notebook-ink-rgb) / 0.3)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
             <Trash2 size={11} />
@@ -536,11 +523,7 @@ function PageRow({
           alignItems: 'center',
           gap: '8px',
           padding: '7px 14px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
-              : 'transparent',
+          background: isActive ? `${accentColor}18` : hovered ? 'var(--ink-04)' : 'transparent',
           borderLeft: isActive ? `2px solid ${accentColor}` : '2px solid transparent',
           transition: 'background 0.1s ease',
           cursor: 'pointer',
@@ -549,7 +532,7 @@ function PageRow({
         <FileText
           size={13}
           style={{
-            color: isActive ? accentColor : 'rgb(var(--notebook-ink-rgb) / 0.25)',
+            color: isActive ? accentColor : 'var(--ink-20)',
             flexShrink: 0,
           }}
         />
@@ -560,7 +543,7 @@ function PageRow({
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.6)',
+            color: isActive ? 'var(--on-surface)' : 'var(--ink-60)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -582,7 +565,7 @@ function PageRow({
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+              color: 'var(--ink-30)',
               padding: 0,
               flexShrink: 0,
             }}
@@ -590,8 +573,7 @@ function PageRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color =
-                'rgb(var(--notebook-ink-rgb) / 0.3)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
             <Trash2 size={11} />

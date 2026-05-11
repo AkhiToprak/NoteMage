@@ -361,7 +361,7 @@ export default function InlineAIToolbar({
     borderRadius: 999,
     padding: isPhone ? '8px' : '6px',
     boxShadow:
-      '0 16px 48px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(255, 222, 89, 0.2), inset 0 1px 0 rgb(var(--notebook-ink-rgb) / 0.06)',
+      '0 16px 48px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(255, 222, 89, 0.2), inset 0 1px 0 var(--ink-08)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     display: 'flex',

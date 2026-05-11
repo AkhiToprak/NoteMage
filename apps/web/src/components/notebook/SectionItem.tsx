@@ -116,7 +116,7 @@ export default function SectionItem({
         <ChevronRight
           size={14}
           style={{
-            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+            color: 'var(--ink-30)',
             flexShrink: 0,
             transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
             transition: 'transform 0.12s ease',
@@ -127,7 +127,7 @@ export default function SectionItem({
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: 600,
-            color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+            color: 'var(--ink-70)',
             flex: 1,
             minWidth: 0,
             overflow: 'hidden',
@@ -165,7 +165,7 @@ export default function SectionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 padding: 0,
                 transition: 'color 0.12s ease',
               }}
@@ -173,7 +173,7 @@ export default function SectionItem({
                 e.currentTarget.style.color = '#8c52ff';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
+                e.currentTarget.style.color = 'var(--ink-40)';
               }}
             >
               <Plus size={14} />
@@ -195,7 +195,7 @@ export default function SectionItem({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: 'var(--ink-40)',
                   padding: 0,
                   transition: 'color 0.12s ease',
                 }}
@@ -203,7 +203,7 @@ export default function SectionItem({
                   e.currentTarget.style.color = '#5170ff';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
+                  e.currentTarget.style.color = 'var(--ink-40)';
                 }}
               >
                 <FileUp size={12} />
@@ -310,7 +310,7 @@ export default function SectionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 padding: 0,
                 transition: 'color 0.12s ease',
               }}
@@ -318,7 +318,7 @@ export default function SectionItem({
                 e.currentTarget.style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
+                e.currentTarget.style.color = 'var(--ink-40)';
               }}
             >
               <Trash2 size={12} />
@@ -361,7 +361,7 @@ export default function SectionItem({
                 padding: '4px 10px 4px 38px',
               }}
             >
-              <TextFileIcon size={14} color="rgb(var(--notebook-ink-rgb) / 0.3)" />
+              <TextFileIcon size={14} color="var(--ink-30)" />
               <input
                 ref={pageInputRef}
                 type="text"
@@ -474,7 +474,7 @@ function FlashcardSetItem({
         style={{
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: hovered ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
+          color: hovered ? '#c4a9ff' : 'var(--ink-50)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -525,7 +525,7 @@ function QuizSetItem({
         style={{
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: hovered ? '#93a8ff' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
+          color: hovered ? '#93a8ff' : 'var(--ink-50)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',

@@ -429,7 +429,7 @@ export default function QuizViewer({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+          color: 'var(--ink-40)',
           fontFamily: 'inherit',
         }}
       >
@@ -469,7 +469,7 @@ export default function QuizViewer({
         <p
           style={{
             fontSize: '14px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+            color: 'var(--ink-40)',
             margin: '0 0 32px',
           }}
         >
@@ -505,9 +505,7 @@ export default function QuizViewer({
           >
             {accuracy}%
           </span>
-          <span style={{ fontSize: '12px', color: 'rgb(var(--notebook-ink-rgb) / 0.4)' }}>
-            accuracy
-          </span>
+          <span style={{ fontSize: '12px', color: 'var(--ink-40)' }}>accuracy</span>
         </div>
 
         {/* Stats grid */}
@@ -528,14 +526,14 @@ export default function QuizViewer({
             {
               label: 'Skipped',
               value: `${skippedCount}`,
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
             },
           ].map((stat) => (
             <div
               key={stat.label}
               style={{
-                background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
-                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                background: 'var(--ink-08)',
+                border: '1px solid var(--ink-12)',
                 borderRadius: '12px',
                 padding: '14px 8px',
                 textAlign: 'center',
@@ -547,7 +545,7 @@ export default function QuizViewer({
               <div
                 style={{
                   fontSize: '11px',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+                  color: 'var(--ink-30)',
                   marginTop: '2px',
                 }}
               >
@@ -565,7 +563,7 @@ export default function QuizViewer({
               alignItems: 'center',
               gap: '6px',
               fontSize: '13px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               marginBottom: '16px',
             }}
           >
@@ -590,7 +588,7 @@ export default function QuizViewer({
             }}
           >
             <TrendingUp size={14} style={{ color: '#c4a9ff' }} />
-            <span style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.6)' }}>
+            <span style={{ color: 'var(--ink-60)' }}>
               Previous best: <strong style={{ color: '#c4a9ff' }}>{bestScore}%</strong>
               {' · '}
               Attempts: <strong style={{ color: '#c4a9ff' }}>{attemptHistory.length}</strong>
@@ -667,7 +665,7 @@ export default function QuizViewer({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                    color: 'var(--ink-40)',
                     cursor: 'pointer',
                     padding: '4px',
                     display: 'flex',
@@ -683,7 +681,7 @@ export default function QuizViewer({
                       padding: '32px 16px',
                       textAlign: 'center',
                       fontSize: '13px',
-                      color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                      color: 'var(--ink-30)',
                     }}
                   >
                     No attempts yet.
@@ -699,11 +697,8 @@ export default function QuizViewer({
                           gap: '12px',
                           padding: '12px 14px',
                           borderRadius: '10px',
-                          background:
-                            i === 0
-                              ? 'rgba(140,82,255,0.08)'
-                              : 'rgb(var(--notebook-ink-rgb) / 0.03)',
-                          border: `1px solid ${i === 0 ? 'rgba(140,82,255,0.2)' : 'rgb(var(--notebook-ink-rgb) / 0.06)'}`,
+                          background: i === 0 ? 'rgba(140,82,255,0.08)' : 'var(--ink-04)',
+                          border: `1px solid ${i === 0 ? 'rgba(140,82,255,0.2)' : 'var(--ink-08)'}`,
                         }}
                       >
                         <div
@@ -759,7 +754,7 @@ export default function QuizViewer({
                           <div
                             style={{
                               fontSize: '11px',
-                              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                              color: 'var(--ink-30)',
                               marginTop: '2px',
                             }}
                           >
@@ -864,13 +859,13 @@ export default function QuizViewer({
           border: '1px solid rgba(174,137,255,0.22)',
           background: 'rgba(174,137,255,0.06)',
           fontSize: '12px',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.55)',
+          color: 'var(--ink-50)',
           fontVariantNumeric: 'tabular-nums',
           letterSpacing: '0.04em',
         }}
       >
         <span style={{ color: '#d6c2ff', fontWeight: 700 }}>{currentIndex + 1}</span>
-        <span style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>/</span>
+        <span style={{ color: 'var(--ink-30)' }}>/</span>
         <span>{questions.length}</span>
       </div>
 
@@ -1144,7 +1139,7 @@ export default function QuizViewer({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: 'var(--ink-40)',
                   cursor: 'pointer',
                   padding: '4px',
                   display: 'flex',
@@ -1161,7 +1156,7 @@ export default function QuizViewer({
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '40px 0',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    color: 'var(--ink-30)',
                   }}
                 >
                   <Loader2 size={20} className="animate-spin" />
@@ -1172,7 +1167,7 @@ export default function QuizViewer({
                     padding: '32px 16px',
                     textAlign: 'center',
                     fontSize: '13px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    color: 'var(--ink-30)',
                   }}
                 >
                   No sections in this notebook yet.
@@ -1261,7 +1256,7 @@ export default function QuizViewer({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  color: 'var(--ink-40)',
                   cursor: 'pointer',
                   padding: '4px',
                   display: 'flex',
@@ -1277,7 +1272,7 @@ export default function QuizViewer({
                     padding: '32px 16px',
                     textAlign: 'center',
                     fontSize: '13px',
-                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                    color: 'var(--ink-30)',
                   }}
                 >
                   No attempts yet.
@@ -1293,9 +1288,8 @@ export default function QuizViewer({
                         gap: '12px',
                         padding: '12px 14px',
                         borderRadius: '10px',
-                        background:
-                          i === 0 ? 'rgba(140,82,255,0.08)' : 'rgb(var(--notebook-ink-rgb) / 0.03)',
-                        border: `1px solid ${i === 0 ? 'rgba(140,82,255,0.2)' : 'rgb(var(--notebook-ink-rgb) / 0.06)'}`,
+                        background: i === 0 ? 'rgba(140,82,255,0.08)' : 'var(--ink-04)',
+                        border: `1px solid ${i === 0 ? 'rgba(140,82,255,0.2)' : 'var(--ink-08)'}`,
                       }}
                     >
                       <div
@@ -1345,7 +1339,7 @@ export default function QuizViewer({
                         <div
                           style={{
                             fontSize: '11px',
-                            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                            color: 'var(--ink-30)',
                             marginTop: '2px',
                           }}
                         >
@@ -1373,7 +1367,7 @@ export default function QuizViewer({
 // ── Shared styles ──
 const labelStyle: React.CSSProperties = {
   fontSize: '11px',
-  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+  color: 'var(--ink-40)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
 };
@@ -1401,9 +1395,9 @@ const cancelBtnStyle: React.CSSProperties = {
   gap: '4px',
   padding: '8px 14px',
   borderRadius: '8px',
-  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+  border: '1px solid var(--ink-12)',
   background: 'transparent',
-  color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+  color: 'var(--ink-50)',
   fontSize: '13px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -1478,7 +1472,7 @@ function SectionPickerNode({
               border: 'none',
               padding: '0',
               cursor: 'pointer',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+              color: 'var(--ink-30)',
               display: 'flex',
             }}
           >
@@ -1567,7 +1561,7 @@ function NavButton({
         color: highlight
           ? 'var(--on-surface)'
           : disabled
-            ? 'rgb(var(--notebook-ink-rgb) / 0.22)'
+            ? 'var(--ink-20)'
             : hovered
               ? '#ede4ff'
               : '#d6c2ff',
@@ -1615,7 +1609,7 @@ function SmallButton({
             : 'rgba(252,165,165,0.6)'
           : hovered
             ? '#c4a9ff'
-            : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+            : 'var(--ink-40)',
         fontSize: '12px',
         cursor: 'pointer',
         fontFamily: 'inherit',

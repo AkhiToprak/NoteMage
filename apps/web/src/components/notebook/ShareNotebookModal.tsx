@@ -974,7 +974,7 @@ export default function ShareNotebookModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered
-                        ? 'rgb(var(--notebook-ink-rgb) / 0.07)'
+                        ? 'var(--ink-08)'
                         : 'transparent',
                     cursor: 'pointer',
                     transition: `all 0.2s ${EASING}`,

@@ -238,7 +238,7 @@ export default function SlideEditorModal({
                       i === activeIndex ? '2px solid #8c52ff' : '1px solid rgba(140,82,255,0.15)',
                     background:
                       i === activeIndex ? 'rgba(140,82,255,0.12)' : 'rgba(140,82,255,0.04)',
-                    color: i === activeIndex ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                    color: i === activeIndex ? '#c4a9ff' : 'var(--ink-40)',
                     fontSize: '9px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -264,7 +264,7 @@ export default function SlideEditorModal({
                   borderRadius: '6px',
                   border: '1px dashed rgba(140,82,255,0.25)',
                   background: 'transparent',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+                  color: 'var(--ink-30)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -320,7 +320,7 @@ export default function SlideEditorModal({
                   <label
                     style={{
                       fontSize: '11px',
-                      color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                      color: 'var(--ink-40)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       fontFamily: 'inherit',
@@ -359,7 +359,7 @@ export default function SlideEditorModal({
                   <label
                     style={{
                       fontSize: '11px',
-                      color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                      color: 'var(--ink-40)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       fontFamily: 'inherit',
@@ -400,7 +400,7 @@ export default function SlideEditorModal({
                   <label
                     style={{
                       fontSize: '11px',
-                      color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                      color: 'var(--ink-40)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       fontFamily: 'inherit',
@@ -443,7 +443,7 @@ export default function SlideEditorModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+                  color: 'var(--ink-30)',
                   fontSize: '14px',
                   fontFamily: 'inherit',
                 }}
@@ -471,7 +471,7 @@ export default function SlideEditorModal({
           <span
             style={{
               fontSize: '12px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               fontFamily: 'inherit',
             }}
           >
@@ -514,17 +514,16 @@ export default function SlideEditorModal({
               style={{
                 padding: isPhone ? '8px 10px' : '8px 16px',
                 borderRadius: '8px',
-                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+                border: '1px solid var(--ink-12)',
                 background: 'transparent',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                color: 'var(--ink-50)',
                 fontSize: isPhone ? '12px' : '13px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'background 0.12s ease',
               }}
               onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.background =
-                  'rgb(var(--notebook-ink-rgb) / 0.05)';
+                (e.target as HTMLButtonElement).style.background = 'var(--ink-04)';
               }}
               onMouseLeave={(e) => {
                 (e.target as HTMLButtonElement).style.background = 'transparent';
@@ -602,7 +601,7 @@ function CloseButton({ onClick }: { onClick: () => void }) {
         borderRadius: '8px',
         border: '1px solid rgba(140,82,255,0.15)',
         background: hovered ? 'rgba(140,82,255,0.1)' : 'transparent',
-        color: hovered ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+        color: hovered ? '#c4a9ff' : 'var(--ink-40)',
         cursor: 'pointer',
         transition: 'background 0.12s ease, color 0.12s ease',
       }}
@@ -628,7 +627,7 @@ function AddSlideButton({ onClick }: { onClick: () => void }) {
         borderRadius: '8px',
         border: '1px dashed rgba(140,82,255,0.25)',
         background: hovered ? 'rgba(140,82,255,0.08)' : 'transparent',
-        color: hovered ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.35)',
+        color: hovered ? '#c4a9ff' : 'var(--ink-30)',
         fontSize: '11px',
         fontWeight: 600,
         cursor: 'pointer',
@@ -675,11 +674,7 @@ function FooterIconButton({
         borderRadius: '8px',
         border: `1px solid ${danger ? 'rgba(252,165,165,0.2)' : 'rgba(140,82,255,0.15)'}`,
         background: hovered && !disabled ? `${baseColor}0.1)` : 'transparent',
-        color: disabled
-          ? 'rgb(var(--notebook-ink-rgb) / 0.15)'
-          : hovered
-            ? activeColor
-            : `${baseColor}0.5)`,
+        color: disabled ? 'var(--ink-12)' : hovered ? activeColor : `${baseColor}0.5)`,
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.12s ease, color 0.12s ease',
       }}

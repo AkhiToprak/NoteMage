@@ -94,7 +94,7 @@ export default function SectionTree({
           textAlign: 'center',
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+          color: 'var(--ink-30)',
         }}
       >
         No sections yet

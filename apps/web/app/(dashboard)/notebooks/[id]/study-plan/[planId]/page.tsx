@@ -70,7 +70,7 @@ export default function StudyPlanPage({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+          color: 'var(--ink-30)',
           fontFamily: 'inherit',
         }}
       >

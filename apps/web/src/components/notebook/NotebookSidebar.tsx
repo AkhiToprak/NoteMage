@@ -117,7 +117,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
           onMouseEnter={() => setBackHovered(true)}
           onMouseLeave={() => setBackHovered(false)}
         >
-          <ArrowLeft size={16} style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.5)' }} />
+          <ArrowLeft size={16} style={{ color: 'var(--ink-50)' }} />
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
@@ -193,9 +193,7 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
             borderRadius: '6px',
             border: '1px solid rgba(140,82,255,0.15)',
             background: newSectionHovered ? 'rgba(140,82,255,0.08)' : 'transparent',
-            color: newSectionHovered
-              ? 'rgb(var(--notebook-ink-rgb) / 0.7)'
-              : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+            color: newSectionHovered ? 'var(--ink-70)' : 'var(--ink-40)',
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: 500,
