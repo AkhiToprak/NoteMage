@@ -25,6 +25,11 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
 import { grade } from '@/lib/quiz-grading';
+import {
+  QuizReactionLayer,
+  type QuizReactionLayerHandle,
+} from '@/components/quiz/QuizReactionLayer';
+import { computeReaction, type ReactionMode } from '@/lib/quiz-reactions';
 import type { QuestionKind } from '@notemage/shared';
 import SlideEditorModal, { SlideData } from './SlideEditorModal';
 
@@ -73,6 +78,7 @@ interface QuizViewerProps {
   title: string;
   initialQuestions: QuizQuestion[];
   assignedSectionId?: string | null;
+  isCheckpoint?: boolean;
 }
 
 type QuizMode = 'quiz' | 'review' | 'results';
@@ -83,6 +89,7 @@ export default function QuizViewer({
   title,
   initialQuestions,
   assignedSectionId,
+  isCheckpoint = false,
 }: QuizViewerProps) {
   const { isPhone, isTablet } = useBreakpoint();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -116,6 +123,16 @@ export default function QuizViewer({
   const [quizStartTime] = useState<number>(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
+  // Mascot reaction wiring (Phase 4). Streaks live in refs so the commit
+  // helper reads fresh values synchronously and doesn't re-render the player
+  // on every answer.
+  const reactionLayerRef = useRef<QuizReactionLayerHandle>(null);
+  const correctStreakRef = useRef(0);
+  const wrongStreakRef = useRef(0);
+  const committedRef = useRef<Set<number>>(new Set());
+  const [reactionMode, setReactionMode] = useState<ReactionMode>('all');
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const [attemptHistory, setAttemptHistory] = useState<
     Array<{
       id: string;
@@ -159,12 +176,47 @@ export default function QuizViewer({
   const wrongCount = totalAnswered - correctCount;
   const skippedCount = questions.length - totalAnswered;
 
+  // Commit an answer for one question and fire any matching mascot reaction.
+  // Idempotent per index (the committedRef guard handles re-presses and
+  // prev/next round-trips). Skipped outside the active quiz mode so review
+  // navigation never triggers reactions.
+  const commitFor = useCallback(
+    (idx: number, isCorrect: boolean, hint: string | null) => {
+      if (mode !== 'quiz') return;
+      if (committedRef.current.has(idx)) return;
+      committedRef.current.add(idx);
+
+      const newCorrect = isCorrect ? correctStreakRef.current + 1 : 0;
+      const newWrong = isCorrect ? 0 : wrongStreakRef.current + 1;
+      correctStreakRef.current = newCorrect;
+      wrongStreakRef.current = newWrong;
+
+      const reaction = computeReaction(
+        {
+          correctStreak: newCorrect,
+          wrongStreak: newWrong,
+          lastAnswerCorrect: isCorrect,
+        },
+        reactionMode,
+      );
+      if (reaction) reactionLayerRef.current?.fire(reaction);
+
+      if (!isCorrect && newWrong === 3 && hint) setShowHint(true);
+    },
+    [mode, reactionMode],
+  );
+
   const next = useCallback(() => {
     if (currentIndex < questions.length - 1) {
+      // Non-MC commit point. No-op for MC (already in committedRef) and for
+      // unanswered/skipped questions.
+      const entry = answers.get(currentIndex);
+      const q = questions[currentIndex];
+      if (entry && q) commitFor(currentIndex, entry.isCorrect, q.hint);
       setCurrentIndex((i) => i + 1);
       setShowHint(false);
     }
-  }, [currentIndex, questions.length]);
+  }, [currentIndex, questions, answers, commitFor]);
 
   const prev = useCallback(() => {
     if (currentIndex > 0) {
@@ -178,6 +230,10 @@ export default function QuizViewer({
     setAnswers(new Map());
     setShowHint(false);
     setMode('quiz');
+    correctStreakRef.current = 0;
+    wrongStreakRef.current = 0;
+    committedRef.current = new Set();
+    reactionLayerRef.current?.dismiss();
   }, []);
 
   const selectAnswer = useCallback(
@@ -197,11 +253,21 @@ export default function QuizViewer({
         answer
       );
       setAnswers((prev) => new Map(prev).set(currentIndex, { answer, isCorrect }));
+      // MC auto-locks — first click *is* the commit. Non-MC kinds commit on
+      // next/finish so the streak reflects the user's final answer, not
+      // every keystroke.
+      if (kind === 'mc') commitFor(currentIndex, isCorrect, q.hint);
     },
-    [mode, isAnswered, currentIndex, questions]
+    [mode, isAnswered, currentIndex, questions, commitFor]
   );
 
   const finish = useCallback(async () => {
+    // Commit the current question first (no-op for MC; non-MC may be the
+    // very last answered question that hasn't been advanced past yet).
+    const lastEntry = answers.get(currentIndex);
+    const lastQ = questions[currentIndex];
+    if (lastEntry && lastQ) commitFor(currentIndex, lastEntry.isCorrect, lastQ.hint);
+
     setMode('results');
     setSubmitting(true);
     try {
@@ -221,12 +287,38 @@ export default function QuizViewer({
         if (bestScore === null || json.data.percentage > bestScore) {
           setBestScore(json.data.percentage);
         }
+        const final = computeReaction(
+          {
+            correctStreak: correctStreakRef.current,
+            wrongStreak: wrongStreakRef.current,
+            lastAnswerCorrect: null,
+            finalResult: {
+              percentage: json.data.percentage,
+              totalQuestions: questions.length,
+              isCheckpoint,
+              passed: isCheckpoint ? json.data.percentage >= 80 : undefined,
+            },
+          },
+          reactionMode,
+        );
+        if (final) reactionLayerRef.current?.fire(final);
       }
     } catch {
       /* silent */
     }
     setSubmitting(false);
-  }, [answers, questions, notebookId, setId, quizStartTime, bestScore]);
+  }, [
+    answers,
+    currentIndex,
+    questions,
+    notebookId,
+    setId,
+    quizStartTime,
+    bestScore,
+    commitFor,
+    isCheckpoint,
+    reactionMode,
+  ]);
 
   const startReview = useCallback(() => {
     setMode('review');
@@ -278,6 +370,30 @@ export default function QuizViewer({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [prev, next, selectAnswer, editingId, questions, currentIndex]);
+
+  // Fetch user quiz-reaction preferences (Phase 4).
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/user/settings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        if (
+          data.quizReactionsMode === 'all' ||
+          data.quizReactionsMode === 'minimal' ||
+          data.quizReactionsMode === 'off'
+        ) {
+          setReactionMode(data.quizReactionsMode);
+        }
+        if (typeof data.quizReactionsAudio === 'boolean') {
+          setAudioEnabled(data.quizReactionsAudio);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch attempt history
   useEffect(() => {
@@ -487,6 +603,8 @@ export default function QuizViewer({
   if (mode === 'results') {
     const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
     return (
+      <>
+        <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
       <div
         ref={containerRef}
         style={{
@@ -821,11 +939,14 @@ export default function QuizViewer({
           </div>
         )}
       </div>
+      </>
     );
   }
 
   // ── Quiz / Review mode ──
   return (
+    <>
+      <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
     <div
       ref={containerRef}
       style={{
@@ -1410,6 +1531,7 @@ export default function QuizViewer({
         </div>
       )}
     </div>
+    </>
   );
 }
 
