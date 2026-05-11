@@ -1,8 +1,10 @@
 import { NextRequest } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { grade } from '@/lib/quiz-grading';
+import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
 import {
   successResponse,
   createdResponse,
@@ -11,6 +13,25 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+
+interface AnswerSubmission {
+  questionId: string;
+  // Phase 2 shape: `userAnswer` is a discriminated UserAnswer object.
+  userAnswer?: UserAnswer;
+  // Legacy MC-only body kept for one release. Converted to a UserAnswer on the
+  // way in so the grader and persistence both see the new shape.
+  selectedIdx?: number;
+}
+
+function normalizeAnswer(a: AnswerSubmission): UserAnswer | null {
+  if (a.userAnswer && typeof a.userAnswer === 'object' && typeof a.userAnswer.kind === 'string') {
+    return a.userAnswer;
+  }
+  if (typeof a.selectedIdx === 'number') {
+    return { kind: 'mc', selectedIdx: a.selectedIdx };
+  }
+  return null;
+}
 
 export async function POST(
   request: NextRequest,
@@ -22,13 +43,11 @@ export async function POST(
 
     const { id: notebookId, setId } = await params;
 
-    // Verify notebook ownership
     const notebook = await db.notebook.findFirst({
       where: { id: notebookId, userId },
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    // Verify quiz set exists
     const quizSet = await db.quizSet.findFirst({
       where: { id: setId, notebookId },
       include: { questions: true },
@@ -37,7 +56,7 @@ export async function POST(
 
     const body = await request.json();
     const { answers, timeSpent } = body as {
-      answers: { questionId: string; selectedIdx: number }[];
+      answers: AnswerSubmission[];
       timeSpent?: number;
     };
 
@@ -45,28 +64,40 @@ export async function POST(
       return badRequestResponse('Answers are required');
     }
 
-    // Calculate score via the kind-aware grader. MC questions on legacy rows
-    // (payload = null) fall back to the `options` + `correctIndex` columns
-    // inside grade(); newer rows whose payload carries the answer key use
-    // that. Either way the comparison is centralized in one place so Phase
-    // 2A/2B agents only need to extend grade(), not this route.
+    // Centralized kind-aware grading. MC rows on the legacy `options` +
+    // `correctIndex` columns (payload = null) fall back inside grade();
+    // newer rows whose payload carries the answer key use that. Phase 2A/2B
+    // kinds use payload exclusively (legacy columns are sentinel-only).
     const questionMap = new Map(quizSet.questions.map((q) => [q.id, q]));
     let score = 0;
     const answerRecords = answers.map((a) => {
       const question = questionMap.get(a.questionId);
-      if (!question) {
-        return { questionId: a.questionId, selectedIdx: a.selectedIdx, isCorrect: false };
+      const normalized = normalizeAnswer(a);
+      if (!question || !normalized) {
+        return {
+          questionId: a.questionId,
+          selectedIdx: typeof a.selectedIdx === 'number' ? a.selectedIdx : 0,
+          userAnswer: normalized as Prisma.InputJsonValue | undefined,
+          isCorrect: false,
+        };
       }
       const { isCorrect } = grade(
         question.kind,
         question.payload,
         { options: question.options, correctIndex: question.correctIndex },
-        a.selectedIdx
+        normalized
       );
       if (isCorrect) score++;
       return {
         questionId: a.questionId,
-        selectedIdx: a.selectedIdx,
+        // Legacy column — MC rows store the option index; non-MC rows pass 0.
+        selectedIdx:
+          normalized.kind === 'mc'
+            ? normalized.selectedIdx
+            : typeof a.selectedIdx === 'number'
+              ? a.selectedIdx
+              : 0,
+        userAnswer: normalized as unknown as Prisma.InputJsonValue,
         isCorrect,
       };
     });
@@ -74,7 +105,6 @@ export async function POST(
     const total = quizSet.questions.length;
     const percentage = total > 0 ? Math.round((score / total) * 100 * 100) / 100 : 0;
 
-    // Create attempt with answers
     const attempt = await db.quizAttempt.create({
       data: {
         quizSetId: setId,
@@ -121,7 +151,14 @@ export async function GET(
         answers: {
           include: {
             question: {
-              select: { id: true, question: true, options: true, correctIndex: true },
+              select: {
+                id: true,
+                kind: true,
+                payload: true,
+                question: true,
+                options: true,
+                correctIndex: true,
+              },
             },
           },
         },

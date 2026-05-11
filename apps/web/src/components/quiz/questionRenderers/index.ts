@@ -1,10 +1,24 @@
 import type { ComponentType } from 'react';
 import type { QuestionKind } from '@notemage/shared';
 import MCRenderer from './MCRenderer';
+import FillBlankRenderer from './FillBlankRenderer';
+import TranslationRenderer from './TranslationRenderer';
+import WordBankRenderer from './WordBankRenderer';
+import MatchPairsRenderer from './MatchPairsRenderer';
+import SentenceReorderRenderer from './SentenceReorderRenderer';
+import EquationRenderer from './EquationRenderer';
 import type { QuestionProps } from './types';
 
 export type { QuestionProps, QuizQuestionForRender, QuizRenderMode, UserAnswer } from './types';
-export { MCRenderer };
+export {
+  MCRenderer,
+  FillBlankRenderer,
+  TranslationRenderer,
+  WordBankRenderer,
+  MatchPairsRenderer,
+  SentenceReorderRenderer,
+  EquationRenderer,
+};
 
 // Registry value type: each renderer narrows `TPayload` to its own payload
 // shape, but the registry erases that distinction. `any` here is the standard
@@ -15,9 +29,15 @@ export { MCRenderer };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyQuestionRenderer = ComponentType<QuestionProps<any>>;
 
-// Phase 1 registers only `mc`. Phase 2A/2B agents add the remaining seven
-// entries. The dispatcher in QuizViewer handles the missing-kind case so
-// unregistered kinds render a placeholder instead of crashing.
+// Phase 2 registers all 7 currently-shipped kinds. `true_false` is in the
+// QuestionKind enum but not yet implemented; it falls through to the
+// "unsupported kind" placeholder rendered by QuizViewer's dispatcher.
 export const RENDERERS: Partial<Record<QuestionKind, AnyQuestionRenderer>> = {
   mc: MCRenderer,
+  fill_blank: FillBlankRenderer,
+  translation: TranslationRenderer,
+  word_bank: WordBankRenderer,
+  match_pairs: MatchPairsRenderer,
+  sentence_reorder: SentenceReorderRenderer,
+  equation: EquationRenderer,
 };

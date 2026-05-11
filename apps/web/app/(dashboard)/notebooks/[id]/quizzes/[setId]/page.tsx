@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import QuizViewer from '@/components/notebook/QuizViewer';
+import type { QuestionKind } from '@notemage/shared';
 
 interface QuizSetData {
   id: string;
@@ -12,6 +13,8 @@ interface QuizSetData {
   sectionId: string | null;
   questions: {
     id: string;
+    kind: QuestionKind;
+    payload: unknown;
     question: string;
     options: string[];
     correctIndex: number;

@@ -21,7 +21,9 @@ export default function MCRenderer({
   onSelectAnswer,
   isPhone,
 }: QuestionProps<McPayload | null>) {
-  const isCorrect = isAnswered && currentAnswer === question.correctIndex;
+  const selectedIdx = currentAnswer?.kind === 'mc' ? currentAnswer.selectedIdx : undefined;
+  const reviewIdx = reviewAnswer?.kind === 'mc' ? reviewAnswer.selectedIdx : undefined;
+  const isCorrect = isAnswered && selectedIdx === question.correctIndex;
 
   return (
     <div
@@ -49,10 +51,10 @@ export default function MCRenderer({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
         {question.options.map((option, i) => {
           const letter = String.fromCharCode(65 + i);
-          const isSelected = currentAnswer === i;
+          const isSelected = selectedIdx === i;
           const isCorrectOption = question.correctIndex === i;
           const showResult = isAnswered || mode === 'review';
-          const reviewSelected = mode === 'review' && reviewAnswer === i;
+          const reviewSelected = mode === 'review' && reviewIdx === i;
 
           let borderColor = 'rgba(140,82,255,0.15)';
           let bg = 'rgba(255,255,255,0.07)';
@@ -77,7 +79,7 @@ export default function MCRenderer({
           return (
             <button
               key={i}
-              onClick={() => onSelectAnswer(i)}
+              onClick={() => onSelectAnswer({ kind: 'mc', selectedIdx: i })}
               disabled={isAnswered || mode === 'review'}
               style={{
                 display: 'flex',
@@ -221,21 +223,21 @@ export default function MCRenderer({
             borderRadius: '12px',
             marginBottom: '12px',
             background:
-              reviewAnswer !== undefined
-                ? reviewAnswer === question.correctIndex
+              reviewIdx !== undefined
+                ? reviewIdx === question.correctIndex
                   ? 'rgba(74,222,128,0.06)'
                   : 'rgba(252,165,165,0.06)'
                 : 'rgba(255,255,255,0.07)',
             border: `1px solid ${
-              reviewAnswer !== undefined
-                ? reviewAnswer === question.correctIndex
+              reviewIdx !== undefined
+                ? reviewIdx === question.correctIndex
                   ? 'rgba(74,222,128,0.2)'
                   : 'rgba(252,165,165,0.2)'
                 : 'rgba(255,255,255,0.06)'
             }`,
           }}
         >
-          {reviewAnswer !== undefined ? (
+          {reviewIdx !== undefined ? (
             <>
               <div
                 style={{
@@ -245,10 +247,10 @@ export default function MCRenderer({
                   fontSize: '14px',
                   fontWeight: 700,
                   marginBottom: '6px',
-                  color: reviewAnswer === question.correctIndex ? '#4ade80' : '#fca5a5',
+                  color: reviewIdx === question.correctIndex ? '#4ade80' : '#fca5a5',
                 }}
               >
-                {reviewAnswer === question.correctIndex ? (
+                {reviewIdx === question.correctIndex ? (
                   <>
                     <CheckCircle2 size={16} /> You answered correctly
                   </>
@@ -259,7 +261,7 @@ export default function MCRenderer({
                 )}
               </div>
               <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-                {reviewAnswer === question.correctIndex
+                {reviewIdx === question.correctIndex
                   ? question.correctExplanation ||
                     `The answer is ${question.options[question.correctIndex]}.`
                   : question.wrongExplanation ||

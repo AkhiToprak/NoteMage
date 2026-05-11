@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import type { QuestionKind } from '@notemage/shared';
 
 // Brand colors as hex strings
 const BRAND = {
@@ -8,6 +9,17 @@ const BRAND = {
   subtext: '#a09cb5',
   white: '#ffffff',
   green: '#4ade80',
+};
+
+const KIND_LABEL: Record<QuestionKind, string> = {
+  mc: 'Multiple choice',
+  true_false: 'True/False',
+  fill_blank: 'Fill-in-the-blank',
+  word_bank: 'Word bank',
+  match_pairs: 'Match pairs',
+  sentence_reorder: 'Sentence reorder',
+  equation: 'Equation',
+  translation: 'Translation',
 };
 
 export async function generateFlashcardPdf(
@@ -107,6 +119,7 @@ export async function generatePagesPdf(
 export async function generateQuizPdf(
   setTitle: string,
   questions: {
+    kind?: QuestionKind;
     question: string;
     options: string[];
     correctIndex: number;
@@ -138,16 +151,29 @@ export async function generateQuizPdf(
     questions.forEach((q, i) => {
       if (doc.y > 600) doc.addPage();
 
+      const kind: QuestionKind = q.kind ?? 'mc';
+
       doc
         .fontSize(14)
         .fillColor(BRAND.dark)
         .text(`${i + 1}. ${q.question}`);
       doc.moveDown(0.3);
 
-      q.options.forEach((opt, j) => {
-        doc.fontSize(12).fillColor(BRAND.subtext).text(`   ${OPTION_LABELS[j]}.  ${opt}`);
+      if (kind === 'mc') {
+        q.options.forEach((opt, j) => {
+          doc.fontSize(12).fillColor(BRAND.subtext).text(`   ${OPTION_LABELS[j]}.  ${opt}`);
+          doc.moveDown(0.15);
+        });
+      } else {
+        // Non-MC kinds aren't paper-printable without losing the interaction
+        // (drag-drop slots, text fuzzy match, etc). Stub with a placeholder
+        // and direct the reader back to the app.
+        doc
+          .fontSize(11)
+          .fillColor(BRAND.subtext)
+          .text(`   [${KIND_LABEL[kind]} question — answer in the NoteMage app]`);
         doc.moveDown(0.15);
-      });
+      }
 
       doc.moveDown(0.5);
 
@@ -165,13 +191,22 @@ export async function generateQuizPdf(
       questions.forEach((q, i) => {
         if (doc.y > 700) doc.addPage();
 
-        doc
-          .fontSize(12)
-          .fillColor(BRAND.dark)
-          .text(`${i + 1}. ${OPTION_LABELS[q.correctIndex]} — ${q.options[q.correctIndex]}`);
+        const kind: QuestionKind = q.kind ?? 'mc';
 
-        if (q.correctExplanation) {
-          doc.fontSize(10).fillColor(BRAND.subtext).text(`   ${q.correctExplanation}`);
+        if (kind === 'mc') {
+          doc
+            .fontSize(12)
+            .fillColor(BRAND.dark)
+            .text(`${i + 1}. ${OPTION_LABELS[q.correctIndex]} — ${q.options[q.correctIndex]}`);
+
+          if (q.correctExplanation) {
+            doc.fontSize(10).fillColor(BRAND.subtext).text(`   ${q.correctExplanation}`);
+          }
+        } else {
+          doc
+            .fontSize(12)
+            .fillColor(BRAND.dark)
+            .text(`${i + 1}. ${KIND_LABEL[kind]} — answer key only viewable in-app`);
         }
         doc.moveDown(0.3);
       });

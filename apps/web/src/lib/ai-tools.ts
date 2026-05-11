@@ -19,21 +19,85 @@ export interface QuizToolInput {
   }[];
 }
 
-// QUIZ_TOOL_V2 — Phase 1 enables MC only. Phase 2A/2B agents widen the
-// `kind` enum and add per-kind payload variants.
-export interface QuizToolV2McQuestion {
-  kind: 'mc';
+// QUIZ_TOOL_V2 — kind-aware AI tool. Phase 2 ships all 7 kinds.
+interface QuizToolV2Common {
   prompt: string;
   hint?: string;
   correctExplanation?: string;
   wrongExplanation?: string;
+}
+
+export interface QuizToolV2McQuestion extends QuizToolV2Common {
+  kind: 'mc';
   payload: {
     options: string[];
     correctIndex: number;
   };
 }
 
-export type QuizToolV2Question = QuizToolV2McQuestion;
+export interface QuizToolV2FillBlankQuestion extends QuizToolV2Common {
+  kind: 'fill_blank';
+  payload: {
+    blank: {
+      acceptableAnswers: string[];
+      caseSensitive?: boolean;
+      fuzzyThreshold?: number;
+    };
+  };
+}
+
+export interface QuizToolV2TranslationQuestion extends QuizToolV2Common {
+  kind: 'translation';
+  payload: {
+    targetLanguage: string;
+    blank: {
+      acceptableAnswers: string[];
+      caseSensitive?: boolean;
+      fuzzyThreshold?: number;
+    };
+  };
+}
+
+export interface QuizToolV2WordBankQuestion extends QuizToolV2Common {
+  kind: 'word_bank';
+  payload: {
+    template: string;
+    slots: { correctAnswer: string }[];
+    wordBank: string[];
+  };
+}
+
+export interface QuizToolV2MatchPairsQuestion extends QuizToolV2Common {
+  kind: 'match_pairs';
+  payload: {
+    pairs: { left: string; right: string }[];
+  };
+}
+
+export interface QuizToolV2SentenceReorderQuestion extends QuizToolV2Common {
+  kind: 'sentence_reorder';
+  payload: {
+    correctOrder: string[];
+  };
+}
+
+export interface QuizToolV2EquationQuestion extends QuizToolV2Common {
+  kind: 'equation';
+  payload: {
+    expectedExpression: string;
+    tolerance?: number;
+    variables?: string[];
+  };
+}
+
+export type QuizToolV2Question =
+  | QuizToolV2McQuestion
+  | QuizToolV2FillBlankQuestion
+  | QuizToolV2TranslationQuestion
+  | QuizToolV2WordBankQuestion
+  | QuizToolV2MatchPairsQuestion
+  | QuizToolV2SentenceReorderQuestion
+  | QuizToolV2EquationQuestion;
 
 export interface QuizToolV2Input {
   title: string;
@@ -173,16 +237,25 @@ export const QUIZ_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-// QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Phase 1 ships it with
-// `kind` restricted to 'mc' so existing AI behavior is unchanged when the tool
-// is wired up. Phase 2A/2B agents widen the `kind` enum and add per-kind
-// payload variants as new question types ship. Until then, callers should
-// keep using QUIZ_TOOL — this export is the new shape for future call sites
-// and the migration target during Phase 7.
+// QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Each question
+// carries an explicit `kind` discriminator and a kind-specific `payload`.
+// Anthropic tool inputs don't support discriminated unions cleanly, so the
+// schema accepts a generic `payload: object` and the server validates the
+// concrete shape with Zod (`QuizQuestionV2Schema` in `@notemage/shared`).
 export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
   name: 'create_quiz_v2',
-  description:
-    'Create a quiz where each question carries an explicit `kind` discriminator and a kind-specific `payload`. Phase 1 supports only `kind: "mc"` (multiple choice) with 4 options and one correct index. Use this tool for new quiz-generation flows that target the kind-aware question engine.',
+  description: [
+    'Create a quiz where each question carries an explicit `kind` discriminator and a kind-specific `payload`.',
+    'Supported kinds and their payload shapes:',
+    '- mc: { options: string[4]; correctIndex: 0|1|2|3 }. For factual recall.',
+    '- fill_blank: { blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Typed text answer; provide 2–4 acceptable spellings/variants. Default fuzzyThreshold 0.85.',
+    '- word_bank: { template: string with {{0}}, {{1}} markers; slots: [{ correctAnswer: string }]; wordBank: string[] }. Drag tokens from the bank into the template slots. Word bank should include 2–4 distractor tokens beyond the correct ones.',
+    '- match_pairs: { pairs: [{ left: string; right: string }] }. Two columns, render the right side shuffled; the user draws connections. 2–8 pairs.',
+    '- translation: { targetLanguage: string; blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Like fill_blank but with a target-language tag; default fuzzyThreshold 0.75 (looser, for accents/diacritics).',
+    '- sentence_reorder: { correctOrder: string[] }. Tokens shown shuffled; the user drags them into the correct order. 2–12 tokens.',
+    '- equation: { expectedExpression: string; tolerance?: number; variables?: string[] }. Math input (e.g. "2*x + 3"). Set variables when the expression contains variables so the grader can test multiple sample points.',
+    'Mix kinds intentionally — use mc for factual recall, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math. Avoid all-MC unless the material is purely factual.',
+  ].join('\n'),
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -197,8 +270,17 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
           properties: {
             kind: {
               type: 'string',
-              enum: ['mc'],
-              description: 'The question kind. Only "mc" is supported in this release.',
+              enum: [
+                'mc',
+                'fill_blank',
+                'word_bank',
+                'match_pairs',
+                'translation',
+                'sentence_reorder',
+                'equation',
+              ],
+              description:
+                'The question kind. Picks which payload shape to validate against and which renderer the client uses.',
             },
             prompt: {
               type: 'string',
@@ -218,26 +300,13 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
             },
             payload: {
               type: 'object',
-              description: 'Kind-specific answer data. For "mc": options + correctIndex.',
-              properties: {
-                options: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'Exactly 4 answer choices.',
-                  minItems: 4,
-                  maxItems: 4,
-                },
-                correctIndex: {
-                  type: 'number',
-                  description: 'The 0-based index of the correct answer (0-3).',
-                },
-              },
-              required: ['options', 'correctIndex'],
+              description:
+                'Kind-specific answer data. Shape MUST match the chosen `kind` exactly — see the tool description for each kind\'s payload.',
             },
           },
           required: ['kind', 'prompt', 'payload'],
         },
-        description: 'Array of quiz question objects.',
+        description: 'Array of quiz question objects. Mix at least 2 kinds when content allows.',
         minItems: 1,
       },
     },

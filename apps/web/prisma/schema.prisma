@@ -430,7 +430,8 @@ model QuizAnswer {
   id          String       @id @default(cuid())
   attemptId   String
   questionId  String
-  selectedIdx Int
+  selectedIdx Int          // Legacy MC; sentinel 0 for non-MC kinds. Real answer lives in userAnswer.
+  userAnswer  Json?        // Kind-aware answer payload (Phase 2). Null for pre-Phase-2 attempts.
   isCorrect   Boolean
   createdAt   DateTime     @default(now())
 

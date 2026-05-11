@@ -17,6 +17,7 @@ import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
+import { buildLegacyColumns } from '@/lib/quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
 import { extractText } from '@/lib/fileProcessing';
 import { readFile } from '@/lib/storage';
@@ -231,7 +232,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       '',
       'You have access to a `create_flashcards` tool. When the user asks you to create, generate, or make flashcards, use this tool. Create high-quality flashcards with clear questions and concise answers. For complex answers, use bullet points or numbered lists.',
       '',
-      'You also have access to a `create_quiz` tool. When the user asks you to create, generate, or make a quiz, test, or multiple-choice questions, use this tool. Create challenging but fair questions with 4 options each. IMPORTANT: Distribute the correct answer evenly across positions 0, 1, 2, and 3 (A, B, C, D) — do NOT favor any single position. Make ALL four options similar in length and level of detail — the correct answer must NOT be noticeably longer or more specific than distractors. Distractors must be plausible and sound like real answers, not obviously wrong. Always provide hints and explanations for both correct and incorrect answers to help students learn.',
+      'You also have access to a `create_quiz_v2` tool. When the user asks you to create, generate, or make a quiz, test, or multiple-choice questions, use `create_quiz_v2`. The legacy `create_quiz` tool exists only for backward compatibility — prefer `create_quiz_v2`. Mix question kinds intentionally (mc, fill_blank, word_bank, match_pairs, translation, sentence_reorder, equation) — see the tool description for each payload shape. Use mc for factual recall, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax, match_pairs for term/definition pairs, translation for language learning, sentence_reorder for syntax sequencing, equation for math. Aim for variety across a quiz rather than all-MC. For MC questions: 4 options each, distribute the correct answer evenly across positions 0–3, keep all four options similar in length and level of detail, make distractors plausible. Always provide hints and explanations for both correct and incorrect answers to help students learn.',
       '',
       'You also have access to a `create_mindmap` tool. When the user asks you to create, generate, or make a mind map, concept map, or topic overview, use this tool. Structure the content using Markdown headings (# for root, ## for main branches, ### for sub-branches, #### for details). Keep node text concise.',
       '',
@@ -505,19 +506,23 @@ export async function POST(request: NextRequest, { params }: Params) {
             if (quizV2ToolUse) {
               const { title: quizTitle, questions } = quizV2ToolUse.input;
 
-              // Fisher-Yates shuffle to randomize answer positions
+              // MC-only shuffle: randomize answer positions so the correct
+              // index isn't always 0. Non-MC kinds carry their own answer
+              // structure and are not shuffled here.
               for (const q of questions) {
-                let correctIdx = q.payload.correctIndex;
-                for (let i = q.payload.options.length - 1; i > 0; i--) {
+                if (q.kind !== 'mc') continue;
+                const mcPayload = q.payload;
+                let correctIdx = mcPayload.correctIndex;
+                for (let i = mcPayload.options.length - 1; i > 0; i--) {
                   const j = Math.floor(Math.random() * (i + 1));
-                  [q.payload.options[i], q.payload.options[j]] = [
-                    q.payload.options[j],
-                    q.payload.options[i],
+                  [mcPayload.options[i], mcPayload.options[j]] = [
+                    mcPayload.options[j],
+                    mcPayload.options[i],
                   ];
                   if (correctIdx === i) correctIdx = j;
                   else if (correctIdx === j) correctIdx = i;
                 }
-                q.payload.correctIndex = correctIdx;
+                mcPayload.correctIndex = correctIdx;
               }
 
               const parsed = QuizSetV2Schema.safeParse({ title: quizTitle, questions });
@@ -550,12 +555,11 @@ export async function POST(request: NextRequest, { params }: Params) {
                     messageId: '',
                     title: quizTitle,
                     questions: {
-                      create: questions.map((q, i) => ({
-                        kind: 'mc' as const,
+                      create: parsed.data.questions.map((q, i) => ({
+                        kind: q.kind,
                         payload: q.payload,
                         question: q.prompt,
-                        options: q.payload.options,
-                        correctIndex: q.payload.correctIndex,
+                        ...buildLegacyColumns(q.kind, q.payload),
                         hint: q.hint ?? null,
                         correctExplanation: q.correctExplanation ?? null,
                         wrongExplanation: q.wrongExplanation ?? null,

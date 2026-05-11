@@ -23,15 +23,15 @@ import { useRouter } from 'next/navigation';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
+import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
+import { grade } from '@/lib/quiz-grading';
 import type { QuestionKind } from '@notemage/shared';
 import SlideEditorModal, { SlideData } from './SlideEditorModal';
 
 interface QuizQuestion {
   id: string;
-  // Phase 1: existing call sites only pass MC questions and may not include
-  // `kind`/`payload`. Default to 'mc' in the dispatcher so existing callers
-  // (still typed on the legacy shape) keep working until the per-call-site
-  // shape upgrade ships.
+  // Phase 2: kind is required on the wire; older callers that haven't
+  // upgraded still get a sensible default ('mc') below in the dispatcher.
   kind?: QuestionKind;
   payload?: unknown;
   question: string;
@@ -42,6 +42,23 @@ interface QuizQuestion {
   wrongExplanation: string | null;
   sortOrder: number;
 }
+
+interface AnswerEntry {
+  answer: UserAnswer;
+  isCorrect: boolean;
+}
+
+// Human label per kind for the non-MC PDF/PPTX placeholder + edit-disabled tooltip.
+const KIND_LABEL: Record<QuestionKind, string> = {
+  mc: 'Multiple choice',
+  true_false: 'True/False',
+  fill_blank: 'Fill-in-the-blank',
+  word_bank: 'Word bank',
+  match_pairs: 'Match pairs',
+  sentence_reorder: 'Sentence reorder',
+  equation: 'Equation',
+  translation: 'Translation',
+};
 
 interface SectionItem {
   id: string;
@@ -70,7 +87,7 @@ export default function QuizViewer({
   const { isPhone, isTablet } = useBreakpoint();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Map<number, number>>(new Map());
+  const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
   const [showHint, setShowHint] = useState(false);
   const [mode, setMode] = useState<QuizMode>('quiz');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -116,20 +133,29 @@ export default function QuizViewer({
 
   const quizSlides: SlideData[] = useMemo(() => {
     const LABELS = ['A', 'B', 'C', 'D'];
-    return questions.map((q, i) => ({
-      title: `Question ${i + 1}`,
-      content: `${q.question}\n\n${q.options.map((o, j) => `${LABELS[j]}. ${o}`).join('\n')}`,
-      notes: `Answer: ${LABELS[q.correctIndex]}. ${q.options[q.correctIndex]}`,
-    }));
+    return questions.map((q, i) => {
+      const kind: QuestionKind = q.kind ?? 'mc';
+      if (kind === 'mc') {
+        return {
+          title: `Question ${i + 1}`,
+          content: `${q.question}\n\n${q.options.map((o, j) => `${LABELS[j]}. ${o}`).join('\n')}`,
+          notes: `Answer: ${LABELS[q.correctIndex]}. ${q.options[q.correctIndex]}`,
+        };
+      }
+      return {
+        title: `Question ${i + 1}`,
+        content: `${q.question}\n\n[${KIND_LABEL[kind]} question — answer in the NoteMage app]`,
+        notes: `This is a ${KIND_LABEL[kind].toLowerCase()} question — full answer key is only viewable in-app.`,
+      };
+    });
   }, [questions]);
-  const currentAnswer = answers.get(currentIndex);
-  const isAnswered = currentAnswer !== undefined;
+  const currentEntry = answers.get(currentIndex);
+  const currentAnswer = currentEntry?.answer;
+  const isAnswered = currentEntry !== undefined;
 
   // Stats
   const totalAnswered = answers.size;
-  const correctCount = Array.from(answers.entries()).filter(
-    ([idx, ans]) => questions[idx]?.correctIndex === ans
-  ).length;
+  const correctCount = Array.from(answers.values()).filter((a) => a.isCorrect).length;
   const wrongCount = totalAnswered - correctCount;
   const skippedCount = questions.length - totalAnswered;
 
@@ -155,11 +181,24 @@ export default function QuizViewer({
   }, []);
 
   const selectAnswer = useCallback(
-    (optionIndex: number) => {
-      if (mode !== 'quiz' || isAnswered) return;
-      setAnswers((prev) => new Map(prev).set(currentIndex, optionIndex));
+    (answer: UserAnswer) => {
+      if (mode !== 'quiz') return;
+      const q = questions[currentIndex];
+      if (!q) return;
+      const kind: QuestionKind = q.kind ?? 'mc';
+      // MC locks after the first selection. Multi-step kinds (match_pairs,
+      // word_bank, sentence_reorder) and free-text kinds need to allow
+      // re-submission while the user is still on the question.
+      if (kind === 'mc' && isAnswered) return;
+      const { isCorrect } = grade(
+        kind,
+        q.payload,
+        { options: q.options, correctIndex: q.correctIndex },
+        answer
+      );
+      setAnswers((prev) => new Map(prev).set(currentIndex, { answer, isCorrect }));
     },
-    [mode, isAnswered, currentIndex]
+    [mode, isAnswered, currentIndex, questions]
   );
 
   const finish = useCallback(async () => {
@@ -167,9 +206,9 @@ export default function QuizViewer({
     setSubmitting(true);
     try {
       const timeSpent = Math.round((Date.now() - quizStartTime) / 1000);
-      const answersPayload = Array.from(answers.entries()).map(([idx, selectedIdx]) => ({
+      const answersPayload = Array.from(answers.entries()).map(([idx, entry]) => ({
         questionId: questions[idx].id,
-        selectedIdx,
+        userAnswer: entry.answer,
       }));
       const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/attempts`, {
         method: 'POST',
@@ -203,7 +242,8 @@ export default function QuizViewer({
     return () => clearInterval(interval);
   }, [quizStartTime]);
 
-  // Keyboard navigation
+  // Keyboard navigation. MC option keys (1/2/3/4, A/B/C/D) are MC-only —
+  // non-MC kinds (text input, drag-drop) handle their own keyboard input.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (editingId) return;
@@ -213,26 +253,31 @@ export default function QuizViewer({
       } else if (e.code === 'ArrowRight') {
         e.preventDefault();
         next();
-      } else if (e.code === 'Digit1' || e.code === 'KeyA') {
-        e.preventDefault();
-        selectAnswer(0);
-      } else if (e.code === 'Digit2' || e.code === 'KeyB') {
-        e.preventDefault();
-        selectAnswer(1);
-      } else if (e.code === 'Digit3' || e.code === 'KeyC') {
-        e.preventDefault();
-        selectAnswer(2);
-      } else if (e.code === 'Digit4' || e.code === 'KeyD') {
-        e.preventDefault();
-        selectAnswer(3);
       } else if (e.code === 'KeyH') {
         e.preventDefault();
         setShowHint((v) => !v);
+        return;
+      }
+      const q = questions[currentIndex];
+      const kind: QuestionKind = q?.kind ?? 'mc';
+      if (kind !== 'mc') return;
+      if (e.code === 'Digit1' || e.code === 'KeyA') {
+        e.preventDefault();
+        selectAnswer({ kind: 'mc', selectedIdx: 0 });
+      } else if (e.code === 'Digit2' || e.code === 'KeyB') {
+        e.preventDefault();
+        selectAnswer({ kind: 'mc', selectedIdx: 1 });
+      } else if (e.code === 'Digit3' || e.code === 'KeyC') {
+        e.preventDefault();
+        selectAnswer({ kind: 'mc', selectedIdx: 2 });
+      } else if (e.code === 'Digit4' || e.code === 'KeyD') {
+        e.preventDefault();
+        selectAnswer({ kind: 'mc', selectedIdx: 3 });
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [prev, next, selectAnswer, editingId]);
+  }, [prev, next, selectAnswer, editingId, questions, currentIndex]);
 
   // Fetch attempt history
   useEffect(() => {
@@ -994,6 +1039,7 @@ export default function QuizViewer({
           }
           return (
             <Renderer
+              key={question.id}
               question={{
                 id: question.id,
                 kind,
@@ -1009,10 +1055,10 @@ export default function QuizViewer({
               mode={mode === 'review' ? 'review' : 'quiz'}
               isAnswered={isAnswered}
               currentAnswer={currentAnswer}
-              reviewAnswer={mode === 'review' ? answers.get(currentIndex) : undefined}
+              reviewAnswer={mode === 'review' ? answers.get(currentIndex)?.answer : undefined}
               showHint={showHint}
               onToggleHint={() => setShowHint((v) => !v)}
-              onSelectAnswer={(answer) => selectAnswer(answer as number)}
+              onSelectAnswer={selectAnswer}
               isPhone={isPhone}
             />
           );
@@ -1051,13 +1097,16 @@ export default function QuizViewer({
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {question && editingId !== question.id && mode !== 'review' && (
-          <SmallButton
-            onClick={() => startEdit(question)}
-            icon={<Pencil size={12} />}
-            label="Edit"
-          />
-        )}
+        {question &&
+          editingId !== question.id &&
+          mode !== 'review' &&
+          (question.kind ?? 'mc') === 'mc' && (
+            <SmallButton
+              onClick={() => startEdit(question)}
+              icon={<Pencil size={12} />}
+              label="Edit"
+            />
+          )}
         <SmallButton onClick={downloadJSON} icon={<Download size={12} />} label="JSON" />
         <SmallButton onClick={openSlideEditor} icon={<Download size={12} />} label="PPTX" />
         <SmallButton onClick={downloadPdf} icon={<Download size={12} />} label="PDF" />

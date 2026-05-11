@@ -22,10 +22,18 @@ export interface QuizQuestionForRender {
   sortOrder: number;
 }
 
-// Per-renderer answer payloads. Phase 1: only `mc` (number index).
-// Phase 2A/2B agents extend this union (e.g. typed strings for fill_blank,
-// arrays of slot assignments for word_bank).
-export type UserAnswer = number;
+// Discriminated union of per-kind user answers. Each variant carries its own
+// `kind` literal so the grader can assert the answer matches the question.
+// Server and client both grade via `grade()` in `apps/web/src/lib/quiz-grading.ts`,
+// which switches on this discriminator.
+export type UserAnswer =
+  | { kind: 'mc'; selectedIdx: number }
+  | { kind: 'fill_blank'; text: string }
+  | { kind: 'word_bank'; slotAnswers: (string | null)[] }
+  | { kind: 'match_pairs'; connections: { left: number; rightLabel: string }[] }
+  | { kind: 'translation'; text: string }
+  | { kind: 'sentence_reorder'; orderedTokens: string[] }
+  | { kind: 'equation'; expression: string };
 
 // Shared props every renderer receives from the QuizViewer dispatcher.
 // `TPayload` is the kind-specific payload type; each renderer narrows it.

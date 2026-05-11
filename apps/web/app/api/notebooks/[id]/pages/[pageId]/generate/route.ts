@@ -14,6 +14,7 @@ import {
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
+import { buildLegacyColumns } from '@/lib/quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
 import { checkTokenBudget } from '@/lib/token-budget';
 
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (type === 'flashcards') {
       systemPrompt = `You are ${mageName}, an AI study assistant. The user wants you to create flashcards from the provided page content. Use the create_flashcards tool to generate high-quality flashcards covering the key concepts. Create clear questions and concise answers.`;
     } else if (type === 'quiz') {
-      systemPrompt = `You are ${mageName}, an AI study assistant. The user wants you to create a quiz from the provided page content. Use the create_quiz tool to generate challenging but fair multiple-choice questions. Always provide hints and explanations.`;
+      systemPrompt = `You are ${mageName}, an AI study assistant. The user wants you to create a quiz from the provided page content. Use the create_quiz_v2 tool to generate challenging but fair questions. Mix kinds intentionally across the quiz (mc, fill_blank, word_bank, match_pairs, translation, sentence_reorder, equation) — see the tool description for each kind's payload shape. Avoid all-MC unless the material is purely factual. Always provide hints and explanations for every question.`;
     } else {
       systemPrompt = `You are ${mageName}, an AI study assistant. The user wants you to create a mind map from the provided page content. Use the create_mindmap tool to create a well-structured mind map using Markdown heading hierarchy.`;
     }
@@ -138,19 +139,22 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (type === 'quiz' && quizV2) {
       const { title, questions } = quizV2.input;
 
-      // Fisher-Yates shuffle to randomize answer positions
+      // MC-only shuffle: randomize answer positions so the correct index
+      // isn't always 0. Non-MC kinds aren't shuffled here.
       for (const q of questions) {
-        let correctIdx = q.payload.correctIndex;
-        for (let i = q.payload.options.length - 1; i > 0; i--) {
+        if (q.kind !== 'mc') continue;
+        const mcPayload = q.payload;
+        let correctIdx = mcPayload.correctIndex;
+        for (let i = mcPayload.options.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [q.payload.options[i], q.payload.options[j]] = [
-            q.payload.options[j],
-            q.payload.options[i],
+          [mcPayload.options[i], mcPayload.options[j]] = [
+            mcPayload.options[j],
+            mcPayload.options[i],
           ];
           if (correctIdx === i) correctIdx = j;
           else if (correctIdx === j) correctIdx = i;
         }
-        q.payload.correctIndex = correctIdx;
+        mcPayload.correctIndex = correctIdx;
       }
 
       const parsed = QuizSetV2Schema.safeParse({ title, questions });
@@ -163,12 +167,11 @@ export async function POST(request: NextRequest, { params }: Params) {
           notebookId,
           title,
           questions: {
-            create: questions.map((q, i) => ({
-              kind: 'mc' as const,
+            create: parsed.data.questions.map((q, i) => ({
+              kind: q.kind,
               payload: q.payload,
               question: q.prompt,
-              options: q.payload.options,
-              correctIndex: q.payload.correctIndex,
+              ...buildLegacyColumns(q.kind, q.payload),
               hint: q.hint ?? null,
               correctExplanation: q.correctExplanation ?? null,
               wrongExplanation: q.wrongExplanation ?? null,
