@@ -42,9 +42,16 @@ const ROOT_ONE_SHOT_CLASS: Partial<Record<MascotOneShot, string>> = {
 const FIGURE_ONE_SHOT_CLASS: Partial<Record<MascotOneShot, string>> = {
   cast: styles.cast,
   celebrate: styles.celebrate,
+  'cheer-small': styles.cheerSmall,
+  'cheer-big': styles.cheerBig,
+  comfort: styles.comfort,
 };
 
-const BURST_ONE_SHOTS: ReadonlySet<MascotOneShot> = new Set<MascotOneShot>(['cast', 'sparkle']);
+const BURST_ONE_SHOTS: ReadonlySet<MascotOneShot> = new Set<MascotOneShot>([
+  'cast',
+  'sparkle',
+  'cheer-big',
+]);
 
 const BURST_TIMEOUT_MS = 720;
 

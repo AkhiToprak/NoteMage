@@ -178,6 +178,9 @@ export default function SettingsPage() {
     weeklyReport: false,
   });
 
+  const [quizReactionsMode, setQuizReactionsMode] = useState<'all' | 'minimal' | 'off'>('all');
+  const [quizReactionsAudio, setQuizReactionsAudio] = useState(false);
+
   const [studyGoals, setStudyGoals] = useState<GoalValues>({ ...EMPTY_GOAL_VALUES });
   const [goalCustomInputs, setGoalCustomInputs] = useState<Record<string, string>>({});
   const [goalStatus, setGoalStatus] = useState<{ type: 'error' | 'success'; msg: string } | null>(
@@ -388,6 +391,53 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch('/api/user/settings')
+      .then((r) => r.json())
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (d && typeof d === 'object') {
+          if (d.quizReactionsMode === 'all' || d.quizReactionsMode === 'minimal' || d.quizReactionsMode === 'off') {
+            setQuizReactionsMode(d.quizReactionsMode);
+          }
+          if (typeof d.quizReactionsAudio === 'boolean') {
+            setQuizReactionsAudio(d.quizReactionsAudio);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveQuizReactionsMode = async (mode: 'all' | 'minimal' | 'off') => {
+    const previous = quizReactionsMode;
+    setQuizReactionsMode(mode);
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizReactionsMode: mode }),
+      });
+      if (!res.ok) setQuizReactionsMode(previous);
+    } catch {
+      setQuizReactionsMode(previous);
+    }
+  };
+
+  const saveQuizReactionsAudio = async (audio: boolean) => {
+    const previous = quizReactionsAudio;
+    setQuizReactionsAudio(audio);
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizReactionsAudio: audio }),
+      });
+      if (!res.ok) setQuizReactionsAudio(previous);
+    } catch {
+      setQuizReactionsAudio(previous);
+    }
+  };
 
   const toggleStudyGoal = (config: (typeof GOAL_CONFIGS)[number]) => {
     setStudyGoals((prev) => ({
@@ -1622,6 +1672,115 @@ export default function SettingsPage() {
                 </p>
               </div>
               <ThemeToggle />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: isPhone ? 'column' : 'row',
+                alignItems: isPhone ? 'flex-start' : 'center',
+                justifyContent: 'space-between',
+                gap: isPhone ? '16px' : '24px',
+                padding: '16px',
+                background: 'var(--surface-container-low)',
+                borderRadius: '16px',
+              }}
+            >
+              <div style={{ minWidth: 0, maxWidth: '440px' }}>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: '0 0 2px',
+                  }}
+                >
+                  Quiz reactions
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
+                  Pop-up mascot reactions during quizzes. <strong>Minimal</strong> keeps only the
+                  big-moment overlays (perfect score, checkpoint pass) plus a gentle nudge when you
+                  get three wrong in a row.
+                </p>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label="Quiz reactions intensity"
+                style={{
+                  display: 'inline-flex',
+                  padding: '4px',
+                  background: 'var(--surface-container-high)',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--outline-variant)',
+                  flexShrink: 0,
+                }}
+              >
+                {(['all', 'minimal', 'off'] as const).map((mode) => {
+                  const active = quizReactionsMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => {
+                        if (!active) void saveQuizReactionsMode(mode);
+                      }}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        background: active ? '#ae89ff' : 'transparent',
+                        color: active ? '#ffffff' : 'var(--on-surface-variant)',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        fontFamily: 'var(--font-display)',
+                        cursor: active ? 'default' : 'pointer',
+                        textTransform: 'capitalize',
+                        transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
+                      }}
+                    >
+                      {mode}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: isPhone ? 'column' : 'row',
+                alignItems: isPhone ? 'flex-start' : 'center',
+                justifyContent: 'space-between',
+                gap: isPhone ? '16px' : '24px',
+                padding: '16px',
+                background: 'var(--surface-container-low)',
+                borderRadius: '16px',
+                opacity: quizReactionsMode === 'off' ? 0.5 : 1,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: '0 0 2px',
+                  }}
+                >
+                  Reaction sounds
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
+                  Play a short sound on streaks and celebrations. Off by default.
+                </p>
+              </div>
+              <Toggle
+                checked={quizReactionsAudio && quizReactionsMode !== 'off'}
+                onChange={(v) => {
+                  if (quizReactionsMode === 'off') return;
+                  void saveQuizReactionsAudio(v);
+                }}
+              />
             </div>
           </section>
 

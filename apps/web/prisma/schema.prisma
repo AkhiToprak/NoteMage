@@ -66,6 +66,8 @@ model User {
   usernameChanged    Boolean   @default(false)    // Set to true when user changes their username
   profilePrivate     Boolean   @default(false)    // If true, only friends see full profile
   hideAchievements   Boolean   @default(false)    // If true, achievements hidden on public profile
+  quizReactionsMode  String    @default("all")    // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
+  quizReactionsAudio Boolean   @default(false)    // Opt-in sound effects for quiz reactions
   tier               Tier      @default(FREE)
   pendingTier        Tier?                       // Tier to switch to at end of current period (null = no change)
   subscriptionPeriodEnd DateTime?                // When the current billing period ends (null = free / no active period)
