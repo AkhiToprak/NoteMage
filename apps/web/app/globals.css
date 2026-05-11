@@ -62,6 +62,15 @@
   /* Bento card shadows — theme-aware so light mode doesn't drop a black halo. */
   --bento-rest-shadow: rgba(0, 0, 0, 0.35);
   --bento-hover-shadow: rgba(0, 0, 0, 0.4);
+
+  /* Card hover-state surfaces — JS hover handlers swap card bg between these
+     and the rest-state --surface-container-* tokens. Defined so light mode
+     can flip the lift direction (Material's light hierarchy has higher
+     elevation = darker, but users expect "lighter on hover"). Dark values
+     match the legacy hex literals (#272746/#2d2d52/#35355c) exactly. */
+  --card-hover-bg-soft: #272746;
+  --card-hover-bg-med: #2d2d52;
+  --card-hover-bg-strong: #35355c;
   --on-surface: #ffffff;
   --on-surface-variant: #dfdeeb;
   --on-background: #ffffff;
@@ -157,6 +166,12 @@
   /* Bento card shadow overrides — light theme: muted navy instead of black. */
   --bento-rest-shadow: rgba(15, 15, 30, 0.06);
   --bento-hover-shadow: rgba(15, 15, 30, 0.08);
+
+  /* Card hover-state surfaces (light) — gentle lift toward white WITHOUT
+     going pure white; each tier sits between rest #e5e5ec and page #f3f3f7. */
+  --card-hover-bg-soft: #ebebf2;
+  --card-hover-bg-med: #eeeef4;
+  --card-hover-bg-strong: #f1f1f6;
   /* Text — pushed darker and toward black so the brand stays slightly navy
      but contrast is punchy on white. */
   --on-surface: #0f0f1e;

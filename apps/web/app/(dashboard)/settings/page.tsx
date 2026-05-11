@@ -1051,7 +1051,7 @@ export default function SettingsPage() {
                   (e.currentTarget as HTMLButtonElement).style.background = '#292946';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = '#35355c';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-strong)';
                 }}
               >
                 Change Email
@@ -1692,10 +1692,10 @@ export default function SettingsPage() {
                     transition: 'background 0.15s',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.background = '#2d2d52';
+                    (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-med)';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.background = '#21213e';
+                    (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
                   }}
                 >
                   <div>

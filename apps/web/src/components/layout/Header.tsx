@@ -87,7 +87,7 @@ export default function Header() {
             transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#2d2d52';
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-med)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

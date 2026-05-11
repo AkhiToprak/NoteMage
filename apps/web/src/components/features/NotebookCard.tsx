@@ -332,7 +332,7 @@ export default function NotebookCard({
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = '#35355c';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-strong)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

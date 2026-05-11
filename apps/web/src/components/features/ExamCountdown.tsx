@@ -52,10 +52,10 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
         opacity: isPast ? 0.55 : 1,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = '#272746';
+        (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-soft)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = '#21213e';
+        (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
       }}
     >
       {/* Top row: title + notebook + delete */}

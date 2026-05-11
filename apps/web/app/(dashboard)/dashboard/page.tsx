@@ -447,14 +447,14 @@ export default function DashboardPage() {
                   height: '100%',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = '#272746';
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-soft)';
                   const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
                     '.stat-arrow'
                   );
                   if (arrow) arrow.style.transform = 'translateX(4px)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = '#21213e';
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
                   const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
                     '.stat-arrow'
                   );
@@ -1006,7 +1006,7 @@ export default function DashboardPage() {
                           cursor: 'pointer',
                         }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background = '#35355c';
+                          (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-strong)';
                           const btn = (
                             e.currentTarget as HTMLDivElement
                           ).querySelector<HTMLButtonElement>('.activity-btn');
@@ -1016,12 +1016,12 @@ export default function DashboardPage() {
                           }
                         }}
                         onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background = '#21213e';
+                          (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
                           const btn = (
                             e.currentTarget as HTMLDivElement
                           ).querySelector<HTMLButtonElement>('.activity-btn');
                           if (btn) {
-                            btn.style.background = '#35355c';
+                            btn.style.background = 'var(--card-hover-bg-strong)';
                             btn.style.color = '#ae89ff';
                           }
                         }}
