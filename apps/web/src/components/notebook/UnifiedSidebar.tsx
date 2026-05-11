@@ -50,8 +50,6 @@ export default function UnifiedSidebar() {
   const { notebookId, notebook, sections, refreshSections, setSidebarCollapsed } =
     useNotebookWorkspace();
   const mascotContext = useMascotContextPose();
-  const { data: session } = useSession();
-  const mageName = getMageName(session?.user?.scholarName);
 
   const [isCreatingSection, setIsCreatingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState('');
@@ -475,45 +473,26 @@ export default function UnifiedSidebar() {
               }}
             />
 
-            {/* ── Mage link ─────────────────────────────────────────── */}
-            <Link
-              href={`/notebooks/${notebookId}`}
+            {/* ── LEARN entry (Phase 8) — primary action, above content trees ── */}
+            <LearnEntrySection />
+
+            {/* ── FLASHCARD SETS section ────────────────────────────── */}
+            <FlashcardSetTreeSection />
+
+            {/* ── QUIZZES section ──────────────────────────────────── */}
+            <QuizSetTreeSection />
+
+            {/* ── CHATS section ─────────────────────────────────────── */}
+            <ChatTreeSection />
+
+            {/* ── Utility actions (Manage / Import / Export) ───────── */}
+            <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                margin: '0 6px 4px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                color: '#c4a9ff',
-                fontSize: '14px',
-                fontWeight: 600,
-                transition: 'background 0.15s ease',
+                margin: '12px 14px 8px',
+                height: '1px',
+                background: 'rgba(174,137,255,0.18)',
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(140,82,255,0.1)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-              }}
-            >
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '5px',
-                  background: 'rgba(140,82,255,0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Sparkles size={11} style={{ color: '#e5dbff' }} />
-              </div>
-              {mageName}
-            </Link>
+            />
 
             {/* ── Manage Flashcard Sets button ─────────────────────── */}
             <button
@@ -655,18 +634,6 @@ export default function UnifiedSidebar() {
               </div>
               Export
             </button>
-
-            {/* ── FLASHCARD SETS section ────────────────────────────── */}
-            <FlashcardSetTreeSection />
-
-            {/* ── QUIZZES section ──────────────────────────────────── */}
-            <QuizSetTreeSection />
-
-            {/* ── LEARN entry (Phase 8) ────────────────────────────── */}
-            <LearnEntrySection />
-
-            {/* ── CHATS section ─────────────────────────────────────── */}
-            <ChatTreeSection />
 
             {/* Close !isSearchActive wrapper */}
           </>
