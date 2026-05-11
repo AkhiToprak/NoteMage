@@ -1005,7 +1005,7 @@ export default function FlashcardViewer({
         style={{
           fontSize: '20px',
           fontWeight: 700,
-          color: '#f5f1ff',
+          color: 'var(--md-text)',
           margin: '0 0 10px',
           textAlign: 'center',
           fontFamily: 'inherit',
@@ -1314,7 +1314,7 @@ export default function FlashcardViewer({
                 boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
                 background: 'var(--background)',
                 border: '1px solid rgba(174,137,255,0.38)',
-                color: '#f5f1ff',
+                color: 'var(--md-text)',
               }}
             >
               <div
@@ -1362,7 +1362,7 @@ export default function FlashcardViewer({
                   position: 'absolute',
                   bottom: '18px',
                   fontSize: '10px',
-                  color: 'rgba(214,194,255,0.62)',
+                  color: 'var(--ink-50)',
                   fontFamily: 'inherit',
                   textTransform: 'uppercase',
                   letterSpacing: '0.18em',
@@ -1390,7 +1390,7 @@ export default function FlashcardViewer({
                 boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(155,178,255,0.12)',
                 background: 'var(--background)',
                 border: '1px solid rgba(120,148,255,0.38)',
-                color: '#eeeaff',
+                color: 'var(--md-text)',
                 transform: 'rotateY(180deg)',
               }}
             >

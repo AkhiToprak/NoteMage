@@ -36,7 +36,7 @@ const bubbleComponents: Components = {
         fontFamily: 'var(--font-chat)',
         fontSize: '2em',
         fontWeight: 700,
-        color: '#ede9ff',
+        color: 'var(--md-h1)',
         margin: '1em 0 0.5em',
         lineHeight: 1.2,
         letterSpacing: '-0.01em',
@@ -51,7 +51,7 @@ const bubbleComponents: Components = {
         fontFamily: 'var(--font-chat)',
         fontSize: '1.55em',
         fontWeight: 700,
-        color: '#e0d8ff',
+        color: 'var(--md-h2)',
         margin: '0.9em 0 0.4em',
         lineHeight: 1.25,
         letterSpacing: '-0.01em',
@@ -67,7 +67,7 @@ const bubbleComponents: Components = {
       style={{
         fontSize: '1.25em',
         fontWeight: 700,
-        color: '#c4a9ff',
+        color: 'var(--md-h3)',
         margin: '0.75em 0 0.35em',
         lineHeight: 1.3,
       }}
@@ -80,7 +80,7 @@ const bubbleComponents: Components = {
       style={{
         fontSize: '1.1em',
         fontWeight: 700,
-        color: '#ae89ff',
+        color: 'var(--md-h4)',
         margin: '0.6em 0 0.3em',
         textTransform: 'uppercase',
         letterSpacing: '0.06em',
@@ -101,9 +101,9 @@ const bubbleComponents: Components = {
     </p>
   ),
   strong: ({ children }) => (
-    <strong style={{ fontWeight: 700, color: '#ede9ff' }}>{children}</strong>
+    <strong style={{ fontWeight: 700, color: 'var(--md-text)' }}>{children}</strong>
   ),
-  em: ({ children }) => <em style={{ fontStyle: 'italic', color: '#d4caff' }}>{children}</em>,
+  em: ({ children }) => <em style={{ fontStyle: 'italic', color: 'var(--md-em)' }}>{children}</em>,
   ul: ({ children }) => (
     <ul
       style={{
@@ -173,7 +173,7 @@ const bubbleComponents: Components = {
           padding: '2px 7px',
           fontSize: '0.85em',
           fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
-          color: '#c4a9ff',
+          color: 'var(--md-code)',
         }}
       >
         {children}
@@ -191,7 +191,7 @@ const bubbleComponents: Components = {
         overflow: 'hidden',
         fontSize: '0.82em',
         lineHeight: 1.6,
-        color: '#e0daf8',
+        color: 'var(--md-pre)',
       }}
     >
       {children}
@@ -203,7 +203,7 @@ const bubbleComponents: Components = {
         borderLeft: '3px solid rgba(174,137,255,0.5)',
         paddingLeft: '1em',
         margin: '0.6em 0',
-        color: 'rgba(229,227,255,0.65)',
+        color: 'var(--ink-60)',
         fontStyle: 'italic',
       }}
     >
@@ -225,7 +225,7 @@ const bubbleComponents: Components = {
       target="_blank"
       rel="noopener noreferrer"
       style={{
-        color: '#ae89ff',
+        color: 'var(--md-link)',
         textDecoration: 'underline',
         textDecorationColor: 'rgba(174,137,255,0.4)',
         textUnderlineOffset: '2px',
@@ -255,7 +255,7 @@ const bubbleComponents: Components = {
       style={{
         padding: '8px 12px',
         textAlign: 'left',
-        color: '#c4a9ff',
+        color: 'var(--md-h3)',
         fontWeight: 700,
         fontSize: '0.85em',
         textTransform: 'uppercase',
@@ -270,7 +270,7 @@ const bubbleComponents: Components = {
       style={{
         padding: '8px 12px',
         borderBottom: '1px solid rgba(174,137,255,0.20)',
-        color: 'rgba(229,227,255,0.8)',
+        color: 'var(--ink-70)',
       }}
     >
       {children}
