@@ -35,7 +35,7 @@ import FlashcardSetManager from '@/components/notebook/FlashcardSetManager';
 import ExportDialog from '@/components/notebook/ExportDialog';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import FirstPathPrompt from '@/components/onboarding/FirstPathPrompt';
-import StudyPlanCreator from '@/components/notebook/StudyPlanCreator';
+import LearnNotebookSetup from '@/components/notebook/LearnNotebookSetup';
 import QuizSetCreator from '@/components/notebook/QuizSetCreator';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
@@ -662,8 +662,8 @@ export default function UnifiedSidebar() {
             {/* ── QUIZZES section ──────────────────────────────────── */}
             <QuizSetTreeSection />
 
-            {/* ── STUDY PLANS section ──────────────────────────────── */}
-            <StudyPlanTreeSection />
+            {/* ── LEARN entry (Phase 8) ────────────────────────────── */}
+            <LearnEntrySection />
 
             {/* ── CHATS section ─────────────────────────────────────── */}
             <ChatTreeSection />
@@ -1875,235 +1875,142 @@ function QuizSetTreeSection() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   StudyPlanTreeSection — Study Plans area
+   LearnEntrySection (Phase 8) — single CTA replacing the old Study Plans tree.
+   Either routes to /learn (when a plan exists) or opens LearnNotebookSetup
+   to build one. The legacy per-notebook plan tree is gone; /learn is the
+   single canonical surface for browsing paths.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function StudyPlanTreeSection() {
-  const { notebookId, studyPlans, activeStudyPlanId, refreshStudyPlans } = useNotebookWorkspace();
-  const [expanded, setExpanded] = useState(true);
-  const [showCreator, setShowCreator] = useState(false);
+function LearnEntrySection() {
+  const { notebookId, notebook, studyPlans, refreshStudyPlans } = useNotebookWorkspace();
+  const [showSetup, setShowSetup] = useState(false);
+  const hasPlan = studyPlans.length > 0;
 
-  const handleDeletePlan = useCallback(
-    async (planId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/study-plans/${planId}`, { method: 'DELETE' });
-        refreshStudyPlans();
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, refreshStudyPlans]
-  );
-
-  const formatDateRange = (start: string, end: string) => {
-    const s = new Date(start);
-    const e = new Date(end);
-    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${fmt(s)} – ${fmt(e)}`;
-  };
+  const handleSetupClose = useCallback(() => {
+    setShowSetup(false);
+    refreshStudyPlans();
+  }, [refreshStudyPlans]);
 
   return (
     <>
-      <div style={{ paddingBottom: '4px' }}>
-        {/* Header */}
+      <div style={{ padding: '8px 14px 6px' }}>
         <div
-          onClick={() => setExpanded((v) => !v)}
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 14px 6px',
-            cursor: 'pointer',
-            userSelect: 'none',
+            gap: '6px',
+            marginBottom: '8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ChevronRight
-              size={12}
-              style={{
-                color: 'rgba(196,169,255,0.5)',
-                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.12s ease',
-              }}
-            />
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '4px',
-                background: 'rgba(140,82,255,0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <CalendarDays size={9} style={{ color: '#c4a9ff' }} />
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'rgba(196,169,255,0.65)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Study Plans
-            </span>
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCreator(true);
-            }}
-            title="New study plan"
+          <div
             style={{
+              width: '16px',
+              height: '16px',
+              borderRadius: '4px',
+              background: 'rgba(140,82,255,0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(196,169,255,0.35)',
-              cursor: 'pointer',
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.35)';
+              flexShrink: 0,
             }}
           >
-            <Plus size={13} />
-          </button>
+            <CalendarDays size={9} style={{ color: '#c4a9ff' }} />
+          </div>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'rgba(196,169,255,0.65)',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Learn
+          </span>
         </div>
 
-        {expanded && (
-          <>
-            {studyPlans.length === 0 && (
-              <div style={{ padding: '12px 14px', textAlign: 'center' }}>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--ink-40)',
-                    margin: 0,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  No study plans yet.
-                </p>
-              </div>
-            )}
-
-            {studyPlans.map((plan) => {
-              const isActive = plan.id === activeStudyPlanId;
-              return (
-                <Link
-                  key={plan.id}
-                  href={`/notebooks/${notebookId}/study-plan/${plan.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px 6px 28px',
-                    textDecoration: 'none',
-                    background: isActive ? 'rgba(140,82,255,0.12)' : 'transparent',
-                    borderRight: isActive ? '2px solid #8c52ff' : '2px solid transparent',
-                    transition: 'background 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background =
-                        'rgba(140,82,255,0.06)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'var(--ink-70)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {plan.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: 'rgba(196,169,255,0.48)',
-                        marginTop: '1px',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {formatDateRange(plan.startDate, plan.endDate)} · {plan._count.phases} phase
-                      {plan._count.phases !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeletePlan(plan.id, e)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '4px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'rgba(196,169,255,0.2)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      opacity: 0,
-                      transition: 'opacity 0.12s ease, color 0.12s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.8)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
-                    }}
-                    className="plan-delete-btn"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </Link>
-              );
-            })}
-          </>
+        {hasPlan ? (
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <Link
+              href="/learn"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 12px',
+                background: 'rgba(140,82,255,0.18)',
+                border: '1px solid rgba(174,137,255,0.32)',
+                borderRadius: '8px',
+                color: '#f0edff',
+                fontSize: '13px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontFamily: 'inherit',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                school
+              </span>
+              Open learn path
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowSetup(true)}
+              title="Build another path"
+              aria-label="Build another path"
+              style={{
+                width: '34px',
+                height: '34px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: '1px solid rgba(174,137,255,0.20)',
+                borderRadius: '8px',
+                color: 'rgba(196,169,255,0.75)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowSetup(true)}
+            style={{
+              width: '100%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              background: 'rgba(140,82,255,0.18)',
+              border: '1px solid rgba(174,137,255,0.32)',
+              borderRadius: '8px',
+              color: '#f0edff',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+              auto_fix_high
+            </span>
+            Build learn path
+          </button>
         )}
       </div>
 
-      {showCreator && (
-        <StudyPlanCreator
+      {showSetup && (
+        <LearnNotebookSetup
           notebookId={notebookId}
-          onCreated={(planId) => {
-            setShowCreator(false);
-            refreshStudyPlans();
-            window.location.href = `/notebooks/${notebookId}/study-plan/${planId}`;
-          }}
-          onClose={() => setShowCreator(false)}
+          notebookName={notebook?.name ?? 'this notebook'}
+          onClose={handleSetupClose}
         />
       )}
-
-      {/* Show delete button on hover via CSS-in-JS (inline styles don't support :hover on children) */}
-      <style>{`
-        a:hover .plan-delete-btn { opacity: 1 !important; }
-      `}</style>
     </>
   );
 }

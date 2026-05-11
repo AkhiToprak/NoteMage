@@ -66,6 +66,12 @@ export async function POST(request: NextRequest, { params }: Params) {
         startDate: string;
         endDate: string;
         status?: string;
+        // Phase 8 — manual builders can pick a gating strategy per phase so
+        // the resulting plan plugs into the Learn Path experience. When
+        // absent, falls back to the schema default ('open'). The manual UI
+        // sends 'checkpoint' for any phase that ends in a quiz_set, which
+        // is the convention path-gating.ts uses to identify the checkpoint.
+        gateStrategy?: 'open' | 'sequential' | 'checkpoint';
         materials?: {
           type: string;
           referenceId: string;
@@ -105,7 +111,8 @@ export async function POST(request: NextRequest, { params }: Params) {
               sortOrder: p.sortOrder ?? i,
               startDate: new Date(p.startDate),
               endDate: new Date(p.endDate),
-              status: p.status || 'upcoming',
+              status: p.status || (i === 0 ? 'active' : 'upcoming'),
+              ...(p.gateStrategy ? { gateStrategy: p.gateStrategy } : {}),
               materials: p.materials?.length
                 ? {
                     create: p.materials.map((m, j) => ({
