@@ -16,6 +16,7 @@ Living checklist for the rework defined in [personal-duolingo-rework.md](persona
 - `[MOBILE-WEB]` — Chrome DevTools device toolbar at 390×844 (iPhone 14).
 - `[iOS]` — actual iOS WebView shell build, not DevTools emulation.
 - `[DB]` — direct DB inspection via Prisma Studio or `psql`.
+- `[LOGS]` — server stdout in `pnpm dev:web` terminal or Coolify container logs.
 - `[E2E]` — end-to-end smoke; runs only after Phase 7 lands.
 
 ---
@@ -232,9 +233,14 @@ Run this whole block for **each** of the four types. Generate a quiz with that k
 
 ---
 
-## Phase 7 — Achievements + polish (status: NOT BUILT)
+## Phase 7 — Achievements + polish (status: CODE COMPLETE, manual pass pending)
 
 ### New achievements (each unlocks a cosmetic via `unlockCosmeticsForAchievement`)
+
+Unlock mapping (in `src/lib/achievements.ts`): `perfect_quiz → title.perfectionist`,
+`streak_10_in_a_row → title.unstoppable`, `phase_complete → title.pathfinder`,
+`path_complete → title.master`, `checkpoint_ace → title.ace`,
+`comeback → title.comeback-kid`. All six are new title slugs added in this PR.
 
 - [ ] `[NEW]` `[WEB]` `perfect_quiz` — take a ≥5-question quiz, score 100% → unlock fires → cosmetic appears in inventory + toast
 - [ ] `[NEW]` `[WEB]` `streak_10_in_a_row` — in a single quiz session, get 10 correct in a row → unlock
@@ -245,10 +251,17 @@ Run this whole block for **each** of the four types. Generate a quiz with that k
 
 ### Telemetry
 
-- [ ] `[NEW]` `[WEB]` On streak milestone → `quiz.streak_hit` event posts (Network tab filter)
-- [ ] `[NEW]` `[WEB]` On 100% finish → `quiz.perfect` event posts
-- [ ] `[NEW]` `[WEB]` On phase finish → `path.phase_completed` event posts
-- [ ] `[NEW]` `[WEB]` On checkpoint pass → `path.checkpoint_passed` event posts
+> **Sink shape:** Phase 7 ships a thin sink only. Client-side events (`quiz.*`)
+> POST `/api/telemetry`, which `console.info`s a structured line. Server-side
+> events (`path.*`) bypass the HTTP hop and emit the same line directly from
+> the attempts route. Verify Network tab for the two `quiz.*` events; verify
+> server stdout (`[telemetry] {...}` lines in `pnpm dev:web` output or Coolify
+> logs) for the two `path.*` events.
+
+- [ ] `[NEW]` `[WEB]` On streak milestone (3/5/7/10/+5) → `quiz.streak_hit` event POSTs to `/api/telemetry`
+- [ ] `[NEW]` `[WEB]` On 100% finish on ≥5-question quiz → `quiz.perfect` event POSTs to `/api/telemetry`
+- [ ] `[NEW]` `[LOGS]` On phase finish → `[telemetry] {... "event":"path.phase_completed" ...}` in server stdout
+- [ ] `[NEW]` `[LOGS]` On checkpoint pass → `[telemetry] {... "event":"path.checkpoint_passed" ...}` in server stdout
 
 ### Polish
 

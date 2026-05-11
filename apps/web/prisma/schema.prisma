@@ -78,6 +78,11 @@ model User {
   hideAchievements      Boolean   @default(false) // If true, achievements hidden on public profile
   quizReactionsMode     String    @default("all") // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
   quizReactionsAudio    Boolean   @default(false) // Opt-in sound effects for quiz reactions
+  // Phase 7 — Personal-Duolingo rework achievement stats. Denormalized
+  // so achievement gathering reads a single column instead of replaying
+  // every QuizAttempt.answers blob. Bumped by the attempts route.
+  maxQuizStreakEver     Int       @default(0) // Longest consecutive-correct run in any single quiz session
+  everHadComeback       Boolean   @default(false) // Has the user ever, in one session, hit ≥3 wrong then ≥5 right?
   tier                  Tier      @default(FREE)
   pendingTier           Tier? // Tier to switch to at end of current period (null = no change)
   subscriptionPeriodEnd DateTime? // When the current billing period ends (null = free / no active period)

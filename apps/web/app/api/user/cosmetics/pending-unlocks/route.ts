@@ -20,7 +20,6 @@ import { COSMETICS } from '@/lib/cosmetics/catalog';
  *     cosmeticId: string,     // slug — callers resolve it via COSMETICS[]
  *     cosmeticType: CosmeticType,
  *     label: string,
- *     requiredLevel: number,
  *     createdAt: string,
  *   }>
  * }
@@ -59,7 +58,6 @@ export async function GET(request: NextRequest) {
           cosmeticId,
           cosmeticType: entry.type,
           label: entry.label,
-          requiredLevel: entry.requiredLevel,
           createdAt: row.createdAt.toISOString(),
         };
       })

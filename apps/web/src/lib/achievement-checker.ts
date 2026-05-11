@@ -66,13 +66,17 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       select: { id: true },
     }),
 
-    // User record for usernameChanged, scholarName, tutorial state
+    // User record for usernameChanged, scholarName, tutorial state, and
+    // the Phase 7 in-session streak/comeback signals persisted by the
+    // attempts route.
     db.user.findUnique({
       where: { id: userId },
       select: {
         usernameChanged: true,
         scholarName: true,
         tutorialState: true,
+        maxQuizStreakEver: true,
+        everHadComeback: true,
       },
     }),
 
@@ -120,6 +124,72 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
 
     db.quizSet.count({ where: { notebook: { userId } } }),
   ]);
+
+  // ── Phase 7 — Personal-Duolingo rework gather ───────────────────────
+  // Three of these go through Prisma (path/phase rollups), two through
+  // raw SQL where Prisma's relational where-builder can't express the
+  // condition cheaply (perfect-on-a-5+-question-quiz, first-attempt ace).
+  // `maxQuizStreakEver` and `everHadComeback` are denormalized on User
+  // and arrive via `userRecord` above — no extra query.
+  const [
+    perfectQuizRow,
+    phaseComplete,
+    pathComplete,
+    checkpointAceRow,
+  ] = await Promise.all([
+    db.$queryRaw<{ ok: boolean }[]>(Prisma.sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM quiz_attempts a
+        JOIN quiz_sets s ON s.id = a."quizSetId"
+        WHERE a."userId" = ${userId}
+          AND a.percentage = 100
+          AND (SELECT COUNT(*) FROM quiz_questions WHERE "quizSetId" = s.id) >= 5
+      ) AS ok
+    `),
+
+    // Any phase whose every material is completed (and has ≥1 material).
+    db.studyPhase.findFirst({
+      where: {
+        plan: { notebook: { userId } },
+        materials: { some: {}, every: { completed: true } },
+      },
+      select: { id: true },
+    }),
+
+    // Any plan whose every phase has every material completed.
+    db.studyPlan.findFirst({
+      where: {
+        notebook: { userId },
+        phases: {
+          some: {},
+          every: {
+            materials: { some: {}, every: { completed: true } },
+          },
+        },
+      },
+      select: { id: true },
+    }),
+
+    // First-attempt-per-phase that scored 100%. ROW_NUMBER gives us the
+    // earliest attempt per phase; we check whether any of those landed at
+    // 100% straight away (the "ace" pattern).
+    db.$queryRaw<{ ok: boolean }[]>(Prisma.sql`
+      SELECT EXISTS (
+        SELECT 1 FROM (
+          SELECT percentage,
+                 ROW_NUMBER() OVER (PARTITION BY "phaseId" ORDER BY "attemptedAt" ASC) AS rn
+          FROM checkpoint_attempts
+          WHERE "userId" = ${userId}
+        ) t
+        WHERE t.rn = 1 AND t.percentage = 100
+      ) AS ok
+    `),
+  ]);
+  const hasPerfectQuiz = perfectQuizRow[0]?.ok === true;
+  const hasPhaseComplete = !!phaseComplete;
+  const hasPathComplete = !!pathComplete;
+  const hasCheckpointAce = checkpointAceRow[0]?.ok === true;
 
   // ── Perfect first try (needs sequential logic) ──────────────────────
   let hasPerfectFirstTry = false;
@@ -181,6 +251,12 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     flashcardReviewCount: flashcardReviewAgg._sum.repetitions ?? 0,
     documentCount,
     quizSetCount,
+    hasPerfectQuiz,
+    maxQuizStreakEver: userRecord?.maxQuizStreakEver ?? 0,
+    everHadComeback: userRecord?.everHadComeback ?? false,
+    hasPhaseComplete,
+    hasPathComplete,
+    hasCheckpointAce,
   };
 }
 

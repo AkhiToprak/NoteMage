@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { grade } from '@/lib/quiz-grading';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
 import { isCheckpointMaterial } from '@/lib/path-gating';
+import { logTelemetry } from '@/lib/telemetry-server';
 import {
   successResponse,
   createdResponse,
@@ -110,6 +111,29 @@ export async function POST(
     const total = quizSet.questions.length;
     const percentage = total > 0 ? Math.round((score / total) * 100 * 100) / 100 : 0;
 
+    // Phase 7 — replay the answer order to compute the two session-bound
+    // achievement signals: longest correct run, and whether a 3-wrong slump
+    // was followed by a 5-right comeback in the same session. "Armed" stays
+    // sticky once the user hits 3 wrong, so any 5-in-a-row after that point
+    // counts as the comeback.
+    let correctRun = 0;
+    let wrongRun = 0;
+    let maxRun = 0;
+    let armed = false;
+    let hadComeback = false;
+    for (const r of answerRecords) {
+      if (r.isCorrect) {
+        correctRun++;
+        wrongRun = 0;
+        if (correctRun > maxRun) maxRun = correctRun;
+        if (armed && correctRun >= 5) hadComeback = true;
+      } else {
+        wrongRun++;
+        correctRun = 0;
+        if (wrongRun >= 3) armed = true;
+      }
+    }
+
     const attempt = await db.quizAttempt.create({
       data: {
         quizSetId: setId,
@@ -124,6 +148,17 @@ export async function POST(
       },
       include: { answers: true },
     });
+
+    // Atomic User update — GREATEST/OR is safe under concurrent attempts.
+    // Skip the round-trip entirely when there's nothing to advance.
+    if (maxRun > 0 || hadComeback) {
+      await db.$executeRaw(Prisma.sql`
+        UPDATE users
+        SET "maxQuizStreakEver" = GREATEST("maxQuizStreakEver", ${maxRun}),
+            "everHadComeback"   = "everHadComeback" OR ${hadComeback}
+        WHERE id = ${userId}
+      `);
+    }
 
     // Phase 5 — Learn Path side effects. Only fires when the client passes a
     // materialId, which only happens for path-launched quizzes. Direct quiz
@@ -148,6 +183,16 @@ export async function POST(
             data: { completed: true },
           });
           materialCompleted = true;
+          // Phase 7 — phase-complete telemetry. The phase is fully done
+          // iff this material was the last incomplete one. We have the
+          // sibling list pre-loaded, so checking the others is a local op.
+          const others = material.phase.materials.filter((m) => m.id !== material.id);
+          if (others.every((m) => m.completed)) {
+            logTelemetry(userId, 'path.phase_completed', {
+              phaseId: material.phaseId,
+              planId: material.phase.planId,
+            });
+          }
         }
         const isCheckpoint = isCheckpointMaterial(material.phase, material.id);
         if (isCheckpoint) {
@@ -162,6 +207,13 @@ export async function POST(
             },
           });
           checkpointPassed = passed;
+          if (passed) {
+            logTelemetry(userId, 'path.checkpoint_passed', {
+              phaseId: material.phaseId,
+              planId: material.phase.planId,
+              percentage,
+            });
+          }
         }
       }
     }

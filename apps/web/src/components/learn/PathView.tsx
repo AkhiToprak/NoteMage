@@ -128,12 +128,12 @@ function PathLessonNode({
       {isActive && (
         <span
           aria-hidden
+          className="learn-path-pulse"
           style={{
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
             border: '3px solid var(--primary)',
-            animation: 'learnPathPulse 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite',
             pointerEvents: 'none',
           }}
         />
@@ -143,6 +143,7 @@ function PathLessonNode({
         onClick={isLocked ? undefined : onClick}
         aria-label={`${material.title}${isLocked ? ' (locked)' : ''}`}
         aria-disabled={isLocked || undefined}
+        className="learn-path-node"
         style={{
           width: '100%',
           height: '100%',
@@ -155,10 +156,18 @@ function PathLessonNode({
           justifyContent: 'center',
           padding: 0,
           fontFamily: 'inherit',
-          transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
         onMouseEnter={(e) => {
-          if (!isLocked) e.currentTarget.style.transform = 'scale(1.05)';
+          if (isLocked) return;
+          // Skip the scale under prefers-reduced-motion — without the
+          // transition (also disabled below) the jump-cut would be jarring.
+          if (
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ) {
+            return;
+          }
+          e.currentTarget.style.transform = 'scale(1.05)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
@@ -219,6 +228,16 @@ export default function PathView({ plan }: { plan: PathPlan }) {
           0% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.12); opacity: 0.55; }
           100% { transform: scale(1); opacity: 1; }
+        }
+        .learn-path-pulse {
+          animation: learnPathPulse 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+        .learn-path-node {
+          transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .learn-path-pulse { animation: none; }
+          .learn-path-node { transition: none; }
         }
       `}</style>
 

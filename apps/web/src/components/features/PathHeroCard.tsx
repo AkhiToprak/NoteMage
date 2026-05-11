@@ -56,6 +56,97 @@ function deriveHero(plans: PathPlan[]): Derived | null {
   };
 }
 
+function NoPathCard({ hasPlans }: { hasPlans: boolean }) {
+  // hasPlans: the API returned plans but none of them have content yet
+  // (orphaned phases / empty materials). The copy diverges from the
+  // "no plans at all" case so the user knows whether to upload content
+  // or pick up where they left off.
+  return (
+    <div
+      style={{
+        background: 'var(--surface-container-low)',
+        border: '1px solid var(--outline-variant)',
+        borderLeft: '4px solid var(--primary)',
+        borderRadius: '16px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: '11px',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--on-surface-variant)',
+            fontWeight: 600,
+          }}
+        >
+          Learn path
+        </p>
+        <h3
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-display)',
+            fontSize: '20px',
+            fontWeight: 700,
+            color: 'var(--on-surface)',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {hasPlans ? 'Add notes to your path' : 'Generate a learn path'}
+        </h3>
+        <p
+          style={{
+            margin: 0,
+            fontSize: '13px',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          {hasPlans
+            ? 'Upload notes into a notebook so NoteMage can fill your path with lessons.'
+            : 'Drop notes into a notebook and NoteMage will turn them into a guided study path.'}
+        </p>
+      </div>
+      <div>
+        <Link
+          href="/notebooks"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            background: 'var(--primary)',
+            color: 'var(--on-primary)',
+            borderRadius: 'var(--radius-full)',
+            border: 'none',
+            fontSize: '14px',
+            fontWeight: 700,
+            textDecoration: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+            auto_fix_high
+          </span>
+          {hasPlans ? 'Open a notebook' : 'Generate a learn path'}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function HeroSkeleton() {
   return (
     <div
@@ -136,7 +227,7 @@ export default function PathHeroCard() {
 
   if (state.kind === 'loading') return <HeroSkeleton />;
   if (state.kind === 'error') return null;
-  if (!derived) return null;
+  if (!derived) return <NoPathCard hasPlans={state.kind === 'ready' && state.plans.length > 0} />;
 
   const { plan, activePhase, activePhaseIndex, nextMaterialIsCheckpoint, percent, pathDone } =
     derived;

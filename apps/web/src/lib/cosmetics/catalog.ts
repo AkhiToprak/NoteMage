@@ -6,8 +6,11 @@
  *   and requires zero migrations. `UserCosmetic.cosmeticId` references these
  *   slugs by convention, not via a foreign key.
  * - Renderers treat unknown slugs as no-ops, so removing entries is safe.
- * - Every entry has a stable `id`, a `type`, a human `label`, and a
- *   `requiredLevel`. Type-specific rendering data lives on each union member.
+ * - Every entry has a stable `id`, a `type`, and a human `label`. The five
+ *   baseline entries (`title.newcomer`, `font.default`, `color.default`,
+ *   `frame.default`, `bg.default`) carry `isDefault: true` — they're always
+ *   considered owned, even without a `UserCosmetic` row. Type-specific
+ *   rendering data lives on each union member.
  *
  * To add a new unlockable:
  *   1. Add a typed entry below.
@@ -24,17 +27,21 @@ interface BaseCosmetic {
   type: CosmeticType;
   label: string;
   description?: string;
-  requiredLevel: number;
+  /**
+   * Baseline "no cosmetic" entries — the five sentinels users always have
+   * (the starter title plus each type's `*.default`). When `true`, ownership
+   * checks pass without a `UserCosmetic` row and the showcase hides the
+   * entry (it's the baseline, nothing to celebrate).
+   */
+  isDefault?: boolean;
   /**
    * Grant-only entries. When `true`, the cosmetic is NEVER auto-unlocked by
-   * the level-up pipeline — it only ever enters `UserCosmetic` via the admin
-   * grant endpoint. `requiredLevel` is still stored (set it to 1 for UI
-   * sorting) but the unlock checker ignores it.
+   * any achievement; it only ever enters `UserCosmetic` via the admin
+   * grant endpoint.
    *
-   * The profile PUT validator treats adminOnly items like any other non-L1
-   * cosmetic: it requires a matching `UserCosmetic` row before allowing
-   * equip. Admins who want to equip adminOnly items first grant the row to
-   * themselves via POST /api/admin/users/:id/cosmetics.
+   * The profile PUT validator requires a matching `UserCosmetic` row before
+   * allowing equip. Admins who want to equip adminOnly items first grant
+   * the row to themselves via POST /api/admin/users/:id/cosmetics.
    */
   adminOnly?: boolean;
 }
@@ -82,7 +89,7 @@ export type Cosmetic =
   | BackgroundCosmetic;
 
 // ---------------------------------------------------------------------------
-// The catalog. Keep entries grouped by type and sorted by requiredLevel.
+// The catalog. Keep entries grouped by type and sorted alphabetically by label.
 // ---------------------------------------------------------------------------
 
 export const COSMETICS: Record<string, Cosmetic> = {
@@ -95,52 +102,77 @@ export const COSMETICS: Record<string, Cosmetic> = {
     id: 'title.newcomer',
     type: 'title',
     label: 'Noob',
-    requiredLevel: 1,
+    isDefault: true,
   },
   'title.apprentice': {
     id: 'title.apprentice',
     type: 'title',
     label: 'student',
-    requiredLevel: 3,
   },
   'title.night-owl': {
     id: 'title.night-owl',
     type: 'title',
     label: 'scholar',
-    requiredLevel: 5,
   },
   'title.flashcard-fiend': {
     id: 'title.flashcard-fiend',
     type: 'title',
     label: 'locked in',
-    requiredLevel: 10,
   },
   'title.scholar': {
     id: 'title.scholar',
     type: 'title',
     label: 'mage',
-    requiredLevel: 15,
   },
   'title.polymath': {
     id: 'title.polymath',
     type: 'title',
     label: 'Pro',
-    requiredLevel: 20,
   },
   'title.archmage': {
     id: 'title.archmage',
     type: 'title',
     label: 'hacker',
-    requiredLevel: 30,
   },
-  // Admin-granted titles. `requiredLevel: 1` keeps the sort stable; the
-  // `adminOnly` flag is what actually blocks auto-unlocks.
+  // Phase 7 — Personal-Duolingo rework achievement titles. Each is the
+  // dedicated unlock for one of the six new achievements; keep slugs stable
+  // even if labels are re-themed later.
+  'title.perfectionist': {
+    id: 'title.perfectionist',
+    type: 'title',
+    label: 'perfectionist',
+  },
+  'title.unstoppable': {
+    id: 'title.unstoppable',
+    type: 'title',
+    label: 'unstoppable',
+  },
+  'title.pathfinder': {
+    id: 'title.pathfinder',
+    type: 'title',
+    label: 'pathfinder',
+  },
+  'title.master': {
+    id: 'title.master',
+    type: 'title',
+    label: 'master',
+  },
+  'title.ace': {
+    id: 'title.ace',
+    type: 'title',
+    label: 'ace',
+  },
+  'title.comeback-kid': {
+    id: 'title.comeback-kid',
+    type: 'title',
+    label: 'comeback kid',
+  },
+  // Admin-granted titles. The `adminOnly` flag blocks auto-unlocks.
   'title.og-noter': {
     id: 'title.og-noter',
     type: 'title',
     label: 'OG-Noter',
     description: 'Granted to early supporters by the team.',
-    requiredLevel: 1,
     adminOnly: true,
   },
   'title.tester': {
@@ -148,7 +180,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'title',
     label: 'Tester',
     description: 'Granted to pre-release beta testers.',
-    requiredLevel: 1,
     adminOnly: true,
   },
 
@@ -163,28 +194,25 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'nameFont',
     label: 'Default',
     css: 'inherit',
-    requiredLevel: 1,
+    isDefault: true,
   },
   'font.display': {
     id: 'font.display',
     type: 'nameFont',
     label: 'Epilogue',
     css: "var(--font-epilogue), 'Epilogue', serif",
-    requiredLevel: 3,
   },
   'font.brand': {
     id: 'font.brand',
     type: 'nameFont',
     label: 'Oswald',
     css: "var(--font-oswald), 'Oswald', sans-serif",
-    requiredLevel: 6,
   },
   'font.serif': {
     id: 'font.serif',
     type: 'nameFont',
     label: 'Playfair',
     css: "var(--font-playfair), 'Playfair Display', Georgia, serif",
-    requiredLevel: 8,
   },
   'font.cinzel': {
     id: 'font.cinzel',
@@ -192,7 +220,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Cinzel',
     description: 'Roman inscriptions, reborn.',
     css: "var(--font-cinzel), 'Cinzel', serif",
-    requiredLevel: 9,
   },
   'font.imfell': {
     id: 'font.imfell',
@@ -200,7 +227,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'IM Fell',
     description: 'Weathered renaissance small-caps.',
     css: "var(--font-imfell), 'IM Fell English SC', serif",
-    requiredLevel: 11,
   },
   'font.abril': {
     id: 'font.abril',
@@ -208,7 +234,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Abril',
     description: 'Editorial display slab.',
     css: "var(--font-abril), 'Abril Fatface', 'Playfair Display', serif",
-    requiredLevel: 13,
   },
   'font.pacifico': {
     id: 'font.pacifico',
@@ -216,7 +241,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Pacifico',
     description: 'Retro handwritten script.',
     css: "var(--font-pacifico), 'Pacifico', cursive",
-    requiredLevel: 14,
   },
   'font.marker': {
     id: 'font.marker',
@@ -224,7 +248,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Marker',
     description: 'Ink on whiteboard.',
     css: "var(--font-marker), 'Permanent Marker', cursive",
-    requiredLevel: 15,
   },
   'font.medieval': {
     id: 'font.medieval',
@@ -232,14 +255,12 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Medieval',
     description: 'Illuminated-manuscript blackletter.',
     css: "var(--font-medieval), 'MedievalSharp', serif",
-    requiredLevel: 16,
   },
   'font.mono': {
     id: 'font.mono',
     type: 'nameFont',
     label: 'JetBrains',
     css: "var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace",
-    requiredLevel: 18,
   },
   'font.orbitron': {
     id: 'font.orbitron',
@@ -247,7 +268,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Orbitron',
     description: 'Retro-futurist geometry.',
     css: "var(--font-orbitron), 'Orbitron', sans-serif",
-    requiredLevel: 19,
   },
   'font.pressstart': {
     id: 'font.pressstart',
@@ -255,7 +275,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Press Start',
     description: 'Pixel arcade legend.',
     css: "var(--font-pressstart), 'Press Start 2P', 'Courier New', monospace",
-    requiredLevel: 21,
   },
   'font.unifraktur': {
     id: 'font.unifraktur',
@@ -263,7 +282,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Fraktur',
     description: 'Forbidden grimoire gothic.',
     css: "var(--font-unifraktur), 'UnifrakturMaguntia', serif",
-    requiredLevel: 23,
   },
   'font.bungee': {
     id: 'font.bungee',
@@ -271,7 +289,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Bungee',
     description: 'Dimensional marquee display.',
     css: "var(--font-bungee), 'Bungee Shade', Impact, sans-serif",
-    requiredLevel: 26,
   },
   // Admin-only: chunky pixel block font reminiscent of a certain sandbox
   // game. Never auto-granted; only appears on accounts the admin has
@@ -282,7 +299,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Minecraft',
     description: 'Chunky pixel block — admin-granted only.',
     css: "var(--font-minecraft), 'Silkscreen', 'Press Start 2P', monospace",
-    requiredLevel: 1,
     adminOnly: true,
   },
 
@@ -293,7 +309,7 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Default',
     css: 'inherit',
     gradient: false,
-    requiredLevel: 1,
+    isDefault: true,
   },
   'color.primary': {
     id: 'color.primary',
@@ -301,7 +317,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Primary',
     css: 'var(--primary)',
     gradient: false,
-    requiredLevel: 2,
   },
   // --- Frames -------------------------------------------------------------
   'frame.default': {
@@ -309,7 +324,7 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'frame',
     label: 'Default',
     component: 'none',
-    requiredLevel: 1,
+    isDefault: true,
   },
   'frame.glow-purple': {
     id: 'frame.glow-purple',
@@ -317,7 +332,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Purple Glow',
     component: 'FrameGlow',
     params: { hue: 270 },
-    requiredLevel: 6,
   },
   'frame.glow-ember': {
     id: 'frame.glow-ember',
@@ -325,7 +339,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Ember Glow',
     component: 'FrameGlow',
     params: { hue: 20 },
-    requiredLevel: 9,
   },
   'frame.glow-emerald': {
     id: 'frame.glow-emerald',
@@ -333,7 +346,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Emerald Glow',
     component: 'FrameGlow',
     params: { hue: 150 },
-    requiredLevel: 14,
   },
   'frame.cosmic': {
     id: 'frame.cosmic',
@@ -341,7 +353,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Cosmic',
     component: 'FrameGlow',
     params: { hue: 210 },
-    requiredLevel: 20,
   },
   'frame.pulse-rose': {
     id: 'frame.pulse-rose',
@@ -349,7 +360,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Rose Pulse',
     component: 'FramePulse',
     params: { hue: 330 },
-    requiredLevel: 17,
   },
   'frame.pulse-aqua': {
     id: 'frame.pulse-aqua',
@@ -357,14 +367,12 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Aqua Pulse',
     component: 'FramePulse',
     params: { hue: 185 },
-    requiredLevel: 22,
   },
   'frame.prism': {
     id: 'frame.prism',
     type: 'frame',
     label: 'Prism',
     component: 'FramePrism',
-    requiredLevel: 25,
   },
 
   // --- Backgrounds --------------------------------------------------------
@@ -373,7 +381,7 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'background',
     label: 'Default',
     component: 'none',
-    requiredLevel: 1,
+    isDefault: true,
   },
   'bg.aurora-purple': {
     id: 'bg.aurora-purple',
@@ -381,7 +389,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Purple Aurora',
     component: 'BackgroundAurora',
     params: { hue: 270 },
-    requiredLevel: 2,
   },
   'bg.aurora-emerald': {
     id: 'bg.aurora-emerald',
@@ -389,7 +396,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Emerald Aurora',
     component: 'BackgroundAurora',
     params: { hue: 150 },
-    requiredLevel: 5,
   },
   'bg.aurora-sunset': {
     id: 'bg.aurora-sunset',
@@ -397,7 +403,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Sunset Aurora',
     component: 'BackgroundAurora',
     params: { hue: 20 },
-    requiredLevel: 8,
   },
   'bg.mesh': {
     id: 'bg.mesh',
@@ -405,7 +410,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Mesh Grid',
     component: 'BackgroundMesh',
     params: { hue: 270 },
-    requiredLevel: 13,
   },
   'bg.geometric-violet': {
     id: 'bg.geometric-violet',
@@ -413,7 +417,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Violet Weave',
     component: 'BackgroundGeometric',
     params: { hue: 260 },
-    requiredLevel: 10,
   },
   'bg.geometric-ember': {
     id: 'bg.geometric-ember',
@@ -421,14 +424,12 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Ember Weave',
     component: 'BackgroundGeometric',
     params: { hue: 15 },
-    requiredLevel: 18,
   },
   'bg.constellation': {
     id: 'bg.constellation',
     type: 'background',
     label: 'Constellation',
     component: 'BackgroundConstellation',
-    requiredLevel: 24,
   },
 };
 

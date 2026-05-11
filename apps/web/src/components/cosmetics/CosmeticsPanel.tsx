@@ -598,9 +598,10 @@ function BackgroundSwatchBody({ entry }: { entry: BackgroundCosmetic }) {
   );
 }
 
-// Compare for sorting: level asc, then label asc.
-function byLevelThenLabel(a: Cosmetic, b: Cosmetic) {
-  if (a.requiredLevel !== b.requiredLevel) return a.requiredLevel - b.requiredLevel;
+// Compare for sorting: defaults first (so the "no cosmetic" baseline is at
+// the front of the rail), then label asc.
+function byDefaultThenLabel(a: Cosmetic, b: Cosmetic) {
+  if (!!a.isDefault !== !!b.isDefault) return a.isDefault ? -1 : 1;
   return a.label.localeCompare(b.label);
 }
 
@@ -617,12 +618,12 @@ export function CosmeticsPanel({
   const { data, loading, error } = useCosmetics();
 
   // Catalog subsets, sorted by level asc.
-  const titles = React.useMemo(() => getCosmeticsByType('title').sort(byLevelThenLabel), []);
-  const fonts = React.useMemo(() => getCosmeticsByType('nameFont').sort(byLevelThenLabel), []);
-  const colors = React.useMemo(() => getCosmeticsByType('nameColor').sort(byLevelThenLabel), []);
-  const frames = React.useMemo(() => getCosmeticsByType('frame').sort(byLevelThenLabel), []);
+  const titles = React.useMemo(() => getCosmeticsByType('title').sort(byDefaultThenLabel), []);
+  const fonts = React.useMemo(() => getCosmeticsByType('nameFont').sort(byDefaultThenLabel), []);
+  const colors = React.useMemo(() => getCosmeticsByType('nameColor').sort(byDefaultThenLabel), []);
+  const frames = React.useMemo(() => getCosmeticsByType('frame').sort(byDefaultThenLabel), []);
   const backgrounds = React.useMemo(
-    () => getCosmeticsByType('background').sort(byLevelThenLabel),
+    () => getCosmeticsByType('background').sort(byDefaultThenLabel),
     []
   );
 
@@ -631,13 +632,13 @@ export function CosmeticsPanel({
     (id: string) => {
       if (!data) return false;
       const entry = COSMETICS[id];
-      // Admin-only cosmetics are NEVER auto-owned. They use `requiredLevel: 1`
-      // purely as a sort sentinel; ownership must come from an explicit admin
-      // grant that writes a UserCosmetic row.
+      // Admin-only cosmetics are NEVER auto-owned — ownership must come from
+      // an explicit admin grant that writes a UserCosmetic row.
       if (entry?.adminOnly) return data.owned.has(id);
-      // Level-1 defaults are always owned even if the UserCosmetic row hasn't
-      // been written yet — this mirrors the profile PUT validator.
-      if (entry && entry.requiredLevel <= 1) return true;
+      // The baseline "no cosmetic" entries are always owned even if the
+      // UserCosmetic row hasn't been written yet — mirrors the profile
+      // PUT validator.
+      if (entry?.isDefault) return true;
       return data.owned.has(id);
     },
     [data]

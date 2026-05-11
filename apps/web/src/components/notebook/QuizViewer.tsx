@@ -30,6 +30,7 @@ import {
   type QuizReactionLayerHandle,
 } from '@/components/quiz/QuizReactionLayer';
 import { computeReaction, type ReactionMode } from '@/lib/quiz-reactions';
+import { trackEvent } from '@/lib/telemetry';
 import type { QuestionKind } from '@notemage/shared';
 import SlideEditorModal, { SlideData } from './SlideEditorModal';
 
@@ -206,9 +207,24 @@ export default function QuizViewer({
       );
       if (reaction) reactionLayerRef.current?.fire(reaction);
 
+      // Telemetry — emit at the same milestones the reaction engine fires
+      // on (3 / 5 / 7) plus the 10-streak achievement gate and every +5
+      // beyond. Keeps the event stream cheap (one ping per milestone) while
+      // still surfacing long-tail streaks.
+      if (
+        isCorrect &&
+        (newCorrect === 3 ||
+          newCorrect === 5 ||
+          newCorrect === 7 ||
+          newCorrect === 10 ||
+          (newCorrect > 10 && newCorrect % 5 === 0))
+      ) {
+        trackEvent('quiz.streak_hit', { streak: newCorrect, quizSetId: setId });
+      }
+
       if (!isCorrect && newWrong === 3 && hint) setShowHint(true);
     },
-    [mode, reactionMode],
+    [mode, reactionMode, setId],
   );
 
   const next = useCallback(() => {
@@ -297,6 +313,11 @@ export default function QuizViewer({
         setAttemptHistory((prev) => [json.data, ...prev]);
         if (bestScore === null || json.data.percentage > bestScore) {
           setBestScore(json.data.percentage);
+        }
+        // Telemetry — perfect quiz event matches the achievement gate
+        // (100% on a ≥5-question set). Fires once per attempt.
+        if (json.data.percentage === 100 && questions.length >= 5) {
+          trackEvent('quiz.perfect', { quizSetId: setId, total: questions.length });
         }
         const final = computeReaction(
           {
