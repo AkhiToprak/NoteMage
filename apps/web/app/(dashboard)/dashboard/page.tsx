@@ -9,6 +9,7 @@ import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
 import DashboardAchievements from '@/components/features/DashboardAchievements';
 import DashboardGreeting from '@/components/features/DashboardGreeting';
+import PathHeroCard from '@/components/features/PathHeroCard';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
@@ -893,6 +894,9 @@ export default function DashboardPage() {
           onClose={() => setShowExamForm(false)}
         />
       )}
+
+      {/* Learn Path hero */}
+      <PathHeroCard />
 
       {/* Bento grid */}
       <section>

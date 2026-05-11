@@ -26,6 +26,7 @@ const navLinks: NavLink[] = [
     icon: (color) => <DashboardIcon size={22} color={color} />,
   },
   { href: '/profile', label: 'Profile', icon: 'person' },
+  { href: '/learn', label: 'Learn', icon: 'school' },
   {
     href: '/notebooks',
     label: 'Notebooks',

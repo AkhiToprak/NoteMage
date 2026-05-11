@@ -34,6 +34,7 @@ import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
 import FlashcardSetManager from '@/components/notebook/FlashcardSetManager';
 import ExportDialog from '@/components/notebook/ExportDialog';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
+import FirstPathPrompt from '@/components/onboarding/FirstPathPrompt';
 import StudyPlanCreator from '@/components/notebook/StudyPlanCreator';
 import QuizSetCreator from '@/components/notebook/QuizSetCreator';
 import { useSearch } from '@/hooks/useSearch';
@@ -76,6 +77,33 @@ export default function UnifiedSidebar() {
 
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
+
+  // First-path onboarding prompt — fires once when a user imports content into
+  // a notebook that has no study plan yet (and they haven't dismissed before).
+  const [showFirstPathPrompt, setShowFirstPathPrompt] = useState(false);
+
+  const maybeOpenFirstPathPrompt = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (window.localStorage.getItem('notemage_path_onboarding_dismissed')) return;
+    } catch {
+      // localStorage access can throw in private mode; fall through.
+    }
+    try {
+      const res = await fetch('/api/study-plans');
+      if (!res.ok) return;
+      const body = (await res.json()) as {
+        success?: boolean;
+        data?: Array<{ notebookId: string }>;
+      };
+      if (!body.success || !Array.isArray(body.data)) return;
+      const alreadyHasPlan = body.data.some((p) => p.notebookId === notebookId);
+      if (alreadyHasPlan) return;
+      setShowFirstPathPrompt(true);
+    } catch {
+      // network errors — fail quiet; this is a nice-to-have nudge.
+    }
+  }, [notebookId]);
 
   useEffect(() => {
     if (isCreatingSection && sectionInputRef.current) sectionInputRef.current.focus();
@@ -661,8 +689,18 @@ export default function UnifiedSidebar() {
           onImported={() => {
             setShowImportDialog(false);
             refreshSections();
+            void maybeOpenFirstPathPrompt();
           }}
           onClose={() => setShowImportDialog(false)}
+        />
+      )}
+
+      {/* First-import onboarding prompt */}
+      {showFirstPathPrompt && (
+        <FirstPathPrompt
+          notebookId={notebookId}
+          notebookName={notebook?.name ?? 'This notebook'}
+          onClose={() => setShowFirstPathPrompt(false)}
         />
       )}
 
