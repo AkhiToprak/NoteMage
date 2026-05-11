@@ -193,7 +193,9 @@ export default function NotebookSidebar({ notebookId }: NotebookSidebarProps) {
             borderRadius: '6px',
             border: '1px solid rgba(140,82,255,0.15)',
             background: newSectionHovered ? 'rgba(140,82,255,0.08)' : 'transparent',
-            color: newSectionHovered ? 'rgb(var(--notebook-ink-rgb) / 0.7)' : 'rgb(var(--notebook-ink-rgb) / 0.4)',
+            color: newSectionHovered
+              ? 'rgb(var(--notebook-ink-rgb) / 0.7)'
+              : 'rgb(var(--notebook-ink-rgb) / 0.4)',
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: 500,

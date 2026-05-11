@@ -93,10 +93,12 @@ export default function SectionPanel() {
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.8)';
+              (e.currentTarget as HTMLAnchorElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.8)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.4)';
             }}
           >
             <ArrowLeft size={14} />
@@ -144,7 +146,10 @@ export default function SectionPanel() {
               borderLeft: '3px solid rgba(140,82,255,0.4)',
             }}
           >
-            <FolderPlus size={12} style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }} />
+            <FolderPlus
+              size={12}
+              style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
+            />
             <input
               ref={inputRef}
               type="text"
@@ -305,11 +310,13 @@ export default function SectionPanel() {
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.07)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.6)';
+            (e.currentTarget as HTMLButtonElement).style.color =
+              'rgb(var(--notebook-ink-rgb) / 0.6)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgb(var(--notebook-ink-rgb) / 0.35)';
+            (e.currentTarget as HTMLButtonElement).style.color =
+              'rgb(var(--notebook-ink-rgb) / 0.35)';
           }}
         >
           <Plus size={12} />

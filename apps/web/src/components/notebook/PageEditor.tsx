@@ -1085,7 +1085,13 @@ export default function PageEditor({
           minHeight: '400px',
         }}
       >
-        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>
+        <p
+          style={{
+            fontFamily: 'inherit',
+            fontSize: '15px',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+          }}
+        >
           Page not found.
         </p>
       </div>

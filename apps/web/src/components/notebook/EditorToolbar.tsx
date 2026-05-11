@@ -396,7 +396,9 @@ function ColorPicker({
                 borderRadius: '6px',
                 background: c,
                 border:
-                  activeColor === c ? '2px solid #a47bff' : '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                  activeColor === c
+                    ? '2px solid #a47bff'
+                    : '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                 cursor: 'pointer',
                 transition: 'transform 0.1s',
               }}

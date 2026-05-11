@@ -1179,7 +1179,13 @@ export default function InfiniteCanvas({
           minHeight: '400px',
         }}
       >
-        <p style={{ fontFamily: 'inherit', fontSize: '15px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>
+        <p
+          style={{
+            fontFamily: 'inherit',
+            fontSize: '15px',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+          }}
+        >
           Page not found.
         </p>
       </div>
@@ -1394,7 +1400,9 @@ export default function InfiniteCanvas({
               height: '26px',
               padding: 0,
               borderRadius: '6px',
-              background: uiHidden ? 'rgba(174,137,255,0.14)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
+              background: uiHidden
+                ? 'rgba(174,137,255,0.14)'
+                : 'rgb(var(--notebook-ink-rgb) / 0.04)',
               border: uiHidden
                 ? '1px solid rgba(174,137,255,0.45)'
                 : '1px solid rgb(var(--notebook-ink-rgb) / 0.10)',
