@@ -52,33 +52,45 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { durationDays, goals } = body as { durationDays?: number; goals?: string };
+    const { durationDays, goals, materialIds } = body as {
+      durationDays?: number;
+      goals?: string;
+      // Phase 8 — when the client picks a subset of files for the path,
+      // the IDs land here. The AI prompt is then scoped to only these
+      // materials, matching exactly what the user selected. When absent
+      // we fall back to the whole notebook (legacy behavior).
+      materialIds?: string[];
+    };
+    const scopeSet =
+      Array.isArray(materialIds) && materialIds.length > 0 ? new Set(materialIds) : null;
+    const inScope = <T extends { id: string }>(item: T) => !scopeSet || scopeSet.has(item.id);
 
-    // Load notebook inventory
+    // Load notebook inventory (full pull; scopeSet narrows it below).
     const sections = await db.section.findMany({
       where: { notebookId },
       include: { pages: { select: { id: true, title: true } } },
     });
-    const flashcardSets = await db.flashcardSet.findMany({
+    const flashcardSets = (await db.flashcardSet.findMany({
       where: { notebookId },
       select: { id: true, title: true },
-    });
-    const quizSets = await db.quizSet.findMany({
+    })).filter(inScope);
+    const quizSets = (await db.quizSet.findMany({
       where: { notebookId },
       select: { id: true, title: true },
-    });
-    const documents = await db.document.findMany({
+    })).filter(inScope);
+    const documents = (await db.document.findMany({
       where: { notebookId },
       select: { id: true, fileName: true },
-    });
+    })).filter(inScope);
 
-    // Build inventory string with exact IDs
+    // Build inventory string with exact IDs (pages narrowed by scopeSet).
     const inventoryParts: string[] = [];
 
     if (sections.length > 0) {
       const pageLines: string[] = [];
       for (const s of sections) {
         for (const p of s.pages) {
+          if (!inScope(p)) continue;
           pageLines.push(`  - Page: "${p.title}" (id: ${p.id}, section: ${s.title})`);
         }
       }
@@ -107,7 +119,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (inventoryParts.length === 0) {
       return badRequestResponse(
-        'This notebook has no content to create a study plan from. Add pages, flashcards, quizzes, or documents first.'
+        scopeSet
+          ? 'None of the selected notes are available. Pick at least one note (or clear your selection to use the whole notebook).'
+          : 'This notebook has no content to create a study plan from. Add pages, flashcards, quizzes, or documents first.'
       );
     }
 
@@ -156,10 +170,14 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const input: StudyPlanToolInput = toolUse.input;
 
-    // Collect all valid referenceIds from inventory
+    // Collect referenceIds from the in-scope inventory so the AI's
+    // tool output can be validated against the user's actual selection.
     const validIds = new Set<string>();
     for (const s of sections) {
-      for (const p of s.pages) validIds.add(p.id);
+      for (const p of s.pages) {
+        if (!inScope(p)) continue;
+        validIds.add(p.id);
+      }
     }
     for (const f of flashcardSets) validIds.add(f.id);
     for (const q of quizSets) validIds.add(q.id);

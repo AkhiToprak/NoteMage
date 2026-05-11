@@ -5,17 +5,19 @@ import { useRouter } from 'next/navigation';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 
 // Phase 8 — single entry point for turning a notebook into a Learn Path.
-// Replaces the legacy StudyPlanCreator. Two modes:
+// File selection is a shared step at the top: the user picks (or unchecks)
+// which notes are in scope for the path, and can upload more without
+// leaving the modal. The bottom of the modal has two modes for HOW to
+// build from that scope:
 //
-//   1. AI — same generation flow as before, just rebranded.
-//   2. Manual — pick existing notebook materials (and optionally upload
-//      more notes), arrange them into phases, designate a checkpoint
-//      quiz per phase. Writes a StudyPlan with gateStrategy='checkpoint'
-//      on phases ending in a quiz, 'sequential' elsewhere — both render
-//      in /learn.
+//   1. AI — duration + optional goals. The backend feeds the selected
+//      materials (and only those) into the AI prompt.
+//   2. Manual — title + dates + a phase composer. The phase picker is
+//      drawn exclusively from the selected scope. The last quiz in each
+//      phase auto-becomes the checkpoint (gateStrategy='checkpoint');
+//      phases without a trailing quiz use 'sequential'.
 //
-// On success both modes route to /learn so the user immediately lands on
-// the new path UI instead of the legacy StudyPlanView.
+// Both modes route to /learn on success.
 
 type InventoryItem = {
   id: string;
@@ -60,6 +62,8 @@ const TYPE_LABEL: Record<InventoryItem['type'], string> = {
   document: 'Document',
 };
 
+const TYPE_ORDER: InventoryItem['type'][] = ['page', 'flashcard_set', 'quiz_set', 'document'];
+
 function todayISO() {
   return new Date().toISOString().split('T')[0];
 }
@@ -73,6 +77,11 @@ function isCheckpointPhase(phase: PhaseDraft): boolean {
   return last?.type === 'quiz_set';
 }
 
+function flatInventory(inv: Inventory | null): InventoryItem[] {
+  if (!inv) return [];
+  return [...inv.pages, ...inv.flashcardSets, ...inv.quizSets, ...inv.documents];
+}
+
 export default function LearnNotebookSetup({
   notebookId,
   notebookName,
@@ -82,6 +91,12 @@ export default function LearnNotebookSetup({
   const [tab, setTab] = useState<TabType>('ai');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Inventory + selection (shared across both tabs).
+  const [inventory, setInventory] = useState<Inventory | null>(null);
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showImport, setShowImport] = useState(false);
 
   // AI fields
   const [aiDuration, setAiDuration] = useState(14);
@@ -101,41 +116,70 @@ export default function LearnNotebookSetup({
     },
   ]);
   const [openPicker, setOpenPicker] = useState<number | null>(null);
-  const [showImport, setShowImport] = useState(false);
 
-  // Inventory
-  const [inventory, setInventory] = useState<Inventory | null>(null);
-  const [inventoryError, setInventoryError] = useState<string | null>(null);
-
-  const loadInventory = useCallback(async () => {
-    setInventoryError(null);
-    try {
-      const res = await fetch(`/api/notebooks/${notebookId}/inventory`);
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const body = (await res.json()) as { success?: boolean; data?: Inventory };
-      if (!body.success || !body.data) {
+  const loadInventory = useCallback(
+    async (preserveSelection: boolean) => {
+      setInventoryError(null);
+      try {
+        const res = await fetch(`/api/notebooks/${notebookId}/inventory`);
+        if (!res.ok) throw new Error(`status ${res.status}`);
+        const body = (await res.json()) as { success?: boolean; data?: Inventory };
+        if (!body.success || !body.data) {
+          setInventoryError('Failed to load notebook contents.');
+          return;
+        }
+        setInventory(body.data);
+        const allIds = flatInventory(body.data).map((i) => i.id);
+        if (preserveSelection) {
+          // Auto-add newly uploaded items: anything not in old inventory is new.
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            for (const id of allIds) if (!next.has(id)) next.add(id);
+            return next;
+          });
+        } else {
+          // First load: default everything selected so AI mode just works.
+          setSelectedIds(new Set(allIds));
+        }
+      } catch {
         setInventoryError('Failed to load notebook contents.');
-        return;
       }
-      setInventory(body.data);
-    } catch {
-      setInventoryError('Failed to load notebook contents.');
-    }
-  }, [notebookId]);
+    },
+    [notebookId],
+  );
 
   useEffect(() => {
-    void loadInventory();
+    void loadInventory(false);
   }, [loadInventory]);
 
-  const flatInventory = useMemo(() => {
-    if (!inventory) return [] as InventoryItem[];
-    return [
-      ...inventory.pages,
-      ...inventory.flashcardSets,
-      ...inventory.quizSets,
-      ...inventory.documents,
-    ];
-  }, [inventory]);
+  const flatItems = useMemo(() => flatInventory(inventory), [inventory]);
+  const allSelected = flatItems.length > 0 && flatItems.every((i) => selectedIds.has(i.id));
+  const noneSelected = selectedIds.size === 0;
+  const selectedCount = flatItems.filter((i) => selectedIds.has(i.id)).length;
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    // If the user uncheckes a file currently in a phase, remove it from
+    // the phase as well so the manual composition stays consistent with
+    // the scope picker.
+    setPhases((prev) =>
+      prev.map((p) => ({ ...p, materials: p.materials.filter((m) => m.id !== id) })),
+    );
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds(new Set(flatItems.map((i) => i.id)));
+  }, [flatItems]);
+
+  const handleClearAll = useCallback(() => {
+    setSelectedIds(new Set());
+    setPhases((prev) => prev.map((p) => ({ ...p, materials: [] })));
+  }, []);
 
   const handleAddMaterial = useCallback((phaseIdx: number, item: InventoryItem) => {
     setPhases((prev) =>
@@ -199,6 +243,10 @@ export default function LearnNotebookSetup({
   }, []);
 
   const submitAi = useCallback(async () => {
+    if (noneSelected) {
+      setError('Pick at least one note for the path.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -208,6 +256,11 @@ export default function LearnNotebookSetup({
         body: JSON.stringify({
           durationDays: aiDuration,
           goals: aiGoals.trim() || undefined,
+          // Only send the subset when it's a real subset — sending all IDs
+          // is equivalent to sending none (full notebook), and skipping the
+          // field keeps the legacy behavior intact for the chat-tool path
+          // that doesn't know about scoping.
+          materialIds: allSelected ? undefined : Array.from(selectedIds),
         }),
       });
       const json = await res.json();
@@ -222,7 +275,7 @@ export default function LearnNotebookSetup({
       setError('Failed to generate path.');
       setSubmitting(false);
     }
-  }, [notebookId, aiDuration, aiGoals, router, onClose]);
+  }, [notebookId, aiDuration, aiGoals, selectedIds, allSelected, noneSelected, router, onClose]);
 
   const submitManual = useCallback(async () => {
     if (!planTitle.trim()) {
@@ -230,7 +283,7 @@ export default function LearnNotebookSetup({
       return;
     }
     if (phases.every((p) => p.materials.length === 0)) {
-      setError('Add at least one material to a phase before generating.');
+      setError('Add at least one note to a phase before creating the path.');
       return;
     }
     setSubmitting(true);
@@ -274,6 +327,14 @@ export default function LearnNotebookSetup({
     }
   }, [notebookId, planTitle, planDescription, planStart, planEnd, phases, router, onClose]);
 
+  // Manual mode draws its phase picker from the SELECTED set only — this
+  // is what the user implicitly asked for: "files inside notebook or
+  // upload or both, then build from those".
+  const inScopeItems = useMemo(
+    () => flatItems.filter((i) => selectedIds.has(i.id)),
+    [flatItems, selectedIds],
+  );
+
   return (
     <div
       role="dialog"
@@ -295,9 +356,9 @@ export default function LearnNotebookSetup({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '720px',
+          width: '760px',
           maxWidth: '95vw',
-          maxHeight: '85vh',
+          maxHeight: '88vh',
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--surface-container)',
@@ -354,54 +415,77 @@ export default function LearnNotebookSetup({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '2px',
-            padding: '10px 20px',
-            borderBottom: '1px solid var(--outline-variant)',
-          }}
-        >
-          {([
-            ['ai', 'AI generate', 'auto_fix_high'],
-            ['manual', 'Manual', 'tune'],
-          ] as const).map(([id, label, icon]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-full)',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                background: tab === id ? 'var(--primary)' : 'transparent',
-                color: tab === id ? 'var(--on-primary)' : 'var(--on-surface-variant)',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                {icon}
-              </span>
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Body — scrollable */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* Shared scope picker */}
+          <ScopePicker
+            inventory={inventory}
+            inventoryError={inventoryError}
+            flatItems={flatItems}
+            selectedIds={selectedIds}
+            allSelected={allSelected}
+            selectedCount={selectedCount}
+            onToggle={toggleSelected}
+            onSelectAll={handleSelectAll}
+            onClearAll={handleClearAll}
+            onOpenImport={() => setShowImport(true)}
+          />
 
-        {/* Body */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '18px 20px' }}>
+          {/* Tabs */}
+          <div
+            role="tablist"
+            aria-label="Build mode"
+            style={{
+              display: 'flex',
+              gap: '4px',
+              padding: '4px',
+              background: 'var(--surface-container-low)',
+              border: '1px solid var(--outline-variant)',
+              borderRadius: 'var(--radius-full)',
+              alignSelf: 'flex-start',
+            }}
+          >
+            {([
+              ['ai', 'AI auto-build', 'auto_fix_high'],
+              ['manual', 'Manual phases', 'tune'],
+            ] as const).map(([id, label, icon]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  background: tab === id ? 'var(--primary)' : 'transparent',
+                  color: tab === id ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                  {icon}
+                </span>
+                {label}
+              </button>
+            ))}
+          </div>
+
           {tab === 'ai' ? (
             <AiTab
               durationDays={aiDuration}
               onDurationChange={setAiDuration}
               goals={aiGoals}
               onGoalsChange={setAiGoals}
+              selectedCount={selectedCount}
+              allSelected={allSelected}
             />
           ) : (
             <ManualTab
@@ -420,11 +504,9 @@ export default function LearnNotebookSetup({
               onMovePhase={handleMovePhase}
               onAddMaterial={handleAddMaterial}
               onRemoveMaterial={handleRemoveMaterial}
-              inventory={flatInventory}
-              inventoryError={inventoryError}
+              inScopeItems={inScopeItems}
               openPicker={openPicker}
               setOpenPicker={setOpenPicker}
-              onOpenImport={() => setShowImport(true)}
             />
           )}
         </div>
@@ -447,62 +529,68 @@ export default function LearnNotebookSetup({
         <div
           style={{
             display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '8px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px',
             padding: '14px 20px',
             borderTop: '1px solid var(--outline-variant)',
           }}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            style={{
-              padding: '9px 16px',
-              borderRadius: 'var(--radius-full)',
-              border: '1px solid var(--outline-variant)',
-              background: 'transparent',
-              color: 'var(--on-surface-variant)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              opacity: submitting ? 0.6 : 1,
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={tab === 'ai' ? submitAi : submitManual}
-            disabled={submitting}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '9px 18px',
-              borderRadius: 'var(--radius-full)',
-              border: 'none',
-              background: 'var(--primary)',
-              color: 'var(--on-primary)',
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: submitting ? 'wait' : 'pointer',
-              fontFamily: 'inherit',
-              opacity: submitting ? 0.85 : 1,
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
+          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+            {selectedCount} of {flatItems.length} note{flatItems.length === 1 ? '' : 's'} selected
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
               style={{
-                fontSize: '18px',
-                animation: submitting ? 'learnSetupSpin 0.9s linear infinite' : undefined,
+                padding: '9px 16px',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--outline-variant)',
+                background: 'transparent',
+                color: 'var(--on-surface-variant)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: submitting ? 0.6 : 1,
               }}
             >
-              {submitting ? 'progress_activity' : tab === 'ai' ? 'auto_fix_high' : 'check'}
-            </span>
-            {submitting ? 'Working…' : tab === 'ai' ? 'Generate path' : 'Create path'}
-          </button>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={tab === 'ai' ? submitAi : submitManual}
+              disabled={submitting}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: 'var(--radius-full)',
+                border: 'none',
+                background: 'var(--primary)',
+                color: 'var(--on-primary)',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: submitting ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: submitting ? 0.85 : 1,
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '18px',
+                  animation: submitting ? 'learnSetupSpin 0.9s linear infinite' : undefined,
+                }}
+              >
+                {submitting ? 'progress_activity' : tab === 'ai' ? 'auto_fix_high' : 'check'}
+              </span>
+              {submitting ? 'Working…' : tab === 'ai' ? 'Generate path' : 'Create path'}
+            </button>
+          </div>
         </div>
 
         <style>{`
@@ -518,10 +606,207 @@ export default function LearnNotebookSetup({
           notebookId={notebookId}
           onImported={() => {
             setShowImport(false);
-            void loadInventory();
+            void loadInventory(true);
           }}
           onClose={() => setShowImport(false)}
         />
+      ) : null}
+    </div>
+  );
+}
+
+function ScopePicker({
+  inventory,
+  inventoryError,
+  flatItems,
+  selectedIds,
+  allSelected,
+  selectedCount,
+  onToggle,
+  onSelectAll,
+  onClearAll,
+  onOpenImport,
+}: {
+  inventory: Inventory | null;
+  inventoryError: string | null;
+  flatItems: InventoryItem[];
+  selectedIds: Set<string>;
+  allSelected: boolean;
+  selectedCount: number;
+  onToggle: (id: string) => void;
+  onSelectAll: () => void;
+  onClearAll: () => void;
+  onOpenImport: () => void;
+}) {
+  const grouped = useMemo(() => {
+    if (!inventory) return null;
+    return {
+      page: inventory.pages,
+      flashcard_set: inventory.flashcardSets,
+      quiz_set: inventory.quizSets,
+      document: inventory.documents,
+    };
+  }, [inventory]);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        padding: '14px',
+        background: 'var(--surface-container-low)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-md)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--on-surface-variant)',
+              fontWeight: 700,
+            }}
+          >
+            Notes for this path
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+            {flatItems.length === 0
+              ? 'No notes yet — upload some to get started.'
+              : allSelected
+                ? 'Using every note in this notebook.'
+                : selectedCount === 0
+                  ? 'Nothing selected — pick at least one note or upload more.'
+                  : `Path will use ${selectedCount} of ${flatItems.length} notes.`}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <button type="button" onClick={onOpenImport} style={chipButtonStyle}>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+              upload
+            </span>
+            Upload notes
+          </button>
+          {flatItems.length > 0 ? (
+            allSelected ? (
+              <button type="button" onClick={onClearAll} style={chipButtonStyle}>
+                Clear all
+              </button>
+            ) : (
+              <button type="button" onClick={onSelectAll} style={chipButtonStyle}>
+                Select all
+              </button>
+            )
+          ) : null}
+        </div>
+      </div>
+
+      {inventoryError ? (
+        <div
+          role="alert"
+          style={{
+            padding: '10px 12px',
+            background: 'var(--surface-container)',
+            border: '1px solid var(--error)',
+            borderRadius: 'var(--radius-sm)',
+            color: 'var(--error)',
+            fontSize: '12px',
+          }}
+        >
+          {inventoryError}
+        </div>
+      ) : null}
+
+      {grouped && flatItems.length > 0 ? (
+        <div
+          style={{
+            maxHeight: '220px',
+            overflow: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            paddingRight: '4px',
+          }}
+        >
+          {TYPE_ORDER.flatMap((type) => {
+            const items = grouped[type];
+            if (items.length === 0) return [];
+            return [
+              <div
+                key={`h-${type}`}
+                style={{
+                  fontSize: '10px',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--on-surface-variant)',
+                  fontWeight: 700,
+                  padding: '4px 0 2px',
+                }}
+              >
+                {TYPE_LABEL[type]}s
+              </div>,
+              ...items.map((item) => {
+                const isOn = selectedIds.has(item.id);
+                return (
+                  <label
+                    key={item.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      background: isOn ? 'rgba(174,137,255,0.10)' : 'transparent',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isOn}
+                      onChange={() => onToggle(item.id)}
+                      style={{ accentColor: 'var(--primary)' }}
+                    />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '15px', color: 'var(--on-surface-variant)' }}
+                    >
+                      {TYPE_ICON[type]}
+                    </span>
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: '13px',
+                        color: 'var(--on-surface)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.title}
+                      {item.sectionTitle ? (
+                        <span style={{ color: 'var(--on-surface-variant)' }}>
+                          {' '}
+                          · {item.sectionTitle}
+                        </span>
+                      ) : null}
+                    </span>
+                  </label>
+                );
+              }),
+            ];
+          })}
+        </div>
       ) : null}
     </div>
   );
@@ -532,11 +817,15 @@ function AiTab({
   onDurationChange,
   goals,
   onGoalsChange,
+  selectedCount,
+  allSelected,
 }: {
   durationDays: number;
   onDurationChange: (n: number) => void;
   goals: string;
   onGoalsChange: (g: string) => void;
+  selectedCount: number;
+  allSelected: boolean;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -548,8 +837,15 @@ function AiTab({
           lineHeight: 1.5,
         }}
       >
-        NoteMage will scan this notebook&apos;s contents and build a Duolingo-style path with
-        phased lessons and checkpoint quizzes. Lock the phases later in <strong>Learn</strong>.
+        NoteMage will build a Duolingo-style path from{' '}
+        <strong style={{ color: 'var(--on-surface)' }}>
+          {allSelected
+            ? 'every note in this notebook'
+            : selectedCount === 0
+              ? '— pick at least one note above'
+              : `the ${selectedCount} note${selectedCount === 1 ? '' : 's'} you selected`}
+        </strong>
+        , with phased lessons and checkpoint quizzes.
       </p>
       <Field label="Plan duration (days)">
         <input
@@ -589,11 +885,9 @@ function ManualTab({
   onMovePhase,
   onAddMaterial,
   onRemoveMaterial,
-  inventory,
-  inventoryError,
+  inScopeItems,
   openPicker,
   setOpenPicker,
-  onOpenImport,
 }: {
   planTitle: string;
   onPlanTitleChange: (s: string) => void;
@@ -610,16 +904,12 @@ function ManualTab({
   onMovePhase: (idx: number, dir: -1 | 1) => void;
   onAddMaterial: (phaseIdx: number, item: InventoryItem) => void;
   onRemoveMaterial: (phaseIdx: number, materialId: string) => void;
-  inventory: InventoryItem[];
-  inventoryError: string | null;
+  inScopeItems: InventoryItem[];
   openPicker: number | null;
   setOpenPicker: (idx: number | null) => void;
-  onOpenImport: () => void;
 }) {
-  const inventoryEmpty = inventory.length === 0 && !inventoryError;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <Field label="Plan title">
         <input
           value={planTitle}
@@ -658,77 +948,7 @@ function ManualTab({
         </div>
       </div>
 
-      {inventoryEmpty ? (
-        <div
-          style={{
-            padding: '14px 16px',
-            background: 'var(--surface-container-low)',
-            border: '1px dashed var(--outline-variant)',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
-            This notebook has no content yet. Upload some notes to start picking phases.
-          </span>
-          <button type="button" onClick={onOpenImport} style={uploadButtonStyle}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-              upload
-            </span>
-            Upload notes
-          </button>
-        </div>
-      ) : null}
-
-      {inventoryError ? (
-        <div
-          role="alert"
-          style={{
-            padding: '12px 14px',
-            background: 'var(--surface-container-low)',
-            border: '1px solid var(--error)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--error)',
-            fontSize: '13px',
-          }}
-        >
-          {inventoryError}
-        </div>
-      ) : null}
-
-      {/* Phases */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: '12px',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--on-surface-variant)',
-              fontWeight: 700,
-            }}
-          >
-            Phases
-          </h3>
-          <button type="button" onClick={onOpenImport} style={uploadButtonStyle}>
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
-              upload
-            </span>
-            Add notes
-          </button>
-        </div>
-
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {phases.map((phase, idx) => (
           <PhaseCard
             key={idx}
@@ -737,7 +957,7 @@ function ManualTab({
             canRemove={phases.length > 1}
             canMoveUp={idx > 0}
             canMoveDown={idx < phases.length - 1}
-            inventory={inventory}
+            inScopeItems={inScopeItems}
             pickerOpen={openPicker === idx}
             onOpenPicker={() => setOpenPicker(openPicker === idx ? null : idx)}
             onClosePicker={() => setOpenPicker(null)}
@@ -783,7 +1003,7 @@ function PhaseCard({
   canRemove,
   canMoveUp,
   canMoveDown,
-  inventory,
+  inScopeItems,
   pickerOpen,
   onOpenPicker,
   onClosePicker,
@@ -798,7 +1018,7 @@ function PhaseCard({
   canRemove: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  inventory: InventoryItem[];
+  inScopeItems: InventoryItem[];
   pickerOpen: boolean;
   onOpenPicker: () => void;
   onClosePicker: () => void;
@@ -817,12 +1037,12 @@ function PhaseCard({
       quiz_set: [],
       document: [],
     };
-    for (const item of inventory) {
+    for (const item of inScopeItems) {
       if (usedIds.has(item.id)) continue;
       result[item.type].push(item);
     }
     return result;
-  }, [inventory, usedIds]);
+  }, [inScopeItems, usedIds]);
 
   return (
     <div
@@ -1000,7 +1220,7 @@ function PhaseCard({
             <button
               type="button"
               onClick={onOpenPicker}
-              disabled={inventory.length === 0}
+              disabled={inScopeItems.length === 0}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1010,16 +1230,16 @@ function PhaseCard({
                 border: '1px dashed var(--outline-variant)',
                 background: 'transparent',
                 color: 'var(--on-surface-variant)',
-                cursor: inventory.length === 0 ? 'not-allowed' : 'pointer',
+                cursor: inScopeItems.length === 0 ? 'not-allowed' : 'pointer',
                 fontSize: '12px',
                 fontFamily: 'inherit',
-                opacity: inventory.length === 0 ? 0.5 : 1,
+                opacity: inScopeItems.length === 0 ? 0.5 : 1,
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
                 add
               </span>
-              Add material
+              {inScopeItems.length === 0 ? 'Pick notes above first' : 'Add material'}
             </button>
             {pickerOpen ? (
               <MaterialPicker
@@ -1079,7 +1299,7 @@ function MaterialPicker({
             color: 'var(--on-surface-variant)',
           }}
         >
-          Nothing left to add — every notebook item is already in this phase.
+          Every selected note is already in this phase.
         </div>
       ) : (
         (['quiz_set', 'flashcard_set', 'page', 'document'] as const).flatMap((type) => {
@@ -1228,11 +1448,11 @@ const inputStyle: React.CSSProperties = {
   colorScheme: 'dark',
 };
 
-const uploadButtonStyle: React.CSSProperties = {
+const chipButtonStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: '6px',
-  padding: '7px 12px',
+  padding: '6px 12px',
   borderRadius: 'var(--radius-full)',
   border: '1px solid var(--outline-variant)',
   background: 'transparent',
