@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { grade } from '@/lib/quiz-grading';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
+import { isCheckpointMaterial } from '@/lib/path-gating';
 import {
   successResponse,
   createdResponse,
@@ -55,9 +56,13 @@ export async function POST(
     if (!quizSet) return notFoundResponse('Quiz set not found');
 
     const body = await request.json();
-    const { answers, timeSpent } = body as {
+    const { answers, timeSpent, materialId } = body as {
       answers: AnswerSubmission[];
       timeSpent?: number;
+      // Phase 5 — when this quiz was launched from a Learn Path lesson node,
+      // the client passes the StudyMaterial id so the server can auto-complete
+      // the material on pass and log a CheckpointAttempt when applicable.
+      materialId?: string;
     };
 
     if (!answers || !Array.isArray(answers) || answers.length === 0) {
@@ -120,9 +125,54 @@ export async function POST(
       include: { answers: true },
     });
 
+    // Phase 5 — Learn Path side effects. Only fires when the client passes a
+    // materialId, which only happens for path-launched quizzes. Direct quiz
+    // access (no materialId) keeps the legacy behavior: attempt only, no
+    // material completion, no checkpoint row.
+    let materialCompleted = false;
+    let checkpointPassed: boolean | undefined;
+    if (materialId) {
+      const material = await db.studyMaterial.findFirst({
+        where: { id: materialId, type: 'quiz_set', referenceId: setId },
+        include: {
+          phase: {
+            include: { materials: { orderBy: { sortOrder: 'asc' } } },
+          },
+        },
+      });
+      if (material) {
+        const passed = percentage >= 80;
+        if (passed && !material.completed) {
+          await db.studyMaterial.update({
+            where: { id: material.id },
+            data: { completed: true },
+          });
+          materialCompleted = true;
+        }
+        const isCheckpoint = isCheckpointMaterial(material.phase, material.id);
+        if (isCheckpoint) {
+          await db.checkpointAttempt.create({
+            data: {
+              phaseId: material.phaseId,
+              userId,
+              score,
+              total,
+              percentage,
+              passed,
+            },
+          });
+          checkpointPassed = passed;
+        }
+      }
+    }
+
     checkAndUnlockAchievements(userId).catch(console.error);
 
-    return createdResponse(attempt);
+    return createdResponse({
+      ...attempt,
+      materialCompleted,
+      checkpointPassed,
+    });
   } catch (error) {
     console.error('Error creating quiz attempt:', error);
     return internalErrorResponse();

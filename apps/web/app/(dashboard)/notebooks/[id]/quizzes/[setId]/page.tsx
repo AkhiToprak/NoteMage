@@ -11,6 +11,11 @@ interface QuizSetData {
   chatId: string;
   title: string;
   sectionId: string | null;
+  // Phase 5: present when the page was opened via `?material=<id>` (a Learn
+  // Path lesson node). isCheckpoint=true makes QuizViewer fire the graduation
+  // overlay on a pass.
+  isCheckpoint?: boolean;
+  materialId?: string | null;
   questions: {
     id: string;
     kind: QuestionKind;
@@ -39,12 +44,22 @@ export default function QuizViewerPage({
   useEffect(() => {
     async function fetchSet() {
       try {
-        const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`);
+        // Phase 5: ?material= is read off window.location.search rather than
+        // useSearchParams() to keep the page out of the static-bailout
+        // window during build (see memory: useSearchParams breaks prerender).
+        const materialId =
+          typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search).get('material')
+            : null;
+        const url = materialId
+          ? `/api/notebooks/${notebookId}/quiz-sets/${setId}?material=${encodeURIComponent(materialId)}`
+          : `/api/notebooks/${notebookId}/quiz-sets/${setId}`;
+        const res = await fetch(url);
         const json = await res.json();
         if (json.success && json.data) {
           setData(json.data);
         } else {
-          setError(json.error || 'Quiz set not found');
+          setError(json.error === 'locked' ? 'This lesson is locked.' : json.error || 'Quiz set not found');
         }
       } catch {
         setError('Failed to load quiz set');
@@ -112,6 +127,8 @@ export default function QuizViewerPage({
       title={data.title}
       initialQuestions={data.questions}
       assignedSectionId={data.sectionId}
+      isCheckpoint={data.isCheckpoint ?? false}
+      materialId={data.materialId ?? null}
     />
   );
 }

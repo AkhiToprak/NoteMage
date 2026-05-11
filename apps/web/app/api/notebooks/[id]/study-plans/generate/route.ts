@@ -202,7 +202,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         // Filter to only valid referenceIds
         const validMaterials = (p.materials || []).filter((m) => validIds.has(m.referenceId));
 
-        await tx.studyPhase.create({
+        const phaseRow = await tx.studyPhase.create({
           data: {
             planId: created.id,
             title: p.title,
@@ -211,6 +211,10 @@ export async function POST(request: NextRequest, { params }: Params) {
             startDate: p.startDate,
             endDate: p.endDate,
             status: i === 0 ? 'active' : 'upcoming',
+            // Phase 5: default to 'checkpoint' for AI-generated plans so the
+            // Learn Path experience kicks in by default. Legacy plans
+            // (source='manual') stay on the schema default 'open'.
+            gateStrategy: p.gateStrategy ?? 'checkpoint',
             materials:
               validMaterials.length > 0
                 ? {
@@ -223,7 +227,27 @@ export async function POST(request: NextRequest, { params }: Params) {
                   }
                 : undefined,
           },
+          include: { materials: true },
         });
+
+        // Phase 5: resolve prerequisiteMaterialIds. The AI emits referenceIds
+        // (the only stable handle it knows about); translate them to the
+        // database material ids we just created, then write the array.
+        const refIdToDbId = new Map(phaseRow.materials.map((m) => [m.referenceId, m.id]));
+        for (let j = 0; j < validMaterials.length; j++) {
+          const aiPrereqs = validMaterials[j].prerequisiteMaterialIds ?? [];
+          if (aiPrereqs.length === 0) continue;
+          const resolved = aiPrereqs
+            .map((refId) => refIdToDbId.get(refId))
+            .filter((id): id is string => typeof id === 'string');
+          if (resolved.length === 0) continue;
+          const targetDbId = refIdToDbId.get(validMaterials[j].referenceId);
+          if (!targetDbId) continue;
+          await tx.studyMaterial.update({
+            where: { id: targetDbId },
+            data: { prerequisiteMaterialIds: resolved },
+          });
+        }
       }
 
       return tx.studyPlan.findUniqueOrThrow({

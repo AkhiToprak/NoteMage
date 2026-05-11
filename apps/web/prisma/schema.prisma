@@ -32,61 +32,71 @@ enum QuestionKind {
   translation
 }
 
+// Gate strategy for a StudyPhase — added in Phase 5 (Learn Path rework).
+// open       = all materials in this phase unlocked from the start.
+// sequential = materials in this phase unlock one at a time by sortOrder.
+// checkpoint = sequential + the last material gates the next phase.
+enum GateStrategy {
+  open
+  sequential
+  checkpoint
+}
+
 // ============================================================================
 // USER MODELS
 // ============================================================================
 
 model User {
-  id                 String    @id @default(cuid())
-  email              String    @unique
-  name               String?
-  password           String?   // Hashed with bcrypt; null for OAuth-only accounts
-  role               String    @default("user")  // "user" | "admin"
-  banned             Boolean   @default(false)    // Banned users cannot log in
-  banReason          String?                      // Optional reason shown to banned user
-  failedLoginAttempts Int      @default(0)         // Brute-force protection counter
-  lockedAt           DateTime?                     // Set when account is locked after too many failures
-  dailyGoal          Int       @default(10)  // Pages the user wants to write/study per day (kept for backward compat)
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  name                  String?
+  password              String? // Hashed with bcrypt; null for OAuth-only accounts
+  role                  String    @default("user") // "user" | "admin"
+  banned                Boolean   @default(false) // Banned users cannot log in
+  banReason             String? // Optional reason shown to banned user
+  failedLoginAttempts   Int       @default(0) // Brute-force protection counter
+  lockedAt              DateTime? // Set when account is locked after too many failures
+  dailyGoal             Int       @default(10) // Pages the user wants to write/study per day (kept for backward compat)
   // Personal targets — null = not set
   dailyStudyMinutesGoal Int?
   weeklyStudyPlansGoal  Int?
   weeklyNotesGoal       Int?
   weeklyChatsGoal       Int?
-  username           String    @unique       // 3-20 chars, alphanumeric + underscores only
-  avatarUrl          String?                 // URL to uploaded avatar image, null = default
-  bio                String?   @db.VarChar(160) // Short bio, max 160 chars
-  age                Int?
-  location           String?   @db.VarChar(100)
-  school             String?   @db.VarChar(100)
-  lineOfWork         String?   @db.VarChar(100)
-  instagramHandle    String?   @db.VarChar(30)  // Public IG username (no @), shown on Socials bento card
-  linkedinUrl        String?   @db.VarChar(200) // Full LinkedIn profile URL, shown on Socials bento card
-  customGreeting     String?   @db.VarChar(120) // Custom dashboard greeting, null = use random
-  scholarName        String?   @db.VarChar(30)  // Custom AI assistant name, null = "Scholar"
-  usernameChanged    Boolean   @default(false)    // Set to true when user changes their username
-  profilePrivate     Boolean   @default(false)    // If true, only friends see full profile
-  hideAchievements   Boolean   @default(false)    // If true, achievements hidden on public profile
-  quizReactionsMode  String    @default("all")    // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
-  quizReactionsAudio Boolean   @default(false)    // Opt-in sound effects for quiz reactions
-  tier               Tier      @default(FREE)
-  pendingTier        Tier?                       // Tier to switch to at end of current period (null = no change)
-  subscriptionPeriodEnd DateTime?                // When the current billing period ends (null = free / no active period)
-  stripeCustomerId     String?   @unique         // Stripe customer ID (cus_...)
-  stripeSubscriptionId String?   @unique         // Active Stripe subscription ID (sub_...)
-  onboardingComplete Boolean   @default(false)  // false until wizard step 4 is done
+  username              String    @unique // 3-20 chars, alphanumeric + underscores only
+  avatarUrl             String? // URL to uploaded avatar image, null = default
+  bio                   String?   @db.VarChar(160) // Short bio, max 160 chars
+  age                   Int?
+  location              String?   @db.VarChar(100)
+  school                String?   @db.VarChar(100)
+  lineOfWork            String?   @db.VarChar(100)
+  instagramHandle       String?   @db.VarChar(30) // Public IG username (no @), shown on Socials bento card
+  linkedinUrl           String?   @db.VarChar(200) // Full LinkedIn profile URL, shown on Socials bento card
+  customGreeting        String?   @db.VarChar(120) // Custom dashboard greeting, null = use random
+  scholarName           String?   @db.VarChar(30) // Custom AI assistant name, null = "Scholar"
+  usernameChanged       Boolean   @default(false) // Set to true when user changes their username
+  profilePrivate        Boolean   @default(false) // If true, only friends see full profile
+  hideAchievements      Boolean   @default(false) // If true, achievements hidden on public profile
+  quizReactionsMode     String    @default("all") // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
+  quizReactionsAudio    Boolean   @default(false) // Opt-in sound effects for quiz reactions
+  tier                  Tier      @default(FREE)
+  pendingTier           Tier? // Tier to switch to at end of current period (null = no change)
+  subscriptionPeriodEnd DateTime? // When the current billing period ends (null = free / no active period)
+  stripeCustomerId      String?   @unique // Stripe customer ID (cus_...)
+  stripeSubscriptionId  String?   @unique // Active Stripe subscription ID (sub_...)
+  onboardingComplete    Boolean   @default(false) // false until wizard step 4 is done
   // Welcome tour state — { step: TutorialStep, completedAt?: ISO, dismissedAt?: ISO }
-  tutorialState      Json      @default("{}")
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  tutorialState         Json      @default("{}")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   // Core relations
-  notebooks              Notebook[]
-  notebookFolders        NotebookFolder[]
-  chatMessages           ChatMessage[]
+  notebooks       Notebook[]
+  notebookFolders NotebookFolder[]
+  chatMessages    ChatMessage[]
 
   // Phase 1 — Social relations
-  sentFriendRequests     Friendship[]       @relation("SentFriendRequests")
-  receivedFriendRequests Friendship[]       @relation("ReceivedFriendRequests")
+  sentFriendRequests     Friendship[]          @relation("SentFriendRequests")
+  receivedFriendRequests Friendship[]          @relation("ReceivedFriendRequests")
   notifications          Notification[]
   posts                  Post[]
   postVotes              PostVote[]
@@ -94,13 +104,13 @@ model User {
   commentVotes           CommentVote[]
   pollVotes              PollVote[]
   postVisibility         PostVisibility[]
-  sharedByMe             SharedNotebook[]   @relation("SharedByMe")
-  sharedWithMe           SharedNotebook[]   @relation("SharedWithMe")
+  sharedByMe             SharedNotebook[]      @relation("SharedByMe")
+  sharedWithMe           SharedNotebook[]      @relation("SharedWithMe")
   notebookDownloads      NotebookDownload[]
   notebookRatings        NotebookRating[]
   notebookViews          NotebookView[]
   friendActivities       FriendActivity[]
-  hostedSessions         CoWorkSession[]    @relation("HostedSessions")
+  hostedSessions         CoWorkSession[]       @relation("HostedSessions")
   coWorkJoined           CoWorkParticipant[]
   pageLocks              PageLock[]
   coWorkMessages         CoWorkMessage[]
@@ -110,12 +120,12 @@ model User {
   microsoftConnection    MicrosoftConnection?
   studyMinutes           StudyMinute[]
   streak                 UserStreak?
-  ownedGroups            StudyGroup[]       @relation("OwnedGroups")
+  ownedGroups            StudyGroup[]          @relation("OwnedGroups")
   groupMemberships       StudyGroupMember[]
-  sentGroupMessages      GroupMessage[]     @relation("SentGroupMessages")
-  sentInvitations        GroupInvitation[]  @relation("SentInvitations")
-  receivedInvitations    GroupInvitation[]  @relation("ReceivedInvitations")
-  sharedGroupContent     GroupSharedContent[] @relation("SharedGroupContent")
+  sentGroupMessages      GroupMessage[]        @relation("SentGroupMessages")
+  sentInvitations        GroupInvitation[]     @relation("SentInvitations")
+  receivedInvitations    GroupInvitation[]     @relation("ReceivedInvitations")
+  sharedGroupContent     GroupSharedContent[]  @relation("SharedGroupContent")
   achievements           Achievement[]
   // Cosmetics — see src/lib/cosmetics/catalog.ts for the canonical list.
   // nameStyle is denormalized so username rendering never needs a join.
@@ -133,8 +143,9 @@ model User {
   exams                  Exam[]
   todos                  Todo[]
   usageRecords           UsageRecord[]
-  adminAuditLogs         AdminAuditLog[] @relation("AdminAuditLogs")
+  adminAuditLogs         AdminAuditLog[]       @relation("AdminAuditLogs")
   oauthAccounts          OAuthAccount[]
+  checkpointAttempts     CheckpointAttempt[]
 
   @@map("users")
 }
@@ -145,7 +156,7 @@ model User {
 model OAuthAccount {
   id                String   @id @default(cuid())
   userId            String
-  provider          String   // "google" | "apple"
+  provider          String // "google" | "apple"
   providerAccountId String
   // Token columns kept nullable for future API access (e.g. Drive import) — cheap insurance.
   accessToken       String?  @db.Text
@@ -156,7 +167,7 @@ model OAuthAccount {
   tokenType         String?
   createdAt         DateTime @default(now())
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -171,7 +182,7 @@ model NotebookFolder {
   id        String   @id @default(cuid())
   userId    String
   name      String
-  parentId  String?  // null = root level
+  parentId  String? // null = root level
   color     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -187,30 +198,30 @@ model NotebookFolder {
 }
 
 model Notebook {
-  id            String    @id @default(cuid())
-  userId        String
-  folderId      String?   // null = root level (no folder)
-  name          String
-  description   String?
-  subject       String?   // e.g., "Biology", "History"
-  color         String?   // Hex color for UI
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  folderId    String? // null = root level (no folder)
+  name        String
+  description String?
+  subject     String? // e.g., "Biology", "History"
+  color       String? // Hex color for UI
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folder          NotebookFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  documents       Document[]
-  chatMessages    ChatMessage[]
-  chats           NotebookChat[]
-  sections        Section[]
-  shares          SharedNotebook[]
-  coWorkSessions  CoWorkSession[]
-  flashcardSets   FlashcardSet[]
-  quizSets        QuizSet[]
-  studyPlans      StudyPlan[]
-  studyGroups     StudyGroupNotebook[]
-  exams           Exam[]
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder         NotebookFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  documents      Document[]
+  chatMessages   ChatMessage[]
+  chats          NotebookChat[]
+  sections       Section[]
+  shares         SharedNotebook[]
+  coWorkSessions CoWorkSession[]
+  flashcardSets  FlashcardSet[]
+  quizSets       QuizSet[]
+  studyPlans     StudyPlan[]
+  studyGroups    StudyGroupNotebook[]
+  exams          Exam[]
 
   @@index([userId])
   @@index([folderId])
@@ -218,18 +229,18 @@ model Notebook {
 }
 
 model Document {
-  id            String    @id @default(cuid())
-  notebookId    String
-  fileName      String
-  filePath      String    // Local or S3 path
-  fileSize      Int       // In bytes
-  fileType      String    // e.g., "application/pdf"
-  textContent   String?   // Extracted text for LLM context
-  createdAt     DateTime  @default(now())
+  id          String   @id @default(cuid())
+  notebookId  String
+  fileName    String
+  filePath    String // Local or S3 path
+  fileSize    Int // In bytes
+  fileType    String // e.g., "application/pdf"
+  textContent String? // Extracted text for LLM context
+  createdAt   DateTime @default(now())
 
   // Relations
-  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  summaries     DocumentSummary[]
+  notebook  Notebook          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  summaries DocumentSummary[]
 
   @@index([notebookId])
   @@map("documents")
@@ -238,11 +249,11 @@ model Document {
 model DocumentSummary {
   id         String   @id @default(cuid())
   documentId String
-  length     String   // "brief" | "detailed"
+  length     String // "brief" | "detailed"
   content    String   @db.Text
   createdAt  DateTime @default(now())
 
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, length])
   @@map("document_summaries")
@@ -253,38 +264,38 @@ model DocumentSummary {
 // ============================================================================
 
 model NotebookChat {
-  id              String    @id @default(cuid())
-  notebookId      String
-  title           String    @default("New Chat")
-  contextPageIds  String[]  @default([])  // Page IDs from notebook fed as context
-  contextDocIds   String[]  @default([])  // Document IDs fed as context
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  notebookId     String
+  title          String   @default("New Chat")
+  contextPageIds String[] @default([]) // Page IDs from notebook fed as context
+  contextDocIds  String[] @default([]) // Document IDs fed as context
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  notebook        Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  messages        ChatMessage[]
-  flashcardSets   FlashcardSet[]
-  quizSets        QuizSet[]
+  notebook      Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  messages      ChatMessage[]
+  flashcardSets FlashcardSet[]
+  quizSets      QuizSet[]
 
   @@index([notebookId])
   @@map("notebook_chats")
 }
 
 model ChatMessage {
-  id            String        @id @default(cuid())
-  notebookId    String
-  userId        String
-  chatId        String?       // Link to a specific chat session
-  role          String        // "user" or "assistant"
-  content       String        // The message text
-  tokens        Int?          // Number of tokens used (for cost tracking)
-  createdAt     DateTime      @default(now())
+  id         String   @id @default(cuid())
+  notebookId String
+  userId     String
+  chatId     String? // Link to a specific chat session
+  role       String // "user" or "assistant"
+  content    String // The message text
+  tokens     Int? // Number of tokens used (for cost tracking)
+  createdAt  DateTime @default(now())
 
   // Relations
-  notebook      Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chat          NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  notebook Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat     NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
   @@index([userId])
@@ -297,15 +308,15 @@ model ChatMessage {
 // ============================================================================
 
 model FlashcardSet {
-  id         String        @id @default(cuid())
+  id         String   @id @default(cuid())
   notebookId String
   chatId     String?
-  messageId  String?       // assistant message that created this set
+  messageId  String? // assistant message that created this set
   title      String
-  source     String        @default("ai") // "ai" | "manual" | "import" | "quizlet" | "anki"
-  sectionId  String?       // optional: link to a notebook section for publishing
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  source     String   @default("ai") // "ai" | "manual" | "import" | "quizlet" | "anki"
+  sectionId  String? // optional: link to a notebook section for publishing
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   notebook   Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   chat       NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
@@ -319,39 +330,39 @@ model FlashcardSet {
 }
 
 model Flashcard {
-  id             String           @id @default(cuid())
+  id             String    @id @default(cuid())
   flashcardSetId String
   question       String
-  answer         String           @db.Text
-  sortOrder      Int              @default(0)
+  answer         String    @db.Text
+  sortOrder      Int       @default(0)
   // Spaced repetition fields (SM-2 algorithm)
-  easeFactor     Float            @default(2.5)
-  interval       Int              @default(0)       // days until next review
-  repetitions    Int              @default(0)       // consecutive correct answers
-  nextReviewAt   DateTime?                          // null = never reviewed
+  easeFactor     Float     @default(2.5)
+  interval       Int       @default(0) // days until next review
+  repetitions    Int       @default(0) // consecutive correct answers
+  nextReviewAt   DateTime? // null = never reviewed
   lastReviewAt   DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  flashcardSet   FlashcardSet     @relation(fields: [flashcardSetId], references: [id], onDelete: Cascade)
-  images         FlashcardImage[]
+  flashcardSet FlashcardSet     @relation(fields: [flashcardSetId], references: [id], onDelete: Cascade)
+  images       FlashcardImage[]
 
   @@index([flashcardSetId])
   @@map("flashcards")
 }
 
 model FlashcardImage {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   flashcardId String
-  side        String    // "front" | "back"
+  side        String // "front" | "back"
   fileName    String
   filePath    String
   fileSize    Int
   mimeType    String
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 
-  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
 
   @@index([flashcardId])
   @@map("flashcard_images")
@@ -362,20 +373,20 @@ model FlashcardImage {
 // ============================================================================
 
 model QuizSet {
-  id         String         @id @default(cuid())
+  id         String   @id @default(cuid())
   notebookId String
   chatId     String?
-  messageId  String?        // assistant message that created this set
+  messageId  String? // assistant message that created this set
   title      String
-  sectionId  String?        // optional: link to a notebook section
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  sectionId  String? // optional: link to a notebook section
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  notebook   Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  chat       NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  section    Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  questions  QuizQuestion[]
-  attempts   QuizAttempt[]
+  notebook  Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  chat      NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  section   Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
 
   @@index([notebookId])
   @@index([chatId])
@@ -395,33 +406,33 @@ model QuizQuestion {
   payload            Json?
   question           String
   options            String[] // Array of 4 answer choices (legacy MC; see kind/payload above)
-  correctIndex       Int      // 0-based index of the correct answer (legacy MC)
-  hint               String?  // Optional hint text
-  correctExplanation String?  @db.Text // Shown when answer is correct
-  wrongExplanation   String?  @db.Text // Shown when answer is wrong
-  sortOrder          Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  correctIndex       Int // 0-based index of the correct answer (legacy MC)
+  hint               String? // Optional hint text
+  correctExplanation String?      @db.Text // Shown when answer is correct
+  wrongExplanation   String?      @db.Text // Shown when answer is wrong
+  sortOrder          Int          @default(0)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  quizSet            QuizSet  @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
-  answers            QuizAnswer[]
+  quizSet QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
 
   @@index([quizSetId])
   @@map("quiz_questions")
 }
 
 model QuizAttempt {
-  id         String       @id @default(cuid())
+  id         String   @id @default(cuid())
   quizSetId  String
   userId     String
   score      Int
   total      Int
   percentage Float
   timeSpent  Int?
-  createdAt  DateTime     @default(now())
+  createdAt  DateTime @default(now())
 
-  quizSet    QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
-  answers    QuizAnswer[]
+  quizSet QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
 
   @@index([quizSetId])
   @@index([userId, createdAt])
@@ -429,16 +440,16 @@ model QuizAttempt {
 }
 
 model QuizAnswer {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   attemptId   String
   questionId  String
-  selectedIdx Int          // Legacy MC; sentinel 0 for non-MC kinds. Real answer lives in userAnswer.
-  userAnswer  Json?        // Kind-aware answer payload (Phase 2). Null for pre-Phase-2 attempts.
+  selectedIdx Int // Legacy MC; sentinel 0 for non-MC kinds. Real answer lives in userAnswer.
+  userAnswer  Json? // Kind-aware answer payload (Phase 2). Null for pre-Phase-2 attempts.
   isCorrect   Boolean
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime @default(now())
 
-  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([attemptId])
   @@map("quiz_answers")
@@ -449,14 +460,14 @@ model QuizAnswer {
 // ============================================================================
 
 model Section {
-  id            String    @id @default(cuid())
-  notebookId    String
-  parentId      String?   // null = top-level section; set = subsection
-  title         String
-  sortOrder     Int       @default(0)
-  color         String?   // Optional accent color override
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  notebookId String
+  parentId   String? // null = top-level section; set = subsection
+  title      String
+  sortOrder  Int      @default(0)
+  color      String? // Optional accent color override
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relations
   notebook      Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
@@ -472,20 +483,20 @@ model Section {
 }
 
 model Page {
-  id            String    @id @default(cuid())
-  sectionId     String
-  title         String    @default("Untitled")
-  pageType      String    @default("text")   // "text" (TipTap editor) | "canvas" (infinite canvas)
-  content       Json?     // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
-  textContent   String?   // Plain text mirror for AI context + search
-  drawingData   Json?     // Array of stroke objects [{points, color, width}]
-  sortOrder     Int       @default(0)
-  sourceDocId   String?   // Set if this page was imported from a Document
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  sectionId   String
+  title       String   @default("Untitled")
+  pageType    String   @default("text") // "text" (TipTap editor) | "canvas" (infinite canvas)
+  content     Json? // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
+  textContent String? // Plain text mirror for AI context + search
+  drawingData Json? // Array of stroke objects [{points, color, width}]
+  sortOrder   Int      @default(0)
+  sourceDocId String? // Set if this page was imported from a Document
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  section       Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section       Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   images        PageImage[]
   locks         PageLock[]
   revisions     PageRevision[]
@@ -496,16 +507,16 @@ model Page {
 }
 
 model PageImage {
-  id            String    @id @default(cuid())
-  pageId        String
-  fileName      String
-  filePath      String
-  fileSize      Int
-  mimeType      String
-  createdAt     DateTime  @default(now())
+  id        String   @id @default(cuid())
+  pageId    String
+  fileName  String
+  filePath  String
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime @default(now())
 
   // Relations
-  page          Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([pageId])
   @@map("page_images")
@@ -527,12 +538,12 @@ model PageRevision {
   id          String   @id @default(cuid())
   pageId      String
   title       String
-  content     Json     // Full TipTap JSON at snapshot time
-  textContent String?  // Plain text mirror at snapshot time
-  createdBy   String?  // User id of the save author, if known
+  content     Json // Full TipTap JSON at snapshot time
+  textContent String? // Plain text mirror at snapshot time
+  createdBy   String? // User id of the save author, if known
   createdAt   DateTime @default(now())
 
-  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([pageId, createdAt])
   @@map("page_revisions")
@@ -557,11 +568,11 @@ model PageContentAudit {
   userAgent       String?
   incomingIsEmpty Boolean
   existingIsEmpty Boolean
-  result          String   // 'accepted' | 'refused_empty_overwrite' | 'error'
+  result          String // 'accepted' | 'refused_empty_overwrite' | 'error'
   errorMessage    String?
   createdAt       DateTime @default(now())
 
-  page            Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([pageId, createdAt])
   @@index([result, createdAt])
@@ -575,58 +586,86 @@ model PageContentAudit {
 // --- Study Planning ---
 
 model StudyPlan {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   notebookId  String
   title       String
-  description String?      @db.Text
+  description String?  @db.Text
   startDate   DateTime
   endDate     DateTime
-  source      String       @default("manual") // "manual" | "ai"
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  source      String   @default("manual") // "manual" | "ai"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  notebook    Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  phases      StudyPhase[]
-  examId      String?      @unique
-  exam        Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
+  notebook Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  phases   StudyPhase[]
+  examId   String?      @unique
+  exam     Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
 
   @@index([notebookId])
   @@map("study_plans")
 }
 
 model StudyPhase {
-  id          String          @id @default(cuid())
-  planId      String
-  title       String
-  description String?         @db.Text
-  sortOrder   Int             @default(0)
-  startDate   DateTime
-  endDate     DateTime
-  status      String          @default("upcoming") // "upcoming" | "active" | "completed"
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id           String       @id @default(cuid())
+  planId       String
+  title        String
+  description  String?      @db.Text
+  sortOrder    Int          @default(0)
+  startDate    DateTime
+  endDate      DateTime
+  status       String       @default("upcoming") // "upcoming" | "active" | "completed"
+  // Phase 5: governs how materials in this phase unlock and whether the phase
+  // gates the next one. Legacy rows stay on `open` (no breaking change).
+  gateStrategy GateStrategy @default(open)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  plan        StudyPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
-  materials   StudyMaterial[]
+  plan               StudyPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  materials          StudyMaterial[]
+  checkpointAttempts CheckpointAttempt[]
 
   @@index([planId])
   @@map("study_phases")
 }
 
 model StudyMaterial {
-  id          String     @id @default(cuid())
-  phaseId     String
-  type        String     // "page" | "flashcard_set" | "quiz_set" | "document"
-  referenceId String     // loose FK to the referenced resource
-  title       String     // denormalized title
-  completed   Boolean    @default(false)
-  sortOrder   Int        @default(0)
-  createdAt   DateTime   @default(now())
+  id                      String   @id @default(cuid())
+  phaseId                 String
+  type                    String // "page" | "flashcard_set" | "quiz_set" | "document"
+  referenceId             String // loose FK to the referenced resource
+  title                   String // denormalized title
+  completed               Boolean  @default(false)
+  sortOrder               Int      @default(0)
+  // Phase 5: explicit per-material prerequisite override. When non-empty,
+  // the material unlocks only when every listed material id is completed,
+  // regardless of the phase's gateStrategy.
+  prerequisiteMaterialIds String[] @default([])
+  createdAt               DateTime @default(now())
 
-  phase       StudyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  phase StudyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   @@index([phaseId])
   @@map("study_materials")
+}
+
+// Phase 5: a single attempt at a phase's checkpoint quiz. One row per attempt;
+// `passed` mirrors the >= 80% threshold so gating reads stay O(1).
+model CheckpointAttempt {
+  id          String   @id @default(cuid())
+  phaseId     String
+  userId      String
+  score       Int
+  total       Int
+  percentage  Float
+  passed      Boolean
+  attemptedAt DateTime @default(now())
+
+  phase StudyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([phaseId])
+  @@map("checkpoint_attempts")
 }
 
 // --- Microsoft OneNote Connection ---
@@ -641,7 +680,7 @@ model MicrosoftConnection {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("microsoft_connections")
 }
@@ -656,8 +695,8 @@ model Friendship {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  requester   User     @relation("SentFriendRequests", fields: [requesterId], references: [id], onDelete: Cascade)
-  addressee   User     @relation("ReceivedFriendRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+  requester User @relation("SentFriendRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("ReceivedFriendRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, addresseeId])
   @@index([addresseeId])
@@ -668,13 +707,13 @@ model Friendship {
 
 model Notification {
   id        String   @id @default(cuid())
-  userId    String                        // recipient
-  type      String                        // "friend_request" | "friend_accepted" | "notebook_shared" | "notebook_sent" | "co_work_invite" | "post_upvote" | "post_comment"
-  data      Json                          // flexible payload, varies by type
+  userId    String // recipient
+  type      String // "friend_request" | "friend_accepted" | "notebook_shared" | "notebook_sent" | "co_work_invite" | "post_upvote" | "post_comment"
+  data      Json // flexible payload, varies by type
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
   @@index([userId, createdAt])
@@ -684,20 +723,20 @@ model Notification {
 // --- 1.5 Community Posts ---
 
 model Post {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   authorId    String
-  content     String    @db.Text              // max ~2000 chars (enforced in API)
-  notebookRef String?                         // optional linked notebook ID
-  visibility  String    @default("public")    // "public" | "friends" | "specific"
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  content     String   @db.Text // max ~2000 chars (enforced in API)
+  notebookRef String? // optional linked notebook ID
+  visibility  String   @default("public") // "public" | "friends" | "specific"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  images      PostImage[]
-  poll        Poll?
-  votes       PostVote[]
-  comments    PostComment[]
-  visibleTo   PostVisibility[]               // only used when visibility = "specific"
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  images    PostImage[]
+  poll      Poll?
+  votes     PostVote[]
+  comments  PostComment[]
+  visibleTo PostVisibility[] // only used when visibility = "specific"
 
   @@index([authorId])
   @@index([createdAt])
@@ -710,7 +749,7 @@ model PostImage {
   url       String
   sortOrder Int    @default(0)
 
-  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@map("post_images")
@@ -721,44 +760,44 @@ model PostVisibility {
   postId String
   userId String
 
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@map("post_visibility")
 }
 
 model Poll {
-  id       String       @id @default(cuid())
-  postId   String       @unique
+  id       String @id @default(cuid())
+  postId   String @unique
   question String
 
-  post     Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  options  PollOption[]
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options PollOption[]
 
   @@map("polls")
 }
 
 model PollOption {
-  id        String     @id @default(cuid())
+  id        String @id @default(cuid())
   pollId    String
   text      String
-  sortOrder Int        @default(0)
+  sortOrder Int    @default(0)
 
-  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  votes     PollVote[]
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
 
   @@index([pollId])
   @@map("poll_options")
 }
 
 model PollVote {
-  id       String     @id @default(cuid())
+  id       String @id @default(cuid())
   optionId String
   userId   String
 
-  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, userId])
   @@map("poll_votes")
@@ -768,10 +807,10 @@ model PostVote {
   id     String @id @default(cuid())
   postId String
   userId String
-  value  Int              // 1 = upvote, -1 = downvote
+  value  Int // 1 = upvote, -1 = downvote
 
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@map("post_votes")
@@ -785,11 +824,11 @@ model PostComment {
   content         String   @db.VarChar(500)
   createdAt       DateTime @default(now())
 
-  post            Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author          User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent          PostComment?      @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies         PostComment[]     @relation("CommentReplies")
-  votes           CommentVote[]
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  PostComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies PostComment[] @relation("CommentReplies")
+  votes   CommentVote[]
 
   @@index([postId, createdAt])
   @@index([parentCommentId])
@@ -800,10 +839,10 @@ model CommentVote {
   id        String @id @default(cuid())
   commentId String
   userId    String
-  value     Int              // 1 = upvote, -1 = downvote
+  value     Int // 1 = upvote, -1 = downvote
 
-  comment   PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
   @@map("comment_votes")
@@ -812,27 +851,27 @@ model CommentVote {
 // --- 1.6 Shared Notebooks ---
 
 model SharedNotebook {
-  id           String   @id @default(cuid())
-  notebookId   String
-  sharedById   String
-  sharedWithId String?                       // null = community upload
-  type         String                        // "copy" | "live_view"
-  visibility   String   @default("public")   // "public" | "friends" | "specific"
-  title        String?                       // Custom publish title (defaults to notebook name)
-  description  String?  @db.Text             // Blog-like description / body text
-  content       String?  @db.Text             // Rich text content (HTML) for the post body
-  coverImageUrl String?                       // Cover image URL
+  id            String   @id @default(cuid())
+  notebookId    String
+  sharedById    String
+  sharedWithId  String? // null = community upload
+  type          String // "copy" | "live_view"
+  visibility    String   @default("public") // "public" | "friends" | "specific"
+  title         String? // Custom publish title (defaults to notebook name)
+  description   String?  @db.Text // Blog-like description / body text
+  content       String?  @db.Text // Rich text content (HTML) for the post body
+  coverImageUrl String? // Cover image URL
   createdAt     DateTime @default(now())
 
-  notebook     Notebook              @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  sharedBy     User                  @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)
-  sharedWith   User?                 @relation("SharedWithMe", fields: [sharedWithId], references: [id], onDelete: Cascade)
-  images       SharedNotebookImage[]
-  tags         SharedNotebookTag[]
-  downloads    NotebookDownload[]
-  ratings      NotebookRating[]
-  views        NotebookView[]
-  comments     NotebookComment[]
+  notebook   Notebook              @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  sharedBy   User                  @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)
+  sharedWith User?                 @relation("SharedWithMe", fields: [sharedWithId], references: [id], onDelete: Cascade)
+  images     SharedNotebookImage[]
+  tags       SharedNotebookTag[]
+  downloads  NotebookDownload[]
+  ratings    NotebookRating[]
+  views      NotebookView[]
+  comments   NotebookComment[]
 
   @@index([notebookId])
   @@index([sharedById])
@@ -842,16 +881,16 @@ model SharedNotebook {
 }
 
 model SharedNotebookImage {
-  id              String         @id @default(cuid())
+  id               String   @id @default(cuid())
   sharedNotebookId String
-  fileName        String
-  filePath        String
-  fileSize        Int
-  mimeType        String
-  sortOrder       Int            @default(0)
-  createdAt       DateTime       @default(now())
+  fileName         String
+  filePath         String
+  fileSize         Int
+  mimeType         String
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
 
-  sharedNotebook  SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
 
   @@index([sharedNotebookId])
   @@map("shared_notebook_images")
@@ -860,12 +899,12 @@ model SharedNotebookImage {
 // --- 1.7 Co-Work Sessions ---
 
 model CoWorkSession {
-  id           String   @id @default(cuid())
-  notebookId   String
-  hostId       String
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  endedAt      DateTime?
+  id         String    @id @default(cuid())
+  notebookId String
+  hostId     String
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  endedAt    DateTime?
 
   notebook     Notebook            @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   host         User                @relation("HostedSessions", fields: [hostId], references: [id], onDelete: Cascade)
@@ -878,15 +917,15 @@ model CoWorkSession {
 }
 
 model CoWorkParticipant {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   sessionId String
   userId    String
-  isActive  Boolean  @default(true)
-  joinedAt  DateTime @default(now())
+  isActive  Boolean   @default(true)
+  joinedAt  DateTime  @default(now())
   leftAt    DateTime?
 
-  session   CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
   @@map("co_work_participants")
@@ -900,23 +939,23 @@ model PageLock {
   lockedAt   DateTime @default(now())
   expiresAt  DateTime // lockedAt + 5 minutes — auto-expire stale locks
 
-  session    CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  page       Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  lockedBy   User          @relation(fields: [lockedById], references: [id], onDelete: Cascade)
+  session  CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  page     Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  lockedBy User          @relation(fields: [lockedById], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, pageId])
   @@map("page_locks")
 }
 
 model CoWorkMessage {
-  id         String   @id @default(cuid())
-  sessionId  String
-  userId     String
-  text       String   @db.Text
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  text      String   @db.Text
+  createdAt DateTime @default(now())
 
-  session    CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([sessionId, createdAt])
   @@map("co_work_messages")
@@ -928,7 +967,7 @@ model CoWorkMessage {
 
 model Tag {
   id        String   @id @default(cuid())
-  name      String   @unique              // lowercased, trimmed, e.g. "react_hooks"
+  name      String   @unique // lowercased, trimmed, e.g. "react_hooks"
   createdAt DateTime @default(now())
 
   sharedNotebookTags SharedNotebookTag[]
@@ -938,12 +977,12 @@ model Tag {
 }
 
 model SharedNotebookTag {
-  id               String         @id @default(cuid())
+  id               String @id @default(cuid())
   sharedNotebookId String
   tagId            String
 
-  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  tag              Tag            @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  tag            Tag            @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@unique([sharedNotebookId, tagId])
   @@index([tagId])
@@ -951,41 +990,41 @@ model SharedNotebookTag {
 }
 
 model NotebookDownload {
-  id               String         @id @default(cuid())
+  id               String   @id @default(cuid())
   sharedNotebookId String
   userId           String
-  createdAt        DateTime       @default(now())
+  createdAt        DateTime @default(now())
 
-  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sharedNotebookId, userId])
   @@map("notebook_downloads")
 }
 
 model NotebookRating {
-  id               String         @id @default(cuid())
+  id               String   @id @default(cuid())
   sharedNotebookId String
   userId           String
-  value            Int            // 1-5
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  value            Int // 1-5
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sharedNotebookId, userId])
   @@map("notebook_ratings")
 }
 
 model NotebookView {
-  id               String         @id @default(cuid())
+  id               String   @id @default(cuid())
   sharedNotebookId String
   userId           String
-  createdAt        DateTime       @default(now())
+  createdAt        DateTime @default(now())
 
-  sharedNotebook   SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sharedNotebookId, userId])
   @@map("notebook_views")
@@ -999,11 +1038,11 @@ model NotebookComment {
   content          String   @db.VarChar(1000)
   createdAt        DateTime @default(now())
 
-  sharedNotebook   SharedNotebook        @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  author           User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent           NotebookComment?      @relation("NotebookCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies          NotebookComment[]     @relation("NotebookCommentReplies")
-  votes            NotebookCommentVote[]
+  sharedNotebook SharedNotebook        @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
+  author         User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent         NotebookComment?      @relation("NotebookCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies        NotebookComment[]     @relation("NotebookCommentReplies")
+  votes          NotebookCommentVote[]
 
   @@index([sharedNotebookId, createdAt])
   @@index([parentCommentId])
@@ -1014,25 +1053,25 @@ model NotebookCommentVote {
   id        String @id @default(cuid())
   commentId String
   userId    String
-  value     Int              // 1 = upvote, -1 = downvote
+  value     Int // 1 = upvote, -1 = downvote
 
-  comment   NotebookComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment NotebookComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
   @@map("notebook_comment_votes")
 }
 
 model FriendActivity {
-  id           String   @id @default(cuid())
-  userId       String                    // who performed the action
-  type         String                    // "downloaded" | "published" | "rated"
-  targetName   String                    // notebook/item name for display
-  targetColor  String?                   // color for UI display
-  targetId     String?                   // optional link to SharedNotebook id
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String // who performed the action
+  type        String // "downloaded" | "published" | "rated"
+  targetName  String // notebook/item name for display
+  targetColor String? // color for UI display
+  targetId    String? // optional link to SharedNotebook id
+  createdAt   DateTime @default(now())
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("friend_activities")
@@ -1063,19 +1102,19 @@ model StudyMinute {
 // ============================================================================
 
 model StudyGroup {
-  id          String             @id @default(cuid())
-  name        String
-  description String?            @db.VarChar(500)
-  ownerId     String
-  avatarUrl   String?
-  type        String             @default("study_group") // "study_group" | "class" | "direct"
-  allowMemberChat    Boolean    @default(true)  // Can members (students) send messages?
-  allowMemberSharing Boolean    @default(true)  // Can members (students) share content?
-  allowMemberInvites Boolean    @default(true)  // Can members (students) invite others?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id                 String   @id @default(cuid())
+  name               String
+  description        String?  @db.VarChar(500)
+  ownerId            String
+  avatarUrl          String?
+  type               String   @default("study_group") // "study_group" | "class" | "direct"
+  allowMemberChat    Boolean  @default(true) // Can members (students) send messages?
+  allowMemberSharing Boolean  @default(true) // Can members (students) share content?
+  allowMemberInvites Boolean  @default(true) // Can members (students) invite others?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  owner         User               @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User                 @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
   members       StudyGroupMember[]
   notebooks     StudyGroupNotebook[]
   messages      GroupMessage[]
@@ -1088,16 +1127,16 @@ model StudyGroup {
 }
 
 model StudyGroupMember {
-  id       String     @id @default(cuid())
-  groupId  String
-  userId   String
-  role       String     @default("member") // "owner" | "admin" | "member"
-  status     String     @default("accepted") // "pending" | "accepted" | "declined"
-  joinedAt   DateTime   @default(now())
-  lastReadAt DateTime?  // null = never read; set when user opens the group
+  id         String    @id @default(cuid())
+  groupId    String
+  userId     String
+  role       String    @default("member") // "owner" | "admin" | "member"
+  status     String    @default("accepted") // "pending" | "accepted" | "declined"
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime? // null = never read; set when user opens the group
 
-  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
   @@index([userId, status])
@@ -1105,14 +1144,14 @@ model StudyGroupMember {
 }
 
 model StudyGroupNotebook {
-  id         String     @id @default(cuid())
+  id         String   @id @default(cuid())
   groupId    String
   notebookId String
   addedById  String
-  addedAt    DateTime   @default(now())
+  addedAt    DateTime @default(now())
 
-  group      StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  notebook   Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  notebook Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, notebookId])
   @@map("study_group_notebooks")
@@ -1121,17 +1160,17 @@ model StudyGroupNotebook {
 // --- Group Invitations ---
 
 model GroupInvitation {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   groupId   String
   inviterId String
   inviteeId String
-  status    String     @default("pending") // "pending" | "accepted" | "declined"
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  status    String   @default("pending") // "pending" | "accepted" | "declined"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  inviter   User       @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
-  invitee   User       @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+  group   StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter User       @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User       @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, inviteeId])
   @@index([inviteeId, status])
@@ -1141,16 +1180,16 @@ model GroupInvitation {
 // --- Group Messages (Chat) ---
 
 model GroupMessage {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   groupId   String
-  senderId  String?    // null for system messages
-  type      String     @default("text") // "text" | "system" | "content_share"
-  content   String     @db.Text
-  metadata  Json?      // { contentType, contentId, contentTitle, fileName, fileUrl, ... }
-  createdAt DateTime   @default(now())
+  senderId  String? // null for system messages
+  type      String   @default("text") // "text" | "system" | "content_share"
+  content   String   @db.Text
+  metadata  Json? // { contentType, contentId, contentTitle, fileName, fileUrl, ... }
+  createdAt DateTime @default(now())
 
-  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sender    User?      @relation("SentGroupMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  group  StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender User?      @relation("SentGroupMessages", fields: [senderId], references: [id], onDelete: SetNull)
 
   @@index([groupId, createdAt])
   @@index([senderId])
@@ -1160,18 +1199,18 @@ model GroupMessage {
 // --- Group Shared Content ---
 
 model GroupSharedContent {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   groupId     String
   sharedById  String
-  contentType String     // "notebook" | "folder" | "document" | "flashcard_set" | "quiz_set"
-  contentId   String     // ID of the referenced resource
-  title       String     // denormalized for display
+  contentType String // "notebook" | "folder" | "document" | "flashcard_set" | "quiz_set"
+  contentId   String // ID of the referenced resource
+  title       String // denormalized for display
   description String?
-  metadata    Json?      // { color, subject, cardCount, questionCount, etc. }
-  createdAt   DateTime   @default(now())
+  metadata    Json? // { color, subject, cardCount, questionCount, etc. }
+  createdAt   DateTime @default(now())
 
-  group       StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sharedBy    User       @relation("SharedGroupContent", fields: [sharedById], references: [id], onDelete: Cascade)
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sharedBy User       @relation("SharedGroupContent", fields: [sharedById], references: [id], onDelete: Cascade)
 
   @@unique([groupId, contentType, contentId])
   @@index([groupId, createdAt])
@@ -1184,16 +1223,16 @@ model GroupSharedContent {
 // ============================================================================
 
 model UserStreak {
-  id             String    @id @default(cuid())
-  userId         String    @unique
-  currentStreak  Int       @default(0)
-  longestStreak  Int       @default(0)
-  lastStudyDate  DateTime? @db.Date
-  freezesLeft    Int       @default(2)
-  freezesUsed    Int       @default(0)
-  updatedAt      DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastStudyDate DateTime? @db.Date
+  freezesLeft   Int       @default(2)
+  freezesUsed   Int       @default(0)
+  updatedAt     DateTime  @updatedAt
 
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_streaks")
 }
@@ -1205,10 +1244,10 @@ model UserStreak {
 model Achievement {
   id         String   @id @default(cuid())
   userId     String
-  badge      String   // unique key: "first_notebook", "100_messages", "30_day_streak", etc.
+  badge      String // unique key: "first_notebook", "100_messages", "30_day_streak", etc.
   unlockedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badge])
   @@index([userId])
@@ -1230,7 +1269,7 @@ model UserCosmetic {
   cosmeticId String
   unlockedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, cosmeticId])
   @@index([userId])
@@ -1242,18 +1281,18 @@ model UserCosmetic {
 // ============================================================================
 
 model Exam {
-  id         String     @id @default(cuid())
+  id         String   @id @default(cuid())
   userId     String
   notebookId String
-  title      String     // "Biology Final Exam"
+  title      String // "Biology Final Exam"
   examDate   DateTime
-  reminders  Boolean    @default(true)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  reminders  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook   Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  studyPlan  StudyPlan?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook  Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  studyPlan StudyPlan?
 
   @@index([userId, examDate])
   @@map("exams")
@@ -1284,7 +1323,7 @@ model Todo {
 model UsageRecord {
   id          String   @id @default(cuid())
   userId      String
-  featureType String   // e.g. "ai_flashcards", "ai_pptx", "ai_study_plan", "scholar_chat"
+  featureType String // e.g. "ai_flashcards", "ai_pptx", "ai_study_plan", "scholar_chat"
   month       DateTime // First day of the month (UTC)
   count       Int      @default(0)
   updatedAt   DateTime @updatedAt
@@ -1305,7 +1344,7 @@ model UsageRecord {
 /// Used to enforce a max-accounts-per-IP limit (resets after 12 months).
 model IpRegistration {
   id        String   @id @default(cuid())
-  ip        String   // Client IP at registration time
+  ip        String // Client IP at registration time
   createdAt DateTime @default(now())
 
   @@index([ip, createdAt])
@@ -1329,12 +1368,12 @@ model Waitlist {
 model AdminAuditLog {
   id        String   @id @default(cuid())
   adminId   String
-  action    String   // e.g. "user.ban", "post.delete"
-  targetId  String   // ID of the affected resource
+  action    String // e.g. "user.ban", "post.delete"
+  targetId  String // ID of the affected resource
   details   String?  @db.Text // Optional JSON details
   createdAt DateTime @default(now())
 
-  admin     User     @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: Cascade)
+  admin User @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId])
   @@index([action])

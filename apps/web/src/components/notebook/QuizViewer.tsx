@@ -79,6 +79,10 @@ interface QuizViewerProps {
   initialQuestions: QuizQuestion[];
   assignedSectionId?: string | null;
   isCheckpoint?: boolean;
+  // Phase 5 — set when the quiz was launched from a Learn Path lesson node.
+  // The id is passed through to the attempts POST so the server can mark the
+  // material complete on pass and log a CheckpointAttempt when applicable.
+  materialId?: string | null;
 }
 
 type QuizMode = 'quiz' | 'review' | 'results';
@@ -90,6 +94,7 @@ export default function QuizViewer({
   initialQuestions,
   assignedSectionId,
   isCheckpoint = false,
+  materialId = null,
 }: QuizViewerProps) {
   const { isPhone, isTablet } = useBreakpoint();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -279,7 +284,13 @@ export default function QuizViewer({
       const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/attempts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: answersPayload, timeSpent }),
+        body: JSON.stringify({
+          answers: answersPayload,
+          timeSpent,
+          // Phase 5: signal Learn Path context so the server can mark the
+          // material complete on pass and write a CheckpointAttempt row.
+          ...(materialId ? { materialId } : {}),
+        }),
       });
       const json = await res.json();
       if (json.success && json.data) {
@@ -317,6 +328,7 @@ export default function QuizViewer({
     bestScore,
     commitFor,
     isCheckpoint,
+    materialId,
     reactionMode,
   ]);
 
@@ -761,7 +773,10 @@ export default function QuizViewer({
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <ActionButton onClick={reset} label="Retake Quiz" primary />
+          {materialId && (
+            <ActionButton onClick={() => router.push('/learn')} label="Back to learn path" primary />
+          )}
+          <ActionButton onClick={reset} label="Retake Quiz" primary={!materialId} />
           <ActionButton onClick={startReview} label="Review Answers" />
           <ActionButton onClick={downloadJSON} label="Download JSON" />
           <ActionButton onClick={openSlideEditor} label="Download PPTX" />

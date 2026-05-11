@@ -136,10 +136,15 @@ export interface StudyPlanToolInput {
     title: string;
     description: string;
     durationDays: number;
+    // Phase 5 — Learn Path gating. Optional for back-compat. AI is asked to
+    // emit 'checkpoint' for new plans; legacy plans without this field land
+    // on the schema default of 'open'.
+    gateStrategy?: 'open' | 'sequential' | 'checkpoint';
     materials: {
       type: 'page' | 'flashcard_set' | 'quiz_set' | 'document';
       referenceId: string;
       title: string;
+      prerequisiteMaterialIds?: string[];
     }[];
   }[];
 }
@@ -338,7 +343,7 @@ export const MINDMAP_TOOL: Anthropic.Messages.Tool = {
 export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
   name: 'create_study_plan',
   description:
-    'Create a structured study plan with phases and materials. Use this tool when the user asks you to create, generate, or make a study plan, study schedule, or revision plan from their notebook materials. Each phase has a title, description, duration, and a list of materials to study.',
+    'Create a structured study plan with phases and materials. Use this tool when the user asks you to create, generate, or make a study plan, study schedule, or revision plan from their notebook materials. Each phase has a title, description, duration, and a list of materials to study. For the Learn Path experience (Phase 5), prefer gateStrategy="checkpoint" on every phase and place a quiz_set material as the LAST material of each phase — that quiz becomes the checkpoint that gates the next phase.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -367,6 +372,12 @@ export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
               type: 'number',
               description: 'How many days this phase should last',
             },
+            gateStrategy: {
+              type: 'string',
+              enum: ['open', 'sequential', 'checkpoint'],
+              description:
+                'How materials in this phase unlock and whether the phase gates the next one. "open" = everything unlocked from the start. "sequential" = materials unlock in order as previous ones are completed. "checkpoint" = sequential AND the LAST material gates the next phase (must be a quiz_set). Default to "checkpoint" for new learn-path plans.',
+            },
             materials: {
               type: 'array',
               items: {
@@ -385,10 +396,17 @@ export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
                     type: 'string',
                     description: 'The title of the resource',
                   },
+                  prerequisiteMaterialIds: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description:
+                      'Optional. Material referenceIds within this same phase that must be completed before this material unlocks. Use only when sequential ordering is insufficient. Empty array or omitted = no explicit prerequisites.',
+                  },
                 },
                 required: ['type', 'referenceId', 'title'],
               },
-              description: 'Materials to study in this phase',
+              description:
+                'Materials to study in this phase. When gateStrategy is "checkpoint", the LAST material MUST have type="quiz_set" — it is the checkpoint quiz the student must pass to unlock the next phase.',
             },
           },
           required: ['title', 'description', 'durationDays', 'materials'],
