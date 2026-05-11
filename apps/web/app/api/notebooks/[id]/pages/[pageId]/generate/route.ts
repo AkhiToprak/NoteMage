@@ -14,6 +14,7 @@ import {
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
+import { QuizSetV2Schema } from '@notemage/shared';
 import { checkTokenBudget } from '@/lib/token-budget';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
 
     const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
-    const { text, flashcard, quiz, mindmap } = extractToolUses(response.content);
+    const { text, flashcard, quiz, quizV2, mindmap } = extractToolUses(response.content);
 
     // Track token usage (chatId is nullable in schema)
     await db.chatMessage.create({
@@ -131,6 +132,61 @@ export async function POST(request: NextRequest, { params }: Params) {
           },
         });
       }
+    }
+
+    // Handle quiz creation (V2 — kind-aware)
+    if (type === 'quiz' && quizV2) {
+      const { title, questions } = quizV2.input;
+
+      // Fisher-Yates shuffle to randomize answer positions
+      for (const q of questions) {
+        let correctIdx = q.payload.correctIndex;
+        for (let i = q.payload.options.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [q.payload.options[i], q.payload.options[j]] = [
+            q.payload.options[j],
+            q.payload.options[i],
+          ];
+          if (correctIdx === i) correctIdx = j;
+          else if (correctIdx === j) correctIdx = i;
+        }
+        q.payload.correctIndex = correctIdx;
+      }
+
+      const parsed = QuizSetV2Schema.safeParse({ title, questions });
+      if (!parsed.success) {
+        return badRequestResponse('AI returned an invalid quiz');
+      }
+
+      const qSet = await db.quizSet.create({
+        data: {
+          notebookId,
+          title,
+          questions: {
+            create: questions.map((q, i) => ({
+              kind: 'mc' as const,
+              payload: q.payload,
+              question: q.prompt,
+              options: q.payload.options,
+              correctIndex: q.payload.correctIndex,
+              hint: q.hint ?? null,
+              correctExplanation: q.correctExplanation ?? null,
+              wrongExplanation: q.wrongExplanation ?? null,
+              sortOrder: i,
+            })),
+          },
+        },
+        include: { questions: true },
+      });
+      return successResponse({
+        type: 'quiz',
+        quizSet: { id: qSet.id, title: qSet.title, questionCount: qSet.questions.length },
+        usage: {
+          totalTokens,
+          monthlyUsed: usedTokens + totalTokens,
+          monthlyLimit: tokenLimit,
+        },
+      });
     }
 
     // Handle quiz creation

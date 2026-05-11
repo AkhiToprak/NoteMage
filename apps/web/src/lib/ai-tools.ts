@@ -445,6 +445,7 @@ export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
 export const ALL_TOOLS = [
   FLASHCARD_TOOL,
   QUIZ_TOOL,
+  QUIZ_TOOL_V2,
   MINDMAP_TOOL,
   STUDY_PLAN_TOOL,
   PRESENTATION_TOOL,
@@ -457,6 +458,7 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
   let text = '';
   let flashcard: { id: string; input: FlashcardToolInput } | null = null;
   let quiz: { id: string; input: QuizToolInput } | null = null;
+  let quizV2: { id: string; input: QuizToolV2Input } | null = null;
   let mindmap: { id: string; input: MindmapToolInput } | null = null;
   let studyPlan: { id: string; input: StudyPlanToolInput } | null = null;
   let presentation: { id: string; input: PresentationToolInput } | null = null;
@@ -470,6 +472,8 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
         flashcard = { id: block.id, input: block.input as FlashcardToolInput };
       } else if (block.name === 'create_quiz') {
         quiz = { id: block.id, input: block.input as QuizToolInput };
+      } else if (block.name === 'create_quiz_v2') {
+        quizV2 = { id: block.id, input: block.input as QuizToolV2Input };
       } else if (block.name === 'create_mindmap') {
         mindmap = { id: block.id, input: block.input as MindmapToolInput };
       } else if (block.name === 'create_study_plan') {
@@ -482,5 +486,5 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
     }
   }
 
-  return { text, flashcard, quiz, mindmap, studyPlan, presentation, youtubeVideos };
+  return { text, flashcard, quiz, quizV2, mindmap, studyPlan, presentation, youtubeVideos };
 }

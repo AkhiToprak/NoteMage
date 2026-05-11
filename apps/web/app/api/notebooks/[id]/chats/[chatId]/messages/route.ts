@@ -17,6 +17,7 @@ import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
+import { QuizSetV2Schema } from '@notemage/shared';
 import { extractText } from '@/lib/fileProcessing';
 import { readFile } from '@/lib/storage';
 import { tiptapJsonToPlainText } from '@/lib/contentConverter';
@@ -383,6 +384,7 @@ export async function POST(request: NextRequest, { params }: Params) {
               text: extractedText,
               flashcard: flashcardToolUse,
               quiz: quizToolUse,
+              quizV2: quizV2ToolUse,
               mindmap: mindmapToolUse,
               studyPlan: studyPlanToolUse,
               presentation: presentationToolUse,
@@ -497,6 +499,127 @@ export async function POST(request: NextRequest, { params }: Params) {
                 controller.close();
                 return;
               }
+            }
+
+            // ── If tool_use: create quiz in DB (V2 — kind-aware) ──
+            if (quizV2ToolUse) {
+              const { title: quizTitle, questions } = quizV2ToolUse.input;
+
+              // Fisher-Yates shuffle to randomize answer positions
+              for (const q of questions) {
+                let correctIdx = q.payload.correctIndex;
+                for (let i = q.payload.options.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [q.payload.options[i], q.payload.options[j]] = [
+                    q.payload.options[j],
+                    q.payload.options[i],
+                  ];
+                  if (correctIdx === i) correctIdx = j;
+                  else if (correctIdx === j) correctIdx = i;
+                }
+                q.payload.correctIndex = correctIdx;
+              }
+
+              const parsed = QuizSetV2Schema.safeParse({ title: quizTitle, questions });
+              if (!parsed.success) {
+                controller.enqueue(
+                  sseEvent('error', {
+                    error: 'AI returned an invalid quiz',
+                    issues: parsed.error.issues,
+                  })
+                );
+                controller.close();
+                return;
+              }
+
+              const result = await db.$transaction(async (tx) => {
+                const userMsg = await tx.chatMessage.create({
+                  data: {
+                    notebookId,
+                    userId,
+                    chatId,
+                    role: 'user',
+                    content: userMessage,
+                    tokens: response.usage.input_tokens,
+                  },
+                });
+                const qSet = await tx.quizSet.create({
+                  data: {
+                    notebookId,
+                    chatId,
+                    messageId: '',
+                    title: quizTitle,
+                    questions: {
+                      create: questions.map((q, i) => ({
+                        kind: 'mc' as const,
+                        payload: q.payload,
+                        question: q.prompt,
+                        options: q.payload.options,
+                        correctIndex: q.payload.correctIndex,
+                        hint: q.hint ?? null,
+                        correctExplanation: q.correctExplanation ?? null,
+                        wrongExplanation: q.wrongExplanation ?? null,
+                        sortOrder: i,
+                      })),
+                    },
+                  },
+                  include: { questions: true },
+                });
+                const markerText = assistantText
+                  ? `${assistantText}\n\n[quiz_set:${qSet.id}]`
+                  : `I've created a quiz "${quizTitle}" with ${questions.length} questions.\n\n[quiz_set:${qSet.id}]`;
+                const assistantMsg = await tx.chatMessage.create({
+                  data: {
+                    notebookId,
+                    userId,
+                    chatId,
+                    role: 'assistant',
+                    content: markerText,
+                    tokens: response.usage.output_tokens,
+                  },
+                });
+                await tx.quizSet.update({
+                  where: { id: qSet.id },
+                  data: { messageId: assistantMsg.id },
+                });
+                await tx.notebookChat.update({
+                  where: { id: chatId },
+                  data: { updatedAt: new Date() },
+                });
+                return { userMsg, assistantMsg, qSet };
+              });
+
+              controller.enqueue(
+                sseEvent('done', {
+                  userMessage: {
+                    id: result.userMsg.id,
+                    role: result.userMsg.role,
+                    content: result.userMsg.content,
+                    createdAt: result.userMsg.createdAt,
+                  },
+                  assistantMessage: {
+                    id: result.assistantMsg.id,
+                    role: result.assistantMsg.role,
+                    content: result.assistantMsg.content,
+                    createdAt: result.assistantMsg.createdAt,
+                  },
+                  quizSet: {
+                    id: result.qSet.id,
+                    title: result.qSet.title,
+                    questionCount: result.qSet.questions.length,
+                  },
+                  usage: {
+                    inputTokens: response.usage.input_tokens,
+                    outputTokens: response.usage.output_tokens,
+                    totalTokens,
+                    monthlyUsed: usedTokens + totalTokens,
+                    monthlyLimit: tokenLimit,
+                  },
+                  contextStatus,
+                })
+              );
+              controller.close();
+              return;
             }
 
             // ── If tool_use: create quiz in DB ──
