@@ -67,7 +67,7 @@ export default function BentoFeatures() {
                 borderRadius: 'var(--radius-xl)',
                 background: 'rgba(22, 20, 44, 0.72)',
                 border: `1px solid ${c.accent}33`,
-                boxShadow: '0 24px 60px rgba(140, 82, 255, 0.06), 0 4px 16px rgba(0,0,0,0.35)',
+                boxShadow: '0 24px 60px rgba(140, 82, 255, 0.06), 0 4px 16px var(--bento-rest-shadow)',
                 minHeight: 240,
                 overflow: 'hidden',
                 transition:
@@ -76,13 +76,13 @@ export default function BentoFeatures() {
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
                 e.currentTarget.style.borderColor = `${c.accent}77`;
-                e.currentTarget.style.boxShadow = `0 36px 80px ${c.accent}1a, 0 12px 28px rgba(0,0,0,0.4)`;
+                e.currentTarget.style.boxShadow = `0 36px 80px ${c.accent}1a, 0 12px 28px var(--bento-hover-shadow)`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.borderColor = `${c.accent}33`;
                 e.currentTarget.style.boxShadow =
-                  '0 24px 60px rgba(140, 82, 255, 0.06), 0 4px 16px rgba(0,0,0,0.35)';
+                  '0 24px 60px rgba(140, 82, 255, 0.06), 0 4px 16px var(--bento-rest-shadow)';
               }}
             >
               <div

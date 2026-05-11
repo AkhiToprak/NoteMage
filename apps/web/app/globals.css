@@ -44,18 +44,24 @@
   --on-error: #7c0020;
   --on-error-container: #ffcad0;
 
-  /* Surface */
-  --background: #1a1a1a;
-  --surface: #1a1a1a;
-  --surface-dim: #1a1a1a;
-  --surface-bright: #444444;
-  --surface-container-lowest: #1e1e1e;
-  --surface-container-low: #282828;
-  --surface-container: #303030;
-  --surface-container-high: #383838;
-  --surface-container-highest: #404040;
+  /* Surface — navy palette (restored). Dashboard/profile cards inline-style
+     `background: var(--surface-container)` etc; these resolve to navy in dark
+     mode and to the [data-theme='light'] override values below in light mode. */
+  --background: #1a1a36;
+  --surface: #1a1a36;
+  --surface-dim: #1a1a36;
+  --surface-bright: #333358;
+  --surface-container-lowest: #10102a;
+  --surface-container-low: #21213e;
+  --surface-container: #272746;
+  --surface-container-high: #2d2d52;
+  --surface-container-highest: #35355c;
   --surface-tint: #d1bcff;
-  --surface-variant: #404040;
+  --surface-variant: #2d2d52;
+
+  /* Bento card shadows — theme-aware so light mode doesn't drop a black halo. */
+  --bento-rest-shadow: rgba(0, 0, 0, 0.35);
+  --bento-hover-shadow: rgba(0, 0, 0, 0.4);
   --on-surface: #ffffff;
   --on-surface-variant: #dfdeeb;
   --on-background: #ffffff;
@@ -139,14 +145,18 @@
      near-white shade so cards/panels/dropdowns read as separate planes. */
   --background: #f3f3f7;
   --surface: #ffffff;
-  --surface-dim: #e6e6ec;
+  --surface-dim: #d8d8e0;
   --surface-bright: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #f4f4f8;
-  --surface-container: #eaeaf0;
-  --surface-container-high: #dfdfe7;
-  --surface-container-highest: #d3d3dc;
-  --surface-variant: #ececf2;
+  --surface-container-low: #e5e5ec;
+  --surface-container: #d8d8e0;
+  --surface-container-high: #c8c8d2;
+  --surface-container-highest: #b8b8c4;
+  --surface-variant: #dcdce4;
+
+  /* Bento card shadow overrides — light theme: muted navy instead of black. */
+  --bento-rest-shadow: rgba(15, 15, 30, 0.06);
+  --bento-hover-shadow: rgba(15, 15, 30, 0.08);
   /* Text — pushed darker and toward black so the brand stays slightly navy
      but contrast is punchy on white. */
   --on-surface: #0f0f1e;
@@ -195,9 +205,18 @@
   --md-pre: #0f0f1e;
 }
 
-/* Landing bento cells — light theme: lighter surface, deeper + thicker borders */
+/* Light mode: every tokenized surface card gets a visible deep outline so the
+   page bg vs. card bg contrast doesn't disappear. Targets <div> only to avoid
+   stomping on input/select outlines that components manage themselves. */
+[data-theme='light'] div[style*="var(--surface-container"] {
+  outline: 1px solid var(--outline);
+  outline-offset: -1px;
+}
+
+/* Landing bento cells — light theme: tinted surface (not white), thick deep
+   borders, and theme-aware hover shadow (no black halo). */
 [data-theme='light'] .bento-cell {
-  background: #fafafd !important;
+  background: var(--surface-container) !important;
   border-width: 2px !important;
   border-color: var(--outline) !important;
   box-shadow: 0 1px 2px rgba(15, 15, 30, 0.05), 0 4px 12px rgba(15, 15, 30, 0.06) !important;
