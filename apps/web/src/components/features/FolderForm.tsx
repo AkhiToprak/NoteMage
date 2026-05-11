@@ -60,7 +60,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
     >
       <div
         style={{
-          background: '#272746',
+          background: 'var(--surface-container)',
           borderRadius: '20px',
           padding: '32px',
           width: '100%',
@@ -74,7 +74,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
           @keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
         `}</style>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 24px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 24px' }}>
           {isEdit ? 'Rename Folder' : 'New Folder'}
         </h2>
 
@@ -85,7 +85,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
               style={{
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
               }}
@@ -107,7 +107,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
                 borderRadius: '10px',
                 border: '1px solid rgba(174,137,255,0.15)',
                 background: '#12122a',
-                color: '#e5e3ff',
+                color: 'var(--on-surface)',
                 fontSize: '15px',
                 fontFamily: 'inherit',
                 outline: 'none',
@@ -129,7 +129,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
               style={{
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
               }}
@@ -169,11 +169,11 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
                 flex: 1,
                 padding: '12px',
                 borderRadius: '12px',
-                background: '#35355c',
+                background: 'var(--surface-container-highest)',
                 border: 'none',
                 fontSize: '14px',
                 fontWeight: 600,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
               }}

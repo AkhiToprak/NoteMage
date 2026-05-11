@@ -74,10 +74,10 @@ function formatDate(iso: string): string {
 const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
-  background: '#272746',
+  background: 'var(--surface-container)',
   border: '1px solid rgba(170,168,200,0.2)',
   borderRadius: '10px',
-  color: '#e5e3ff',
+  color: 'var(--on-surface)',
   fontSize: '14px',
   fontFamily: 'inherit',
   outline: 'none',
@@ -87,7 +87,7 @@ const INPUT_STYLE: React.CSSProperties = {
 const LABEL_STYLE: React.CSSProperties = {
   fontSize: '12px',
   fontWeight: 600,
-  color: '#8888a8',
+  color: 'var(--outline)',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   marginBottom: '6px',
@@ -451,7 +451,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div style={{ textAlign: 'center', padding: '64px 24px', color: '#aaa8c8' }}>
+      <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--on-surface-variant)' }}>
         <span
           className="material-symbols-outlined"
           style={{ fontSize: '48px', display: 'block', marginBottom: '16px', opacity: 0.4 }}
@@ -480,7 +480,7 @@ export default function ProfilePage() {
       <div
         style={{
           position: 'relative',
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: isPhone ? '20px' : '24px',
           padding: isPhone ? '28px 20px' : '40px',
           display: 'flex',
@@ -525,7 +525,7 @@ export default function ProfilePage() {
             style={{
               fontSize: isPhone ? 20 : 24,
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               marginBottom: 4,
               justifyContent: 'center',
             }}
@@ -536,7 +536,7 @@ export default function ProfilePage() {
             position: 'relative',
             zIndex: 1,
             fontSize: isPhone ? '13px' : '14px',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             margin: '0 0 12px',
           }}
         >
@@ -551,7 +551,7 @@ export default function ProfilePage() {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             fontSize: '13px',
           }}
         >
@@ -584,7 +584,7 @@ export default function ProfilePage() {
                 borderRadius: '20px',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#8888a8',
+                color: 'var(--outline)',
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
@@ -604,7 +604,7 @@ export default function ProfilePage() {
                 borderRadius: '20px',
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#8888a8',
+                color: 'var(--outline)',
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
@@ -657,7 +657,7 @@ export default function ProfilePage() {
       {!editing && hasDetails && (
         <div
           style={{
-            background: '#21213e',
+            background: 'var(--surface-container-low)',
             borderRadius: isPhone ? '20px' : '24px',
             padding: isPhone ? '20px' : '28px 32px',
             display: 'flex',
@@ -666,7 +666,7 @@ export default function ProfilePage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
               About
             </h3>
             <button
@@ -714,7 +714,7 @@ export default function ProfilePage() {
                   <p
                     style={{
                       fontSize: '11px',
-                      color: '#8888a8',
+                      color: 'var(--outline)',
                       margin: '0 0 2px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
@@ -723,7 +723,7 @@ export default function ProfilePage() {
                   >
                     {item.label}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#e5e3ff', margin: 0 }}>{String(value)}</p>
+                  <p style={{ fontSize: '14px', color: 'var(--on-surface)', margin: 0 }}>{String(value)}</p>
                 </div>
               </div>
             );
@@ -735,7 +735,7 @@ export default function ProfilePage() {
       {editing && (
         <div
           style={{
-            background: '#21213e',
+            background: 'var(--surface-container-low)',
             borderRadius: isPhone ? '20px' : '24px',
             padding: isPhone ? '20px' : '32px',
             display: 'flex',
@@ -743,7 +743,7 @@ export default function ProfilePage() {
             gap: isPhone ? '16px' : '20px',
           }}
         >
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
             Edit Profile
           </h3>
 
@@ -788,7 +788,7 @@ export default function ProfilePage() {
               }}
             />
             <p
-              style={{ fontSize: '11px', color: '#6a6a8c', margin: '4px 0 0', textAlign: 'right' }}
+              style={{ fontSize: '11px', color: 'var(--outline-variant)', margin: '4px 0 0', textAlign: 'right' }}
             >
               {form.bio.length}/160
             </p>
@@ -909,7 +909,7 @@ export default function ProfilePage() {
 
           {/* Privacy Toggles */}
           <div style={{ borderTop: '1px solid rgba(170,168,200,0.20)', paddingTop: '20px' }}>
-            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 16px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 16px' }}>
               Privacy
             </h4>
 
@@ -920,7 +920,7 @@ export default function ProfilePage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                background: '#272746',
+                background: 'var(--surface-container)',
                 borderRadius: '12px',
                 marginBottom: '10px',
               }}
@@ -933,10 +933,10 @@ export default function ProfilePage() {
                   lock
                 </span>
                 <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', margin: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
                     Private Profile
                   </p>
-                  <p style={{ fontSize: '11px', color: '#8888a8', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--outline)', margin: '2px 0 0' }}>
                     Only friends can see your full profile
                   </p>
                 </div>
@@ -976,7 +976,7 @@ export default function ProfilePage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                background: '#272746',
+                background: 'var(--surface-container)',
                 borderRadius: '12px',
               }}
             >
@@ -988,10 +988,10 @@ export default function ProfilePage() {
                   visibility_off
                 </span>
                 <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', margin: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
                     Hide Achievements
                   </p>
-                  <p style={{ fontSize: '11px', color: '#8888a8', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--outline)', margin: '2px 0 0' }}>
                     Others cannot see your achievements
                   </p>
                 </div>
@@ -1058,7 +1058,7 @@ export default function ProfilePage() {
               style={{
                 padding: '10px 24px',
                 background: 'transparent',
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 borderRadius: '12px',
                 border: '1px solid rgba(170,168,200,0.2)',
                 fontSize: '14px',
@@ -1114,7 +1114,7 @@ export default function ProfilePage() {
           the panel. Seeded on mount from /api/user/profile. */}
       <div
         style={{
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: isPhone ? '20px' : '24px',
           padding: isPhone ? '20px' : '28px 32px',
           display: 'flex',
@@ -1153,7 +1153,7 @@ export default function ProfilePage() {
               style={{
                 fontSize: '15px',
                 fontWeight: 700,
-                color: '#e5e3ff',
+                color: 'var(--on-surface)',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -1172,7 +1172,7 @@ export default function ProfilePage() {
                 aria-hidden
                 style={{
                   fontSize: '20px',
-                  color: '#8888a8',
+                  color: 'var(--outline)',
                   marginLeft: 'auto',
                   transform: appearanceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.25s cubic-bezier(0.22,1,0.36,1)',
@@ -1184,7 +1184,7 @@ export default function ProfilePage() {
             <p
               style={{
                 fontSize: '12px',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 margin: '6px 0 0',
                 lineHeight: 1.5,
                 maxWidth: 520,
@@ -1331,7 +1331,7 @@ export default function ProfilePage() {
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '24px',
               padding: isPhone ? '24px 20px' : '32px',
               display: 'flex',
@@ -1344,7 +1344,7 @@ export default function ProfilePage() {
           >
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#e5e3ff' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--on-surface)' }}>
                 Edit Profile
               </h3>
               <button
@@ -1352,7 +1352,7 @@ export default function ProfilePage() {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: 'pointer',
                   padding: '4px',
                   borderRadius: '8px',
@@ -1434,7 +1434,7 @@ export default function ProfilePage() {
                     top: '50%',
                     transform: 'translateY(-50%)',
                     fontSize: '14px',
-                    color: '#8888a8',
+                    color: 'var(--outline)',
                     pointerEvents: 'none',
                   }}
                 >
@@ -1473,7 +1473,7 @@ export default function ProfilePage() {
                       className="material-symbols-outlined"
                       style={{
                         fontSize: '18px',
-                        color: '#aaa8c8',
+                        color: 'var(--on-surface-variant)',
                         animation: 'spin 1s linear infinite',
                       }}
                     >
@@ -1517,7 +1517,7 @@ export default function ProfilePage() {
                 </p>
               )}
               {(usernameStatus === 'idle' || usernameStatus === 'typing') && (
-                <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#8888a8' }}>
+                <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: 'var(--outline)' }}>
                   3–20 chars, letters, numbers, underscores
                 </p>
               )}
@@ -1536,7 +1536,7 @@ export default function ProfilePage() {
                 style={{
                   padding: '10px 24px',
                   background: 'transparent',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   borderRadius: '12px',
                   border: '1px solid rgba(170,168,200,0.2)',
                   fontSize: '14px',

@@ -437,7 +437,7 @@ export default function DashboardPage() {
             const cardContent = (
               <div
                 style={{
-                  background: '#21213e',
+                  background: 'var(--surface-container-low)',
                   padding: '24px',
                   borderRadius: '24px',
                   display: 'flex',
@@ -514,14 +514,14 @@ export default function DashboardPage() {
                     fontFamily: 'var(--font-brand)',
                     fontSize: '30px',
                     fontWeight: 400,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     margin: '0 0 4px',
                     lineHeight: 1,
                   }}
                 >
                   {value}
                 </h3>
-                <p style={{ fontSize: '15px', fontWeight: 500, color: '#aaa8c8', margin: 0 }}>
+                <p style={{ fontSize: '15px', fontWeight: 500, color: 'var(--on-surface-variant)', margin: 0 }}>
                   {label}
                 </p>
 
@@ -549,7 +549,7 @@ export default function DashboardPage() {
                         <p
                           style={{
                             fontSize: '12px',
-                            color: '#555578',
+                            color: 'var(--outline-variant)',
                             margin: 0,
                             textAlign: 'center',
                             padding: '8px 0',
@@ -601,7 +601,7 @@ export default function DashboardPage() {
                           <span
                             style={{
                               fontSize: '13px',
-                              color: '#c0bed8',
+                              color: 'var(--on-surface-variant)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -644,7 +644,7 @@ export default function DashboardPage() {
                         </div>
                       ))}
                       {pendingTodos.length > 4 && (
-                        <p style={{ fontSize: '11px', color: '#555578', margin: '2px 0 0' }}>
+                        <p style={{ fontSize: '11px', color: 'var(--outline-variant)', margin: '2px 0 0' }}>
                           +{pendingTodos.length - 4} more
                         </p>
                       )}
@@ -670,12 +670,12 @@ export default function DashboardPage() {
                         maxLength={200}
                         style={{
                           flex: 1,
-                          background: '#272746',
+                          background: 'var(--surface-container)',
                           border: '1px solid rgba(174,137,255,0.1)',
                           borderRadius: '10px',
                           padding: '8px 12px',
                           fontSize: '12px',
-                          color: '#e5e3ff',
+                          color: 'var(--on-surface)',
                           outline: 'none',
                           minWidth: 0,
                         }}
@@ -781,7 +781,7 @@ export default function DashboardPage() {
       {/* Upcoming Exams */}
       <section
         style={{
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: '20px',
           padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
         }}
@@ -805,7 +805,7 @@ export default function DashboardPage() {
               style={{
                 fontSize: responsiveValue(bp, { phone: '18px', tablet: '17px', desktop: '18px' }),
                 fontWeight: 700,
-                color: '#e5e3ff',
+                color: 'var(--on-surface)',
                 margin: 0,
               }}
             >
@@ -847,17 +847,17 @@ export default function DashboardPage() {
         </div>
 
         {exams.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa8c8' }}>
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--on-surface-variant)' }}>
             <span
               className="material-symbols-outlined"
               style={{ fontSize: '40px', display: 'block', marginBottom: '12px', opacity: 0.35 }}
             >
               event_note
             </span>
-            <p style={{ fontSize: '14px', margin: '0 0 4px', color: '#aaa8c8' }}>
+            <p style={{ fontSize: '14px', margin: '0 0 4px', color: 'var(--on-surface-variant)' }}>
               No upcoming exams.
             </p>
-            <p style={{ fontSize: '13px', margin: 0, color: '#8888a8' }}>
+            <p style={{ fontSize: '13px', margin: 0, color: 'var(--outline)' }}>
               Add one to start planning your study schedule!
             </p>
           </div>
@@ -910,7 +910,7 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
               padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
               position: 'relative',
@@ -938,13 +938,13 @@ export default function DashboardPage() {
                       desktop: '18px',
                     }),
                     fontWeight: 700,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     margin: '0 0 4px',
                   }}
                 >
                   Recent Activity
                 </h2>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                   Pick up where you left off
                 </p>
               </div>
@@ -971,7 +971,7 @@ export default function DashboardPage() {
             </div>
 
             {recentActivity.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa8c8' }}>
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--on-surface-variant)' }}>
                 <span
                   className="material-symbols-outlined"
                   style={{ fontSize: '48px', display: 'block', marginBottom: '12px', opacity: 0.4 }}
@@ -1001,7 +1001,7 @@ export default function DashboardPage() {
                           justifyContent: 'space-between',
                           padding: '16px',
                           borderRadius: '16px',
-                          background: '#21213e',
+                          background: 'var(--surface-container-low)',
                           transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
                           cursor: 'pointer',
                         }}
@@ -1059,7 +1059,7 @@ export default function DashboardPage() {
                               style={{
                                 fontSize: '14px',
                                 fontWeight: 700,
-                                color: '#e5e3ff',
+                                color: 'var(--on-surface)',
                                 margin: '0 0 2px',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -1068,7 +1068,7 @@ export default function DashboardPage() {
                             >
                               {item.name}
                             </h4>
-                            <p style={{ fontSize: '12px', color: '#aaa8c8', margin: 0 }}>
+                            <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
                               {timeAgo(item.updatedAt)} · {item.pageCount}{' '}
                               {item.pageCount === 1 ? 'page' : 'pages'}
                             </p>
@@ -1078,7 +1078,7 @@ export default function DashboardPage() {
                           className="activity-btn"
                           style={{
                             padding: '8px 16px',
-                            background: '#35355c',
+                            background: 'var(--surface-container-highest)',
                             borderRadius: '12px',
                             border: 'none',
                             color: '#ae89ff',
@@ -1336,7 +1336,7 @@ export default function DashboardPage() {
             style={{
               width: '80px',
               height: '80px',
-              background: '#2d2d52',
+              background: 'var(--surface-container-high)',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -1346,7 +1346,7 @@ export default function DashboardPage() {
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '36px', color: '#aaa8c8' }}
+              style={{ fontSize: '36px', color: 'var(--on-surface-variant)' }}
             >
               library_add
             </span>
@@ -1355,7 +1355,7 @@ export default function DashboardPage() {
             style={{
               fontSize: responsiveValue(bp, { phone: '20px', tablet: '19px', desktop: '20px' }),
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               margin: '0 0 8px',
             }}
           >
@@ -1364,7 +1364,7 @@ export default function DashboardPage() {
           <p
             style={{
               fontSize: '14px',
-              color: '#aaa8c8',
+              color: 'var(--on-surface-variant)',
               margin: '0 0 32px',
               maxWidth: '380px',
               lineHeight: '1.7',

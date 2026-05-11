@@ -226,7 +226,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: '24px',
               padding: '32px',
               display: 'flex',
@@ -237,7 +237,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
               boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
             }}
           >
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#e5e3ff' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--on-surface)' }}>
               Adjust your photo
             </h3>
 
@@ -261,7 +261,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
               <span
                 className="material-symbols-outlined"
-                style={{ color: '#aaa8c8', fontSize: '18px' }}
+                style={{ color: 'var(--on-surface-variant)', fontSize: '18px' }}
               >
                 photo_size_select_small
               </span>
@@ -276,7 +276,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
               />
               <span
                 className="material-symbols-outlined"
-                style={{ color: '#aaa8c8', fontSize: '24px' }}
+                style={{ color: 'var(--on-surface-variant)', fontSize: '24px' }}
               >
                 photo_size_select_large
               </span>
@@ -294,7 +294,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
                   borderRadius: '12px',
                   border: '1px solid rgba(174,137,255,0.3)',
                   background: 'transparent',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: 'pointer',

@@ -435,7 +435,7 @@ const menuItemStyle: React.CSSProperties = {
   padding: '10px 12px',
   background: 'none',
   border: 'none',
-  color: '#e5e3ff',
+  color: 'var(--on-surface)',
   fontSize: 13,
   fontWeight: 600,
   cursor: 'pointer',

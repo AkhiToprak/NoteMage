@@ -233,7 +233,7 @@ export default function NotebookCard({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -280,13 +280,13 @@ export default function NotebookCard({
                 borderTop: '1px solid rgba(70,69,96,0.10)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#aaa8c8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--on-surface-variant)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
                   description
                 </span>
                 <span style={{ fontSize: '12px' }}>{docCount}</span>
               </div>
-              <span style={{ fontSize: '10px', color: '#8888a8', fontStyle: 'italic' }}>
+              <span style={{ fontSize: '10px', color: 'var(--outline)', fontStyle: 'italic' }}>
                 Updated {formatDate(notebook.updatedAt)}
               </span>
             </div>
@@ -301,7 +301,7 @@ export default function NotebookCard({
             position: 'absolute',
             top: '48px',
             right: '24px',
-            background: '#2d2d52',
+            background: 'var(--surface-container-high)',
             borderRadius: '12px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             overflow: 'hidden',
@@ -324,7 +324,7 @@ export default function NotebookCard({
               padding: '12px 16px',
               background: 'transparent',
               border: 'none',
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',

@@ -192,7 +192,7 @@ export default function CoWorkInviteModal({
               </span>
               Invite Friends
             </h2>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#aaa8c8' }}>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--on-surface-variant)' }}>
               Select friends to invite to this co-work session
             </p>
           </div>
@@ -206,7 +206,7 @@ export default function CoWorkInviteModal({
               borderRadius: 10,
               border: 'none',
               background: hoveredClose ? 'var(--surface-container-high)' : 'transparent',
-              color: '#8888a8',
+              color: 'var(--outline)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -235,7 +235,7 @@ export default function CoWorkInviteModal({
               style={{
                 padding: '40px 0',
                 textAlign: 'center',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 fontSize: 13,
               }}
             >
@@ -251,7 +251,7 @@ export default function CoWorkInviteModal({
               style={{
                 padding: '40px 0',
                 textAlign: 'center',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 fontSize: 13,
               }}
             >
@@ -392,7 +392,7 @@ export default function CoWorkInviteModal({
             justifyContent: 'space-between',
           }}
         >
-          <span style={{ fontSize: 12, color: '#8888a8' }}>
+          <span style={{ fontSize: 12, color: 'var(--outline)' }}>
             {selected.size > 0
               ? `${selected.size} selected`
               : sent.size > 0

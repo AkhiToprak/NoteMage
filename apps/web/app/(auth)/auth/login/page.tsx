@@ -124,7 +124,7 @@ function LoginForm() {
     background: '#23233c',
     border: 'none',
     borderRadius: '16px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '15px',
     fontFamily: 'inherit',
     fontWeight: 600,
@@ -244,7 +244,7 @@ function LoginForm() {
                   display: 'flex',
                   alignItems: 'center',
                   pointerEvents: 'none',
-                  color: '#737390',
+                  color: 'var(--outline)',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -294,7 +294,7 @@ function LoginForm() {
                   display: 'flex',
                   alignItems: 'center',
                   pointerEvents: 'none',
-                  color: '#737390',
+                  color: 'var(--outline)',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -329,7 +329,7 @@ function LoginForm() {
                   alignItems: 'center',
                   background: 'transparent',
                   border: 'none',
-                  color: '#737390',
+                  color: 'var(--outline)',
                   cursor: 'pointer',
                 }}
               >
@@ -421,7 +421,7 @@ function LoginForm() {
             style={{
               fontSize: '11px',
               fontWeight: 700,
-              color: '#737390',
+              color: 'var(--outline)',
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
             }}
@@ -551,7 +551,7 @@ function LoginForm() {
         style={{
           marginTop: '32px',
           textAlign: 'center',
-          color: '#aaa8c8',
+          color: 'var(--on-surface-variant)',
           fontSize: '15px',
         }}
       >

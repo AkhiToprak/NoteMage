@@ -41,7 +41,7 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
   return (
     <div
       style={{
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: '16px',
         padding: '20px',
         borderLeft: `4px solid ${urgencyColor}`,
@@ -65,7 +65,7 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -117,11 +117,11 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span
             className="material-symbols-outlined"
-            style={{ fontSize: '14px', color: '#aaa8c8' }}
+            style={{ fontSize: '14px', color: 'var(--on-surface-variant)' }}
           >
             auto_stories
           </span>
-          <span style={{ fontSize: '12px', color: '#aaa8c8', fontWeight: 500 }}>
+          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', fontWeight: 500 }}>
             {exam.notebookName}
           </span>
         </div>
@@ -133,11 +133,11 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '18px', color: '#8888a8' }}
+              style={{ fontSize: '18px', color: 'var(--outline)' }}
             >
               event_available
             </span>
-            <span style={{ fontSize: '14px', color: '#8888a8', fontWeight: 600 }}>Exam passed</span>
+            <span style={{ fontSize: '14px', color: 'var(--outline)', fontWeight: 600 }}>Exam passed</span>
           </div>
         ) : (
           <>
@@ -152,7 +152,7 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
             >
               {days}
             </span>
-            <span style={{ fontSize: '13px', color: '#aaa8c8', fontWeight: 600 }}>
+            <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)', fontWeight: 600 }}>
               {days === 1 ? 'day left' : 'days left'}
             </span>
           </>

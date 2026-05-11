@@ -100,14 +100,14 @@ export default function GroupInvitePage() {
 
   if (notFound || !invitation) {
     return (
-      <div style={{ textAlign: 'center', padding: '64px 24px', color: '#aaa8c8' }}>
+      <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--on-surface-variant)' }}>
         <span
           className="material-symbols-outlined"
           style={{ fontSize: 64, display: 'block', marginBottom: 16, opacity: 0.4 }}
         >
           mail_off
         </span>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 8px' }}>
           No Invitation Found
         </h2>
         <p style={{ fontSize: 14, margin: '0 0 24px' }}>
@@ -146,7 +146,7 @@ export default function GroupInvitePage() {
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '40px 16px' }}>
       <div
         style={{
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: 24,
           padding: '40px 32px',
           display: 'flex',
@@ -183,18 +183,18 @@ export default function GroupInvitePage() {
         )}
 
         {/* Group name */}
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#e5e3ff', margin: 0 }}>{group.name}</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>{group.name}</h1>
 
         {/* Description */}
         {group.description && (
-          <p style={{ fontSize: 14, color: '#aaa8c8', margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
             {group.description}
           </p>
         )}
 
         {/* Meta info */}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#8888a8', fontSize: 13 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 16, color: 'var(--outline)', fontSize: 13 }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
@@ -211,10 +211,10 @@ export default function GroupInvitePage() {
             alignItems: 'center',
             gap: 8,
             padding: '10px 16px',
-            background: '#272746',
+            background: 'var(--surface-container)',
             borderRadius: 12,
             fontSize: 13,
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
           }}
         >
           {inviter.avatarUrl ? (
@@ -243,7 +243,7 @@ export default function GroupInvitePage() {
           )}
           <span>
             Invited by{' '}
-            <strong style={{ color: '#e5e3ff', fontWeight: 600 }}>
+            <strong style={{ color: 'var(--on-surface)', fontWeight: 600 }}>
               {inviter.name || inviter.username}
             </strong>
           </span>

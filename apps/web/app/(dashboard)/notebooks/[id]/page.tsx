@@ -272,7 +272,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             {notebookExams.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa8c8' }}>
+              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--on-surface-variant)' }}>
                 <span
                   className="material-symbols-outlined"
                   style={{
@@ -284,10 +284,10 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                 >
                   event_note
                 </span>
-                <p style={{ fontSize: '14px', margin: '0 0 4px', color: '#aaa8c8' }}>
+                <p style={{ fontSize: '14px', margin: '0 0 4px', color: 'var(--on-surface-variant)' }}>
                   No exams linked to this notebook.
                 </p>
-                <p style={{ fontSize: '12px', margin: 0, color: '#8888a8' }}>
+                <p style={{ fontSize: '12px', margin: 0, color: 'var(--outline)' }}>
                   Add an exam date to get a personalized study plan.
                 </p>
               </div>

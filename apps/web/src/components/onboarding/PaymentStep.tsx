@@ -82,7 +82,7 @@ export default function PaymentStep({ tier, onSuccess, onBack, error }: PaymentS
           </span>
           Back
         </button>
-        <p style={{ color: '#aaa8c8', fontSize: '14px', margin: 0 }}>
+        <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', margin: 0 }}>
           Complete payment for{' '}
           <span style={{ color: tier === 'PRO' ? '#ffde59' : '#ae89ff', fontWeight: 600 }}>
             {TIERS[tier].name}

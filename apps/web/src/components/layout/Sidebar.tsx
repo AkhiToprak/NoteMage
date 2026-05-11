@@ -244,7 +244,7 @@ export default function Sidebar() {
                 style={{
                   fontSize: '14px',
                   fontWeight: 700,
-                  color: '#e5e3ff',
+                  color: 'var(--on-surface)',
                   margin: 0,
                   maxWidth: '100%',
                   overflow: 'hidden',

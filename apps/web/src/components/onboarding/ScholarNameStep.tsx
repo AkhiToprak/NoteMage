@@ -53,10 +53,10 @@ export default function ScholarNameStep({
         <Mascot pose="default" size="md" idle="bounce" />
       </div>
       <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 6px' }}>
           Name your Mage
         </h2>
-        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
           Give your AI study assistant a unique name.
         </p>
       </div>
@@ -86,7 +86,7 @@ export default function ScholarNameStep({
       >
         <div
           style={{
-            background: '#2d2d52',
+            background: 'var(--surface-container-high)',
             borderRadius: '18px',
             padding: '14px 20px',
             border: '1px solid #555578',
@@ -115,7 +115,7 @@ export default function ScholarNameStep({
           <p
             style={{
               fontSize: '14px',
-              color: '#c0bed8',
+              color: 'var(--on-surface-variant)',
               margin: 0,
               lineHeight: 1.5,
             }}
@@ -141,10 +141,10 @@ export default function ScholarNameStep({
               width: '100%',
               padding: '12px 16px',
               paddingRight: '60px',
-              background: '#272746',
+              background: 'var(--surface-container)',
               border: `1px solid ${inputFocused ? 'rgba(174,137,255,0.5)' : '#555578'}`,
               borderRadius: '14px',
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               fontSize: '16px',
               fontFamily: 'inherit',
               outline: 'none',
@@ -225,7 +225,7 @@ export default function ScholarNameStep({
             background: 'transparent',
             border: 'none',
             borderRadius: '14px',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',

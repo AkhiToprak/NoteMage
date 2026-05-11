@@ -323,7 +323,7 @@ export default function CoWorkBar({
                 justifyContent: 'center',
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 flexShrink: 0,
               }}
             >
@@ -332,7 +332,7 @@ export default function CoWorkBar({
           )}
         </div>
 
-        <span style={{ fontSize: 12, color: '#aaa8c8', fontWeight: 500 }}>
+        <span style={{ fontSize: 12, color: 'var(--on-surface-variant)', fontWeight: 500 }}>
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </span>
 

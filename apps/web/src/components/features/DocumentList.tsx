@@ -280,7 +280,7 @@ export default function DocumentList({
                   style={{
                     fontSize: '15px',
                     fontWeight: 700,
-                    color: '#ede9ff',
+                    color: 'var(--on-surface)',
                     margin: 0,
                     fontFamily: 'inherit',
                     display: 'flex',

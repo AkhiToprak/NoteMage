@@ -142,10 +142,10 @@ export default function UsernameStep({
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '16px 44px 16px 48px',
-    background: '#35355c',
+    background: 'var(--surface-container-highest)',
     border: 'none',
     borderRadius: '16px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '15px',
     fontFamily: 'inherit',
     outline: 'none',
@@ -162,7 +162,7 @@ export default function UsernameStep({
     display: 'flex',
     alignItems: 'center',
     pointerEvents: 'none',
-    color: '#aaa8c8',
+    color: 'var(--on-surface-variant)',
   };
 
   const labelStyle: React.CSSProperties = {
@@ -181,10 +181,10 @@ export default function UsernameStep({
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="holding-pen" size="md" idle="bounce" />
       </div>
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 6px' }}>
         Pick a username
       </h2>
-      <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '0 0 16px' }}>
+      <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '0 0 16px' }}>
         This is how other mages will find you. You can change it later from settings.
       </p>
 
@@ -214,8 +214,8 @@ export default function UsernameStep({
               }}
             />
           )}
-          <div style={{ fontSize: '13px', color: '#c0bed8', lineHeight: 1.4 }}>
-            <div style={{ color: '#e5e3ff', fontWeight: 600 }}>{displayName || 'Signed in'}</div>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.4 }}>
+            <div style={{ color: 'var(--on-surface)', fontWeight: 600 }}>{displayName || 'Signed in'}</div>
             <div>We brought these over from your account. Just pick a handle.</div>
           </div>
         </div>
@@ -323,7 +323,7 @@ export default function UsernameStep({
             </p>
           )}
           {(status === 'idle' || status === 'typing') && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#8888a8' }}>
+            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: 'var(--outline)' }}>
               3–20 chars, letters, numbers, underscores
             </p>
           )}

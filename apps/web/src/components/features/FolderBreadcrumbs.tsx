@@ -111,7 +111,7 @@ export default function FolderBreadcrumbs({
           <span key={crumb.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '16px', color: '#8888a8' }}
+              style={{ fontSize: '16px', color: 'var(--outline)' }}
             >
               chevron_right
             </span>

@@ -79,7 +79,7 @@ export default function TierSelectionStep({
         >
           {loading ? 'Saving…' : selectedTier === 'FREE' ? 'Continue' : 'Continue to Payment'}
         </button>
-        <p style={{ color: '#aaa8c8', fontSize: '12px', margin: 0 }}>
+        <p style={{ color: 'var(--on-surface-variant)', fontSize: '12px', margin: 0 }}>
           You can change your plan anytime.
         </p>
       </div>

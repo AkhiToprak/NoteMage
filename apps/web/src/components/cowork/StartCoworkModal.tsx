@@ -304,7 +304,7 @@ export default function StartCoworkModal({
               fontSize: 24,
               fontWeight: 800,
               letterSpacing: '-0.025em',
-              color: '#eeecff',
+              color: 'var(--on-surface)',
               lineHeight: 1.1,
             }}
           >
@@ -425,7 +425,7 @@ export default function StartCoworkModal({
                           borderRadius: 14,
                           background: 'rgba(255, 255, 255, 0.025)',
                           border: '1px solid rgba(174, 137, 255, 0.18)',
-                          color: '#eeecff',
+                          color: 'var(--on-surface)',
                           cursor: 'pointer',
                           textAlign: 'left',
                           fontFamily: 'var(--font-sans)',
@@ -477,7 +477,7 @@ export default function StartCoworkModal({
                             style={{
                               fontSize: 14,
                               fontWeight: 700,
-                              color: '#eeecff',
+                              color: 'var(--on-surface)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -622,7 +622,7 @@ export default function StartCoworkModal({
                                   border: isSelected
                                     ? '1px solid rgba(255, 222, 89, 0.45)'
                                     : '1px solid rgba(174, 137, 255, 0.12)',
-                                  color: '#eeecff',
+                                  color: 'var(--on-surface)',
                                   cursor: 'pointer',
                                   textAlign: 'left',
                                   fontFamily: 'var(--font-sans)',

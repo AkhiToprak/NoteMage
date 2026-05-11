@@ -79,7 +79,7 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
         borderRadius: 0,
       }
     : {
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         padding: isPhone ? '22px 20px' : '28px 32px',
         borderRadius: isPhone ? 20 : 24,
       };
@@ -119,7 +119,7 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
             style={{
               fontSize: '11px',
               fontWeight: 700,
-              color: '#8888a8',
+              color: 'var(--outline)',
               margin: 0,
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
@@ -189,7 +189,7 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
           style={{
             padding: '24px 12px',
             textAlign: 'center',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontSize: '13px',
             display: 'flex',
             flexDirection: 'column',
@@ -221,7 +221,7 @@ export default function RecentTrophies({ userId }: RecentTrophiesProps) {
             alignItems: 'center',
             justifyContent: 'flex-end',
             fontSize: '11px',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontWeight: 600,
             letterSpacing: '0.04em',
             paddingTop: '4px',
@@ -289,7 +289,7 @@ function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
           style={{
             fontSize: isPhone ? '14px' : '15px',
             fontWeight: 700,
-            color: '#e5e3ff',
+            color: 'var(--on-surface)',
             marginBottom: '3px',
             lineHeight: 1.25,
           }}
@@ -299,7 +299,7 @@ function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
         <div
           style={{
             fontSize: '12px',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -314,7 +314,7 @@ function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
           style={{
             fontSize: '10px',
             fontWeight: 700,
-            color: '#8888a8',
+            color: 'var(--outline)',
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
           }}

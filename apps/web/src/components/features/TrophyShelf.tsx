@@ -81,7 +81,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
           <div
             key={i}
             style={{
-              background: '#21213e',
+              background: 'var(--surface-container-low)',
               borderRadius: '16px',
               height: '80px',
               animation: 'trophy-pulse 1.5s ease-in-out infinite',
@@ -120,7 +120,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
               fontFamily: 'var(--font-brand)',
               fontSize: '22px',
               fontWeight: 400,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               margin: 0,
             }}
           >
@@ -150,7 +150,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
             gap: '10px',
             padding: '20px 12px',
             textAlign: 'center',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontSize: '13px',
           }}
         >
@@ -309,7 +309,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
 
               {/* Unlock date or progress bar */}
               {isUnlocked && unlockInfo ? (
-                <span style={{ fontSize: '11px', color: '#8888a8' }}>
+                <span style={{ fontSize: '11px', color: 'var(--outline)' }}>
                   {formatDate(unlockInfo.unlockedAt)}
                 </span>
               ) : (
@@ -318,7 +318,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                     style={{
                       height: '6px',
                       borderRadius: '3px',
-                      background: '#35355c',
+                      background: 'var(--surface-container-highest)',
                       overflow: 'hidden',
                     }}
                   >
@@ -337,7 +337,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                   <span
                     style={{
                       fontSize: '11px',
-                      color: '#6a6a8c',
+                      color: 'var(--outline-variant)',
                       marginTop: '4px',
                       display: 'block',
                     }}
@@ -358,7 +358,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                     borderRadius: '10px',
                     fontSize: '12px',
                     lineHeight: 1.5,
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                   }}
                 >
                   {achievement.description}

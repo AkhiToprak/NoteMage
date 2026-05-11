@@ -158,10 +158,10 @@ export default function StudyGoalsStep({
         </div>
       </div>
       <div style={{ marginBottom: '14px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 6px' }}>
           Set your goals
         </h2>
-        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: '1.6' }}>
+        <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: '1.6' }}>
           Pick what matters to you. You can change these anytime.
         </p>
       </div>
@@ -201,7 +201,7 @@ export default function StudyGoalsStep({
               onMouseEnter={() => setHoveredCard(config.key)}
               onMouseLeave={() => setHoveredCard(null)}
               style={{
-                background: '#2d2d52',
+                background: 'var(--surface-container-high)',
                 borderRadius: '18px',
                 padding: '14px 16px',
                 border: isSelected
@@ -255,7 +255,7 @@ export default function StudyGoalsStep({
                   {target} {config.unit} / {config.cadence}
                 </p>
               ) : (
-                <p style={{ margin: '0 0 0', fontSize: '11px', color: '#555578' }}>
+                <p style={{ margin: '0 0 0', fontSize: '11px', color: 'var(--outline-variant)' }}>
                   Tap to set goal
                 </p>
               )}
@@ -300,11 +300,11 @@ export default function StudyGoalsStep({
                     onChange={(e) => handleCustomInput(config, e.target.value)}
                     style={{
                       width: '52px',
-                      background: '#35355c',
+                      background: 'var(--surface-container-highest)',
                       border: customInputs[config.key] ? '1px solid #ae89ff' : '1px solid #555578',
                       borderRadius: '8px',
                       padding: '4px 8px',
-                      color: '#e5e3ff',
+                      color: 'var(--on-surface)',
                       fontSize: '12px',
                       fontFamily: 'inherit',
                       outline: 'none',
@@ -383,7 +383,7 @@ export default function StudyGoalsStep({
             background: 'transparent',
             border: 'none',
             borderRadius: '14px',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',

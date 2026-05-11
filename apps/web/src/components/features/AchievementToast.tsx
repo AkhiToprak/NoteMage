@@ -54,7 +54,7 @@ export default function AchievementToast({
           alignItems: 'flex-start',
           gap: '14px',
           padding: '16px 20px',
-          background: '#272746',
+          background: 'var(--surface-container)',
           borderRadius: '16px',
           border: '1px solid rgba(255,222,89,0.45)',
           boxShadow: '0 0 24px rgba(255,222,89,0.1), 0 8px 32px rgba(0,0,0,0.4)',
@@ -125,7 +125,7 @@ export default function AchievementToast({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               lineHeight: 1.3,
               marginBottom: '2px',
             }}
@@ -135,7 +135,7 @@ export default function AchievementToast({
           <div
             style={{
               fontSize: '12px',
-              color: '#aaa8c8',
+              color: 'var(--on-surface-variant)',
               lineHeight: 1.4,
             }}
           >
@@ -155,7 +155,7 @@ export default function AchievementToast({
             border: 'none',
             padding: '4px',
             cursor: 'pointer',
-            color: '#6a6a8c',
+            color: 'var(--outline-variant)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

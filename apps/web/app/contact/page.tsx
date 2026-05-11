@@ -82,7 +82,7 @@ export default function ContactPage() {
       style={{
         position: 'relative',
         background: '#000000',
-        color: '#ede9ff',
+        color: 'var(--on-surface)',
         fontFamily: 'var(--font-sans)',
         minHeight: '100vh',
         overflow: 'hidden',

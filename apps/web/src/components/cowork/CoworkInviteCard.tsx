@@ -225,7 +225,7 @@ export default function CoworkInviteCard({
           lineHeight: 1.15,
           fontWeight: 800,
           letterSpacing: '-0.02em',
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           marginBottom: 6,
         }}
       >

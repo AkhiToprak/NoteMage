@@ -506,7 +506,7 @@ export default function CreateChatModal({
                     >
                       {isUploading ? 'Uploading…' : 'Drop file or click to browse'}
                     </p>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#8888a8' }}>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--outline)' }}>
                       PDF · DOCX · TXT · MD — max 50MB
                     </p>
                     {uploadError && (
@@ -586,7 +586,7 @@ export default function CreateChatModal({
                           >
                             {doc.fileName}
                           </span>
-                          <span style={{ fontSize: '10px', color: '#8888a8', flexShrink: 0 }}>
+                          <span style={{ fontSize: '10px', color: 'var(--outline)', flexShrink: 0 }}>
                             {formatBytes(doc.fileSize)}
                           </span>
                         </div>

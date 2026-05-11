@@ -52,7 +52,7 @@ export default function DashboardAchievements() {
     return (
       <div
         style={{
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: '20px',
           padding: '24px',
         }}
@@ -62,7 +62,7 @@ export default function DashboardAchievements() {
             <div
               key={i}
               style={{
-                background: '#272746',
+                background: 'var(--surface-container)',
                 borderRadius: '14px',
                 height: '56px',
                 animation: 'dash-ach-pulse 1.5s ease-in-out infinite',
@@ -102,7 +102,7 @@ export default function DashboardAchievements() {
   return (
     <div
       style={{
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: '20px',
         padding: '24px',
       }}
@@ -131,7 +131,7 @@ export default function DashboardAchievements() {
             style={{
               fontSize: '18px',
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               margin: 0,
             }}
           >
@@ -176,7 +176,7 @@ export default function DashboardAchievements() {
             style={{
               fontSize: '12px',
               fontWeight: 600,
-              color: '#8888a8',
+              color: 'var(--outline)',
               margin: '0 0 10px',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -195,7 +195,7 @@ export default function DashboardAchievements() {
                     alignItems: 'center',
                     gap: '10px',
                     padding: '10px 14px',
-                    background: '#272746',
+                    background: 'var(--surface-container)',
                     borderRadius: '14px',
                     border: '1px solid rgba(174,137,255,0.30)',
                     flex: '1 1 0',
@@ -230,7 +230,7 @@ export default function DashboardAchievements() {
                       style={{
                         fontSize: '13px',
                         fontWeight: 700,
-                        color: '#e5e3ff',
+                        color: 'var(--on-surface)',
                         margin: 0,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -239,7 +239,7 @@ export default function DashboardAchievements() {
                     >
                       {ach.name}
                     </p>
-                    <p style={{ fontSize: '11px', color: '#8888a8', margin: 0 }}>
+                    <p style={{ fontSize: '11px', color: 'var(--outline)', margin: 0 }}>
                       {formatDate(ach.unlockedAt)}
                     </p>
                   </div>
@@ -256,7 +256,7 @@ export default function DashboardAchievements() {
           style={{
             textAlign: 'center',
             padding: '24px 0',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
           }}
         >
           <span
@@ -271,7 +271,7 @@ export default function DashboardAchievements() {
           >
             emoji_events
           </span>
-          <p style={{ fontSize: '13px', margin: 0, color: '#8888a8' }}>
+          <p style={{ fontSize: '13px', margin: 0, color: 'var(--outline)' }}>
             Start studying to earn your first achievement!
           </p>
         </div>
@@ -299,7 +299,7 @@ export default function DashboardAchievements() {
             style={{
               fontSize: '12px',
               fontWeight: 600,
-              color: '#8888a8',
+              color: 'var(--outline)',
               margin: '0 0 10px',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -319,7 +319,7 @@ export default function DashboardAchievements() {
                     alignItems: 'center',
                     gap: '12px',
                     padding: '10px 14px',
-                    background: '#272746',
+                    background: 'var(--surface-container)',
                     borderRadius: '14px',
                   }}
                 >
@@ -328,7 +328,7 @@ export default function DashboardAchievements() {
                       width: '36px',
                       height: '36px',
                       borderRadius: '10px',
-                      background: '#35355c',
+                      background: 'var(--surface-container-highest)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -339,7 +339,7 @@ export default function DashboardAchievements() {
                       className="material-symbols-outlined"
                       style={{
                         fontSize: '20px',
-                        color: '#6a6a8c',
+                        color: 'var(--outline-variant)',
                         fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
                       }}
                     >
@@ -359,7 +359,7 @@ export default function DashboardAchievements() {
                         style={{
                           fontSize: '13px',
                           fontWeight: 700,
-                          color: '#aaa8c8',
+                          color: 'var(--on-surface-variant)',
                           margin: 0,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -371,7 +371,7 @@ export default function DashboardAchievements() {
                       <span
                         style={{
                           fontSize: '11px',
-                          color: '#6a6a8c',
+                          color: 'var(--outline-variant)',
                           flexShrink: 0,
                           marginLeft: '8px',
                         }}
@@ -383,7 +383,7 @@ export default function DashboardAchievements() {
                       style={{
                         height: '6px',
                         borderRadius: '3px',
-                        background: '#35355c',
+                        background: 'var(--surface-container-highest)',
                         overflow: 'hidden',
                       }}
                     >

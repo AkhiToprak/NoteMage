@@ -208,7 +208,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
   return (
     <div
       style={{
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: '24px',
         padding: isPhone ? '18px' : '24px',
       }}
@@ -222,10 +222,10 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
         }}
       >
         <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 4px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}>
             Activity
           </h3>
-          <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
             Minutes in the app over the last {subtitle ?? (isPhone ? '6 months' : 'year')}
           </p>
         </div>
@@ -235,7 +235,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
             alignItems: 'center',
             gap: '6px',
             fontSize: '11px',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
           }}
         >
           <span>Less</span>
@@ -261,7 +261,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             fontSize: '13px',
           }}
         >
@@ -296,7 +296,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                     left: `${leftPadding + m.week * (CELL_SIZE + CELL_GAP)}px`,
                     top: 0,
                     fontSize: '11px',
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     fontWeight: 500,
                     whiteSpace: 'nowrap',
                   }}
@@ -315,7 +315,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                       left: 0,
                       top: `${topPadding + i * (CELL_SIZE + CELL_GAP) + 1}px`,
                       fontSize: '11px',
-                      color: '#aaa8c8',
+                      color: 'var(--on-surface-variant)',
                       fontWeight: 500,
                       width: `${leftPadding - 6}px`,
                       textAlign: 'right',
@@ -362,8 +362,8 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                 left: `${tooltip.x}px`,
                 top: `${tooltip.y}px`,
                 transform: 'translate(-50%, -100%)',
-                background: '#35355c',
-                color: '#e5e3ff',
+                background: 'var(--surface-container-highest)',
+                color: 'var(--on-surface)',
                 padding: '6px 10px',
                 borderRadius: '8px',
                 fontSize: '12px',

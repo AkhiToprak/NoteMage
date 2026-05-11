@@ -39,7 +39,7 @@ const inputStyle: React.CSSProperties = {
   padding: '11px 14px',
   fontFamily: 'inherit',
   fontSize: '14px',
-  color: '#ede9ff',
+  color: 'var(--on-surface)',
   outline: 'none',
   boxSizing: 'border-box',
   transition: 'border-color 0.15s ease',
@@ -244,7 +244,7 @@ export default function NotebookForm({
               fontFamily: 'inherit',
               fontSize: '18px',
               fontWeight: '700',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               margin: 0,
               letterSpacing: '-0.02em',
             }}
@@ -589,7 +589,7 @@ export default function NotebookForm({
                         fontFamily: 'inherit',
                         fontSize: '13px',
                         fontWeight: '600',
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                       }}
                     >
                       {preset.label}

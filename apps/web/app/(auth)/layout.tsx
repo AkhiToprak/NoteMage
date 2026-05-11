@@ -5,7 +5,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <main
       style={{
         background: '#000000',
-        color: '#e5e3ff',
+        color: 'var(--on-surface)',
         minHeight: '100vh',
         overflowX: 'hidden',
         position: 'relative',

@@ -145,19 +145,19 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#aaa8c8' }}>Current streak</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#e5e3ff' }}>
+              <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>Current streak</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--on-surface)' }}>
                 {streak.currentStreak} {streak.currentStreak === 1 ? 'day' : 'days'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#aaa8c8' }}>Longest streak</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#e5e3ff' }}>
+              <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>Longest streak</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--on-surface)' }}>
                 {streak.longestStreak} {streak.longestStreak === 1 ? 'day' : 'days'}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', color: '#aaa8c8' }}>Freezes left</span>
+              <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>Freezes left</span>
               <span
                 style={{
                   fontSize: '13px',

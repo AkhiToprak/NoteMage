@@ -82,7 +82,7 @@ function TitleTileBody({ entry }: { entry: TitleCosmetic }) {
         style={{
           fontSize: 12,
           fontWeight: 800,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: 'var(--font-brand)',
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
@@ -111,7 +111,7 @@ function FontTileBody({ entry }: { entry: NameFontCosmetic }) {
         style={{
           fontSize: 26,
           fontWeight: 700,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: entry.css,
           lineHeight: 1,
         }}
@@ -278,7 +278,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
     <div
       style={{
         position: 'relative',
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: isPhone ? 20 : 24,
         padding: isPhone ? '24px 20px' : '32px',
         display: 'flex',
@@ -313,7 +313,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            color: '#e5e3ff',
+            color: 'var(--on-surface)',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#ae89ff' }}>
@@ -335,7 +335,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: '#8888a8',
+            color: 'var(--outline)',
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
           }}
@@ -364,7 +364,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 16, color: '#8888a8' }}
+                style={{ fontSize: 16, color: 'var(--outline)' }}
               >
                 {group.icon}
               </span>
@@ -372,7 +372,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#8888a8',
+                  color: 'var(--outline)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                 }}
@@ -382,7 +382,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
               <span
                 style={{
                   fontSize: 11,
-                  color: '#555578',
+                  color: 'var(--outline-variant)',
                   fontWeight: 600,
                 }}
               >

@@ -900,7 +900,7 @@ function NotebooksPageContent() {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '28px', color: '#8888a8' }}
+                style={{ fontSize: '28px', color: 'var(--outline)' }}
               >
                 create_new_folder
               </span>
@@ -909,7 +909,7 @@ function NotebooksPageContent() {
               className="add-folder-label"
               style={{
                 fontWeight: 700,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 margin: '4px 0 0',
                 transition: 'color 0.2s',
               }}
@@ -919,7 +919,7 @@ function NotebooksPageContent() {
             <p
               style={{
                 fontSize: '12px',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 margin: 0,
                 textAlign: 'center',
                 padding: '0 24px',
@@ -993,7 +993,7 @@ function NotebooksPageContent() {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '28px', color: '#8888a8' }}
+                style={{ fontSize: '28px', color: 'var(--outline)' }}
               >
                 add
               </span>
@@ -1002,7 +1002,7 @@ function NotebooksPageContent() {
               className="add-label"
               style={{
                 fontWeight: 700,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 margin: '4px 0 0',
                 transition: 'color 0.2s',
               }}
@@ -1012,7 +1012,7 @@ function NotebooksPageContent() {
             <p
               style={{
                 fontSize: '12px',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 margin: 0,
                 textAlign: 'center',
                 padding: '0 24px',
@@ -1115,7 +1115,7 @@ function NotebooksPageContent() {
             >
               Delete &ldquo;{deleteTarget.name}&rdquo;?
             </h3>
-            <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 28px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: '0 0 28px', lineHeight: 1.6 }}>
               This will permanently delete the notebook and all its documents and chat history. This
               action cannot be undone.
             </p>
@@ -1133,7 +1133,7 @@ function NotebooksPageContent() {
                   border: 'none',
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: deleteLoading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                 }}
@@ -1225,7 +1225,7 @@ function NotebooksPageContent() {
             >
               Delete &ldquo;{deleteFolderTarget.name}&rdquo;?
             </h3>
-            <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 28px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: '0 0 28px', lineHeight: 1.6 }}>
               This will delete the folder and all sub-folders. Notebooks inside will be moved to the
               root level. This action cannot be undone.
             </p>
@@ -1243,7 +1243,7 @@ function NotebooksPageContent() {
                   border: 'none',
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: deleteFolderLoading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                 }}

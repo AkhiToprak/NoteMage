@@ -87,7 +87,7 @@ export default function SocialsCard({
       style={{
         position: 'relative',
         overflow: 'hidden',
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: isPhone ? 20 : 24,
         padding: isPhone ? '22px 20px' : '24px',
         display: 'flex',
@@ -125,7 +125,7 @@ export default function SocialsCard({
           style={{
             fontSize: '11px',
             fontWeight: 700,
-            color: '#8888a8',
+            color: 'var(--outline)',
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
           }}
@@ -141,7 +141,7 @@ export default function SocialsCard({
             fontFamily: 'var(--font-display)',
             fontSize: isPhone ? '44px' : '52px',
             fontWeight: 800,
-            color: '#e5e3ff',
+            color: 'var(--on-surface)',
             lineHeight: 1,
             letterSpacing: '-0.02em',
             margin: 0,
@@ -153,7 +153,7 @@ export default function SocialsCard({
           style={{
             fontSize: '11px',
             fontWeight: 700,
-            color: '#8888a8',
+            color: 'var(--outline)',
             textTransform: 'uppercase',
             letterSpacing: '0.12em',
             marginTop: '8px',
@@ -353,7 +353,7 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
           style={{
             ...baseStyle,
             background: 'rgba(136,136,168,0.12)',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             border: '1px solid rgba(136,136,168,0.22)',
           }}
         >

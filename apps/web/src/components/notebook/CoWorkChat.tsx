@@ -329,7 +329,7 @@ export default function CoWorkChat({
                 style={{
                   textAlign: 'center',
                   padding: '40px 16px',
-                  color: '#8888a8',
+                  color: 'var(--outline)',
                   fontSize: 12,
                 }}
               >
@@ -371,7 +371,7 @@ export default function CoWorkChat({
                       >
                         {msg.username[0].toUpperCase()}
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa8c8' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--on-surface-variant)' }}>
                         {msg.username}
                       </span>
                     </div>

@@ -75,7 +75,7 @@ function StatCard({
   return (
     <div
       style={{
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: '16px',
         padding: '20px',
         display: 'flex',
@@ -105,7 +105,7 @@ function StatCard({
           style={{
             fontSize: '12px',
             fontWeight: 700,
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
           }}
@@ -117,14 +117,14 @@ function StatCard({
         style={{
           fontSize: '28px',
           fontWeight: 700,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: 'var(--font-brand)',
           lineHeight: 1,
         }}
       >
         {value}
       </div>
-      {sub && <div style={{ fontSize: '12px', color: '#8888a8' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '12px', color: 'var(--outline)' }}>{sub}</div>}
     </div>
   );
 }
@@ -706,7 +706,7 @@ export default function SettingsPage() {
     background: 'rgba(14,14,28,0.6)',
     border: 'none',
     borderRadius: '16px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '15px',
     fontFamily: 'inherit',
     outline: 'none',
@@ -787,7 +787,7 @@ export default function SettingsPage() {
         >
           Settings
         </h2>
-        <p style={{ fontSize: isPhone ? '14px' : '17px', color: '#aaa8c8', margin: 0 }}>
+        <p style={{ fontSize: isPhone ? '14px' : '17px', color: 'var(--on-surface-variant)', margin: 0 }}>
           Manage your digital study sanctum and preferences.
         </p>
       </header>
@@ -809,7 +809,7 @@ export default function SettingsPage() {
           {/* Profile card */}
           <div
             style={{
-              background: '#21213e',
+              background: 'var(--surface-container-low)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: 'flex',
@@ -895,7 +895,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3
-                  style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 4px' }}
+                  style={{ fontSize: '18px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}
                 >
                   {session?.user?.name ?? 'Mage'}
                 </h3>
@@ -974,7 +974,7 @@ export default function SettingsPage() {
           {/* Account Security */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'account' || activeSection === 'privacy' ? 'flex' : 'none',
@@ -1001,7 +1001,7 @@ export default function SettingsPage() {
                   fingerprint
                 </span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+              <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
                 Account Security
               </h3>
             </div>
@@ -1030,16 +1030,16 @@ export default function SettingsPage() {
                   type="email"
                   value={session?.user?.email ?? ''}
                   readOnly
-                  style={{ ...inputStyle, color: '#aaa8c8' }}
+                  style={{ ...inputStyle, color: 'var(--on-surface-variant)' }}
                 />
               </div>
               <button
                 style={{
                   padding: '16px 24px',
-                  background: '#35355c',
+                  background: 'var(--surface-container-highest)',
                   border: '1px solid rgba(70,69,96,0.3)',
                   borderRadius: '16px',
-                  color: '#e5e3ff',
+                  color: 'var(--on-surface)',
                   fontWeight: 700,
                   fontSize: '14px',
                   cursor: 'pointer',
@@ -1061,7 +1061,7 @@ export default function SettingsPage() {
             {/* Change Password */}
             <div style={{ paddingTop: '24px', borderTop: '1px solid rgba(70,69,96,0.20)' }}>
               <h4
-                style={{ fontSize: '16px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 24px' }}
+                style={{ fontSize: '16px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 24px' }}
               >
                 Change Password
               </h4>
@@ -1171,7 +1171,7 @@ export default function SettingsPage() {
           {/* Dashboard Greeting */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'account' ? 'flex' : 'none',
@@ -1199,10 +1199,10 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
                   Dashboard Greeting
                 </h3>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
                   Set a custom greeting. Use {'{'}
                   <span style={{ color: '#ae89ff' }}>name</span>
                   {'}'} to include your name.
@@ -1236,7 +1236,7 @@ export default function SettingsPage() {
                   gap: '12px',
                 }}
               >
-                <span style={{ fontSize: '12px', color: '#555578' }}>
+                <span style={{ fontSize: '12px', color: 'var(--outline-variant)' }}>
                   {customGreeting.length}/120 &middot; Leave empty for random greetings
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1271,7 +1271,7 @@ export default function SettingsPage() {
                         background: 'transparent',
                         border: '1px solid #555578',
                         borderRadius: '12px',
-                        color: '#aaa8c8',
+                        color: 'var(--on-surface-variant)',
                         fontSize: '14px',
                         fontWeight: 600,
                         cursor: greetingLoading ? 'not-allowed' : 'pointer',
@@ -1326,7 +1326,7 @@ export default function SettingsPage() {
           {/* Mage Name */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'account' ? 'flex' : 'none',
@@ -1354,10 +1354,10 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
                   Mage Name
                 </h3>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
                   Give your AI study assistant a custom name.
                 </p>
               </div>
@@ -1389,7 +1389,7 @@ export default function SettingsPage() {
                   gap: '12px',
                 }}
               >
-                <span style={{ fontSize: '12px', color: '#555578' }}>
+                <span style={{ fontSize: '12px', color: 'var(--outline-variant)' }}>
                   {mageNameInput.length}/30 &middot; Leave empty for default &ldquo;Mage&rdquo;
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1422,7 +1422,7 @@ export default function SettingsPage() {
                         background: 'transparent',
                         border: '1px solid #555578',
                         borderRadius: '12px',
-                        color: '#aaa8c8',
+                        color: 'var(--on-surface-variant)',
                         fontSize: '14px',
                         fontWeight: 600,
                         cursor: mageNameLoading ? 'not-allowed' : 'pointer',
@@ -1477,7 +1477,7 @@ export default function SettingsPage() {
           {/* Welcome tour */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'account' ? 'flex' : 'none',
@@ -1515,10 +1515,10 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div style={{ minWidth: 0 }}>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
                   Welcome tour
                 </h3>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '4px 0 0 0' }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
                   Re-take the 60-second tour that walks you through your first notebook and chat.
                 </p>
               </div>
@@ -1557,7 +1557,7 @@ export default function SettingsPage() {
           {/* Appearance */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'appearance' ? 'flex' : 'none',
@@ -1584,7 +1584,7 @@ export default function SettingsPage() {
                   palette
                 </span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+              <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
                 Appearance
               </h3>
             </div>
@@ -1597,7 +1597,7 @@ export default function SettingsPage() {
                 justifyContent: 'space-between',
                 gap: isPhone ? '16px' : '24px',
                 padding: '16px',
-                background: '#21213e',
+                background: 'var(--surface-container-low)',
                 borderRadius: '16px',
               }}
             >
@@ -1606,13 +1606,13 @@ export default function SettingsPage() {
                   style={{
                     fontSize: '15px',
                     fontWeight: 700,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     margin: '0 0 2px',
                   }}
                 >
                   Color theme
                 </p>
-                <p style={{ fontSize: '12px', color: '#aaa8c8', margin: 0 }}>
+                <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
                   Choose Light, Dark, or System (follows your device).{' '}
                   {themePreference === 'system' && (
                     <>
@@ -1628,7 +1628,7 @@ export default function SettingsPage() {
           {/* Notifications */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display:
@@ -1656,7 +1656,7 @@ export default function SettingsPage() {
                   campaign
                 </span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
+              <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
                 Notifications
               </h3>
             </div>
@@ -1687,7 +1687,7 @@ export default function SettingsPage() {
                     justifyContent: 'space-between',
                     gap: '24px',
                     padding: '16px',
-                    background: '#21213e',
+                    background: 'var(--surface-container-low)',
                     borderRadius: '16px',
                     transition: 'background 0.15s',
                   }}
@@ -1703,13 +1703,13 @@ export default function SettingsPage() {
                       style={{
                         fontSize: '15px',
                         fontWeight: 700,
-                        color: '#e5e3ff',
+                        color: 'var(--on-surface)',
                         margin: '0 0 2px',
                       }}
                     >
                       {label}
                     </p>
-                    <p style={{ fontSize: '12px', color: '#aaa8c8', margin: 0 }}>{desc}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>{desc}</p>
                   </div>
                   <Toggle
                     checked={notifications[key]}
@@ -1723,7 +1723,7 @@ export default function SettingsPage() {
           {/* Study Goals */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'goals' ? 'flex' : 'none',
@@ -1752,11 +1752,11 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3
-                  style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 4px' }}
+                  style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}
                 >
                   Study Goals
                 </h3>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                   Set the targets that drive your daily learning habit.
                 </p>
               </div>
@@ -1766,7 +1766,7 @@ export default function SettingsPage() {
               onSubmit={handleGoalSave}
               style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
             >
-              <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: 1.6 }}>
+              <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
                 Pick the targets that matter to you. Tap a card to enable or clear a goal.
               </p>
 
@@ -1788,7 +1788,7 @@ export default function SettingsPage() {
                       key={config.key}
                       onClick={() => toggleStudyGoal(config)}
                       style={{
-                        background: '#2d2d52',
+                        background: 'var(--surface-container-high)',
                         borderRadius: '20px',
                         padding: '20px',
                         border: isSelected ? '2px solid #ae89ff' : '1px solid #555578',
@@ -1838,7 +1838,7 @@ export default function SettingsPage() {
                           {target} {config.unit} / {config.cadence}
                         </p>
                       ) : (
-                        <p style={{ margin: '0 0 0', fontSize: '11px', color: '#555578' }}>
+                        <p style={{ margin: '0 0 0', fontSize: '11px', color: 'var(--outline-variant)' }}>
                           Tap to set goal
                         </p>
                       )}
@@ -1889,13 +1889,13 @@ export default function SettingsPage() {
                             onChange={(e) => handleGoalCustomInput(config, e.target.value)}
                             style={{
                               width: '52px',
-                              background: '#35355c',
+                              background: 'var(--surface-container-highest)',
                               border: goalCustomInputs[config.key]
                                 ? '1px solid #ae89ff'
                                 : '1px solid #555578',
                               borderRadius: '8px',
                               padding: '4px 8px',
-                              color: '#e5e3ff',
+                              color: 'var(--on-surface)',
                               fontSize: '12px',
                               fontFamily: 'inherit',
                               outline: 'none',
@@ -1959,7 +1959,7 @@ export default function SettingsPage() {
           {/* Subscription Management */}
           <section
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display: activeSection === 'subscription' ? 'flex' : 'none',
@@ -1988,11 +1988,11 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3
-                  style={{ fontSize: '22px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 4px' }}
+                  style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}
                 >
                   Subscription
                 </h3>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                   Manage your plan and billing.
                 </p>
               </div>
@@ -2001,7 +2001,7 @@ export default function SettingsPage() {
             {/* Current plan card */}
             <div
               style={{
-                background: '#21213e',
+                background: 'var(--surface-container-low)',
                 borderRadius: '20px',
                 padding: '24px',
                 display: 'flex',
@@ -2016,7 +2016,7 @@ export default function SettingsPage() {
                   <p
                     style={{
                       fontSize: '13px',
-                      color: '#aaa8c8',
+                      color: 'var(--on-surface-variant)',
                       margin: '0 0 4px',
                       fontWeight: 600,
                     }}
@@ -2034,7 +2034,7 @@ export default function SettingsPage() {
                       {tierNames[subTier] || subTier}
                     </span>
                     {subTier !== 'FREE' && (
-                      <span style={{ fontSize: '15px', color: '#aaa8c8', fontWeight: 600 }}>
+                      <span style={{ fontSize: '15px', color: 'var(--on-surface-variant)', fontWeight: 600 }}>
                         CHF {tierPrices[subTier]}/mo
                       </span>
                     )}
@@ -2057,9 +2057,9 @@ export default function SettingsPage() {
               </div>
 
               {subPeriodEnd && subTier !== 'FREE' && (
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                   Current period ends on{' '}
-                  <span style={{ color: '#e5e3ff', fontWeight: 600 }}>
+                  <span style={{ color: 'var(--on-surface)', fontWeight: 600 }}>
                     {new Date(subPeriodEnd).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -2090,7 +2090,7 @@ export default function SettingsPage() {
                       style={{
                         fontSize: '14px',
                         fontWeight: 600,
-                        color: '#e5e3ff',
+                        color: 'var(--on-surface)',
                         margin: '0 0 2px',
                       }}
                     >
@@ -2098,7 +2098,7 @@ export default function SettingsPage() {
                         ? 'Cancellation scheduled'
                         : `Switching to ${tierNames[subPendingTier]}`}
                     </p>
-                    <p style={{ fontSize: '12px', color: '#aaa8c8', margin: 0 }}>
+                    <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
                       {subPendingTier === 'FREE'
                         ? 'Your plan will revert to Free at the end of your billing period.'
                         : `Your plan will change to ${tierNames[subPendingTier]} (CHF ${tierPrices[subPendingTier]}/mo) at the end of your billing period.`}
@@ -2112,7 +2112,7 @@ export default function SettingsPage() {
                       borderRadius: '10px',
                       background: 'rgba(255,255,255,0.08)',
                       border: '1px solid rgba(255,255,255,0.12)',
-                      color: '#e5e3ff',
+                      color: 'var(--on-surface)',
                       fontSize: '13px',
                       fontWeight: 600,
                       cursor: subLoading ? 'not-allowed' : 'pointer',
@@ -2145,7 +2145,7 @@ export default function SettingsPage() {
                   style={{
                     fontSize: '15px',
                     fontWeight: 700,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     margin: '0 0 16px',
                   }}
                 >
@@ -2187,13 +2187,13 @@ export default function SettingsPage() {
                             style={{
                               fontSize: '22px',
                               fontWeight: 800,
-                              color: '#e5e3ff',
+                              color: 'var(--on-surface)',
                               margin: 0,
                             }}
                           >
                             {tierPrices[tier] === 0 ? 'Free' : `CHF ${tierPrices[tier]}`}
                             {tierPrices[tier] > 0 && (
-                              <span style={{ fontSize: '13px', fontWeight: 500, color: '#aaa8c8' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--on-surface-variant)' }}>
                                 /mo
                               </span>
                             )}
@@ -2342,7 +2342,7 @@ export default function SettingsPage() {
               >
                 info
               </span>
-              <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0, lineHeight: 1.6 }}>
+              <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
                 Plan changes and cancellations take effect at the end of your current billing period
                 (30 days after payment). You will keep access to your current plan&apos;s features
                 until then.
@@ -2369,7 +2369,7 @@ export default function SettingsPage() {
             >
               <div
                 style={{
-                  background: '#272746',
+                  background: 'var(--surface-container)',
                   borderRadius: '24px',
                   padding: '32px',
                   display: 'flex',
@@ -2487,7 +2487,7 @@ export default function SettingsPage() {
           {isAdmin && (
             <section
               style={{
-                background: '#272746',
+                background: 'var(--surface-container)',
                 borderRadius: isPhone ? '20px' : '32px',
                 padding: isPhone ? '20px' : '32px',
                 display: activeSection === 'admin' ? 'flex' : 'none',
@@ -2520,13 +2520,13 @@ export default function SettingsPage() {
                     style={{
                       fontSize: '22px',
                       fontWeight: 700,
-                      color: '#e5e3ff',
+                      color: 'var(--on-surface)',
                       margin: '0 0 4px',
                     }}
                   >
                     User Management
                   </h3>
-                  <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                  <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                     Search, ban, or delete users.{' '}
                     {adminTotal > 0 && (
                       <span style={{ color: '#ae89ff' }}>{adminTotal} total users</span>
@@ -2547,7 +2547,7 @@ export default function SettingsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     pointerEvents: 'none',
-                    color: '#8888a8',
+                    color: 'var(--outline)',
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -2592,7 +2592,7 @@ export default function SettingsPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      color: '#aaa8c8',
+                      color: 'var(--on-surface-variant)',
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
@@ -2608,7 +2608,7 @@ export default function SettingsPage() {
                   style={{
                     textAlign: 'center',
                     padding: '24px',
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     fontSize: '14px',
                   }}
                 >
@@ -2622,7 +2622,7 @@ export default function SettingsPage() {
                   style={{
                     textAlign: 'center',
                     padding: '32px',
-                    color: '#8888a8',
+                    color: 'var(--outline)',
                     fontSize: '14px',
                   }}
                 >
@@ -2682,10 +2682,10 @@ export default function SettingsPage() {
                               flexWrap: 'wrap',
                             }}
                           >
-                            <span style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff' }}>
+                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--on-surface)' }}>
                               {user.name || user.username}
                             </span>
-                            <span style={{ fontSize: '12px', color: '#8888a8' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--outline)' }}>
                               @{user.username}
                             </span>
                             {user.role === 'admin' && (
@@ -2745,8 +2745,8 @@ export default function SettingsPage() {
                               marginTop: '4px',
                             }}
                           >
-                            <span style={{ fontSize: '12px', color: '#aaa8c8' }}>{user.email}</span>
-                            <span style={{ fontSize: '11px', color: '#8888a8' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>{user.email}</span>
+                            <span style={{ fontSize: '11px', color: 'var(--outline)' }}>
                               {user.notebookCount} notebook{user.notebookCount !== 1 ? 's' : ''} ·{' '}
                               {user.postCount} post{user.postCount !== 1 ? 's' : ''}
                             </span>
@@ -2788,7 +2788,7 @@ export default function SettingsPage() {
                               padding: '8px 10px',
                               borderRadius: '10px',
                               background: 'rgba(174,137,255,0.1)',
-                              color: '#e5e3ff',
+                              color: 'var(--on-surface)',
                               fontSize: '12px',
                               fontWeight: 600,
                               border: '1px solid rgba(174,137,255,0.25)',
@@ -3035,7 +3035,7 @@ export default function SettingsPage() {
                   >
                     Previous
                   </button>
-                  <span style={{ fontSize: '13px', color: '#aaa8c8' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
                     Page {adminPage} of {adminTotalPages}
                   </span>
                   <button
@@ -3064,7 +3064,7 @@ export default function SettingsPage() {
           {isAdmin && (
             <section
               style={{
-                background: '#272746',
+                background: 'var(--surface-container)',
                 borderRadius: isPhone ? '20px' : '32px',
                 padding: isPhone ? '20px' : '32px',
                 display: activeSection === 'stats' ? 'flex' : 'none',
@@ -3106,13 +3106,13 @@ export default function SettingsPage() {
                       style={{
                         fontSize: '22px',
                         fontWeight: 700,
-                        color: '#e5e3ff',
+                        color: 'var(--on-surface)',
                         margin: '0 0 4px',
                       }}
                     >
                       Platform Stats
                     </h3>
-                    <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+                    <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                       High-level numbers across the whole product.
                     </p>
                   </div>
@@ -3148,7 +3148,7 @@ export default function SettingsPage() {
                   style={{
                     textAlign: 'center',
                     padding: '32px',
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     fontSize: '14px',
                   }}
                 >
@@ -3253,7 +3253,7 @@ export default function SettingsPage() {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  background: '#272746',
+                  background: 'var(--surface-container)',
                   borderRadius: '24px',
                   padding: '32px',
                   width: '100%',
@@ -3263,11 +3263,11 @@ export default function SettingsPage() {
                 }}
               >
                 <h3
-                  style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}
+                  style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 8px' }}
                 >
                   Ban @{banModalUser.username}
                 </h3>
-                <p style={{ fontSize: '13px', color: '#aaa8c8', margin: '0 0 20px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '0 0 20px' }}>
                   This user won&apos;t be able to log in. You can unban them later.
                 </p>
                 <label
@@ -3314,7 +3314,7 @@ export default function SettingsPage() {
                       borderRadius: '12px',
                       border: '1px solid rgba(70,69,96,0.3)',
                       background: 'transparent',
-                      color: '#aaa8c8',
+                      color: 'var(--on-surface-variant)',
                       fontSize: '14px',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -3363,7 +3363,7 @@ export default function SettingsPage() {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  background: '#272746',
+                  background: 'var(--surface-container)',
                   borderRadius: '24px',
                   padding: '32px',
                   width: '100%',
@@ -3378,7 +3378,7 @@ export default function SettingsPage() {
                   Delete @{deleteConfirmUser.username}?
                 </h3>
                 <p
-                  style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 8px', lineHeight: 1.6 }}
+                  style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: '0 0 8px', lineHeight: 1.6 }}
                 >
                   This will <strong style={{ color: '#fd6f85' }}>permanently delete</strong> this
                   user and all their data:
@@ -3386,7 +3386,7 @@ export default function SettingsPage() {
                 <ul
                   style={{
                     fontSize: '13px',
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     margin: '0 0 20px',
                     paddingLeft: '20px',
                     lineHeight: 1.8,
@@ -3409,7 +3409,7 @@ export default function SettingsPage() {
                       borderRadius: '12px',
                       border: '1px solid rgba(70,69,96,0.3)',
                       background: 'transparent',
-                      color: '#aaa8c8',
+                      color: 'var(--on-surface-variant)',
                       fontSize: '14px',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -3508,7 +3508,7 @@ export default function SettingsPage() {
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: '24px',
               padding: '32px',
               display: 'flex',

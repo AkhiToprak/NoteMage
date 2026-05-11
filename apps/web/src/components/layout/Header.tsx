@@ -56,13 +56,13 @@ export default function Header() {
               style={{
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
               }}
             >
-              Hello, <UserName user={session.user} style={{ color: '#e5e3ff' }} />
+              Hello, <UserName user={session.user} style={{ color: 'var(--on-surface)' }} />
               <TierBadge tier={session.user.tier || 'FREE'} role={session.user.role} />
             </span>
             <UserAvatar user={session.user} size={40} />
@@ -79,7 +79,7 @@ export default function Header() {
             borderRadius: '12px',
             border: '1px solid rgba(70,69,96,0.3)',
             background: 'transparent',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             fontSize: '14px',
             fontWeight: '700',
             cursor: 'pointer',

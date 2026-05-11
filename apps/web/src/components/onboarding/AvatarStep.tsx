@@ -70,7 +70,7 @@ export default function AvatarStep({
 
   const cardBase: React.CSSProperties = {
     flex: 1,
-    background: '#2d2d52',
+    background: 'var(--surface-container-high)',
     borderRadius: '18px',
     padding: '14px 14px',
     border: '1px solid #555578',
@@ -89,10 +89,10 @@ export default function AvatarStep({
         <Mascot pose="default" size="md" idle="bounce" />
       </div>
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 6px' }}>
           Choose your avatar
         </h2>
-        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
           This is how the community will see you.
         </p>
       </div>
@@ -190,11 +190,11 @@ export default function AvatarStep({
             photo_camera
           </span>
           <span
-            style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', textAlign: 'center' }}
+            style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', textAlign: 'center' }}
           >
             Upload Photo
           </span>
-          {uploading && <span style={{ fontSize: '11px', color: '#aaa8c8' }}>uploading...</span>}
+          {uploading && <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>uploading...</span>}
           <input
             ref={fileInputRef}
             type="file"
@@ -237,7 +237,7 @@ export default function AvatarStep({
             face
           </span>
           <span
-            style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', textAlign: 'center' }}
+            style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', textAlign: 'center' }}
           >
             Create Avatar
           </span>
@@ -302,7 +302,7 @@ export default function AvatarStep({
             background: 'transparent',
             border: 'none',
             borderRadius: '14px',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: loading || uploading ? 'not-allowed' : 'pointer',

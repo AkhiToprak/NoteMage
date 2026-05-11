@@ -347,7 +347,7 @@ export default function OnboardingWizard() {
             width: step === 2 && !showPayment ? '48px' : '56px',
             height: step === 2 && !showPayment ? '48px' : '56px',
             marginBottom: step === 2 && !showPayment ? '10px' : '12px',
-            background: '#35355c',
+            background: 'var(--surface-container-highest)',
             borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
@@ -377,7 +377,7 @@ export default function OnboardingWizard() {
         >
           NoteMage
         </h1>
-        <p style={{ color: '#aaa8c8', fontSize: '15px', margin: 0, textAlign: 'center' }}>
+        <p style={{ color: 'var(--on-surface-variant)', fontSize: '15px', margin: 0, textAlign: 'center' }}>
           {stepSubtitle}
         </p>
       </div>
@@ -385,7 +385,7 @@ export default function OnboardingWizard() {
       {/* Card */}
       <div
         style={{
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: '24px',
           padding: step === 2 && !showPayment ? '20px 28px 24px' : '24px 32px 28px',
           boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
@@ -432,7 +432,7 @@ export default function OnboardingWizard() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 fontSize: '14px',
               }}
             >
@@ -548,7 +548,7 @@ export default function OnboardingWizard() {
             style={{
               fontSize: '12px',
               fontWeight: 500,
-              color: '#8888a8',
+              color: 'var(--outline)',
               textDecoration: 'none',
               transition: 'color 0.15s',
             }}

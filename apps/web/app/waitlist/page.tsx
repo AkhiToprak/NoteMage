@@ -133,7 +133,7 @@ export default function WaitlistPage() {
                   fontFamily: 'var(--font-epilogue), sans-serif',
                   fontSize: '24px',
                   fontWeight: 700,
-                  color: '#eeecff',
+                  color: 'var(--on-surface)',
                   marginBottom: '12px',
                   letterSpacing: '-0.03em',
                 }}
@@ -144,7 +144,7 @@ export default function WaitlistPage() {
                 style={{
                   fontFamily: 'var(--font-plus-jakarta), sans-serif',
                   fontSize: '15px',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   lineHeight: 1.7,
                 }}
               >
@@ -160,7 +160,7 @@ export default function WaitlistPage() {
                   fontFamily: 'var(--font-epilogue), sans-serif',
                   fontSize: '28px',
                   fontWeight: 700,
-                  color: '#eeecff',
+                  color: 'var(--on-surface)',
                   marginBottom: '12px',
                   letterSpacing: '-0.03em',
                   lineHeight: 1.2,
@@ -172,7 +172,7 @@ export default function WaitlistPage() {
                 style={{
                   fontFamily: 'var(--font-plus-jakarta), sans-serif',
                   fontSize: '15px',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   lineHeight: 1.7,
                   marginBottom: '32px',
                 }}
@@ -201,7 +201,7 @@ export default function WaitlistPage() {
                       background: 'rgba(13, 13, 26, 0.7)',
                       border: '1px solid rgba(136, 136, 168, 0.25)',
                       borderRadius: '12px',
-                      color: '#eeecff',
+                      color: 'var(--on-surface)',
                       fontSize: '15px',
                       fontFamily: 'var(--font-plus-jakarta), sans-serif',
                       outline: 'none',
@@ -267,7 +267,7 @@ export default function WaitlistPage() {
           style={{
             marginTop: '28px',
             fontSize: '14px',
-            color: '#8888a8',
+            color: 'var(--outline)',
             fontFamily: 'var(--font-plus-jakarta), sans-serif',
           }}
         >

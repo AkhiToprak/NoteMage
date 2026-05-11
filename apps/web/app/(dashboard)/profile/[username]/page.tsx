@@ -116,14 +116,14 @@ export default function PublicProfilePage() {
 
   if (notFound) {
     return (
-      <div style={{ textAlign: 'center', padding: '64px 24px', color: '#aaa8c8' }}>
+      <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--on-surface-variant)' }}>
         <span
           className="material-symbols-outlined"
           style={{ fontSize: '64px', display: 'block', marginBottom: '16px', opacity: 0.4 }}
         >
           person_off
         </span>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 8px' }}>
           User Not Found
         </h2>
         <p style={{ fontSize: '14px', margin: '0 0 24px' }}>
@@ -182,7 +182,7 @@ export default function PublicProfilePage() {
         style={{
           position: 'relative',
           overflow: 'hidden',
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: headerRadius,
           padding: isPhone ? '28px 20px' : '40px',
           display: 'flex',
@@ -214,12 +214,12 @@ export default function PublicProfilePage() {
           style={{
             fontSize: isPhone ? 20 : 24,
             fontWeight: 700,
-            color: '#e5e3ff',
+            color: 'var(--on-surface)',
             marginBottom: 4,
             justifyContent: 'center',
           }}
         />
-        <p style={{ fontSize: isPhone ? '13px' : '14px', color: '#aaa8c8', margin: '0 0 12px' }}>
+        <p style={{ fontSize: isPhone ? '13px' : '14px', color: 'var(--on-surface-variant)', margin: '0 0 12px' }}>
           @{profile.username}
         </p>
 
@@ -229,7 +229,7 @@ export default function PublicProfilePage() {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             fontSize: '13px',
           }}
         >
@@ -300,7 +300,7 @@ export default function PublicProfilePage() {
       {isPrivate && (
         <div
           style={{
-            background: '#21213e',
+            background: 'var(--surface-container-low)',
             borderRadius: isPhone ? '20px' : '24px',
             padding: isPhone ? '28px 20px' : '40px',
             textAlign: 'center',
@@ -310,7 +310,7 @@ export default function PublicProfilePage() {
             className="material-symbols-outlined"
             style={{
               fontSize: '48px',
-              color: '#8888a8',
+              color: 'var(--outline)',
               display: 'block',
               marginBottom: '12px',
               opacity: 0.5,
@@ -318,10 +318,10 @@ export default function PublicProfilePage() {
           >
             lock
           </span>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 8px' }}>
             This profile is private
           </h3>
-          <p style={{ fontSize: '13px', color: '#8888a8', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--outline)', margin: 0 }}>
             Only friends can see the full profile.
           </p>
         </div>
@@ -331,7 +331,7 @@ export default function PublicProfilePage() {
       {!isPrivate && hasDetails && (
         <div
           style={{
-            background: '#21213e',
+            background: 'var(--surface-container-low)',
             borderRadius: isPhone ? '20px' : '24px',
             padding: isPhone ? '20px' : '28px 32px',
             display: 'flex',
@@ -339,7 +339,7 @@ export default function PublicProfilePage() {
             gap: '16px',
           }}
         >
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>About</h3>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>About</h3>
           {DETAIL_ITEMS.map((item) => {
             const value = profile[item.key];
             if (value == null) return null;
@@ -355,7 +355,7 @@ export default function PublicProfilePage() {
                   <p
                     style={{
                       fontSize: '11px',
-                      color: '#8888a8',
+                      color: 'var(--outline)',
                       margin: '0 0 2px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
@@ -364,7 +364,7 @@ export default function PublicProfilePage() {
                   >
                     {item.label}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#e5e3ff', margin: 0 }}>{String(value)}</p>
+                  <p style={{ fontSize: '14px', color: 'var(--on-surface)', margin: 0 }}>{String(value)}</p>
                 </div>
               </div>
             );

@@ -130,10 +130,10 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px 12px 48px',
-    background: '#35355c',
+    background: 'var(--surface-container-highest)',
     border: 'none',
     borderRadius: '14px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '15px',
     fontFamily: 'inherit',
     outline: 'none',
@@ -155,7 +155,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
     display: 'flex',
     alignItems: 'center',
     pointerEvents: 'none',
-    color: '#aaa8c8',
+    color: 'var(--on-surface-variant)',
   };
 
   const labelStyle: React.CSSProperties = {
@@ -174,7 +174,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="wave" size="md" idle="float" />
       </div>
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 14px' }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 14px' }}>
         Create Account
       </h2>
 
@@ -279,7 +279,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
             </p>
           )}
           {(usernameStatus === 'idle' || usernameStatus === 'typing') && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#8888a8' }}>
+            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: 'var(--outline)' }}>
               3–20 chars, letters, numbers, underscores
             </p>
           )}
@@ -288,7 +288,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
         {/* Full Name */}
         <div>
           <label style={labelStyle}>
-            Full Name <span style={{ color: '#8888a8', fontWeight: 400 }}>(optional)</span>
+            Full Name <span style={{ color: 'var(--outline)', fontWeight: 400 }}>(optional)</span>
           </label>
           <div style={{ position: 'relative' }}>
             <div style={iconWrapStyle}>
@@ -440,7 +440,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
               width: '18px',
               height: '18px',
               borderRadius: '4px',
-              background: '#35355c',
+              background: 'var(--surface-container-highest)',
               border: 'none',
               accentColor: '#ae89ff',
               flexShrink: 0,
@@ -449,7 +449,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           />
           <label
             htmlFor="terms-onboarding"
-            style={{ fontSize: '13px', color: '#aaa8c8', lineHeight: '1.6', cursor: 'pointer' }}
+            style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: '1.6', cursor: 'pointer' }}
           >
             I agree to the{' '}
             <a href="#" style={{ color: '#b9c3ff', textDecoration: 'none' }}>
