@@ -84,7 +84,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
           flex: 1,
           minWidth: 0,
           overflow: 'hidden',
-          background: '#000000',
+          background: 'var(--background)',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -102,9 +102,9 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: 'rgba(0, 0, 0, 0.9)',
+              background: 'color-mix(in srgb, var(--surface-container) 90%, transparent)',
               border: '1px solid rgba(140,82,255,0.15)',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -112,12 +112,13 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
               transition: 'color 0.15s, background 0.15s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.9)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.9)';
               e.currentTarget.style.background = 'rgba(140,82,255,0.18)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
-              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+              e.currentTarget.style.background =
+                'color-mix(in srgb, var(--surface-container) 90%, transparent)';
             }}
           >
             <ChevronsRight size={15} />
