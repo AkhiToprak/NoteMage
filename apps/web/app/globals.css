@@ -195,6 +195,24 @@
   --md-pre: #0f0f1e;
 }
 
+/* Landing bento cells — light theme: lighter surface, deeper + thicker borders */
+[data-theme='light'] .bento-cell {
+  background: #fafafd !important;
+  border-width: 2px !important;
+  border-color: var(--outline) !important;
+  box-shadow: 0 1px 2px rgba(15, 15, 30, 0.05), 0 4px 12px rgba(15, 15, 30, 0.06) !important;
+}
+[data-theme='light'] .bento-cell:hover {
+  border-color: #2a2a40 !important;
+  box-shadow: 0 8px 24px rgba(15, 15, 30, 0.1), 0 4px 12px rgba(15, 15, 30, 0.08) !important;
+}
+
+/* Landing burger button — light theme: visible neutral bg + deep border */
+[data-theme='light'] .nm-burger {
+  background: rgba(15, 15, 30, 0.06) !important;
+  border-color: var(--outline) !important;
+}
+
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
 
 @theme inline {

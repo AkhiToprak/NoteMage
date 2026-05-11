@@ -238,7 +238,7 @@ export default function LandingNavbar() {
             position: 'fixed',
             inset: 0,
             zIndex: 55,
-            background: '#09081a',
+            background: 'var(--surface)',
             padding: '96px 32px 32px',
             display: 'flex',
             flexDirection: 'column',
@@ -265,7 +265,7 @@ export default function LandingNavbar() {
           <div
             style={{
               height: 1,
-              background: 'rgba(174, 137, 255, 0.40)',
+              background: 'var(--ink-20)',
               margin: '16px 0',
             }}
           />
@@ -273,7 +273,7 @@ export default function LandingNavbar() {
             href="/waitlist"
             style={{
               fontSize: 18,
-              color: 'rgba(237, 233, 255, 0.72)',
+              color: 'var(--ink-70)',
               textDecoration: 'none',
             }}
           >

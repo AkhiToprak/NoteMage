@@ -139,7 +139,7 @@ export default function BentoFeatures() {
                   margin: 0,
                   fontSize: 14,
                   lineHeight: 1.6,
-                  color: 'rgba(237, 233, 255, 0.6)',
+                  color: 'var(--ink-60)',
                   fontFamily: 'var(--font-sans)',
                 }}
               >
