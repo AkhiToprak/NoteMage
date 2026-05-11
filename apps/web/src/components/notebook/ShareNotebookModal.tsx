@@ -31,14 +31,14 @@ interface ShareInfo {
 }
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container-low)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
+  textPrimary: 'var(--on-surface)',
   textSecondary: '#aaa8c8',
   textMuted: '#8888a8',
   error: '#fd6f85',
@@ -631,7 +631,7 @@ export default function ShareNotebookModal({
                     borderRadius: '50%',
                     border: 'none',
                     background: 'rgba(0,0,0,0.6)',
-                    color: '#fff',
+                    color: 'var(--on-surface)',
                     fontSize: 12,
                     cursor: 'pointer',
                     display: 'flex',
@@ -769,7 +769,7 @@ export default function ShareNotebookModal({
           borderRadius: 12,
           border: 'none',
           background: COLORS.primary,
-          color: '#fff',
+          color: 'var(--on-surface)',
           fontSize: 14,
           fontWeight: 700,
           cursor: isSharing ? 'wait' : 'pointer',
@@ -974,7 +974,7 @@ export default function ShareNotebookModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered
-                        ? 'rgba(255,255,255,0.07)'
+                        ? 'rgb(var(--notebook-ink-rgb) / 0.07)'
                         : 'transparent',
                     cursor: 'pointer',
                     transition: `all 0.2s ${EASING}`,
@@ -1000,7 +1000,7 @@ export default function ShareNotebookModal({
                     {isSelected && (
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}
+                        style={{ fontSize: 14, color: 'var(--on-surface)', fontWeight: 700 }}
                       >
                         check
                       </span>
@@ -1092,7 +1092,7 @@ export default function ShareNotebookModal({
               borderRadius: 12,
               border: 'none',
               background: selectedFriendIds.size === 0 ? COLORS.elevated : COLORS.primary,
-              color: selectedFriendIds.size === 0 ? COLORS.textMuted : '#fff',
+              color: selectedFriendIds.size === 0 ? COLORS.textMuted : 'var(--on-surface)',
               fontSize: 14,
               fontWeight: 700,
               cursor:
@@ -1194,7 +1194,11 @@ export default function ShareNotebookModal({
                   : hoveredCopyBtn
                     ? COLORS.primary
                     : COLORS.elevated,
-                color: copied ? '#fff' : hoveredCopyBtn ? '#fff' : COLORS.textPrimary,
+                color: copied
+                  ? 'var(--on-surface)'
+                  : hoveredCopyBtn
+                    ? 'var(--on-surface)'
+                    : COLORS.textPrimary,
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',

@@ -87,7 +87,7 @@ export default function ImportNotebookDialog({
             borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
-          <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>
+          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--on-surface)' }}>
             Import Notebook
           </span>
           <button
@@ -355,13 +355,20 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           </svg>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff', margin: '0 0 6px' }}>
+          <p
+            style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--on-surface)',
+              margin: '0 0 6px',
+            }}
+          >
             Connect Microsoft Account
           </p>
           <p
             style={{
               fontSize: '12.5px',
-              color: 'rgba(237,233,255,0.45)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
               margin: 0,
               lineHeight: 1.5,
               maxWidth: '320px',
@@ -380,7 +387,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             borderRadius: '10px',
             border: 'none',
             background: '#8c52ff',
-            color: '#fff',
+            color: 'var(--on-surface)',
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -388,10 +395,10 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           }}
         >
           <svg width="16" height="16" viewBox="0 0 23 23" fill="none">
-            <path d="M11 0H0V11H11V0Z" fill="#fff" fillOpacity="0.8" />
-            <path d="M23 0H12V11H23V0Z" fill="#fff" fillOpacity="0.6" />
-            <path d="M11 12H0V23H11V12Z" fill="#fff" fillOpacity="0.6" />
-            <path d="M23 12H12V23H23V12Z" fill="#fff" fillOpacity="0.4" />
+            <path d="M11 0H0V11H11V0Z" fill="var(--on-surface)" fillOpacity="0.8" />
+            <path d="M23 0H12V11H23V0Z" fill="var(--on-surface)" fillOpacity="0.6" />
+            <path d="M11 12H0V23H11V12Z" fill="var(--on-surface)" fillOpacity="0.6" />
+            <path d="M23 12H12V23H23V12Z" fill="var(--on-surface)" fillOpacity="0.4" />
           </svg>
           Sign in with Microsoft
         </button>
@@ -432,13 +439,20 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           <Check size={24} style={{ color: 'rgba(74,222,128,0.8)' }} />
         </div>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff', margin: '0 0 6px' }}>
+          <p
+            style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--on-surface)',
+              margin: '0 0 6px',
+            }}
+          >
             Import Complete
           </p>
           <p
             style={{
               fontSize: '12.5px',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
               margin: 0,
               lineHeight: 1.6,
             }}
@@ -461,7 +475,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             borderRadius: '8px',
             border: 'none',
             background: '#8c52ff',
-            color: '#fff',
+            color: 'var(--on-surface)',
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -548,7 +562,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
       {/* Notebook tree */}
       {notebooks.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px 0' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(237,233,255,0.3)', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)', margin: 0 }}>
             No OneNote notebooks found in your Microsoft account.
           </p>
         </div>
@@ -585,7 +599,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                       style={{ color: 'rgba(196,169,255,0.5)', flexShrink: 0 }}
                     />
                   )}
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#ede9ff' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)' }}>
                     {nb.displayName}
                   </span>
                   <span style={{ fontSize: '11px', color: 'rgba(196,169,255,0.35)' }}>
@@ -629,7 +643,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                             transition: 'all 0.1s ease',
                           }}
                         >
-                          {isSelected && <Check size={10} style={{ color: '#fff' }} />}
+                          {isSelected && <Check size={10} style={{ color: 'var(--on-surface)' }} />}
                         </div>
                         <FileText
                           size={13}
@@ -638,7 +652,9 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                         <span
                           style={{
                             fontSize: '12.5px',
-                            color: isSelected ? '#ede9ff' : 'rgba(237,233,255,0.55)',
+                            color: isSelected
+                              ? 'var(--on-surface)'
+                              : 'rgb(var(--notebook-ink-rgb) / 0.55)',
                           }}
                         >
                           {section.displayName}
@@ -674,7 +690,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
               borderRadius: '8px',
               border: 'none',
               background: selectedSections.size > 0 ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-              color: selectedSections.size > 0 ? '#fff' : 'rgba(196,169,255,0.4)',
+              color: selectedSections.size > 0 ? 'var(--on-surface)' : 'rgba(196,169,255,0.4)',
               fontSize: '13px',
               fontWeight: 600,
               cursor: selectedSections.size > 0 ? 'pointer' : 'not-allowed',
@@ -777,10 +793,16 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
           <FileText size={20} style={{ color: '#c4a9ff' }} />
         </div>
         <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff', margin: 0 }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
             Import from GoodNotes
           </p>
-          <p style={{ fontSize: '11.5px', color: 'rgba(237,233,255,0.4)', margin: '2px 0 0' }}>
+          <p
+            style={{
+              fontSize: '11.5px',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              margin: '2px 0 0',
+            }}
+          >
             Via PDF export
           </p>
         </div>
@@ -798,7 +820,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
         <p
           style={{
             fontSize: '12.5px',
-            color: 'rgba(237,233,255,0.5)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
             margin: '0 0 4px',
             lineHeight: 1.5,
           }}
@@ -847,7 +869,7 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
           fontSize: '14px',
           fontWeight: 600,
           background: uploadState === 'success' ? 'rgba(74,222,128,0.15)' : 'rgba(140,82,255,0.8)',
-          color: uploadState === 'success' ? '#4ade80' : '#fff',
+          color: uploadState === 'success' ? '#4ade80' : 'var(--on-surface)',
           opacity: uploadState === 'uploading' ? 0.6 : 1,
           transition: 'opacity 0.15s ease',
         }}
@@ -905,10 +927,16 @@ function AppleNotesTab() {
           <FileText size={20} style={{ color: '#c4a9ff' }} />
         </div>
         <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff', margin: 0 }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
             Import from Apple Notes
           </p>
-          <p style={{ fontSize: '11.5px', color: 'rgba(237,233,255,0.4)', margin: '2px 0 0' }}>
+          <p
+            style={{
+              fontSize: '11.5px',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              margin: '2px 0 0',
+            }}
+          >
             Via PDF export
           </p>
         </div>
@@ -926,7 +954,7 @@ function AppleNotesTab() {
         <p
           style={{
             fontSize: '12.5px',
-            color: 'rgba(237,233,255,0.5)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
             margin: '0 0 4px',
             lineHeight: 1.5,
           }}
@@ -1097,10 +1125,16 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           <FileUp size={20} style={{ color: '#c4a9ff' }} />
         </div>
         <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff', margin: 0 }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
             Import PDF
           </p>
-          <p style={{ fontSize: '11.5px', color: 'rgba(237,233,255,0.4)', margin: '2px 0 0' }}>
+          <p
+            style={{
+              fontSize: '11.5px',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              margin: '2px 0 0',
+            }}
+          >
             Each page becomes an editable image
           </p>
         </div>
@@ -1118,7 +1152,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
         <p
           style={{
             fontSize: '12.5px',
-            color: 'rgba(237,233,255,0.5)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
             margin: 0,
             lineHeight: 1.5,
           }}
@@ -1157,7 +1191,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           fontSize: '14px',
           fontWeight: 600,
           background: state === 'success' ? 'rgba(74,222,128,0.15)' : 'rgba(140,82,255,0.8)',
-          color: state === 'success' ? '#4ade80' : '#fff',
+          color: state === 'success' ? '#4ade80' : 'var(--on-surface)',
           opacity: state === 'working' ? 0.7 : 1,
           transition: 'opacity 0.15s ease',
         }}
@@ -1200,7 +1234,7 @@ function CenteredMessage({ text, loading }: { text: string; loading?: boolean })
         justifyContent: 'center',
         gap: '10px',
         padding: '48px 0',
-        color: 'rgba(237,233,255,0.4)',
+        color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
         fontSize: '13px',
       }}
     >
@@ -1238,7 +1272,7 @@ function InstructionSteps({ steps }: { steps: string[] }) {
           <p
             style={{
               fontSize: '12.5px',
-              color: 'rgba(237,233,255,0.55)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.55)',
               margin: 0,
               lineHeight: 1.5,
               paddingTop: '2px',

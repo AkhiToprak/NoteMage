@@ -157,7 +157,7 @@ export default function PageEditor({
 
   // Drawing state
   const [editorMode, setEditorMode] = useState<EditorMode>('cursor');
-  const [penColor, setPenColor] = useState('var(--on-surface)');
+  const [penColor, setPenColor] = useState('#ede9ff');
   const [penWidth, setPenWidth] = useState(4);
   const [lineStyle, setLineStyle] = useState<LineStyle>('solid');
   const [activeTool, setActiveTool] = useState<ActiveTool>('pen');

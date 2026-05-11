@@ -108,7 +108,7 @@ export default function UnifiedSidebar() {
       style={{
         width: '280px',
         minWidth: '280px',
-        background: '#000000',
+        background: 'var(--background)',
         borderRight: '1px solid rgba(174,137,255,0.22)',
         display: 'flex',
         flexDirection: 'column',
@@ -169,15 +169,17 @@ export default function UnifiedSidebar() {
               background: 'transparent',
               border: 'none',
               textDecoration: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               flexShrink: 0,
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(237,233,255,0.8)';
+              (e.currentTarget as HTMLAnchorElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.8)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(237,233,255,0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.4)';
             }}
           >
             <ArrowLeft size={14} />
@@ -195,7 +197,7 @@ export default function UnifiedSidebar() {
             style={{
               fontSize: '14px',
               fontWeight: 600,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -215,7 +217,7 @@ export default function UnifiedSidebar() {
               borderRadius: 5,
               background: 'transparent',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -225,10 +227,10 @@ export default function UnifiedSidebar() {
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.8)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.8)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
             }}
           >
             <ChevronsLeft size={14} />
@@ -246,7 +248,7 @@ export default function UnifiedSidebar() {
               left: 10,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: wsSearchFocused ? '#ae89ff' : 'rgba(237,233,255,0.3)',
+              color: wsSearchFocused ? '#ae89ff' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
               transition: 'color 0.15s',
               pointerEvents: 'none',
             }}
@@ -263,8 +265,10 @@ export default function UnifiedSidebar() {
               padding: '6px 28px 6px 30px',
               borderRadius: 8,
               border: `1px solid ${wsSearchFocused ? 'rgba(174,137,255,0.35)' : 'rgba(140,82,255,0.1)'}`,
-              background: wsSearchFocused ? 'rgba(174,137,255,0.06)' : 'rgba(255,255,255,0.035)',
-              color: '#ede9ff',
+              background: wsSearchFocused
+                ? 'rgba(174,137,255,0.06)'
+                : 'rgb(var(--notebook-ink-rgb) / 0.035)',
+              color: 'var(--on-surface)',
               fontSize: 12,
               outline: 'none',
               fontFamily: 'inherit',
@@ -285,8 +289,8 @@ export default function UnifiedSidebar() {
                 borderRadius: 4,
                 border: 'none',
                 padding: 0,
-                background: 'rgba(237,233,255,0.1)',
-                color: 'rgba(237,233,255,0.5)',
+                background: 'rgb(var(--notebook-ink-rgb) / 0.1)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -333,7 +337,7 @@ export default function UnifiedSidebar() {
                   style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: 'rgba(237,233,255,0.5)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                   }}
@@ -353,15 +357,17 @@ export default function UnifiedSidebar() {
                     border: 'none',
                     background: 'transparent',
                     cursor: 'pointer',
-                    color: 'rgba(237,233,255,0.25)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.25)',
                     padding: 0,
                     transition: 'color 0.12s ease',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.7)';
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      'rgb(var(--notebook-ink-rgb) / 0.7)';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      'rgb(var(--notebook-ink-rgb) / 0.25)';
                   }}
                 >
                   <Plus size={13} />
@@ -384,7 +390,10 @@ export default function UnifiedSidebar() {
                     borderLeft: '3px solid rgba(140,82,255,0.4)',
                   }}
                 >
-                  <FolderPlus size={12} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+                  <FolderPlus
+                    size={12}
+                    style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
+                  />
                   <input
                     ref={sectionInputRef}
                     type="text"
@@ -415,7 +424,7 @@ export default function UnifiedSidebar() {
                       padding: '3px 7px',
                       fontFamily: 'inherit',
                       fontSize: '12px',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       outline: 'none',
                     }}
                   />
@@ -427,7 +436,7 @@ export default function UnifiedSidebar() {
                   <p
                     style={{
                       fontSize: '12px',
-                      color: 'rgba(237,233,255,0.4)',
+                      color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                       margin: 0,
                       lineHeight: 1.5,
                     }}
@@ -867,7 +876,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
           background: isActive
             ? 'rgba(140,82,255,0.12)'
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: `3px solid ${isActive ? color : hovered ? color + '80' : color + '50'}`,
           transition: 'background 0.12s ease, border-color 0.12s ease',
@@ -883,7 +892,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
           style={{
             display: 'flex',
             flexShrink: 0,
-            color: 'rgba(237,233,255,0.3)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
             marginLeft: '-4px',
             width: '14px',
           }}
@@ -908,7 +917,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
             fontFamily: 'inherit',
             fontSize: depth === 0 ? '14px' : '13px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.78)',
+            color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.78)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -935,7 +944,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -943,7 +952,8 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = '#69d2a0';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color =
+                  'rgb(var(--notebook-ink-rgb) / 0.3)';
               }}
             >
               <FilePlus size={11} />
@@ -962,7 +972,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -970,7 +980,8 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = '#a47bff';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color =
+                  'rgb(var(--notebook-ink-rgb) / 0.3)';
               }}
             >
               <FolderPlus size={11} />
@@ -989,7 +1000,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -997,7 +1008,8 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color =
+                  'rgb(var(--notebook-ink-rgb) / 0.3)';
               }}
             >
               <Trash2 size={11} />
@@ -1071,7 +1083,10 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: `3px solid ${color}60`,
               }}
             >
-              <FilePlus size={11} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+              <FilePlus
+                size={11}
+                style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
+              />
               <input
                 ref={pageInputRef}
                 type="text"
@@ -1102,7 +1117,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                   padding: '3px 7px',
                   fontFamily: 'inherit',
                   fontSize: '12px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   outline: 'none',
                 }}
               />
@@ -1123,7 +1138,10 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: '3px solid rgba(140,82,255,0.4)',
               }}
             >
-              <FolderPlus size={11} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+              <FolderPlus
+                size={11}
+                style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
+              />
               <input
                 ref={childInputRef}
                 type="text"
@@ -1154,7 +1172,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                   padding: '3px 7px',
                   fontFamily: 'inherit',
                   fontSize: '12px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   outline: 'none',
                 }}
               />
@@ -1220,7 +1238,7 @@ function PageTreeRow({
           background: isActive
             ? `${accentColor}18`
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
@@ -1230,7 +1248,10 @@ function PageTreeRow({
         {page.pageType === 'canvas' ? (
           <CanvasIcon size={12} color={isActive ? '#ffde59' : 'rgba(255,222,89,0.35)'} />
         ) : (
-          <TextFileIcon size={12} color={isActive ? accentColor : 'rgba(237,233,255,0.25)'} />
+          <TextFileIcon
+            size={12}
+            color={isActive ? accentColor : 'rgb(var(--notebook-ink-rgb) / 0.25)'}
+          />
         )}
         <span
           style={{
@@ -1239,7 +1260,7 @@ function PageTreeRow({
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+            color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -1261,7 +1282,7 @@ function PageTreeRow({
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: 'rgba(237,233,255,0.3)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
               padding: 0,
               flexShrink: 0,
             }}
@@ -1269,7 +1290,8 @@ function PageTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+              (e.currentTarget as HTMLButtonElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.3)';
             }}
           >
             <Trash2 size={11} />
@@ -1321,7 +1343,7 @@ function FlashcardSetTreeRow({
           background: isActive
             ? `${accentColor}18`
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
@@ -1339,7 +1361,7 @@ function FlashcardSetTreeRow({
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+            color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -1495,7 +1517,7 @@ function FlashcardSetTreeSection() {
                 <p
                   style={{
                     fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                     margin: 0,
                     lineHeight: 1.5,
                   }}
@@ -1536,7 +1558,7 @@ function FlashcardSetTreeSection() {
                       style={{
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+                        color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1727,7 +1749,7 @@ function QuizSetTreeSection() {
                 <p
                   style={{
                     fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                     margin: 0,
                     lineHeight: 1.5,
                   }}
@@ -1768,7 +1790,7 @@ function QuizSetTreeSection() {
                       style={{
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+                        color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1962,7 +1984,7 @@ function StudyPlanTreeSection() {
                 <p
                   style={{
                     fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                     margin: 0,
                     lineHeight: 1.5,
                   }}
@@ -2003,7 +2025,7 @@ function StudyPlanTreeSection() {
                       style={{
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+                        color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -2190,7 +2212,7 @@ function ChatTreeSection() {
               <p
                 style={{
                   fontSize: '12px',
-                  color: 'rgba(237,233,255,0.4)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                   margin: 0,
                   lineHeight: 1.5,
                 }}
@@ -2305,7 +2327,7 @@ function ChatTreeRow({
           background: isActive
             ? `${accentColor}18`
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
@@ -2323,7 +2345,7 @@ function ChatTreeRow({
             style={{
               display: 'flex',
               flexShrink: 0,
-              color: 'rgba(237,233,255,0.3)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
               width: '14px',
             }}
           >
@@ -2352,7 +2374,10 @@ function ChatTreeRow({
         >
           <MessageSquare
             size={12}
-            style={{ color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.25)', flexShrink: 0 }}
+            style={{
+              color: isActive ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.25)',
+              flexShrink: 0,
+            }}
           />
           <span
             style={{
@@ -2361,7 +2386,7 @@ function ChatTreeRow({
               fontFamily: 'inherit',
               fontSize: '12px',
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+              color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -2384,7 +2409,7 @@ function ChatTreeRow({
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: 'rgba(237,233,255,0.3)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
               padding: 0,
               flexShrink: 0,
             }}
@@ -2392,7 +2417,8 @@ function ChatTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+              (e.currentTarget as HTMLButtonElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.3)';
             }}
           >
             <Trash2 size={11} />
@@ -2469,7 +2495,7 @@ function FlashcardSetRow({
           background: isActive
             ? `${accentColor}18`
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
@@ -2478,7 +2504,10 @@ function FlashcardSetRow({
       >
         <Layers
           size={11}
-          style={{ color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.3)', flexShrink: 0 }}
+          style={{
+            color: isActive ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
+            flexShrink: 0,
+          }}
         />
         <span
           style={{
@@ -2487,7 +2516,7 @@ function FlashcardSetRow({
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.62)',
+            color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.62)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -2507,7 +2536,7 @@ function FlashcardSetRow({
               borderRadius: '3px',
               background: 'transparent',
               border: 'none',
-              color: 'rgba(237,233,255,0.25)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.25)',
               cursor: 'pointer',
               flexShrink: 0,
               padding: 0,
@@ -2517,7 +2546,8 @@ function FlashcardSetRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
+              (e.currentTarget as HTMLButtonElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.25)';
             }}
           >
             <Trash2 size={10} />
@@ -2562,7 +2592,7 @@ function QuizSetRow({
           background: isActive
             ? `${accentColor}18`
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
@@ -2580,7 +2610,7 @@ function QuizSetRow({
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.62)',
+            color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.62)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -2600,7 +2630,7 @@ function QuizSetRow({
               borderRadius: '3px',
               background: 'transparent',
               border: 'none',
-              color: 'rgba(237,233,255,0.25)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.25)',
               cursor: 'pointer',
               flexShrink: 0,
               padding: 0,
@@ -2610,7 +2640,8 @@ function QuizSetRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
+              (e.currentTarget as HTMLButtonElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.25)';
             }}
           >
             <Trash2 size={10} />
@@ -2662,7 +2693,7 @@ function QuizSetTreeRow({
           background: isActive
             ? `${accentColor}18`
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
@@ -2680,7 +2711,7 @@ function QuizSetTreeRow({
             fontFamily: 'inherit',
             fontSize: '12px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+            color: isActive ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',

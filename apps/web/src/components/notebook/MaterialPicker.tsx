@@ -176,7 +176,9 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
             borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
-          <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>Add Materials</span>
+          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--on-surface)' }}>
+            Add Materials
+          </span>
           <button
             onClick={onClose}
             style={{
@@ -233,7 +235,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               style={{
                 textAlign: 'center',
                 padding: '40px 0',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                 fontSize: '13px',
               }}
             >
@@ -244,7 +246,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               style={{
                 textAlign: 'center',
                 padding: '40px 0',
-                color: 'rgba(237,233,255,0.2)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
                 fontSize: '13px',
               }}
             >
@@ -286,12 +288,12 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                       transition: 'all 0.12s ease',
                     }}
                   >
-                    {isChecked && <Check size={12} style={{ color: '#fff' }} />}
+                    {isChecked && <Check size={12} style={{ color: 'var(--on-surface)' }} />}
                   </div>
                   <span
                     style={{
                       fontSize: '13px',
-                      color: isChecked ? '#ede9ff' : 'rgba(237,233,255,0.6)',
+                      color: isChecked ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.6)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -342,7 +344,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                 borderRadius: '8px',
                 border: 'none',
                 background: selected.size > 0 ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                color: selected.size > 0 ? '#fff' : 'rgba(196,169,255,0.4)',
+                color: selected.size > 0 ? 'var(--on-surface)' : 'rgba(196,169,255,0.4)',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: selected.size > 0 ? 'pointer' : 'not-allowed',

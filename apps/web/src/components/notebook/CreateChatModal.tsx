@@ -181,12 +181,12 @@ export default function CreateChatModal({
           height: isPhone ? '100dvh' : undefined,
           maxWidth: isPhone ? 'none' : 'calc(100vw - 40px)',
           maxHeight: isPhone ? 'none' : undefined,
-          background: '#000000',
+          background: 'var(--background)',
           border: isPhone ? 'none' : '1px solid rgba(174,137,255,0.40)',
           borderRadius: isPhone ? 0 : '20px',
           boxShadow: isPhone
             ? 'none'
-            : '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.07) inset',
+            : '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgb(var(--notebook-ink-rgb) / 0.07) inset',
           fontFamily: 'inherit',
           overflow: isPhone ? 'auto' : 'hidden',
           margin: isPhone ? 0 : undefined,
@@ -230,7 +230,7 @@ export default function CreateChatModal({
                   margin: 0,
                   fontSize: '16px',
                   fontWeight: 700,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   letterSpacing: '-0.01em',
                 }}
               >
@@ -248,8 +248,8 @@ export default function CreateChatModal({
               height: '28px',
               borderRadius: '8px',
               border: 'none',
-              background: 'rgba(255,255,255,0.07)',
-              color: 'rgba(237,233,255,0.4)',
+              background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -258,12 +258,15 @@ export default function CreateChatModal({
               transition: 'background 0.12s, color 0.12s',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
+              (e.currentTarget as HTMLButtonElement).style.background =
+                'rgb(var(--notebook-ink-rgb) / 0.1)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.4)';
+              (e.currentTarget as HTMLButtonElement).style.background =
+                'rgb(var(--notebook-ink-rgb) / 0.07)';
+              (e.currentTarget as HTMLButtonElement).style.color =
+                'rgb(var(--notebook-ink-rgb) / 0.4)';
             }}
           >
             <X size={14} />
@@ -302,12 +305,12 @@ export default function CreateChatModal({
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
-                background: 'rgba(255,255,255,0.06)',
+                background: 'rgb(var(--notebook-ink-rgb) / 0.06)',
                 border: '1px solid rgba(140,82,255,0.2)',
                 borderRadius: '10px',
                 padding: '10px 14px',
                 fontSize: '14px',
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 outline: 'none',
                 fontFamily: 'inherit',
                 transition: 'border-color 0.15s',
@@ -367,10 +370,10 @@ export default function CreateChatModal({
                 display: 'flex',
                 gap: '4px',
                 marginBottom: '12px',
-                background: 'rgba(255,255,255,0.07)',
+                background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
                 borderRadius: '10px',
                 padding: '4px',
-                border: '1px solid rgba(255,255,255,0.14)',
+                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
               }}
             >
               {(['notebook', 'upload'] as const).map((tab) => (
@@ -405,9 +408,9 @@ export default function CreateChatModal({
             {activeTab === 'notebook' ? (
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.025)',
+                  background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                   maxHeight: '200px',
                   overflowY: 'auto',
                 }}
@@ -444,7 +447,9 @@ export default function CreateChatModal({
                   style={{
                     borderRadius: '10px',
                     border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
-                    background: isDragging ? 'rgba(140,82,255,0.05)' : 'rgba(255,255,255,0.035)',
+                    background: isDragging
+                      ? 'rgba(140,82,255,0.05)'
+                      : 'rgb(var(--notebook-ink-rgb) / 0.035)',
                     padding: '20px',
                     display: 'flex',
                     alignItems: 'center',
@@ -501,7 +506,7 @@ export default function CreateChatModal({
                         margin: '0 0 2px',
                         fontSize: '13px',
                         fontWeight: 700,
-                        color: '#e5e3ff',
+                        color: 'var(--on-surface)',
                       }}
                     >
                       {isUploading ? 'Uploading…' : 'Drop file or click to browse'}
@@ -521,9 +526,9 @@ export default function CreateChatModal({
                 {documents.length > 0 && (
                   <div
                     style={{
-                      background: 'rgba(255,255,255,0.025)',
+                      background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
                       borderRadius: '10px',
-                      border: '1px solid rgba(255,255,255,0.12)',
+                      border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                       maxHeight: '140px',
                       overflowY: 'auto',
                     }}
@@ -570,12 +575,14 @@ export default function CreateChatModal({
                               transition: 'border-color 0.1s, background 0.1s',
                             }}
                           >
-                            {isSelected && <Check size={10} style={{ color: '#fff' }} />}
+                            {isSelected && (
+                              <Check size={10} style={{ color: 'var(--on-surface)' }} />
+                            )}
                           </div>
                           <span
                             style={{
                               fontSize: '12px',
-                              color: 'rgba(237,233,255,0.7)',
+                              color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
                               flex: 1,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -620,7 +627,7 @@ export default function CreateChatModal({
               style={{
                 padding: '10px 20px',
                 borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
                 background: 'transparent',
                 color: 'rgba(185,195,255,0.5)',
                 fontSize: '13px',
@@ -630,8 +637,9 @@ export default function CreateChatModal({
                 transition: 'background 0.12s, color 0.12s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
-                (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  'rgb(var(--notebook-ink-rgb) / 0.07)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
@@ -648,7 +656,7 @@ export default function CreateChatModal({
                 borderRadius: '10px',
                 border: 'none',
                 background: isCreating ? 'rgba(140,82,255,0.4)' : '#8c52ff',
-                color: '#fff',
+                color: 'var(--on-surface)',
                 fontSize: '13px',
                 fontWeight: 700,
                 cursor: isCreating ? 'not-allowed' : 'pointer',
@@ -719,7 +727,7 @@ function SectionPickerItem({
           gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgba(255,255,255,0.12)',
+          borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
         }}
       >
         <span style={{ color: 'rgba(185,195,255,0.6)', display: 'flex' }}>
@@ -760,12 +768,13 @@ function SectionPickerItem({
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.14)',
+                  borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
                   transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => {
                   if (!isSelected)
-                    (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.07)';
+                    (e.currentTarget as HTMLDivElement).style.background =
+                      'rgb(var(--notebook-ink-rgb) / 0.07)';
                 }}
                 onMouseLeave={(e) => {
                   if (!isSelected)
@@ -786,12 +795,12 @@ function SectionPickerItem({
                     transition: 'border-color 0.1s, background 0.1s',
                   }}
                 >
-                  {isSelected && <Check size={9} style={{ color: '#fff' }} />}
+                  {isSelected && <Check size={9} style={{ color: 'var(--on-surface)' }} />}
                 </div>
                 <span
                   style={{
                     fontSize: '12px',
-                    color: isSelected ? '#ede9ff' : 'rgba(237,233,255,0.6)',
+                    color: isSelected ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.6)',
                     flex: 1,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',

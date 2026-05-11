@@ -56,7 +56,7 @@ export default function FlashcardViewerPage({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: 'rgba(237,233,255,0.3)',
+          color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
           fontFamily: 'inherit',
         }}
       >

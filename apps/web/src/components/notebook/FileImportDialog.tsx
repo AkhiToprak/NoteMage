@@ -147,12 +147,12 @@ export default function FileImportDialog({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: '#000000',
+          background: 'var(--background)',
           borderRadius: '16px',
           border: '1px solid rgba(174,137,255,0.36)',
           padding: '24px',
           fontFamily: 'inherit',
-          color: '#ede9ff',
+          color: 'var(--on-surface)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}
       >
@@ -170,7 +170,7 @@ export default function FileImportDialog({
               margin: 0,
               fontSize: '18px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
             }}
           >
             Import File
@@ -183,18 +183,18 @@ export default function FileImportDialog({
               cursor: 'pointer',
               padding: '4px',
               borderRadius: '6px',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'color 0.15s ease, background 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
               e.currentTarget.style.background = 'rgba(140,82,255,0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
               e.currentTarget.style.background = 'none';
             }}
             aria-label="Close"
@@ -253,7 +253,7 @@ export default function FileImportDialog({
                     margin: '0 0 4px 0',
                     fontSize: '14px',
                     fontWeight: 600,
-                    color: '#ede9ff',
+                    color: 'var(--on-surface)',
                   }}
                 >
                   Drag a file here or click to browse
@@ -262,7 +262,7 @@ export default function FileImportDialog({
                   style={{
                     margin: 0,
                     fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                   }}
                 >
                   PDF, DOCX, PPTX, XLSX, TXT, MD — max 10MB
@@ -285,7 +285,7 @@ export default function FileImportDialog({
                   margin: 0,
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                 }}
               >
                 Importing {fileName}...
@@ -329,7 +329,7 @@ export default function FileImportDialog({
                   style={{
                     margin: 0,
                     fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                   }}
                 >
                   Click to try again
@@ -357,17 +357,17 @@ export default function FileImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: 'rgba(237,233,255,0.7)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
               cursor: 'pointer',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.15)';
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.08)';
-              e.currentTarget.style.color = 'rgba(237,233,255,0.7)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.7)';
             }}
           >
             Cancel

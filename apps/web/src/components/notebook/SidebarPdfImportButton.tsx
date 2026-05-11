@@ -178,7 +178,7 @@ export default function SidebarPdfImportButton({
           borderRadius: '6px',
           border: '1px solid rgba(140,82,255,0.25)',
           background: hovered ? 'rgba(140,82,255,0.14)' : 'rgba(140,82,255,0.06)',
-          color: hovered ? '#ede9ff' : 'rgba(237,233,255,0.72)',
+          color: hovered ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.72)',
           fontFamily: 'inherit',
           fontSize: '12px',
           fontWeight: 600,

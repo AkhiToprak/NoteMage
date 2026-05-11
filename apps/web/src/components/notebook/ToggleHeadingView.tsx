@@ -137,7 +137,7 @@ export default function ToggleHeadingView({
             fontWeight: Number(style.fontWeight),
             letterSpacing: style.letterSpacing,
             lineHeight: 1.3,
-            color: '#ede9ff',
+            color: 'var(--on-surface)',
             padding: 0,
           }}
         />

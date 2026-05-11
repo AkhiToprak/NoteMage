@@ -317,7 +317,7 @@ export default function CoWorkBar({
                 borderRadius: 8,
                 border: '2px solid #000000',
                 marginLeft: -8,
-                background: '#35355c',
+                background: 'var(--surface-container-highest)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -344,7 +344,7 @@ export default function CoWorkBar({
           style={{
             fontSize: 12,
             fontWeight: 600,
-            color: 'rgba(237,233,255,0.35)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
             fontFamily: "'Courier New', monospace",
             letterSpacing: '0.04em',
           }}
@@ -377,8 +377,8 @@ export default function CoWorkBar({
                   ? 'rgba(255,222,89,0.24)'
                   : 'rgba(255,222,89,0.18)'
                 : hoveredEdit
-                  ? 'rgba(237,233,255,0.1)'
-                  : 'rgba(237,233,255,0.05)',
+                  ? 'rgb(var(--notebook-ink-rgb) / 0.1)'
+                  : 'rgb(var(--notebook-ink-rgb) / 0.05)',
               color: editOpen ? '#ffde59' : '#aaa8c8',
               fontSize: 11,
               fontWeight: 600,
@@ -405,7 +405,9 @@ export default function CoWorkBar({
               gap: 4,
               padding: '5px 10px',
               borderRadius: 7,
-              background: editOpen ? 'rgba(255,222,89,0.14)' : 'rgba(237,233,255,0.05)',
+              background: editOpen
+                ? 'rgba(255,222,89,0.14)'
+                : 'rgb(var(--notebook-ink-rgb) / 0.05)',
               color: editOpen ? '#ffde59' : '#8888a8',
               fontSize: 11,
               fontWeight: 600,

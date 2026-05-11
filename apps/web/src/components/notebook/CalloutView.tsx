@@ -56,21 +56,21 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '2px',
-            background: 'rgba(237,233,255,0.06)',
-            border: '1px solid rgba(237,233,255,0.1)',
+            background: 'rgb(var(--notebook-ink-rgb) / 0.06)',
+            border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
             borderRadius: '6px',
             padding: '3px 6px',
             cursor: 'pointer',
             fontSize: '16px',
             lineHeight: 1,
             transition: 'background 0.15s',
-            color: 'rgba(237,233,255,0.6)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.1)';
+            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.1)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.06)';
+            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
           }}
           title="Change callout type"
         >
@@ -90,7 +90,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
               position: 'absolute',
               top: 'calc(100% + 4px)',
               left: 0,
-              background: '#131228',
+              background: 'var(--surface-container-low)',
               border: '1px solid rgba(174,137,255,0.40)',
               borderRadius: '8px',
               padding: '4px',
@@ -118,7 +118,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                     borderRadius: '6px',
                     border: 'none',
                     background: calloutType === t ? 'rgba(140,82,255,0.18)' : 'transparent',
-                    color: calloutType === t ? '#a47bff' : 'rgba(237,233,255,0.7)',
+                    color: calloutType === t ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
                     fontFamily: 'inherit',
                     fontSize: '13px',
                     cursor: 'pointer',
@@ -126,7 +126,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                     transition: 'background 0.1s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(237,233,255,0.06)';
+                    e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background =

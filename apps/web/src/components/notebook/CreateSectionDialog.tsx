@@ -50,7 +50,10 @@ export default function CreateSectionDialog({
         padding: '4px 6px 4px 8px',
       }}
     >
-      <FolderPlus size={14} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+      <FolderPlus
+        size={14}
+        style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
+      />
       <input
         ref={inputRef}
         type="text"
@@ -75,7 +78,7 @@ export default function CreateSectionDialog({
           fontFamily: 'inherit',
           fontSize: '13px',
           fontWeight: 600,
-          color: '#ede9ff',
+          color: 'var(--on-surface)',
           outline: 'none',
         }}
       />

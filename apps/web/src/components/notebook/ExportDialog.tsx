@@ -200,14 +200,16 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Download size={18} style={{ color: '#8c52ff' }} />
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#ede9ff' }}>Export Pages</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--on-surface)' }}>
+              Export Pages
+            </span>
           </div>
           <button
             onClick={onClose}
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               cursor: 'pointer',
               padding: 4,
               borderRadius: 6,
@@ -231,7 +233,9 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 marginBottom: 8,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#ede9ff' }}>Select Pages</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--on-surface)' }}>
+                Select Pages
+              </span>
               <button
                 onClick={toggleAll}
                 style={{
@@ -252,7 +256,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 overflow: 'auto',
                 border: '1px solid rgba(174,137,255,0.20)',
                 borderRadius: 10,
-                background: 'rgba(255,255,255,0.035)',
+                background: 'rgb(var(--notebook-ink-rgb) / 0.035)',
               }}
             >
               {sections.map((sec) => (
@@ -270,7 +274,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                   style={{
                     padding: 16,
                     textAlign: 'center',
-                    color: 'rgba(237,233,255,0.3)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                     fontSize: 13,
                   }}
                 >
@@ -286,7 +290,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 display: 'block',
                 marginBottom: 8,
               }}
@@ -307,7 +311,8 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                     borderRadius: 8,
                     border: `1px solid ${format === f ? '#8c52ff' : 'rgba(140,82,255,0.15)'}`,
                     background: format === f ? 'rgba(140,82,255,0.15)' : 'transparent',
-                    color: format === f ? '#ede9ff' : 'rgba(237,233,255,0.5)',
+                    color:
+                      format === f ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
                     cursor: 'pointer',
                     fontSize: 13,
                     fontWeight: 600,
@@ -328,7 +333,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   display: 'block',
                   marginBottom: 8,
                 }}
@@ -359,14 +364,14 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                       style={{ accentColor: '#8c52ff' }}
                     />
                     <div>
-                      <div style={{ fontSize: 13, color: '#ede9ff', fontWeight: 500 }}>
+                      <div style={{ fontSize: 13, color: 'var(--on-surface)', fontWeight: 500 }}>
                         {m === 'individual'
                           ? 'Single PDF'
                           : m === 'merge'
                             ? 'Merge into one PDF'
                             : 'Split into multiple PDFs'}
                       </div>
-                      <div style={{ fontSize: 11, color: 'rgba(237,233,255,0.4)' }}>
+                      <div style={{ fontSize: 11, color: 'rgb(var(--notebook-ink-rgb) / 0.4)' }}>
                         {m === 'individual'
                           ? 'All selected pages in one file'
                           : m === 'merge'
@@ -387,13 +392,13 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   display: 'block',
                   marginBottom: 8,
                 }}
               >
                 Split Points{' '}
-                <span style={{ fontWeight: 400, color: 'rgba(237,233,255,0.4)' }}>
+                <span style={{ fontWeight: 400, color: 'rgb(var(--notebook-ink-rgb) / 0.4)' }}>
                   (click between pages to split)
                 </span>
               </span>
@@ -401,7 +406,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 style={{
                   border: '1px solid rgba(174,137,255,0.20)',
                   borderRadius: 10,
-                  background: 'rgba(255,255,255,0.035)',
+                  background: 'rgb(var(--notebook-ink-rgb) / 0.035)',
                   overflow: 'hidden',
                 }}
               >
@@ -411,7 +416,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                       style={{
                         padding: '6px 12px',
                         fontSize: 12,
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
@@ -419,7 +424,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                     >
                       <FileText
                         size={12}
-                        style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }}
+                        style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
                       />
                       {page.title}
                     </div>
@@ -433,7 +438,9 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                           border: 'none',
                           borderTop: `1px ${splitAfter.has(idx) ? 'solid' : 'dashed'} ${splitAfter.has(idx) ? '#8c52ff' : 'rgba(140,82,255,0.15)'}`,
                           borderBottom: `1px ${splitAfter.has(idx) ? 'solid' : 'dashed'} ${splitAfter.has(idx) ? '#8c52ff' : 'rgba(140,82,255,0.15)'}`,
-                          color: splitAfter.has(idx) ? '#8c52ff' : 'rgba(237,233,255,0.25)',
+                          color: splitAfter.has(idx)
+                            ? '#8c52ff'
+                            : 'rgb(var(--notebook-ink-rgb) / 0.25)',
                           cursor: 'pointer',
                           fontSize: 10,
                           fontWeight: 500,
@@ -477,7 +484,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
             justifyContent: 'space-between',
           }}
         >
-          <span style={{ fontSize: 12, color: 'rgba(237,233,255,0.4)' }}>
+          <span style={{ fontSize: 12, color: 'rgb(var(--notebook-ink-rgb) / 0.4)' }}>
             {selectedCount} page{selectedCount !== 1 ? 's' : ''} selected
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -488,7 +495,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 borderRadius: 8,
                 background: 'transparent',
                 border: '1px solid rgba(140,82,255,0.2)',
-                color: 'rgba(237,233,255,0.6)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
                 cursor: 'pointer',
                 fontSize: 13,
               }}
@@ -505,7 +512,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 borderRadius: 8,
                 background: selectedCount === 0 || isExporting ? 'rgba(140,82,255,0.3)' : '#8c52ff',
                 border: 'none',
-                color: '#fff',
+                color: 'var(--on-surface)',
                 cursor: selectedCount === 0 || isExporting ? 'not-allowed' : 'pointer',
                 fontSize: 13,
                 fontWeight: 600,
@@ -573,7 +580,7 @@ function SectionGroup({
         <ChevronRight
           size={12}
           style={{
-            color: 'rgba(237,233,255,0.3)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
             transform: expanded ? 'rotate(90deg)' : 'none',
             transition: 'transform 0.15s',
             flexShrink: 0,
@@ -592,8 +599,10 @@ function SectionGroup({
           onClick={(e) => e.stopPropagation()}
           style={{ accentColor: '#8c52ff', flexShrink: 0 }}
         />
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#ede9ff' }}>{section.title}</span>
-        <span style={{ fontSize: 10, color: 'rgba(237,233,255,0.3)' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--on-surface)' }}>
+          {section.title}
+        </span>
+        <span style={{ fontSize: 10, color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>
           ({sectionPages.length})
         </span>
       </div>
@@ -609,7 +618,7 @@ function SectionGroup({
                 padding: `4px 10px 4px ${28 + depth * 16}px`,
                 cursor: 'pointer',
                 fontSize: 12,
-                color: 'rgba(237,233,255,0.7)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
               }}
             >
               <input
@@ -618,7 +627,10 @@ function SectionGroup({
                 onChange={() => onTogglePage(page.id)}
                 style={{ accentColor: '#8c52ff', flexShrink: 0 }}
               />
-              <FileText size={12} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+              <FileText
+                size={12}
+                style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
+              />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {page.title}
               </span>

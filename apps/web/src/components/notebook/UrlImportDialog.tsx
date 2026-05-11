@@ -113,12 +113,12 @@ export default function UrlImportDialog({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: '#000000',
+          background: 'var(--background)',
           borderRadius: '16px',
           border: '1px solid rgba(174,137,255,0.36)',
           padding: '24px',
           fontFamily: 'inherit',
-          color: '#ede9ff',
+          color: 'var(--on-surface)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}
       >
@@ -136,7 +136,7 @@ export default function UrlImportDialog({
               margin: 0,
               fontSize: '18px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
             }}
           >
             Import from URL
@@ -149,18 +149,18 @@ export default function UrlImportDialog({
               cursor: 'pointer',
               padding: '4px',
               borderRadius: '6px',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'color 0.15s ease, background 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
               e.currentTarget.style.background = 'rgba(140,82,255,0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
               e.currentTarget.style.background = 'none';
             }}
             aria-label="Close"
@@ -208,7 +208,7 @@ export default function UrlImportDialog({
               style={{
                 margin: 0,
                 fontSize: '13px',
-                color: 'rgba(237,233,255,0.5)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                 textAlign: 'center',
                 lineHeight: '1.5',
               }}
@@ -248,8 +248,10 @@ export default function UrlImportDialog({
                   gap: '4px',
                 }}
               >
-                <Youtube size={14} style={{ color: '#fff' }} />
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>YouTube</span>
+                <Youtube size={14} style={{ color: 'var(--on-surface)' }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--on-surface)' }}>
+                  YouTube
+                </span>
               </div>
             </div>
           )}
@@ -276,7 +278,7 @@ export default function UrlImportDialog({
               borderRadius: '8px',
               padding: '12px 14px',
               fontSize: '14px',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               fontFamily: 'inherit',
               outline: 'none',
               transition: 'border-color 0.15s ease',
@@ -310,7 +312,7 @@ export default function UrlImportDialog({
                 style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: 'rgba(237,233,255,0.7)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
                 }}
               >
                 Fetching and extracting content...
@@ -383,17 +385,17 @@ export default function UrlImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: 'rgba(237,233,255,0.7)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
               cursor: 'pointer',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.15)';
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.08)';
-              e.currentTarget.style.color = 'rgba(237,233,255,0.7)';
+              e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.7)';
             }}
           >
             Cancel
@@ -412,7 +414,7 @@ export default function UrlImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: isDisabled ? 'rgba(237,233,255,0.3)' : '#fff',
+              color: isDisabled ? 'rgb(var(--notebook-ink-rgb) / 0.3)' : 'var(--on-surface)',
               cursor: isDisabled ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s ease',
             }}

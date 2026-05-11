@@ -95,7 +95,7 @@ export default function PageAppendPdfButton({
           borderRadius: '8px',
           border: 'none',
           background: 'transparent',
-          color: 'rgba(237,233,255,0.5)',
+          color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -106,13 +106,13 @@ export default function PageAppendPdfButton({
         }}
         onMouseEnter={(e) => {
           if (!busy) {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.08)';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.8)';
+            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
+            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.8)';
           }
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
+          e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
         }}
       >
         {busy ? (

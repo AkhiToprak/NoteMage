@@ -140,7 +140,7 @@ export default function CoWorkInviteModal({
           height: isPhone ? '100dvh' : undefined,
           maxWidth: isPhone ? 'none' : 440,
           maxHeight: isPhone ? 'none' : undefined,
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: isPhone ? 0 : 24,
           boxShadow: isPhone ? 'none' : '0 32px 64px rgba(0,0,0,0.5)',
           zIndex: 10000,
@@ -178,7 +178,7 @@ export default function CoWorkInviteModal({
                 margin: 0,
                 fontSize: 18,
                 fontWeight: 700,
-                color: '#e5e3ff',
+                color: 'var(--on-surface)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
@@ -205,7 +205,7 @@ export default function CoWorkInviteModal({
               height: 32,
               borderRadius: 10,
               border: 'none',
-              background: hoveredClose ? '#2d2d52' : 'transparent',
+              background: hoveredClose ? 'var(--surface-container-high)' : 'transparent',
               color: '#8888a8',
               cursor: 'pointer',
               display: 'flex',
@@ -278,7 +278,7 @@ export default function CoWorkInviteModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered && !isSent
-                        ? 'rgba(255,255,255,0.07)'
+                        ? 'rgb(var(--notebook-ink-rgb) / 0.07)'
                         : 'transparent',
                     transition: `background 0.12s ${EASING}`,
                     marginBottom: 2,
@@ -310,7 +310,7 @@ export default function CoWorkInviteModal({
                     {isSelected && (
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 14, color: '#fff' }}
+                        style={{ fontSize: 14, color: 'var(--on-surface)' }}
                       >
                         check
                       </span>
@@ -350,7 +350,7 @@ export default function CoWorkInviteModal({
                         justifyContent: 'center',
                         fontSize: 14,
                         fontWeight: 700,
-                        color: '#fff',
+                        color: 'var(--on-surface)',
                         flexShrink: 0,
                       }}
                     >
@@ -364,7 +364,7 @@ export default function CoWorkInviteModal({
                       flex: 1,
                       fontSize: 14,
                       fontWeight: 600,
-                      color: isSent ? '#8888a8' : '#e5e3ff',
+                      color: isSent ? '#8888a8' : 'var(--on-surface)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -412,8 +412,13 @@ export default function CoWorkInviteModal({
               padding: '10px 20px',
               borderRadius: 12,
               border: 'none',
-              background: selected.size === 0 ? '#35355c' : hoveredSend ? '#c4a6ff' : '#ae89ff',
-              color: selected.size === 0 ? '#8888a8' : '#fff',
+              background:
+                selected.size === 0
+                  ? 'var(--surface-container-highest)'
+                  : hoveredSend
+                    ? '#c4a6ff'
+                    : '#ae89ff',
+              color: selected.size === 0 ? '#8888a8' : 'var(--on-surface)',
               fontSize: 13,
               fontWeight: 700,
               cursor: selected.size === 0 || sending ? 'not-allowed' : 'pointer',

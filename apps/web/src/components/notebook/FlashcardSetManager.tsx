@@ -265,7 +265,7 @@ export default function FlashcardSetManager({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               margin: 0,
               fontFamily: 'inherit',
             }}
@@ -277,7 +277,7 @@ export default function FlashcardSetManager({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
@@ -327,7 +327,7 @@ export default function FlashcardSetManager({
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '40px 0',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
               }}
             >
               <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
@@ -338,7 +338,7 @@ export default function FlashcardSetManager({
                 padding: '32px 16px',
                 textAlign: 'center',
                 fontSize: '13px',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
               }}
             >
               No flashcard sets in this notebook.
@@ -349,7 +349,7 @@ export default function FlashcardSetManager({
               <div
                 style={{
                   fontSize: '11px',
-                  color: 'rgba(237,233,255,0.35)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
                   padding: '0 0 6px',
                   lineHeight: 1.5,
                 }}
@@ -396,7 +396,7 @@ export default function FlashcardSetManager({
                               alignItems: 'center',
                               justifyContent: 'center',
                               padding: '16px 0',
-                              color: 'rgba(237,233,255,0.3)',
+                              color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                             }}
                           >
                             <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
@@ -405,7 +405,7 @@ export default function FlashcardSetManager({
                           <div
                             style={{
                               fontSize: '12px',
-                              color: 'rgba(237,233,255,0.25)',
+                              color: 'rgb(var(--notebook-ink-rgb) / 0.25)',
                               padding: '8px 0',
                             }}
                           >
@@ -457,7 +457,7 @@ export default function FlashcardSetManager({
             flexShrink: 0,
           }}
         >
-          <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.3)' }}>
+          <div style={{ fontSize: '11px', color: 'rgb(var(--notebook-ink-rgb) / 0.3)' }}>
             {mode === 'merge' &&
               selectedSetIds.size > 0 &&
               `${selectedSetIds.size} set${selectedSetIds.size > 1 ? 's' : ''} selected`}
@@ -471,9 +471,9 @@ export default function FlashcardSetManager({
               style={{
                 padding: '8px 16px',
                 borderRadius: '8px',
-                border: '1px solid rgba(237,233,255,0.1)',
+                border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
                 background: 'transparent',
-                color: 'rgba(237,233,255,0.5)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -497,7 +497,7 @@ export default function FlashcardSetManager({
                   borderRadius: '8px',
                   border: 'none',
                   background: canMerge ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                  color: canMerge ? '#fff' : 'rgba(237,233,255,0.3)',
+                  color: canMerge ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
                   fontSize: '13px',
                   cursor: canMerge ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit',
@@ -523,7 +523,7 @@ export default function FlashcardSetManager({
                   borderRadius: '8px',
                   border: 'none',
                   background: canSplit ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                  color: canSplit ? '#fff' : 'rgba(237,233,255,0.3)',
+                  color: canSplit ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
                   fontSize: '13px',
                   cursor: canSplit ? 'pointer' : 'not-allowed',
                   fontFamily: 'inherit',
@@ -600,7 +600,7 @@ function ImportButton({ onClick }: { onClick: () => void }) {
         borderRadius: '8px',
         border: '1px solid rgba(140,82,255,0.25)',
         background: hovered ? 'rgba(140,82,255,0.15)' : 'rgba(140,82,255,0.08)',
-        color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.55)',
+        color: hovered ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
         fontSize: '12px',
         fontWeight: 600,
         cursor: 'pointer',
@@ -639,7 +639,11 @@ function ModeTab({
           : hovered
             ? 'rgba(140,82,255,0.08)'
             : 'transparent',
-        color: active ? '#c4a9ff' : hovered ? 'rgba(237,233,255,0.6)' : 'rgba(237,233,255,0.4)',
+        color: active
+          ? '#c4a9ff'
+          : hovered
+            ? 'rgb(var(--notebook-ink-rgb) / 0.6)'
+            : 'rgb(var(--notebook-ink-rgb) / 0.4)',
         fontSize: '12px',
         fontWeight: active ? 600 : 400,
         cursor: 'pointer',
@@ -697,7 +701,7 @@ function SetRow({
           : isExpanded
             ? 'rgba(140,82,255,0.08)'
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'rgb(var(--notebook-ink-rgb) / 0.04)'
               : 'transparent',
         border: isSelectedForMerge ? '1px solid rgba(140,82,255,0.35)' : '1px solid transparent',
         transition: 'background 0.12s ease, border-color 0.12s ease',
@@ -710,7 +714,9 @@ function SetRow({
             width: '16px',
             height: '16px',
             borderRadius: '4px',
-            border: isSelectedForMerge ? '2px solid #8c52ff' : '2px solid rgba(237,233,255,0.2)',
+            border: isSelectedForMerge
+              ? '2px solid #8c52ff'
+              : '2px solid rgb(var(--notebook-ink-rgb) / 0.2)',
             background: isSelectedForMerge ? 'rgba(140,82,255,0.3)' : 'transparent',
             display: 'flex',
             alignItems: 'center',
@@ -728,7 +734,7 @@ function SetRow({
         <ChevronDown
           size={13}
           style={{
-            color: 'rgba(237,233,255,0.3)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
             transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             transition: 'transform 0.15s ease',
             flexShrink: 0,
@@ -743,7 +749,7 @@ function SetRow({
           flex: 1,
           fontSize: '13px',
           fontWeight: 500,
-          color: '#ede9ff',
+          color: 'var(--on-surface)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -756,7 +762,7 @@ function SetRow({
       <span
         style={{
           fontSize: '11px',
-          color: 'rgba(237,233,255,0.3)',
+          color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
           flexShrink: 0,
         }}
       >
@@ -795,7 +801,7 @@ function CardRow({
         background: isSelected
           ? 'rgba(140,82,255,0.12)'
           : hovered && mode === 'split'
-            ? 'rgba(237,233,255,0.03)'
+            ? 'rgb(var(--notebook-ink-rgb) / 0.03)'
             : 'transparent',
         border: isSelected ? '1px solid rgba(140,82,255,0.3)' : '1px solid transparent',
         transition: 'background 0.12s ease, border-color 0.12s ease',
@@ -809,7 +815,9 @@ function CardRow({
             width: '14px',
             height: '14px',
             borderRadius: '3px',
-            border: isSelected ? '2px solid #8c52ff' : '2px solid rgba(237,233,255,0.2)',
+            border: isSelected
+              ? '2px solid #8c52ff'
+              : '2px solid rgb(var(--notebook-ink-rgb) / 0.2)',
             background: isSelected ? 'rgba(140,82,255,0.3)' : 'transparent',
             display: 'flex',
             alignItems: 'center',
@@ -834,7 +842,7 @@ function CardRow({
         <div
           style={{
             fontSize: '12px',
-            color: '#ede9ff',
+            color: 'var(--on-surface)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -845,7 +853,7 @@ function CardRow({
         <div
           style={{
             fontSize: '11px',
-            color: 'rgba(237,233,255,0.35)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -899,7 +907,7 @@ function TitleDialog({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '340px',
-          background: '#000000',
+          background: 'var(--background)',
           border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '12px',
           padding: '20px',
@@ -911,7 +919,7 @@ function TitleDialog({
           style={{
             fontSize: '14px',
             fontWeight: 700,
-            color: '#ede9ff',
+            color: 'var(--on-surface)',
             margin: '0 0 12px',
             fontFamily: 'inherit',
           }}
@@ -936,7 +944,7 @@ function TitleDialog({
             borderRadius: '8px',
             padding: '10px 12px',
             fontSize: '14px',
-            color: '#ede9ff',
+            color: 'var(--on-surface)',
             fontFamily: 'inherit',
             outline: 'none',
             marginBottom: '14px',
@@ -948,9 +956,9 @@ function TitleDialog({
             style={{
               padding: '8px 14px',
               borderRadius: '8px',
-              border: '1px solid rgba(237,233,255,0.1)',
+              border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
               background: 'transparent',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
               fontSize: '13px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -969,7 +977,7 @@ function TitleDialog({
               borderRadius: '8px',
               border: 'none',
               background: canConfirm ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-              color: canConfirm ? '#fff' : 'rgba(237,233,255,0.3)',
+              color: canConfirm ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
               fontSize: '13px',
               cursor: canConfirm ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',

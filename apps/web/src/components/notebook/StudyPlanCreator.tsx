@@ -134,7 +134,7 @@ export default function StudyPlanCreator({
   const inputStyle: React.CSSProperties = {
     width: '100%',
     fontSize: '13px',
-    color: '#ede9ff',
+    color: 'var(--on-surface)',
     background: 'rgba(140,82,255,0.08)',
     border: '1px solid rgba(140,82,255,0.2)',
     borderRadius: '8px',
@@ -188,7 +188,7 @@ export default function StudyPlanCreator({
             borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
-          <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>
+          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--on-surface)' }}>
             Create Study Plan
           </span>
           <button
@@ -383,7 +383,7 @@ export default function StudyPlanCreator({
                 <p
                   style={{
                     fontSize: '12.5px',
-                    color: 'rgba(237,233,255,0.5)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                     margin: 0,
                     lineHeight: 1.6,
                   }}
@@ -467,7 +467,7 @@ export default function StudyPlanCreator({
               color:
                 isSubmitting || (activeTab === 'manual' && !title.trim())
                   ? 'rgba(196,169,255,0.4)'
-                  : '#fff',
+                  : 'var(--on-surface)',
               fontSize: '13px',
               fontWeight: 600,
               cursor: isSubmitting ? 'wait' : 'pointer',

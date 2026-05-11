@@ -22,7 +22,7 @@ function SkeletonCard() {
   return (
     <div
       style={{
-        background: '#12122a',
+        background: 'var(--background)',
         borderRadius: '12px',
         overflow: 'hidden',
         minHeight: '160px',
@@ -395,8 +395,8 @@ function NotebooksPageContent() {
               padding: '8px 14px 8px 12px',
               borderRadius: '10px',
               border: `1px solid ${filterOpen ? 'rgba(174,137,255,0.35)' : 'rgba(174,137,255,0.12)'}`,
-              background: filterOpen ? 'rgba(174,137,255,0.08)' : '#22223a',
-              color: '#e5e3ff',
+              background: filterOpen ? 'rgba(174,137,255,0.08)' : 'var(--surface-container)',
+              color: 'var(--on-surface)',
               fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -423,7 +423,7 @@ function NotebooksPageContent() {
                 filter_list
               </span>
             )}
-            <span style={{ color: activeFilter !== ALL_LABEL ? '#e5e3ff' : '#aaa8c8' }}>
+            <span style={{ color: activeFilter !== ALL_LABEL ? 'var(--on-surface)' : '#aaa8c8' }}>
               {activeFilter !== ALL_LABEL ? activeFilter : 'All Subjects'}
             </span>
             <span
@@ -448,7 +448,7 @@ function NotebooksPageContent() {
                 top: 'calc(100% + 6px)',
                 left: 0,
                 zIndex: 200,
-                background: '#18182e',
+                background: 'var(--surface)',
                 border: '1px solid rgba(174,137,255,0.18)',
                 borderRadius: '12px',
                 boxShadow: '0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(174,137,255,0.06)',
@@ -475,7 +475,7 @@ function NotebooksPageContent() {
                   borderRadius: '8px',
                   border: 'none',
                   background: activeFilter === ALL_LABEL ? 'rgba(174,137,255,0.12)' : 'transparent',
-                  color: activeFilter === ALL_LABEL ? '#e5e3ff' : '#aaa8c8',
+                  color: activeFilter === ALL_LABEL ? 'var(--on-surface)' : '#aaa8c8',
                   fontSize: '13px',
                   fontWeight: activeFilter === ALL_LABEL ? 600 : 400,
                   cursor: 'pointer',
@@ -533,7 +533,7 @@ function NotebooksPageContent() {
                     border: 'none',
                     background:
                       activeFilter === preset.label ? 'rgba(174,137,255,0.12)' : 'transparent',
-                    color: activeFilter === preset.label ? '#e5e3ff' : '#aaa8c8',
+                    color: activeFilter === preset.label ? 'var(--on-surface)' : '#aaa8c8',
                     fontSize: '13px',
                     fontWeight: activeFilter === preset.label ? 600 : 400,
                     cursor: 'pointer',
@@ -645,8 +645,8 @@ function NotebooksPageContent() {
               padding: '8px 12px 8px 38px',
               borderRadius: 10,
               border: `1.5px solid ${searchFocused ? '#ae89ff' : 'rgba(174,137,255,0.12)'}`,
-              background: '#22223a',
-              color: '#e5e3ff',
+              background: 'var(--surface-container)',
+              color: 'var(--on-surface)',
               fontSize: 13,
               outline: 'none',
               fontFamily: 'inherit',
@@ -867,7 +867,7 @@ function NotebooksPageContent() {
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
                 '.add-folder-label'
               );
-              if (label) label.style.color = '#e5e3ff';
+              if (label) label.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.3)';
@@ -875,7 +875,7 @@ function NotebooksPageContent() {
                 '.add-folder-icon-wrap'
               );
               if (icon) {
-                icon.style.background = '#272746';
+                icon.style.background = 'var(--surface-container)';
                 icon.style.transform = 'scale(1)';
               }
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
@@ -890,7 +890,7 @@ function NotebooksPageContent() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#272746',
+                background: 'var(--surface-container)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -960,7 +960,7 @@ function NotebooksPageContent() {
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
                 '.add-label'
               );
-              if (label) label.style.color = '#e5e3ff';
+              if (label) label.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.3)';
@@ -968,7 +968,7 @@ function NotebooksPageContent() {
                 '.add-icon-wrap'
               );
               if (icon) {
-                icon.style.background = '#272746';
+                icon.style.background = 'var(--surface-container)';
                 icon.style.transform = 'scale(1)';
               }
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
@@ -983,7 +983,7 @@ function NotebooksPageContent() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#272746',
+                background: 'var(--surface-container)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1073,7 +1073,7 @@ function NotebooksPageContent() {
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: '20px',
               padding: '32px',
               width: '100%',
@@ -1105,7 +1105,14 @@ function NotebooksPageContent() {
                 delete
               </span>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+            <h3
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: '0 0 8px',
+              }}
+            >
               Delete &ldquo;{deleteTarget.name}&rdquo;?
             </h3>
             <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 28px', lineHeight: 1.6 }}>
@@ -1122,7 +1129,7 @@ function NotebooksPageContent() {
                   flex: 1,
                   padding: '12px',
                   borderRadius: '12px',
-                  background: '#35355c',
+                  background: 'var(--surface-container-highest)',
                   border: 'none',
                   fontSize: '14px',
                   fontWeight: 600,
@@ -1176,7 +1183,7 @@ function NotebooksPageContent() {
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: '20px',
               padding: '32px',
               width: '100%',
@@ -1208,7 +1215,14 @@ function NotebooksPageContent() {
                 folder_delete
               </span>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+            <h3
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: '0 0 8px',
+              }}
+            >
               Delete &ldquo;{deleteFolderTarget.name}&rdquo;?
             </h3>
             <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 28px', lineHeight: 1.6 }}>
@@ -1225,7 +1239,7 @@ function NotebooksPageContent() {
                   flex: 1,
                   padding: '12px',
                   borderRadius: '12px',
-                  background: '#35355c',
+                  background: 'var(--surface-container-highest)',
                   border: 'none',
                   fontSize: '14px',
                   fontWeight: 600,

@@ -178,7 +178,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 style={{
                   fontSize: isPhone ? '20px' : '24px',
                   fontWeight: 700,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   background: 'rgba(140,82,255,0.08)',
                   border: '1px solid rgba(140,82,255,0.3)',
                   borderRadius: '8px',
@@ -197,7 +197,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 style={{
                   fontSize: isPhone ? '20px' : '24px',
                   fontWeight: 700,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   margin: 0,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
@@ -266,7 +266,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
             style={{
               width: '100%',
               fontSize: '14px',
-              color: 'rgba(237,233,255,0.6)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
               background: 'rgba(140,82,255,0.06)',
               border: '1px solid rgba(140,82,255,0.2)',
               borderRadius: '8px',
@@ -285,7 +285,9 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
             }}
             style={{
               fontSize: '14px',
-              color: plan.description ? 'rgba(237,233,255,0.5)' : 'rgba(237,233,255,0.2)',
+              color: plan.description
+                ? 'rgb(var(--notebook-ink-rgb) / 0.5)'
+                : 'rgb(var(--notebook-ink-rgb) / 0.2)',
               margin: '0 0 4px',
               lineHeight: 1.6,
               cursor: 'pointer',
@@ -411,7 +413,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 style={{
                   flex: 1,
                   fontSize: '13px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   background: 'rgba(140,82,255,0.08)',
                   border: '1px solid rgba(140,82,255,0.2)',
                   borderRadius: '8px',
@@ -428,7 +430,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                 style={{
                   width: '60px',
                   fontSize: '13px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   background: 'rgba(140,82,255,0.08)',
                   border: '1px solid rgba(140,82,255,0.2)',
                   borderRadius: '8px',
@@ -453,7 +455,7 @@ export default function StudyPlanView({ notebookId, planId, initialData }: Study
                   borderRadius: '8px',
                   border: 'none',
                   background: newPhaseTitle.trim() ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                  color: newPhaseTitle.trim() ? '#fff' : 'rgba(196,169,255,0.4)',
+                  color: newPhaseTitle.trim() ? 'var(--on-surface)' : 'rgba(196,169,255,0.4)',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: newPhaseTitle.trim() ? 'pointer' : 'not-allowed',

@@ -414,7 +414,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 margin: 0,
                 fontSize: '15px',
                 fontWeight: 700,
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -569,7 +569,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   margin: '0 0 6px',
                   fontSize: '18px',
                   fontWeight: 700,
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   fontFamily: 'var(--font-chat)',
                   fontStyle: 'normal',
                 }}
@@ -638,9 +638,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                       : '70%',
                 padding: isPhone ? '10px 12px' : '12px 16px',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: msg.role === 'user' ? '#8c52ff' : 'rgba(255,255,255,0.07)',
-                border: msg.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                color: '#ede9ff',
+                background: msg.role === 'user' ? '#8c52ff' : 'rgb(var(--notebook-ink-rgb) / 0.07)',
+                border:
+                  msg.role === 'user' ? 'none' : '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+                color: 'var(--on-surface)',
                 fontSize: '14px',
                 lineHeight: 1.65,
                 whiteSpace: msg.role === 'user' ? 'pre-wrap' : undefined,
@@ -684,9 +685,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   maxWidth: isPhone ? '88%' : '70%',
                   padding: isPhone ? '10px 12px' : '12px 16px',
                   borderRadius: '16px 16px 16px 4px',
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.16)',
-                  color: '#ede9ff',
+                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
+                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.16)',
+                  color: 'var(--on-surface)',
                   fontSize: '14px',
                   lineHeight: 1.65,
                 }}
@@ -698,8 +699,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 style={{
                   padding: '12px 16px',
                   borderRadius: '16px 16px 16px 4px',
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.16)',
+                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
+                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.16)',
                   display: 'flex',
                   gap: '4px',
                   alignItems: 'center',
@@ -790,7 +791,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
             display: 'flex',
             gap: '10px',
             alignItems: 'flex-end',
-            background: 'rgba(255,255,255,0.06)',
+            background: 'rgb(var(--notebook-ink-rgb) / 0.06)',
             border: '1px solid rgba(140,82,255,0.15)',
             borderRadius: '14px',
             padding: '12px 14px',
@@ -811,7 +812,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               fontSize: '14px',
               lineHeight: 1.6,
               fontFamily: 'var(--font-chat)',
@@ -862,7 +863,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 border: 'none',
                 flexShrink: 0,
                 background: inputValue.trim() ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                color: inputValue.trim() ? '#fff' : 'rgba(255,255,255,0.3)',
+                color: inputValue.trim()
+                  ? 'var(--on-surface)'
+                  : 'rgb(var(--notebook-ink-rgb) / 0.3)',
                 cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
@@ -940,8 +943,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   height: '26px',
                   borderRadius: '7px',
                   border: 'none',
-                  background: 'rgba(255,255,255,0.07)',
-                  color: 'rgba(237,233,255,0.4)',
+                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -949,13 +952,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   transition: 'background 0.12s, color 0.12s',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)';
-                  (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    'rgb(var(--notebook-ink-rgb) / 0.1)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.07)';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.4)';
+                    'rgb(var(--notebook-ink-rgb) / 0.07)';
+                  (e.currentTarget as HTMLButtonElement).style.color =
+                    'rgb(var(--notebook-ink-rgb) / 0.4)';
                 }}
               >
                 <X size={13} />
@@ -994,10 +999,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                 style={{
                   display: 'flex',
                   gap: '4px',
-                  background: 'rgba(255,255,255,0.07)',
+                  background: 'rgb(var(--notebook-ink-rgb) / 0.07)',
                   borderRadius: '10px',
                   padding: '4px',
-                  border: '1px solid rgba(255,255,255,0.14)',
+                  border: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
                 }}
               >
                 {(['notebook', 'upload'] as const).map((tab) => (
@@ -1044,9 +1049,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   style={{
                     flex: 1,
                     overflowY: 'auto',
-                    background: 'rgba(255,255,255,0.025)',
+                    background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
                     borderRadius: '10px',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                   }}
                 >
                   {sectionTree.length === 0 ? (
@@ -1101,7 +1106,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                     style={{
                       borderRadius: '10px',
                       border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
-                      background: isDragging ? 'rgba(140,82,255,0.05)' : 'rgba(255,255,255,0.035)',
+                      background: isDragging
+                        ? 'rgba(140,82,255,0.05)'
+                        : 'rgb(var(--notebook-ink-rgb) / 0.035)',
                       padding: '18px',
                       display: 'flex',
                       alignItems: 'center',
@@ -1171,9 +1178,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                       style={{
                         flex: 1,
                         overflowY: 'auto',
-                        background: 'rgba(255,255,255,0.025)',
+                        background: 'rgb(var(--notebook-ink-rgb) / 0.025)',
                         borderRadius: '10px',
-                        border: '1px solid rgba(255,255,255,0.12)',
+                        border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                       }}
                     >
                       <div
@@ -1208,7 +1215,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                               padding: '9px 12px',
                               cursor: 'pointer',
                               background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                              borderTop: '1px solid rgba(255,255,255,0.12)',
+                              borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
                               transition: 'background 0.1s',
                             }}
                           >
@@ -1226,12 +1233,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                                 transition: 'border-color 0.1s, background 0.1s',
                               }}
                             >
-                              {isSelected && <Check size={10} style={{ color: '#fff' }} />}
+                              {isSelected && (
+                                <Check size={10} style={{ color: 'var(--on-surface)' }} />
+                              )}
                             </div>
                             <span
                               style={{
                                 fontSize: '13px',
-                                color: 'rgba(237,233,255,0.85)',
+                                color: 'rgb(var(--notebook-ink-rgb) / 0.85)',
                                 flex: 1,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -1269,7 +1278,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string; cha
                   borderRadius: '10px',
                   border: 'none',
                   background: isSavingContext ? 'rgba(140,82,255,0.4)' : '#8c52ff',
-                  color: '#fff',
+                  color: 'var(--on-surface)',
                   fontSize: '14px',
                   fontWeight: 700,
                   cursor: isSavingContext ? 'not-allowed' : 'pointer',
@@ -1329,7 +1338,7 @@ function PanelSectionItem({
           gap: '6px',
           padding: `7px 12px 7px ${12 + depth * 14}px`,
           cursor: 'pointer',
-          borderBottom: '1px solid rgba(255,255,255,0.12)',
+          borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
         }}
       >
         <span style={{ color: 'rgba(200,210,255,0.7)', display: 'flex' }}>
@@ -1369,7 +1378,7 @@ function PanelSectionItem({
                   padding: `7px 12px 7px ${24 + depth * 14}px`,
                   cursor: 'pointer',
                   background: isSelected ? 'rgba(140,82,255,0.08)' : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.14)',
+                  borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.14)',
                   transition: 'background 0.1s',
                 }}
               >
@@ -1387,12 +1396,12 @@ function PanelSectionItem({
                     transition: 'border-color 0.1s, background 0.1s',
                   }}
                 >
-                  {isSelected && <Check size={9} style={{ color: '#fff' }} />}
+                  {isSelected && <Check size={9} style={{ color: 'var(--on-surface)' }} />}
                 </div>
                 <span
                   style={{
                     fontSize: '13px',
-                    color: isSelected ? '#f0edff' : 'rgba(237,233,255,0.75)',
+                    color: isSelected ? '#f0edff' : 'rgb(var(--notebook-ink-rgb) / 0.75)',
                     flex: 1,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -1505,7 +1514,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
       <div
         style={{
           fontSize: '12px',
-          color: 'rgba(237,233,255,0.45)',
+          color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
@@ -1558,7 +1567,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
               style={{
                 fontSize: '13px',
                 fontWeight: 600,
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 lineHeight: 1.3,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -1569,7 +1578,13 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
             >
               {video.title}
             </div>
-            <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.45)', marginTop: '4px' }}>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
+                marginTop: '4px',
+              }}
+            >
               {video.channelTitle}
             </div>
           </div>

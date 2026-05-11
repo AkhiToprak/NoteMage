@@ -152,7 +152,7 @@ export default function QuizSetCreator({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               margin: 0,
               fontFamily: 'inherit',
             }}
@@ -164,7 +164,7 @@ export default function QuizSetCreator({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
@@ -190,7 +190,7 @@ export default function QuizSetCreator({
             <label
               style={{
                 fontSize: '11px',
-                color: 'rgba(237,233,255,0.4)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 display: 'block',
@@ -212,7 +212,7 @@ export default function QuizSetCreator({
                 borderRadius: '8px',
                 padding: '10px 12px',
                 fontSize: '14px',
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 fontFamily: 'inherit',
                 outline: 'none',
               }}
@@ -244,7 +244,7 @@ export default function QuizSetCreator({
                 <span
                   style={{
                     fontSize: '11px',
-                    color: 'rgba(237,233,255,0.3)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
                     fontWeight: 600,
                   }}
                 >
@@ -287,7 +287,7 @@ export default function QuizSetCreator({
                   borderRadius: '6px',
                   padding: '8px 10px',
                   fontSize: '13px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   fontFamily: 'inherit',
                   outline: 'none',
                   width: '100%',
@@ -300,7 +300,7 @@ export default function QuizSetCreator({
                 <span
                   style={{
                     fontSize: '10px',
-                    color: 'rgba(237,233,255,0.25)',
+                    color: 'rgb(var(--notebook-ink-rgb) / 0.25)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -372,7 +372,7 @@ export default function QuizSetCreator({
                         borderRadius: '6px',
                         padding: '7px 10px',
                         fontSize: '13px',
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                         fontFamily: 'inherit',
                         outline: 'none',
                         boxSizing: 'border-box',
@@ -394,7 +394,7 @@ export default function QuizSetCreator({
                   borderRadius: '6px',
                   padding: '7px 10px',
                   fontSize: '12px',
-                  color: 'rgba(237,233,255,0.6)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.6)',
                   fontFamily: 'inherit',
                   outline: 'none',
                   width: '100%',
@@ -465,9 +465,9 @@ export default function QuizSetCreator({
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '1px solid rgba(237,233,255,0.1)',
+              border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
               background: 'transparent',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
               fontSize: '13px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -486,7 +486,7 @@ export default function QuizSetCreator({
               borderRadius: '8px',
               border: 'none',
               background: canSubmit ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-              color: canSubmit ? '#fff' : 'rgba(237,233,255,0.3)',
+              color: canSubmit ? 'var(--on-surface)' : 'rgb(var(--notebook-ink-rgb) / 0.3)',
               fontSize: '13px',
               cursor: canSubmit ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',

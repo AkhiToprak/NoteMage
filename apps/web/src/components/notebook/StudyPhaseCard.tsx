@@ -233,7 +233,7 @@ export default function StudyPhaseCard({
                   style={{
                     fontSize: '14px',
                     fontWeight: 600,
-                    color: '#ede9ff',
+                    color: 'var(--on-surface)',
                     background: 'rgba(140,82,255,0.1)',
                     border: '1px solid rgba(140,82,255,0.3)',
                     borderRadius: '4px',
@@ -244,7 +244,7 @@ export default function StudyPhaseCard({
                   }}
                 />
               ) : (
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#ede9ff' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)' }}>
                   {phase.title}
                 </span>
               )}
@@ -334,7 +334,7 @@ export default function StudyPhaseCard({
               <p
                 style={{
                   fontSize: '12.5px',
-                  color: 'rgba(237,233,255,0.45)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.45)',
                   margin: '0 0 12px',
                   lineHeight: 1.5,
                 }}
@@ -368,7 +368,13 @@ export default function StudyPhaseCard({
 
             {/* Materials checklist */}
             {phase.materials.length === 0 ? (
-              <p style={{ fontSize: '12px', color: 'rgba(237,233,255,0.2)', margin: '8px 0' }}>
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.2)',
+                  margin: '8px 0',
+                }}
+              >
                 No materials added yet.
               </p>
             ) : (
@@ -405,7 +411,9 @@ export default function StudyPhaseCard({
                           flexShrink: 0,
                         }}
                       >
-                        {mat.completed && <Check size={11} style={{ color: '#fff' }} />}
+                        {mat.completed && (
+                          <Check size={11} style={{ color: 'var(--on-surface)' }} />
+                        )}
                       </button>
                       <span style={{ color: 'rgba(196,169,255,0.4)', flexShrink: 0 }}>
                         {TYPE_ICONS[mat.type] || <File size={13} />}
@@ -413,7 +421,9 @@ export default function StudyPhaseCard({
                       <span
                         style={{
                           fontSize: '13px',
-                          color: mat.completed ? 'rgba(237,233,255,0.3)' : 'rgba(237,233,255,0.7)',
+                          color: mat.completed
+                            ? 'rgb(var(--notebook-ink-rgb) / 0.3)'
+                            : 'rgb(var(--notebook-ink-rgb) / 0.7)',
                           textDecoration: mat.completed ? 'line-through' : 'none',
                           flex: 1,
                           overflow: 'hidden',

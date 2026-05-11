@@ -327,7 +327,7 @@ export default function SlashMenu({ state, editor }: SlashMenuProps) {
     border: '1px solid rgba(174, 137, 255, 0.45)',
     borderRadius: 12,
     boxShadow:
-      '0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(140, 82, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+      '0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(140, 82, 255, 0.14), inset 0 1px 0 rgb(var(--notebook-ink-rgb) / 0.05)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     padding: '6px 0',
@@ -341,7 +341,7 @@ export default function SlashMenu({ state, editor }: SlashMenuProps) {
     fontWeight: 600,
     letterSpacing: '0.14em',
     textTransform: 'uppercase',
-    color: 'rgba(237, 233, 255, 0.42)',
+    color: 'rgb(var(--notebook-ink-rgb) / 0.42)',
   };
 
   return (
@@ -408,7 +408,7 @@ export default function SlashMenu({ state, editor }: SlashMenuProps) {
                   <span
                     style={{
                       fontSize: 11,
-                      color: 'rgba(237, 233, 255, 0.5)',
+                      color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
                       lineHeight: 1.4,
                       marginTop: 2,
                     }}

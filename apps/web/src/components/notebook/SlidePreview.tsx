@@ -58,7 +58,7 @@ export default function SlidePreview({
           left: '8px',
           fontSize: '9px',
           fontWeight: 700,
-          color: isActive ? '#8c52ff' : 'rgba(237,233,255,0.35)',
+          color: isActive ? '#8c52ff' : 'rgb(var(--notebook-ink-rgb) / 0.35)',
           background: isActive ? 'rgba(140,82,255,0.15)' : 'rgba(140,82,255,0.06)',
           borderRadius: '4px',
           padding: '1px 5px',
@@ -90,7 +90,7 @@ export default function SlidePreview({
       <span
         style={{
           fontSize: '10px',
-          color: 'rgba(237,233,255,0.5)',
+          color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
           lineHeight: '13px',
           overflow: 'hidden',
           textOverflow: 'ellipsis',

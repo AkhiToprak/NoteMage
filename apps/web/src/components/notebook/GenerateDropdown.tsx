@@ -181,7 +181,7 @@ export default function GenerateDropdown({
           borderRadius: '6px',
           border: 'none',
           background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: open ? '#a47bff' : 'rgba(237,233,255,0.5)',
+          color: open ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -192,14 +192,14 @@ export default function GenerateDropdown({
         }}
         onMouseEnter={(e) => {
           if (!open && !disabled && !loading) {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.08)';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.85)';
+            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
+            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
           }
         }}
         onMouseLeave={(e) => {
           if (!open && !disabled && !loading) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
+            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
           }
         }}
       >
@@ -259,7 +259,10 @@ export default function GenerateDropdown({
                     border: 'none',
                     borderRadius: '6px',
                     background: 'transparent',
-                    color: loading && !isThisLoading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
+                    color:
+                      loading && !isThisLoading
+                        ? 'rgb(var(--notebook-ink-rgb) / 0.3)'
+                        : 'var(--on-surface)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     cursor: loading ? 'not-allowed' : 'pointer',
@@ -321,7 +324,7 @@ export default function GenerateDropdown({
                     border: 'none',
                     borderRadius: '6px',
                     background: 'transparent',
-                    color: loading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
+                    color: loading ? 'rgb(var(--notebook-ink-rgb) / 0.3)' : 'var(--on-surface)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     cursor: loading ? 'not-allowed' : 'pointer',

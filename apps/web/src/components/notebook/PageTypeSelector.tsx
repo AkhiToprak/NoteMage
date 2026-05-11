@@ -25,7 +25,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#131228',
+          background: 'var(--surface-container-low)',
           border: '1px solid rgba(140,82,255,0.2)',
           borderRadius: '16px',
           padding: '28px',
@@ -39,7 +39,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             fontFamily: 'inherit',
             fontSize: '18px',
             fontWeight: 700,
-            color: '#ede9ff',
+            color: 'var(--on-surface)',
             marginBottom: '6px',
             textAlign: 'center',
           }}
@@ -50,7 +50,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
           style={{
             fontFamily: 'inherit',
             fontSize: '13px',
-            color: 'rgba(237,233,255,0.4)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
             marginBottom: '20px',
             textAlign: 'center',
           }}
@@ -71,7 +71,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               borderRadius: '12px',
               border: '1px solid rgba(140,82,255,0.15)',
               background: 'rgba(140,82,255,0.04)',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               cursor: 'pointer',
               transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
               fontFamily: 'inherit',
@@ -105,7 +105,13 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
                 Text Page
               </div>
-              <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.4)', lineHeight: 1.5 }}>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  lineHeight: 1.5,
+                }}
+              >
                 Rich text editor with formatting, headings, and lists
               </div>
             </div>
@@ -123,7 +129,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
               borderRadius: '12px',
               border: '1px solid rgba(140,82,255,0.15)',
               background: 'rgba(140,82,255,0.04)',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               cursor: 'pointer',
               transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
               fontFamily: 'inherit',
@@ -155,7 +161,13 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>Canvas</div>
-              <div style={{ fontSize: '11px', color: 'rgba(237,233,255,0.4)', lineHeight: 1.5 }}>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                  lineHeight: 1.5,
+                }}
+              >
                 Infinite canvas for freeform drawing and diagrams
               </div>
             </div>
@@ -173,17 +185,17 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
             borderRadius: '8px',
             border: 'none',
             background: 'transparent',
-            color: 'rgba(237,233,255,0.35)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
             fontFamily: 'inherit',
             fontSize: '12px',
             cursor: 'pointer',
             transition: 'color 0.15s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'rgba(237,233,255,0.6)';
+            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.6)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(237,233,255,0.35)';
+            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.35)';
           }}
         >
           Cancel

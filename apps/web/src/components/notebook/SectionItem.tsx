@@ -116,7 +116,7 @@ export default function SectionItem({
         <ChevronRight
           size={14}
           style={{
-            color: 'rgba(237,233,255,0.3)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
             flexShrink: 0,
             transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
             transition: 'transform 0.12s ease',
@@ -127,7 +127,7 @@ export default function SectionItem({
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: 600,
-            color: 'rgba(237,233,255,0.7)',
+            color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
             flex: 1,
             minWidth: 0,
             overflow: 'hidden',
@@ -165,7 +165,7 @@ export default function SectionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.4)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                 padding: 0,
                 transition: 'color 0.12s ease',
               }}
@@ -173,7 +173,7 @@ export default function SectionItem({
                 e.currentTarget.style.color = '#8c52ff';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
               }}
             >
               <Plus size={14} />
@@ -195,7 +195,7 @@ export default function SectionItem({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'rgba(237,233,255,0.4)',
+                  color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                   padding: 0,
                   transition: 'color 0.12s ease',
                 }}
@@ -203,7 +203,7 @@ export default function SectionItem({
                   e.currentTarget.style.color = '#5170ff';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                  e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
                 }}
               >
                 <FileUp size={12} />
@@ -215,7 +215,7 @@ export default function SectionItem({
                     top: '100%',
                     right: 0,
                     marginTop: '4px',
-                    background: '#22223a',
+                    background: 'var(--surface-container)',
                     borderRadius: '10px',
                     border: '1px solid rgba(140,82,255,0.15)',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
@@ -239,7 +239,7 @@ export default function SectionItem({
                       background: 'transparent',
                       border: 'none',
                       borderRadius: '8px',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '13px',
                       fontFamily: 'inherit',
                       cursor: 'pointer',
@@ -270,7 +270,7 @@ export default function SectionItem({
                       background: 'transparent',
                       border: 'none',
                       borderRadius: '8px',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '13px',
                       fontFamily: 'inherit',
                       cursor: 'pointer',
@@ -310,7 +310,7 @@ export default function SectionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.4)',
+                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
                 padding: 0,
                 transition: 'color 0.12s ease',
               }}
@@ -318,7 +318,7 @@ export default function SectionItem({
                 e.currentTarget.style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.4)';
               }}
             >
               <Trash2 size={12} />
@@ -361,7 +361,7 @@ export default function SectionItem({
                 padding: '4px 10px 4px 38px',
               }}
             >
-              <TextFileIcon size={14} color="rgba(237,233,255,0.3)" />
+              <TextFileIcon size={14} color="rgb(var(--notebook-ink-rgb) / 0.3)" />
               <input
                 ref={pageInputRef}
                 type="text"
@@ -386,7 +386,7 @@ export default function SectionItem({
                   padding: '3px 8px',
                   fontFamily: 'inherit',
                   fontSize: '13px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   outline: 'none',
                 }}
               />
@@ -474,7 +474,7 @@ function FlashcardSetItem({
         style={{
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.55)',
+          color: hovered ? '#c4a9ff' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -525,7 +525,7 @@ function QuizSetItem({
         style={{
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: hovered ? '#93a8ff' : 'rgba(237,233,255,0.55)',
+          color: hovered ? '#93a8ff' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',

@@ -194,7 +194,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
         <div style={{ marginTop: '32px' }}>
           <div
             style={{
-              background: '#000000',
+              background: 'var(--background)',
               borderRadius: '22px',
               padding: '26px',
               border: '1px solid rgba(174,137,255,0.36)',
@@ -214,7 +214,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                   style={{
                     fontSize: '18px',
                     fontWeight: 800,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     margin: 0,
                     letterSpacing: '-0.02em',
                   }}
