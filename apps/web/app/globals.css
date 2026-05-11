@@ -104,31 +104,38 @@
 /* ─── Light theme overrides (data-theme="light") ──────────────────────── */
 
 [data-theme='light'] {
-  --background: #ffffff;
+  /* Surface elevation restored — collapsing everything to pure white killed
+     all hierarchy and made dividers invisible. Now each layer is a distinct
+     near-white shade so cards/panels/dropdowns read as separate planes. */
+  --background: #f3f3f7;
   --surface: #ffffff;
-  --surface-dim: #ffffff;
+  --surface-dim: #e6e6ec;
   --surface-bright: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #ffffff;
-  --surface-container: #ffffff;
-  --surface-container-high: #ffffff;
-  --surface-container-highest: #fefeff;
-  --surface-variant: #ffffff;
-  --on-surface: #2c2c4f;
-  --on-surface-variant: #6a6a96;
-  --on-background: #2c2c4f;
-  --foreground: #2c2c4f;
-  --inverse-surface: #2c2c4f;
+  --surface-container-low: #f4f4f8;
+  --surface-container: #eaeaf0;
+  --surface-container-high: #dfdfe7;
+  --surface-container-highest: #d3d3dc;
+  --surface-variant: #ececf2;
+  /* Text — pushed darker and toward black so the brand stays slightly navy
+     but contrast is punchy on white. */
+  --on-surface: #0f0f1e;
+  --on-surface-variant: #3a3a52;
+  --on-background: #0f0f1e;
+  --foreground: #0f0f1e;
+  --inverse-surface: #0f0f1e;
   --inverse-on-surface: #ffffff;
 
-  --outline: #a5a5be;
-  --outline-variant: #f0f0f3;
+  /* Outlines — strong enough that dividers and borders are obvious. */
+  --outline: #4a4a66;
+  --outline-variant: #b8b8c4;
 
-  /* Notebook surface tokens — paper-white page with dark ink. Accent stays
-     purple in both themes (the brand purple reads on light too). */
-  --notebook-page: #fffef9;
-  --notebook-page-rgb: 255 254 249;
-  --notebook-ink-rgb: 44 44 79;
+  /* Notebook surface tokens — pure-white paper, near-black ink. The ink RGB
+     drives all translucent text/border uses via rgb(var(--ink-rgb) / alpha),
+     so this single value controls how punchy every low-alpha label reads. */
+  --notebook-page: #ffffff;
+  --notebook-page-rgb: 255 255 255;
+  --notebook-ink-rgb: 15 15 30;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
