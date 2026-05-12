@@ -277,21 +277,14 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
                       />
                     </div>
                     {!isLast ? (
-                      <PathConnector
-                        fromAlign={align}
-                        toAlign={alignmentFor(idx + 1)}
-                        completed={state === 'completed'}
-                      />
-                    ) : null}
-                    {decoration ? (
-                      <div
-                        style={{
-                          position: 'relative',
-                          height: '40px',
-                          margin: '4px 0',
-                        }}
-                      >
-                        <PathDecoration spot={decoration} />
+                      <div style={{ position: 'relative' }}>
+                        <PathConnector
+                          fromAlign={align}
+                          toAlign={alignmentFor(idx + 1)}
+                          completed={state === 'completed'}
+                          height={decoration ? 84 : 36}
+                        />
+                        {decoration ? <PathDecoration spot={decoration} /> : null}
                       </div>
                     ) : null}
                   </div>

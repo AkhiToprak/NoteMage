@@ -9,6 +9,10 @@
 // Color is driven by the upper slot's `completed` state — primary when
 // done, outline-variant when still ahead. This produces the
 // "trail fills with color as you progress" effect the user asked for.
+//
+// The `height` prop lets the caller stretch the connector so it spans
+// the full gap between checkpoints — including a decoration mascot's
+// gutter slot — instead of stopping short in mid-air.
 
 type Align = 'flex-start' | 'center' | 'flex-end';
 
@@ -17,6 +21,8 @@ interface PathConnectorProps {
   toAlign: Align;
   /** Upper slot's completion. When true, the segment is primary-tinted. */
   completed: boolean;
+  /** Vertical span in px. Defaults to the no-decoration gap. */
+  height?: number;
 }
 
 // Percent-of-column X anchors for each alignment. The slot column is
@@ -30,9 +36,14 @@ const X_BY_ALIGN: Record<Align, number> = {
   'flex-end': 90.8,
 };
 
-const HEIGHT = 36;
+const DEFAULT_HEIGHT = 36;
 
-export default function PathConnector({ fromAlign, toAlign, completed }: PathConnectorProps) {
+export default function PathConnector({
+  fromAlign,
+  toAlign,
+  completed,
+  height = DEFAULT_HEIGHT,
+}: PathConnectorProps) {
   const x1 = X_BY_ALIGN[fromAlign];
   const x2 = X_BY_ALIGN[toAlign];
   const stroke = completed ? 'var(--primary)' : 'var(--outline-variant)';
@@ -41,13 +52,13 @@ export default function PathConnector({ fromAlign, toAlign, completed }: PathCon
     <svg
       aria-hidden
       width="100%"
-      height={HEIGHT}
-      viewBox={`0 0 100 ${HEIGHT}`}
+      height={height}
+      viewBox={`0 0 100 ${height}`}
       preserveAspectRatio="none"
       style={{ display: 'block', pointerEvents: 'none' }}
     >
       <path
-        d={`M ${x1} 0 C ${x1} ${HEIGHT / 3} ${x2} ${(HEIGHT * 2) / 3} ${x2} ${HEIGHT}`}
+        d={`M ${x1} 0 C ${x1} ${height / 3} ${x2} ${(height * 2) / 3} ${x2} ${height}`}
         stroke={stroke}
         strokeWidth={4}
         strokeLinecap="round"
