@@ -59,6 +59,7 @@ const SLOT_KIND_LABEL: Record<string, string> = {
   learning: 'Learning',
   review: 'Review',
   assessment: 'Checkpoint',
+  final_exam: 'Final Exam',
 };
 
 export default function CheckpointDrawer({
@@ -413,7 +414,7 @@ export default function CheckpointDrawer({
                 setRetakeCount((n) => n + 1);
               }}
               onQuizComplete={(result) => {
-                if (slot.kind === 'assessment') {
+                if (slot.kind === 'assessment' || slot.kind === 'final_exam') {
                   void submitAssessment({ score: result.score, total: result.total });
                 } else {
                   void completeActivity(activeActivity.id);
@@ -514,7 +515,7 @@ function ActivityBody({
             setId={content.quizSet.id}
             title={content.quizSet.title}
             initialQuestions={content.quizSet.questions as never}
-            isCheckpoint={slotKind === 'assessment'}
+            isCheckpoint={slotKind === 'assessment' || slotKind === 'final_exam'}
             onComplete={(result) => onQuizComplete(result)}
           />
         ) : (
@@ -549,7 +550,7 @@ function AssessmentResultPanel({
   onRetake: () => void;
   onReviewTheory: () => void;
 }) {
-  const isAssessment = slotKind === 'assessment';
+  const isGraded = slotKind === 'assessment' || slotKind === 'final_exam';
   return (
     <div
       style={{
@@ -570,7 +571,11 @@ function AssessmentResultPanel({
           letterSpacing: '-0.01em',
         }}
       >
-        {result.passed ? 'Checkpoint cleared!' : 'Not quite — 70% needed to pass'}
+        {result.passed
+          ? slotKind === 'final_exam'
+            ? 'Final exam cleared — path complete!'
+            : 'Checkpoint cleared!'
+          : 'Not quite — 70% needed to pass'}
       </h3>
       <p
         style={{
@@ -582,8 +587,12 @@ function AssessmentResultPanel({
       >
         {result.percentage}%
         {result.passed
-          ? ' — great work.'
-          : ' — review the earlier theory slots, then retake the assessment to unlock the next section.'}
+          ? slotKind === 'final_exam'
+            ? ' — congratulations on finishing the path.'
+            : ' — great work.'
+          : slotKind === 'final_exam'
+            ? ' — review the sections you struggled with, then retake the final exam.'
+            : ' — review the earlier theory slots, then retake the assessment to unlock the next section.'}
       </p>
       <div
         aria-label={`${result.starsEarned} of 3 stars`}
@@ -611,7 +620,7 @@ function AssessmentResultPanel({
         <button type="button" onClick={onBackToList} style={primaryBtnStyle}>
           Back to activities
         </button>
-      ) : isAssessment ? (
+      ) : isGraded ? (
         <div
           style={{
             display: 'flex',
@@ -622,7 +631,7 @@ function AssessmentResultPanel({
           }}
         >
           <button type="button" onClick={onRetake} style={primaryBtnStyle}>
-            Retake the assessment
+            {slotKind === 'final_exam' ? 'Retake the final exam' : 'Retake the assessment'}
           </button>
           <button type="button" onClick={onReviewTheory} style={ghostBtnStyle}>
             Review the theory

@@ -104,14 +104,19 @@ export function AssessmentCheckpointIcon({
   );
 }
 
-export type CheckpointKind = 'learning' | 'review' | 'assessment';
+export type CheckpointKind = 'learning' | 'review' | 'assessment' | 'final_exam';
 
 export function CheckpointIcon({
   kind,
   ...rest
 }: CheckpointIconProps & { kind: string }) {
   if (kind === 'review') return <ReviewCheckpointIcon {...rest} />;
-  if (kind === 'assessment') return <AssessmentCheckpointIcon {...rest} />;
+  // Final exam reuses the assessment icon — the gold star reads as
+  // "graded, capstone" and SlotNode already differentiates it via the
+  // 3-star display + the FINAL EXAM pill in the drawer.
+  if (kind === 'assessment' || kind === 'final_exam') {
+    return <AssessmentCheckpointIcon {...rest} />;
+  }
   return <TheoryCheckpointIcon {...rest} />;
 }
 

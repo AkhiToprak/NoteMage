@@ -75,8 +75,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!slot) return notFoundResponse('Slot not found');
     if (slot.phase.plan.userId !== userId) return notFoundResponse('Slot not found');
-    if (slot.kind !== 'assessment') {
-      return badRequestResponse('Slot is not an assessment slot');
+    if (slot.kind !== 'assessment' && slot.kind !== 'final_exam') {
+      return badRequestResponse('Slot is not a graded slot');
     }
 
     const gate = isSlotUnlocked(slot.phase.plan.phases, slotId);

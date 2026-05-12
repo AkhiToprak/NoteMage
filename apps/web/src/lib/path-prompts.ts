@@ -134,14 +134,20 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
  * question kinds (mc / fill_blank / word_bank / match_pairs / …).
  */
 export function buildQuizPrompt(ctx: SlotContentContext): string {
+  const isFinalExam = ctx.slotKind === 'final_exam';
+  const questionRange = isFinalExam ? '12–20 questions' : '5–8 questions';
   const lines: string[] = [
-    'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a Duolingo-style learning path.',
+    isFinalExam
+      ? 'You are NoteMage, writing the FINAL EXAM for a Duolingo-style learning path. This is the capstone — it should feel like a realistic, comprehensive exam that simulates the high-stakes test the learner is preparing for.'
+      : 'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a Duolingo-style learning path.',
     'Use the `create_quiz_for_slot` tool exactly once. Do not produce any text outside the tool call.',
     '',
-    'Generate 5–8 questions. Mix at least two question kinds when the content allows — e.g. mc + fill_blank, or mc + match_pairs.',
+    `Generate ${questionRange}. Mix at least two question kinds when the content allows — e.g. mc + fill_blank, or mc + match_pairs.`,
     'Avoid all-MC unless the material is purely factual recall.',
     'Each question must have a clear `correctExplanation` and `wrongExplanation` so learners get useful feedback.',
-    'Stay strictly within the slot\'s topic hint.',
+    isFinalExam
+      ? 'Span the WHOLE path — pull questions from every section, vary difficulty (about 1/3 recall, 1/3 application, 1/3 synthesis), and end with the hardest items.'
+      : 'Stay strictly within the slot\'s topic hint.',
     '',
     'Reminder on payload shape — server validation rejects drift:',
     '- mc options are plain strings, correctness is on the top-level `correctIndex`. Example payload: {"options":["A","B","C","D"],"correctIndex":2}.',
@@ -155,6 +161,14 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     );
     if (ctx.reviewOf && ctx.reviewOf.length > 0) {
       lines.push('Cover these prior slots from the section:', ...ctx.reviewOf.map((s) => `- ${s}`));
+    }
+  } else if (ctx.slotKind === 'final_exam') {
+    lines.push(
+      '',
+      'This is the FINAL EXAM — the path-wide capstone. Cover material from every section below, weighted by importance, not by recency.',
+    );
+    if (ctx.reviewOf && ctx.reviewOf.length > 0) {
+      lines.push('Topics covered across the path:', ...ctx.reviewOf.map((s) => `- ${s}`));
     }
   } else if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
     lines.push('', 'This is a REVIEW slot — pull from:', ...ctx.reviewOf.map((s) => `- ${s}`));

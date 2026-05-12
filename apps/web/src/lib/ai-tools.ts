@@ -158,7 +158,7 @@ export interface StudyPlanToolInput {
 //     written directly to TheoryContent / FlashcardSet / QuizSet rows by
 //     the orchestrator (`apps/web/src/lib/path-generator.ts`).
 
-export type PathSlotKind = 'learning' | 'review' | 'assessment';
+export type PathSlotKind = 'learning' | 'review' | 'assessment' | 'final_exam';
 
 export interface PathStructureSlot {
   title: string;

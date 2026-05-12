@@ -41,6 +41,7 @@ const SLOT_KIND_LABEL: Record<string, string> = {
   learning: 'Learning',
   review: 'Review',
   assessment: 'Checkpoint',
+  final_exam: 'Final Exam',
 };
 
 interface CheckpointFlashcardViewerProps {

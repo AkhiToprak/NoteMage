@@ -246,8 +246,8 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
         {slot.title}
       </span>
 
-      {/* Stars — only on completed assessment slots. */}
-      {isCompleted && slot.kind === 'assessment' ? (
+      {/* Stars — only on completed graded slots (assessment + final exam). */}
+      {isCompleted && (slot.kind === 'assessment' || slot.kind === 'final_exam') ? (
         <div
           aria-label={`${slot.starsEarned} of 3 stars earned`}
           style={{ display: 'flex', gap: '2px', marginTop: '-4px' }}

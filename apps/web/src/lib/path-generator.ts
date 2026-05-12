@@ -358,12 +358,13 @@ function totalSlotCount(plan: PlanForGeneration): number {
 
 /** Activities a slot should have, based on its kind.
  *  Learning slots are purely instructional (theory + flashcards) — questions
- *  belong in review and assessment slots. Assessment slots are quiz-only
- *  and graded; a passing score (≥70%) gates progression to the next slot. */
+ *  belong in review and assessment slots. Assessment and final_exam slots
+ *  are quiz-only and graded; a passing score (≥70%) gates progression. The
+ *  final_exam is the path-wide capstone that covers every prior phase. */
 function activitiesForSlot(kind: PathSlotKind): Array<'theory' | 'flashcards' | 'quiz'> {
   if (kind === 'learning') return ['theory', 'flashcards'];
   if (kind === 'review') return ['flashcards', 'quiz'];
-  return ['quiz']; // assessment
+  return ['quiz']; // assessment + final_exam
 }
 
 function makeSlotContentContext(
@@ -373,10 +374,22 @@ function makeSlotContentContext(
 ): SlotContentContext {
   // `review` and `assessment` slots take the other slot titles in their
   // phase as the "review of" pool. `learning` slots stand on their own.
-  const reviewOf =
-    slot.kind === 'learning' || slot.phaseSiblingTitles.length === 0
-      ? undefined
-      : slot.phaseSiblingTitles;
+  // `final_exam` is the capstone — it pulls from every learning/review
+  // slot across the whole plan so the AI writes a comprehensive exam.
+  let reviewOf: string[] | undefined;
+  if (slot.kind === 'final_exam') {
+    const allTitles: string[] = [];
+    for (const p of plan.phases) {
+      for (const s of p.slots) {
+        if (s.kind === 'learning' || s.kind === 'review') {
+          allTitles.push(s.title);
+        }
+      }
+    }
+    reviewOf = allTitles.length > 0 ? allTitles : undefined;
+  } else if (slot.kind !== 'learning' && slot.phaseSiblingTitles.length > 0) {
+    reviewOf = slot.phaseSiblingTitles;
+  }
   return {
     pathTitle: plan.title,
     pathDescription: plan.description,

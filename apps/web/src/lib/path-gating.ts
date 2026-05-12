@@ -62,7 +62,14 @@ function sortSlots<S extends SlotLite>(slots: S[]): S[] {
 function isSlotCompleted(slot: SlotLite): boolean {
   if (slot.activities.length === 0) return false;
   if (!slot.activities.every((a) => a.completed)) return false;
-  if (slot.kind === 'assessment' && slot.starsEarned < 1) return false;
+  // Graded slots must also clear the 70% pass bar (1 star) before they
+  // count as completed and unlock whatever comes next.
+  if (
+    (slot.kind === 'assessment' || slot.kind === 'final_exam') &&
+    slot.starsEarned < 1
+  ) {
+    return false;
+  }
   return true;
 }
 

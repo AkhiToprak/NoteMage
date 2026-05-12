@@ -342,6 +342,32 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Append the path-wide Final Exam as its own synthetic phase so it
+      // sits visually after every section, unlocks only when all prior
+      // slots are complete, and grades the learner against the whole
+      // path. One quiz-only slot of kind `final_exam`; Stage B fills it.
+      await tx.studyPhase.create({
+        data: {
+          planId: plan.id,
+          title: 'Final Exam',
+          description: 'Comprehensive, graded exam covering every section.',
+          sortOrder: structure.phases.length,
+          startDate: end,
+          endDate: end,
+          status: 'upcoming',
+          slots: {
+            create: [
+              {
+                title: 'Final Exam',
+                description: `Path-wide capstone for "${planTitle}". Pulls questions from every section to simulate the real exam.`,
+                kind: 'final_exam',
+                sortOrder: 0,
+              },
+            ],
+          },
+        },
+      });
+
       return plan.id;
     });
 

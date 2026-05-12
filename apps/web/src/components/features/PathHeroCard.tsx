@@ -56,7 +56,8 @@ function deriveHero(plans: PathPlan[]): Derived | null {
     plan,
     activePhase,
     activePhaseIndex,
-    nextSlotIsAssessment: nextSlot?.kind === 'assessment',
+    nextSlotIsAssessment:
+      nextSlot?.kind === 'assessment' || nextSlot?.kind === 'final_exam',
     percent,
     completed,
     total,
