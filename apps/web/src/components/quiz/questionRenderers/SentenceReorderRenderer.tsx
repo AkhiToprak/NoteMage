@@ -331,20 +331,35 @@ export default function SentenceReorderRenderer({
 
 function DropZone({ idx, disabled }: { idx: number; disabled: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: `drop-${idx}`, disabled });
+  // Outer span = drop hit area (wide, transparent). Inner span = visual
+  // indicator (narrow, tinted only when hovered). Splitting these lets us
+  // keep a clean inline rhythm while giving the pointer a real target —
+  // the original 4-pixel zone was effectively un-droppable mid-drag.
   return (
     <span
       ref={setNodeRef}
       aria-hidden
       style={{
-        display: 'inline-block',
-        width: isOver ? '14px' : '4px',
-        height: '32px',
-        margin: '0 1px',
-        borderRadius: '4px',
-        background: isOver ? 'rgba(196,169,255,0.8)' : 'transparent',
-        transition: 'background 0.12s, width 0.12s',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '18px',
+        height: '36px',
+        margin: '0 -1px',
+        cursor: disabled ? 'default' : 'pointer',
       }}
-    />
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          width: isOver ? '6px' : '2px',
+          height: '28px',
+          borderRadius: '4px',
+          background: isOver ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.2)',
+          transition: 'background 0.12s, width 0.12s',
+        }}
+      />
+    </span>
   );
 }
 

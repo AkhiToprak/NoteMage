@@ -20,6 +20,7 @@ import {
 import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { WordBankPayload } from '@notemage/shared';
+import { substituteBlankMarker } from './blankPlaceholder';
 import type { QuestionProps } from './types';
 
 // Stable per-token ids so duplicate words (e.g. "the" appearing twice) move
@@ -251,7 +252,7 @@ export default function WordBankRenderer({
         }}
       >
         <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
+          <MarkdownRenderer content={substituteBlankMarker(question.question)} />
         </div>
       </div>
 

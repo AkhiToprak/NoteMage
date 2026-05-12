@@ -318,6 +318,28 @@ function normalizeWordBankPayload(payload: Record<string, unknown>): Record<stri
   const wordBank = toStringArray(payload.wordBank ?? payload.bank ?? payload.tokens ?? payload.words ?? payload.choices);
 
   if (template && slots && slots.length > 0 && wordBank.length > 0) {
+    // Top up the bank with any slot answer the AI forgot to include — with
+    // proper multiplicity, so a puzzle whose answers are [A, B, A] always
+    // has at least two "A" tokens in the bank. Without this, the learner
+    // is sometimes handed an unsolvable bank (e.g. needing Russia twice
+    // but the bank only contains Russia once).
+    const bankCounts = new Map<string, number>();
+    for (const w of wordBank) {
+      const k = w.trim().toLowerCase();
+      if (k.length > 0) bankCounts.set(k, (bankCounts.get(k) ?? 0) + 1);
+    }
+    const answerCounts = new Map<string, { canonical: string; count: number }>();
+    for (const s of slots) {
+      const k = s.correctAnswer.trim().toLowerCase();
+      if (k.length === 0) continue;
+      const entry = answerCounts.get(k);
+      if (entry) entry.count += 1;
+      else answerCounts.set(k, { canonical: s.correctAnswer, count: 1 });
+    }
+    for (const [k, { canonical, count }] of answerCounts) {
+      const have = bankCounts.get(k) ?? 0;
+      for (let i = have; i < count; i++) wordBank.push(canonical);
+    }
     return { template, slots, wordBank };
   }
   return payload;
