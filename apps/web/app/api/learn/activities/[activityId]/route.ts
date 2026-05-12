@@ -10,6 +10,7 @@ import {
   badRequestResponse,
 } from '@/lib/api-response';
 import { isSlotUnlocked } from '@/lib/path-gating';
+import { logTelemetry } from '@/lib/telemetry-server';
 
 // Phase 10.6 — mark one CheckpointActivity complete.
 //
@@ -84,6 +85,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       await db.checkpointActivity.update({
         where: { id: activityId },
         data: { completed: true, completedAt: new Date() },
+      });
+      logTelemetry(userId, 'path.activity.completed', {
+        planId: activity.slot.phase.plan.id,
+        slotId: activity.slotId,
+        slotKind: activity.slot.kind,
+        activityId,
+        activityKind: activity.kind,
       });
     }
 

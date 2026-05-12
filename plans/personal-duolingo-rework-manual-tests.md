@@ -328,6 +328,66 @@ Plan reference: [personal-duolingo-rework-phase-9.md](personal-duolingo-rework-p
 
 ---
 
+## Phase 10 — Duolingo checkpoint bundles (status: CODE COMPLETE, manual pass pending)
+
+End-to-end coverage for the Phase 10 rework. Run top-to-bottom in **both** dark and light themes (per the light-mode-no-light-text rule).
+
+### Setup
+- [ ] [DB] Run the migration: `pnpm --filter web prisma migrate dev`. Confirm `study_materials` and `checkpoint_attempts` are gone, `checkpoint_slots` / `checkpoint_activities` / `theory_content` / `assessment_attempts` exist.
+- [ ] [REGRESS] `pnpm -r typecheck` clean from repo root.
+- [ ] [REGRESS] `pnpm --filter web build` clean (catches `useSearchParams` prerender bailouts on the new `[planId]` route).
+
+### 10.1 — Schema cutover regression
+- [ ] [REGRESS][WEB] Open an existing notebook with quizzes and flashcards — page still loads, quiz player still works, no console errors.
+- [ ] [REGRESS][WEB] Hit `GET /api/learn/paths` while signed in → returns `{ data: [] }` for fresh accounts or the existing plans for legacy ones.
+- [ ] [NEW][WEB] Hit `POST /api/learn/paths` with no body → 401 / 400 path returns properly (no 500).
+
+### 10.2–10.3 — AI generator + create endpoint
+- [ ] [NEW][WEB] Open `/learn/paths` → click into a notebook → trigger the create path flow → submit AI tab with title + 1–5 notes selected → `POST /api/learn/paths` returns `{ data: { planId, status: 'generating' } }`.
+- [ ] [NEW][DB] Inspect the new plan in Prisma Studio — `generationStatus = 'generating'`, phases + empty `CheckpointSlot` rows exist within seconds.
+- [ ] [NEW][LOGS] Server logs show `path.generation.started` then per-slot `path.generation.slot_completed` events.
+- [ ] [NEW][DB] After ~30–90s, `generationStatus = 'ready'`, every slot has `CheckpointActivity` rows linking to `TheoryContent` / `FlashcardSet` / `QuizSet` per slot kind.
+
+### 10.4 — Progress modal
+- [ ] [NEW][WEB] Submit a path → the "Building your path…" modal appears immediately (≤ 1s after the AI structure call returns).
+- [ ] [NEW][WEB] SSE progress bar advances; per-section row updates `done/total` as slots fill.
+- [ ] [NEW][WEB] Mascot does a `sparkle` one-shot every time `completedSlots` ticks up.
+- [ ] [NEW][WEB] Click "Run in background" → modal closes, the create-form modal also closes. Navigate to `/learn/paths` → the in-flight path renders as a `GeneratingCard` spinner skeleton; the list polls every 3s and the card swaps for a real `PathView` once generation finishes.
+- [ ] [NEW][WEB] Generation failure (kill the Anthropic key temporarily to force failure) → modal flips to "Generation hit a snag" with the server error; "Try again" POSTs to `/regenerate` and the orchestrator retries only the missing activities (idempotent).
+- [ ] [NEW][WEB] Refresh the page mid-generation while the modal is open → modal re-opens to the current snapshot via the SSE handler's "initial emit" path.
+
+### 10.5 — Duolingo PathView redesign
+- [ ] [NEW][WEB] Sticky section banner pins to the viewport top while its section's slots scroll past; switches to the next section's banner as it scrolls in.
+- [ ] [NEW][WEB] Slot states render correctly: locked (mascot hat icon, outline-variant border), available (surface-container background), active (primary fill + pulsing START pill + SVG completion ring tracking `done/total` activities), completed (primary fill + tertiary-container check pill in top-right).
+- [ ] [NEW][WEB] Completed assessment slots show 1–3 gold stars below the node matching `slot.starsEarned`.
+- [ ] [NEW][WEB] Slots alternate left / center / right alignment via `idx % 3`.
+- [ ] [NEW][WEB] Decorative mascots appear every 3rd slot in the column gutter — pose cycles through `holding-scroll` / `painting` / `holding-wand` / `thinking` / `peek`. `pointer-events: none` so clicking through them lands on the actual slot button.
+- [ ] [NEW][WEB] Tab through slots — `focus-visible` ring (3px primary outline, 4px offset) appears on the focused node. `aria-current="step"` is set on the active slot only.
+- [ ] [NEW][WEB] OS-level prefers-reduced-motion → mount animation + pulse + hover scale + START bob all collapse to no-op.
+- [ ] [NEW][WEB] Light mode: every surface, text, and icon stays legible (no white-on-white from the on-primary text against light banners).
+
+### 10.6 — Checkpoint drawer
+- [ ] [NEW][WEB] Click an unlocked slot on `/learn/paths` → navigates to `/learn/paths/[planId]?slot=<id>` and the drawer slides in from the right.
+- [ ] [NEW][WEB] Drawer header shows the kind chip (Learning / Review / Checkpoint), slot title, close button, and per-activity progress dots (●●○).
+- [ ] [NEW][WEB] Activity list shows one row per activity with status pill + Start CTA on the next incomplete row.
+- [ ] [NEW][WEB] Click Start on a Theory activity → `TheoryViewer` renders the TipTap doc. Click "Mark as read & continue →" → PATCH `/api/learn/activities/[id]` returns the updated slot, drawer pops back to the list, the activity row shows "Done".
+- [ ] [NEW][WEB] Open a Flashcards activity → embedded `FlashcardViewer` works. Finish the study session → drawer's `onComplete` fires, activity marks complete.
+- [ ] [NEW][WEB] Open a learning-slot Quiz activity → embedded `QuizViewer` works. Submit → PATCH marks the quiz activity complete; the slot's completion ring fills.
+- [ ] [NEW][WEB] Open an Assessment-slot Quiz → `isCheckpoint=true` is set. On finish → POST `/api/learn/slots/[slotId]/assessment` runs; the inline result panel shows the star animation (`tertiary-container` filled stars vs `outline-variant` empty).
+- [ ] [NEW][WEB] Verify star thresholds: 70% → 1 star, 85% → 2 stars, 95% → 3 stars. Below 70% → 0 stars + slot stays active (not passed).
+- [ ] [NEW][WEB] Complete every activity in a slot → slot flips to `completed`, the next slot in flat path order becomes `active` with the completion ring animation.
+- [ ] [NEW][WEB] Refresh the page mid-activity — drawer reopens to the same `?slot=X&activity=Y`; the back button works.
+- [ ] [NEW][WEB] Press Escape — drawer closes, URL clears `?slot=` and `?activity=`. Previously focused element regains focus.
+- [ ] [NEW][MOBILE-WEB] At 390×844, drawer renders as a bottom sheet (`90vh max`, top corners rounded). Slide-up animation runs unless reduced-motion is on.
+
+### 10.7 — Polish + telemetry
+- [ ] [NEW][LOGS] Server stdout shows `path.activity.completed` events on activity PATCH and `path.assessment.completed` on assessment POST.
+- [ ] [NEW][LOGS] Browser console (or analytics endpoint) shows `path.slot.opened` and `path.activity.opened` events from the drawer.
+- [ ] [NEW][WEB] `aria-current="step"` is on the active SlotNode only (inspect via devtools accessibility tab).
+- [ ] [NEW][WEB] Light + dark theme passes — every restyled surface (banner, drawer, slot states, modal) reads correctly. No white text in `[data-theme='light']`.
+
+---
+
 ## End-to-end smoke (run after Phase 7 lands) [E2E]
 
 - [ ] Fresh signup at `/auth/signup`

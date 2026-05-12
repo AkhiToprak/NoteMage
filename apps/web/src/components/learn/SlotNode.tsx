@@ -167,6 +167,10 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
           onClick={isLocked ? undefined : onClick}
           aria-label={`${slot.title}${isLocked ? ' (locked)' : ''}`}
           aria-disabled={isLocked || undefined}
+          // Phase 10.7 — surface the "current step" to assistive tech.
+          // The Duolingo-style path is a stepped sequence, so the
+          // first unlocked-and-incomplete slot maps to aria-current=step.
+          aria-current={isActive ? 'step' : undefined}
           className="learn-path-node-btn"
           style={{
             width: '100%',

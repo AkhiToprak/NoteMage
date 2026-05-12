@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FlashcardViewer from '@/components/notebook/FlashcardViewer';
 import QuizViewer from '@/components/notebook/QuizViewer';
 import TheoryViewer from '@/components/learn/TheoryViewer';
 import ActivityList from '@/components/learn/ActivityList';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
+import { trackEvent } from '@/lib/telemetry';
 
 // Phase 10.6 — checkpoint drawer.
 //
@@ -94,6 +95,34 @@ export default function CheckpointDrawer({
     percentage: number;
     passed: boolean;
   } | null>(null);
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Phase 10.7 — telemetry. One event per slot the drawer hosts, with
+  // the slot kind so analytics can split usage by learning vs review
+  // vs assessment.
+  useEffect(() => {
+    trackEvent('path.slot.opened', { slotId: slot.id, slotKind: slot.kind });
+  }, [slot.id, slot.kind]);
+
+  // Phase 10.7 — escape closes the drawer; focus the drawer container
+  // on mount so screen readers + keyboard users see the new context.
+  // Restores focus to the previously focused element on close.
+  useEffect(() => {
+    previousFocusRef.current = (document.activeElement as HTMLElement) ?? null;
+    drawerRef.current?.focus();
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previousFocusRef.current?.focus?.();
+    };
+  }, [onClose]);
 
   const activeActivity: PathActivity | null = useMemo(() => {
     if (!activityId) return null;
@@ -108,6 +137,15 @@ export default function CheckpointDrawer({
       setAssessmentResult(null);
       return;
     }
+    // Phase 10.7 — fire when the user actually opens an activity (not
+    // when they reach the slot's list view). Useful for measuring
+    // funnel from slot.opened → activity.opened → activity.completed.
+    trackEvent('path.activity.opened', {
+      slotId: slot.id,
+      slotKind: slot.kind,
+      activityId: activeActivity.id,
+      activityKind: activeActivity.kind,
+    });
     let cancelled = false;
     setContentLoading(true);
     setContentError(null);
@@ -207,9 +245,11 @@ export default function CheckpointDrawer({
         }}
       />
       <aside
+        ref={drawerRef}
         role="dialog"
         aria-modal="true"
         aria-label={slot.title}
+        tabIndex={-1}
         className="checkpoint-drawer"
         style={{
           position: 'fixed',
@@ -219,6 +259,7 @@ export default function CheckpointDrawer({
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 0 32px rgba(0, 0, 0, 0.45)',
+          outline: 'none',
         }}
       >
         <style>{`

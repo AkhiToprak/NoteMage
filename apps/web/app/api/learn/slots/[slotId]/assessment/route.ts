@@ -10,6 +10,7 @@ import {
   badRequestResponse,
 } from '@/lib/api-response';
 import { isSlotUnlocked, starsForPercentage } from '@/lib/path-gating';
+import { logTelemetry } from '@/lib/telemetry-server';
 
 // Phase 10.6 — record an assessment attempt + roll up the slot.
 //
@@ -118,6 +119,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     const updatedSlot = await db.checkpointSlot.findUnique({
       where: { id: slotId },
       include: { activities: { orderBy: { sortOrder: 'asc' } } },
+    });
+
+    logTelemetry(userId, 'path.assessment.completed', {
+      planId: slot.phase.plan.id,
+      slotId,
+      score: body.score,
+      total: body.total,
+      percentage,
+      starsEarned: stars,
+      passed: stars >= 1,
     });
 
     return successResponse({
