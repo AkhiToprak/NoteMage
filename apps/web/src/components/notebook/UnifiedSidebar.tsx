@@ -225,38 +225,6 @@ export default function UnifiedSidebar() {
             <ChevronsLeft size={14} />
           </button>
         </div>
-        <button
-          onClick={() => setShowPathSetup(true)}
-          title="Create a learning path from this notebook"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            padding: '7px 10px',
-            borderRadius: '8px',
-            border: '1px solid rgba(174,137,255,0.28)',
-            background: 'rgba(174,137,255,0.10)',
-            color: 'var(--on-surface)',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: 600,
-            width: '100%',
-            transition: 'background 0.12s ease, border-color 0.12s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(174,137,255,0.18)';
-            e.currentTarget.style.borderColor = 'rgba(174,137,255,0.45)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(174,137,255,0.10)';
-            e.currentTarget.style.borderColor = 'rgba(174,137,255,0.28)';
-          }}
-        >
-          <GraduationCap size={13} />
-          Create learning path
-        </button>
       </div>
 
       {/* ── Search bar ─────────────────────────────────────────────── */}
@@ -515,6 +483,54 @@ export default function UnifiedSidebar() {
                 <Upload size={11} style={{ color: '#c4a9ff' }} />
               </div>
               Import
+            </button>
+
+            {/* ── Create Learning Path button — yellow accent ──────── */}
+            <button
+              onClick={() => setShowPathSetup(true)}
+              title="Generate a Duolingo-style learning path from this notebook"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '7px 14px',
+                margin: '0 6px 4px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'transparent',
+                color: 'rgba(255,222,89,0.75)',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                textAlign: 'left',
+                width: 'calc(100% - 12px)',
+                transition: 'background 0.15s ease, color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,222,89,0.10)';
+                (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.75)';
+              }}
+            >
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '5px',
+                  background: 'rgba(255,222,89,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <GraduationCap size={11} style={{ color: '#ffde59' }} />
+              </div>
+              Create learning path
             </button>
 
             {/* ── Export Pages button ──────────────────────────────── */}
