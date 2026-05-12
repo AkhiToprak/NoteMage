@@ -142,6 +142,11 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     'Avoid all-MC unless the material is purely factual recall.',
     'Each question must have a clear `correctExplanation` and `wrongExplanation` so learners get useful feedback.',
     'Stay strictly within the slot\'s topic hint.',
+    '',
+    'Reminder on payload shape — server validation rejects drift:',
+    '- mc options are plain strings, correctness is on the top-level `correctIndex`. Example payload: {"options":["A","B","C","D"],"correctIndex":2}.',
+    '- fill_blank wraps answers inside `blank`: {"blank":{"acceptableAnswers":["answer1","answer2"]}}.',
+    '- word_bank requires `template` + `slots` + `wordBank` together; do not omit any.',
   ];
   if (ctx.slotKind === 'assessment') {
     lines.push(

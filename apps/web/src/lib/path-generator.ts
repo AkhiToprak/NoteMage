@@ -44,10 +44,11 @@ import {
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
-import { QuizSetV2Schema } from '@notemage/shared';
+import { QuizSetV2Schema, TheorySectionSchema } from '@notemage/shared';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
 import { logTelemetry } from './telemetry-server';
+import { normalizeQuizQuestions, normalizeTheoryInput } from './path-generator-normalize';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
@@ -397,11 +398,17 @@ async function generateTheoryActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const system = buildTheoryPrompt(ctx);
-  const input = await forcedToolCall<TheorySectionToolInput>({
+  const rawInput = await forcedToolCall<unknown>({
     system,
     tool: THEORY_SECTION_TOOL,
     userMessage: `Write the theory section for slot "${slot.title}".`,
   });
+  const normalized = normalizeTheoryInput(rawInput);
+  const parsed = TheorySectionSchema.safeParse(normalized);
+  if (!parsed.success) {
+    throw new Error(`Theory validation failed: ${parsed.error.message}`);
+  }
+  const input = parsed.data;
   const body = theoryInputToTipTap(input);
 
   await db.$transaction(async (tx) => {
@@ -484,9 +491,12 @@ async function generateQuizActivity(
 
   // Validate v2 shape — the tool schema accepts a generic payload object,
   // so we Zod-check it the same way chat-stream does before persisting.
+  // Normalize first to recover from common drift shapes (options-as-objects,
+  // hoisted acceptableAnswers, renamed match_pairs keys, etc.).
+  const normalizedQuestions = normalizeQuizQuestions(input.questions);
   const parsed = QuizSetV2Schema.safeParse({
     title: input.title || slot.title,
-    questions: input.questions,
+    questions: normalizedQuestions,
   });
   if (!parsed.success) {
     throw new Error(`Quiz validation failed: ${parsed.error.message}`);

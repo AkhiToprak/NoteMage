@@ -133,3 +133,22 @@ export const QuizSetV2Schema = z.object({
   questions: z.array(QuizQuestionV2Schema).min(1),
 });
 export type QuizSetV2 = z.infer<typeof QuizSetV2Schema>;
+
+// Theory section — validates the Stage B `create_theory_section` tool input
+// before it is converted to a TipTap document. Mirrors `TheorySectionToolInput`
+// in `apps/web/src/lib/ai-tools.ts` and matches the tool's `required` list.
+export const TheorySectionSchema = z.object({
+  title: z.string().min(1),
+  introduction: z.string().min(1),
+  keyPoints: z.array(z.string().min(1)).min(1),
+  examples: z
+    .array(
+      z.object({
+        label: z.string().min(1),
+        explanation: z.string().min(1),
+      }),
+    )
+    .min(1),
+  summary: z.string().optional(),
+});
+export type TheorySection = z.infer<typeof TheorySectionSchema>;
