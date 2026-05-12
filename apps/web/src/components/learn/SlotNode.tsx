@@ -23,15 +23,15 @@ interface SlotNodeProps {
   onClick: () => void;
 }
 
-const SIZE = 96;
-const BUTTON_RADIUS = 28;
+const SIZE = 72;
+const BUTTON_RADIUS = 22;
 // Ring is a rounded rect that traces the button shape, sitting `RING_PAD`
 // px outside the button on every side. Matching the button shape avoids
 // the visual mismatch a plain circle creates when set behind a
 // rounded-square button (the circle only peeks out at the left/right).
-const RING_PAD = 10;
+const RING_PAD = 14;
 const RING_SIZE = SIZE + RING_PAD * 2;
-const RING_STROKE = 6;
+const RING_STROKE = 5;
 const RING_INNER = RING_SIZE - RING_STROKE;
 // Path lies along the stroke center, so the corner radius shrinks by
 // half the stroke width.
@@ -181,7 +181,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
           style={{
             width: '100%',
             height: '100%',
-            borderRadius: '28px',
+            borderRadius: `${BUTTON_RADIUS}px`,
             background: bg,
             border: `2px solid ${borderColor}`,
             boxShadow: shadow,
@@ -197,7 +197,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             // transition-all per CLAUDE.md).
           }}
         >
-          <CheckpointIcon kind={slot.kind} size={44} color={iconColor} />
+          <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
 
           {/* Completed badge — small check pill in the top-right corner
               so the user knows the slot is done at a glance. */}

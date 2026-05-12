@@ -211,7 +211,7 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
       `}</style>
 
       {plan.phases.map((phase, phaseIdx) => {
-        const spots = decorationsForSection(phase.slots.length);
+        const spots = decorationsForSection(phase.slots.length, phaseIdx);
         const spotsAfter = new Map(spots.map((s) => [s.afterSlotIndex, s]));
         return (
           <div key={phase.id} style={{ position: 'relative' }}>
