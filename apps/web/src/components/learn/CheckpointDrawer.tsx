@@ -77,6 +77,9 @@ export default function CheckpointDrawer({
     percentage: number;
     passed: boolean;
   } | null>(null);
+  // Incremented when the learner retakes a failed assessment so the
+  // QuizViewer remounts and its internal answer state resets.
+  const [retakeCount, setRetakeCount] = useState(0);
   const drawerRef = useRef<HTMLElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -401,8 +404,14 @@ export default function CheckpointDrawer({
               slotKind={slot.kind}
               submitting={submitting}
               assessmentResult={assessmentResult}
+              retakeCount={retakeCount}
               onBackToList={() => onSelectActivity(null)}
+              onCloseDrawer={onClose}
               onMarkComplete={() => completeActivity(activeActivity.id)}
+              onRetakeAssessment={() => {
+                setAssessmentResult(null);
+                setRetakeCount((n) => n + 1);
+              }}
               onQuizComplete={(result) => {
                 if (slot.kind === 'assessment') {
                   void submitAssessment({ score: result.score, total: result.total });
@@ -426,8 +435,11 @@ interface ActivityBodyProps {
   slotKind: string;
   submitting: boolean;
   assessmentResult: { starsEarned: number; percentage: number; passed: boolean } | null;
+  retakeCount: number;
   onBackToList: () => void;
+  onCloseDrawer: () => void;
   onMarkComplete: () => void;
+  onRetakeAssessment: () => void;
   onQuizComplete: (result: {
     score: number;
     total: number;
@@ -441,8 +453,11 @@ function ActivityBody({
   slotKind,
   submitting,
   assessmentResult,
+  retakeCount,
   onBackToList,
+  onCloseDrawer,
   onMarkComplete,
+  onRetakeAssessment,
   onQuizComplete,
 }: ActivityBodyProps) {
   if (content.kind === 'theory' && activity.kind === 'theory') {
@@ -483,7 +498,10 @@ function ActivityBody({
       return (
         <AssessmentResultPanel
           result={assessmentResult}
+          slotKind={slotKind}
           onBackToList={onBackToList}
+          onRetake={onRetakeAssessment}
+          onReviewTheory={onCloseDrawer}
         />
       );
     }
@@ -491,6 +509,7 @@ function ActivityBody({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {content.quizSet.notebookId ? (
           <QuizViewer
+            key={retakeCount}
             notebookId={content.quizSet.notebookId}
             setId={content.quizSet.id}
             title={content.quizSet.title}
@@ -519,11 +538,18 @@ function ActivityBody({
 
 function AssessmentResultPanel({
   result,
+  slotKind,
   onBackToList,
+  onRetake,
+  onReviewTheory,
 }: {
   result: { starsEarned: number; percentage: number; passed: boolean };
+  slotKind: string;
   onBackToList: () => void;
+  onRetake: () => void;
+  onReviewTheory: () => void;
 }) {
+  const isAssessment = slotKind === 'assessment';
   return (
     <div
       style={{
@@ -544,7 +570,7 @@ function AssessmentResultPanel({
           letterSpacing: '-0.01em',
         }}
       >
-        {result.passed ? 'Checkpoint cleared!' : 'Almost there'}
+        {result.passed ? 'Checkpoint cleared!' : 'Not quite — 70% needed to pass'}
       </h3>
       <p
         style={{
@@ -554,9 +580,15 @@ function AssessmentResultPanel({
           textAlign: 'center',
         }}
       >
-        {result.percentage}% — {result.passed ? 'great work.' : 'try the slot again to earn a star.'}
+        {result.percentage}%
+        {result.passed
+          ? ' — great work.'
+          : ' — review the earlier theory slots, then retake the assessment to unlock the next section.'}
       </p>
-      <div aria-label={`${result.starsEarned} of 3 stars`} style={{ display: 'flex', gap: '6px' }}>
+      <div
+        aria-label={`${result.starsEarned} of 3 stars`}
+        style={{ display: 'flex', gap: '6px' }}
+      >
         {[0, 1, 2].map((i) => {
           const earned = i < result.starsEarned;
           return (
@@ -575,9 +607,32 @@ function AssessmentResultPanel({
           );
         })}
       </div>
-      <button type="button" onClick={onBackToList} style={primaryBtnStyle}>
-        Back to activities
-      </button>
+      {result.passed ? (
+        <button type="button" onClick={onBackToList} style={primaryBtnStyle}>
+          Back to activities
+        </button>
+      ) : isAssessment ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            width: '100%',
+            maxWidth: '320px',
+          }}
+        >
+          <button type="button" onClick={onRetake} style={primaryBtnStyle}>
+            Retake the assessment
+          </button>
+          <button type="button" onClick={onReviewTheory} style={ghostBtnStyle}>
+            Review the theory
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={onRetake} style={primaryBtnStyle}>
+          Try again
+        </button>
+      )}
     </div>
   );
 }

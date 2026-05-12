@@ -356,9 +356,12 @@ function totalSlotCount(plan: PlanForGeneration): number {
   return plan.phases.reduce((n, p) => n + p.slots.length, 0);
 }
 
-/** Activities a slot should have, based on its kind. */
+/** Activities a slot should have, based on its kind.
+ *  Learning slots are purely instructional (theory + flashcards) — questions
+ *  belong in review and assessment slots. Assessment slots are quiz-only
+ *  and graded; a passing score (≥70%) gates progression to the next slot. */
 function activitiesForSlot(kind: PathSlotKind): Array<'theory' | 'flashcards' | 'quiz'> {
-  if (kind === 'learning') return ['theory', 'flashcards', 'quiz'];
+  if (kind === 'learning') return ['theory', 'flashcards'];
   if (kind === 'review') return ['flashcards', 'quiz'];
   return ['quiz']; // assessment
 }
