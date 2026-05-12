@@ -12,6 +12,7 @@ import {
   Trash2,
   ChevronsLeft,
   FilePlus,
+  GraduationCap,
   Layers,
   HelpCircle,
   Search,
@@ -25,6 +26,7 @@ import type { SectionNode } from '@/components/notebook/SectionTree';
 import PageTypeSelector from '@/components/notebook/PageTypeSelector';
 import ExportDialog from '@/components/notebook/ExportDialog';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
+import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import TimerWidget from '@/components/layout/TimerWidget';
@@ -59,6 +61,12 @@ export default function UnifiedSidebar() {
 
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
+
+  // Learn path setup modal — opens the same flow as /learn/paths,
+  // scoped to this notebook by default (its files appear as the
+  // initial inventory; user can still uncheck or pull in materials
+  // from other notebooks inside the modal).
+  const [showPathSetup, setShowPathSetup] = useState(false);
 
   useEffect(() => {
     if (isCreatingSection && sectionInputRef.current) sectionInputRef.current.focus();
@@ -217,6 +225,38 @@ export default function UnifiedSidebar() {
             <ChevronsLeft size={14} />
           </button>
         </div>
+        <button
+          onClick={() => setShowPathSetup(true)}
+          title="Create a learning path from this notebook"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '7px 10px',
+            borderRadius: '8px',
+            border: '1px solid rgba(174,137,255,0.28)',
+            background: 'rgba(174,137,255,0.10)',
+            color: 'var(--on-surface)',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '12px',
+            fontWeight: 600,
+            width: '100%',
+            transition: 'background 0.12s ease, border-color 0.12s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(174,137,255,0.18)';
+            e.currentTarget.style.borderColor = 'rgba(174,137,255,0.45)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(174,137,255,0.10)';
+            e.currentTarget.style.borderColor = 'rgba(174,137,255,0.28)';
+          }}
+        >
+          <GraduationCap size={13} />
+          Create learning path
+        </button>
       </div>
 
       {/* ── Search bar ─────────────────────────────────────────────── */}
@@ -547,6 +587,17 @@ export default function UnifiedSidebar() {
           notebookId={notebookId}
           sections={sections}
           onClose={() => setShowExportDialog(false)}
+        />
+      )}
+
+      {/* Learn-path setup modal — same component as /learn/paths, but
+          scoped to this notebook so the inventory is pre-filtered and
+          the AI tab anchors on the notebook id by default. */}
+      {showPathSetup && (
+        <LearnPathSetup
+          defaultNotebookId={notebookId}
+          defaultNotebookName={notebook?.name}
+          onClose={() => setShowPathSetup(false)}
         />
       )}
     </aside>
