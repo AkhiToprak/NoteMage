@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       include: {
         slot: {
           include: {
-            phase: { include: { plan: { select: { userId: true } } } },
+            phase: { include: { plan: { select: { userId: true, notebookId: true } } } },
           },
         },
         theory: true,
@@ -51,6 +51,23 @@ export async function GET(request: NextRequest, { params }: Params) {
       return notFoundResponse('Activity not found');
     }
 
+    // Self-heal for pre-fix data: path-generated FlashcardSet / QuizSet
+    // rows could be created with notebookId=null when the parent plan
+    // was created without a primaryNotebookId. The viewers can't run
+    // without one, so resolve a fallback (parent plan → user's oldest
+    // notebook) and persist it the first time the activity is opened.
+    const resolveFallbackNotebookId = async (): Promise<string | null> => {
+      if (activity.slot.phase.plan.notebookId) {
+        return activity.slot.phase.plan.notebookId;
+      }
+      const owned = await db.notebook.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+      return owned?.id ?? null;
+    };
+
     if (activity.kind === 'theory' && activity.theory) {
       return successResponse({
         kind: 'theory' as const,
@@ -62,22 +79,56 @@ export async function GET(request: NextRequest, { params }: Params) {
       });
     }
     if (activity.kind === 'flashcards' && activity.flashcardSet) {
+      let notebookId = activity.flashcardSet.notebookId;
+      if (!notebookId) {
+        const fallback = await resolveFallbackNotebookId();
+        if (fallback) {
+          await db.flashcardSet.update({
+            where: { id: activity.flashcardSet.id },
+            data: { notebookId: fallback },
+          });
+          if (!activity.slot.phase.plan.notebookId) {
+            await db.studyPlan.update({
+              where: { id: activity.slot.phase.planId },
+              data: { notebookId: fallback },
+            });
+          }
+          notebookId = fallback;
+        }
+      }
       return successResponse({
         kind: 'flashcards' as const,
         flashcardSet: {
           id: activity.flashcardSet.id,
-          notebookId: activity.flashcardSet.notebookId,
+          notebookId,
           title: activity.flashcardSet.title,
           cards: activity.flashcardSet.flashcards,
         },
       });
     }
     if (activity.kind === 'quiz' && activity.quizSet) {
+      let notebookId = activity.quizSet.notebookId;
+      if (!notebookId) {
+        const fallback = await resolveFallbackNotebookId();
+        if (fallback) {
+          await db.quizSet.update({
+            where: { id: activity.quizSet.id },
+            data: { notebookId: fallback },
+          });
+          if (!activity.slot.phase.plan.notebookId) {
+            await db.studyPlan.update({
+              where: { id: activity.slot.phase.planId },
+              data: { notebookId: fallback },
+            });
+          }
+          notebookId = fallback;
+        }
+      }
       return successResponse({
         kind: 'quiz' as const,
         quizSet: {
           id: activity.quizSet.id,
-          notebookId: activity.quizSet.notebookId,
+          notebookId,
           title: activity.quizSet.title,
           questions: activity.quizSet.questions,
         },
