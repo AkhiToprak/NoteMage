@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import type { PathPlan } from '@/components/learn/PathView';
 
 // Phase 10.8 — /learn/paths list page.
@@ -29,6 +30,7 @@ function isInFlight(plan: PathPlanListItem): boolean {
 export default function LearnPage() {
   const [plans, setPlans] = useState<PathPlanListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(async () => {
@@ -49,6 +51,15 @@ export default function LearnPage() {
   }, []);
 
   useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // Refresh on modal close so a newly created path shows up immediately
+  // (LearnPathSetup auto-closes itself once Stage A returns, before the
+  // path finishes generating — refresh picks up the `generating` card so
+  // the polling loop can take over).
+  const handleCreateClose = useCallback(() => {
+    setCreateOpen(false);
     void refresh();
   }, [refresh]);
 
@@ -73,35 +84,71 @@ export default function LearnPage() {
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 48px' }}>
-      <header style={{ marginBottom: '24px' }}>
-        <h1
+      <header
+        style={{
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <h1
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: '28px',
+              fontWeight: 800,
+              color: 'var(--on-surface)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Learning paths
+          </h1>
+          <p
+            style={{
+              margin: '6px 0 0',
+              fontSize: '14px',
+              color: 'var(--on-surface-variant)',
+              lineHeight: 1.5,
+            }}
+          >
+            Pick a path to open its checkpoints. Pass a checkpoint to unlock the next phase.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
           style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: '28px',
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Learning paths
-        </h1>
-        <p
-          style={{
-            margin: '6px 0 0',
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '10px 16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--primary)',
+            color: 'var(--on-primary)',
+            border: 'none',
+            fontFamily: 'inherit',
             fontSize: '14px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 0 var(--primary-container, var(--outline))',
           }}
         >
-          Pick a path to open its checkpoints. Pass a checkpoint to unlock the next phase.
-        </p>
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+            add
+          </span>
+          New path
+        </button>
       </header>
 
       {plans === null ? (
         <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>Loading your paths…</p>
       ) : plans.length === 0 ? (
-        <EmptyState error={error} />
+        <EmptyState error={error} onCreate={() => setCreateOpen(true)} />
       ) : (
         <div
           style={{
@@ -119,6 +166,8 @@ export default function LearnPage() {
           )}
         </div>
       )}
+
+      {createOpen ? <LearnPathSetup onClose={handleCreateClose} /> : null}
 
       <style>{`
         @keyframes learnPathSpin {
@@ -320,7 +369,7 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
   );
 }
 
-function EmptyState({ error }: { error: string | null }) {
+function EmptyState({ error, onCreate }: { error: string | null; onCreate: () => void }) {
   return (
     <section
       style={{
@@ -359,28 +408,55 @@ function EmptyState({ error }: { error: string | null }) {
       >
         {error
           ? error
-          : 'Open a notebook and generate a study plan to start a learning path.'}
+          : 'Spin up your first AI-generated learning path — pick a topic, scope it to a notebook (optional), and watch the checkpoints fill in.'}
       </p>
-      <Link
-        href="/notebooks"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '10px 16px',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--primary)',
-          color: 'var(--on-primary)',
-          fontSize: '14px',
-          fontWeight: 600,
-          textDecoration: 'none',
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
-          arrow_forward
-        </span>
-        Go to notebooks
-      </Link>
+      {error ? (
+        <Link
+          href="/notebooks"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '10px 16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--on-surface)',
+            fontSize: '14px',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
+            menu_book
+          </span>
+          Browse notebooks
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onCreate}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '10px 16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--primary)',
+            color: 'var(--on-primary)',
+            border: 'none',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 0 var(--primary-container, var(--outline))',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
+            add
+          </span>
+          Create your first path
+        </button>
+      )}
     </section>
   );
 }
