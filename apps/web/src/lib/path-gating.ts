@@ -189,3 +189,44 @@ export function starsForPercentage(percentage: number): number {
   if (percentage >= 70) return 1;
   return 0;
 }
+
+/**
+ * Letter-grade ladder for an assessment percentage. Adds finer granularity
+ * than the 3-tier star system — A− vs A, B− vs B — without changing what
+ * "passed" means (still ≥ 70%). Below 70% returns 'F'; the slot stays
+ * unlocked-but-uncompleted and the learner retakes.
+ */
+export function gradeForPercentage(percentage: number): string {
+  if (percentage >= 95) return 'A';
+  if (percentage >= 90) return 'A-';
+  if (percentage >= 85) return 'B';
+  if (percentage >= 80) return 'B-';
+  if (percentage >= 75) return 'C+';
+  if (percentage >= 70) return 'C';
+  return 'F';
+}
+
+/**
+ * Coarser fallback: derive a letter grade from the star count alone. Used
+ * when `bestPercentage` is null on legacy rows (rows written before the
+ * grading feature shipped). Returns null when there are no stars yet.
+ */
+export function gradeFromStars(stars: number): string | null {
+  if (stars >= 3) return 'A';
+  if (stars >= 2) return 'B';
+  if (stars >= 1) return 'C';
+  return null;
+}
+
+/**
+ * Pick the most precise grade we can render: prefer the percentage-derived
+ * grade when `bestPercentage` is set, fall back to the star-derived grade
+ * for legacy rows, and return null when the slot has no passing attempt.
+ */
+export function bestGrade(
+  bestPercentage: number | null | undefined,
+  starsEarned: number,
+): string | null {
+  if (typeof bestPercentage === 'number') return gradeForPercentage(bestPercentage);
+  return gradeFromStars(starsEarned);
+}

@@ -41,6 +41,7 @@ export interface PathSlot {
   kind: string; // "learning" | "review" | "assessment"
   sortOrder: number;
   starsEarned: number;
+  bestPercentage: number | null;
   prerequisiteSlotIds: string[];
   unlocked: boolean;
   completed: boolean;

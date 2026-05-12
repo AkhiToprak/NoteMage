@@ -5,6 +5,7 @@ import QuizViewer from '@/components/notebook/QuizViewer';
 import TheoryViewer from '@/components/learn/TheoryViewer';
 import ActivityList from '@/components/learn/ActivityList';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
+import { gradeForPercentage } from '@/lib/path-gating';
 import { trackEvent } from '@/lib/telemetry';
 
 // Slide-in sheet (right edge on desktop, bottom on mobile) that hosts
@@ -551,6 +552,7 @@ function AssessmentResultPanel({
   onReviewTheory: () => void;
 }) {
   const isGraded = slotKind === 'assessment' || slotKind === 'final_exam';
+  const letterGrade = gradeForPercentage(result.percentage);
   return (
     <div
       style={{
@@ -577,22 +579,54 @@ function AssessmentResultPanel({
             : 'Checkpoint cleared!'
           : 'Not quite — 70% needed to pass'}
       </h3>
+      <div
+        aria-label={`Grade ${letterGrade}, ${result.percentage} percent`}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '56px',
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: '-0.04em',
+            color: result.passed ? 'var(--tertiary-container)' : 'var(--error)',
+          }}
+        >
+          {letterGrade}
+        </span>
+        <span
+          style={{
+            fontSize: '13px',
+            fontWeight: 700,
+            color: 'var(--on-surface-variant)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {result.percentage}%
+        </span>
+      </div>
       <p
         style={{
           margin: 0,
           fontSize: '14px',
           color: 'var(--on-surface-variant)',
           textAlign: 'center',
+          maxWidth: '360px',
         }}
       >
-        {result.percentage}%
         {result.passed
           ? slotKind === 'final_exam'
-            ? ' — congratulations on finishing the path.'
-            : ' — great work.'
+            ? 'Congratulations on finishing the path.'
+            : 'Great work — the next section is unlocked.'
           : slotKind === 'final_exam'
-            ? ' — review the sections you struggled with, then retake the final exam.'
-            : ' — review the earlier theory slots, then retake the assessment to unlock the next section.'}
+            ? 'Review the sections you struggled with, then retake the final exam.'
+            : 'Review the earlier theory slots, then retake the assessment to unlock the next section.'}
       </p>
       <div
         aria-label={`${result.starsEarned} of 3 stars`}

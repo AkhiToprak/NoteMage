@@ -2,6 +2,7 @@
 
 import { CheckpointIcon } from '@/components/icons/CheckpointIcons';
 import type { PathSlot } from '@/components/learn/PathView';
+import { bestGrade } from '@/lib/path-gating';
 
 // Phase 10.5 — Duolingo-style slot node. Rounded square with a flat
 // drop-shadow, kind-specific icon, four visual states (locked /
@@ -202,34 +203,50 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
         >
           <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
 
-          {/* Completed badge — small check pill in the top-right corner
-              so the user knows the slot is done at a glance. */}
-          {isCompleted ? (
-            <span
-              aria-hidden
-              style={{
-                position: 'absolute',
-                top: '-6px',
-                right: '-6px',
-                width: '22px',
-                height: '22px',
-                borderRadius: '50%',
-                background: 'var(--tertiary-container)',
-                color: 'var(--on-tertiary-container)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid var(--surface)',
-              }}
-            >
+          {/* Completed badge — top-right corner. Graded slots
+              (assessment + final_exam) show their letter grade; other
+              completed slots show a check icon. `bestGrade` falls back
+              to a star-derived coarse letter for pre-grading-feature
+              rows where `bestPercentage` is null. */}
+          {isCompleted ? (() => {
+            const isGraded = slot.kind === 'assessment' || slot.kind === 'final_exam';
+            const grade = isGraded ? bestGrade(slot.bestPercentage, slot.starsEarned) : null;
+            return (
               <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '14px', color: 'var(--on-tertiary-container)' }}
+                aria-label={grade ? `Grade ${grade}` : undefined}
+                aria-hidden={!grade || undefined}
+                style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  minWidth: '22px',
+                  height: '22px',
+                  padding: grade ? '0 6px' : 0,
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--tertiary-container)',
+                  color: 'var(--on-tertiary-container)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid var(--surface)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  lineHeight: 1,
+                  letterSpacing: '-0.01em',
+                }}
               >
-                check
+                {grade ?? (
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '14px', color: 'var(--on-tertiary-container)' }}
+                  >
+                    check
+                  </span>
+                )}
               </span>
-            </span>
-          ) : null}
+            );
+          })() : null}
         </button>
       </div>
 

@@ -76,6 +76,7 @@ export interface SerializedPathSlot {
   kind: string;
   sortOrder: number;
   starsEarned: number;
+  bestPercentage: number | null;
   prerequisiteSlotIds: string[];
   unlocked: boolean;
   completed: boolean;
@@ -149,6 +150,7 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
         kind: s.kind,
         sortOrder: s.sortOrder,
         starsEarned: s.starsEarned,
+        bestPercentage: s.bestPercentage,
         prerequisiteSlotIds: s.prerequisiteSlotIds,
         unlocked: s.unlocked,
         completed: s.completed,
