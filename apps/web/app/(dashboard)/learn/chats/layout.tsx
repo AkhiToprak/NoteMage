@@ -100,6 +100,18 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
     void loadChats();
   }, [loadChats]);
 
+  useEffect(() => {
+    const onTitleUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<{ chatId: string; title: string }>).detail;
+      if (!detail?.chatId || !detail?.title) return;
+      setChats((prev) =>
+        prev ? prev.map((c) => (c.id === detail.chatId ? { ...c, title: detail.title } : c)) : prev,
+      );
+    };
+    window.addEventListener('notemage:chat-title-updated', onTitleUpdated);
+    return () => window.removeEventListener('notemage:chat-title-updated', onTitleUpdated);
+  }, []);
+
   // Close phone rail once a chat is selected.
   useEffect(() => {
     if (isNarrow) setShowRailOnPhone(false);

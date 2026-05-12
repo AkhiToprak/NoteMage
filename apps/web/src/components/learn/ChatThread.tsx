@@ -320,16 +320,25 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             };
           });
         } else {
-          const { userMessage, assistantMessage, contextStatus } = donePayload;
+          const { userMessage, assistantMessage, contextStatus, chatTitle } = donePayload;
 
           setChat((prev) => {
             if (!prev) return prev;
             const filtered = prev.messages.filter((m) => m.id !== tempUserMsg.id);
             return {
               ...prev,
+              title: chatTitle ?? prev.title,
               messages: [...filtered, userMessage, assistantMessage],
             };
           });
+
+          if (chatTitle) {
+            window.dispatchEvent(
+              new CustomEvent('notemage:chat-title-updated', {
+                detail: { chatId, title: chatTitle },
+              }),
+            );
+          }
 
           const warnings: string[] = [];
           if (

@@ -21,13 +21,13 @@ export async function generateAndPersistTitle(
   chatId: string,
   firstUserMessage: string,
   userId: string | null = null
-): Promise<void> {
+): Promise<string | null> {
   try {
     const current = await db.notebookChat.findUnique({
       where: { id: chatId },
       select: { title: true },
     });
-    if (!current || current.title !== 'New Chat') return;
+    if (!current || current.title !== 'New Chat') return null;
 
     const response = await anthropic.messages.create({
       model: TITLE_MODEL,
@@ -37,37 +37,36 @@ export async function generateAndPersistTitle(
     });
 
     const textBlock = response.content.find((b) => b.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') return;
+    if (!textBlock || textBlock.type !== 'text') return null;
 
     const title = sanitizeTitle(textBlock.text);
-    if (!title) return;
+    if (!title) return null;
 
     const latest = await db.notebookChat.findUnique({
       where: { id: chatId },
       select: { title: true },
     });
-    if (!latest || latest.title !== 'New Chat') return;
+    if (!latest || latest.title !== 'New Chat') return null;
 
     await db.notebookChat.update({
       where: { id: chatId },
       data: { title },
     });
 
-    // Phase 9.6 — fire-and-forget telemetry. logTelemetry is synchronous and
-    // returns void; never awaited, never throws.
     logTelemetry(userId, 'chat.title_generated', {
       chatId,
       titleLength: title.length,
     });
+
+    return title;
   } catch (error) {
     console.error('[chat-title] generation failed for chat', chatId, error);
-    // Phase 9.6 — surface failure to telemetry without blocking. Trim to
-    // name/message so we don't dump a full stack into the log line.
     const errLabel =
       error instanceof Error ? error.name || error.message : String(error).slice(0, 200);
     logTelemetry(userId, 'chat.title_gen_failed', {
       chatId,
       error: errLabel,
     });
+    return null;
   }
 }

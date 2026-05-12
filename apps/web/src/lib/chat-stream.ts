@@ -186,15 +186,18 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     }));
     conversationMessages.push({ role: 'user', content: userMessage });
 
-    // First-message detection for auto-title generation. Title gen runs as
-    // fire-and-forget after the message persists; it re-checks the row to
-    // avoid clobbering manually renamed chats.
     const shouldGenerateTitle = history.length === 0 && chat.title === 'New Chat';
-    const fireTitleGenIfNeeded = () => {
-      if (shouldGenerateTitle) {
-        void generateAndPersistTitle(chatId, userMessage, userId).catch((e) => {
-          console.error('[chat-stream] title gen failed', e);
-        });
+    const fireTitleGenIfNeeded = async (
+      ctrl: ReadableStreamDefaultController<Uint8Array>
+    ): Promise<void> => {
+      if (!shouldGenerateTitle) return;
+      try {
+        const newTitle = await generateAndPersistTitle(chatId, userMessage, userId);
+        if (newTitle) {
+          ctrl.enqueue(sseEvent('chat_title', { title: newTitle }));
+        }
+      } catch (e) {
+        console.error('[chat-stream] title gen failed', e);
       }
     };
 
@@ -463,7 +466,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                     contextStatus,
                   })
                 );
-                fireTitleGenIfNeeded();
+                await fireTitleGenIfNeeded(controller);
                 controller.close();
                 return;
               }
@@ -586,7 +589,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   contextStatus,
                 })
               );
-              fireTitleGenIfNeeded();
+              await fireTitleGenIfNeeded(controller);
               controller.close();
               return;
             }
@@ -695,7 +698,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                     contextStatus,
                   })
                 );
-                fireTitleGenIfNeeded();
+                await fireTitleGenIfNeeded(controller);
                 controller.close();
                 return;
               }
@@ -809,7 +812,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                     contextStatus,
                   })
                 );
-                fireTitleGenIfNeeded();
+                await fireTitleGenIfNeeded(controller);
                 controller.close();
                 return;
               }
@@ -827,7 +830,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   response.usage.output_tokens
                 );
                 controller.enqueue(sseEvent('done', done));
-                fireTitleGenIfNeeded();
+                await fireTitleGenIfNeeded(controller);
                 controller.close();
                 return;
               }
@@ -862,7 +865,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 );
                 await incrementUsage(userId, 'ai_pptx');
                 controller.enqueue(sseEvent('done', done));
-                fireTitleGenIfNeeded();
+                await fireTitleGenIfNeeded(controller);
                 controller.close();
                 return;
               }
@@ -884,7 +887,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                       response.usage.output_tokens
                     );
                     controller.enqueue(sseEvent('done', done));
-                    fireTitleGenIfNeeded();
+                    await fireTitleGenIfNeeded(controller);
                     controller.close();
                     return;
                   }
@@ -900,7 +903,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               response.usage.output_tokens
             );
             controller.enqueue(sseEvent('done', done));
-            fireTitleGenIfNeeded();
+            await fireTitleGenIfNeeded(controller);
             controller.close();
           } catch (error: unknown) {
             if (abortController.signal.aborted || request.signal.aborted) {
@@ -908,7 +911,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 const partialText = fullText || '[generation stopped]';
                 const done = await saveAndBuildDone(partialText, 0, 0);
                 controller.enqueue(sseEvent('done', done));
-                fireTitleGenIfNeeded();
+                await fireTitleGenIfNeeded(controller);
               } catch {
                 controller.enqueue(sseEvent('error', { error: 'Failed to save partial response' }));
               }

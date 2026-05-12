@@ -30,6 +30,7 @@ export interface DonePayload {
   };
   aborted?: boolean;
   partialText?: string;
+  chatTitle?: string;
 }
 
 type StreamStatus = 'idle' | 'streaming' | 'done' | 'error';
@@ -184,6 +185,13 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
               case 'done': {
                 donePayload = JSON.parse(sse.data) as DonePayload;
                 setStatus('done');
+                break;
+              }
+              case 'chat_title': {
+                const parsed = JSON.parse(sse.data) as { title: string };
+                if (donePayload) {
+                  donePayload.chatTitle = parsed.title;
+                }
                 break;
               }
               case 'error': {
