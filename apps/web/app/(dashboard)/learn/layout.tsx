@@ -64,9 +64,6 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
         <nav
           aria-label="Learn sections"
           style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
             flexShrink: 0,
             display: 'flex',
             alignItems: 'stretch',

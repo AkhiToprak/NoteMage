@@ -2,24 +2,23 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import PathView, { type PathPlan } from '@/components/learn/PathView';
+import type { PathPlan } from '@/components/learn/PathView';
 
-// Phase 10.4 — /learn/paths list page.
+// Phase 10.8 — /learn/paths list page.
 //
-// Two changes vs. the Phase 9 version:
-//   1. Source of truth moved from the deleted /api/study-plans to
-//      /api/learn/paths (rewritten in Phase 10.3 to serialize the
-//      slot/activity tree).
-//   2. When any plan reports `generationStatus !== 'ready'` we re-fetch
-//      every 3s until they all settle. This is the "background
-//      generation finished → list refreshes" signal — the project has
-//      no global toast, so we lean on polling the list endpoint.
+// The previous version (Phase 10.4) rendered every plan's full PathView
+// stacked vertically. With multiple paths in flight that surface
+// became a long, repetitive scroll, so this iteration replaces the
+// stack with a grid of compact selector cards. Tapping a card lands on
+// `/learn/paths/[planId]` which already renders the full PathView and
+// drives checkpoint interaction.
+//
+// Polling behavior carries over: while any plan reports
+// `generationStatus !== 'ready'` we re-fetch every 3s and swap its
+// card for the GeneratingCard skeleton until it settles.
 
 const POLL_INTERVAL_MS = 3000;
 
-// The list payload includes `generationStatus` for paths in flight.
-// PathView's own prop type doesn't surface that field, so we widen the
-// list element type locally.
 type PathPlanListItem = PathPlan & { generationStatus?: string };
 
 function isInFlight(plan: PathPlanListItem): boolean {
@@ -49,14 +48,10 @@ export default function LearnPage() {
     }
   }, []);
 
-  // Initial load.
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  // Poll whenever any plan is in flight. The recursive timeout is cheaper
-  // than a setInterval because it pauses while the network call is in
-  // flight (no overlapping refreshes).
   useEffect(() => {
     if (!plans) return;
     const anyInFlight = plans.some(isInFlight);
@@ -77,7 +72,7 @@ export default function LearnPage() {
   }, [plans, refresh]);
 
   return (
-    <div style={{ maxWidth: '760px', margin: '0 auto', padding: '8px 0 48px' }}>
+    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 48px' }}>
       <header style={{ marginBottom: '24px' }}>
         <h1
           style={{
@@ -89,7 +84,7 @@ export default function LearnPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          Learn
+          Learning paths
         </h1>
         <p
           style={{
@@ -99,7 +94,7 @@ export default function LearnPage() {
             lineHeight: 1.5,
           }}
         >
-          Follow your study paths one lesson at a time. Pass a checkpoint to unlock the next phase.
+          Pick a path to open its checkpoints. Pass a checkpoint to unlock the next phase.
         </p>
       </header>
 
@@ -108,22 +103,166 @@ export default function LearnPage() {
       ) : plans.length === 0 ? (
         <EmptyState error={error} />
       ) : (
-        plans.map((plan) =>
-          isInFlight(plan) ? (
-            <GeneratingCard key={plan.id} plan={plan} />
-          ) : (
-            <PathView key={plan.id} plan={plan} />
-          ),
-        )
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          {plans.map((plan) =>
+            isInFlight(plan) ? (
+              <GeneratingCard key={plan.id} plan={plan} />
+            ) : (
+              <PathCard key={plan.id} plan={plan} />
+            ),
+          )}
+        </div>
       )}
+
+      <style>{`
+        @keyframes learnPathSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .learn-paths-card {
+          transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .learn-paths-card:hover {
+          transform: translateY(-2px);
+          border-color: var(--primary);
+        }
+        .learn-paths-card:focus-visible {
+          outline: 3px solid var(--primary);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .learn-paths-card { transition: none; }
+          .learn-paths-card:hover { transform: none; }
+        }
+      `}</style>
     </div>
+  );
+}
+
+function PathCard({ plan }: { plan: PathPlanListItem }) {
+  const allSlots = plan.phases.flatMap((p) => p.slots);
+  const total = allSlots.length;
+  const done = allSlots.filter((s) => s.completed).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  return (
+    <Link
+      href={`/learn/paths/${encodeURIComponent(plan.id)}`}
+      className="learn-paths-card"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        padding: '16px',
+        background: 'var(--surface-container)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-lg)',
+        textDecoration: 'none',
+        color: 'var(--on-surface)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <span
+          aria-hidden
+          style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--primary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+            school
+          </span>
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <span
+            style={{
+              display: 'block',
+              fontSize: '15px',
+              fontWeight: 700,
+              color: 'var(--on-surface)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {plan.title}
+          </span>
+          <span
+            style={{
+              display: 'block',
+              marginTop: '2px',
+              fontSize: '12px',
+              color: 'var(--on-surface-variant)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {plan.notebookTitle ?? 'Cross-notebook path'}
+          </span>
+        </div>
+      </div>
+
+      <div
+        aria-hidden
+        style={{
+          width: '100%',
+          height: '6px',
+          background: 'var(--surface-container-high)',
+          borderRadius: '999px',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '100%',
+            background: 'var(--primary)',
+            borderRadius: '999px',
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '12px',
+          color: 'var(--on-surface-variant)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        <span>
+          {done} / {total} checkpoints
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--primary)', fontWeight: 600 }}>
+          Open
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+            chevron_right
+          </span>
+        </span>
+      </div>
+    </Link>
   );
 }
 
 // Skeleton card shown for paths still being generated. The page polls
 // the list every 3s while any plan is in this state; when it flips to
-// `ready` (or `failed`) this card swaps for the real PathView (or an
-// error variant — Phase 10.6 will surface failed paths with a retry).
+// `ready` the card swaps for the real PathCard.
 function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
   return (
     <section
@@ -131,11 +270,11 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
         background: 'var(--surface-container)',
         border: '1px solid var(--outline-variant)',
         borderRadius: 'var(--radius-lg)',
-        padding: '20px 24px',
-        marginBottom: '20px',
+        padding: '16px',
         display: 'flex',
         alignItems: 'center',
-        gap: '14px',
+        gap: '12px',
+        minHeight: '108px',
       }}
     >
       <span
@@ -156,7 +295,7 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
           style={{
             margin: 0,
             fontFamily: 'var(--font-display)',
-            fontSize: '17px',
+            fontSize: '15px',
             fontWeight: 700,
             color: 'var(--on-surface)',
             overflow: 'hidden',
@@ -169,20 +308,14 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
         <p
           style={{
             margin: '4px 0 0',
-            fontSize: '13px',
+            fontSize: '12px',
             color: 'var(--on-surface-variant)',
             lineHeight: 1.4,
           }}
         >
-          Generating your path… we&apos;ll refresh this card when it&apos;s ready.
+          Generating your path…
         </p>
       </div>
-      <style>{`
-        @keyframes learnPathSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </section>
   );
 }

@@ -52,6 +52,18 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [showCreate, setShowCreate] = useState(false);
   const [showRailOnPhone, setShowRailOnPhone] = useState(false);
+  // Desktop-only rail collapse. Persists per-browser so the layout
+  // survives reloads. The phone flow uses `showRailOnPhone` instead and
+  // ignores this state.
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setCollapsed(window.localStorage.getItem('learn.chats.rail.collapsed') === '1');
+  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('learn.chats.rail.collapsed', collapsed ? '1' : '0');
+  }, [collapsed]);
   // Pulse the rail row when the active chatId changes (incoming navigation
   // from anywhere — e.g. notification, deep link, GenerateDropdown). Don't
   // re-pulse on every render or on the very first mount.
@@ -169,7 +181,7 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
     [loadChats, router],
   );
 
-  const railVisible = !isNarrow || showRailOnPhone;
+  const railVisible = isNarrow ? showRailOnPhone : !collapsed;
 
   return (
     <div
@@ -209,6 +221,34 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
         </button>
       )}
 
+      {!isNarrow && collapsed && (
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-label="Show chat list"
+          style={{
+            position: 'absolute',
+            top: '12px',
+            left: '12px',
+            zIndex: 20,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '40px',
+            height: '40px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--outline-variant)',
+            background: 'var(--surface-container)',
+            color: 'var(--on-surface)',
+            cursor: 'pointer',
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden>
+            chevron_right
+          </span>
+        </button>
+      )}
+
       {railVisible && (
         <aside
           aria-label="Chats"
@@ -236,29 +276,55 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
               borderBottom: '1px solid var(--outline-variant)',
             }}
           >
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--primary)',
-                color: 'var(--on-primary)',
-                border: 'none',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }} aria-hidden>
-                add
-              </span>
-              New chat
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                style={{
+                  flex: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--primary)',
+                  color: 'var(--on-primary)',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }} aria-hidden>
+                  add
+                </span>
+                New chat
+              </button>
+              {!isNarrow && (
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(true)}
+                  aria-label="Hide chat list"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    flexShrink: 0,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--outline-variant)',
+                    background: 'var(--surface-container)',
+                    color: 'var(--on-surface)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span className="material-symbols-outlined" aria-hidden>
+                    chevron_left
+                  </span>
+                </button>
+              )}
+            </div>
 
             <label
               style={{

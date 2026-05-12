@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import SectionBanner from '@/components/learn/SectionBanner';
 import SlotNode from '@/components/learn/SlotNode';
+import PathConnector from '@/components/learn/PathConnector';
 import PathDecoration, { decorationsForSection } from '@/components/learn/PathDecorations';
 
 // Phase 10.5 — Duolingo-style path view.
@@ -238,13 +239,16 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
             ) : null}
 
             {/* Slot column. position:relative scopes the absolutely
-                positioned decorative mascots to this section. */}
+                positioned decorative mascots to this section. The column
+                no longer carries a flex `gap` — vertical rhythm between
+                slots is now produced by <PathConnector />, which doubles
+                as the trail that fills with primary color as the learner
+                progresses. */}
             <div
               style={{
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '36px',
                 padding: '8px 0 16px',
               }}
             >
@@ -252,6 +256,7 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
                 const align = alignmentFor(idx);
                 const state = nodeStateFor(slot);
                 const decoration = spotsAfter.get(idx);
+                const isLast = idx === phase.slots.length - 1;
                 return (
                   <div key={slot.id}>
                     <div
@@ -269,6 +274,13 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
                         onClick={() => handleSlotClick(slot)}
                       />
                     </div>
+                    {!isLast ? (
+                      <PathConnector
+                        fromAlign={align}
+                        toAlign={alignmentFor(idx + 1)}
+                        completed={state === 'completed'}
+                      />
+                    ) : null}
                     {decoration ? (
                       <div
                         style={{

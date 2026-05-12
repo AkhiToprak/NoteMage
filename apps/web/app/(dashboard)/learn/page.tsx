@@ -122,9 +122,9 @@ export default function LearnDashboardPage() {
       </header>
 
       <PathsSection state={paths} />
-      <NotebooksSection state={notebooks} />
       <FlashcardsSection state={flashcardSets} />
       <QuizzesSection state={quizSets} />
+      <NotebooksSection state={notebooks} />
     </div>
   );
 }

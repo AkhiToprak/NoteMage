@@ -90,14 +90,14 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
         animationDelay: `${mountIndex * 30}ms`,
       }}
     >
-      {/* START speech bubble — only on the active slot. */}
+      {/* START speech bubble — only on the active slot. Sits in normal
+          flow above the icon so it never crashes into the sticky section
+          banner sitting above the slot column. */}
       {isActive ? (
         <span
           aria-hidden
           className="learn-path-start-bubble"
           style={{
-            position: 'absolute',
-            top: '-26px',
             background: 'var(--primary)',
             color: 'var(--on-primary)',
             padding: '3px 10px',
