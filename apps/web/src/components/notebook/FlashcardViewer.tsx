@@ -64,6 +64,10 @@ interface FlashcardViewerProps {
   title: string;
   initialCards: Flashcard[];
   assignedSectionId?: string | null;
+  // Phase 10.6 — fires when the user finishes a study session (every
+  // card answered, post-summary view). The checkpoint drawer uses this
+  // to PATCH the activity as completed and advance to the next.
+  onComplete?: (result: { correct: number; total: number }) => void;
 }
 
 export default function FlashcardViewer({
@@ -72,6 +76,7 @@ export default function FlashcardViewer({
   title,
   initialCards,
   assignedSectionId,
+  onComplete,
 }: FlashcardViewerProps) {
   const { upload } = useDirectUpload();
   const { isPhone } = useBreakpoint();
@@ -261,7 +266,10 @@ export default function FlashcardViewer({
       setStudyIndex((i) => i + 1);
       setStudyFlipped(false);
     } else {
-      setStudyResults({ correct: studyCorrectRef.current, total: studyCards.length });
+      const result = { correct: studyCorrectRef.current, total: studyCards.length };
+      setStudyResults(result);
+      // Phase 10.6 — surface completion to the checkpoint drawer.
+      onComplete?.(result);
     }
   };
 

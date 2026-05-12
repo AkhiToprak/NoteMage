@@ -87,15 +87,35 @@ function alignmentFor(idx: number): 'flex-start' | 'center' | 'flex-end' {
   return 'flex-end';
 }
 
-export default function PathView({ plan }: { plan: PathPlan }) {
-  // Phase 10.6 will replace the no-op with a drawer launcher. For now
-  // we accept the click silently so keyboard focus + a11y are wired up
-  // and the visual states are testable end-to-end.
+interface PathViewProps {
+  plan: PathPlan;
+  /**
+   * Phase 10.6 — slot click handler. The detail page wires this up to
+   * push `?slot=<id>` and open the CheckpointDrawer. The list page
+   * leaves it undefined; PathView falls back to navigating to the
+   * detail page so any list-page slot click still works.
+   */
+  onSlotClick?: (slot: PathSlot) => void;
+}
+
+export default function PathView({ plan, onSlotClick }: PathViewProps) {
   const handleSlotClick = useMemo(() => {
-    return (_slot: PathSlot) => {
-      /* noop — drawer ships in Phase 10.6 */
+    return (slot: PathSlot) => {
+      if (onSlotClick) {
+        onSlotClick(slot);
+        return;
+      }
+      // List-page fallback: navigate to the detail page with the slot
+      // pre-opened. Using window.location keeps PathView a
+      // self-contained component with no Next router dependency.
+      if (typeof window !== 'undefined' && slot.unlocked) {
+        const params = new URLSearchParams({ slot: slot.id });
+        window.location.href = `/learn/paths/${encodeURIComponent(
+          plan.id,
+        )}?${params.toString()}`;
+      }
     };
-  }, []);
+  }, [onSlotClick, plan.id]);
 
   return (
     <section

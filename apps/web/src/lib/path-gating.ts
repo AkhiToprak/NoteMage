@@ -1,13 +1,28 @@
 import type { GateStrategy } from '@prisma/client';
 
-// Phase 10.1 — Slot-based gating stub. Pure functions, no I/O. Same input →
-// same output. The real implementation (sequential gates between slots,
-// prerequisite checks, assessment-stars threshold) lands in Phase 10.6.
+// Phase 10.6 — real slot-based gate logic (replaces the Phase 10.1 stub
+// that marked everything unlocked).
 //
-// For now annotatePhases marks every phase + slot as unlocked. `completed` is
-// derived from each slot's activities so the path UI can still show stars
-// and the first-incomplete slot as "active" without waiting on the full
-// gate.
+// Rules:
+//   - A slot is `completed` iff:
+//       • it has at least one activity, and
+//       • every activity is completed, and
+//       • for `assessment`-kind slots, `starsEarned >= 1`.
+//   - A slot is `unlocked` iff:
+//       • every slot listed in its `prerequisiteSlotIds` is completed,
+//         (an empty list means "no explicit prereqs"), AND
+//       • every prior slot in path order (across the whole plan) is
+//         completed. The sequential-between-slots gate is global so a
+//         section's first slot is locked until the previous section's
+//         last assessment is done.
+//   - A slot is `active` iff it's the first `unlocked && !completed`
+//     slot in path order.
+//   - Phase `unlocked` mirrors "any slot in this phase is unlocked" so
+//     legacy UI bits that read phase-level flags keep working.
+//
+// All `gateStrategy` values map to the same sequential semantics
+// post-Phase 10.1 — the GateStrategy enum remains in the schema for
+// backward compatibility but `path-gating` ignores it.
 
 export interface ActivityLite {
   id: string;
@@ -34,6 +49,8 @@ export interface PhaseLite {
 
 export type GateResult = { unlocked: boolean; reason?: string };
 
+// ── helpers ────────────────────────────────────────────────────────
+
 function sortPhases<P extends PhaseLite>(phases: P[]): P[] {
   return [...phases].sort((a, b) => a.sortOrder - b.sortOrder);
 }
@@ -44,8 +61,12 @@ function sortSlots<S extends SlotLite>(slots: S[]): S[] {
 
 function isSlotCompleted(slot: SlotLite): boolean {
   if (slot.activities.length === 0) return false;
-  return slot.activities.every((a) => a.completed);
+  if (!slot.activities.every((a) => a.completed)) return false;
+  if (slot.kind === 'assessment' && slot.starsEarned < 1) return false;
+  return true;
 }
+
+// ── annotated output types ─────────────────────────────────────────
 
 export type AnnotatedActivity<A extends ActivityLite = ActivityLite> = A;
 
@@ -63,38 +84,101 @@ export interface AnnotatedPhase<P extends PhaseLite> {
   slots: AnnotatedSlot<P['slots'][number]>[];
 }
 
+// ── annotator ──────────────────────────────────────────────────────
+
 /**
- * Phase 10.1 stub annotator. Returns every phase and slot as `unlocked: true`
- * and computes `completed` from per-activity flags. The first incomplete slot
- * (across all phases, in sort order) is marked `isActive`.
+ * Annotate every phase + slot with `unlocked` / `completed` / `isActive`
+ * flags. Walks slots in flat order (phase 0 slots → phase 1 slots → …)
+ * so the "first incomplete, dependencies satisfied" pick is global.
  *
- * Phase 10.6 will replace this with the real gate logic:
- * - Phase 0 unlocked. Subsequent phases unlocked once every slot in the prior
- *   phase is completed.
- * - Slot unlocked iff every slot in `prerequisiteSlotIds` is completed.
- * - Assessment-kind slots additionally require `starsEarned >= 1` to count
- *   as completed.
+ * Pure function: same input → same output. The server uses this to
+ * gate API writes (e.g. activity PATCH refuses to mark progress on a
+ * locked slot) and the client uses it to render node state.
  */
 export function annotatePhases<P extends PhaseLite>(phases: P[]): AnnotatedPhase<P>[] {
   const sortedPhases = sortPhases(phases);
 
-  // First pass: compute per-slot completion so we can pick `isActive` in a
-  // second pass over the flat list.
+  // First pass: compute completion per slot (no dependencies).
   const phaseSlots = sortedPhases.map((phase) =>
-    sortSlots(phase.slots).map((slot) => ({ slot, completed: isSlotCompleted(slot) })),
+    sortSlots(phase.slots).map((slot) => ({
+      slot,
+      completed: isSlotCompleted(slot),
+    })),
   );
 
-  const flatSlots = phaseSlots.flat();
-  const firstIncompleteId = flatSlots.find((s) => !s.completed)?.slot.id ?? null;
+  // Flatten for the cross-phase sequential gate.
+  const flat: { slot: SlotLite; completed: boolean }[] = phaseSlots.flat();
+  const slotById = new Map(flat.map((s) => [s.slot.id, s]));
 
-  return sortedPhases.map((phase, i) => ({
-    source: phase,
-    unlocked: true,
-    slots: phaseSlots[i].map(({ slot, completed }) => ({
+  // Second pass: compute unlocked. A slot is unlocked iff
+  // (a) every prior slot in flat order is completed, and
+  // (b) every prerequisite slot id is completed.
+  let firstIncompleteId: string | null = null;
+  let priorIncompleteHit = false;
+  const unlockedById = new Map<string, boolean>();
+  for (const { slot, completed } of flat) {
+    const prereqsOk = slot.prerequisiteSlotIds.every((pid) => {
+      const ref = slotById.get(pid);
+      return ref ? ref.completed : true; // missing prereq id → treat as ok
+    });
+    const unlocked = !priorIncompleteHit && prereqsOk;
+    unlockedById.set(slot.id, unlocked);
+    if (!completed && firstIncompleteId === null && unlocked) {
+      firstIncompleteId = slot.id;
+    }
+    if (!completed) priorIncompleteHit = true;
+  }
+
+  return sortedPhases.map((phase, i) => {
+    const slots = phaseSlots[i].map(({ slot, completed }) => ({
       ...slot,
-      unlocked: true,
+      unlocked: unlockedById.get(slot.id) ?? false,
       completed,
       isActive: slot.id === firstIncompleteId,
-    })) as AnnotatedSlot<P['slots'][number]>[],
-  }));
+    })) as AnnotatedSlot<P['slots'][number]>[];
+    const phaseUnlocked = slots.some((s) => s.unlocked);
+    const phaseReason =
+      !phaseUnlocked && i > 0 ? 'previous_section_incomplete' : undefined;
+    return {
+      source: phase,
+      unlocked: phaseUnlocked,
+      unlockReason: phaseReason,
+      slots,
+    };
+  });
+}
+
+// ── server-side helpers ─────────────────────────────────────────────
+
+/**
+ * Server-side check: is the slot identified by `slotId` currently
+ * unlocked given the plan's phase tree? Used by the activity PATCH
+ * and assessment POST endpoints to refuse writes on locked slots.
+ */
+export function isSlotUnlocked(phases: PhaseLite[], slotId: string): GateResult {
+  const annotated = annotatePhases(phases);
+  for (const phase of annotated) {
+    for (const slot of phase.slots) {
+      if (slot.id === slotId) {
+        return slot.unlocked
+          ? { unlocked: true }
+          : { unlocked: false, reason: 'slot_locked' };
+      }
+    }
+  }
+  return { unlocked: false, reason: 'slot_not_found' };
+}
+
+/**
+ * Map a quiz percentage to stars on a checkpoint assessment.
+ *   1 star  ≥ 70%
+ *   2 stars ≥ 85%
+ *   3 stars ≥ 95%
+ *   0 stars otherwise (slot is NOT considered passed)
+ */
+export function starsForPercentage(percentage: number): number {
+  if (percentage >= 95) return 3;
+  if (percentage >= 85) return 2;
+  if (percentage >= 70) return 1;
+  return 0;
 }

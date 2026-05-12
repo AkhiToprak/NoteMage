@@ -82,6 +82,17 @@ interface QuizViewerProps {
   // Phase 10 — re-used by the checkpoint drawer (Phase 10.6) for assessment-
   // kind slots; defaults to false for direct quiz-player access.
   isCheckpoint?: boolean;
+  // Phase 10.6 — fires after the attempt POST returns successfully.
+  // The checkpoint drawer uses this to PATCH a learning-slot quiz
+  // activity as completed, or POST to /assessment for assessment
+  // slots (in which case the caller passes `isCheckpoint: true` and
+  // does its own star handling on top of this signal).
+  onComplete?: (result: {
+    score: number;
+    total: number;
+    percentage: number;
+    timeSpent: number | null;
+  }) => void;
 }
 
 type QuizMode = 'quiz' | 'review' | 'results';
@@ -93,6 +104,7 @@ export default function QuizViewer({
   initialQuestions,
   assignedSectionId,
   isCheckpoint = false,
+  onComplete,
 }: QuizViewerProps) {
   const { isPhone, isTablet } = useBreakpoint();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -325,6 +337,14 @@ export default function QuizViewer({
           reactionMode,
         );
         if (final) reactionLayerRef.current?.fire(final);
+        // Phase 10.6 — surface the attempt result so the checkpoint
+        // drawer can PATCH the activity / POST to /assessment.
+        onComplete?.({
+          score: json.data.score,
+          total: json.data.total,
+          percentage: json.data.percentage,
+          timeSpent: json.data.timeSpent ?? null,
+        });
       }
     } catch {
       /* silent */
@@ -341,6 +361,7 @@ export default function QuizViewer({
     commitFor,
     isCheckpoint,
     reactionMode,
+    onComplete,
   ]);
 
   const startReview = useCallback(() => {
