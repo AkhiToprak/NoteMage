@@ -22,7 +22,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
+import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
@@ -94,7 +94,9 @@ export default function FlashcardViewer({
   const backFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingSide, setUploadingSide] = useState<string | null>(null);
   const router = useRouter();
-  const { refreshSections, refreshChats } = useNotebookWorkspace();
+  const workspace = useNotebookWorkspaceOptional();
+  const refreshSections = workspace?.refreshSections ?? (() => {});
+  const refreshChats = workspace?.refreshChats ?? (() => {});
 
   // Section picker state
   const [showSectionPicker, setShowSectionPicker] = useState(false);

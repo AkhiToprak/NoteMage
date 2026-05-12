@@ -20,7 +20,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
+import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
@@ -121,7 +121,9 @@ export default function QuizViewer({
   const [editWrongExplanation, setEditWrongExplanation] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { refreshSections, refreshChats } = useNotebookWorkspace();
+  const workspace = useNotebookWorkspaceOptional();
+  const refreshSections = workspace?.refreshSections ?? (() => {});
+  const refreshChats = workspace?.refreshChats ?? (() => {});
 
   // Section picker state
   const [showSectionPicker, setShowSectionPicker] = useState(false);
