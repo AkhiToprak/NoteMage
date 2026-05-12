@@ -248,6 +248,32 @@ export async function POST(request: NextRequest) {
       for (const r of rows) if (r.notebookId) derivedNotebookIds.add(r.notebookId);
     }
 
+    // Resolve a guaranteed-non-null primary notebook. Path-generated
+    // FlashcardSet / QuizSet rows inherit this id, and the FlashcardViewer
+    // / QuizViewer URL-template `notebookId` into every fetch — they
+    // cannot run without one. Fallback chain: caller-provided →
+    // first derived from materials → user's oldest notebook.
+    let resolvedPrimaryNotebookId: string | null = primaryNotebookId;
+    if (!resolvedPrimaryNotebookId) {
+      const derived = Array.from(derivedNotebookIds);
+      if (derived.length > 0) {
+        resolvedPrimaryNotebookId = derived[0];
+      } else {
+        const fallback = await db.notebook.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        });
+        if (fallback) resolvedPrimaryNotebookId = fallback.id;
+      }
+    }
+    if (!resolvedPrimaryNotebookId) {
+      return badRequestResponse(
+        'Create a notebook first — learn paths need somewhere to store generated content.',
+      );
+    }
+    derivedNotebookIds.add(resolvedPrimaryNotebookId);
+
     // ── Stage A (one AI call, inline) ────────────────────────────────
     let structure: PathStructureToolInput;
     try {
@@ -272,7 +298,7 @@ export async function POST(request: NextRequest) {
       const plan = await tx.studyPlan.create({
         data: {
           userId,
-          notebookId: primaryNotebookId,
+          notebookId: resolvedPrimaryNotebookId,
           contextNotebookIds: Array.from(derivedNotebookIds),
           title: planTitle,
           description: planDescription,
