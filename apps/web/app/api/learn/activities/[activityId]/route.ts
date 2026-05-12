@@ -52,7 +52,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             phase: {
               include: {
                 plan: {
-                  select: { id: true, userId: true },
                   include: {
                     phases: {
                       orderBy: { sortOrder: 'asc' },

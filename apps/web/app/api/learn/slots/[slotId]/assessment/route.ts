@@ -57,7 +57,6 @@ export async function POST(request: NextRequest, { params }: Params) {
         phase: {
           include: {
             plan: {
-              select: { id: true, userId: true },
               include: {
                 phases: {
                   orderBy: { sortOrder: 'asc' },
