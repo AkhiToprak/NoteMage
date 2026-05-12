@@ -19,7 +19,7 @@ export interface QuizToolInput {
   }[];
 }
 
-// QUIZ_TOOL_V2 — kind-aware AI tool. Phase 2 ships all 7 kinds.
+// QUIZ_TOOL_V2 — kind-aware AI tool. Phase 2 ships all 8 kinds.
 interface QuizToolV2Common {
   prompt: string;
   hint?: string;
@@ -32,6 +32,13 @@ export interface QuizToolV2McQuestion extends QuizToolV2Common {
   payload: {
     options: string[];
     correctIndex: number;
+  };
+}
+
+export interface QuizToolV2TrueFalseQuestion extends QuizToolV2Common {
+  kind: 'true_false';
+  payload: {
+    correct: boolean;
   };
 }
 
@@ -92,6 +99,7 @@ export interface QuizToolV2EquationQuestion extends QuizToolV2Common {
 
 export type QuizToolV2Question =
   | QuizToolV2McQuestion
+  | QuizToolV2TrueFalseQuestion
   | QuizToolV2FillBlankQuestion
   | QuizToolV2TranslationQuestion
   | QuizToolV2WordBankQuestion
@@ -321,6 +329,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     '',
     'Supported kinds and exact payload shapes:',
     '- mc: { options: string[4]; correctIndex: 0|1|2|3 }. For factual recall. Example payload: {"options":["Lima","Bogotá","Quito","Caracas"],"correctIndex":0}',
+    '- true_false: { correct: boolean }. The question `prompt` IS the statement to judge; payload only carries the answer key. Example prompt: "The mitochondria produces ATP." with payload {"correct":true}.',
     '- fill_blank: { blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Typed text answer; provide 2–4 acceptable spellings/variants. Default fuzzyThreshold 0.85. Example: {"blank":{"acceptableAnswers":["mitochondria","mitochondrion"]}}',
     '- word_bank: { template: string with {{0}}, {{1}} markers; slots: [{ correctAnswer: string }]; wordBank: string[] }. Drag tokens from the bank into the template slots. Word bank should include 2–4 distractor tokens beyond the correct ones. Example: {"template":"The {{0}} is the powerhouse of the {{1}}.","slots":[{"correctAnswer":"mitochondria"},{"correctAnswer":"cell"}],"wordBank":["mitochondria","cell","nucleus","ribosome"]}',
     '- match_pairs: { pairs: [{ left: string; right: string }] }. Two columns, render the right side shuffled; the user draws connections. 2–8 pairs. Example: {"pairs":[{"left":"H2O","right":"Water"},{"left":"NaCl","right":"Salt"}]}',
@@ -328,7 +337,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     '- sentence_reorder: { correctOrder: string[] }. Tokens shown shuffled; the user drags them into the correct order. 2–12 tokens. Example: {"correctOrder":["I","want","to","learn","Spanish"]}',
     '- equation: { expectedExpression: string; tolerance?: number; variables?: string[] }. Math input (e.g. "2*x + 3"). Set variables when the expression contains variables so the grader can test multiple sample points.',
     '',
-    'Mix kinds intentionally — use mc for factual recall, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math. Avoid all-MC unless the material is purely factual.',
+    'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math. Avoid all-MC unless the material is purely factual.',
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -346,6 +355,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
               type: 'string',
               enum: [
                 'mc',
+                'true_false',
                 'fill_blank',
                 'word_bank',
                 'match_pairs',
@@ -785,7 +795,7 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   description: [
     'Create a 5–8 question quiz that tests one checkpoint slot (12–20 for the final exam).',
     'Use AT LEAST 3 different question kinds across the set — an all-MC quiz is never acceptable.',
-    'Pick the kind that fits each item: mc for factual recall, fill_blank for short typed answers, word_bank for ordered grammar/sequence fills, match_pairs for term↔definition pairs, translation for language items, sentence_reorder for syntax/ordering, equation for math.',
+    'Pick the kind that fits each item: mc for factual recall, true_false for crisp single-claim checks, fill_blank for short typed answers, word_bank for ordered grammar/sequence fills, match_pairs for term↔definition pairs, translation for language items, sentence_reorder for syntax/ordering, equation for math.',
     'See `create_quiz_v2` for the exact payload shape per kind — same rules apply here and the server rejects drift.',
   ].join('\n'),
   // The schema mirrors QUIZ_TOOL_V2; the inputs are validated post-hoc

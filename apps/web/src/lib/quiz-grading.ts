@@ -129,9 +129,11 @@ export function grade(
       return gradeEquation(userAnswer.expression, p);
     }
     case 'true_false': {
-      // Not yet shipped; reserved kind. Treat as wrong rather than throw so
-      // legacy attempts data doesn't crash the route.
-      return { isCorrect: false };
+      if (userAnswer.kind !== 'true_false') return { isCorrect: false };
+      if (!payload || typeof payload !== 'object') return { isCorrect: false };
+      const correct = (payload as { correct?: unknown }).correct;
+      if (typeof correct !== 'boolean') return { isCorrect: false };
+      return { isCorrect: userAnswer.value === correct };
     }
     default: {
       // Exhaustiveness guard. If a new kind is added to QuestionKind but not

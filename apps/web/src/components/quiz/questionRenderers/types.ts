@@ -28,6 +28,7 @@ export interface QuizQuestionForRender {
 // which switches on this discriminator.
 export type UserAnswer =
   | { kind: 'mc'; selectedIdx: number }
+  | { kind: 'true_false'; value: boolean }
   | { kind: 'fill_blank'; text: string }
   | { kind: 'word_bank'; slotAnswers: (string | null)[] }
   | { kind: 'match_pairs'; connections: { left: number; rightLabel: string }[] }

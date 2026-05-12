@@ -1,9 +1,9 @@
 // Quiz V2 — discriminated union of question kinds.
 //
 // Source of truth for: AI tool input, server validation, client renderers.
-// Phase 1 shipped only the `mc` variant. Phase 2 (this file's current shape)
-// adds fill_blank, word_bank, match_pairs, translation, sentence_reorder,
-// equation. true_false is reserved but not yet shipped.
+// Phase 1 shipped only the `mc` variant. Phase 2 adds fill_blank, word_bank,
+// match_pairs, translation, sentence_reorder, equation, and true_false —
+// the full 8-kind palette from the original plan.
 //
 // The DB row carries `kind` + `payload Json?` after the Phase 1 migration.
 // Until the Phase 7 backfill, MC rows keep their legacy `options` + `correctIndex`
@@ -30,6 +30,11 @@ export const McPayloadSchema = z.object({
   correctIndex: z.number().int().min(0).max(3),
 });
 export type McPayload = z.infer<typeof McPayloadSchema>;
+
+export const TrueFalsePayloadSchema = z.object({
+  correct: z.boolean(),
+});
+export type TrueFalsePayload = z.infer<typeof TrueFalsePayloadSchema>;
 
 export const FillBlankPayloadSchema = z.object({
   blank: z.object({
@@ -94,6 +99,11 @@ export const QuizQuestionV2Schema = z.discriminatedUnion('kind', [
     kind: z.literal('mc'),
     ...QuestionCommonShape,
     payload: McPayloadSchema,
+  }),
+  z.object({
+    kind: z.literal('true_false'),
+    ...QuestionCommonShape,
+    payload: TrueFalsePayloadSchema,
   }),
   z.object({
     kind: z.literal('fill_blank'),
