@@ -783,10 +783,10 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
 export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   name: 'create_quiz_for_slot',
   description: [
-    'Create a 5–8 question quiz that tests one checkpoint slot.',
-    'Mix at least two question kinds when the content allows — e.g. mc + fill_blank, or mc + match_pairs.',
-    'See `create_quiz_v2` for the supported kinds and their payload shapes. Same rules apply here.',
-    'Avoid all-MC unless the material is purely factual recall.',
+    'Create a 5–8 question quiz that tests one checkpoint slot (12–20 for the final exam).',
+    'Use AT LEAST 3 different question kinds across the set — an all-MC quiz is never acceptable.',
+    'Pick the kind that fits each item: mc for factual recall, fill_blank for short typed answers, word_bank for ordered grammar/sequence fills, match_pairs for term↔definition pairs, translation for language items, sentence_reorder for syntax/ordering, equation for math.',
+    'See `create_quiz_v2` for the exact payload shape per kind — same rules apply here and the server rejects drift.',
   ].join('\n'),
   // The schema mirrors QUIZ_TOOL_V2; the inputs are validated post-hoc
   // with `QuizSetV2Schema` exactly like the chat-driven quiz tool.

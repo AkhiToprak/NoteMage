@@ -143,17 +143,27 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
       : 'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a Duolingo-style learning path.',
     'Use the `create_quiz_for_slot` tool exactly once. Do not produce any text outside the tool call.',
     '',
-    `Generate ${questionRange}. Mix at least two question kinds when the content allows — e.g. mc + fill_blank, or mc + match_pairs.`,
-    'Avoid all-MC unless the material is purely factual recall.',
+    `Generate ${questionRange}. Use AT LEAST 3 different question kinds across the set; an all-MC quiz is never acceptable. Pick the kind that genuinely fits each item:`,
+    '- mc — factual recall with 4 plausible options.',
+    '- fill_blank — short typed answer (single word / short phrase) where Levenshtein fuzzy-match is fine.',
+    '- word_bank — drag tokens into a template with {{0}}, {{1}} blanks. Great for grammar, definitions where ordering matters, or partial-sentence builds.',
+    '- match_pairs — terms ↔ definitions, causes ↔ effects, symbols ↔ meanings. 2–8 pairs.',
+    '- translation — language items. Same shape as fill_blank plus targetLanguage.',
+    '- sentence_reorder — syntax, chronology, process steps. Tokens shuffled into the correct order.',
+    '- equation — math input; the grader evaluates algebraic equivalence via mathjs.',
     'Each question must have a clear `correctExplanation` and `wrongExplanation` so learners get useful feedback.',
     isFinalExam
       ? 'Span the WHOLE path — pull questions from every section, vary difficulty (about 1/3 recall, 1/3 application, 1/3 synthesis), and end with the hardest items.'
       : 'Stay strictly within the slot\'s topic hint.',
     '',
-    'Reminder on payload shape — server validation rejects drift:',
-    '- mc options are plain strings, correctness is on the top-level `correctIndex`. Example payload: {"options":["A","B","C","D"],"correctIndex":2}.',
-    '- fill_blank wraps answers inside `blank`: {"blank":{"acceptableAnswers":["answer1","answer2"]}}.',
-    '- word_bank requires `template` + `slots` + `wordBank` together; do not omit any.',
+    'Payload shapes — the server rejects drift, so match these exactly:',
+    '- mc → {"options":["A","B","C","D"],"correctIndex":0..3}. Plain strings only; no {text,isCorrect} objects.',
+    '- fill_blank → {"blank":{"acceptableAnswers":["answer","alt-spelling"]}}. Provide 2–4 acceptable variants.',
+    '- word_bank → {"template":"... {{0}} ... {{1}} ...","slots":[{"correctAnswer":"x"},…],"wordBank":["x","y","distractor"]}. All three keys required; include 2–4 distractor tokens.',
+    '- match_pairs → {"pairs":[{"left":"X","right":"Y"}]}. Keys are exactly `left` and `right`.',
+    '- translation → {"targetLanguage":"Spanish","blank":{"acceptableAnswers":["el libro rojo"]}}.',
+    '- sentence_reorder → {"correctOrder":["I","want","to","learn"]}. 2–12 tokens.',
+    '- equation → {"expectedExpression":"2*x + 3","variables":["x"],"tolerance":0.001}. Set `variables` when the expression contains them.',
   ];
   if (ctx.slotKind === 'assessment') {
     lines.push(
