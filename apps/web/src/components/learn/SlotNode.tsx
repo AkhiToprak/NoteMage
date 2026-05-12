@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { CheckpointIcon } from '@/components/icons/CheckpointIcons';
 import type { PathSlot } from '@/components/learn/PathView';
 
 // Phase 10.5 — Duolingo-style slot node. Rounded square with a flat
@@ -23,12 +23,6 @@ interface SlotNodeProps {
   onClick: () => void;
 }
 
-const SLOT_ICONS: Record<string, string> = {
-  learning: 'auto_stories',
-  review: 'replay',
-  assessment: 'quiz',
-};
-
 const SIZE = 96;
 const RING_SIZE = SIZE + 16;
 const RING_STROKE = 6;
@@ -46,7 +40,6 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
   const isLocked = state === 'locked';
   const isCompleted = state === 'completed';
   const isActive = state === 'active';
-  const icon = SLOT_ICONS[slot.kind] ?? 'school';
   const { done, total, ratio } = activityCompletion(slot);
 
   // Background / border / icon color for each state. Always tokenized so
@@ -191,23 +184,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             // transition-all per CLAUDE.md).
           }}
         >
-          {isLocked ? (
-            <Image
-              src="/mascot/hide-behind-hat-v2.png"
-              alt=""
-              width={Math.round(SIZE * 0.7)}
-              height={Math.round(SIZE * 0.7)}
-              style={{ opacity: 0.85, pointerEvents: 'none' }}
-            />
-          ) : (
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '40px', color: iconColor, lineHeight: 1 }}
-              aria-hidden
-            >
-              {isCompleted ? 'check' : icon}
-            </span>
-          )}
+          <CheckpointIcon kind={slot.kind} size={52} color={iconColor} />
 
           {/* Completed badge — small check pill in the top-right corner
               so the user knows the slot is done at a glance. */}
