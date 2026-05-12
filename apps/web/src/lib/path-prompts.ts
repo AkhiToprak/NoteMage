@@ -160,7 +160,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     'Payload shapes — the server rejects drift, so match these exactly:',
     '- mc → {"options":["A","B","C","D"],"correctIndex":0..3}. Plain strings only; no {text,isCorrect} objects.',
     '- true_false → {"correct": true|false}. The prompt itself is the statement to judge; payload only carries the answer key.',
-    '- fill_blank → {"blank":{"acceptableAnswers":["answer","alt-spelling"]}}. Provide 2–4 acceptable variants.',
+    '- fill_blank → {"blank":{"acceptableAnswers":["answer","alt-spelling"]}}. Provide 2–4 acceptable variants. In the `prompt`, mark the blank with a run of plain underscores (e.g. "In 1894, France and ____ formed an alliance"). NEVER use placeholder syntax like "{{BLANK}}", "{BLANK}", or "[BLANK]" — the learner will see it literally.',
     '- word_bank → {"template":"... {{0}} ... {{1}} ...","slots":[{"correctAnswer":"x"},…],"wordBank":["x","y","distractor"]}. All three keys required; include 2–4 distractor tokens.',
     '- match_pairs → {"pairs":[{"left":"X","right":"Y"}]}. Keys are exactly `left` and `right`.',
     '- translation → {"targetLanguage":"Spanish","blank":{"acceptableAnswers":["el libro rojo"]}}.',

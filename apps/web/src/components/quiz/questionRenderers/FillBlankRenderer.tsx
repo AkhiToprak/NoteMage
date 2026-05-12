@@ -5,6 +5,7 @@ import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { FillBlankPayload } from '@notemage/shared';
 import { fuzzyMatch } from '@/lib/quiz-grading';
+import { substituteBlankMarker } from './blankPlaceholder';
 import type { QuestionProps } from './types';
 
 export default function FillBlankRenderer({
@@ -74,7 +75,7 @@ export default function FillBlankRenderer({
         }}
       >
         <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
+          <MarkdownRenderer content={substituteBlankMarker(question.question)} />
         </div>
       </div>
 
