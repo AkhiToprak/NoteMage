@@ -21,6 +21,7 @@ import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { WordBankPayload } from '@notemage/shared';
 import { substituteBlankMarker } from './blankPlaceholder';
+import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps } from './types';
 
 // Stable per-token ids so duplicate words (e.g. "the" appearing twice) move
@@ -31,18 +32,6 @@ interface Token {
 }
 
 const BANK_ZONE_ID = 'word-bank-zone';
-
-function shuffleByKey<T>(items: T[], key: string): T[] {
-  const arr = items.map((item, i) => ({ item, sort: hash(`${key}:${i}`) }));
-  arr.sort((a, b) => a.sort - b.sort);
-  return arr.map((x) => x.item);
-}
-
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
-}
 
 // Parse `{{0}}`, `{{1}}` ... markers into a sequence of segments. Odd-indexed
 // entries (after a regex match) are slot indices; even ones are literal text.
@@ -119,15 +108,18 @@ export default function WordBankRenderer({
       ? reviewSlots
       : slotIds.map((id) => (id !== null ? tokenById.get(id)?.text ?? null : null));
 
-  const submitAnswer = (nextSlots: (string | null)[]) => {
-    const slotAnswers = nextSlots.map((id) => (id !== null ? tokenById.get(id)?.text ?? null : null));
+  // Commit the current slot layout as the learner's answer. Triggered
+  // ONLY by the explicit Submit button — dragging tokens around the
+  // template is free-play until the learner is happy with the layout.
+  const submitAnswer = () => {
+    if (isAnswered || mode === 'review') return;
+    const slotAnswers = slotIds.map((id) => (id !== null ? tokenById.get(id)?.text ?? null : null));
     onSelectAnswer({ kind: 'word_bank', slotAnswers });
   };
 
   const commitState = (nextBank: string[], nextSlots: (string | null)[]) => {
     setBankIds(nextBank);
     setSlotIds(nextSlots);
-    submitAnswer(nextSlots);
   };
 
   const handleDragStart = (e: DragStartEvent) => {
@@ -137,7 +129,7 @@ export default function WordBankRenderer({
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveDragId(null);
-    if (mode !== 'quiz') return;
+    if (mode !== 'quiz' || isAnswered) return;
     if (!e.over) return;
 
     const activeId = String(e.active.id);
@@ -183,12 +175,12 @@ export default function WordBankRenderer({
   // Tap-fallback flow: tap a token → select; tap a slot → place; tap a
   // placed token → return to bank.
   const handleTokenTap = (id: string) => {
-    if (mode !== 'quiz') return;
+    if (mode !== 'quiz' || isAnswered) return;
     setTappedTokenId(tappedTokenId === id ? null : id);
   };
 
   const handleSlotTap = (slotIdx: number) => {
-    if (mode !== 'quiz') return;
+    if (mode !== 'quiz' || isAnswered) return;
     const occupant = slotIds[slotIdx];
     if (occupant) {
       // Return to bank.
@@ -220,8 +212,7 @@ export default function WordBankRenderer({
 
   const slotsFilled = slotIds.every((id) => id !== null);
   const showResults =
-    mode === 'review' ||
-    (currentAnswer?.kind === 'word_bank' && slotsFilled);
+    mode === 'review' || (isAnswered && currentAnswer?.kind === 'word_bank');
 
   const slotCorrectness = useMemo(() => {
     if (!payload) return null;
@@ -294,7 +285,7 @@ export default function WordBankRenderer({
                 tokenId={tokenId}
                 onTap={() => handleSlotTap(seg.index)}
                 showResult={showResults ? correct : null}
-                disabled={mode === 'review'}
+                disabled={mode === 'review' || isAnswered}
                 tapModeHint={tappedTokenId !== null}
               />
             );
@@ -302,7 +293,7 @@ export default function WordBankRenderer({
         </div>
 
         {/* Word bank */}
-        <BankZone disabled={mode === 'review'}>
+        <BankZone disabled={mode === 'review' || isAnswered}>
           {bankIds.map((id) => {
             const token = tokenById.get(id);
             if (!token) return null;
@@ -311,7 +302,7 @@ export default function WordBankRenderer({
                 key={id}
                 id={id}
                 text={token.text}
-                disabled={mode === 'review'}
+                disabled={mode === 'review' || isAnswered}
                 tapped={tappedTokenId === id}
                 onTap={() => handleTokenTap(id)}
               />
@@ -341,6 +332,30 @@ export default function WordBankRenderer({
             : null}
         </DragOverlay>
       </DndContext>
+
+      {!isAnswered && mode === 'quiz' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+          <button
+            onClick={submitAnswer}
+            disabled={!slotsFilled}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: slotsFilled ? '#8c52ff' : 'rgba(140,82,255,0.18)',
+              color: slotsFilled ? 'var(--on-surface)' : 'rgba(237,233,255,0.4)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: slotsFilled ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              boxShadow: slotsFilled ? '0 4px 16px rgba(140,82,255,0.25)' : 'none',
+              transition: 'background 0.15s, box-shadow 0.15s',
+            }}
+          >
+            Submit answer
+          </button>
+        </div>
+      )}
 
       {question.hint && !isAnswered && mode === 'quiz' && (
         <button

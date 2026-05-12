@@ -20,23 +20,12 @@ import {
 import { CheckCircle2, Lightbulb, XCircle, ArrowDownUp } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { SentenceReorderPayload } from '@notemage/shared';
+import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps } from './types';
 
 interface Token {
   id: string;
   text: string;
-}
-
-function shuffleByKey<T>(items: T[], key: string): T[] {
-  const arr = items.map((item, i) => ({ item, sort: hash(`${key}:${i}`) }));
-  arr.sort((a, b) => a.sort - b.sort);
-  return arr.map((x) => x.item);
-}
-
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
 }
 
 export default function SentenceReorderRenderer({
@@ -61,10 +50,18 @@ export default function SentenceReorderRenderer({
   }, [payload, correctOrder]);
 
   // QuizViewer keys this component by question.id, so navigation between
-  // questions unmounts/remounts — no manual reset needed.
-  const [order, setOrder] = useState<string[]>(() =>
-    shuffleByKey(initialTokens.map((t) => t.id), question.id)
-  );
+  // questions unmounts/remounts — no manual reset needed. Shuffle is
+  // re-rolled with a salted key in the rare case the first roll matches
+  // the source order (would leave the puzzle pre-solved).
+  const [order, setOrder] = useState<string[]>(() => {
+    const ids = initialTokens.map((t) => t.id);
+    if (ids.length <= 1) return ids;
+    let shuffled = shuffleByKey(ids, question.id);
+    for (let attempt = 1; attempt < 6 && shuffled.every((id, i) => id === ids[i]); attempt += 1) {
+      shuffled = shuffleByKey(ids, `${question.id}#${attempt}`);
+    }
+    return shuffled;
+  });
   const [tappedTokenId, setTappedTokenId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
@@ -88,12 +85,17 @@ export default function SentenceReorderRenderer({
   const effectiveOrder: string[] =
     reviewOrder !== null ? reviewOrder : order.map((id) => tokenById.get(id)?.text ?? '');
 
-  const submit = (newOrder: string[]) => {
-    const orderedTokens = newOrder.map((id) => tokenById.get(id)?.text ?? '');
+  // Commit the current local order as the learner's answer. Triggered
+  // ONLY by the explicit Submit button — dragging is free-play until
+  // the learner is happy with the arrangement.
+  const submit = () => {
+    if (isAnswered || mode === 'review') return;
+    const orderedTokens = order.map((id) => tokenById.get(id)?.text ?? '');
     onSelectAnswer({ kind: 'sentence_reorder', orderedTokens });
   };
 
   const moveToken = (sourceId: string, destIdx: number) => {
+    if (isAnswered || mode === 'review') return;
     const sourceIdx = order.indexOf(sourceId);
     if (sourceIdx < 0) return;
     const next = [...order];
@@ -101,7 +103,6 @@ export default function SentenceReorderRenderer({
     const adjustedDest = destIdx > sourceIdx ? destIdx - 1 : destIdx;
     next.splice(adjustedDest, 0, sourceId);
     setOrder(next);
-    submit(next);
   };
 
   const handleDragStart = (e: DragStartEvent) => {
@@ -122,7 +123,7 @@ export default function SentenceReorderRenderer({
   };
 
   const handleTokenTap = (id: string) => {
-    if (mode !== 'quiz') return;
+    if (mode !== 'quiz' || isAnswered) return;
     if (tappedTokenId === id) {
       setTappedTokenId(null);
       return;
@@ -131,14 +132,14 @@ export default function SentenceReorderRenderer({
       setTappedTokenId(id);
       return;
     }
-    // Two tokens tapped: swap their positions.
+    // Two tokens tapped: swap their positions. No auto-submit — the
+    // learner must press the Submit button to lock in their answer.
     const next = [...order];
     const a = next.indexOf(tappedTokenId);
     const b = next.indexOf(id);
     if (a >= 0 && b >= 0) {
       [next[a], next[b]] = [next[b], next[a]];
       setOrder(next);
-      submit(next);
     }
     setTappedTokenId(null);
   };
@@ -220,11 +221,11 @@ export default function SentenceReorderRenderer({
               : null;
             return (
               <span key={`g-${id}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                <DropZone idx={i} disabled={mode === 'review'} />
+                <DropZone idx={i} disabled={mode === 'review' || isAnswered} />
                 <ReorderToken
                   id={id}
                   text={token.text}
-                  disabled={mode === 'review'}
+                  disabled={mode === 'review' || isAnswered}
                   tapped={tappedTokenId === id}
                   onTap={() => handleTokenTap(id)}
                   showResult={correctAtIdx}
@@ -232,7 +233,7 @@ export default function SentenceReorderRenderer({
               </span>
             );
           })}
-          <DropZone idx={order.length} disabled={mode === 'review'} />
+          <DropZone idx={order.length} disabled={mode === 'review' || isAnswered} />
         </div>
 
         <DragOverlay>
@@ -245,6 +246,29 @@ export default function SentenceReorderRenderer({
             : null}
         </DragOverlay>
       </DndContext>
+
+      {!isAnswered && mode === 'quiz' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <button
+            onClick={submit}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: '#8c52ff',
+              color: 'var(--on-surface)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: '0 4px 16px rgba(140,82,255,0.25)',
+              transition: 'background 0.15s, box-shadow 0.15s',
+            }}
+          >
+            Submit answer
+          </button>
+        </div>
+      )}
 
       {question.hint && !isAnswered && mode === 'quiz' && (
         <button
