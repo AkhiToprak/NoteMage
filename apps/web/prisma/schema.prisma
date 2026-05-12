@@ -704,6 +704,12 @@ model CheckpointSlot {
   prerequisiteSlotIds String[] @default([])
   // 0–3 stars, awarded by the slot's assessment activity (Phase 10.6).
   starsEarned         Int      @default(0)
+  // Best percentage ever achieved on this slot's assessment. Updated by the
+  // POST /api/learn/slots/[slotId]/assessment route on every attempt
+  // (max-merge with prior value). Null if the slot has never been attempted.
+  // Drives the letter-grade chip in PathView; pre-grading-feature rows stay
+  // null and the renderer falls back to a star-derived coarser grade.
+  bestPercentage      Float?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

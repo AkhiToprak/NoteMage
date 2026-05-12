@@ -98,11 +98,16 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
       });
       // Star count on the slot is the BEST of all attempts. We only
-      // need to bump it forward, never down.
-      if (stars > slot.starsEarned) {
+      // need to bump it forward, never down. Same goes for bestPercentage
+      // — drives the letter-grade chip; max-merge with prior value.
+      const slotUpdate: { starsEarned?: number; bestPercentage?: number } = {};
+      if (stars > slot.starsEarned) slotUpdate.starsEarned = stars;
+      const priorBest = slot.bestPercentage ?? 0;
+      if (percentage > priorBest) slotUpdate.bestPercentage = percentage;
+      if (Object.keys(slotUpdate).length > 0) {
         await tx.checkpointSlot.update({
           where: { id: slotId },
-          data: { starsEarned: stars },
+          data: slotUpdate,
         });
       }
       // Pass (≥ 1 star) marks the quiz activity completed. Fails leave
