@@ -35,6 +35,12 @@ function resolveActiveTab(pathname: string): LearnTab['slug'] | null {
 export default function LearnLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
   const activeSlug = resolveActiveTab(pathname);
+  // The /learn index is now a dashboard with section cards for every
+  // surface — the tab strip would be redundant there. Hide on the
+  // index, show on sub-pages so power users can still jump between
+  // Paths / Flashcards / Quizzes / Chats without bouncing back to the
+  // dashboard.
+  const isLearnIndex = pathname === '/learn';
 
   // Phase 9.6 — fire `learn.tab_view` once per tab transition. Keying the
   // effect on the resolved slug (not the raw pathname) avoids re-firing as
@@ -54,27 +60,29 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
         width: '100%',
       }}
     >
-      <nav
-        aria-label="Learn sections"
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'stretch',
-          gap: '4px',
-          padding: '0 16px',
-          background: 'var(--surface-container-low)',
-          borderBottom: '1px solid var(--outline-variant)',
-          overflowX: 'auto',
-        }}
-      >
-        {TABS.map((tab) => {
-          const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-          return <TabLink key={tab.href} tab={tab} isActive={isActive} />;
-        })}
-      </nav>
+      {!isLearnIndex ? (
+        <nav
+          aria-label="Learn sections"
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'stretch',
+            gap: '4px',
+            padding: '0 16px',
+            background: 'var(--surface-container-low)',
+            borderBottom: '1px solid var(--outline-variant)',
+            overflowX: 'auto',
+          }}
+        >
+          {TABS.map((tab) => {
+            const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+            return <TabLink key={tab.href} tab={tab} isActive={isActive} />;
+          })}
+        </nav>
+      ) : null}
 
       <div
         style={{

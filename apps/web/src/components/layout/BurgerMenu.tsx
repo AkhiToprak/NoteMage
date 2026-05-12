@@ -42,6 +42,9 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     icon: (color) => <DashboardIcon size={22} color={color} />,
   },
+  // /learn is the learning dashboard — paths, notebooks, flashcards,
+  // and quizzes surfaced together as a single jump-off page.
+  { href: '/learn', label: 'Learn', icon: 'school' },
   {
     href: '/notebooks',
     label: 'Notebooks',
