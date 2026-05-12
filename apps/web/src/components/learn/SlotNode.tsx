@@ -24,10 +24,20 @@ interface SlotNodeProps {
 }
 
 const SIZE = 96;
-const RING_SIZE = SIZE + 16;
+const BUTTON_RADIUS = 28;
+// Ring is a rounded rect that traces the button shape, sitting `RING_PAD`
+// px outside the button on every side. Matching the button shape avoids
+// the visual mismatch a plain circle creates when set behind a
+// rounded-square button (the circle only peeks out at the left/right).
+const RING_PAD = 10;
+const RING_SIZE = SIZE + RING_PAD * 2;
 const RING_STROKE = 6;
-const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
-const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+const RING_INNER = RING_SIZE - RING_STROKE;
+// Path lies along the stroke center, so the corner radius shrinks by
+// half the stroke width.
+const RING_CORNER_R = BUTTON_RADIUS + RING_PAD - RING_STROKE / 2;
+const RING_PERIMETER =
+  4 * (RING_INNER - 2 * RING_CORNER_R) + 2 * Math.PI * RING_CORNER_R;
 
 function activityCompletion(slot: PathSlot): { done: number; total: number; ratio: number } {
   const total = slot.activities.length;
@@ -128,25 +138,28 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
               pointerEvents: 'none',
             }}
           >
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RING_RADIUS}
+            <rect
+              x={RING_STROKE / 2}
+              y={RING_STROKE / 2}
+              width={RING_INNER}
+              height={RING_INNER}
+              rx={RING_CORNER_R}
               fill="none"
               stroke="var(--outline-variant)"
               strokeWidth={RING_STROKE}
             />
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RING_RADIUS}
+            <rect
+              x={RING_STROKE / 2}
+              y={RING_STROKE / 2}
+              width={RING_INNER}
+              height={RING_INNER}
+              rx={RING_CORNER_R}
               fill="none"
               stroke="var(--primary)"
               strokeWidth={RING_STROKE}
               strokeLinecap="round"
-              strokeDasharray={RING_CIRC}
-              strokeDashoffset={RING_CIRC * (1 - ratio)}
-              transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+              strokeDasharray={RING_PERIMETER}
+              strokeDashoffset={RING_PERIMETER * (1 - ratio)}
               style={{
                 transition: 'stroke-dashoffset 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
               }}
