@@ -3,8 +3,13 @@
 import { Suspense, useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PathView, { type PathPlan, type PathSlot } from '@/components/learn/PathView';
+import PathView, {
+  type PathActivity,
+  type PathPlan,
+  type PathSlot,
+} from '@/components/learn/PathView';
 import CheckpointDrawer from '@/components/learn/CheckpointDrawer';
+import CheckpointFlashcardViewer from '@/components/learn/CheckpointFlashcardViewer';
 
 // Phase 10.6 — path detail page.
 //
@@ -90,6 +95,11 @@ function PathDetailInner({ planId }: { planId: string }) {
     return null;
   })();
 
+  const activeActivity: PathActivity | null =
+    openSlot && activityId
+      ? (openSlot.activities.find((a) => a.id === activityId) ?? null)
+      : null;
+
   const setUrlSlot = useCallback(
     (next: { slot?: string | null; activity?: string | null }) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -164,7 +174,18 @@ function PathDetailInner({ planId }: { planId: string }) {
         <PathView plan={plan} onSlotClick={handleSlotClick} />
       </div>
 
-      {openSlot ? (
+      {openSlot && activeActivity?.kind === 'flashcards' ? (
+        <CheckpointFlashcardViewer
+          key={activeActivity.id}
+          slot={openSlot}
+          activity={activeActivity}
+          onClose={() => setUrlSlot({ activity: null })}
+          onCompleted={() => {
+            handleSlotChanged();
+            setUrlSlot({ activity: null });
+          }}
+        />
+      ) : openSlot ? (
         <CheckpointDrawer
           slot={openSlot}
           activityId={activityId}

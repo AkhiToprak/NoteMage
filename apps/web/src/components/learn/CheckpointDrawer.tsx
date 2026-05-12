@@ -1,43 +1,25 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import FlashcardViewer from '@/components/notebook/FlashcardViewer';
 import QuizViewer from '@/components/notebook/QuizViewer';
 import TheoryViewer from '@/components/learn/TheoryViewer';
 import ActivityList from '@/components/learn/ActivityList';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { trackEvent } from '@/lib/telemetry';
 
-// Phase 10.6 — checkpoint drawer.
-//
 // Slide-in sheet (right edge on desktop, bottom on mobile) that hosts
-// one slot's activities. URL state is owned by the parent page:
-//   ?slot=<slotId>&activity=<activityId>
-// The drawer renders an ActivityList when no `activityId` is set and
-// switches to the matching viewer (TheoryViewer / FlashcardViewer /
-// QuizViewer) when one is. Completion callbacks PATCH /api/learn/
-// activities/[id] (or POST /assessment for assessment slots), then
-// surface the updated slot to the parent so PathView's completion
-// ring / star counts refresh without a full reload.
+// one slot's theory + quiz activities. URL state is owned by the parent
+// page: ?slot=<slotId>&activity=<activityId>. Flashcards activities are
+// rendered separately by CheckpointFlashcardViewer (full-screen) — the
+// parent page picks which surface to mount based on activity.kind.
+// Completion callbacks PATCH /api/learn/activities/[id] (or POST
+// /assessment for assessment slots), then surface the updated slot to
+// the parent so PathView's completion ring / star counts refresh
+// without a full reload.
 
 interface TheoryContentPayload {
   kind: 'theory';
   theory: { id: string; title: string; body: unknown };
-}
-interface FlashcardSetPayload {
-  kind: 'flashcards';
-  flashcardSet: {
-    id: string;
-    notebookId: string | null;
-    title: string;
-    // Cards come straight from Prisma's Flashcard rows.
-    cards: Array<{
-      id: string;
-      question: string;
-      answer: string;
-      sortOrder: number;
-    }>;
-  };
 }
 interface QuizSetPayload {
   kind: 'quiz';
@@ -59,7 +41,7 @@ interface QuizSetPayload {
     }>;
   };
 }
-type ActivityContent = TheoryContentPayload | FlashcardSetPayload | QuizSetPayload;
+type ActivityContent = TheoryContentPayload | QuizSetPayload;
 
 interface CheckpointDrawerProps {
   slot: PathSlot;
@@ -428,7 +410,6 @@ export default function CheckpointDrawer({
                   void completeActivity(activeActivity.id);
                 }
               }}
-              onFlashcardsComplete={() => completeActivity(activeActivity.id)}
             />
           )}
         </div>
@@ -452,7 +433,6 @@ interface ActivityBodyProps {
     total: number;
     percentage: number;
   }) => void;
-  onFlashcardsComplete: () => void;
 }
 
 function ActivityBody({
@@ -464,7 +444,6 @@ function ActivityBody({
   onBackToList,
   onMarkComplete,
   onQuizComplete,
-  onFlashcardsComplete,
 }: ActivityBodyProps) {
   if (content.kind === 'theory' && activity.kind === 'theory') {
     return (
@@ -495,29 +474,6 @@ function ActivityBody({
             {activity.completed ? 'Done ✓' : 'Mark as read & continue →'}
           </button>
         </div>
-      </div>
-    );
-  }
-
-  if (content.kind === 'flashcards' && activity.kind === 'flashcards') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {content.flashcardSet.notebookId ? (
-          <FlashcardViewer
-            notebookId={content.flashcardSet.notebookId}
-            setId={content.flashcardSet.id}
-            title={content.flashcardSet.title}
-            initialCards={content.flashcardSet.cards}
-            onComplete={onFlashcardsComplete}
-          />
-        ) : (
-          <p style={{ color: 'var(--error)', fontSize: '14px' }}>
-            This flashcard set isn&apos;t linked to a notebook yet.
-          </p>
-        )}
-        <button type="button" onClick={onBackToList} style={ghostBtnStyle}>
-          ← Back to activities
-        </button>
       </div>
     );
   }
