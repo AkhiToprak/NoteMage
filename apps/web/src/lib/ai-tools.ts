@@ -149,6 +149,66 @@ export interface StudyPlanToolInput {
   }[];
 }
 
+// ── Phase 10.2 — Path generation tool inputs ────────────────────────
+//
+// The new "Duolingo-style" path generator produces a path in two stages:
+//   Stage A (`create_path_structure`): one AI call returns the section /
+//     slot skeleton. Slots specify kind + topicHint but no content.
+//   Stage B (three tools): per-slot calls fill the activities. Content is
+//     written directly to TheoryContent / FlashcardSet / QuizSet rows by
+//     the orchestrator (`apps/web/src/lib/path-generator.ts`).
+
+export type PathSlotKind = 'learning' | 'review' | 'assessment';
+
+export interface PathStructureSlot {
+  title: string;
+  kind: PathSlotKind;
+  // Short hint describing what the slot should teach. The orchestrator
+  // passes this back to the Stage B AI calls so each activity has clear
+  // focus. Persisted on `CheckpointSlot.description`.
+  topicHint: string;
+}
+
+export interface PathStructurePhase {
+  title: string;
+  description: string;
+  slots: PathStructureSlot[];
+}
+
+export interface PathStructureToolInput {
+  title: string;
+  description: string;
+  phases: PathStructurePhase[];
+}
+
+// Stage B: theory. Output is a small structured shape that the
+// orchestrator converts to a TipTap document JSON before persisting.
+// Keeping the AI surface declarative rather than free-form JSON avoids
+// malformed TipTap docs that the read-only viewer can't render.
+export interface TheorySectionToolInput {
+  title: string;
+  introduction: string;
+  keyPoints: string[];
+  examples: { label: string; explanation: string }[];
+  summary?: string;
+}
+
+// Stage B: flashcards for a slot. Identical shape to FLASHCARD_TOOL — the
+// distinction is the descriptive prompt + name so the AI knows to keep
+// the cards tightly scoped to the slot's topic.
+export interface FlashcardsForSlotToolInput {
+  title: string;
+  flashcards: { question: string; answer: string }[];
+}
+
+// Stage B: quiz for a slot. Reuses the kind-aware v2 shape — the
+// orchestrator passes the v2 question types through `buildLegacyColumns`
+// when persisting.
+export interface QuizForSlotToolInput {
+  title: string;
+  questions: QuizToolV2Question[];
+}
+
 // ── Tool definitions ──
 
 export const FLASHCARD_TOOL: Anthropic.Messages.Tool = {
@@ -527,6 +587,196 @@ export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
     },
     required: ['search_query'],
   },
+};
+
+// ── Phase 10.2 — Path generator tools ──────────────────────────────────
+//
+// These are intentionally NOT included in `ALL_TOOLS` (the chat surface).
+// They're driven by `path-generator.ts` with `tool_choice: { type: 'tool',
+// name }` so the AI is forced into a single structured output.
+
+export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
+  name: 'create_path_structure',
+  description: [
+    'Design the section / slot skeleton for a Duolingo-style learning path.',
+    'Output the curriculum spine ONLY — title, description, and a list of phases ("sections") where each phase contains 4–6 slots ("checkpoints").',
+    'Each slot has a short title, a "kind" (learning | review | assessment), and a "topicHint" that briefly describes what the slot should teach.',
+    'Rules for slot kinds:',
+    '- Early phases: mostly "learning" slots.',
+    '- Middle phases: mix "learning" with one "review" slot per phase.',
+    '- The LAST slot of every phase MUST be "assessment" (it becomes the checkpoint quiz).',
+    'Do not generate any actual lesson text, flashcards, or quiz questions here — the orchestrator fills those in per-slot via separate tools.',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      title: {
+        type: 'string',
+        description: 'A short, descriptive title for the path (e.g. "Intro to Spanish Verbs").',
+      },
+      description: {
+        type: 'string',
+        description: 'A brief description (1–2 sentences) of the path goals.',
+      },
+      phases: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description: 'Section title (e.g. "Section 1: Present Tense").',
+            },
+            description: {
+              type: 'string',
+              description: 'What the learner masters in this section.',
+            },
+            slots: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'string',
+                    description:
+                      'One-line slot title shown on the path node (e.g. "Regular -ar verbs").',
+                  },
+                  kind: {
+                    type: 'string',
+                    enum: ['learning', 'review', 'assessment'],
+                    description:
+                      'Slot kind. The LAST slot of every section MUST be "assessment".',
+                  },
+                  topicHint: {
+                    type: 'string',
+                    description:
+                      'Short hint (1–2 sentences) telling the content generator what to teach. Becomes the slot description.',
+                  },
+                },
+                required: ['title', 'kind', 'topicHint'],
+              },
+              description: '4–6 slots per section. Last slot kind MUST be "assessment".',
+              minItems: 2,
+              maxItems: 8,
+            },
+          },
+          required: ['title', 'description', 'slots'],
+        },
+        description: '3–6 sequential phases ("sections") of the path.',
+        minItems: 1,
+        maxItems: 10,
+      },
+    },
+    required: ['title', 'description', 'phases'],
+  },
+};
+
+export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
+  name: 'create_theory_section',
+  description: [
+    'Generate a compact theory section for one checkpoint slot.',
+    'Target ~300–500 words total. Keep the language warm, plain, and example-driven (Duolingo-style).',
+    'Output:',
+    '- title: the heading shown above the section.',
+    '- introduction: 1–2 paragraphs that set up the concept.',
+    '- keyPoints: 3–6 short bullets the learner should remember.',
+    '- examples: 2–3 concrete examples, each with a 1-phrase label and a 1–2 sentence explanation.',
+    '- summary (optional): a 1-paragraph wrap-up.',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      title: {
+        type: 'string',
+        description: 'Heading for the theory section. Reuse or refine the slot title.',
+      },
+      introduction: {
+        type: 'string',
+        description: '1–2 paragraphs introducing the concept. Plain prose, no markdown.',
+      },
+      keyPoints: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '3–6 short bullet points capturing the must-remember ideas.',
+        minItems: 2,
+        maxItems: 8,
+      },
+      examples: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', description: 'Short label for the example (e.g. "Example: -ar verbs").' },
+            explanation: {
+              type: 'string',
+              description: '1–2 sentence explanation that demonstrates the concept.',
+            },
+          },
+          required: ['label', 'explanation'],
+        },
+        description: '1–3 worked examples.',
+        minItems: 1,
+        maxItems: 4,
+      },
+      summary: {
+        type: 'string',
+        description: 'Optional closing paragraph. Skip if the section is already self-contained.',
+      },
+    },
+    required: ['title', 'introduction', 'keyPoints', 'examples'],
+  },
+};
+
+export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
+  name: 'create_flashcards_for_slot',
+  description: [
+    'Create 8–12 flashcards covering one checkpoint slot\'s topic.',
+    'Each card is a tight question/answer pair. Vary the angles: definitions, recall prompts, "fill in the missing word", and one or two "explain why" cards.',
+    'Stay strictly within the slot\'s topicHint — do NOT drift into adjacent topics.',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      title: {
+        type: 'string',
+        description: 'Title for the set (use the slot title).',
+      },
+      flashcards: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            question: {
+              type: 'string',
+              description: 'Front of the card. A direct question, prompt, or fill-in.',
+            },
+            answer: {
+              type: 'string',
+              description:
+                'Back of the card. Keep it focused — 1–3 sentences or a short list.',
+            },
+          },
+          required: ['question', 'answer'],
+        },
+        minItems: 6,
+        maxItems: 16,
+      },
+    },
+    required: ['title', 'flashcards'],
+  },
+};
+
+export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
+  name: 'create_quiz_for_slot',
+  description: [
+    'Create a 5–8 question quiz that tests one checkpoint slot.',
+    'Mix at least two question kinds when the content allows — e.g. mc + fill_blank, or mc + match_pairs.',
+    'See `create_quiz_v2` for the supported kinds and their payload shapes. Same rules apply here.',
+    'Avoid all-MC unless the material is purely factual recall.',
+  ].join('\n'),
+  // The schema mirrors QUIZ_TOOL_V2; the inputs are validated post-hoc
+  // with `QuizSetV2Schema` exactly like the chat-driven quiz tool.
+  input_schema: QUIZ_TOOL_V2.input_schema,
 };
 
 export const ALL_TOOLS = [

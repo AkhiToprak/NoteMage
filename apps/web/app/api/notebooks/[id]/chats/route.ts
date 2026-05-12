@@ -115,10 +115,12 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const chat = await db.notebookChat.create({
       data: {
+        userId,
         notebookId,
         title: title.trim(),
         contextPageIds,
         contextDocIds,
+        contextNotebookIds: [notebookId],
       },
     });
 

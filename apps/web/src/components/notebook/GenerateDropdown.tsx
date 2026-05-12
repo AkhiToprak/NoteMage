@@ -2,10 +2,21 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
+import {
+  Sparkles,
+  BookOpen,
+  ClipboardCheck,
+  Network,
+  Loader2,
+  SpellCheck,
+  MessageCircle,
+  GraduationCap,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAiTask } from './AiTaskContext';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
+import CreateChatModal from '@/components/learn/CreateChatModal';
+import LearnPathSetup from '@/components/learn/LearnPathSetup';
 
 interface GenerateDropdownProps {
   notebookId: string;
@@ -39,6 +50,8 @@ export default function GenerateDropdown({
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<GenerateType | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [pathModalOpen, setPathModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -48,7 +61,8 @@ export default function GenerateDropdown({
   const lastFireRef = useRef(0);
   const router = useRouter();
   const { startAiTask, finishAiTask } = useAiTask();
-  const { refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
+  const { notebook, refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
+  const notebookName = notebook?.name ?? 'this notebook';
 
   const fireOnce = useCallback((fn: () => void) => {
     if (Date.now() - lastFireRef.current < 600) return;
@@ -126,11 +140,11 @@ export default function GenerateDropdown({
         if (data.type === 'flashcards' && data.flashcardSet) {
           setOpen(false);
           refreshFlashcardSets();
-          router.push(`/notebooks/${notebookId}/flashcards/${data.flashcardSet.id}`);
+          router.push(`/learn/flashcards?highlight=${data.flashcardSet.id}`);
         } else if (data.type === 'quiz' && data.quizSet) {
           setOpen(false);
           refreshQuizSets();
-          router.push(`/notebooks/${notebookId}/quizzes/${data.quizSet.id}`);
+          router.push(`/learn/quizzes?highlight=${data.quizSet.id}`);
         } else if (data.type === 'mindmap' && data.mindmap) {
           setOpen(false);
           alert(`Mind map "${data.mindmap.title}" generated successfully!`);
@@ -287,6 +301,104 @@ export default function GenerateDropdown({
                 </button>
               );
             })}
+
+            {/* ── Divider + Learn hub shortcuts (Phase 9.5) ─────── */}
+            <div
+              style={{
+                height: '1px',
+                background: 'rgba(174,137,255,0.20)',
+                margin: '4px 8px',
+              }}
+            />
+            <button
+              type="button"
+              onPointerUp={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setChatModalOpen(true);
+                })
+              }
+              onClick={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setChatModalOpen(true);
+                })
+              }
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                minHeight: '40px',
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: loading ? 'var(--ink-30)' : 'var(--on-surface)',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.1s',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <MessageCircle size={14} style={{ flexShrink: 0 }} />
+              <span>Ask the mage about this page</span>
+            </button>
+            <button
+              type="button"
+              onPointerUp={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setPathModalOpen(true);
+                })
+              }
+              onClick={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setPathModalOpen(true);
+                })
+              }
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                minHeight: '40px',
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: loading ? 'var(--ink-30)' : 'var(--on-surface)',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.1s',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <GraduationCap size={14} style={{ flexShrink: 0 }} />
+              <span>Generate study path from this notebook</span>
+            </button>
+
             {onEssayCheck && (
               <>
                 <div
@@ -345,6 +457,24 @@ export default function GenerateDropdown({
           </div>,
           document.body
         )}
+      {chatModalOpen && (
+        <CreateChatModal
+          defaultNotebookId={notebookId}
+          defaultContextPageIds={[pageId]}
+          onClose={() => setChatModalOpen(false)}
+          onCreate={(chatId) => {
+            setChatModalOpen(false);
+            router.push(`/learn/chats/${chatId}`);
+          }}
+        />
+      )}
+      {pathModalOpen && (
+        <LearnPathSetup
+          defaultNotebookId={notebookId}
+          defaultNotebookName={notebookName}
+          onClose={() => setPathModalOpen(false)}
+        />
+      )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );

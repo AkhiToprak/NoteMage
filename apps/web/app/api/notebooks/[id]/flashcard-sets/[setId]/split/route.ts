@@ -82,6 +82,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       // Create the new set with same sectionId as original
       const newSet = await tx.flashcardSet.create({
         data: {
+          userId,
           notebookId,
           title: trimmedTitle,
           source: 'manual',

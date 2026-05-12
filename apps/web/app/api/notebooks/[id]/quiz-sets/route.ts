@@ -95,6 +95,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const set = await db.quizSet.create({
       data: {
+        userId,
         notebookId,
         title: title.trim(),
         sectionId: sectionId || null,

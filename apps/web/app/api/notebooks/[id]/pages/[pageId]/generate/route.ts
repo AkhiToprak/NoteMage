@@ -110,6 +110,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       if (title && Array.isArray(flashcards) && flashcards.length > 0) {
         const fSet = await db.flashcardSet.create({
           data: {
+            userId,
             notebookId,
             title,
             source: 'ai',
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
       const qSet = await db.quizSet.create({
         data: {
+          userId,
           notebookId,
           title,
           questions: {
@@ -210,6 +212,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
         const qSet = await db.quizSet.create({
           data: {
+            userId,
             notebookId,
             title,
             questions: {

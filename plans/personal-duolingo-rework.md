@@ -284,6 +284,7 @@ Royalty-free options: Freesound, Pixabay. Keep volume normalized to -14 LUFS.
 5. **Migration of existing MC quizzes** — default: rows stay in same table, get `kind='mc'`, `payload=null` for one release; backfilled to `payload` in Phase 7. Confirm or override.
    - **Recommendation:** keep default. Lets Phase 1 ship without a blocking backfill; legacy `options` + `correctIndex` reads keep working in the renderer registry until Phase 7 cleans them up.
 6. **Path scope** — one path per notebook (current StudyPlan model) or one global path per user merging all active plans? Default: per-notebook. Per-user is a bigger product call.
+   - **Decided 2026-05-12: cross-notebook, now.** `StudyPlan.notebookId` is nullable; a new `contextNotebookIds` array lets a single path draw materials from multiple notebooks. Implementation reference: [personal-duolingo-rework-phase-9.md](personal-duolingo-rework-phase-9.md).
    - **Recommendation:** keep default (per-notebook). Maps cleanly onto the existing `StudyPlan → Notebook` relation and ships fastest; per-user global is a real product question that fits a later phase.
 7. **Drag-drop lib** (from the second decision list) — default: `@dnd-kit/core`.
    - **Recommendation:** keep default. Touch support out of the box, ESM-clean, well-maintained — fits the word-bank renderer in Phase 2A and the desktop-mobile parity goal.
@@ -314,7 +315,7 @@ Total: 5 sequential bottlenecks (Phase 1 → 4 → 5 → 6 → 7). The wide work
 4. Audio: opt-in, off by default for v1.
 5. MC migration: ported in same table with `kind='mc'`. (Alt: separate `legacy_quiz_questions` table.)
 6. Drag-drop lib: `@dnd-kit/core` (touch-friendly, well-maintained). (Alt: native HTML5 drag with custom touch shim.)
-7. Path scope: per-notebook. (Alt: per-user global path.)
+7. Path scope: ~~per-notebook~~ — **Decided 2026-05-12: cross-notebook, now.** See Phase 9 plan and Decision Point #6 above.
 
 ---
 

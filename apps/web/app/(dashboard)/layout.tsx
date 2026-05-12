@@ -14,6 +14,8 @@ import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
 /** Matches /groups/<id> detail pages */
 const GROUP_DETAIL_RE = /^\/groups\/[^/]+/;
+/** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
+const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,7 +34,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useStudyHeartbeat(status === 'authenticated');
   const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
   const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
-  const isFullHeight = isNotebookWorkspace || isGroupDetail;
+  const isLearnChats = LEARN_CHATS_RE.test(pathname);
+  const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats;
 
   return (
     <TutorialProvider>

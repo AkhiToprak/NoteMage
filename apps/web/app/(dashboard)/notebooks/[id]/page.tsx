@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
-import CreateChatModal from '@/components/notebook/CreateChatModal';
+import CreateChatModal from '@/components/learn/CreateChatModal';
 import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
@@ -15,14 +15,6 @@ interface ExamItem {
   notebookId: string;
   notebookName: string;
   studyPlan?: { id: string };
-}
-
-interface SectionRef {
-  id: string;
-  title: string;
-  pages: { id: string; title: string }[];
-  children?: SectionRef[];
-  parentId?: string | null;
 }
 
 export default function NotebookDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -147,18 +139,6 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
       tutorialSkip();
     }
   };
-
-  // Build section tree for modal
-  const sectionTree: SectionRef[] = flatSections
-    .filter((s) => !s.parentId)
-    .map((s) => ({
-      id: s.id,
-      title: s.title,
-      pages: s.pages,
-      children: flatSections
-        .filter((c) => c.parentId === s.id)
-        .map((c) => ({ id: c.id, title: c.title, pages: c.pages })),
-    }));
 
   const hasPages = sectionsLoaded && flatSections.some((s) => s.pages.length > 0);
 
@@ -319,10 +299,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
         {/* Create chat modal */}
         {showCreateModal && (
           <CreateChatModal
-            notebookId={id}
-            notebookName={notebook?.name ?? ''}
-            sections={sectionTree}
-            documents={[]}
+            defaultNotebookId={id}
             onClose={handleCreateModalClose}
             onCreate={handleChatCreated}
           />

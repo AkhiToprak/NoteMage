@@ -198,6 +198,7 @@ async function saveFlashcardSet(
 
   const newSet = await db.flashcardSet.create({
     data: {
+      userId,
       notebookId,
       title: source.title,
       source: 'import',
@@ -244,6 +245,7 @@ async function saveQuizSet(
 
   const newSet = await db.quizSet.create({
     data: {
+      userId,
       notebookId,
       title: source.title,
       sectionId: targetSectionId || null,

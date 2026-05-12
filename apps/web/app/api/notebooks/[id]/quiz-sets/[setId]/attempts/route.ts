@@ -5,8 +5,6 @@ import { db } from '@/lib/db';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { grade } from '@/lib/quiz-grading';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
-import { isCheckpointMaterial } from '@/lib/path-gating';
-import { logTelemetry } from '@/lib/telemetry-server';
 import {
   successResponse,
   createdResponse,
@@ -15,6 +13,10 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+
+// Phase 10.1: removed the `?material=` + CheckpointAttempt side effects.
+// Path-launched quizzes will go through the new checkpoint drawer
+// (Phase 10.6), which submits to a dedicated assessment endpoint.
 
 interface AnswerSubmission {
   questionId: string;
@@ -57,13 +59,9 @@ export async function POST(
     if (!quizSet) return notFoundResponse('Quiz set not found');
 
     const body = await request.json();
-    const { answers, timeSpent, materialId } = body as {
+    const { answers, timeSpent } = body as {
       answers: AnswerSubmission[];
       timeSpent?: number;
-      // Phase 5 — when this quiz was launched from a Learn Path lesson node,
-      // the client passes the StudyMaterial id so the server can auto-complete
-      // the material on pass and log a CheckpointAttempt when applicable.
-      materialId?: string;
     };
 
     if (!answers || !Array.isArray(answers) || answers.length === 0) {
@@ -160,71 +158,9 @@ export async function POST(
       `);
     }
 
-    // Phase 5 — Learn Path side effects. Only fires when the client passes a
-    // materialId, which only happens for path-launched quizzes. Direct quiz
-    // access (no materialId) keeps the legacy behavior: attempt only, no
-    // material completion, no checkpoint row.
-    let materialCompleted = false;
-    let checkpointPassed: boolean | undefined;
-    if (materialId) {
-      const material = await db.studyMaterial.findFirst({
-        where: { id: materialId, type: 'quiz_set', referenceId: setId },
-        include: {
-          phase: {
-            include: { materials: { orderBy: { sortOrder: 'asc' } } },
-          },
-        },
-      });
-      if (material) {
-        const passed = percentage >= 80;
-        if (passed && !material.completed) {
-          await db.studyMaterial.update({
-            where: { id: material.id },
-            data: { completed: true },
-          });
-          materialCompleted = true;
-          // Phase 7 — phase-complete telemetry. The phase is fully done
-          // iff this material was the last incomplete one. We have the
-          // sibling list pre-loaded, so checking the others is a local op.
-          const others = material.phase.materials.filter((m) => m.id !== material.id);
-          if (others.every((m) => m.completed)) {
-            logTelemetry(userId, 'path.phase_completed', {
-              phaseId: material.phaseId,
-              planId: material.phase.planId,
-            });
-          }
-        }
-        const isCheckpoint = isCheckpointMaterial(material.phase, material.id);
-        if (isCheckpoint) {
-          await db.checkpointAttempt.create({
-            data: {
-              phaseId: material.phaseId,
-              userId,
-              score,
-              total,
-              percentage,
-              passed,
-            },
-          });
-          checkpointPassed = passed;
-          if (passed) {
-            logTelemetry(userId, 'path.checkpoint_passed', {
-              phaseId: material.phaseId,
-              planId: material.phase.planId,
-              percentage,
-            });
-          }
-        }
-      }
-    }
-
     checkAndUnlockAchievements(userId).catch(console.error);
 
-    return createdResponse({
-      ...attempt,
-      materialCompleted,
-      checkpointPassed,
-    });
+    return createdResponse(attempt);
   } catch (error) {
     console.error('Error creating quiz attempt:', error);
     return internalErrorResponse();

@@ -1,26 +1,37 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
 
-// Phase 5 — Learn Path view. Renders one study plan as a vertical "Duolingo
-// path" of lesson nodes. All visuals are inline-style + CSS custom properties
-// so light-mode and dark-mode are driven by the theme tokens in globals.css —
-// no hard-coded colors or gradients (per CLAUDE.md and the project's
-// light-mode-no-light-text rule).
+// Phase 10.1 — Learn Path view. Visuals are kept minimal (existing styling)
+// while the schema cuts over from materials to checkpoint slots. The full
+// Duolingo-style redesign (sticky section banners, slot-kind icons, stars,
+// completion ring, decorative mascots, drawer launch) lands in Phase 10.5.
+// All visuals are inline-style + CSS custom properties so light-mode/dark-mode
+// are driven by the theme tokens (per CLAUDE.md and the light-mode-no-light-
+// text rule). No gradients anywhere.
 
-type MaterialType = 'page' | 'flashcard_set' | 'quiz_set' | 'document' | string;
-
-export interface PathMaterial {
+export interface PathActivity {
   id: string;
-  type: MaterialType;
-  referenceId: string;
+  kind: string; // "theory" | "flashcards" | "quiz"
   title: string;
-  completed: boolean;
   sortOrder: number;
+  completed: boolean;
+  theoryId: string | null;
+  flashcardSetId: string | null;
+  quizSetId: string | null;
+}
+
+export interface PathSlot {
+  id: string;
+  title: string;
+  kind: string; // "learning" | "review" | "assessment"
+  sortOrder: number;
+  starsEarned: number;
+  prerequisiteSlotIds: string[];
   unlocked: boolean;
-  isCheckpoint: boolean;
+  completed: boolean;
+  isActive: boolean;
+  activities: PathActivity[];
 }
 
 export interface PathPhase {
@@ -32,74 +43,49 @@ export interface PathPhase {
   gateStrategy: 'open' | 'sequential' | 'checkpoint';
   unlocked: boolean;
   unlockReason?: string;
-  materials: PathMaterial[];
+  slots: PathSlot[];
 }
 
 export interface PathPlan {
   id: string;
   title: string;
   description: string | null;
-  notebookId: string;
-  notebookTitle: string;
+  // Phase 9 — null when the path spans multiple notebooks (no primary home).
+  notebookId: string | null;
+  notebookTitle: string | null;
   phases: PathPhase[];
 }
 
 type NodeState = 'locked' | 'available' | 'active' | 'completed';
 
-const MATERIAL_ICONS: Record<string, string> = {
-  quiz_set: 'quiz',
-  flashcard_set: 'style',
-  page: 'description',
-  document: 'article',
+const SLOT_ICONS: Record<string, string> = {
+  learning: 'auto_stories',
+  review: 'replay',
+  assessment: 'quiz',
 };
 
-function findActiveMaterialId(phases: PathPhase[]): string | null {
-  for (const phase of phases) {
-    if (!phase.unlocked) continue;
-    for (const m of phase.materials) {
-      if (m.unlocked && !m.completed) return m.id;
-    }
-  }
-  return null;
-}
-
-function nodeState(material: PathMaterial, activeId: string | null): NodeState {
-  if (material.completed) return 'completed';
-  if (!material.unlocked) return 'locked';
-  if (material.id === activeId) return 'active';
+function nodeState(slot: PathSlot): NodeState {
+  if (slot.completed) return 'completed';
+  if (!slot.unlocked) return 'locked';
+  if (slot.isActive) return 'active';
   return 'available';
-}
-
-function navUrlFor(plan: PathPlan, material: PathMaterial): string | null {
-  switch (material.type) {
-    case 'quiz_set':
-      return `/notebooks/${plan.notebookId}/quizzes/${material.referenceId}?material=${encodeURIComponent(material.id)}`;
-    case 'flashcard_set':
-      return `/notebooks/${plan.notebookId}/flashcards/${material.referenceId}`;
-    case 'page':
-      return `/notebooks/${plan.notebookId}/pages/${material.referenceId}`;
-    case 'document':
-      return `/notebooks/${plan.notebookId}`;
-    default:
-      return null;
-  }
 }
 
 function PathLessonNode({
   state,
-  material,
+  slot,
   size,
   onClick,
 }: {
   state: NodeState;
-  material: PathMaterial;
+  slot: PathSlot;
   size: number;
   onClick: () => void;
 }) {
   const isLocked = state === 'locked';
   const isCompleted = state === 'completed';
   const isActive = state === 'active';
-  const isCheckpoint = material.isCheckpoint;
+  const isAssessment = slot.kind === 'assessment';
 
   const bg = isCompleted
     ? 'var(--primary)'
@@ -141,7 +127,7 @@ function PathLessonNode({
       <button
         type="button"
         onClick={isLocked ? undefined : onClick}
-        aria-label={`${material.title}${isLocked ? ' (locked)' : ''}`}
+        aria-label={`${slot.title}${isLocked ? ' (locked)' : ''}`}
         aria-disabled={isLocked || undefined}
         className="learn-path-node"
         style={{
@@ -159,8 +145,6 @@ function PathLessonNode({
         }}
         onMouseEnter={(e) => {
           if (isLocked) return;
-          // Skip the scale under prefers-reduced-motion — without the
-          // transition (also disabled below) the jump-cut would be jarring.
           if (
             typeof window !== 'undefined' &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -181,7 +165,7 @@ function PathLessonNode({
             height={Math.round(size * 0.7)}
             style={{ opacity: 0.85, pointerEvents: 'none' }}
           />
-        ) : isCheckpoint ? (
+        ) : isAssessment && !isCompleted ? (
           <Image
             src="/mascot/graduation-v2.png"
             alt=""
@@ -201,7 +185,7 @@ function PathLessonNode({
             className="material-symbols-outlined"
             style={{ fontSize: `${Math.round(size * 0.45)}px`, color: iconColor }}
           >
-            {MATERIAL_ICONS[material.type] ?? 'school'}
+            {SLOT_ICONS[slot.kind] ?? 'school'}
           </span>
         )}
       </button>
@@ -210,8 +194,12 @@ function PathLessonNode({
 }
 
 export default function PathView({ plan }: { plan: PathPlan }) {
-  const router = useRouter();
-  const activeMaterialId = useMemo(() => findActiveMaterialId(plan.phases), [plan.phases]);
+  // Phase 10.1 — slot tap is a no-op until the checkpoint drawer lands in
+  // Phase 10.6. Wiring this up now would require a half-baked navigation
+  // that 10.5/10.6 would have to rip out again.
+  const handleSlotClick = (_slot: PathSlot) => {
+    /* noop — drawer ships in Phase 10.6 */
+  };
 
   return (
     <section
@@ -251,7 +239,7 @@ export default function PathView({ plan }: { plan: PathPlan }) {
             color: 'var(--on-surface-variant)',
           }}
         >
-          {plan.notebookTitle}
+          {plan.notebookTitle ?? 'Cross-notebook'}
         </p>
         <h2
           style={{
@@ -308,8 +296,7 @@ export default function PathView({ plan }: { plan: PathPlan }) {
                     color: 'var(--on-surface-variant)',
                   }}
                 >
-                  Phase {phaseIdx + 1}
-                  {phase.gateStrategy === 'checkpoint' ? ' · checkpoint' : ''}
+                  Section {phaseIdx + 1}
                 </p>
                 <h3
                   style={{
@@ -347,16 +334,15 @@ export default function PathView({ plan }: { plan: PathPlan }) {
                 gap: '20px',
               }}
             >
-              {phase.materials.map((material, idx) => {
-                const state = nodeState(material, activeMaterialId);
-                const size = material.isCheckpoint ? 96 : 72;
+              {phase.slots.map((slot, idx) => {
+                const state = nodeState(slot);
+                const size = slot.kind === 'assessment' ? 96 : 72;
                 // Alternate horizontal positions for the winding feel.
                 const align =
                   idx % 3 === 0 ? 'flex-start' : idx % 3 === 1 ? 'center' : 'flex-end';
-                const url = navUrlFor(plan, material);
                 return (
                   <div
-                    key={material.id}
+                    key={slot.id}
                     style={{
                       width: '100%',
                       maxWidth: '320px',
@@ -368,11 +354,9 @@ export default function PathView({ plan }: { plan: PathPlan }) {
                   >
                     <PathLessonNode
                       state={state}
-                      material={material}
+                      slot={slot}
                       size={size}
-                      onClick={() => {
-                        if (url) router.push(url);
-                      }}
+                      onClick={() => handleSlotClick(slot)}
                     />
                     <p
                       style={{
@@ -392,7 +376,7 @@ export default function PathView({ plan }: { plan: PathPlan }) {
                         lineHeight: 1.3,
                       }}
                     >
-                      {material.title}
+                      {slot.title}
                     </p>
                   </div>
                 );

@@ -14,13 +14,11 @@ export const STEP_CONFIG: Partial<Record<TutorialStep, StepConfig>> = {
     renderBackdrop: false,
     tooltipPlacement: 'fixed-top-right',
   },
-  'step-3-workspace': {
-    title: 'Start your first chat',
-    body: 'Hit the + to spin up an AI chat grounded in your notes.',
-    targetKey: 'chat-create',
-    renderBackdrop: true,
-    tooltipPlacement: 'auto',
-  },
+  // Phase 9.5 removed the in-notebook "New chat" sidebar button (the
+  // `chat-create` anchor). The `step-3-workspace` entry that pointed at
+  // that anchor is gone with it; the overlay simply skips any step that
+  // has no config. `step-4-chat-modal` stays for users mid-flow when the
+  // ?new=1 entry path fires (still reachable from header affordances).
   'step-4-chat-modal': {
     title: 'Set up the chat',
     body: 'Name is optional. Pick any pages or files you want the AI to see, then hit Start Chat.',

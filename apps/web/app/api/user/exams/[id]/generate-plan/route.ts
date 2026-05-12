@@ -216,6 +216,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const plan = await db.$transaction(async (tx) => {
       const created = await tx.studyPlan.create({
         data: {
+          userId,
           notebookId,
           title: input.title || `Study Plan for ${exam.title}`,
           description: input.description || null,
@@ -228,8 +229,14 @@ export async function POST(request: NextRequest, { params }: Params) {
 
       for (let i = 0; i < phasesWithDates.length; i++) {
         const p = phasesWithDates[i];
-        // Filter to only valid referenceIds
-        const validMaterials = (p.materials || []).filter((m) => validIds.has(m.referenceId));
+        // Phase 10.1 — the new schema replaced StudyMaterial with
+        // CheckpointSlot + CheckpointActivity. The AI generator for exam
+        // plans was the only consumer that wrote phase content inline; for
+        // 10.1 we create phases empty and let Phase 10.3's orchestrator
+        // populate slot/activity content. `validIds` and `validMaterials`
+        // become a no-op until 10.3 reworks this whole route.
+        void validIds;
+        void p.materials;
 
         await tx.studyPhase.create({
           data: {
@@ -240,17 +247,6 @@ export async function POST(request: NextRequest, { params }: Params) {
             startDate: p.startDate,
             endDate: p.endDate,
             status: i === 0 ? 'active' : 'upcoming',
-            materials:
-              validMaterials.length > 0
-                ? {
-                    create: validMaterials.map((m, j) => ({
-                      type: m.type,
-                      referenceId: m.referenceId,
-                      title: m.title,
-                      sortOrder: j,
-                    })),
-                  }
-                : undefined,
           },
         });
       }
@@ -260,7 +256,12 @@ export async function POST(request: NextRequest, { params }: Params) {
         include: {
           phases: {
             orderBy: { sortOrder: 'asc' },
-            include: { materials: { orderBy: { sortOrder: 'asc' } } },
+            include: {
+              slots: {
+                orderBy: { sortOrder: 'asc' },
+                include: { activities: { orderBy: { sortOrder: 'asc' } } },
+              },
+            },
           },
         },
       });

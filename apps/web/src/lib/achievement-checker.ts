@@ -115,14 +115,16 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     db.chatMessage.count({ where: { userId, role: 'user' } }),
 
     // SR bumps Flashcard.repetitions; no per-review row exists, so sum.
+    // Phase 9.6 — FlashcardSet has direct userId now; no notebook hop.
     db.flashcard.aggregate({
       _sum: { repetitions: true },
-      where: { flashcardSet: { notebook: { userId } } },
+      where: { flashcardSet: { userId } },
     }),
 
     db.document.count({ where: { notebook: { userId } } }),
 
-    db.quizSet.count({ where: { notebook: { userId } } }),
+    // Phase 9.6 — QuizSet has direct userId now; no notebook hop.
+    db.quizSet.count({ where: { userId } }),
   ]);
 
   // ── Phase 7 — Personal-Duolingo rework gather ───────────────────────
@@ -148,38 +150,50 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       ) AS ok
     `),
 
-    // Any phase whose every material is completed (and has ≥1 material).
+    // Phase 10 — any phase whose every slot has every activity completed
+    // (and has ≥1 slot with ≥1 activity). Scope through plan.userId so
+    // cross-notebook paths count too.
     db.studyPhase.findFirst({
       where: {
-        plan: { notebook: { userId } },
-        materials: { some: {}, every: { completed: true } },
-      },
-      select: { id: true },
-    }),
-
-    // Any plan whose every phase has every material completed.
-    db.studyPlan.findFirst({
-      where: {
-        notebook: { userId },
-        phases: {
+        plan: { userId },
+        slots: {
           some: {},
           every: {
-            materials: { some: {}, every: { completed: true } },
+            activities: { some: {}, every: { completed: true } },
           },
         },
       },
       select: { id: true },
     }),
 
-    // First-attempt-per-phase that scored 100%. ROW_NUMBER gives us the
-    // earliest attempt per phase; we check whether any of those landed at
-    // 100% straight away (the "ace" pattern).
+    // Phase 10 — any plan whose every phase has every slot fully completed.
+    db.studyPlan.findFirst({
+      where: {
+        userId,
+        phases: {
+          some: {},
+          every: {
+            slots: {
+              some: {},
+              every: {
+                activities: { some: {}, every: { completed: true } },
+              },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    }),
+
+    // Phase 10 — first attempt per slot that scored 100%. ROW_NUMBER gives
+    // us the earliest assessment attempt per slot; we check whether any of
+    // those landed at 100% straight away (the "ace" pattern).
     db.$queryRaw<{ ok: boolean }[]>(Prisma.sql`
       SELECT EXISTS (
         SELECT 1 FROM (
           SELECT percentage,
-                 ROW_NUMBER() OVER (PARTITION BY "phaseId" ORDER BY "attemptedAt" ASC) AS rn
-          FROM checkpoint_attempts
+                 ROW_NUMBER() OVER (PARTITION BY "slotId" ORDER BY "attemptedAt" ASC) AS rn
+          FROM assessment_attempts
           WHERE "userId" = ${userId}
         ) t
         WHERE t.rn = 1 AND t.percentage = 100

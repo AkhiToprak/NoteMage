@@ -13,13 +13,19 @@ interface Derived {
   plan: PathPlan;
   activePhase: PathPhase;
   activePhaseIndex: number;
-  nextMaterialIsCheckpoint: boolean;
+  // Phase 10 — replaces nextMaterialIsCheckpoint. The "next thing the user
+  // will tap" is the first incomplete slot in the active phase; if its kind
+  // is "assessment" we surface the same `Take checkpoint` CTA.
+  nextSlotIsAssessment: boolean;
   percent: number;
   completed: number;
   total: number;
   pathDone: boolean;
 }
 
+// Phase 10 — progress is now counted in activities (the leaf completion unit
+// inside a slot bundle). One slot has 2–4 activities; this matches the
+// granularity the user feels in the drawer.
 function deriveHero(plans: PathPlan[]): Derived | null {
   if (plans.length === 0) return null;
   const plan = plans[0];
@@ -28,9 +34,11 @@ function deriveHero(plans: PathPlan[]): Derived | null {
   let total = 0;
   let completed = 0;
   for (const phase of plan.phases) {
-    for (const m of phase.materials) {
-      total += 1;
-      if (m.completed) completed += 1;
+    for (const slot of phase.slots) {
+      for (const a of slot.activities) {
+        total += 1;
+        if (a.completed) completed += 1;
+      }
     }
   }
   if (total === 0) return null;
@@ -38,17 +46,17 @@ function deriveHero(plans: PathPlan[]): Derived | null {
   const pathDone = completed === total;
 
   let activePhaseIndex = plan.phases.findIndex(
-    (p) => p.unlocked && p.materials.some((m) => !m.completed),
+    (p) => p.unlocked && p.slots.some((s) => !s.completed),
   );
   if (activePhaseIndex === -1) activePhaseIndex = plan.phases.length - 1;
   const activePhase = plan.phases[activePhaseIndex];
-  const nextMaterial = activePhase.materials.find((m) => m.unlocked && !m.completed) ?? null;
+  const nextSlot = activePhase.slots.find((s) => s.unlocked && !s.completed) ?? null;
 
   return {
     plan,
     activePhase,
     activePhaseIndex,
-    nextMaterialIsCheckpoint: nextMaterial?.isCheckpoint === true,
+    nextSlotIsAssessment: nextSlot?.kind === 'assessment',
     percent,
     completed,
     total,
@@ -202,7 +210,9 @@ export default function PathHeroCard() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/study-plans');
+        // Phase 10.1 — the legacy /api/study-plans flat list was deleted;
+        // /api/learn/paths returns the same shape (with slots).
+        const res = await fetch('/api/learn/paths');
         if (!res.ok) throw new Error(`status ${res.status}`);
         const body = (await res.json()) as { success?: boolean; data?: PathPlan[] };
         if (cancelled) return;
@@ -229,15 +239,15 @@ export default function PathHeroCard() {
   if (state.kind === 'error') return null;
   if (!derived) return <NoPathCard hasPlans={state.kind === 'ready' && state.plans.length > 0} />;
 
-  const { plan, activePhase, activePhaseIndex, nextMaterialIsCheckpoint, percent, pathDone } =
+  const { plan, activePhase, activePhaseIndex, nextSlotIsAssessment, percent, pathDone } =
     derived;
 
   const ctaLabel = pathDone
     ? 'Path complete'
-    : nextMaterialIsCheckpoint
+    : nextSlotIsAssessment
       ? 'Take checkpoint'
       : 'Continue';
-  const ctaIcon = pathDone ? 'celebration' : nextMaterialIsCheckpoint ? 'school' : 'arrow_forward';
+  const ctaIcon = pathDone ? 'celebration' : nextSlotIsAssessment ? 'school' : 'arrow_forward';
 
   return (
     <div
@@ -299,7 +309,7 @@ export default function PathHeroCard() {
           }}
         >
           <span style={{ fontWeight: 600 }}>
-            Phase {activePhaseIndex + 1}
+            Section {activePhaseIndex + 1}
           </span>
           <span style={{ color: 'var(--outline)' }}>·</span>
           <span

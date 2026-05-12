@@ -150,7 +150,15 @@ model User {
   usageRecords           UsageRecord[]
   adminAuditLogs         AdminAuditLog[]       @relation("AdminAuditLogs")
   oauthAccounts          OAuthAccount[]
-  checkpointAttempts     CheckpointAttempt[]
+  // Phase 10 — renamed from checkpointAttempts (CheckpointAttempt was dropped
+  // and replaced by AssessmentAttempt scoped to CheckpointSlot).
+  assessmentAttempts     AssessmentAttempt[]
+  // Phase 9 — direct ownership for detached learn surfaces (paths,
+  // flashcards, quizzes, chats); these can live without a notebook now.
+  notebookChats          NotebookChat[]
+  flashcardSets          FlashcardSet[]
+  quizSets               QuizSet[]
+  studyPlans             StudyPlan[]
 
   @@map("users")
 }
@@ -210,6 +218,10 @@ model Notebook {
   description String?
   subject     String? // e.g., "Biology", "History"
   color       String? // Hex color for UI
+  // Phase 9 — "standard" is a user-created notebook; "inbox" is the hidden
+  // per-user notebook that backs ad-hoc chat uploads. Exactly one inbox per
+  // user; created lazily by getOrCreateInboxNotebook(userId).
+  kind        String   @default("standard")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -270,26 +282,37 @@ model DocumentSummary {
 
 model NotebookChat {
   id             String   @id @default(cuid())
-  notebookId     String
+  // Phase 9 — userId is the source of truth for ownership; notebookId is the
+  // primary/home notebook (may be null for cross-notebook or inbox-only chats).
+  userId         String
+  notebookId     String?
   title          String   @default("New Chat")
-  contextPageIds String[] @default([]) // Page IDs from notebook fed as context
+  contextPageIds String[] @default([]) // Page IDs from any user-owned notebook fed as context
   contextDocIds  String[] @default([]) // Document IDs fed as context
+  // Phase 9 — every notebook this chat draws context from (including primary).
+  // Used for sidebar grouping and quick "show all chats touching notebook X".
+  contextNotebookIds String[] @default([])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   // Relations
-  notebook      Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook      Notebook?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   messages      ChatMessage[]
   flashcardSets FlashcardSet[]
   quizSets      QuizSet[]
 
+  @@index([userId])
   @@index([notebookId])
   @@map("notebook_chats")
 }
 
 model ChatMessage {
   id         String   @id @default(cuid())
-  notebookId String
+  // Phase 9.6 — nullable so cross-notebook / inbox-only chats can omit a
+  // primary notebook. On notebook delete, messages survive (their chat may
+  // span others).
+  notebookId String?
   userId     String
   chatId     String? // Link to a specific chat session
   role       String // "user" or "assistant"
@@ -298,7 +321,7 @@ model ChatMessage {
   createdAt  DateTime @default(now())
 
   // Relations
-  notebook Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook Notebook?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   chat     NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
@@ -314,7 +337,9 @@ model ChatMessage {
 
 model FlashcardSet {
   id         String   @id @default(cuid())
-  notebookId String
+  // Phase 9 — see NotebookChat for the userId/notebookId rationale.
+  userId     String
+  notebookId String?
   chatId     String?
   messageId  String? // assistant message that created this set
   title      String
@@ -323,11 +348,16 @@ model FlashcardSet {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  notebook   Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook   Notebook?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   chat       NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section    Section?      @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   flashcards Flashcard[]
+  // Phase 10 — back-relation for the unique FK on CheckpointActivity. Null
+  // for any set not owned by a checkpoint activity.
+  checkpointActivity CheckpointActivity?
 
+  @@index([userId])
   @@index([notebookId])
   @@index([chatId])
   @@index([sectionId])
@@ -379,7 +409,9 @@ model FlashcardImage {
 
 model QuizSet {
   id         String   @id @default(cuid())
-  notebookId String
+  // Phase 9 — see NotebookChat for the userId/notebookId rationale.
+  userId     String
+  notebookId String?
   chatId     String?
   messageId  String? // assistant message that created this set
   title      String
@@ -387,12 +419,16 @@ model QuizSet {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  notebook  Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook  Notebook?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   chat      NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section   Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   questions QuizQuestion[]
   attempts  QuizAttempt[]
+  // Phase 10 — back-relation for the unique FK on CheckpointActivity.
+  checkpointActivity CheckpointActivity?
 
+  @@index([userId])
   @@index([notebookId])
   @@index([chatId])
   @@index([sectionId])
@@ -592,20 +628,35 @@ model PageContentAudit {
 
 model StudyPlan {
   id          String   @id @default(cuid())
-  notebookId  String
+  // Phase 9 — see NotebookChat for the userId/notebookId rationale. A path may
+  // draw materials from multiple notebooks; contextNotebookIds tracks them.
+  userId      String
+  notebookId  String?
   title       String
   description String?  @db.Text
   startDate   DateTime
   endDate     DateTime
   source      String   @default("manual") // "manual" | "ai"
+  contextNotebookIds String[] @default([])
+  // Phase 10 — AI generation lifecycle for checkpoint bundles. POST returns
+  // immediately with status="generating"; the orchestrator (Phase 10.2) flips
+  // it to "ready" once every slot has its theory/flashcards/quiz, or "failed"
+  // with a message in generationError. The /generation SSE endpoint tails
+  // generationProgress (`{ totalSlots, completedSlots, currentSlot,
+  // currentActivity }`).
+  generationStatus   String  @default("ready") // "queued" | "generating" | "ready" | "failed"
+  generationProgress Json?
+  generationError    String? @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  notebook Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook Notebook?    @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   phases   StudyPhase[]
   examId   String?      @unique
   exam     Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@index([notebookId])
   @@map("study_plans")
 }
@@ -621,56 +672,106 @@ model StudyPhase {
   status       String       @default("upcoming") // "upcoming" | "active" | "completed"
   // Phase 5: governs how materials in this phase unlock and whether the phase
   // gates the next one. Legacy rows stay on `open` (no breaking change).
+  // Phase 10 — only `sequential` is used by the new generator; the GateStrategy
+  // enum is preserved for the schema, but path-gating treats every phase as
+  // sequential going forward.
   gateStrategy GateStrategy @default(open)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  plan               StudyPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
-  materials          StudyMaterial[]
-  checkpointAttempts CheckpointAttempt[]
+  plan  StudyPlan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+  slots CheckpointSlot[]
 
   @@index([planId])
   @@map("study_phases")
 }
 
-model StudyMaterial {
-  id                      String   @id @default(cuid())
-  phaseId                 String
-  type                    String // "page" | "flashcard_set" | "quiz_set" | "document"
-  referenceId             String // loose FK to the referenced resource
-  title                   String // denormalized title
-  completed               Boolean  @default(false)
-  sortOrder               Int      @default(0)
-  // Phase 5: explicit per-material prerequisite override. When non-empty,
-  // the material unlocks only when every listed material id is completed,
-  // regardless of the phase's gateStrategy.
-  prerequisiteMaterialIds String[] @default([])
-  createdAt               DateTime @default(now())
+// Phase 10 — a single node on the Duolingo-style path. Bundles 2–4 activities
+// (theory → flashcards → quiz) that the user works through inside an inline
+// drawer (Phase 10.6). Replaces the old `StudyMaterial` row.
+model CheckpointSlot {
+  id                  String   @id @default(cuid())
+  phaseId             String
+  title               String
+  description         String?  @db.Text
+  // "learning" | "review" | "assessment". Generator picks kind from phase
+  // position; the last slot of each phase is always "assessment".
+  kind                String   @default("learning")
+  sortOrder           Int      @default(0)
+  // Slot-level prerequisite override. When non-empty, every listed slot id
+  // must be completed before this one unlocks (in addition to the default
+  // sequential gate). Phase 10.6 wires up the real logic.
+  prerequisiteSlotIds String[] @default([])
+  // 0–3 stars, awarded by the slot's assessment activity (Phase 10.6).
+  starsEarned         Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  phase StudyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  phase      StudyPhase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  activities CheckpointActivity[]
+  attempts   AssessmentAttempt[]
 
   @@index([phaseId])
-  @@map("study_materials")
+  @@map("checkpoint_slots")
 }
 
-// Phase 5: a single attempt at a phase's checkpoint quiz. One row per attempt;
-// `passed` mirrors the >= 80% threshold so gating reads stay O(1).
-model CheckpointAttempt {
+// Phase 10 — one step inside a checkpoint slot. Exactly one of theoryId /
+// flashcardSetId / quizSetId is populated, picked by `kind`. The unique FKs
+// give us a cheap back-relation so dropping a slot cascades to its content.
+model CheckpointActivity {
+  id             String    @id @default(cuid())
+  slotId         String
+  kind           String // "theory" | "flashcards" | "quiz"
+  title          String
+  sortOrder      Int       @default(0)
+  completed      Boolean   @default(false)
+  completedAt    DateTime?
+  theoryId       String?   @unique
+  flashcardSetId String?   @unique
+  quizSetId      String?   @unique
+
+  slot         CheckpointSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  theory       TheoryContent? @relation(fields: [theoryId], references: [id], onDelete: Cascade)
+  flashcardSet FlashcardSet?  @relation(fields: [flashcardSetId], references: [id], onDelete: Cascade)
+  quizSet      QuizSet?       @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+
+  @@index([slotId])
+  @@map("checkpoint_activities")
+}
+
+// Phase 10 — short-form theory rendered by a read-only TipTap viewer inside
+// the checkpoint drawer (Phase 10.6). Body is TipTap JSON. Not exposed in
+// the notebook tree — only reachable through its CheckpointActivity.
+model TheoryContent {
+  id        String   @id @default(cuid())
+  title     String
+  body      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  activity  CheckpointActivity?
+
+  @@map("theory_content")
+}
+
+// Phase 10 — replaces CheckpointAttempt. Scoped to a slot (was a phase) and
+// records starsEarned (1 at 70%, 2 at 85%, 3 at 95%) instead of a binary
+// `passed` flag.
+model AssessmentAttempt {
   id          String   @id @default(cuid())
-  phaseId     String
+  slotId      String
   userId      String
   score       Int
   total       Int
   percentage  Float
-  passed      Boolean
+  starsEarned Int
   attemptedAt DateTime @default(now())
 
-  phase StudyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot CheckpointSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([phaseId])
-  @@map("checkpoint_attempts")
+  @@index([slotId])
+  @@map("assessment_attempts")
 }
 
 // --- Microsoft OneNote Connection ---

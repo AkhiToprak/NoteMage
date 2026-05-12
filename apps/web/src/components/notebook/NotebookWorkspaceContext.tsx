@@ -57,7 +57,6 @@ interface WorkspaceContextValue {
   activeChatId: string | null;
   activeFlashcardSetId: string | null;
   activeQuizSetId: string | null;
-  activeStudyPlanId: string | null;
   chats: NotebookChatItem[];
   studyPlans: StudyPlanSummary[];
   flashcardSets: FlashcardSetSummary[];
@@ -128,11 +127,9 @@ export function NotebookWorkspaceProvider({
     return match?.[1] ?? null;
   })();
 
-  // Derive activeStudyPlanId from URL
-  const activeStudyPlanId = (() => {
-    const match = pathname.match(/\/notebooks\/[^/]+\/study-plan\/([^/]+)/);
-    return match?.[1] ?? null;
-  })();
+  // Phase 9.4 redirected /notebooks/[id]/study-plan/[planId] → /learn/paths/[planId],
+  // so the regex that used to derive activeStudyPlanId no longer matches.
+  // The state + downstream consumers were removed in Phase 9.6.
 
   const fetchNotebook = useCallback(async () => {
     try {
@@ -257,7 +254,6 @@ export function NotebookWorkspaceProvider({
         activeChatId,
         activeFlashcardSetId,
         activeQuizSetId,
-        activeStudyPlanId,
         chats,
         studyPlans,
         flashcardSets,

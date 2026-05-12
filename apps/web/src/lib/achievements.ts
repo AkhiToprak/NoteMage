@@ -27,11 +27,17 @@ export interface UserStats {
   maxQuizStreakEver: number;
   /** True if the user has ever, in one session, hit ≥3 wrong then ≥5 right. */
   everHadComeback: boolean;
-  /** True if any StudyPhase has all its (≥1) materials completed. */
+  /**
+   * Phase 10 — true if any StudyPhase has every slot fully completed (every
+   * activity in every slot done). Replaces the old material-based check.
+   */
   hasPhaseComplete: boolean;
   /** True if any StudyPlan has every phase fully completed. */
   hasPathComplete: boolean;
-  /** True if the user passed any checkpoint with 100% on the first attempt. */
+  /**
+   * Phase 10 — true if the user scored 100% on any slot's assessment activity
+   * on the first attempt (queried from `assessment_attempts`).
+   */
   hasCheckpointAce: boolean;
 }
 

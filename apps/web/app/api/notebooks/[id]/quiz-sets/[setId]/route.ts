@@ -1,11 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import {
-  isCheckpointMaterial,
-  isMaterialUnlocked,
-  isPhaseUnlocked,
-} from '@/lib/path-gating';
 import {
   successResponse,
   badRequestResponse,
@@ -17,12 +12,12 @@ import {
 type Params = { params: Promise<{ id: string; setId: string }> };
 
 /**
- * GET – fetch a quiz set with all its questions
+ * GET – fetch a quiz set with all its questions.
  *
- * Phase 5: when called with `?material=<materialId>`, the server resolves the
- * StudyMaterial, runs the gate check, and either 403s on a locked node or
- * attaches `isCheckpoint` and `materialId` to the response. Direct calls
- * without `?material=` keep the legacy behavior.
+ * Phase 10.1: stripped the old `?material=<materialId>` gate. Checkpoint
+ * gating moves to `CheckpointSlot` and lives in the inline drawer (Phase
+ * 10.6); the standalone quiz-player route is no longer the checkpoint
+ * entry point.
  */
 export async function GET(request: NextRequest, { params }: Params) {
   try {
@@ -44,47 +39,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
     if (!quizSet) return notFoundResponse('Quiz set not found');
 
-    const materialIdParam = request.nextUrl.searchParams.get('material');
-    let isCheckpoint = false;
-    let resolvedMaterialId: string | null = null;
-    if (materialIdParam) {
-      const material = await db.studyMaterial.findFirst({
-        where: { id: materialIdParam, type: 'quiz_set', referenceId: setId },
-        include: {
-          phase: {
-            include: {
-              plan: {
-                include: {
-                  phases: {
-                    orderBy: { sortOrder: 'asc' },
-                    include: { materials: { orderBy: { sortOrder: 'asc' } } },
-                  },
-                },
-              },
-              materials: { orderBy: { sortOrder: 'asc' } },
-            },
-          },
-        },
-      });
-      if (material) {
-        const phaseGate = isPhaseUnlocked(material.phase.plan.phases, material.phaseId);
-        const materialGate = isMaterialUnlocked(material.phase, material.id, phaseGate.unlocked);
-        if (!materialGate.unlocked) {
-          return NextResponse.json(
-            { success: false, error: 'locked', reason: materialGate.reason ?? phaseGate.reason },
-            { status: 403 }
-          );
-        }
-        isCheckpoint = isCheckpointMaterial(material.phase, material.id);
-        resolvedMaterialId = material.id;
-      }
-    }
-
-    return successResponse({
-      ...quizSet,
-      isCheckpoint,
-      materialId: resolvedMaterialId,
-    });
+    return successResponse(quizSet);
   } catch {
     return internalErrorResponse();
   }

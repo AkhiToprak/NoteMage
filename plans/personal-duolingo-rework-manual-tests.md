@@ -272,6 +272,62 @@ Unlock mapping (in `src/lib/achievements.ts`): `perfect_quiz → title.perfectio
 
 ---
 
+## Phase 9 — Learn Hub detachment from notebooks (status: SHIPPED through 9.5; 9.6 polish in flight)
+
+Plan reference: [personal-duolingo-rework-phase-9.md](personal-duolingo-rework-phase-9.md). The whole rework moves paths / flashcards / quizzes / chats out of the notebook sidebar into a top-level `/learn` hub with four tabs, and gives chats / paths cross-notebook scope plus an "Inbox" notebook for ad-hoc uploads.
+
+### 9.1 — Schema integrity
+
+- [ ] `[NEW]` `[WEB]` Existing user's chats / flashcard sets / quiz sets / paths still load in their notebook-scoped views (no rows lost in the backfill)
+- [ ] `[NEW]` `[DB]` `SELECT COUNT(*) FROM notebook_chats WHERE "userId" IS NULL;` → 0 (every row has a userId after backfill)
+- [ ] `[NEW]` `[DB]` Same check for `flashcard_sets`, `quiz_sets`, `study_plans` → all return 0
+
+### 9.2 — Inbox + cross-notebook API surface
+
+- [ ] `[NEW]` `[WEB]` First `POST /api/learn/uploads` creates an Inbox notebook (`[DB]` `SELECT id, kind FROM notebooks WHERE "userId"=… AND kind='inbox';` returns one row)
+- [ ] `[NEW]` `[WEB]` Second `POST /api/learn/uploads` reuses the same Inbox notebook (still one row)
+- [ ] `[NEW]` `[WEB]` `PATCH /api/notebooks/<inboxId>` (rename) → server returns 4xx / forbidden
+- [ ] `[NEW]` `[WEB]` `DELETE /api/notebooks/<inboxId>` → server returns 4xx / forbidden
+- [ ] `[NEW]` `[WEB]` `POST /api/learn/chats` with pages from notebook A + notebook B → first-message turn loads context from both (verify server log lists both Page rows)
+- [ ] `[NEW]` `[LOGS]` Auto-title fires within ~3s of first user message → `[telemetry] {... "event":"chat.title_generated" ...}` in server stdout
+- [ ] `[NEW]` `[WEB]` Second user message in the same chat does NOT trigger another rename (title stays as the generated 3–5 word phrase)
+
+### 9.3 — Chats hub
+
+- [ ] `[NEW]` `[WEB]` Create a chat picking pages from two notebooks plus one Inbox file → first AI turn surfaces all three context sources
+- [ ] `[NEW]` `[WEB]` Old `GET /notebooks/<id>/chats/<chatId>` URL → 301-redirects to `/learn/chats/<chatId>`
+- [ ] `[NEW]` `[WEB]` A chat-history message containing `[flashcard_set:<id>]` resolves to the flashcard player view
+- [ ] `[NEW]` `[WEB]` Same for `[quiz_set:<id>]` → resolves to the quiz player
+- [ ] `[NEW]` `[WEB]` Left rail groups chats by primary notebook (color dot matches notebook color); pulses the active chat on `chatId` change
+
+### 9.4 — Cross-notebook paths + grouped hubs
+
+- [ ] `[NEW]` `[WEB]` Manual-mode path drawing materials from two notebooks → all materials clickable from `/learn/paths/<planId>`; clicking each opens the material in its own notebook
+- [ ] `[NEW]` `[WEB]` Pass a checkpoint quiz on a cross-notebook plan → next phase unlocks (path-gating user-scoped, not notebook-scoped)
+- [ ] `[NEW]` `[WEB]` `/learn/flashcards` groups sets by source notebook with the color dot; Inbox group renders first; "Cross-notebook" group renders last
+- [ ] `[NEW]` `[WEB]` `/learn/quizzes` same grouping pattern
+- [ ] `[NEW]` `[WEB]` Generate flashcards from a page → redirect to `/learn/flashcards?highlight=<id>` → matching card pulses + scrolls into view (same for quizzes)
+
+### 9.5 — Notebook sidebar + Generate dropdown
+
+- [ ] `[NEW]` `[WEB]` Notebook sidebar shows only: sections / pages tree, workspace search, mascot, timer widget, Co-Work bar (no chat list, no flashcard manager trigger, no quiz creator, no first-path prompt)
+- [ ] `[NEW]` `[WEB]` Clicking the Sparkles toolbar icon shows four entries: Generate Flashcards / Generate Quiz / Generate Mind Map / Ask the Mage / Generate Study Path
+- [ ] `[NEW]` `[WEB]` Each Generate entry routes correctly (flashcards → `/learn/flashcards?highlight=…`, quiz → `/learn/quizzes?highlight=…`, ask the mage → opens `CreateChatModal` pre-filled with the current page)
+- [ ] `[NEW]` `[WEB]` Light-theme audit: walk `/learn/paths`, `/learn/flashcards`, `/learn/quizzes`, `/learn/chats`, the CreateChatModal — no white / near-white text on light surfaces (per `feedback_light_mode_no_light_text`)
+
+### 9.6 — Schema cleanup + telemetry + Sentry
+
+- [ ] `[NEW]` `[DB]` `\d chat_messages` in psql shows `notebookId` as nullable (no NOT NULL constraint)
+- [ ] `[NEW]` `[WEB]` Send a first message in an inbox-only chat (no primary notebook) → `[DB]` `SELECT "notebookId" FROM chat_messages WHERE "chatId"=…;` shows NULL on the persisted rows (not the Inbox notebook id as placeholder)
+- [ ] `[NEW]` `[WEB]` Navigate between Learn tabs (paths → flashcards → quizzes → chats) → DevTools Network shows one `learn.tab_view` POST per transition (not on every render)
+- [ ] `[NEW]` `[LOGS]` First user message in a brand-new chat → `[telemetry] {... "event":"chat.title_generated" ...}` lands in server stdout within ~3s
+- [ ] `[NEW]` `[LOGS]` Force a title-gen failure (e.g. drop the Anthropic key in dev env, send first message) → `[telemetry] {... "event":"chat.title_gen_failed" ...}` line appears
+- [ ] `[NEW]` `[WEB]` Create a chat with context pages from two notebooks where one page is intentionally a canvas (no extractable text) → next Sentry event during the request carries a `chat-stream` breadcrumb with `skippedCount >= 1`
+- [ ] `[NEW]` `[WEB]` Create a chat that spans two or more notebooks → DevTools Network shows one `chat.multi_notebook_created` POST with `contextNotebookCount >= 2`
+- [ ] `[NEW]` `[WEB]` Upload a file into Inbox via the CreateChatModal → DevTools Network shows one `chat.inbox_upload` POST with `fileType` + `fileSizeKb`
+
+---
+
 ## End-to-end smoke (run after Phase 7 lands) [E2E]
 
 - [ ] Fresh signup at `/auth/signup`

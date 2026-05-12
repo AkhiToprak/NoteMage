@@ -60,6 +60,12 @@ export async function PUT(request: NextRequest, { params }: Params) {
     });
     if (!existing) return notFoundResponse('Notebook not found');
 
+    // Phase 9 — the Inbox notebook is system-managed; block edits server-side
+    // so the chat-uploads home stays predictable.
+    if (existing.kind === 'inbox') {
+      return badRequestResponse('The Inbox notebook cannot be edited');
+    }
+
     const body = await request.json();
     const { name, description, subject, color, folderId } = body;
 
@@ -122,6 +128,12 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       },
     });
     if (!existing) return notFoundResponse('Notebook not found');
+
+    // Phase 9 — the Inbox notebook is system-managed; deletion would orphan
+    // ad-hoc chat uploads, so refuse server-side.
+    if (existing.kind === 'inbox') {
+      return badRequestResponse('The Inbox notebook cannot be deleted');
+    }
 
     // Collect all page IDs for file cleanup
     const pageIds = existing.sections.flatMap((s) => s.pages.map((p) => p.id));

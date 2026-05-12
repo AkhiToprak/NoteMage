@@ -29,7 +29,12 @@ export async function GET(request: NextRequest, { params }: Params) {
           include: {
             phases: {
               orderBy: { sortOrder: 'asc' },
-              include: { materials: { orderBy: { sortOrder: 'asc' } } },
+              include: {
+                slots: {
+                  orderBy: { sortOrder: 'asc' },
+                  include: { activities: { orderBy: { sortOrder: 'asc' } } },
+                },
+              },
             },
           },
         },

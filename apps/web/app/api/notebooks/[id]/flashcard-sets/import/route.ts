@@ -107,6 +107,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const set = await db.flashcardSet.create({
       data: {
+        userId,
         notebookId,
         title,
         source,

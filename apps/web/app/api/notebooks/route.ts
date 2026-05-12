@@ -28,7 +28,11 @@ export async function GET(request: NextRequest) {
 
     const notebooks = await db.notebook.findMany({
       where,
-      orderBy: { updatedAt: 'desc' },
+      // Phase 9 — the Inbox notebook (kind='inbox') pins to the top of the
+      // notebooks list so ad-hoc chat uploads are always discoverable. Among
+      // standard notebooks, the existing "most recently modified first" rule
+      // is preserved. `kind` is sorted ascending because 'inbox' < 'standard'.
+      orderBy: [{ kind: 'asc' }, { updatedAt: 'desc' }],
       include: {
         _count: {
           select: { documents: true, sections: true },
