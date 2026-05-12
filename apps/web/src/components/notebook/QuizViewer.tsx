@@ -805,15 +805,22 @@ export default function QuizViewer({
           </div>
         )}
 
-        {/* Action buttons */}
+        {/* Action buttons — management actions (download / history) are
+            notebook-only chrome. The checkpoint context renders its own
+            result panel via the parent, so we hide them here when
+            `isCheckpoint`. */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <ActionButton onClick={reset} label="Retake Quiz" primary />
           <ActionButton onClick={startReview} label="Review Answers" />
-          <ActionButton onClick={downloadJSON} label="Download JSON" />
-          <ActionButton onClick={openSlideEditor} label="Download PPTX" />
-          <ActionButton onClick={downloadPdf} label="Download PDF" />
-          {attemptHistory.length > 0 && (
-            <ActionButton onClick={() => setShowHistory(true)} label="View History" />
+          {!isCheckpoint && (
+            <>
+              <ActionButton onClick={downloadJSON} label="Download JSON" />
+              <ActionButton onClick={openSlideEditor} label="Download PPTX" />
+              <ActionButton onClick={downloadPdf} label="Download PDF" />
+              {attemptHistory.length > 0 && (
+                <ActionButton onClick={() => setShowHistory(true)} label="View History" />
+              )}
+            </>
           )}
         </div>
 
@@ -1262,44 +1269,49 @@ export default function QuizViewer({
         )}
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {question &&
-          editingId !== question.id &&
-          mode !== 'review' &&
-          (question.kind ?? 'mc') === 'mc' && (
+      {/* Per-question action bar — all notebook-management UI
+          (edit / export / delete / add-to-notebook). Hidden entirely
+          inside the checkpoint context so the path viewer stays focused
+          on answering questions. */}
+      {!isCheckpoint && (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {question &&
+            editingId !== question.id &&
+            mode !== 'review' &&
+            (question.kind ?? 'mc') === 'mc' && (
+              <SmallButton
+                onClick={() => startEdit(question)}
+                icon={<Pencil size={12} />}
+                label="Edit"
+              />
+            )}
+          <SmallButton onClick={downloadJSON} icon={<Download size={12} />} label="JSON" />
+          <SmallButton onClick={openSlideEditor} icon={<Download size={12} />} label="PPTX" />
+          <SmallButton onClick={downloadPdf} icon={<Download size={12} />} label="PDF" />
+          {sectionSaved ? (
             <SmallButton
-              onClick={() => startEdit(question)}
-              icon={<Pencil size={12} />}
-              label="Edit"
+              onClick={openSectionPicker}
+              icon={<BookCheck size={12} />}
+              label="In Notebook"
+            />
+          ) : (
+            <SmallButton
+              onClick={openSectionPicker}
+              icon={<BookPlus size={12} />}
+              label="Add to Notebook"
             />
           )}
-        <SmallButton onClick={downloadJSON} icon={<Download size={12} />} label="JSON" />
-        <SmallButton onClick={openSlideEditor} icon={<Download size={12} />} label="PPTX" />
-        <SmallButton onClick={downloadPdf} icon={<Download size={12} />} label="PDF" />
-        {sectionSaved ? (
-          <SmallButton
-            onClick={openSectionPicker}
-            icon={<BookCheck size={12} />}
-            label="In Notebook"
-          />
-        ) : (
-          <SmallButton
-            onClick={openSectionPicker}
-            icon={<BookPlus size={12} />}
-            label="Add to Notebook"
-          />
-        )}
-        {question && mode !== 'review' && (
-          <SmallButton
-            onClick={() => deleteQuestion(question.id)}
-            icon={<Trash2 size={12} />}
-            label="Delete Question"
-            danger
-          />
-        )}
-        <SmallButton onClick={deleteSet} icon={<Trash2 size={12} />} label="Delete Set" danger />
-      </div>
+          {question && mode !== 'review' && (
+            <SmallButton
+              onClick={() => deleteQuestion(question.id)}
+              icon={<Trash2 size={12} />}
+              label="Delete Question"
+              danger
+            />
+          )}
+          <SmallButton onClick={deleteSet} icon={<Trash2 size={12} />} label="Delete Set" danger />
+        </div>
+      )}
 
       {/* Section picker modal */}
       {showSectionPicker && (
