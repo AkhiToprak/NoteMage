@@ -230,3 +230,24 @@ export function bestGrade(
   if (typeof bestPercentage === 'number') return gradeForPercentage(bestPercentage);
   return gradeFromStars(starsEarned);
 }
+
+/**
+ * Average `bestPercentage` across every graded slot (assessment + final_exam)
+ * in a section that has been attempted at least once. Returns null when no
+ * graded slot in the section has a recorded percentage — there's nothing to
+ * average yet. Output is rounded to two decimal places to match the per-
+ * attempt persistence step.
+ */
+export function sectionAverageGrade(
+  slots: Array<{ kind: string; bestPercentage: number | null }>,
+): { letter: string; percentage: number; count: number } | null {
+  const graded = slots.filter(
+    (s) =>
+      (s.kind === 'assessment' || s.kind === 'final_exam') &&
+      typeof s.bestPercentage === 'number',
+  );
+  if (graded.length === 0) return null;
+  const sum = graded.reduce((acc, s) => acc + (s.bestPercentage as number), 0);
+  const avg = Math.round((sum / graded.length) * 100) / 100;
+  return { letter: gradeForPercentage(avg), percentage: avg, count: graded.length };
+}

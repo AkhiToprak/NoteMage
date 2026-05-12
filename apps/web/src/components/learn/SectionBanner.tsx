@@ -34,6 +34,12 @@ interface SectionBannerProps {
    * yet. Greys the banner and swaps the notebook icon for a lock.
    */
   unlocked: boolean;
+  /**
+   * Running average across every graded slot in the section that has
+   * been attempted. Null when no graded slot in the section has a
+   * recorded percentage yet — the pill is hidden in that case.
+   */
+  sectionGrade?: { letter: string; percentage: number; count: number } | null;
 }
 
 export default function SectionBanner({
@@ -43,6 +49,7 @@ export default function SectionBanner({
   notebookId,
   notebookTitle,
   unlocked,
+  sectionGrade,
 }: SectionBannerProps) {
   const bg = unlocked ? 'var(--primary)' : 'var(--surface-container)';
   const fg = unlocked ? 'var(--on-primary)' : 'var(--on-surface-variant)';
@@ -120,50 +127,88 @@ export default function SectionBanner({
         ) : null}
       </div>
 
-      {unlocked && notebookId ? (
-        <Link
-          href={`/notebooks/${notebookId}`}
-          aria-label={`Open notebook ${notebookTitle ?? ''}`.trim()}
-          style={{
-            flexShrink: 0,
-            width: '36px',
-            height: '36px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 'var(--radius-full)',
-            background: trailingBg,
-            color: fg,
-            textDecoration: 'none',
-          }}
-        >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        {/* Section grade pill — only when at least one graded slot in
+            the section has a recorded percentage. Hidden on locked
+            sections (no attempts yet by definition). */}
+        {unlocked && sectionGrade ? (
           <span
-            className="material-symbols-outlined"
-            aria-hidden
-            style={{ fontSize: '20px', color: fg }}
+            aria-label={`Section grade ${sectionGrade.letter}, average ${sectionGrade.percentage} percent across ${sectionGrade.count} assessment${sectionGrade.count === 1 ? '' : 's'}`}
+            title={`${sectionGrade.percentage}% average across ${sectionGrade.count} assessment${sectionGrade.count === 1 ? '' : 's'}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--tertiary-container)',
+              color: 'var(--on-tertiary-container)',
+              fontFamily: 'var(--font-display)',
+              fontSize: '13px',
+              fontWeight: 800,
+              letterSpacing: '-0.01em',
+              lineHeight: 1,
+            }}
           >
-            menu_book
+            {sectionGrade.letter}
+            <span
+              style={{
+                fontSize: '9px',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                opacity: 0.75,
+                marginLeft: '2px',
+              }}
+            >
+              avg
+            </span>
           </span>
-        </Link>
-      ) : !unlocked ? (
-        <span
-          aria-label="Section locked"
-          role="img"
-          style={{
-            flexShrink: 0,
-            width: '36px',
-            height: '36px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 'var(--radius-full)',
-            background: trailingBg,
-            color: fg,
-          }}
-        >
-          <LockIcon size={20} color={fg} />
-        </span>
-      ) : null}
+        ) : null}
+
+        {unlocked && notebookId ? (
+          <Link
+            href={`/notebooks/${notebookId}`}
+            aria-label={`Open notebook ${notebookTitle ?? ''}`.trim()}
+            style={{
+              width: '36px',
+              height: '36px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-full)',
+              background: trailingBg,
+              color: fg,
+              textDecoration: 'none',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              aria-hidden
+              style={{ fontSize: '20px', color: fg }}
+            >
+              menu_book
+            </span>
+          </Link>
+        ) : !unlocked ? (
+          <span
+            aria-label="Section locked"
+            role="img"
+            style={{
+              width: '36px',
+              height: '36px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-full)',
+              background: trailingBg,
+              color: fg,
+            }}
+          >
+            <LockIcon size={20} color={fg} />
+          </span>
+        ) : null}
+      </div>
     </header>
   );
 }

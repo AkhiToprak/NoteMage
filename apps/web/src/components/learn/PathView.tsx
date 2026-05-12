@@ -5,6 +5,7 @@ import SectionBanner from '@/components/learn/SectionBanner';
 import SlotNode from '@/components/learn/SlotNode';
 import PathConnector from '@/components/learn/PathConnector';
 import PathDecoration, { decorationsForSection } from '@/components/learn/PathDecorations';
+import { sectionAverageGrade } from '@/lib/path-gating';
 
 // Phase 10.5 — Duolingo-style path view.
 //
@@ -223,6 +224,7 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
               notebookId={plan.notebookId}
               notebookTitle={plan.notebookTitle}
               unlocked={phase.unlocked}
+              sectionGrade={sectionAverageGrade(phase.slots)}
             />
 
             {/* Section locked notice — sits below the (now greyed)
