@@ -119,8 +119,11 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
       <div
         style={{
           position: 'relative',
-          width: `${SIZE}px`,
-          height: `${SIZE}px`,
+          width: `${RING_SIZE}px`,
+          height: `${RING_SIZE}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         {/* Completion ring — active slot only. SVG so we can drive
@@ -133,8 +136,8 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
             style={{
               position: 'absolute',
-              top: `-${(RING_SIZE - SIZE) / 2}px`,
-              left: `-${(RING_SIZE - SIZE) / 2}px`,
+              top: 0,
+              left: 0,
               pointerEvents: 'none',
             }}
           >
@@ -179,8 +182,8 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
           aria-current={isActive ? 'step' : undefined}
           className="learn-path-node-btn"
           style={{
-            width: '100%',
-            height: '100%',
+            width: `${SIZE}px`,
+            height: `${SIZE}px`,
             borderRadius: `${BUTTON_RADIUS}px`,
             background: bg,
             border: `2px solid ${borderColor}`,
@@ -233,7 +236,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
       {/* Slot title. Wraps for readability. */}
       <span
         style={{
-          maxWidth: `${SIZE + 60}px`,
+          maxWidth: `${RING_SIZE + 40}px`,
           fontSize: '13px',
           textAlign: 'center',
           color: isLocked ? 'var(--on-surface-variant)' : 'var(--on-surface)',

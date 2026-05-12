@@ -109,23 +109,36 @@ interface PathDecorationProps {
 /**
  * Render a single decorative mascot. Absolutely positioned relative to
  * the connector's wrapper so it floats in the gutter beside the path
- * line. The caller marks the parent `position: relative`.
+ * line. Top/bottom anchors pin to the edge of the connector zone (no
+ * translate) so the mascot stays within bounds and never spills into
+ * the slot's title text above or the next slot below.
  */
 export default function PathDecoration({ spot }: PathDecorationProps) {
-  const top =
-    spot.verticalAnchor === 'top'
-      ? '22%'
-      : spot.verticalAnchor === 'bottom'
-        ? '78%'
-        : '50%';
+  const sideStyle: { left?: number | string; right?: number | string } = {};
+  if (spot.side === 'left') sideStyle.left = `${spot.horizontalOffset}px`;
+  else sideStyle.right = `${spot.horizontalOffset}px`;
+
+  const vStyle: {
+    top?: number | string;
+    bottom?: number | string;
+    transform?: string;
+  } = {};
+  if (spot.verticalAnchor === 'top') {
+    vStyle.top = 0;
+  } else if (spot.verticalAnchor === 'bottom') {
+    vStyle.bottom = 0;
+  } else {
+    vStyle.top = '50%';
+    vStyle.transform = 'translateY(-50%)';
+  }
+
   return (
     <div
       aria-hidden
       style={{
         position: 'absolute',
-        top,
-        transform: 'translateY(-50%)',
-        [spot.side === 'left' ? 'left' : 'right']: `${spot.horizontalOffset}px`,
+        ...vStyle,
+        ...sideStyle,
         pointerEvents: 'none',
         zIndex: 1,
         opacity: 0.9,
