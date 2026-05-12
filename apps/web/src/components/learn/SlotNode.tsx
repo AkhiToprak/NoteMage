@@ -184,7 +184,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             // transition-all per CLAUDE.md).
           }}
         >
-          <CheckpointIcon kind={slot.kind} size={52} color={iconColor} />
+          <CheckpointIcon kind={slot.kind} size={44} color={iconColor} />
 
           {/* Completed badge — small check pill in the top-right corner
               so the user knows the slot is done at a glance. */}
