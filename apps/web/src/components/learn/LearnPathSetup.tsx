@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import { getMageName } from '@/lib/scholar';
+import GenerationProgressModal from '@/components/learn/GenerationProgressModal';
 
 // Phase 9.4 — unified setup for building Learn Paths. Two operating modes:
 //
@@ -100,7 +100,6 @@ export default function LearnPathSetup({
   defaultNotebookName,
   onClose,
 }: LearnPathSetupProps) {
-  const router = useRouter();
   const { data: session } = useSession();
   const mageName = getMageName(session?.user?.scholarName);
   const isCrossNotebookMode = !defaultNotebookId;
@@ -108,6 +107,12 @@ export default function LearnPathSetup({
   const [tab, setTab] = useState<TabType>('ai');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Phase 10.4 — once the create POST returns `{ planId }`, the form
+  // hands off to the GenerationProgressModal which streams the
+  // orchestrator's per-slot progress over SSE.
+  const [generation, setGeneration] = useState<{ planId: string; title: string } | null>(
+    null,
+  );
 
   // Inventory + selection (shared across both tabs).
   const [inventory, setInventory] = useState<Inventory | null>(null);
@@ -389,50 +394,47 @@ export default function LearnPathSetup({
     setSubmitting(true);
     setError(null);
     try {
-      // Mirror the legacy behavior: when the user selected everything in
-      // the target notebook, send no `materialIds` to keep the chat-tool
-      // path's "full notebook" semantics intact.
-      const notebookFlatIds = isCrossNotebookMode
-        ? flatItems.filter((i) => i.notebookId === targetNotebookId).map((i) => i.id)
-        : flatItems.map((i) => i.id);
-      const allInScopeSelected =
-        notebookFlatIds.length > 0 &&
-        notebookFlatIds.every((id) => selectedIds.has(id));
-
-      const res = await fetch(
-        `/api/notebooks/${targetNotebookId}/study-plans/generate`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            durationDays: aiDuration,
-            goals: aiGoals.trim() || undefined,
-            materialIds: allInScopeSelected ? undefined : scopedItems.map((i) => i.id),
-          }),
-        },
-      );
+      // Phase 10.4 — submit to the new Stage-A endpoint. The server
+      // builds the path skeleton in one inline AI call (~3–5s), persists
+      // empty slots, kicks off Stage B as fire-and-forget, and returns
+      // `{ planId, status: 'generating' }`. We hand off to the
+      // GenerationProgressModal which streams progress over SSE.
+      const fallbackTitle = defaultNotebookName
+        ? `${defaultNotebookName} learn path`
+        : 'New learn path';
+      const res = await fetch('/api/learn/paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: fallbackTitle,
+          brief: aiGoals.trim() || undefined,
+          targetDays: aiDuration,
+          primaryNotebookId: targetNotebookId,
+          contextNotebookIds: [targetNotebookId],
+          materialIds: scopedItems.map((i) => i.id),
+        }),
+      });
       const json = await res.json();
-      if (!json.success) {
+      if (!json.success || !json.data?.planId) {
         setError(json.error || 'Failed to generate path.');
         setSubmitting(false);
         return;
       }
-      router.push('/learn/paths');
-      onClose();
+      setGeneration({ planId: json.data.planId, title: fallbackTitle });
+      setSubmitting(false);
     } catch {
       setError('Failed to generate path.');
       setSubmitting(false);
     }
   }, [
     defaultNotebookId,
+    defaultNotebookName,
     aiNotebookId,
     aiDuration,
     aiGoals,
     selectedIds,
     flatItems,
     noneSelected,
-    router,
-    onClose,
     isCrossNotebookMode,
   ]);
 
@@ -448,77 +450,53 @@ export default function LearnPathSetup({
     setSubmitting(true);
     setError(null);
     try {
-      let res: Response;
-      if (defaultNotebookId) {
-        // Per-notebook submit — legacy endpoint, validates against this nb.
-        res = await fetch(`/api/notebooks/${defaultNotebookId}/study-plans`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: planTitle.trim(),
-            description: planDescription.trim() || undefined,
-            startDate: new Date(planStart).toISOString(),
-            endDate: new Date(planEnd).toISOString(),
-            source: 'manual',
-            phases: phases.map((p, i) => ({
-              title: p.title.trim() || `Phase ${i + 1}`,
-              sortOrder: i,
-              startDate: new Date(p.startDate).toISOString(),
-              endDate: new Date(p.endDate).toISOString(),
-              gateStrategy: isCheckpointPhase(p) ? 'checkpoint' : 'sequential',
-              materials: p.materials.map((m, j) => ({
-                type: m.type,
-                referenceId: m.id,
-                title: m.title,
-                sortOrder: j,
-              })),
-            })),
-          }),
-        });
-      } else {
-        // Cross-notebook submit — /api/learn/paths derives context notebooks
-        // from the material references after ownership validation.
-        const contextSet = new Set<string>();
-        for (const p of phases) {
-          for (const m of p.materials) {
-            if (m.notebookId) contextSet.add(m.notebookId);
-          }
-        }
-        res = await fetch('/api/learn/paths', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: planTitle.trim(),
-            description: planDescription.trim() || undefined,
-            startDate: new Date(planStart).toISOString(),
-            endDate: new Date(planEnd).toISOString(),
-            source: 'manual',
-            primaryNotebookId: contextSet.size === 1 ? Array.from(contextSet)[0] : null,
-            contextNotebookIds: Array.from(contextSet),
-            phases: phases.map((p, i) => ({
-              title: p.title.trim() || `Phase ${i + 1}`,
-              sortOrder: i,
-              startDate: new Date(p.startDate).toISOString(),
-              endDate: new Date(p.endDate).toISOString(),
-              gateStrategy: isCheckpointPhase(p) ? 'checkpoint' : 'sequential',
-              materials: p.materials.map((m, j) => ({
-                type: m.type,
-                referenceId: m.id,
-                title: m.title,
-                sortOrder: j,
-              })),
-            })),
-          }),
-        });
+      // Phase 10.4 — both modes funnel through /api/learn/paths now.
+      // The new schema doesn't support inline manual phase/material
+      // creation, so the manual tab's phase titles + selections become
+      // hints to the AI: the phase titles are folded into the brief
+      // and the flat material list seeds the path.
+      const allMaterials = phases.flatMap((p) => p.materials);
+      const materialIds = allMaterials.map((m) => m.id);
+      const contextSet = new Set<string>();
+      if (defaultNotebookId) contextSet.add(defaultNotebookId);
+      for (const m of allMaterials) {
+        if (m.notebookId) contextSet.add(m.notebookId);
       }
+      const targetDays = Math.max(
+        1,
+        Math.round(
+          (new Date(planEnd).getTime() - new Date(planStart).getTime()) / 86400000,
+        ) + 1,
+      );
+      const phaseHints = phases
+        .map((p, i) => `${i + 1}. ${p.title.trim() || `Phase ${i + 1}`}`)
+        .filter((s) => s.length > 0)
+        .join('\n');
+      const brief = [planDescription.trim(), phaseHints && `Sections:\n${phaseHints}`]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const res = await fetch('/api/learn/paths', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: planTitle.trim(),
+          brief: brief || undefined,
+          targetDays,
+          primaryNotebookId:
+            defaultNotebookId ?? (contextSet.size === 1 ? Array.from(contextSet)[0] : null),
+          contextNotebookIds: Array.from(contextSet),
+          materialIds,
+        }),
+      });
       const json = await res.json();
-      if (!json.success) {
+      if (!json.success || !json.data?.planId) {
         setError(json.error || 'Failed to create path.');
         setSubmitting(false);
         return;
       }
-      router.push('/learn/paths');
-      onClose();
+      setGeneration({ planId: json.data.planId, title: planTitle.trim() });
+      setSubmitting(false);
     } catch {
       setError('Failed to create path.');
       setSubmitting(false);
@@ -530,8 +508,6 @@ export default function LearnPathSetup({
     planStart,
     planEnd,
     phases,
-    router,
-    onClose,
   ]);
 
   // Manual mode draws its phase picker from the SELECTED set only — this
@@ -860,6 +836,21 @@ export default function LearnPathSetup({
             void loadInventory(true);
           }}
           onClose={() => setShowImport(false)}
+        />
+      ) : null}
+
+      {generation ? (
+        <GenerationProgressModal
+          planId={generation.planId}
+          initialTitle={generation.title}
+          onRunInBackground={() => {
+            setGeneration(null);
+            onClose();
+          }}
+          onClose={() => {
+            setGeneration(null);
+            onClose();
+          }}
         />
       ) : null}
     </div>
