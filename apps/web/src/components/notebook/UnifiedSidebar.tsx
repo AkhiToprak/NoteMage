@@ -438,53 +438,6 @@ export default function UnifiedSidebar() {
               }}
             />
 
-            {/* ── Import Notebook button ──────────────────────────── */}
-            <button
-              onClick={() => setShowImportDialog(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                margin: '0 6px 4px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'transparent',
-                color: 'rgba(196,169,255,0.6)',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                textAlign: 'left',
-                width: 'calc(100% - 12px)',
-                transition: 'background 0.15s ease, color 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.1)';
-                (e.currentTarget as HTMLButtonElement).style.color = '#c4a9ff';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.6)';
-              }}
-            >
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '5px',
-                  background: 'rgba(140,82,255,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Upload size={11} style={{ color: '#c4a9ff' }} />
-              </div>
-              Import
-            </button>
-
             {/* ── Create Learning Path button — yellow accent ──────── */}
             <button
               onClick={() => setShowPathSetup(true)}
@@ -531,6 +484,53 @@ export default function UnifiedSidebar() {
                 <GraduationCap size={11} style={{ color: '#ffde59' }} />
               </div>
               Create learning path
+            </button>
+
+            {/* ── Import Notebook button ──────────────────────────── */}
+            <button
+              onClick={() => setShowImportDialog(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '7px 14px',
+                margin: '0 6px 4px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'transparent',
+                color: 'rgba(196,169,255,0.6)',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                textAlign: 'left',
+                width: 'calc(100% - 12px)',
+                transition: 'background 0.15s ease, color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.1)';
+                (e.currentTarget as HTMLButtonElement).style.color = '#c4a9ff';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.6)';
+              }}
+            >
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '5px',
+                  background: 'rgba(140,82,255,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Upload size={11} style={{ color: '#c4a9ff' }} />
+              </div>
+              Import
             </button>
 
             {/* ── Export Pages button ──────────────────────────────── */}
