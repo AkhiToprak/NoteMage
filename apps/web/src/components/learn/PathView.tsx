@@ -221,10 +221,12 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
               description={phase.description}
               notebookId={plan.notebookId}
               notebookTitle={plan.notebookTitle}
+              unlocked={phase.unlocked}
             />
 
-            {/* Section locked notice — sits below the banner so the
-                banner itself stays bright. */}
+            {/* Section locked notice — sits below the (now greyed)
+                banner. The previous section's assessment slot is the
+                gate, so the copy points at it specifically. */}
             {!phase.unlocked ? (
               <p
                 style={{
@@ -234,7 +236,7 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
                   textAlign: 'center',
                 }}
               >
-                Locked — complete the previous section&apos;s checkpoint to unlock.
+                Locked — pass the previous section&apos;s assessment to unlock.
               </p>
             ) : null}
 
