@@ -10,6 +10,7 @@ import PathView, {
 } from '@/components/learn/PathView';
 import CheckpointDrawer from '@/components/learn/CheckpointDrawer';
 import CheckpointFlashcardViewer from '@/components/learn/CheckpointFlashcardViewer';
+import CheckpointTheoryViewer from '@/components/learn/CheckpointTheoryViewer';
 
 // Phase 10.6 — path detail page.
 //
@@ -176,6 +177,17 @@ function PathDetailInner({ planId }: { planId: string }) {
 
       {openSlot && activeActivity?.kind === 'flashcards' ? (
         <CheckpointFlashcardViewer
+          key={activeActivity.id}
+          slot={openSlot}
+          activity={activeActivity}
+          onClose={() => setUrlSlot({ activity: null })}
+          onCompleted={() => {
+            handleSlotChanged();
+            setUrlSlot({ activity: null });
+          }}
+        />
+      ) : openSlot && activeActivity?.kind === 'theory' ? (
+        <CheckpointTheoryViewer
           key={activeActivity.id}
           slot={openSlot}
           activity={activeActivity}

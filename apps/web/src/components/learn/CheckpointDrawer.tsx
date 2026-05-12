@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import QuizViewer from '@/components/notebook/QuizViewer';
-import TheoryViewer from '@/components/learn/TheoryViewer';
 import ActivityList from '@/components/learn/ActivityList';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { gradeForPercentage } from '@/lib/path-gating';
@@ -462,39 +461,11 @@ function ActivityBody({
   onRetakeAssessment,
   onQuizComplete,
 }: ActivityBodyProps) {
-  if (content.kind === 'theory' && activity.kind === 'theory') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <TheoryViewer body={content.theory.body} />
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '12px',
-            position: 'sticky',
-            bottom: 0,
-            paddingTop: '12px',
-            background:
-              'linear-gradient(to bottom, transparent, var(--surface) 30%, var(--surface))',
-          }}
-        >
-          <button type="button" onClick={onBackToList} style={ghostBtnStyle}>
-            ← Back
-          </button>
-          <button
-            type="button"
-            onClick={onMarkComplete}
-            disabled={submitting}
-            style={{ ...primaryBtnStyle, opacity: submitting ? 0.6 : 1 }}
-          >
-            {activity.completed ? 'Done ✓' : 'Mark as read & continue →'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Theory + flashcards both have their own full-screen viewers
+  // (CheckpointTheoryViewer + CheckpointFlashcardViewer); the parent
+  // page routes those activity kinds away from this drawer before they
+  // ever reach ActivityBody. Quiz still renders inline below until its
+  // full-screen viewer ships.
   if (content.kind === 'quiz' && activity.kind === 'quiz') {
     if (assessmentResult) {
       return (
