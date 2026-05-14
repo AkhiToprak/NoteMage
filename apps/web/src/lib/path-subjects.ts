@@ -14,6 +14,10 @@ export type SubjectId = (typeof SUBJECT_IDS)[number];
 interface SubjectDef {
   /** Human-readable name shown in prompts to the LLM. */
   name: string;
+  /** Short display label for chips / filters in the UI. */
+  shortLabel: string;
+  /** Material Symbols Outlined icon name to pair with the chip. */
+  icon: string;
   /** Short blurb the classifier uses to disambiguate. */
   classifierHint: string;
   /** Question kinds allowed in quizzes for this subject. */
@@ -31,6 +35,8 @@ interface SubjectDef {
 export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   coding: {
     name: 'Programming / Computer Science',
+    shortLabel: 'Coding',
+    icon: 'code',
     classifierHint:
       'Programming languages, software engineering, algorithms, data structures, web/mobile dev, databases, operating systems, CS theory.',
     allowedKinds: ['code_output', 'mc', 'fill_blank', 'sentence_reorder'],
@@ -44,6 +50,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   },
   math: {
     name: 'Mathematics',
+    shortLabel: 'Math',
+    icon: 'function',
     classifierHint:
       'Algebra, calculus, statistics, probability, linear algebra, discrete math, geometry, trigonometry, number theory.',
     allowedKinds: ['equation', 'fill_blank', 'word_bank', 'mc'],
@@ -57,6 +65,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   },
   science_natural: {
     name: 'Natural Sciences (physics, chemistry, biology, earth science)',
+    shortLabel: 'Science',
+    icon: 'science',
     classifierHint:
       'Physics, chemistry, biology, anatomy, ecology, geology, astronomy, earth science. Mix of theory, calculation, and memorization.',
     allowedKinds: ['mc', 'fill_blank', 'match_pairs', 'true_false', 'equation', 'sentence_reorder'],
@@ -70,6 +80,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   },
   history_humanities: {
     name: 'History & Humanities',
+    shortLabel: 'History',
+    icon: 'history_edu',
     classifierHint:
       'History, geography, art history, philosophy, religious studies, classics. Heavy on chronology, causes/effects, and named figures.',
     allowedKinds: ['timeline', 'mc', 'fill_blank', 'true_false', 'match_pairs', 'sentence_reorder'],
@@ -83,6 +95,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   },
   language: {
     name: 'Foreign Language',
+    shortLabel: 'Language',
+    icon: 'translate',
     classifierHint:
       'Learning a foreign language — vocabulary, grammar, conjugation, translation, listening. NOT linguistics or programming languages.',
     allowedKinds: ['translation', 'fill_blank', 'word_bank', 'sentence_reorder', 'match_pairs'],
@@ -96,6 +110,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   },
   social_studies: {
     name: 'Social Studies (law, economics, business, psychology, medicine)',
+    shortLabel: 'Social studies',
+    icon: 'gavel',
     classifierHint:
       'Law, economics, finance, business, marketing, psychology, sociology, political science, medicine, public health.',
     allowedKinds: ['mc', 'fill_blank', 'true_false', 'match_pairs', 'word_bank'],
@@ -109,6 +125,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
   },
   general: {
     name: 'General / Mixed',
+    shortLabel: 'General',
+    icon: 'category',
     classifierHint:
       'Topic does not clearly fit any specific subject, or spans many subjects without one dominating.',
     allowedKinds: [

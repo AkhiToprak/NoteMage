@@ -110,6 +110,10 @@ export interface SerializedPath {
   source: string;
   generationStatus: string;
   generationError: string | null;
+  /** Classifier-detected subject buckets, sorted by weight. Empty for legacy rows. */
+  subjects: string[];
+  /** Per-subject weights aligned with `subjects`. Empty for legacy rows. */
+  subjectWeights: number[];
   phases: SerializedPathPhase[];
 }
 
@@ -134,6 +138,8 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
     source: plan.source,
     generationStatus: plan.generationStatus,
     generationError: plan.generationError ?? null,
+    subjects: plan.subjects,
+    subjectWeights: plan.subjectWeights,
     phases: annotated.map((ap) => ({
       id: ap.source.id,
       title: ap.source.title,

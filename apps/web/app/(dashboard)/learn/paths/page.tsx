@@ -1,9 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import type { PathPlan } from '@/components/learn/PathView';
+import {
+  SUBJECT_REGISTRY,
+  isSubjectId,
+  type SubjectId,
+} from '@/lib/path-subjects';
 
 // Phase 10.8 — /learn/paths list page.
 //
@@ -20,7 +25,15 @@ import type { PathPlan } from '@/components/learn/PathView';
 
 const POLL_INTERVAL_MS = 3000;
 
-type PathPlanListItem = PathPlan & { generationStatus?: string };
+type PathPlanListItem = PathPlan & {
+  generationStatus?: string;
+  subjects?: string[];
+};
+
+function primarySubjectOf(plan: PathPlanListItem): SubjectId | null {
+  const first = plan.subjects?.find((s) => isSubjectId(s));
+  return first ? (first as SubjectId) : null;
+}
 
 function isInFlight(plan: PathPlanListItem): boolean {
   const status = plan.generationStatus;
@@ -31,7 +44,27 @@ export default function LearnPage() {
   const [plans, setPlans] = useState<PathPlanListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [activeSubject, setActiveSubject] = useState<SubjectId | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Distinct subjects present across the user's paths. Drives the filter
+  // strip — hidden when only one subject (or zero) is in play.
+  const subjectsInUse = useMemo<SubjectId[]>(() => {
+    if (!plans) return [];
+    const seen = new Set<SubjectId>();
+    for (const plan of plans) {
+      for (const raw of plan.subjects ?? []) {
+        if (isSubjectId(raw)) seen.add(raw);
+      }
+    }
+    return Array.from(seen);
+  }, [plans]);
+
+  const filteredPlans = useMemo<PathPlanListItem[] | null>(() => {
+    if (!plans) return null;
+    if (!activeSubject) return plans;
+    return plans.filter((plan) => (plan.subjects ?? []).includes(activeSubject));
+  }, [plans, activeSubject]);
 
   const refresh = useCallback(async () => {
     try {
@@ -145,10 +178,20 @@ export default function LearnPage() {
         </button>
       </header>
 
+      {subjectsInUse.length >= 2 && (
+        <SubjectFilterStrip
+          subjects={subjectsInUse}
+          activeSubject={activeSubject}
+          onChange={setActiveSubject}
+        />
+      )}
+
       {plans === null ? (
         <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>Loading your paths…</p>
       ) : plans.length === 0 ? (
         <EmptyState error={error} onCreate={() => setCreateOpen(true)} />
+      ) : filteredPlans && filteredPlans.length === 0 ? (
+        <FilterEmptyState onClear={() => setActiveSubject(null)} />
       ) : (
         <div
           style={{
@@ -157,7 +200,7 @@ export default function LearnPage() {
             gap: '12px',
           }}
         >
-          {plans.map((plan) =>
+          {(filteredPlans ?? []).map((plan) =>
             isInFlight(plan) ? (
               <GeneratingCard key={plan.id} plan={plan} />
             ) : (
@@ -199,6 +242,7 @@ function PathCard({ plan }: { plan: PathPlanListItem }) {
   const total = allSlots.length;
   const done = allSlots.filter((s) => s.completed).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const primarySubject = primarySubjectOf(plan);
 
   return (
     <Link
@@ -264,6 +308,8 @@ function PathCard({ plan }: { plan: PathPlanListItem }) {
           </span>
         </div>
       </div>
+
+      {primarySubject ? <SubjectChip subject={primarySubject} /> : null}
 
       <div
         aria-hidden
@@ -457,6 +503,162 @@ function EmptyState({ error, onCreate }: { error: string | null; onCreate: () =>
           Create your first path
         </button>
       )}
+    </section>
+  );
+}
+
+function SubjectChip({ subject }: { subject: SubjectId }) {
+  const def = SUBJECT_REGISTRY[subject];
+  return (
+    <span
+      style={{
+        alignSelf: 'flex-start',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '4px 10px',
+        borderRadius: '999px',
+        background: 'rgba(174,137,255,0.12)',
+        border: '1px solid rgba(174,137,255,0.32)',
+        color: 'var(--primary)',
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        fontFamily: 'inherit',
+      }}
+    >
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px' }}>
+        {def.icon}
+      </span>
+      {def.shortLabel}
+    </span>
+  );
+}
+
+function SubjectFilterStrip({
+  subjects,
+  activeSubject,
+  onChange,
+}: {
+  subjects: SubjectId[];
+  activeSubject: SubjectId | null;
+  onChange: (s: SubjectId | null) => void;
+}) {
+  return (
+    <div
+      role="toolbar"
+      aria-label="Filter paths by subject"
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        marginBottom: '16px',
+      }}
+    >
+      <FilterChip
+        active={activeSubject === null}
+        icon="all_inclusive"
+        label="All"
+        onClick={() => onChange(null)}
+      />
+      {subjects.map((id) => {
+        const def = SUBJECT_REGISTRY[id];
+        return (
+          <FilterChip
+            key={id}
+            active={activeSubject === id}
+            icon={def.icon}
+            label={def.shortLabel}
+            onClick={() => onChange(activeSubject === id ? null : id)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 12px',
+        borderRadius: '999px',
+        background: active ? 'var(--primary)' : 'var(--surface-container)',
+        color: active ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+        border: `1px solid ${active ? 'var(--primary)' : 'var(--outline-variant)'}`,
+        fontFamily: 'inherit',
+        fontSize: '12px',
+        fontWeight: 700,
+        letterSpacing: '0.02em',
+        cursor: 'pointer',
+      }}
+    >
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+        {icon}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function FilterEmptyState({ onClear }: { onClear: () => void }) {
+  return (
+    <section
+      style={{
+        background: 'var(--surface-container)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '24px',
+        textAlign: 'center',
+      }}
+    >
+      <p
+        style={{
+          margin: '0 0 12px',
+          fontSize: '14px',
+          color: 'var(--on-surface-variant)',
+          lineHeight: 1.5,
+        }}
+      >
+        No paths match this subject yet.
+      </p>
+      <button
+        type="button"
+        onClick={onClear}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 14px',
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--surface-container-high)',
+          color: 'var(--on-surface)',
+          border: '1px solid var(--outline-variant)',
+          fontFamily: 'inherit',
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        Clear filter
+      </button>
     </section>
   );
 }
