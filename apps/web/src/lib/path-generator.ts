@@ -174,10 +174,41 @@ interface TipTapDoc {
   content: TipTapNode[];
 }
 
+function inlineMathNode(latex: string): TipTapNode {
+  return { type: 'inlineMath', attrs: { latex } };
+}
+
+function blockMathNode(latex: string): TipTapNode {
+  return { type: 'blockMath', attrs: { latex } };
+}
+
+// Match `$...$` runs that don't contain `$` or newlines. Block math
+// (`$$...$$`) is handled before this is applied.
+const INLINE_MATH_RE = /\$([^$\n]+?)\$/g;
+
+function inlineContentFromText(text: string): (TipTapNode | TipTapTextNode)[] {
+  const out: (TipTapNode | TipTapTextNode)[] = [];
+  let lastIndex = 0;
+  INLINE_MATH_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = INLINE_MATH_RE.exec(text)) !== null) {
+    const start = match.index;
+    if (start > lastIndex) {
+      out.push({ type: 'text', text: text.slice(lastIndex, start) });
+    }
+    out.push(inlineMathNode(match[1].trim()));
+    lastIndex = start + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    out.push({ type: 'text', text: text.slice(lastIndex) });
+  }
+  return out.length > 0 ? out : [{ type: 'text', text }];
+}
+
 function paragraph(text: string): TipTapNode {
   return {
     type: 'paragraph',
-    content: [{ type: 'text', text }],
+    content: inlineContentFromText(text),
   };
 }
 
@@ -185,7 +216,7 @@ function heading(level: 2 | 3 | 4, text: string): TipTapNode {
   return {
     type: 'heading',
     attrs: { level },
-    content: [{ type: 'text', text }],
+    content: inlineContentFromText(text),
   };
 }
 
@@ -199,12 +230,22 @@ function bulletList(items: string[]): TipTapNode {
   };
 }
 
+// Split a text blob into TipTap block-level nodes. Splits on blank lines.
+// A chunk that is entirely a `$$...$$` block becomes a standalone
+// blockMath node; everything else becomes a paragraph (possibly with
+// inlineMath nodes inside).
 function splitParagraphs(text: string): TipTapNode[] {
   return text
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0)
-    .map(paragraph);
+    .map((p) => {
+      const blockMatch = /^\$\$([\s\S]+?)\$\$$/.exec(p);
+      if (blockMatch) {
+        return blockMathNode(blockMatch[1].trim());
+      }
+      return paragraph(p);
+    });
 }
 
 /**

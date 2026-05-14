@@ -105,6 +105,7 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
     'Voice: warm, plain, example-driven. Short sentences. No marketing fluff.',
     'Length: aim for ~300–500 words across introduction + keyPoints + examples (+ summary).',
     'Stay strictly within the slot\'s topic hint — do NOT drift into adjacent topics or other slots.',
+    'For math/science topics: wrap every mathematical expression in `$...$` for inline use (e.g. "the formula $E = mc^2$ tells us…") and `$$...$$` for standalone display equations on their own line. The viewer renders these via KaTeX — never write math as plain text like "E = mc^2".',
     '',
     `Path: "${ctx.pathTitle}" — ${ctx.pathDescription}`,
     `Section: "${ctx.phaseTitle}" — ${ctx.phaseDescription}`,

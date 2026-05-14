@@ -5,14 +5,15 @@ import StarterKit from '@tiptap/starter-kit';
 import UnderlineExt from '@tiptap/extension-underline';
 import Typography from '@tiptap/extension-typography';
 import Highlight from '@tiptap/extension-highlight';
+import { InlineMath, BlockMath } from '@/lib/tiptap-math';
 
 // Phase 10.6 — read-only TipTap viewer for `TheoryContent.body`.
 //
 // The orchestrator (path-generator.ts → theoryInputToTipTap) emits a
 // minimal subset of TipTap nodes: doc / paragraph / heading (h2-h4) /
-// bulletList / listItem. StarterKit covers all of them. We add a
-// handful of inline extensions so future theory content with
-// underlined / highlighted / smart-quoted prose still renders cleanly.
+// bulletList / listItem, plus inlineMath / blockMath when the AI used
+// `$...$` / `$$...$$` LaTeX. StarterKit covers the prose nodes; the
+// math extensions render via katex.renderToString at mount time.
 //
 // `editable: false` puts the editor in pure-render mode — no toolbar,
 // no slash-commands, no focus management. The drawer hosts navigation
@@ -34,6 +35,8 @@ export default function TheoryViewer({ body }: TheoryViewerProps) {
       UnderlineExt,
       Highlight.configure({ multicolor: true }),
       Typography,
+      InlineMath,
+      BlockMath,
     ],
     // Defensive: if the JSON is missing or malformed we fall back to an
     // empty doc rather than crashing TipTap.
