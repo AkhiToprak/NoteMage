@@ -8,6 +8,8 @@ import WordBankRenderer from './WordBankRenderer';
 import MatchPairsRenderer from './MatchPairsRenderer';
 import SentenceReorderRenderer from './SentenceReorderRenderer';
 import EquationRenderer from './EquationRenderer';
+import CodeOutputRenderer from './CodeOutputRenderer';
+import TimelineRenderer from './TimelineRenderer';
 import type { QuestionProps } from './types';
 
 export type { QuestionProps, QuizQuestionForRender, QuizRenderMode, UserAnswer } from './types';
@@ -20,6 +22,8 @@ export {
   MatchPairsRenderer,
   SentenceReorderRenderer,
   EquationRenderer,
+  CodeOutputRenderer,
+  TimelineRenderer,
 };
 
 // Registry value type: each renderer narrows `TPayload` to its own payload
@@ -31,8 +35,8 @@ export {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyQuestionRenderer = ComponentType<QuestionProps<any>>;
 
-// All 8 kinds from the original Phase 1–2 plan now ship: mc, true_false,
-// fill_blank, word_bank, match_pairs, sentence_reorder, translation, equation.
+// 10 kinds: the original 8 plus subject-native code_output (coding) and
+// timeline (history/humanities) added with the subject-aware generator.
 export const RENDERERS: Partial<Record<QuestionKind, AnyQuestionRenderer>> = {
   mc: MCRenderer,
   true_false: TrueFalseRenderer,
@@ -42,4 +46,6 @@ export const RENDERERS: Partial<Record<QuestionKind, AnyQuestionRenderer>> = {
   match_pairs: MatchPairsRenderer,
   sentence_reorder: SentenceReorderRenderer,
   equation: EquationRenderer,
+  code_output: CodeOutputRenderer,
+  timeline: TimelineRenderer,
 };

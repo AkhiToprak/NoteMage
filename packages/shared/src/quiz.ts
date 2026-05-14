@@ -20,7 +20,20 @@ export const QUESTION_KINDS = [
   'sentence_reorder',
   'equation',
   'translation',
+  'code_output',
+  'timeline',
 ] as const;
+
+export const CODE_LANGUAGES = [
+  'python',
+  'javascript',
+  'typescript',
+  'java',
+  'cpp',
+  'sql',
+  'plaintext',
+] as const;
+export type CodeLanguage = (typeof CODE_LANGUAGES)[number];
 
 export const QuestionKindSchema = z.enum(QUESTION_KINDS);
 export type QuestionKind = z.infer<typeof QuestionKindSchema>;
@@ -87,6 +100,30 @@ export const EquationPayloadSchema = z.object({
 });
 export type EquationPayload = z.infer<typeof EquationPayloadSchema>;
 
+export const CodeOutputPayloadSchema = z.object({
+  language: z.enum(CODE_LANGUAGES),
+  code: z.string().min(1),
+  blank: z.object({
+    acceptableAnswers: z.array(z.string().min(1)).min(1),
+    caseSensitive: z.boolean().optional(),
+    fuzzyThreshold: z.number().min(0).max(1).optional(),
+  }),
+});
+export type CodeOutputPayload = z.infer<typeof CodeOutputPayloadSchema>;
+
+export const TimelinePayloadSchema = z.object({
+  events: z
+    .array(
+      z.object({
+        year: z.string().min(1),
+        label: z.string().min(1),
+      })
+    )
+    .min(3)
+    .max(8),
+});
+export type TimelinePayload = z.infer<typeof TimelinePayloadSchema>;
+
 const QuestionCommonShape = {
   prompt: z.string().min(1),
   hint: z.string().optional(),
@@ -134,6 +171,16 @@ export const QuizQuestionV2Schema = z.discriminatedUnion('kind', [
     kind: z.literal('equation'),
     ...QuestionCommonShape,
     payload: EquationPayloadSchema,
+  }),
+  z.object({
+    kind: z.literal('code_output'),
+    ...QuestionCommonShape,
+    payload: CodeOutputPayloadSchema,
+  }),
+  z.object({
+    kind: z.literal('timeline'),
+    ...QuestionCommonShape,
+    payload: TimelinePayloadSchema,
   }),
 ]);
 export type QuizQuestionV2 = z.infer<typeof QuizQuestionV2Schema>;

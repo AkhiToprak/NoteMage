@@ -7,6 +7,12 @@
 // `tool_choice` so the AI is constrained to a single structured output.
 
 import type { PathSlotKind } from './ai-tools';
+import {
+  subjectGuidanceFragment,
+  subjectQuizGuidanceFragment,
+  subjectTheoryToneFragment,
+  type SubjectId,
+} from './path-subjects';
 
 export interface PathStructureContext {
   /** Path title the user requested. May be refined by the AI. */
@@ -20,6 +26,10 @@ export interface PathStructureContext {
    * Pre-formatted as one entry per line so the prompt stays compact.
    */
   materialInventory?: string;
+  /** Subject buckets returned by the classifier, sorted by weight. */
+  subjects: SubjectId[];
+  /** Per-subject weights aligned with `subjects`. Sums to ≤ 1.0. */
+  subjectWeights: number[];
 }
 
 export interface SlotContentContext {
@@ -37,6 +47,10 @@ export interface SlotContentContext {
    * slots.
    */
   reviewOf?: string[];
+  /** Subject buckets returned by the classifier, sorted by weight. */
+  subjects: SubjectId[];
+  /** Per-subject weights aligned with `subjects`. Sums to ≤ 1.0. */
+  subjectWeights: number[];
 }
 
 /**
@@ -72,6 +86,10 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
       ctx.materialInventory,
     );
   }
+  const subjectFragment = subjectGuidanceFragment(ctx.subjects, ctx.subjectWeights);
+  if (subjectFragment.length > 0) {
+    lines.push(subjectFragment);
+  }
   return lines.join('\n');
 }
 
@@ -100,6 +118,10 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
+  const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
+  if (subjectFragment.length > 0) {
+    lines.push(subjectFragment);
+  }
   return lines.join('\n');
 }
 
@@ -127,12 +149,16 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
+  const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
+  if (subjectFragment.length > 0) {
+    lines.push(subjectFragment);
+  }
   return lines.join('\n');
 }
 
 /**
  * Stage B — quiz prompt. 5–8 mixed-kind questions, leveraging the v2
- * question kinds (mc / fill_blank / word_bank / match_pairs / …).
+ * question kinds, restricted to the subjects' allowed palette.
  */
 export function buildQuizPrompt(ctx: SlotContentContext): string {
   const isFinalExam = ctx.slotKind === 'final_exam';
@@ -152,6 +178,8 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     '- translation — language items. Same shape as fill_blank plus targetLanguage.',
     '- sentence_reorder — syntax, chronology, process steps. Tokens shuffled into the correct order.',
     '- equation — math input; the grader evaluates algebraic equivalence via mathjs.',
+    '- code_output — show a real code snippet and ask for its printed output. Reserve for coding subjects.',
+    '- timeline — 3–8 dated events; the learner drags labels onto a year axis. Reserve for history/humanities.',
     'Each question must have a clear `correctExplanation` and `wrongExplanation` so learners get useful feedback.',
     isFinalExam
       ? 'Span the WHOLE path — pull questions from every section, vary difficulty (about 1/3 recall, 1/3 application, 1/3 synthesis), and end with the hardest items.'
@@ -165,7 +193,9 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     '- match_pairs → {"pairs":[{"left":"X","right":"Y"}]}. Keys are exactly `left` and `right`.',
     '- translation → {"targetLanguage":"Spanish","blank":{"acceptableAnswers":["el libro rojo"]}}.',
     '- sentence_reorder → {"correctOrder":["I","want","to","learn"]}. 2–12 tokens.',
-    '- equation → {"expectedExpression":"2*x + 3","variables":["x"],"tolerance":0.001}. Set `variables` when the expression contains them.',
+    '- equation → {"expectedExpression":"2*x + 3","variables":["x"],"tolerance":0.001}. Set `variables` when the expression contains them. Render math expressions inside the `prompt` with `$...$` (inline) or `$$...$$` (block) — the renderer parses these as LaTeX.',
+    '- code_output → {"language":"python","code":"print(2 + 2)","blank":{"acceptableAnswers":["4"]}}. `code` may contain newlines. The `prompt` is a short lead-in like "What does this print?" — never paste the code into the prompt; the renderer displays it as a syntax-highlighted block. Provide 2–4 `acceptableAnswers` covering common variants (e.g. trailing newline, quoted vs unquoted output).',
+    '- timeline → {"events":[{"year":"1914","label":"Outbreak of WWI"}, …]}. 3–8 distinct events with their canonical year. Years are plain strings (e.g. "1914" or "300 BCE"). The `prompt` is a short framing line like "Place each event on the timeline." — do NOT list the events in the prompt.',
   ];
   if (ctx.slotKind === 'assessment') {
     lines.push(
@@ -185,6 +215,10 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     }
   } else if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
     lines.push('', 'This is a REVIEW slot — pull from:', ...ctx.reviewOf.map((s) => `- ${s}`));
+  }
+  const subjectFragment = subjectQuizGuidanceFragment(ctx.subjects, ctx.subjectWeights);
+  if (subjectFragment.length > 0) {
+    lines.push(subjectFragment);
   }
   lines.push(
     '',

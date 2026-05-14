@@ -13,6 +13,8 @@ import { generatePathStructure, generatePath } from '@/lib/path-generator';
 import { loadPathsForUser, serializePath } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
+import { classifySubjects } from '@/lib/path-classifier';
+import { logTelemetry } from '@/lib/telemetry-server';
 
 // Phase 10.3 — POST kicks off the two-stage AI path generation. Stage A
 // (one inline AI call → `create_path_structure`) returns the section /
@@ -274,6 +276,18 @@ export async function POST(request: NextRequest) {
     }
     derivedNotebookIds.add(resolvedPrimaryNotebookId);
 
+    // ── Subject classification (Haiku, ~1s) ──────────────────────────
+    const classification = await classifySubjects({
+      title,
+      brief: body.brief,
+      inventory: inventory || undefined,
+    });
+    logTelemetry(userId, 'path.classifier.result', {
+      subjects: classification.subjects,
+      weights: classification.weights,
+      fallback: classification.fallback,
+    });
+
     // ── Stage A (one AI call, inline) ────────────────────────────────
     let structure: PathStructureToolInput;
     try {
@@ -283,6 +297,8 @@ export async function POST(request: NextRequest) {
         brief: body.brief,
         targetDays,
         materialInventory: inventory || undefined,
+        subjects: classification.subjects,
+        subjectWeights: classification.weights,
       });
     } catch (error) {
       console.error('[learn/paths POST] Stage A failed', error);
@@ -306,6 +322,8 @@ export async function POST(request: NextRequest) {
           endDate: end,
           source: 'ai',
           generationStatus: 'generating',
+          subjects: classification.subjects,
+          subjectWeights: classification.weights,
         },
       });
 

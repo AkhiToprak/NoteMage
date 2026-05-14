@@ -18,6 +18,7 @@ import {
   UnifrakturMaguntia,
 } from 'next/font/google';
 import './globals.css';
+import 'katex/dist/katex.min.css';
 import Providers from './providers';
 
 const epilogue = Epilogue({

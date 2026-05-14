@@ -135,6 +135,32 @@ export function grade(
       if (typeof correct !== 'boolean') return { isCorrect: false };
       return { isCorrect: userAnswer.value === correct };
     }
+    case 'code_output': {
+      if (userAnswer.kind !== 'code_output') return { isCorrect: false };
+      const p = readCodeOutputPayload(payload);
+      if (!p) return { isCorrect: false };
+      const matched = fuzzyMatch(
+        userAnswer.text,
+        p.acceptableAnswers,
+        p.fuzzyThreshold ?? 0.95,
+        p.caseSensitive ?? true
+      );
+      return { isCorrect: matched };
+    }
+    case 'timeline': {
+      if (userAnswer.kind !== 'timeline') return { isCorrect: false };
+      const p = readTimelinePayload(payload);
+      if (!p) return { isCorrect: false };
+      if (Object.keys(userAnswer.placements).length !== p.events.length) {
+        return { isCorrect: false };
+      }
+      for (const event of p.events) {
+        const submitted = userAnswer.placements[event.year];
+        if (typeof submitted !== 'string') return { isCorrect: false };
+        if (normalize(submitted) !== normalize(event.label)) return { isCorrect: false };
+      }
+      return { isCorrect: true };
+    }
     default: {
       // Exhaustiveness guard. If a new kind is added to QuestionKind but not
       // here, TypeScript flags this assignment.
@@ -344,4 +370,42 @@ function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResu
 
 function normalize(s: string): string {
   return s.trim().toLowerCase();
+}
+
+interface CodeOutputParsed extends FillBlankParsed {
+  language: string;
+  code: string;
+}
+
+function readCodeOutputPayload(payload: unknown): CodeOutputParsed | null {
+  const blank = readFillBlankPayload(payload);
+  if (!blank) return null;
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as Record<string, unknown>;
+  const language = typeof p.language === 'string' && p.language.length > 0 ? p.language : 'plaintext';
+  const code = typeof p.code === 'string' && p.code.length > 0 ? p.code : '';
+  if (code.length === 0) return null;
+  return { ...blank, language, code };
+}
+
+interface TimelineParsed {
+  events: { year: string; label: string }[];
+}
+
+function readTimelinePayload(payload: unknown): TimelineParsed | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as Record<string, unknown>;
+  if (!Array.isArray(p.events)) return null;
+  const events = p.events
+    .map((e) => {
+      if (!e || typeof e !== 'object') return null;
+      const year = (e as { year?: unknown }).year;
+      const label = (e as { label?: unknown }).label;
+      if (typeof year !== 'string' || typeof label !== 'string') return null;
+      if (year.length === 0 || label.length === 0) return null;
+      return { year, label };
+    })
+    .filter((e): e is { year: string; label: string } => e !== null);
+  if (events.length === 0 || events.length !== p.events.length) return null;
+  return { events };
 }

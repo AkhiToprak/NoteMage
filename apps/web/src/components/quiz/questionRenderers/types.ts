@@ -34,7 +34,9 @@ export type UserAnswer =
   | { kind: 'match_pairs'; connections: { left: number; rightLabel: string }[] }
   | { kind: 'translation'; text: string }
   | { kind: 'sentence_reorder'; orderedTokens: string[] }
-  | { kind: 'equation'; expression: string };
+  | { kind: 'equation'; expression: string }
+  | { kind: 'code_output'; text: string }
+  | { kind: 'timeline'; placements: Record<string, string> };
 
 // Shared props every renderer receives from the QuizViewer dispatcher.
 // `TPayload` is the kind-specific payload type; each renderer narrows it.

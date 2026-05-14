@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { all, createLowlight } from 'lowlight';
 import { toHtml } from 'hast-util-to-html';
 import type { Components } from 'react-markdown';
@@ -330,7 +332,8 @@ export default function MarkdownRenderer({ content, variant = 'bubble' }: Markdo
         ${HLJS_STYLES}
       `}</style>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={variant === 'bubble' ? bubbleComponents : undefined}
       >
         {content}

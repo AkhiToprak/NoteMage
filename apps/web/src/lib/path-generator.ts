@@ -24,7 +24,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
-import { anthropic, AI_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
+import { anthropic, AI_GENERATION_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
 import {
   PATH_STRUCTURE_TOOL,
   THEORY_SECTION_TOOL,
@@ -44,11 +44,16 @@ import {
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
-import { QuizSetV2Schema, TheorySectionSchema } from '@notemage/shared';
+import { QuizSetV2Schema, TheorySectionSchema, type QuestionKind } from '@notemage/shared';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
 import { logTelemetry } from './telemetry-server';
 import { normalizeQuizQuestions, normalizeTheoryInput } from './path-generator-normalize';
+import {
+  allowedKindsForSubjects,
+  coerceSubjectIds,
+  type SubjectId,
+} from './path-subjects';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
@@ -68,6 +73,10 @@ export interface GeneratePathStructureOpts {
    * lets the AI design from the title + brief alone.
    */
   materialInventory?: string;
+  /** Subject buckets from the classifier (sorted by weight). */
+  subjects: SubjectId[];
+  /** Per-subject weights aligned with `subjects`. */
+  subjectWeights: number[];
 }
 
 export type GeneratedPathStructure = PathStructureToolInput;
@@ -106,13 +115,21 @@ async function forcedToolCall<T>(opts: {
   /** Optional extra user message body. Defaults to "Generate now." */
   userMessage?: string;
   maxAttempts?: number;
+  /** Override the default generation model. */
+  model?: string;
 }): Promise<T> {
-  const { system, tool, userMessage = 'Generate now.', maxAttempts = 2 } = opts;
+  const {
+    system,
+    tool,
+    userMessage = 'Generate now.',
+    maxAttempts = 2,
+    model = AI_GENERATION_MODEL,
+  } = opts;
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await anthropic.messages.create({
-        model: AI_MODEL,
+        model,
         max_tokens: MAX_OUTPUT_TOKENS,
         system,
         messages: [{ role: 'user', content: userMessage }],
@@ -234,6 +251,8 @@ export async function generatePathStructure(
     brief: opts.brief,
     targetDays: opts.targetDays,
     materialInventory: opts.materialInventory,
+    subjects: opts.subjects,
+    subjectWeights: opts.subjectWeights,
   };
   const system = buildPathStructurePrompt(ctx);
   const result = await forcedToolCall<PathStructureToolInput>({
@@ -288,6 +307,8 @@ interface PlanForGeneration {
   primaryNotebookId: string | null;
   title: string;
   description: string;
+  subjects: SubjectId[];
+  subjectWeights: number[];
   phases: PhaseForGeneration[];
 }
 
@@ -320,12 +341,28 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     },
   });
   if (!plan) return null;
+  const subjects = coerceSubjectIds(plan.subjects);
+  const subjectWeights = Array.isArray(plan.subjectWeights)
+    ? plan.subjectWeights
+        .map((w) => (typeof w === 'number' && Number.isFinite(w) ? w : 0))
+        .slice(0, subjects.length)
+    : [];
+  // Pad weights if shorter than subjects.
+  while (subjectWeights.length < subjects.length) {
+    subjectWeights.push(1 / Math.max(1, subjects.length));
+  }
+  // Legacy rows without subjects fall back to `general`.
+  const resolvedSubjects: SubjectId[] = subjects.length > 0 ? subjects : ['general'];
+  const resolvedWeights: number[] =
+    subjects.length > 0 ? subjectWeights : [1];
   return {
     id: plan.id,
     userId: plan.userId,
     primaryNotebookId: plan.notebookId,
     title: plan.title,
     description: plan.description ?? '',
+    subjects: resolvedSubjects,
+    subjectWeights: resolvedWeights,
     phases: plan.phases.map((p) => {
       const slotTitles = p.slots.map((s) => s.title);
       return {
@@ -399,6 +436,8 @@ function makeSlotContentContext(
     slotKind: slot.kind,
     slotTopicHint: slot.topicHint,
     reviewOf,
+    subjects: plan.subjects,
+    subjectWeights: plan.subjectWeights,
   };
 }
 
@@ -491,6 +530,31 @@ async function generateFlashcardsActivity(
   });
 }
 
+async function callQuizTool(
+  system: string,
+  slotTitle: string,
+): Promise<QuizForSlotToolInput> {
+  return forcedToolCall<QuizForSlotToolInput>({
+    system,
+    tool: QUIZ_FOR_SLOT_TOOL,
+    userMessage: `Generate the quiz for slot "${slotTitle}".`,
+  });
+}
+
+type ValidatedQuizSet = ReturnType<typeof QuizSetV2Schema.parse>;
+
+function parseQuizInput(
+  raw: QuizForSlotToolInput,
+  fallbackTitle: string,
+): ValidatedQuizSet | null {
+  const normalizedQuestions = normalizeQuizQuestions(raw.questions);
+  const parsed = QuizSetV2Schema.safeParse({
+    title: raw.title || fallbackTitle,
+    questions: normalizedQuestions,
+  });
+  return parsed.success ? parsed.data : null;
+}
+
 async function generateQuizActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
@@ -499,33 +563,93 @@ async function generateQuizActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const system = buildQuizPrompt(ctx);
-  const input = await forcedToolCall<QuizForSlotToolInput>({
-    system,
-    tool: QUIZ_FOR_SLOT_TOOL,
-    userMessage: `Generate the quiz for slot "${slot.title}".`,
-  });
+  const firstInput = await callQuizTool(system, slot.title);
 
   // Validate v2 shape — the tool schema accepts a generic payload object,
   // so we Zod-check it the same way chat-stream does before persisting.
   // Normalize first to recover from common drift shapes (options-as-objects,
   // hoisted acceptableAnswers, renamed match_pairs keys, etc.).
-  const normalizedQuestions = normalizeQuizQuestions(input.questions);
-  const parsed = QuizSetV2Schema.safeParse({
-    title: input.title || slot.title,
-    questions: normalizedQuestions,
-  });
-  if (!parsed.success) {
-    throw new Error(`Quiz validation failed: ${parsed.error.message}`);
+  let parsed = parseQuizInput(firstInput, slot.title);
+  if (!parsed) {
+    throw new Error('Quiz validation failed on first attempt');
   }
+
+  const allowedKinds = allowedKindsForSubjects(plan.subjects);
+  const allowedSet = new Set<QuestionKind>(allowedKinds);
+  const beforeFilter = parsed.questions.length;
+  let questions = parsed.questions.filter((q) => allowedSet.has(q.kind));
+  const droppedFirst = beforeFilter - questions.length;
+  if (droppedFirst > 0) {
+    logTelemetry(plan.userId, 'path.quiz.dropped_kind', {
+      planId: plan.id,
+      slotId: slot.id,
+      attempt: 1,
+      dropped: droppedFirst,
+      allowed: allowedKinds,
+      subjects: plan.subjects,
+    });
+  }
+
+  const minCount = slot.kind === 'final_exam' ? 8 : 3;
+  if (questions.length < minCount) {
+    logTelemetry(plan.userId, 'path.quiz.retry', {
+      planId: plan.id,
+      slotId: slot.id,
+      reason: 'kind_filter_under_min',
+      survivors: questions.length,
+      minCount,
+    });
+    const corrective = [
+      system,
+      '',
+      '--- RETRY NOTICE ---',
+      'Your previous response included questions whose `kind` is outside the allowed list for this subject. Regenerate the entire quiz.',
+      `Allowed kinds (use ONLY these): ${allowedKinds.join(', ')}.`,
+      'Drop any kind not on this list.',
+    ].join('\n');
+    try {
+      const retryInput = await callQuizTool(corrective, slot.title);
+      const retryParsed = parseQuizInput(retryInput, slot.title);
+      if (retryParsed) {
+        const retryFiltered = retryParsed.questions.filter((q) => allowedSet.has(q.kind));
+        const droppedRetry = retryParsed.questions.length - retryFiltered.length;
+        if (droppedRetry > 0) {
+          logTelemetry(plan.userId, 'path.quiz.dropped_kind', {
+            planId: plan.id,
+            slotId: slot.id,
+            attempt: 2,
+            dropped: droppedRetry,
+            allowed: allowedKinds,
+            subjects: plan.subjects,
+          });
+        }
+        if (retryFiltered.length > questions.length) {
+          questions = retryFiltered;
+          parsed = retryParsed;
+        }
+      }
+    } catch (error) {
+      console.error('[path-generator] quiz retry failed', error);
+    }
+  }
+
+  if (questions.length === 0) {
+    throw new Error(
+      `Quiz produced no questions whose kind is allowed for subjects [${plan.subjects.join(', ')}]`,
+    );
+  }
+
+  const finalQuestions = questions;
+  const finalTitle = parsed.title;
 
   await db.$transaction(async (tx) => {
     const quizSet = await tx.quizSet.create({
       data: {
         userId: plan.userId,
         notebookId: plan.primaryNotebookId,
-        title: parsed.data.title,
+        title: finalTitle,
         questions: {
-          create: parsed.data.questions.map((q, i) => {
+          create: finalQuestions.map((q, i) => {
             const legacy = buildLegacyColumns(q.kind, q.payload);
             return {
               kind: q.kind,
@@ -546,7 +670,7 @@ async function generateQuizActivity(
       data: {
         slotId: slot.id,
         kind: 'quiz',
-        title: parsed.data.title,
+        title: finalTitle,
         sortOrder: nextSortOrder,
         quizSetId: quizSet.id,
       },

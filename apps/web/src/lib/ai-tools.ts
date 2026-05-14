@@ -97,6 +97,26 @@ export interface QuizToolV2EquationQuestion extends QuizToolV2Common {
   };
 }
 
+export interface QuizToolV2CodeOutputQuestion extends QuizToolV2Common {
+  kind: 'code_output';
+  payload: {
+    language: 'python' | 'javascript' | 'typescript' | 'java' | 'cpp' | 'sql' | 'plaintext';
+    code: string;
+    blank: {
+      acceptableAnswers: string[];
+      caseSensitive?: boolean;
+      fuzzyThreshold?: number;
+    };
+  };
+}
+
+export interface QuizToolV2TimelineQuestion extends QuizToolV2Common {
+  kind: 'timeline';
+  payload: {
+    events: { year: string; label: string }[];
+  };
+}
+
 export type QuizToolV2Question =
   | QuizToolV2McQuestion
   | QuizToolV2TrueFalseQuestion
@@ -105,7 +125,9 @@ export type QuizToolV2Question =
   | QuizToolV2WordBankQuestion
   | QuizToolV2MatchPairsQuestion
   | QuizToolV2SentenceReorderQuestion
-  | QuizToolV2EquationQuestion;
+  | QuizToolV2EquationQuestion
+  | QuizToolV2CodeOutputQuestion
+  | QuizToolV2TimelineQuestion;
 
 export interface QuizToolV2Input {
   title: string;
@@ -336,8 +358,10 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     '- translation: { targetLanguage: string; blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Like fill_blank but with a target-language tag; default fuzzyThreshold 0.75 (looser, for accents/diacritics).',
     '- sentence_reorder: { correctOrder: string[] }. Tokens shown shuffled; the user drags them into the correct order. 2–12 tokens. Example: {"correctOrder":["I","want","to","learn","Spanish"]}',
     '- equation: { expectedExpression: string; tolerance?: number; variables?: string[] }. Math input (e.g. "2*x + 3"). Set variables when the expression contains variables so the grader can test multiple sample points.',
+    '- code_output: { language: "python" | "javascript" | "typescript" | "java" | "cpp" | "sql" | "plaintext"; code: string; blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Show a real, runnable code snippet; the learner types the printed output. `code` may contain newlines. The prompt is a short lead-in like "What does this print?". Reserve for coding subjects.',
+    '- timeline: { events: [{ year: string; label: string }] }. 3–8 historical events with their canonical year. The renderer fixes the years on an axis and shuffles the labels — the learner drags each label onto the matching year. Reserve for history/humanities subjects.',
     '',
-    'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math. Avoid all-MC unless the material is purely factual.',
+    'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math, code_output for coding output prediction, timeline for chronology. Avoid all-MC unless the material is purely factual. Only emit `kind` values from the allowed list the subject-aware prompt gives you — anything outside it will be dropped.',
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -362,9 +386,11 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
                 'translation',
                 'sentence_reorder',
                 'equation',
+                'code_output',
+                'timeline',
               ],
               description:
-                'The question kind. Picks which payload shape to validate against and which renderer the client uses.',
+                'The question kind. Picks which payload shape to validate against and which renderer the client uses. Use only kinds the subject-aware system prompt explicitly allows for this quiz.',
             },
             prompt: {
               type: 'string',
@@ -801,6 +827,83 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   // The schema mirrors QUIZ_TOOL_V2; the inputs are validated post-hoc
   // with `QuizSetV2Schema` exactly like the chat-driven quiz tool.
   input_schema: QUIZ_TOOL_V2.input_schema,
+};
+
+// ── Subject classifier (path generation pre-step) ──────────────────────
+//
+// One-shot Haiku call that routes the path generator. Returns up to three
+// subject buckets ranked by weight. The server normalizes the weights,
+// drops anything under the floor, and falls back to `general` if the AI
+// produces nothing usable. Subjects are a closed enum mirrored from
+// `src/lib/path-subjects.ts` — drift between the two is a bug.
+
+export interface ClassifySubjectsToolInput {
+  subjects: {
+    id:
+      | 'coding'
+      | 'math'
+      | 'science_natural'
+      | 'history_humanities'
+      | 'language'
+      | 'social_studies'
+      | 'general';
+    weight: number;
+  }[];
+}
+
+export const CLASSIFY_SUBJECTS_TOOL: Anthropic.Messages.Tool = {
+  name: 'classify_path_subjects',
+  description: [
+    'Classify the subject area(s) of a learning path so the generator can choose appropriate question types and pedagogy.',
+    'Return UP TO 3 subjects, ranked by weight (highest first). Weights should sum to ~1.0. Single-subject paths return one entry with weight 1.',
+    'Use a fallback `general` ONLY when the topic genuinely does not fit any specific subject.',
+    'Multi-subject inputs (e.g. engineering = math + science_natural, history of mathematics = history_humanities + math) MUST return more than one subject with realistic relative weights.',
+    'Subjects (closed enum — never invent new ones):',
+    '- coding: programming, software engineering, algorithms, CS theory.',
+    '- math: algebra, calculus, statistics, discrete math, geometry.',
+    '- science_natural: physics, chemistry, biology, anatomy, geology, astronomy.',
+    '- history_humanities: history, geography, art history, philosophy, religion, classics.',
+    '- language: learning a foreign language (vocab, grammar, translation). NOT linguistics or programming languages.',
+    '- social_studies: law, economics, business, finance, psychology, sociology, political science, medicine, public health.',
+    '- general: doesn\'t fit any specific bucket.',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      subjects: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              enum: [
+                'coding',
+                'math',
+                'science_natural',
+                'history_humanities',
+                'language',
+                'social_studies',
+                'general',
+              ],
+              description: 'Subject bucket.',
+            },
+            weight: {
+              type: 'number',
+              minimum: 0,
+              maximum: 1,
+              description: 'Relative weight 0–1. Weights across the array should sum to ~1.',
+            },
+          },
+          required: ['id', 'weight'],
+        },
+        description: '1–3 subject entries, ranked by weight (highest first).',
+        minItems: 1,
+        maxItems: 3,
+      },
+    },
+    required: ['subjects'],
+  },
 };
 
 export const ALL_TOOLS = [

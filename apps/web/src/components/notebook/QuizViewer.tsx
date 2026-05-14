@@ -64,6 +64,8 @@ const KIND_LABEL: Record<QuestionKind, string> = {
   sentence_reorder: 'Sentence reorder',
   equation: 'Equation',
   translation: 'Translation',
+  code_output: 'Code output',
+  timeline: 'Timeline',
 };
 
 interface SectionItem {

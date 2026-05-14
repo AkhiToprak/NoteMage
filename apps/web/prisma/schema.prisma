@@ -30,6 +30,8 @@ enum QuestionKind {
   sentence_reorder
   equation
   translation
+  code_output
+  timeline
 }
 
 // Gate strategy for a StudyPhase — added in Phase 5 (Learn Path rework).
@@ -647,6 +649,12 @@ model StudyPlan {
   generationStatus   String  @default("ready") // "queued" | "generating" | "ready" | "failed"
   generationProgress Json?
   generationError    String? @db.Text
+  // Subject-aware generation (Phase 10.8). Classifier-detected subject
+  // buckets ranked by weight; the generator restricts question kinds to
+  // each subject's palette. Empty arrays mean the row predates the
+  // feature — the orchestrator treats this as `['general']` with weight 1.
+  subjects        String[] @default([])
+  subjectWeights  Float[]  @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
