@@ -117,6 +117,16 @@ export interface QuizToolV2TimelineQuestion extends QuizToolV2Common {
   };
 }
 
+export interface QuizToolV2CodeWriteQuestion extends QuizToolV2Common {
+  kind: 'code_write';
+  payload: {
+    language: 'python' | 'javascript' | 'typescript' | 'java' | 'cpp' | 'sql' | 'go' | 'rust';
+    starterCode: string;
+    tests: { name?: string; stdin?: string; expectedStdout: string }[];
+    runTimeoutMs?: number;
+  };
+}
+
 export type QuizToolV2Question =
   | QuizToolV2McQuestion
   | QuizToolV2TrueFalseQuestion
@@ -127,7 +137,8 @@ export type QuizToolV2Question =
   | QuizToolV2SentenceReorderQuestion
   | QuizToolV2EquationQuestion
   | QuizToolV2CodeOutputQuestion
-  | QuizToolV2TimelineQuestion;
+  | QuizToolV2TimelineQuestion
+  | QuizToolV2CodeWriteQuestion;
 
 export interface QuizToolV2Input {
   title: string;
@@ -360,6 +371,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     '- equation: { expectedExpression: string; tolerance?: number; variables?: string[] }. Math input (e.g. "2*x + 3"). Set variables when the expression contains variables so the grader can test multiple sample points.',
     '- code_output: { language: "python" | "javascript" | "typescript" | "java" | "cpp" | "sql" | "plaintext"; code: string; blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Show a real, runnable code snippet; the learner types the printed output. `code` may contain newlines. The prompt is a short lead-in like "What does this print?". Reserve for coding subjects.',
     '- timeline: { events: [{ year: string; label: string }] }. 3–8 historical events with their canonical year. The renderer fixes the years on an axis and shuffles the labels — the learner drags each label onto the matching year. Reserve for history/humanities subjects.',
+    '- code_write: { language: "python" | "javascript" | "typescript" | "java" | "cpp" | "sql" | "go" | "rust"; starterCode: string; tests: [{ name?: string; stdin?: string; expectedStdout: string }]; runTimeoutMs?: number }. The learner writes code in an editor; the server runs it against each `tests[i].stdin` and compares stdout. 1–6 tests. `starterCode` pre-fills the editor with a signature/scaffold. `expectedStdout` must EXACTLY match what a correct program prints (including trailing newlines if any). Reserve for coding subjects.',
     '',
     'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math, code_output for coding output prediction, timeline for chronology. Avoid all-MC unless the material is purely factual. Only emit `kind` values from the allowed list the subject-aware prompt gives you — anything outside it will be dropped.',
   ].join('\n'),
@@ -388,6 +400,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
                 'equation',
                 'code_output',
                 'timeline',
+                'code_write',
               ],
               description:
                 'The question kind. Picks which payload shape to validate against and which renderer the client uses. Use only kinds the subject-aware system prompt explicitly allows for this quiz.',

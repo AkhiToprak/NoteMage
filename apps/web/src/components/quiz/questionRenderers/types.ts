@@ -36,7 +36,20 @@ export type UserAnswer =
   | { kind: 'sentence_reorder'; orderedTokens: string[] }
   | { kind: 'equation'; expression: string }
   | { kind: 'code_output'; text: string }
-  | { kind: 'timeline'; placements: Record<string, string> };
+  | { kind: 'timeline'; placements: Record<string, string> }
+  | {
+      kind: 'code_write';
+      language: string;
+      code: string;
+      /**
+       * Pass/fail verdict pre-computed by the renderer when the learner
+       * submitted (the renderer ran the code server-side via the
+       * /api/quiz/code-execute endpoint and recorded the result). The
+       * server-side grader trusts this value — server-side re-verification
+       * is a future hardening pass.
+       */
+      passed: boolean;
+    };
 
 // Shared props every renderer receives from the QuizViewer dispatcher.
 // `TPayload` is the kind-specific payload type; each renderer narrows it.

@@ -32,6 +32,7 @@ enum QuestionKind {
   translation
   code_output
   timeline
+  code_write
 }
 
 // Gate strategy for a StudyPhase — added in Phase 5 (Learn Path rework).

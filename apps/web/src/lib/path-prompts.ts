@@ -180,6 +180,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     '- sentence_reorder — syntax, chronology, process steps. Tokens shuffled into the correct order.',
     '- equation — math input; the grader evaluates algebraic equivalence via mathjs.',
     '- code_output — show a real code snippet and ask for its printed output. Reserve for coding subjects.',
+    '- code_write — the learner writes code in an editor; the server runs it against test cases. Reserve for coding subjects.',
     '- timeline — 3–8 dated events; the learner drags labels onto a year axis. Reserve for history/humanities.',
     'Each question must have a clear `correctExplanation` and `wrongExplanation` so learners get useful feedback.',
     isFinalExam
@@ -196,6 +197,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     '- sentence_reorder → {"correctOrder":["I","want","to","learn"]}. 2–12 tokens.',
     '- equation → {"expectedExpression":"2*x + 3","variables":["x"],"tolerance":0.001}. Set `variables` when the expression contains them. Render math expressions inside the `prompt` with `$...$` (inline) or `$$...$$` (block) — the renderer parses these as LaTeX.',
     '- code_output → {"language":"python","code":"print(2 + 2)","blank":{"acceptableAnswers":["4"]}}. `code` may contain newlines. The `prompt` is a short lead-in like "What does this print?" — never paste the code into the prompt; the renderer displays it as a syntax-highlighted block. Provide 2–4 `acceptableAnswers` covering common variants (e.g. trailing newline, quoted vs unquoted output).',
+    '- code_write → {"language":"python","starterCode":"def reverse_string(s):\\n    # your code here\\n    pass\\n","tests":[{"name":"hello","stdin":"hello","expectedStdout":"olleh\\n"}],"runTimeoutMs":5000}. The learner edits `starterCode` and the server runs the final program once per test case, piping `stdin` (optional) and comparing the program\'s stdout to `expectedStdout` exactly (whitespace-sensitive). 1–6 tests. Always set `starterCode` so the learner has a scaffold — a function signature with a `# your code here` body for Python, an empty `function ...` for JS, etc. The `prompt` describes the task in plain English ("Write a function that returns the reverse of a string."). Languages: python, javascript, typescript, java, cpp, sql, go, rust.',
     '- timeline → {"events":[{"year":"1914","label":"Outbreak of WWI"}, …]}. 3–8 distinct events with their canonical year. Years are plain strings (e.g. "1914" or "300 BCE"). The `prompt` is a short framing line like "Place each event on the timeline." — do NOT list the events in the prompt.',
   ];
   if (ctx.slotKind === 'assessment') {

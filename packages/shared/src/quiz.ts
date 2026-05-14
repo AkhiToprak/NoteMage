@@ -22,6 +22,7 @@ export const QUESTION_KINDS = [
   'translation',
   'code_output',
   'timeline',
+  'code_write',
 ] as const;
 
 export const CODE_LANGUAGES = [
@@ -34,6 +35,23 @@ export const CODE_LANGUAGES = [
   'plaintext',
 ] as const;
 export type CodeLanguage = (typeof CODE_LANGUAGES)[number];
+
+/**
+ * Languages eligible for `code_write` — code-execution-backed questions.
+ * Narrower than `CODE_LANGUAGES` (no plaintext) because the server must
+ * actually run the user's code on a Piston runtime.
+ */
+export const EXECUTABLE_CODE_LANGUAGES = [
+  'python',
+  'javascript',
+  'typescript',
+  'java',
+  'cpp',
+  'sql',
+  'go',
+  'rust',
+] as const;
+export type ExecutableCodeLanguage = (typeof EXECUTABLE_CODE_LANGUAGES)[number];
 
 export const QuestionKindSchema = z.enum(QUESTION_KINDS);
 export type QuestionKind = z.infer<typeof QuestionKindSchema>;
@@ -124,6 +142,28 @@ export const TimelinePayloadSchema = z.object({
 });
 export type TimelinePayload = z.infer<typeof TimelinePayloadSchema>;
 
+/**
+ * `code_write`: the learner writes code in an editor; the server runs it on
+ * a Piston runtime against each declared test case (stdin → expected stdout)
+ * and grades pass/fail.
+ */
+export const CodeWriteTestSchema = z.object({
+  name: z.string().min(1).optional(),
+  stdin: z.string().optional(),
+  expectedStdout: z.string(),
+});
+export type CodeWriteTest = z.infer<typeof CodeWriteTestSchema>;
+
+export const CodeWritePayloadSchema = z.object({
+  language: z.enum(EXECUTABLE_CODE_LANGUAGES),
+  /** Pre-filled in the editor when the learner opens the question. */
+  starterCode: z.string().default(''),
+  tests: z.array(CodeWriteTestSchema).min(1).max(8),
+  /** Optional per-question execution timeout in milliseconds. */
+  runTimeoutMs: z.number().int().min(500).max(15000).optional(),
+});
+export type CodeWritePayload = z.infer<typeof CodeWritePayloadSchema>;
+
 const QuestionCommonShape = {
   prompt: z.string().min(1),
   hint: z.string().optional(),
@@ -181,6 +221,11 @@ export const QuizQuestionV2Schema = z.discriminatedUnion('kind', [
     kind: z.literal('timeline'),
     ...QuestionCommonShape,
     payload: TimelinePayloadSchema,
+  }),
+  z.object({
+    kind: z.literal('code_write'),
+    ...QuestionCommonShape,
+    payload: CodeWritePayloadSchema,
   }),
 ]);
 export type QuizQuestionV2 = z.infer<typeof QuizQuestionV2Schema>;

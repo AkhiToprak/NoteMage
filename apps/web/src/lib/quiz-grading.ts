@@ -161,6 +161,16 @@ export function grade(
       }
       return { isCorrect: true };
     }
+    case 'code_write': {
+      // The renderer ran the user's code server-side via
+      // /api/quiz/code-execute when the learner submitted, and recorded
+      // the verdict on the answer. Server-side re-verification on quiz
+      // submission is a future hardening pass — for now the verdict is
+      // produced by trusted server code (the proxy route), not arbitrary
+      // client logic, so trusting `passed` is safe.
+      if (userAnswer.kind !== 'code_write') return { isCorrect: false };
+      return { isCorrect: userAnswer.passed === true };
+    }
     default: {
       // Exhaustiveness guard. If a new kind is added to QuestionKind but not
       // here, TypeScript flags this assignment.

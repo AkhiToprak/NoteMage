@@ -39,14 +39,14 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
     icon: 'code',
     classifierHint:
       'Programming languages, software engineering, algorithms, data structures, web/mobile dev, databases, operating systems, CS theory.',
-    allowedKinds: ['code_output', 'mc', 'fill_blank', 'sentence_reorder'],
-    preferredKinds: ['code_output', 'mc', 'sentence_reorder'],
+    allowedKinds: ['code_output', 'code_write', 'mc', 'fill_blank', 'sentence_reorder'],
+    preferredKinds: ['code_write', 'code_output', 'mc', 'sentence_reorder'],
     theoryTone:
       'Show real code in fenced triple-backtick blocks with a language tag. Concrete, example-led, no marketing prose.',
     curriculumGuidance:
       'Sequence by concept dependency (variables before control flow, control flow before functions, etc.). Slots should build on each other. Avoid bundling unrelated languages into one slot.',
     quizGuidance:
-      'Lean on `code_output` (show real syntax-highlighted code, ask for the printed output). Use `sentence_reorder` to reorder lines into the right execution order. Use `mc` for conceptual recall. Avoid `equation`, `translation`, `word_bank`.',
+      'Prefer `code_write` for application-level slots (the learner writes a small program against test cases). Use `code_output` for trace/predict-the-output questions. Use `sentence_reorder` to reorder lines into the right execution order. Use `mc` for conceptual recall. Avoid `equation`, `translation`, `word_bank`.',
   },
   math: {
     name: 'Mathematics',

@@ -132,3 +132,17 @@ export function internalErrorResponse(error: string = 'Internal server error') {
     { status: 500 }
   );
 }
+
+/**
+ * Service unavailable response (503). Use when a dependency the route
+ * needs (e.g. a self-hosted runner) is not configured or reachable.
+ */
+export function serviceUnavailableResponse(error: string = 'Service unavailable') {
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse,
+    { status: 503 }
+  );
+}

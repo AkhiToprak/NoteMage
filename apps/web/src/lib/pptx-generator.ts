@@ -26,6 +26,7 @@ const KIND_LABEL: Record<QuestionKind, string> = {
   translation: 'Translation',
   code_output: 'Code output',
   timeline: 'Timeline',
+  code_write: 'Code writing',
 };
 
 export async function generateFlashcardPptx(
