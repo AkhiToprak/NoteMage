@@ -9,8 +9,8 @@ import {
   useState,
 } from 'react';
 import { Mascot } from '@/components/mascot/Mascot';
-import { fireMascotConfetti } from '@/components/mascot/confetti';
-import type { Reaction } from '@/lib/quiz-reactions';
+import { useCelebration } from '@/components/mascot';
+import type { Reaction, ReactionKind } from '@/lib/quiz-reactions';
 import styles from './QuizReactionLayer.module.css';
 
 export interface QuizReactionLayerHandle {
@@ -30,6 +30,11 @@ interface ActiveSlot {
 
 const EXIT_DURATION_MS = 220;
 
+const EYEBROW_BY_KIND: Partial<Record<ReactionKind, string>> = {
+  perfect_score: 'Perfect score',
+  checkpoint_pass: 'Checkpoint complete',
+};
+
 export const QuizReactionLayer = forwardRef<
   QuizReactionLayerHandle,
   QuizReactionLayerProps
@@ -38,6 +43,8 @@ export const QuizReactionLayer = forwardRef<
   const idRef = useRef(0);
   const dismissTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
+  const ownsCelebrationRef = useRef(false);
+  const { celebrate, dismissCurrent } = useCelebration();
 
   const clearTimers = useCallback(() => {
     if (dismissTimerRef.current !== null) {
@@ -51,21 +58,44 @@ export const QuizReactionLayer = forwardRef<
   }, []);
 
   const beginExit = useCallback(() => {
+    if (ownsCelebrationRef.current) {
+      ownsCelebrationRef.current = false;
+      dismissCurrent();
+      return;
+    }
     setActive((prev) => (prev ? { ...prev, exiting: true } : prev));
     clearTimers();
     exitTimerRef.current = window.setTimeout(() => {
       setActive(null);
       exitTimerRef.current = null;
     }, EXIT_DURATION_MS);
-  }, [clearTimers]);
+  }, [clearTimers, dismissCurrent]);
 
   const fire = useCallback(
     (reaction: Reaction) => {
       clearTimers();
+      if (reaction.display === 'overlay') {
+        ownsCelebrationRef.current = true;
+        celebrate({
+          pose: reaction.pose,
+          size: reaction.size,
+          oneShot: reaction.oneShot,
+          eyebrow: EYEBROW_BY_KIND[reaction.kind],
+          headline: reaction.message,
+          confetti: reaction.confetti,
+          audio: reaction.audio,
+          audioEnabled,
+          onDismiss: () => {
+            ownsCelebrationRef.current = false;
+          },
+        });
+        setActive(null);
+        return;
+      }
       idRef.current += 1;
       setActive({ reaction, id: idRef.current, exiting: false });
     },
-    [clearTimers],
+    [clearTimers, celebrate, audioEnabled],
   );
 
   useImperativeHandle(
@@ -79,10 +109,6 @@ export const QuizReactionLayer = forwardRef<
 
   useEffect(() => {
     if (!active || active.exiting) return;
-
-    if (active.reaction.confetti) {
-      fireMascotConfetti();
-    }
 
     if (audioEnabled && active.reaction.audio) {
       try {
@@ -112,38 +138,11 @@ export const QuizReactionLayer = forwardRef<
 
   const { reaction, id, exiting } = active;
 
-  if (reaction.display === 'corner') {
-    return (
-      <div className={styles.cornerWrap} aria-live="polite">
-        <div
-          className={`${styles.cornerCard}${exiting ? ` ${styles.cornerCardExit}` : ''}`}
-          role="status"
-        >
-          <Mascot
-            key={id}
-            pose={reaction.pose}
-            size={reaction.size}
-            idle="none"
-            oneShot={reaction.oneShot}
-            alt=""
-          />
-          <span className={styles.cornerMessage}>{reaction.message}</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className={`${styles.overlayScrim}${exiting ? ` ${styles.overlayScrimExit}` : ''}`}
-      role="dialog"
-      aria-live="assertive"
-      aria-label={reaction.message}
-      onClick={beginExit}
-    >
+    <div className={styles.cornerWrap} aria-live="polite">
       <div
-        className={`${styles.overlayCard}${exiting ? ` ${styles.overlayCardExit}` : ''}`}
-        onClick={(event) => event.stopPropagation()}
+        className={`${styles.cornerCard}${exiting ? ` ${styles.cornerCardExit}` : ''}`}
+        role="status"
       >
         <Mascot
           key={id}
@@ -153,8 +152,7 @@ export const QuizReactionLayer = forwardRef<
           oneShot={reaction.oneShot}
           alt=""
         />
-        <span className={styles.overlayMessage}>{reaction.message}</span>
-        <span className={styles.overlayHint}>Tap anywhere to continue</span>
+        <span className={styles.cornerMessage}>{reaction.message}</span>
       </div>
     </div>
   );

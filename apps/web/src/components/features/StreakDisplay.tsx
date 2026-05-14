@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Mascot, fireMascotConfetti, type MascotOneShot } from '@/components/mascot';
+import { useState, useEffect } from 'react';
+import { useCelebration } from '@/components/mascot';
 
 const STREAK_MILESTONES = [3, 7, 30, 100, 365] as const;
 
@@ -40,11 +40,41 @@ function getMilestone(streak: number): string | null {
   return null;
 }
 
+function streakCopyFor(milestone: number): { headline: string; subtext: string } {
+  switch (milestone) {
+    case 365:
+      return {
+        headline: 'A whole year in a row!',
+        subtext: "365 days of showing up. You've built a habit that sticks.",
+      };
+    case 100:
+      return {
+        headline: '100-day streak!',
+        subtext: 'Triple digits. You make this look easy.',
+      };
+    case 30:
+      return {
+        headline: '30-day streak!',
+        subtext: 'A month of consistency. The mage is impressed.',
+      };
+    case 7:
+      return {
+        headline: 'One week streak!',
+        subtext: 'Seven days strong. Keep the fire alive.',
+      };
+    case 3:
+    default:
+      return {
+        headline: '3-day streak!',
+        subtext: "You're warming up. Don't stop now.",
+      };
+  }
+}
+
 export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
   const [streak, setStreak] = useState<StreakInfo | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [mascotOneShot, setMascotOneShot] = useState<MascotOneShot | null>(null);
-  const mascotRef = useRef<HTMLDivElement | null>(null);
+  const { celebrate } = useCelebration();
 
   useEffect(() => {
     fetch('/api/user/streak')
@@ -54,37 +84,43 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
         if (data?.currentStreak === undefined) return;
 
         const milestone = streakMilestoneFor(data.currentStreak);
-        let oneShot: MascotOneShot | null = null;
+        let shouldCelebrate = false;
         if (milestone !== null && typeof window !== 'undefined') {
           const key = `streak-celebrated-${milestone}`;
           try {
             if (!window.sessionStorage.getItem(key)) {
               window.sessionStorage.setItem(key, '1');
-              oneShot = 'celebrate';
+              shouldCelebrate = true;
             }
           } catch {
-            // sessionStorage unavailable (private mode, etc.) — skip the oneShot.
+            // sessionStorage unavailable (private mode, etc.) — skip the celebration.
           }
         }
 
         setStreak(data);
-        if (oneShot) setMascotOneShot(oneShot);
+        if (shouldCelebrate && milestone !== null) {
+          const copy = streakCopyFor(milestone);
+          celebrate({
+            pose: 'celebrate',
+            size: 'lg',
+            oneShot: 'celebrate',
+            eyebrow: 'Streak',
+            headline: copy.headline,
+            subtext: copy.subtext,
+            accentColor: getStreakColor(milestone),
+            accentFill: 'rgba(255, 140, 66, 0.14)',
+          });
+        }
         onStreakLoaded?.(data);
       })
       .catch(() => {});
-  }, [onStreakLoaded]);
-
-  const milestoneHit = useMemo(
-    () => (streak ? streakMilestoneFor(streak.currentStreak) : null),
-    [streak]
-  );
+  }, [onStreakLoaded, celebrate]);
 
   if (!streak) return null;
 
   const color = getStreakColor(streak.currentStreak);
   const milestone = getMilestone(streak.currentStreak);
   const isAtRisk = !streak.isActiveToday && streak.currentStreak > 0;
-  const showCelebrateMascot = milestoneHit !== null;
 
   return (
     <div
@@ -99,20 +135,6 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
           gap: '4px',
         }}
       >
-        {showCelebrateMascot && (
-          <div ref={mascotRef} style={{ display: 'inline-flex' }}>
-            <Mascot
-              pose="celebrate"
-              size="sm"
-              idle="bounce"
-              oneShot={mascotOneShot}
-              onOneShotEnd={() => {
-                fireMascotConfetti({ origin: mascotRef.current });
-                setMascotOneShot(null);
-              }}
-            />
-          </div>
-        )}
         <span
           className="material-symbols-outlined"
           style={{
