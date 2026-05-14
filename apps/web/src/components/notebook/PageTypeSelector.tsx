@@ -16,7 +16,7 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
         inset: 0,
         background: 'rgba(0,0,0,0.5)',
         backdropFilter: 'blur(8px)',
-        zIndex: 200,
+        zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
