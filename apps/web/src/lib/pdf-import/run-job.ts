@@ -42,7 +42,7 @@ const PAGE_CAP_BY_TIER: Record<TierKey, number> = {
   PRO: 150,
 };
 
-/** One structure engine per tier — the seam for a future paid/free split. */
+/** One structure engine per tier — Gemini for all; single-engine is settled. */
 const ENGINE_BY_TIER: Record<TierKey, PdfStructureEngine> = {
   FREE: geminiEngine,
   PLUS: geminiEngine,
@@ -55,9 +55,9 @@ export function pageCapForTier(tier: TierKey): number {
 }
 
 /**
- * The structure engine for a tier. One engine serves every tier today;
- * the P7 corpus decides whether PLUS/PRO move to a second engine, and if
- * so this single function is the only place that changes.
+ * The structure engine for a tier. Gemini serves every tier — single-engine
+ * is the settled decision (no Claude). The per-tier indirection is kept as
+ * the one swap point, should a tier ever need a different engine.
  */
 export function engineForTier(tier: TierKey): PdfStructureEngine {
   return ENGINE_BY_TIER[tier] ?? geminiEngine;

@@ -14,6 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pdf-import:eval": "npx tsx scripts/pdf-import-eval.ts",
+    "pdf-import:fixtures": "npx tsx scripts/pdf-import-fixtures.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "postinstall": "prisma generate --schema=./prisma/schema.prisma"

@@ -1,0 +1,3323 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Study Guide: Acids and Bases",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "This sheet collects the asides you should be able to recall before the assessment. Each box highlights a different kind of point.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "DEFINITION",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "An acid is a substance that donates a proton, while a base is a substance that accepts one. The strength of an acid reflects how completely it dissociates in water.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "WARNING",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Always add acid to water, never water to acid. The reverse can boil violently and splash concentrated acid out of the container.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "TIP",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Remember the pH scale runs from 0 to 14, with 7 being neutral. Each whole step is a tenfold change in hydrogen-ion concentration.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "More Asides",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "NOTE",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "A buffer solution resists changes in pH when small amounts of acid or base are added. Buffers are central to keeping blood chemistry stable.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "EXAMPLE",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Hydrochloric acid in the stomach has a pH of roughly 1.5 to 3.5, which is acidic enough to begin breaking down the proteins in food.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "KEY POINT",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Neutralisation between an acid and a base always produces a salt and water. The reaction is exothermic and releases measurable heat.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 2,
+    "pages": [
+      {
+        "lineCount": 12,
+        "pageNumber": 1,
+        "text": "Study Guide: Acids and Bases
+This sheet collects the asides you should be able to recall before the assessment. Each box
+highlights a different kind of point.
+DEFINITION
+An acid is a substance that donates a proton, while a base is a substance that accepts one.
+The strength of an acid reflects how completely it dissociates in water.
+WARNING
+Always add acid to water, never water to acid. The reverse can boil violently and splash
+concentrated acid out of the container.
+TIP
+Remember the pH scale runs from 0 to 14, with 7 being neutral. Each whole step is a tenfold
+change in hydrogen-ion concentration.",
+      },
+      {
+        "lineCount": 10,
+        "pageNumber": 2,
+        "text": "More Asides
+NOTE
+A buffer solution resists changes in pH when small amounts of acid or base are added.
+Buffers are central to keeping blood chemistry stable.
+EXAMPLE
+Hydrochloric acid in the stomach has a pH of roughly 1.5 to 3.5, which is acidic enough to
+begin breaking down the proteins in food.
+KEY POINT
+Neutralisation between an acid and a base always produces a salt and water. The reaction is
+exothermic and releases measurable heat.",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden corpus — deterministic pipeline snapshots > clean-text.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "An Introduction to Cellular Respiration",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "Overview",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Cellular respiration is the set of metabolic reactions that cells use to convert the chemical energy held in nutrients into adenosine triphosphate, the molecule that powers most cellular work. The process releases waste products and is, in broad terms, the reverse of photosynthesis. Although the reactions are usually summarised by a single equation, respiration is better understood as three connected stages, each taking place in a different part of the cell and each contributing a share of the total energy yield.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "The Three Stages",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 3,
+          "summary": "Glycolysis",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Glycolysis takes place in the cytoplasm and splits a six-carbon glucose molecule into two molecules of pyruvate. It produces a small net gain of energy and does not itself require oxygen.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 3,
+          "summary": "The Citric Acid Cycle",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "In the mitochondrial matrix the citric acid cycle oxidises the products of glycolysis, releasing carbon dioxide and transferring high-energy electrons to carrier molecules for the final stage.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Key Terms",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "ATP — the universal energy currency of the cell. Pyruvate — the three-carbon product of glycolysis. Electron transport chain — the membrane proteins that drive the final stage. Aerobic — describing a process that depends on oxygen.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Summary",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Respiration extracts energy from nutrients in stages so that it can be captured efficiently rather than lost as heat. The following sequence is worth committing to memory.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "Glucose is split during glycolysis in the cytoplasm.",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "Pyruvate is oxidised by the citric acid cycle in the matrix.",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "Electron carriers feed the transport chain to make most of the ATP.",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+        ],
+        "type": "orderedList",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 2,
+    "pages": [
+      {
+        "lineCount": 15,
+        "pageNumber": 1,
+        "text": "An Introduction to Cellular Respiration
+Overview
+Cellular respiration is the set of metabolic reactions that cells use to convert the chemical energy
+held in nutrients into adenosine triphosphate, the molecule that powers most cellular work. The
+process releases waste products and is, in broad terms, the reverse of photosynthesis.
+Although the reactions are usually summarised by a single equation, respiration is better
+understood as three connected stages, each taking place in a different part of the cell and each
+contributing a share of the total energy yield.
+The Three Stages
+Glycolysis
+Glycolysis takes place in the cytoplasm and splits a six-carbon glucose molecule into two
+molecules of pyruvate. It produces a small net gain of energy and does not itself require oxygen.
+The Citric Acid Cycle
+In the mitochondrial matrix the citric acid cycle oxidises the products of glycolysis, releasing carbon
+dioxide and transferring high-energy electrons to carrier molecules for the final stage.",
+      },
+      {
+        "lineCount": 11,
+        "pageNumber": 2,
+        "text": "Key Terms
+ATP — the universal energy currency of the cell.
+Pyruvate — the three-carbon product of glycolysis.
+Electron transport chain — the membrane proteins that drive the final stage.
+Aerobic — describing a process that depends on oxygen.
+Summary
+Respiration extracts energy from nutrients in stages so that it can be captured efficiently rather
+than lost as heat. The following sequence is worth committing to memory.
+1. Glucose is split during glycolysis in the cytoplasm.
+2. Pyruvate is oxidised by the citric acid cycle in the matrix.
+3. Electron carriers feed the transport chain to make most of the ATP.",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden corpus — deterministic pipeline snapshots > german.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Die Photosynthese im Überblick",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "Einführung",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Die Photosynthese ist der Prozess, mit dem grüne Pflanzen Lichtenergie in chemische Energie umwandeln. Dabei entstehen Zucker und Sauerstoff, während Kohlendioxid und Wasser verbraucht werden.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "Ablauf",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Man unterscheidet die Lichtreaktion und die Dunkelreaktion. Die Größe der Blätter und ihre Stellung zur Sonne beeinflussen, wie viel Energie aufgenommen werden kann. Bei großer Hitze schließen viele Pflanzen ihre Spaltöffnungen, um den Wasserverlust zu verringern. Zusammenfassend lässt sich sagen: ohne Photosynthese gäbe es weder Nahrung noch atembare Luft. Sie ist die Grundlage fast aller Ökosysteme.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 1,
+    "pages": [
+      {
+        "lineCount": 11,
+        "pageNumber": 1,
+        "text": "Die Photosynthese im Überblick
+Einführung
+Die Photosynthese ist der Prozess, mit dem grüne Pflanzen Lichtenergie in chemische Energie
+umwandeln. Dabei entstehen Zucker und Sauerstoff, während Kohlendioxid und Wasser
+verbraucht werden.
+Ablauf
+Man unterscheidet die Lichtreaktion und die Dunkelreaktion. Die Größe der Blätter und ihre
+Stellung zur Sonne beeinflussen, wie viel Energie aufgenommen werden kann. Bei großer Hitze
+schließen viele Pflanzen ihre Spaltöffnungen, um den Wasserverlust zu verringern.
+Zusammenfassend lässt sich sagen: ohne Photosynthese gäbe es weder Nahrung noch atembare
+Luft. Sie ist die Grundlage fast aller Ökosysteme.",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden corpus — deterministic pipeline snapshots > image-heavy.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Illustrated Notes",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "Diagrams carry information that prose alone cannot, but a figure on its own is rarely enough. Each illustration in these notes is wrapped in enough surrounding text to explain what the reader is meant to take from it, so the import pipeline has both a real text layer to anchor to and a figure to crop and place inline beside that text.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Figure 1. A schematic block diagram. The block diagram above shows how three components pass data from one stage to the next. Notice that the arrangement is strictly left to right: nothing in the diagram feeds backwards. The waveform plotted below, by contrast, is periodic, and its shape repeats at a fixed interval that can be measured directly off the page.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Figure 2. A plotted periodic waveform.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "A larger illustration can occupy most of a page when the detail genuinely matters. The figure below overlaps two fields so that the region where they interact is visible at a glance. When a figure is this large, the caption and the paragraph that introduces it do most of the work of telling the reader where to look first.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Figure 3. Two overlapping fields, drawn to scale. Taken together, the three figures move from the abstract to the concrete. The first is a structural sketch, the second is a measurement, and the third is a spatial map. Study notes that mix figures and prose like this are exactly the case the structured importer is built to handle well.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 2,
+    "pages": [
+      {
+        "lineCount": 11,
+        "pageNumber": 1,
+        "text": "Illustrated Notes
+Diagrams carry information that prose alone cannot, but a figure on its own is rarely enough. Each
+illustration in these notes is wrapped in enough surrounding text to explain what the reader is
+meant to take from it, so the import pipeline has both a real text layer to anchor to and a figure to
+crop and place inline beside that text.
+Figure 1. A schematic block diagram.
+The block diagram above shows how three components pass data from one stage to the next.
+Notice that the arrangement is strictly left to right: nothing in the diagram feeds backwards. The
+waveform plotted below, by contrast, is periodic, and its shape repeats at a fixed interval that can
+be measured directly off the page.
+Figure 2. A plotted periodic waveform.",
+      },
+      {
+        "lineCount": 8,
+        "pageNumber": 2,
+        "text": "A larger illustration can occupy most of a page when the detail genuinely matters. The figure below
+overlaps two fields so that the region where they interact is visible at a glance. When a figure is this
+large, the caption and the paragraph that introduces it do most of the work of telling the reader
+where to look first.
+Figure 3. Two overlapping fields, drawn to scale.
+Taken together, the three figures move from the abstract to the concrete. The first is a structural
+sketch, the second is a measurement, and the third is a spatial map. Study notes that mix figures
+and prose like this are exactly the case the structured importer is built to handle well.",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden corpus — deterministic pipeline snapshots > multi-column.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Plate Tectonics and the Drifting",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Continents",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "The mitochondrion is the organelle where the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "between the oceans, the atmosphere, and the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "bulk of cellular energy is produced through",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "land through evaporation and precipitation.",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "oxidative phosphorylation. Diffusion describes",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Natural selection favours heritable traits that",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the net movement of particles from a region of higher concentration to one of lower and reproducing. An electric current is the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "improve an organism’s chances of surviving",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "concentration. A catalyst lowers the activation",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "ordered flow of charge carriers through a",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "energy of a reaction without itself being",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "conducting material. Photosynthesis converts",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "consumed in the process. Plate boundaries",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "light energy into the chemical energy stored in",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "are classified as convergent, divergent, or",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the bonds of glucose molecules. The periodic",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "transform depending on the relative motion of",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "table arranges the elements by increasing",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the plates. The water cycle moves moisture",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "atomic number and recurring chemical",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "between the oceans, the atmosphere, and the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "properties. Supply and demand together",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "land through evaporation and precipitation.",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "determine the equilibrium price at which a",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Natural selection favours heritable traits that",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "market clears. A function is continuous at a",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "improve an organism’s chances of surviving",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "point when its limit there exists and equals the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "and reproducing. An electric current is the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "value of the function. Sedimentary rock forms",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "ordered flow of charge carriers through a",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "as layers of mineral and organic particles are",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "conducting material. Photosynthesis converts",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "compacted and cemented over time. The",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "light energy into the chemical energy stored in",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "mitochondrion is the organelle where the bulk",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the bonds of glucose molecules. The periodic",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "of cellular energy is produced through",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "table arranges the elements by increasing",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "oxidative phosphorylation.",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+        ],
+        "type": "table",
+      },
+      {
+        "content": [
+          {
+            "text": "atomic number and recurring chemical properties. Supply and demand together determine the equilibrium price at which a market clears. A function is continuous at a point when its limit there exists and equals the value of the function. Sedimentary rock forms as layers of mineral and organic particles are compacted and cemented over time. The mitochondrion is the organelle where the bulk of cellular energy is produced through oxidative phosphorylation. Diffusion describes the net movement of particles from a region of higher concentration to one of lower concentration. A catalyst lowers the activation energy of a reaction without itself being consumed in the process. Plate boundaries are classified as convergent, divergent, or transform depending on the relative motion of the plates. The water cycle moves moisture",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Evidence from the Ocean Floor",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Natural selection favours heritable traits that",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "value of the function. Sedimentary rock forms",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "improve an organism’s chances of surviving",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "as layers of mineral and organic particles are",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "and reproducing. An electric current is the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "compacted and cemented over time. The",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "ordered flow of charge carriers through a",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "mitochondrion is the organelle where the bulk",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "conducting material. Photosynthesis converts",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "of cellular energy is produced through",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "light energy into the chemical energy stored in",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "oxidative phosphorylation. Diffusion describes",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the bonds of glucose molecules. The periodic",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the net movement of particles from a region of",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "table arranges the elements by increasing",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "higher concentration to one of lower",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "atomic number and recurring chemical",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "concentration. A catalyst lowers the activation",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "properties. Supply and demand together determine the equilibrium price at which a consumed in the process. Plate boundaries",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "energy of a reaction without itself being",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "market clears. A function is continuous at a",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "are classified as convergent, divergent, or",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "point when its limit there exists and equals the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "transform depending on the relative motion of",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "value of the function. Sedimentary rock forms",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "the plates. The water cycle moves moisture",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "as layers of mineral and organic particles are",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "between the oceans, the atmosphere, and the",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "compacted and cemented over time. The",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "land through evaporation and precipitation.",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "mitochondrion is the organelle where the bulk",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Natural selection favours heritable traits that",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "of cellular energy is produced through",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "improve an organism’s chances of surviving",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "oxidative phosphorylation. Diffusion describes",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "and reproducing.",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+        ],
+        "type": "table",
+      },
+      {
+        "content": [
+          {
+            "text": "the net movement of particles from a region of higher concentration to one of lower concentration. A catalyst lowers the activation energy of a reaction without itself being consumed in the process. Plate boundaries are classified as convergent, divergent, or transform depending on the relative motion of the plates. The water cycle moves moisture between the oceans, the atmosphere, and the land through evaporation and precipitation. Natural selection favours heritable traits that improve an organism’s chances of surviving and reproducing. An electric current is the ordered flow of charge carriers through a conducting material. Photosynthesis converts light energy into the chemical energy stored in the bonds of glucose molecules. The periodic table arranges the elements by increasing atomic number and recurring chemical properties. Supply and demand together determine the equilibrium price at which a market clears. A function is continuous at a point when its limit there exists and equals the",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 2,
+    "pages": [
+      {
+        "lineCount": 42,
+        "pageNumber": 1,
+        "text": "Plate Tectonics and the Drifting
+Continents
+The mitochondrion is the organelle where the between the oceans, the atmosphere, and the
+bulk of cellular energy is produced through land through evaporation and precipitation.
+oxidative phosphorylation. Diffusion describes Natural selection favours heritable traits that
+the net movement of particles from a region of improve an organism’s chances of surviving
+higher concentration to one of lower and reproducing. An electric current is the
+concentration. A catalyst lowers the activation ordered flow of charge carriers through a
+energy of a reaction without itself being conducting material. Photosynthesis converts
+consumed in the process. Plate boundaries light energy into the chemical energy stored in
+are classified as convergent, divergent, or the bonds of glucose molecules. The periodic
+transform depending on the relative motion of table arranges the elements by increasing
+the plates. The water cycle moves moisture atomic number and recurring chemical
+between the oceans, the atmosphere, and the properties. Supply and demand together
+land through evaporation and precipitation. determine the equilibrium price at which a
+Natural selection favours heritable traits that market clears. A function is continuous at a
+improve an organism’s chances of surviving point when its limit there exists and equals the
+and reproducing. An electric current is the value of the function. Sedimentary rock forms
+ordered flow of charge carriers through a as layers of mineral and organic particles are
+conducting material. Photosynthesis converts compacted and cemented over time. The
+light energy into the chemical energy stored in mitochondrion is the organelle where the bulk
+the bonds of glucose molecules. The periodic of cellular energy is produced through
+table arranges the elements by increasing oxidative phosphorylation.
+atomic number and recurring chemical
+properties. Supply and demand together
+determine the equilibrium price at which a
+market clears. A function is continuous at a
+point when its limit there exists and equals the
+value of the function. Sedimentary rock forms
+as layers of mineral and organic particles are
+compacted and cemented over time. The
+mitochondrion is the organelle where the bulk
+of cellular energy is produced through
+oxidative phosphorylation. Diffusion describes
+the net movement of particles from a region of
+higher concentration to one of lower
+concentration. A catalyst lowers the activation
+energy of a reaction without itself being
+consumed in the process. Plate boundaries
+are classified as convergent, divergent, or
+transform depending on the relative motion of
+the plates. The water cycle moves moisture",
+      },
+      {
+        "lineCount": 43,
+        "pageNumber": 2,
+        "text": "Evidence from the Ocean Floor
+Natural selection favours heritable traits that value of the function. Sedimentary rock forms
+improve an organism’s chances of surviving as layers of mineral and organic particles are
+and reproducing. An electric current is the compacted and cemented over time. The
+ordered flow of charge carriers through a mitochondrion is the organelle where the bulk
+conducting material. Photosynthesis converts of cellular energy is produced through
+light energy into the chemical energy stored in oxidative phosphorylation. Diffusion describes
+the bonds of glucose molecules. The periodic the net movement of particles from a region of
+table arranges the elements by increasing higher concentration to one of lower
+atomic number and recurring chemical concentration. A catalyst lowers the activation
+properties. Supply and demand together energy of a reaction without itself being
+determine the equilibrium price at which a consumed in the process. Plate boundaries
+market clears. A function is continuous at a are classified as convergent, divergent, or
+point when its limit there exists and equals the transform depending on the relative motion of
+value of the function. Sedimentary rock forms the plates. The water cycle moves moisture
+as layers of mineral and organic particles are between the oceans, the atmosphere, and the
+compacted and cemented over time. The land through evaporation and precipitation.
+mitochondrion is the organelle where the bulk Natural selection favours heritable traits that
+of cellular energy is produced through improve an organism’s chances of surviving
+oxidative phosphorylation. Diffusion describes and reproducing.
+the net movement of particles from a region of
+higher concentration to one of lower
+concentration. A catalyst lowers the activation
+energy of a reaction without itself being
+consumed in the process. Plate boundaries
+are classified as convergent, divergent, or
+transform depending on the relative motion of
+the plates. The water cycle moves moisture
+between the oceans, the atmosphere, and the
+land through evaporation and precipitation.
+Natural selection favours heritable traits that
+improve an organism’s chances of surviving
+and reproducing. An electric current is the
+ordered flow of charge carriers through a
+conducting material. Photosynthesis converts
+light energy into the chemical energy stored in
+the bonds of glucose molecules. The periodic
+table arranges the elements by increasing
+atomic number and recurring chemical
+properties. Supply and demand together
+determine the equilibrium price at which a
+market clears. A function is continuous at a
+point when its limit there exists and equals the",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden corpus — deterministic pipeline snapshots > table-heavy.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 1,
+          "summary": "Comparison Tables",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "text": "The tables below summarise material covered earlier. Each column lines up so the figures can be compared down the page.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "collapsed": false,
+          "level": 2,
+          "summary": "Properties of the Inner Planets",
+        },
+        "content": [
+          {
+            "type": "paragraph",
+          },
+        ],
+        "type": "toggleHeading",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Planet",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Radius",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Moons",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Day length",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Mercury",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "2440 km",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "0",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "1408 h",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Venus",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "6052 km",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "0",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "5832 h",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Earth",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "6371 km",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "1",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "24 h",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Mars",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "3390 km",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "2",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "25 h",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+        ],
+        "type": "table",
+      },
+      {
+        "content": [
+          {
+            "text": "Reaction Rates by Temperature",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Temperature",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Rate",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Notes",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "10 C",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Slow",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Few collisions",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "25 C",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Moderate",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Room standard",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "40 C",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Fast",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "More collisions",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "60 C",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Very fast",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "High energy",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "80 C",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Rapid",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Near boiling",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+        ],
+        "type": "table",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 2,
+    "pages": [
+      {
+        "lineCount": 9,
+        "pageNumber": 1,
+        "text": "Comparison Tables
+The tables below summarise material covered earlier. Each column lines up so the figures can be
+compared down the page.
+Properties of the Inner Planets
+Planet Radius Moons Day length
+Mercury 2440 km 0 1408 h
+Venus 6052 km 0 5832 h
+Earth 6371 km 1 24 h
+Mars 3390 km 2 25 h",
+      },
+      {
+        "lineCount": 7,
+        "pageNumber": 2,
+        "text": "Reaction Rates by Temperature
+Temperature Rate Notes
+10 C Slow Few collisions
+25 C Moderate Room standard
+40 C Fast More collisions
+60 C Very fast High energy
+80 C Rapid Near boiling",
+      },
+    ],
+  },
+}
+`;

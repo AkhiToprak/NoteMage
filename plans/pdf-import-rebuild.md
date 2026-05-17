@@ -1,5 +1,16 @@
 # PDF Import Rebuild — Implementation Plan
 
+## Status — updated 2026-05-18
+
+All seven phases (P1–P7) are implemented under `apps/web/src/lib/pdf-import/`.
+
+**Engine decision — settled: single-engine Gemini 2.5 Flash-Lite for every
+tier.** PDF import stays Gemini-only; the conditional Claude second engine
+discussed throughout this plan was *not* adopted. The `PdfStructureEngine`
+interface stays as a reversible swap point, but no `engine-claude.ts` is
+planned. Passages below that weigh or describe adding Claude are kept as
+historical rationale and are superseded by this note.
+
 ## Context
 
 PDF import is workstream #7 of the launch roadmap and the user's declared **pillar
@@ -34,7 +45,7 @@ later step and explicitly out of scope here.
 | Decision | Choice |
 |---|---|
 | Engine | **Hybrid** — pdfjs extracts the exact text layer; a vision LLM reads page images for structure; a deterministic assembler builds Tiptap JSON using pdfjs text verbatim |
-| Engine count | **One engine behind a swappable interface** to start (Gemini Flash-Lite, all tiers). A second engine (Claude) is added only if the P7 corpus shows the cheap one falls short on hard PDFs |
+| Engine count | **Single-engine — Gemini Flash-Lite for all tiers** (settled 2026-05-18). Kept behind the swappable `PdfStructureEngine` interface as reversible insurance; the conditional Claude engine was dropped |
 | Page mapping | **One notebook Page per PDF**, content truncated safely before the ~500KB page limit with a visible notice |
 | Screenshot mode | **Replaced entirely** — the sidebar button now launches the structured pipeline |
 
@@ -346,16 +357,20 @@ New files:
 Modified files:
 - `apps/web/package.json` — script `"pdf-import:eval"` (add `tsx` devDep if absent).
 
-**The engine decision (this is the gate):** review the eval output for the hard
-fixtures — `scanned.pdf`, `table-heavy.pdf`, `callout-heavy.pdf`, `multi-column.pdf`.
-- If Gemini Flash-Lite holds up → **ship single-engine for all tiers. Done.**
-- If it falls short on those → add `apps/web/src/lib/pdf-import/engine-claude.ts`
-  (existing `@anthropic-ai/sdk`, `anthropic` singleton, `AI_GENERATION_MODEL`,
-  response handling mirrors `essay-check/route.ts`) and point `engineForTier` at
-  Claude for PLUS/PRO. No other code changes — the interface absorbs it.
+**The engine decision — RESOLVED 2026-05-18: single-engine Gemini for all
+tiers.** PDF import ships Gemini-only; the conditional Claude engine described
+below is dropped and `engine-claude.ts` is not built. The eval harness stays
+the Gemini *quality* check — run it against the hard fixtures (`scanned.pdf`,
+`table-heavy.pdf`, `callout-heavy.pdf`, `multi-column.pdf`); if Gemini falls
+short there, the lever is prompt or model tuning, not a second engine.
 
-**Verify:** run the harness, eyeball every `__eval_output__` doc; make the
-single-vs-two-engine call on evidence; walk the manual QA checklist.
+> Superseded direction (kept for rationale): if the corpus had shown
+> Flash-Lite falling short, the plan was to add
+> `apps/web/src/lib/pdf-import/engine-claude.ts` behind the same interface and
+> point `engineForTier` at Claude for the paid tiers. Not adopted.
+
+**Verify:** run the harness, eyeball every `__eval_output__` doc; walk the
+manual QA checklist.
 
 ---
 

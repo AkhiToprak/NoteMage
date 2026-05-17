@@ -29,7 +29,7 @@ export interface DescribePageInput {
  * or throws `StructureEngineError`. The import worker falls back to the
  * deterministic heuristic on any throw, so import never hard-fails.
  *
- * The interface is the seam that makes a second engine a drop-in.
+ * The interface keeps a second engine a drop-in, should one ever be needed.
  */
 export interface PdfStructureEngine {
   /** Engine identity recorded on `ImportJob.engine`, e.g. `gemini-flash-lite`. */
