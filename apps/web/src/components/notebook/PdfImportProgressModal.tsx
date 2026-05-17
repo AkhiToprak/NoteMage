@@ -10,9 +10,9 @@ import PdfImportSkeleton from './PdfImportSkeleton';
 // P6 — the user-facing surface of the structured PDF import pipeline.
 //
 // Lifecycle:
-//   1. SidebarPdfImportButton renders the PDF page images, uploads them,
-//      POSTs to /api/notebooks/[id]/pdf-import, gets `{ jobId }`, and
-//      mounts <PdfImportProgressModal jobId={jobId} … />.
+//   1. The PDF tab of ImportNotebookDialog renders the PDF page images,
+//      uploads them, POSTs to /api/notebooks/[id]/pdf-import, gets
+//      `{ jobId }`, and mounts <PdfImportProgressModal jobId={jobId} … />.
 //   2. The modal opens an SSE connection via useImportJobStream and
 //      renders the worker's phase: skeleton rows while it is still
 //      `extracting` (no page counts yet), then a per-page progress bar
@@ -23,7 +23,7 @@ import PdfImportSkeleton from './PdfImportSkeleton';
 //        • "Open page" → only on `ready`; links to the new notebook page.
 //        • "Try again" → on `failed`; POSTs the retry route, then asks
 //          the parent to remount the modal so a fresh SSE re-attaches.
-//   4. onImported fires once when the job reaches `ready` so the sidebar
+//   4. onImported fires once when the job reaches `ready` so the notebook
 //      can refresh and show the new page.
 
 interface PdfImportProgressModalProps {

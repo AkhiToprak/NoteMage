@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   X,
   Loader2,
@@ -13,7 +12,9 @@ import {
   Upload,
 } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
-import { renderPdfToPngs } from '@/lib/pdf-client-render';
+import { validateFile } from '@/lib/file-validation';
+import { renderPdfToPngs, type RenderedPdfPage } from '@/lib/pdf-client-render';
+import PdfImportProgressModal from './PdfImportProgressModal';
 
 interface ImportNotebookDialogProps {
   notebookId: string;
@@ -154,7 +155,9 @@ export default function ImportNotebookDialog({
             <GoodNotesTab notebookId={notebookId} onImported={onImported} />
           )}
           {activeTab === 'applenotes' && <AppleNotesTab />}
-          {activeTab === 'pdf' && <PdfTab notebookId={notebookId} onImported={onImported} />}
+          {activeTab === 'pdf' && (
+            <PdfTab notebookId={notebookId} onImported={onImported} onClose={onClose} />
+          )}
         </div>
       </div>
     </div>
@@ -979,13 +982,32 @@ function AppleNotesTab() {
 // PDF Tab
 // ═══════════════════════════════════════════════════════════════════
 
-function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: () => void }) {
-  const router = useRouter();
+/** pdfjs raises a `PasswordException` for encrypted PDFs. */
+function isPasswordError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return /password/i.test(`${err.name} ${err.message}`);
+}
+
+function PdfTab({
+  notebookId,
+  onImported,
+  onClose,
+}: {
+  notebookId: string;
+  onImported: () => void;
+  onClose: () => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [state, setState] = useState<'idle' | 'working' | 'success' | 'error'>('idle');
-  const [progress, setProgress] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
   const { upload } = useDirectUpload();
+
+  const [phase, setPhase] = useState<'idle' | 'rendering' | 'uploading' | 'starting'>('idle');
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [modalGeneration, setModalGeneration] = useState(0);
+  const [pendingFileName, setPendingFileName] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const busy = phase !== 'idle';
 
   const ensureSectionId = useCallback(async (): Promise<string> => {
     const res = await fetch(`/api/notebooks/${notebookId}/sections`);
@@ -1005,99 +1027,95 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
     return createdJson.data.id as string;
   }, [notebookId]);
 
+  // Mirrors the structured pipeline: render the PDF to page PNGs, upload the
+  // raw PDF + PNGs to temp-imports/, then start a server-side import job.
+  // PdfImportProgressModal tracks that job over SSE and builds ONE editable
+  // page — headings, tables, callouts, figures — not flat screenshots.
   const handleFile = useCallback(
     async (file: File) => {
-      if (file.type !== 'application/pdf') {
-        setErrorMessage('Please select a PDF file.');
-        setState('error');
+      const validationError = validateFile(file, 'pdf-import');
+      if (validationError) {
+        setErrorMessage(validationError);
         return;
       }
-
-      setState('working');
       setErrorMessage('');
-      setProgress('Rendering PDF…');
+      setPendingFileName(file.name);
+      setPhase('rendering');
+      setProgress(null);
 
       try {
         const sectionId = await ensureSectionId();
-        const title = file.name.replace(/\.[^.]+$/, '');
 
-        const pages = await renderPdfToPngs(file, {
-          onProgress: ({ current, total }) => setProgress(`Rendering page ${current} / ${total}`),
-        });
-
-        if (pages.length === 0) throw new Error('No pages found in PDF');
-
-        setProgress('Creating page…');
-        const createRes = await fetch(`/api/notebooks/${notebookId}/sections/${sectionId}/pages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title }),
-        });
-        const createJson = await createRes.json();
-        if (!createRes.ok || !createJson?.success || !createJson?.data?.id) {
-          throw new Error(createJson?.error || 'Failed to create page');
+        let pages: RenderedPdfPage[];
+        try {
+          pages = await renderPdfToPngs(file, {
+            onProgress: ({ current, total }) => setProgress({ current, total }),
+          });
+        } catch (err) {
+          throw new Error(
+            isPasswordError(err)
+              ? 'This PDF is password-protected. Remove the password and try again.'
+              : 'We couldn’t read this PDF — it may be damaged or in an unsupported format.',
+          );
         }
-        const pageId: string = createJson.data.id;
+        if (pages.length === 0) {
+          throw new Error('We couldn’t find any pages in this PDF.');
+        }
 
-        const imageNodes: unknown[] = [];
-        for (const page of pages) {
-          setProgress(`Uploading page ${page.pageNumber} / ${pages.length}`);
+        setPhase('uploading');
+        const totalUploads = pages.length + 1;
+        setProgress({ current: 0, total: totalUploads });
+
+        const { storagePath: pdfPath } = await upload(file, 'pdf-import', { notebookId });
+        setProgress({ current: 1, total: totalUploads });
+
+        const pageImagePaths: string[] = [];
+        for (let i = 0; i < pages.length; i += 1) {
+          const page = pages[i];
           const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
             type: 'image/png',
           });
-          const { storagePath } = await upload(pngFile, 'page-image', {
-            notebookId,
-            sectionId,
-            pageId,
-          });
-          const registerRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/images`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ storagePath, fileName: pngFile.name }),
-          });
-          const registerJson = await registerRes.json();
-          if (!registerJson?.success || !registerJson?.data?.url) continue;
-
-          imageNodes.push({
-            type: 'resizableImage',
-            attrs: {
-              src: registerJson.data.url,
-              alt: `${title} – page ${page.pageNumber}`,
-              width: null,
-            },
-          });
+          const { storagePath } = await upload(pngFile, 'pdf-import', { notebookId });
+          pageImagePaths.push(storagePath);
+          setProgress({ current: i + 2, total: totalUploads });
         }
 
-        if (imageNodes.length === 0) {
-          throw new Error('Failed to upload any PDF pages');
-        }
-
-        setProgress('Saving…');
-        const content = { type: 'doc', content: imageNodes };
-        const updateRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
-          method: 'PUT',
+        setPhase('starting');
+        const res = await fetch(`/api/notebooks/${notebookId}/pdf-import`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ sectionId, fileName: file.name, pdfPath, pageImagePaths }),
         });
-        if (!updateRes.ok) {
-          throw new Error(`Save failed (${updateRes.status})`);
+        const json = (await res.json().catch(() => null)) as
+          | { success?: boolean; error?: string; data?: { jobId?: string } }
+          | null;
+        if (!res.ok || !json?.success || !json.data?.jobId) {
+          throw new Error(json?.error ?? 'We couldn’t start the import. Please try again.');
         }
 
-        setState('success');
-        onImported();
-        setTimeout(() => {
-          router.push(`/notebooks/${notebookId}/pages/${pageId}`);
-        }, 500);
+        setJobId(json.data.jobId);
+        setModalGeneration(0);
       } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : 'Import failed');
-        setState('error');
+        setErrorMessage(err instanceof Error ? err.message : 'Import failed. Please try again.');
       } finally {
-        setProgress('');
+        setPhase('idle');
+        setProgress(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     },
-    [notebookId, ensureSectionId, onImported, upload, router]
+    [notebookId, upload, ensureSectionId],
   );
+
+  const buttonLabel =
+    phase === 'rendering'
+      ? progress
+        ? `Rendering page ${progress.current} / ${progress.total}`
+        : 'Rendering PDF…'
+      : phase === 'uploading'
+        ? progress
+          ? `Uploading ${progress.current} / ${progress.total}`
+          : 'Uploading…'
+        : 'Starting import…';
 
   return (
     <div style={{ padding: '8px 0' }}>
@@ -1133,7 +1151,7 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
               margin: '2px 0 0',
             }}
           >
-            Each page becomes an editable image
+            Converted to a structured, editable page
           </p>
         </div>
       </div>
@@ -1155,8 +1173,9 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
             lineHeight: 1.5,
           }}
         >
-          Each PDF page is rendered as a pixel-perfect image you can annotate, highlight, or draw on
-          with the pen tool. A new page is created inside your notebook.
+          Your PDF is turned into a single editable page — headings, lists, tables, callouts, and
+          figures are extracted as real, editable content rather than flat images. A new page is
+          added to your notebook.
         </p>
       </div>
 
@@ -1172,8 +1191,8 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
       />
 
       <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={state === 'working' || state === 'success'}
+        onClick={() => !busy && !jobId && fileInputRef.current?.click()}
+        disabled={busy}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -1184,24 +1203,20 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
           padding: '12px',
           borderRadius: '10px',
           border: 'none',
-          cursor: state === 'working' ? 'progress' : 'pointer',
+          cursor: busy ? 'progress' : 'pointer',
           fontFamily: 'inherit',
           fontSize: '14px',
           fontWeight: 600,
-          background: state === 'success' ? 'rgba(74,222,128,0.15)' : 'rgba(140,82,255,0.8)',
-          color: state === 'success' ? '#4ade80' : 'var(--on-surface)',
-          opacity: state === 'working' ? 0.7 : 1,
+          background: 'rgba(140,82,255,0.8)',
+          color: 'var(--on-surface)',
+          opacity: busy ? 0.7 : 1,
           transition: 'opacity 0.15s ease',
         }}
       >
-        {state === 'working' ? (
+        {busy ? (
           <>
             <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-            {progress || 'Importing PDF…'}
-          </>
-        ) : state === 'success' ? (
-          <>
-            <Check size={16} /> Imported!
+            {buttonLabel}
           </>
         ) : (
           <>
@@ -1210,10 +1225,22 @@ function PdfTab({ notebookId, onImported }: { notebookId: string; onImported: ()
         )}
       </button>
 
-      {state === 'error' && errorMessage && (
+      {errorMessage && (
         <p style={{ fontSize: '12px', color: '#fd6f85', margin: '8px 0 0', textAlign: 'center' }}>
           {errorMessage}
         </p>
+      )}
+
+      {jobId && (
+        <PdfImportProgressModal
+          key={`${jobId}:${modalGeneration}`}
+          notebookId={notebookId}
+          jobId={jobId}
+          fileName={pendingFileName}
+          onClose={onClose}
+          onRetried={() => setModalGeneration((g) => g + 1)}
+          onImported={onImported}
+        />
       )}
     </div>
   );
