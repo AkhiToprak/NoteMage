@@ -21,6 +21,7 @@ type Purpose =
   | 'document'
   | 'section-import'
   | 'flashcard-import'
+  | 'pdf-import'
   | 'admin-background';
 
 interface SignedUrlRequestBody {
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
       'document',
       'section-import',
       'flashcard-import',
+      'pdf-import',
       'admin-background',
     ];
     if (!validPurposes.includes(purpose)) {
@@ -213,6 +215,24 @@ export async function POST(request: NextRequest) {
         if (!notebook) return notFoundResponse('Notebook not found');
 
         storagePath = `temp-imports/${userId}/${timestamp}-${sanitized}`;
+        bucket = BUCKET_PRIVATE;
+        break;
+      }
+
+      case 'pdf-import': {
+        const { notebookId } = body;
+        if (!notebookId) {
+          return badRequestResponse('pdf-import requires notebookId');
+        }
+
+        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        if (!notebook) return notFoundResponse('Notebook not found');
+
+        // The structured importer uploads the raw PDF plus one PNG per
+        // page — the random suffix keeps those many near-simultaneous
+        // uploads from colliding on a shared millisecond.
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
         bucket = BUCKET_PRIVATE;
         break;
       }

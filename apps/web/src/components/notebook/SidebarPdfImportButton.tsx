@@ -1,39 +1,91 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { FileUp, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
-import { renderPdfToPngs } from '@/lib/pdf-client-render';
+import { renderPdfToPngs, type RenderedPdfPage } from '@/lib/pdf-client-render';
+import { validateFile } from '@/lib/file-validation';
+import PdfImportProgressModal from './PdfImportProgressModal';
 
 interface SidebarPdfImportButtonProps {
   notebookId: string;
   onImported: () => void;
 }
 
+/** Pre-job client work — rendering pages and uploading them — before the
+ *  server worker (tracked by `jobId`) takes over. */
+type ClientPhase = 'idle' | 'rendering' | 'uploading' | 'starting';
+
+interface ClientProgress {
+  current: number;
+  total: number;
+}
+
+/** A failure carrying a message that is safe to show the user verbatim. */
+class ImportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ImportError';
+  }
+}
+
+/** pdfjs raises a `PasswordException` for encrypted PDFs. */
+function isPasswordError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return /password/i.test(`${err.name} ${err.message}`);
+}
+
+function busyLabel(phase: ClientPhase, progress: ClientProgress | null): string {
+  if (phase === 'rendering') {
+    return progress ? `Rendering page ${progress.current} / ${progress.total}` : 'Rendering PDF…';
+  }
+  if (phase === 'uploading') {
+    return progress ? `Uploading ${progress.current} / ${progress.total}` : 'Uploading…';
+  }
+  if (phase === 'starting') return 'Starting import…';
+  return 'Importing PDF…';
+}
+
 /**
  * Top-level "Import PDF" button shown in the notebook sidebar.
  *
- * Each page of the PDF is rendered to a PNG in the browser, uploaded
- * as a page image, and inserted as a resizableImage node. This avoids
- * the near-impossible problem of recovering semantic structure from a
- * PDF and gives the user pixel-perfect pages to draw / highlight on
- * top of using the existing pen tooling.
+ * The PDF is rendered to one PNG per page in the browser, the raw PDF and
+ * those PNGs are uploaded to `temp-imports/`, and a structured import job
+ * is started server-side. A vision engine + deterministic assembler then
+ * build ONE fully-editable notebook page — headings, callouts, tables,
+ * lists, and inline figures — rather than flat page screenshots.
  *
- * If the notebook has no sections, an "Imports" section is created
- * on the fly.
+ * `PdfImportProgressModal` tracks the job over SSE. If the notebook has
+ * no sections, an "Imports" section is created on the fly.
  */
 export default function SidebarPdfImportButton({
   notebookId,
   onImported,
 }: SidebarPdfImportButtonProps) {
-  const router = useRouter();
   const { upload } = useDirectUpload();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const [progressText, setProgressText] = useState<string | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [clientPhase, setClientPhase] = useState<ClientPhase>('idle');
+  const [clientProgress, setClientProgress] = useState<ClientProgress | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [modalGeneration, setModalGeneration] = useState(0);
+  const [pendingFileName, setPendingFileName] = useState('');
   const [hovered, setHovered] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const busy = clientPhase !== 'idle';
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
+
+  const showError = useCallback((message: string) => {
+    setError(message);
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setError(null), 5000);
+  }, []);
 
   const ensureSectionId = useCallback(async (): Promise<string> => {
     const res = await fetch(`/api/notebooks/${notebookId}/sections`);
@@ -55,98 +107,96 @@ export default function SidebarPdfImportButton({
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (file.type !== 'application/pdf') {
-        setError('Only PDF files are supported here');
-        setTimeout(() => setError(null), 3000);
+      const validationError = validateFile(file, 'pdf-import');
+      if (validationError) {
+        showError(validationError);
         return;
       }
-      setBusy(true);
+
       setError(null);
-      setProgressText('Rendering PDF…');
+      setPendingFileName(file.name);
+      setClientPhase('rendering');
+      setClientProgress(null);
 
       try {
-        const sectionId = await ensureSectionId();
-        const title = file.name.replace(/\.[^.]+$/, '');
+        let sectionId: string;
+        try {
+          sectionId = await ensureSectionId();
+        } catch {
+          throw new ImportError('We couldn’t prepare a section for this import. Please try again.');
+        }
 
-        // 1) Render all pages in the browser.
-        const pages = await renderPdfToPngs(file, {
-          onProgress: ({ current, total }) =>
-            setProgressText(`Rendering page ${current} / ${total}`),
-        });
+        // 1) Render each PDF page to a PNG — the image source the vision
+        //    engine reads, and the source figure crops are taken from.
+        let pages: RenderedPdfPage[];
+        try {
+          pages = await renderPdfToPngs(file, {
+            onProgress: ({ current, total }) => setClientProgress({ current, total }),
+          });
+        } catch (err) {
+          throw new ImportError(
+            isPasswordError(err)
+              ? 'This PDF is password-protected. Remove the password and try the import again.'
+              : 'We couldn’t read this PDF — it may be damaged or in an unsupported format.',
+          );
+        }
+        if (pages.length === 0) {
+          throw new ImportError('We couldn’t find any pages in this PDF.');
+        }
 
-        if (pages.length === 0) throw new Error('No pages found in PDF');
+        // 2) Upload the raw PDF + page PNGs to temp-imports/.
+        setClientPhase('uploading');
+        const totalUploads = pages.length + 1;
+        setClientProgress({ current: 0, total: totalUploads });
 
-        // 2) Create the empty page so we have an id for uploads.
-        setProgressText('Creating page…');
-        const createRes = await fetch(`/api/notebooks/${notebookId}/sections/${sectionId}/pages`, {
+        let pdfPath: string;
+        const pageImagePaths: string[] = [];
+        try {
+          pdfPath = (await upload(file, 'pdf-import', { notebookId })).storagePath;
+          setClientProgress({ current: 1, total: totalUploads });
+          for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+            const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
+              type: 'image/png',
+            });
+            const { storagePath } = await upload(pngFile, 'pdf-import', { notebookId });
+            pageImagePaths.push(storagePath);
+            setClientProgress({ current: i + 2, total: totalUploads });
+          }
+        } catch {
+          throw new ImportError(
+            'Upload failed — check your connection and try the import again.',
+          );
+        }
+
+        // 3) Start the server-side import job.
+        setClientPhase('starting');
+        const res = await fetch(`/api/notebooks/${notebookId}/pdf-import`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title }),
+          body: JSON.stringify({ sectionId, fileName: file.name, pdfPath, pageImagePaths }),
         });
-        const createJson = await createRes.json();
-        if (!createRes.ok || !createJson?.success || !createJson?.data?.id) {
-          throw new Error(createJson?.error || 'Failed to create page');
-        }
-        const pageId: string = createJson.data.id;
-
-        // 3) Upload each rendered page and collect image nodes.
-        const imageNodes: unknown[] = [];
-        for (const page of pages) {
-          setProgressText(`Uploading page ${page.pageNumber} / ${pages.length}`);
-          const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
-            type: 'image/png',
-          });
-          const { storagePath } = await upload(pngFile, 'page-image', {
-            notebookId,
-            sectionId,
-            pageId,
-          });
-          const registerRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}/images`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ storagePath, fileName: pngFile.name }),
-          });
-          const registerJson = await registerRes.json();
-          if (!registerJson?.success || !registerJson?.data?.url) continue;
-
-          imageNodes.push({
-            type: 'resizableImage',
-            attrs: {
-              src: registerJson.data.url,
-              alt: `${title} – page ${page.pageNumber}`,
-              width: null,
-            },
-          });
+        const json = (await res.json().catch(() => null)) as
+          | { success?: boolean; error?: string; data?: { jobId?: string } }
+          | null;
+        if (!res.ok || !json?.success || !json.data?.jobId) {
+          throw new ImportError(
+            json?.error ?? 'We couldn’t start the import. Please try again.',
+          );
         }
 
-        if (imageNodes.length === 0) {
-          throw new Error('Failed to upload any PDF pages');
-        }
-
-        // 4) Write the full page document.
-        setProgressText('Saving…');
-        const content = { type: 'doc', content: imageNodes };
-        const updateRes = await fetch(`/api/notebooks/${notebookId}/pages/${pageId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content }),
-        });
-        if (!updateRes.ok) {
-          throw new Error(`Save failed (${updateRes.status})`);
-        }
-
-        onImported();
-        router.push(`/notebooks/${notebookId}/pages/${pageId}`);
+        // 4) Hand off to the progress modal, which streams the job.
+        setJobId(json.data.jobId);
+        setModalGeneration(0);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Import failed');
-        setTimeout(() => setError(null), 4000);
+        showError(err instanceof ImportError ? err.message : 'Import failed. Please try again.');
       } finally {
-        setBusy(false);
-        setProgressText(null);
+        setClientPhase('idle');
+        setClientProgress(null);
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [notebookId, upload, ensureSectionId, onImported, router]
+    [notebookId, upload, ensureSectionId, showError],
   );
 
   return (
@@ -162,11 +212,11 @@ export default function SidebarPdfImportButton({
         style={{ display: 'none' }}
       />
       <button
-        onClick={() => !busy && inputRef.current?.click()}
+        onClick={() => !busy && !jobId && inputRef.current?.click()}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         disabled={busy}
-        title="Import PDF as a new page"
+        title="Import a PDF as a structured, editable page"
         style={{
           width: '100%',
           display: 'flex',
@@ -186,27 +236,29 @@ export default function SidebarPdfImportButton({
           transition: 'background 0.12s ease, color 0.12s ease',
         }}
       >
-        {busy ? (
-          <>
-            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            {progressText ?? 'Importing PDF…'}
-          </>
-        ) : (
-          <>
-            <FileUp size={14} />
-            Import PDF
-          </>
-        )}
+        <span
+          className="material-symbols-outlined"
+          aria-hidden="true"
+          style={{
+            fontSize: '16px',
+            animation: busy ? 'nm-pdf-btn-spin 1s linear infinite' : undefined,
+          }}
+        >
+          {busy ? 'progress_activity' : 'upload_file'}
+        </span>
+        {busy ? busyLabel(clientPhase, clientProgress) : 'Import PDF'}
       </button>
       {error && (
         <div
+          role="alert"
           style={{
             marginBottom: '6px',
             padding: '6px 8px',
             fontSize: '11px',
-            color: '#fca5a5',
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.2)',
+            lineHeight: 1.4,
+            color: 'var(--error)',
+            background: 'var(--surface-container-high)',
+            border: '1px solid var(--outline-variant)',
             borderRadius: '6px',
             textAlign: 'center',
           }}
@@ -214,7 +266,20 @@ export default function SidebarPdfImportButton({
           {error}
         </div>
       )}
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
+      {jobId && (
+        <PdfImportProgressModal
+          key={`${jobId}:${modalGeneration}`}
+          notebookId={notebookId}
+          jobId={jobId}
+          fileName={pendingFileName}
+          onClose={() => setJobId(null)}
+          onRetried={() => setModalGeneration((g) => g + 1)}
+          onImported={onImported}
+        />
+      )}
+
+      <style>{`@keyframes nm-pdf-btn-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }
