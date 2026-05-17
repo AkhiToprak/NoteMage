@@ -35,6 +35,7 @@
     "@dnd-kit/core": "^6.1.0",
     "@emailjs/nodejs": "^5.0.2",
     "@excalidraw/excalidraw": "^0.18.0",
+    "@google/genai": "^2.3.0",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@notemage/shared": "workspace:*",
     "@prisma/client": "^5.8.0",
