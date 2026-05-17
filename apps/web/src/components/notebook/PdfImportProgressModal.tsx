@@ -17,12 +17,11 @@ import PdfImportSkeleton from './PdfImportSkeleton';
 //      renders the worker's phase: skeleton rows while it is still
 //      `extracting` (no page counts yet), then a per-page progress bar
 //      once `structuring` reports totals.
-//   3. CTAs:
-//        • "Run in background" → onClose (the parent unmounts the modal;
-//          the detached worker keeps running server-side).
-//        • "Open page" → only on `ready`; links to the new notebook page.
+//   3. CTAs appear only once the job settles:
+//        • "Open page" → on `ready`; links to the new notebook page.
 //        • "Try again" → on `failed`; POSTs the retry route, then asks
 //          the parent to remount the modal so a fresh SSE re-attaches.
+//      While the job is still working the modal cannot be dismissed.
 //   4. onImported fires once when the job reaches `ready` so the notebook
 //      can refresh and show the new page.
 
@@ -31,8 +30,8 @@ interface PdfImportProgressModalProps {
   jobId: string;
   /** Original upload file name — labels the modal before the SSE replies. */
   fileName: string;
-  /** Close the modal. While the job is still running this is the
-   *  "Run in background" action: the worker is detached and continues. */
+  /** Close the modal — only reachable once the job is `ready` or
+   *  `failed`; while it is still working there is no dismiss control. */
   onClose: () => void;
   /** Ask the parent to remount this modal (after a successful retry) so a
    *  fresh SSE connection re-attaches to the requeued job. */
@@ -267,63 +266,57 @@ export default function PdfImportProgressModal({
           </p>
         )}
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '10px',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            marginTop: '2px',
-          }}
-        >
-          {isReady ? (
-            <>
-              {stream.resultPageId && (
-                <Link
-                  href={`/notebooks/${encodeURIComponent(notebookId)}/pages/${encodeURIComponent(
-                    stream.resultPageId,
-                  )}`}
-                  className="nm-pdf-cta nm-pdf-cta--primary"
-                  onClick={onClose}
-                >
-                  Open page
-                  <span
-                    className="material-symbols-outlined"
-                    aria-hidden="true"
-                    style={{ fontSize: '18px' }}
+        {(isReady || isFailed) && (
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              marginTop: '2px',
+            }}
+          >
+            {isReady ? (
+              <>
+                {stream.resultPageId && (
+                  <Link
+                    href={`/notebooks/${encodeURIComponent(notebookId)}/pages/${encodeURIComponent(
+                      stream.resultPageId,
+                    )}`}
+                    className="nm-pdf-cta nm-pdf-cta--primary"
+                    onClick={onClose}
                   >
-                    arrow_forward
-                  </span>
-                </Link>
-              )}
-              <button type="button" onClick={onClose} className="nm-pdf-cta nm-pdf-cta--ghost">
-                Close
-              </button>
-            </>
-          ) : isFailed ? (
-            <>
-              <button
-                type="button"
-                onClick={handleRetry}
-                disabled={retrying}
-                className="nm-pdf-cta nm-pdf-cta--primary"
-              >
-                {retrying ? 'Retrying…' : 'Try again'}
-              </button>
-              <button type="button" onClick={onClose} className="nm-pdf-cta nm-pdf-cta--ghost">
-                Close
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="nm-pdf-cta nm-pdf-cta--secondary"
-            >
-              Run in background
-            </button>
-          )}
-        </div>
+                    Open page
+                    <span
+                      className="material-symbols-outlined"
+                      aria-hidden="true"
+                      style={{ fontSize: '18px' }}
+                    >
+                      arrow_forward
+                    </span>
+                  </Link>
+                )}
+                <button type="button" onClick={onClose} className="nm-pdf-cta nm-pdf-cta--ghost">
+                  Close
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  disabled={retrying}
+                  className="nm-pdf-cta nm-pdf-cta--primary"
+                >
+                  {retrying ? 'Retrying…' : 'Try again'}
+                </button>
+                <button type="button" onClick={onClose} className="nm-pdf-cta nm-pdf-cta--ghost">
+                  Close
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -359,15 +352,6 @@ export default function PdfImportProgressModal({
         }
         .nm-pdf-cta--primary:hover {
           background: var(--primary-dim);
-        }
-        .nm-pdf-cta--secondary {
-          background: var(--surface-container-high);
-          color: var(--on-surface);
-          border-color: var(--outline-variant);
-        }
-        .nm-pdf-cta--secondary:hover {
-          background: var(--surface-container-highest);
-          border-color: var(--outline);
         }
         .nm-pdf-cta--ghost {
           background: transparent;
