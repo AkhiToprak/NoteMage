@@ -37,6 +37,7 @@
     "@excalidraw/excalidraw": "^0.18.0",
     "@google/genai": "^2.3.0",
     "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@napi-rs/canvas": "^1.0.0",
     "@notemage/shared": "workspace:*",
     "@prisma/client": "^5.8.0",
     "@sentry/nextjs": "^10.47.0",
