@@ -74,6 +74,28 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Reverse-proxy PostHog through /ingest so ad blockers and Safari ITP
+  // don't silently drop analytics events. The static/array rules MUST come
+  // before the catch-all. EU region (PostHog Cloud).
+  async rewrites() {
+    return [
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/array/:path*',
+        destination: 'https://eu-assets.i.posthog.com/array/:path*',
+      },
+      {
+        source: '/ingest/:path*',
+        destination: 'https://eu.i.posthog.com/:path*',
+      },
+    ];
+  },
+  // PostHog's ingestion endpoints use trailing slashes (e.g. /e/); without
+  // this, Next.js 308-redirects them and breaks event capture.
+  skipTrailingSlashRedirect: true,
 };
 
 let config: NextConfig = nextConfig;

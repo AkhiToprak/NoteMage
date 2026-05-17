@@ -90,6 +90,8 @@
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.6.205",
     "pdfkit": "^0.18.0",
+    "posthog-js": "^1.373.5",
+    "posthog-node": "^5.34.2",
     "pptxgenjs": "^4.0.1",
     "react": "19.2.3",
     "react-colorful": "^5.6.1",
