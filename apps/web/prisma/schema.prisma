@@ -162,6 +162,7 @@ model User {
   flashcardSets          FlashcardSet[]
   quizSets               QuizSet[]
   studyPlans             StudyPlan[]
+  importJobs             ImportJob[]
 
   @@map("users")
 }
@@ -242,10 +243,38 @@ model Notebook {
   studyPlans     StudyPlan[]
   studyGroups    StudyGroupNotebook[]
   exams          Exam[]
+  importJobs     ImportJob[]
 
   @@index([userId])
   @@index([folderId])
   @@map("notebooks")
+}
+
+model ImportJob {
+  id             String   @id @default(cuid())
+  notebookId     String
+  sectionId      String
+  userId         String
+  fileName       String
+  engine         String   // engine that ran, e.g. "gemini-flash-lite"
+  pageCap        Int
+  status         String   @default("queued") // queued|processing|ready|failed
+  progress       Json?    // { phase, totalPages, processedPages, message }
+  error          String?  @db.Text
+  pdfPath        String
+  pageImagePaths Json     // string[] temp-imports/ paths
+  resultPageId   String?
+  truncated      Boolean  @default(false)
+  fallbackPages  Int      @default(0)
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  notebook       Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([notebookId])
+  @@index([userId, status])
+  @@map("import_jobs")
 }
 
 model Document {

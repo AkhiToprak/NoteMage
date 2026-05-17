@@ -8,7 +8,8 @@ export type FeatureType =
   | 'ai_study_plan'
   | 'scholar_chat'
   | 'ai_quizzes'
-  | 'ai_inline_edit';
+  | 'ai_inline_edit'
+  | 'pdf_import';
 
 export interface TierConfig {
   name: string;
@@ -34,6 +35,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_quizzes: 2,
       scholar_chat: 50,
       ai_inline_edit: 0,
+      pdf_import: 30,
     },
     badge: {
       label: 'Free',
@@ -51,6 +53,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_quizzes: 4,
       scholar_chat: 100,
       ai_inline_edit: 0,
+      pdf_import: 150,
     },
     badge: {
       label: 'Plus',
@@ -69,6 +72,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_quizzes: -1,
       scholar_chat: -1,
       ai_inline_edit: -1,
+      pdf_import: 250,
     },
     badge: {
       label: 'Pro',

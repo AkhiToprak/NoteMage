@@ -12,6 +12,8 @@
     "start:ws:prod": "node ws-dist/ws-server.cjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "postinstall": "prisma generate --schema=./prisma/schema.prisma"
@@ -107,7 +109,8 @@
     "tailwind-merge": "^3.5.0",
     "tsx": "^4.21.0",
     "xlsx": "^0.18.5",
-    "youtube-transcript": "^1.3.0"
+    "youtube-transcript": "^1.3.0",
+    "zod": "^3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -121,11 +124,13 @@
     "@types/pdfkit": "^0.17.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "prettier": "^3",
     "prisma": "^5.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   }
 }

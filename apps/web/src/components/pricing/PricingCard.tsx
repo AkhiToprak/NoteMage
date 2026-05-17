@@ -23,6 +23,7 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_quizzes: 'AI Quizzes',
   scholar_chat: 'Mage Chat messages',
   ai_inline_edit: 'Inline AI editing',
+  pdf_import: 'PDF imports',
 };
 
 const FEATURE_ICONS: Record<FeatureType, string> = {
@@ -32,6 +33,7 @@ const FEATURE_ICONS: Record<FeatureType, string> = {
   ai_quizzes: 'quiz',
   scholar_chat: 'forum',
   ai_inline_edit: 'auto_fix',
+  pdf_import: 'upload_file',
 };
 
 const ACCENT: Record<
