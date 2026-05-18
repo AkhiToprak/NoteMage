@@ -15,6 +15,7 @@ import SearchDropdown from '@/components/search/SearchDropdown';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
+import MultiPdfImportModal from '@/components/import/MultiPdfImportModal';
 
 const ALL_LABEL = 'All Subjects';
 
@@ -101,6 +102,9 @@ function NotebooksPageContent() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<NotebookData | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Multi-PDF import modal
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Search state
   const {
@@ -729,6 +733,47 @@ function NotebooksPageContent() {
             New Folder
           </button>
 
+          {/* Import PDFs button */}
+          <button
+            onClick={() => setShowImportModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '8px 20px',
+              borderRadius: '9999px',
+              border: '1px solid rgba(174,137,255,0.25)',
+              background: 'transparent',
+              color: '#ae89ff',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              flex: isPhone ? 1 : undefined,
+              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.08)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
+            onMouseDown={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
+            }}
+            onMouseUp={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              upload_file
+            </span>
+            Import PDFs
+          </button>
+
           {/* Add Notebook button */}
           <button
             onClick={() => {
@@ -1050,6 +1095,17 @@ function NotebooksPageContent() {
             setEditingFolder(null);
           }}
           isLoading={folderFormLoading}
+        />
+      )}
+
+      {/* Multi-PDF import modal */}
+      {showImportModal && (
+        <MultiPdfImportModal
+          folderId={currentFolderId}
+          onClose={() => {
+            setShowImportModal(false);
+            fetchContents();
+          }}
         />
       )}
 

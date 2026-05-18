@@ -1,7 +1,6 @@
 'use client';
 
 import DateOfBirthField from './DateOfBirthField';
-import { MIN_AGE } from '@/lib/age';
 
 interface OAuthBirthDateStepProps {
   birthDate: string;
@@ -23,16 +22,12 @@ export default function OAuthBirthDateStep({
 }: OAuthBirthDateStepProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div>
-        <DateOfBirthField
-          value={birthDate}
-          onChange={(value) => onChange('birthDate', value)}
-          disabled={disabled}
-        />
-        <p style={{ margin: '8px 0 0 4px', fontSize: '12px', color: 'var(--outline)' }}>
-          You must be at least {MIN_AGE} to use NoteMage.
-        </p>
-      </div>
+      {/* The 13+ rationale is stated in the screen's subheading — no caption here. */}
+      <DateOfBirthField
+        value={birthDate}
+        onChange={(value) => onChange('birthDate', value)}
+        disabled={disabled}
+      />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '0 4px' }}>
         <input

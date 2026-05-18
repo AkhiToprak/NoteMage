@@ -22,6 +22,7 @@ type Purpose =
   | 'section-import'
   | 'flashcard-import'
   | 'pdf-import'
+  | 'multi-import'
   | 'admin-background';
 
 interface SignedUrlRequestBody {
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       'section-import',
       'flashcard-import',
       'pdf-import',
+      'multi-import',
       'admin-background',
     ];
     if (!validPurposes.includes(purpose)) {
@@ -231,6 +233,17 @@ export async function POST(request: NextRequest) {
         // The structured importer uploads the raw PDF plus one PNG per
         // page — the random suffix keeps those many near-simultaneous
         // uploads from colliding on a shared millisecond.
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
+        bucket = BUCKET_PRIVATE;
+        break;
+      }
+
+      case 'multi-import': {
+        // The multi-PDF importer (onboarding finale + the notebooks-page
+        // "Import PDFs" flow) uploads raw PDFs and their page PNGs BEFORE
+        // any notebook exists — subjects are detected first, notebooks are
+        // created only at commit. The temp path is scoped by user alone.
         const randomSuffix = Math.random().toString(36).substring(2, 8);
         storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
         bucket = BUCKET_PRIVATE;

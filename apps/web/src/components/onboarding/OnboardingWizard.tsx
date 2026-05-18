@@ -16,8 +16,10 @@ import PaymentStep from './PaymentStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoalsStep';
 import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
+import OnboardingImportStep from './OnboardingImportStep';
 import { parseBirthDate } from '@/lib/age';
 import type { TierKey } from '@/lib/tiers';
+import type { ImportPhase } from '@/hooks/useMultiImport';
 
 type StepId =
   | 'account'
@@ -29,7 +31,8 @@ type StepId =
   | 'plan'
   | 'avatar'
   | 'mageName'
-  | 'goals';
+  | 'goals'
+  | 'import';
 
 /** Ordered flow — drives the progress bar fill. */
 const STEP_ORDER: readonly StepId[] = [
@@ -43,6 +46,7 @@ const STEP_ORDER: readonly StepId[] = [
   'avatar',
   'mageName',
   'goals',
+  'import',
 ];
 
 /**
@@ -58,6 +62,7 @@ const BACK_TARGETS: Partial<Record<StepId, StepId>> = {
   fieldOfStudy: 'context',
   mageName: 'avatar',
   goals: 'mageName',
+  import: 'goals',
 };
 
 interface FormData {
@@ -126,6 +131,9 @@ export default function OnboardingWizard() {
   const [stepErrors, setStepErrors] = useState<Partial<Record<StepId, string>>>({});
   const [showPayment, setShowPayment] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  // Mirrors the import finale's internal sub-step so the shell chevron can
+  // be context-aware (see screen 11 below).
+  const [importPhase, setImportPhase] = useState<ImportPhase>('source');
   const paymentHandledRef = useRef(false);
 
   /**
@@ -371,9 +379,16 @@ export default function OnboardingWizard() {
     setStep('goals');
   };
 
-  // ── Screen 10: Goals → complete onboarding ───────────────────────────────
-  const submitOnboarding = async (goals: GoalValues) => {
-    clearStepError('goals');
+  // ── Screen 10: Goals → advance to the import finale ──────────────────────
+  const handleGoalsFinish = () => setStep('import');
+  const handleGoalsSkip = () => {
+    setFormData((prev) => ({ ...prev, goals: { ...EMPTY_GOAL_VALUES } }));
+    setStep('import');
+  };
+
+  // ── Screen 11: Import finale → complete onboarding ───────────────────────
+  const submitOnboarding = async (redirectTo: string) => {
+    clearStepError('import');
     setLoading(true);
     try {
       const scholarName = formData.scholarName.trim() || null;
@@ -382,7 +397,7 @@ export default function OnboardingWizard() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          goals,
+          goals: formData.goals,
           scholarName,
           name: fullName || null,
           lineOfWork: formData.context || null,
@@ -391,15 +406,19 @@ export default function OnboardingWizard() {
       });
       // Refresh the JWT token so middleware sees onboardingComplete: true
       await updateSession();
-      router.push('/dashboard');
+      router.push(redirectTo);
     } catch {
-      setStepError('goals', 'Something went wrong. Please try again.');
+      setStepError('import', 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
 
-  const handleGoalsFinish = () => submitOnboarding(formData.goals);
-  const handleGoalsSkip = () => submitOnboarding({ ...EMPTY_GOAL_VALUES });
+  // Completed the import finale — land on the first imported notebook if
+  // one was created, otherwise the dashboard.
+  const handleImportComplete = (firstNotebookId: string | null) => {
+    submitOnboarding(firstNotebookId ? `/notebooks/${firstNotebookId}` : '/dashboard');
+  };
+  const handleImportSkip = () => submitOnboarding('/dashboard');
 
   const handleBack = () => {
     const target = BACK_TARGETS[step];
@@ -666,7 +685,7 @@ export default function OnboardingWizard() {
           mascotPose="default"
           mascotIdle="bounce"
           heading="Choose your avatar"
-          subheading="This is how the community will see you."
+          subheading="This is how other mages will see you."
           primaryLabel="Continue"
           onPrimary={handleAvatarNext}
           primaryDisabled={loading || avatarBusy}
@@ -710,43 +729,55 @@ export default function OnboardingWizard() {
     }
 
     // ── Screen 10: Goals ─────────────────────────────────────────────────────
-    return (
-      <OnboardingScreen
-        screenKey="goals"
-        progress={progress}
-        onBack={handleBack}
-        mascotPose="holding-scroll"
-        mascotIdle="sway"
-        mascotBadge={goalsBadge}
-        heading="Set your goals"
-        subheading="Pick what matters to you. You can change these anytime."
-        error={stepErrors.goals || ''}
-        primaryLabel={
-          loading ? (
-            'Saving…'
-          ) : (
+    if (step === 'goals') {
+      return (
+        <OnboardingScreen
+          screenKey="goals"
+          progress={progress}
+          onBack={handleBack}
+          mascotPose="holding-scroll"
+          mascotIdle="sway"
+          mascotBadge={goalsBadge}
+          heading="Set your goals"
+          subheading="Pick what matters to you. You can change these anytime."
+          error={stepErrors.goals || ''}
+          primaryLabel={
             <>
-              Get Started
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}
-              >
-                rocket_launch
+              Continue
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                arrow_forward
               </span>
             </>
-          )
-        }
-        onPrimary={handleGoalsFinish}
-        primaryDisabled={loading}
-        primaryLoading={loading}
-        secondaryLabel="Skip for now"
-        onSecondary={handleGoalsSkip}
-        secondaryDisabled={loading}
+          }
+          onPrimary={handleGoalsFinish}
+          secondaryLabel="Skip for now"
+          onSecondary={handleGoalsSkip}
+        >
+          <StudyGoalsStep
+            goals={formData.goals}
+            mageName={formData.scholarName.trim()}
+            onChange={(goals) => setFormData((prev) => ({ ...prev, goals }))}
+          />
+        </OnboardingScreen>
+      );
+    }
+
+    // ── Screen 11: Import finale ─────────────────────────────────────────────
+    // The chevron exits to Goals only from the first import sub-step; once an
+    // import is underway the flow's own controls own back navigation, and the
+    // upload/creating sub-steps are not reversible.
+    return (
+      <OnboardingScreen
+        screenKey="import"
+        progress={progress}
+        onBack={importPhase === 'source' ? handleBack : undefined}
+        error={stepErrors.import || ''}
       >
-        <StudyGoalsStep
-          goals={formData.goals}
-          mageName={formData.scholarName.trim()}
-          onChange={(goals) => setFormData((prev) => ({ ...prev, goals }))}
+        <OnboardingImportStep
+          onComplete={handleImportComplete}
+          onSkip={handleImportSkip}
+          onPhaseChange={setImportPhase}
+          completing={loading}
         />
       </OnboardingScreen>
     );

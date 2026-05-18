@@ -70,7 +70,7 @@ export default function ScholarNameStep({ scholarName, onChange }: ScholarNameSt
           onChange={(e) => handleChange(e.target.value)}
           onFocus={() => setInputFocused(true)}
           onBlur={() => setInputFocused(false)}
-          placeholder="e.g. Archimedes, Sage, Athena..."
+          placeholder="e.g. Archimedes, Sage, Athena…"
           maxLength={MAX_LENGTH}
           style={{
             width: '100%',

@@ -15,6 +15,7 @@ export default function OnboardingProgressBar({ value }: OnboardingProgressBarPr
   return (
     <div
       role="progressbar"
+      aria-label="Onboarding progress"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped * 100)}

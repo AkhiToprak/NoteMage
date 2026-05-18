@@ -174,7 +174,7 @@ export default function AvatarStep({
             Upload Photo
           </span>
           {uploading && (
-            <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>uploading...</span>
+            <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>Uploading…</span>
           )}
           <input
             ref={fileInputRef}
