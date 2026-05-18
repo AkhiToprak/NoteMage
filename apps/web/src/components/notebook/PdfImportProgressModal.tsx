@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Mascot } from '@/components/mascot/Mascot';
 import type { MascotPose } from '@/components/mascot/poses';
 import { useImportJobStream, type ImportJobStatus } from '@/hooks/useImportJobStream';
@@ -73,6 +73,7 @@ export default function PdfImportProgressModal({
   const processedPages = stream.progress?.processedPages ?? 0;
   const showProgressBar = isWorking && totalPages > 0;
   const showSkeleton = isWorking && totalPages === 0;
+  const fallbackPages = stream.fallbackPages;
 
   // Refresh the sidebar exactly once when the page lands.
   const importedFiredRef = useRef(false);
@@ -229,32 +230,18 @@ export default function PdfImportProgressModal({
         )}
 
         {isReady && stream.truncated && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '8px',
-              width: '100%',
-              padding: '10px 12px',
-              background: 'var(--surface-container-high)',
-              border: '1px solid var(--outline-variant)',
-              borderRadius: 'var(--radius-md)',
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
-              aria-hidden="true"
-              style={{ fontSize: '18px', color: 'var(--on-surface-variant)', flexShrink: 0 }}
-            >
-              info
-            </span>
-            <span
-              style={{ fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}
-            >
-              This PDF was long, so some content was trimmed to fit one page. A note inside the
-              page marks where it stops.
-            </span>
-          </div>
+          <NoticeBox icon="info">
+            This PDF was long, so some content was trimmed to fit one page. A note inside the page
+            marks where it stops.
+          </NoticeBox>
+        )}
+
+        {isReady && fallbackPages > 0 && (
+          <NoticeBox icon="image_not_supported">
+            {fallbackPages >= totalPages
+              ? "This PDF's layout couldn't be analysed, so images and formatting weren't detected — only its text was imported."
+              : `${fallbackPages} of ${totalPages} pages couldn't be fully analysed, so images or formatting on those pages may be missing.`}
+          </NoticeBox>
         )}
 
         {isFailed && retryError && (
@@ -412,6 +399,35 @@ function ProgressBar({
       >
         {processedPages} / {totalPages} pages
       </p>
+    </div>
+  );
+}
+
+/** A compact, theme-safe info row shown beneath the modal heading on `ready`. */
+function NoticeBox({ icon, children }: { icon: string; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '8px',
+        width: '100%',
+        padding: '10px 12px',
+        background: 'var(--surface-container-high)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-md)',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        aria-hidden="true"
+        style={{ fontSize: '18px', color: 'var(--on-surface-variant)', flexShrink: 0 }}
+      >
+        {icon}
+      </span>
+      <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
+        {children}
+      </span>
     </div>
   );
 }

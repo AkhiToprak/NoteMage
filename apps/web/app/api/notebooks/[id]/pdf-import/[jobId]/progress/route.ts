@@ -10,7 +10,7 @@ import { db } from '@/lib/db';
 //   data: { status, progress: { phase, totalPages, processedPages, message } | null }
 //
 //   event: done
-//   data: { pageId, truncated }
+//   data: { pageId, truncated, fallbackPages }
 //
 //   event: error
 //   data: { message }
@@ -67,6 +67,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       error: true,
       resultPageId: true,
       truncated: true,
+      fallbackPages: true,
       updatedAt: true,
     },
   });
@@ -95,7 +96,11 @@ export async function GET(request: NextRequest, { params }: Params) {
 
         if (initial.status === 'ready') {
           controller.enqueue(
-            sseEvent('done', { pageId: initial.resultPageId, truncated: initial.truncated }),
+            sseEvent('done', {
+              pageId: initial.resultPageId,
+              truncated: initial.truncated,
+              fallbackPages: initial.fallbackPages,
+            }),
           );
           controller.close();
           return;
@@ -119,6 +124,7 @@ export async function GET(request: NextRequest, { params }: Params) {
               error: true,
               resultPageId: true,
               truncated: true,
+              fallbackPages: true,
               updatedAt: true,
             },
           });
@@ -151,7 +157,11 @@ export async function GET(request: NextRequest, { params }: Params) {
 
           if (row.status === 'ready') {
             controller.enqueue(
-              sseEvent('done', { pageId: row.resultPageId, truncated: row.truncated }),
+              sseEvent('done', {
+                pageId: row.resultPageId,
+                truncated: row.truncated,
+                fallbackPages: row.fallbackPages,
+              }),
             );
             break;
           }

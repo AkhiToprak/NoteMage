@@ -9,6 +9,7 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   tooManyRequestsResponse,
+  serviceUnavailableResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 import { validateStoragePath } from '@/lib/storage';
@@ -104,6 +105,24 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
+    // Resolve the structure engine + per-tier page cap up front. An
+    // unconfigured engine (no API key) would make every page fall back to
+    // text-only extraction — no figures, no rich structure. Refuse here so
+    // the user gets an honest error instead of a silently degraded import,
+    // and so no usage credit is spent on it.
+    const user = await db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { tier: true },
+    });
+    const engine = engineForTier(user.tier);
+    const pageCap = pageCapForTier(user.tier);
+    if (!engine.isConfigured()) {
+      console.error('[pdf-import] structure engine is not configured — refusing import');
+      return serviceUnavailableResponse(
+        'PDF import is temporarily unavailable. Please try again later.',
+      );
+    }
+
     const body = (await request.json().catch(() => ({}))) as PdfImportBody;
 
     const sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';
@@ -145,15 +164,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
 
-    // Engine + per-tier page cap are recorded on the row so the worker is
-    // self-contained and the choice is auditable later.
-    const user = await db.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { tier: true },
-    });
-    const engine = engineForTier(user.tier);
-    const pageCap = pageCapForTier(user.tier);
-
+    // `engine.name` + `pageCap` (resolved above) are recorded on the row so
+    // the worker is self-contained and the choice is auditable later.
     const job = await db.importJob.create({
       data: {
         notebookId,

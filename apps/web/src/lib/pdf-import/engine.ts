@@ -34,6 +34,12 @@ export interface DescribePageInput {
 export interface PdfStructureEngine {
   /** Engine identity recorded on `ImportJob.engine`, e.g. `gemini-flash-lite`. */
   readonly name: string;
+  /**
+   * True when the engine has the credentials it needs to run. When false,
+   * every page would fall back to the text-only heuristic — no figures, no
+   * rich structure — so the import route refuses the request upfront.
+   */
+  isConfigured(): boolean;
   describePage(input: DescribePageInput): Promise<DocModelBlock[]>;
 }
 

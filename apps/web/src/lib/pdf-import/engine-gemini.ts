@@ -108,6 +108,7 @@ function cleanImageRefs(blocks: DocModelBlock[]): DocModelBlock[] {
 export function createGeminiEngine(call: ModelCall): PdfStructureEngine {
   return {
     name: ENGINE_NAME,
+    isConfigured: () => Boolean(process.env.GEMINI_API_KEY),
     async describePage(input: DescribePageInput): Promise<DocModelBlock[]> {
       const base: ModelRequest = {
         systemPrompt: STRUCTURE_SYSTEM_PROMPT,
