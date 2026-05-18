@@ -9,7 +9,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 
-const VALID_PAID_TIERS = ['PLUS', 'PRO'] as const;
+const VALID_PAID_TIERS = ['PRO'] as const;
 type PaidTier = (typeof VALID_PAID_TIERS)[number];
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const { tier } = body;
 
     if (!tier || !VALID_PAID_TIERS.includes(tier as PaidTier)) {
-      return badRequestResponse('Invalid tier. Must be PLUS or PRO.');
+      return badRequestResponse('Invalid tier. Must be PRO.');
     }
 
     const user = await db.user.findUnique({

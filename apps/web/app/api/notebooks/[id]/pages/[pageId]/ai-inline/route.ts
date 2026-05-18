@@ -21,7 +21,7 @@ import {
  * Body: { action: 'rewrite' | 'summarize' | 'expand', text: string }
  *
  * Tier gating:
- * - PRO only. FREE and PLUS users get HTTP 402 with `{ upgrade: true }`.
+ * - PRO only. FREE users get HTTP 402 with `{ upgrade: true }`.
  *   The client surfaces a yellow upsell toast linking to /pricing.
  *
  * Response:

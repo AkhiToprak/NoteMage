@@ -18,7 +18,6 @@ export default function PricingPage() {
 
   const tiers: { key: TierKey; ctaText: string }[] = [
     { key: 'FREE', ctaText: 'Get Started Free' },
-    { key: 'PLUS', ctaText: 'Get Plus' },
     { key: 'PRO', ctaText: 'Get Pro' },
   ];
 

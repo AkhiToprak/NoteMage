@@ -34,7 +34,6 @@ const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
 /** One structure engine per tier — Gemini for all; single-engine is settled. */
 const ENGINE_BY_TIER: Record<TierKey, PdfStructureEngine> = {
   FREE: geminiEngine,
-  PLUS: geminiEngine,
   PRO: geminiEngine,
 };
 

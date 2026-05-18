@@ -42,25 +42,6 @@ export const TIERS: Record<TierKey, TierConfig> = {
       className: 'bg-white/10 text-gray-400 border border-white/10',
     },
   },
-  PLUS: {
-    name: 'Plus',
-    priceCHF: 5,
-    tokenLimit: 500_000,
-    limits: {
-      ai_flashcards: 4,
-      ai_pptx: 3,
-      ai_study_plan: 4,
-      ai_quizzes: 4,
-      scholar_chat: 100,
-      ai_inline_edit: 0,
-      pdf_import: 450, // dormant — PLUS is being retired; mirrors PRO so any legacy PLUS user is not under-served
-    },
-    badge: {
-      label: 'Plus',
-      className:
-        'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
-    },
-  },
   PRO: {
     name: 'Pro',
     priceCHF: 10,

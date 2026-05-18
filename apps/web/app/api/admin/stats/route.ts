@@ -24,24 +24,22 @@ export async function GET(request: NextRequest) {
       db.waitlist.count(),
     ]);
 
-    const tierMap: Record<string, number> = { FREE: 0, PLUS: 0, PRO: 0 };
+    const tierMap: Record<string, number> = { FREE: 0, PRO: 0 };
     for (const row of tierCounts) {
       tierMap[row.tier] = row._count._all;
     }
 
     const freeUsers = tierMap.FREE || 0;
-    const plusUsers = tierMap.PLUS || 0;
     const proUsers = tierMap.PRO || 0;
 
     const weeklyTokensTotal = weeklyTokensAgg._sum.tokens ?? 0;
     const avgWeeklyTokensPerUser = totalUsers > 0 ? weeklyTokensTotal / totalUsers : 0;
 
-    const totalRevenue = plusUsers * 5 + proUsers * 10;
+    const totalRevenue = proUsers * 10;
 
     return successResponse({
       totalUsers,
       freeUsers,
-      plusUsers,
       proUsers,
       avgWeeklyTokensPerUser: Math.round(avgWeeklyTokensPerUser),
       weeklyTokensTotal,

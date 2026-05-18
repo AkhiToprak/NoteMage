@@ -29,7 +29,7 @@ export interface SignInWithAppleResult {
   user: AppleUser;
 }
 
-export type Tier = 'FREE' | 'PRO' | 'PLUS';
+export type Tier = 'FREE' | 'PRO';
 
 export interface Entitlement {
   tier: Tier;

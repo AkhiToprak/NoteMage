@@ -124,7 +124,7 @@ export default function OnboardingWizard() {
   const [formData, setFormData] = useState<FormData>(() => {
     const tierParam = searchParams.get('tier')?.toUpperCase();
     const initialTier =
-      tierParam === 'PLUS' || tierParam === 'PRO' ? (tierParam as TierKey) : 'FREE';
+      tierParam === 'PRO' ? (tierParam as TierKey) : 'FREE';
     return { ...INITIAL_FORM, selectedTier: initialTier };
   });
   const [loading, setLoading] = useState(false);

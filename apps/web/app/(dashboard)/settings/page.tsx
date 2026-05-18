@@ -37,7 +37,6 @@ type Section =
 interface AdminStats {
   totalUsers: number;
   freeUsers: number;
-  plusUsers: number;
   proUsers: number;
   avgWeeklyTokensPerUser: number;
   weeklyTokensTotal: number;
@@ -284,9 +283,9 @@ export default function SettingsPage() {
     setMageNameLoading(false);
   };
 
-  const tierNames: Record<string, string> = { FREE: 'Free', PLUS: 'Plus', PRO: 'Pro' };
-  const tierPrices: Record<string, number> = { FREE: 0, PLUS: 5, PRO: 10 };
-  const tierColors: Record<string, string> = { FREE: '#aaa8c8', PLUS: '#c084fc', PRO: '#fbbf24' };
+  const tierNames: Record<string, string> = { FREE: 'Free', PRO: 'Pro' };
+  const tierPrices: Record<string, number> = { FREE: 0, PRO: 10 };
+  const tierColors: Record<string, string> = { FREE: '#aaa8c8', PRO: '#fbbf24' };
 
   const fetchSubscription = useCallback(() => {
     fetch('/api/user/subscription')
@@ -2313,11 +2312,11 @@ export default function SettingsPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr 1fr',
+                    gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr',
                     gap: '12px',
                   }}
                 >
-                  {(['FREE', 'PLUS', 'PRO'] as const).map((tier) => {
+                  {(['FREE', 'PRO'] as const).map((tier) => {
                     const isCurrent = tier === subTier;
                     const color = tierColors[tier];
                     return (
@@ -3353,13 +3352,6 @@ export default function SettingsPage() {
                     value={adminStats.freeUsers.toLocaleString()}
                   />
                   <StatCard
-                    icon="workspace_premium"
-                    accent="#b9c3ff"
-                    label="Plus users"
-                    value={adminStats.plusUsers.toLocaleString()}
-                    sub={`$${(adminStats.plusUsers * 5).toLocaleString()} / mo`}
-                  />
-                  <StatCard
                     icon="diamond"
                     accent="#ffde59"
                     label="Pro users"
@@ -3372,7 +3364,7 @@ export default function SettingsPage() {
                     accent="#7ee3a0"
                     label="Total monthly revenue"
                     value={`$${adminStats.totalRevenue.toLocaleString()}`}
-                    sub="plus × $5 + pro × $10"
+                    sub="pro × $10"
                   />
                   {/* Weekly tokens */}
                   <StatCard

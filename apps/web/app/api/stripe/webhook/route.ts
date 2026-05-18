@@ -70,7 +70,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   await db.user.update({
     where: { id: userId },
     data: {
-      tier: tier as 'PLUS' | 'PRO',
+      tier: tier as 'PRO',
       pendingTier: null,
       stripeSubscriptionId: subscriptionId,
       subscriptionPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,

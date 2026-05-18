@@ -47,13 +47,6 @@ const ACCENT: Record<
     text: 'var(--on-surface-variant)',
     hoverGlow: '0 8px 32px rgba(174,137,255,0.06), 0 2px 8px rgba(0,0,0,0.3)',
   },
-  PLUS: {
-    border: 'rgba(174,137,255,0.45)',
-    glow: '0 0 32px rgba(174,137,255,0.08)',
-    bg: 'rgba(174,137,255,0.04)',
-    text: 'var(--primary)',
-    hoverGlow: '0 0 48px rgba(174,137,255,0.18), 0 8px 32px rgba(174,137,255,0.08)',
-  },
   PRO: {
     border: 'rgba(255,222,89,0.45)',
     glow: '0 0 40px rgba(255,222,89,0.08), 0 8px 24px rgba(174,137,255,0.04)',

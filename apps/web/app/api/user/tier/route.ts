@@ -8,7 +8,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 
-const VALID_TIERS = ['FREE', 'PLUS', 'PRO'] as const;
+const VALID_TIERS = ['FREE', 'PRO'] as const;
 
 export async function PUT(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function PUT(request: NextRequest) {
     const { tier } = body;
 
     if (!tier || !VALID_TIERS.includes(tier)) {
-      return badRequestResponse('Invalid tier. Must be FREE, PLUS, or PRO.');
+      return badRequestResponse('Invalid tier. Must be FREE or PRO.');
     }
 
     // Paid tiers can only be activated via Stripe payment

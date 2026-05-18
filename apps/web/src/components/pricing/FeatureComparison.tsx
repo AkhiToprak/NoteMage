@@ -9,7 +9,6 @@ interface FeatureRow {
   /** Either a Material Symbols icon name, or a custom SVG element from NavIcons. */
   icon: string | ReactElement;
   free: string;
-  plus: string;
   pro: string;
 }
 
@@ -26,47 +25,44 @@ const COMPARISON_DATA: FeatureCategory[] = [
         name: 'AI Flashcard Sets',
         icon: 'auto_awesome',
         free: '1/mo',
-        plus: '4/mo',
         pro: 'Unlimited*',
       },
       {
         name: 'AI Presentations',
         icon: 'slideshow',
         free: '1/mo',
-        plus: '3/mo',
         pro: 'Unlimited*',
       },
-      { name: 'AI Study Plans', icon: 'school', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
-      { name: 'AI Quizzes', icon: 'quiz', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
+      { name: 'AI Study Plans', icon: 'school', free: '2/mo', pro: 'Unlimited*' },
+      { name: 'AI Quizzes', icon: 'quiz', free: '2/mo', pro: 'Unlimited*' },
       {
         name: 'Mage Chat Messages',
         icon: 'forum',
         free: '50/mo',
-        plus: '100/mo',
         pro: 'Unlimited*',
       },
-      { name: 'Inline AI Editing', icon: 'auto_fix', free: '—', plus: '—', pro: 'Unlimited*' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Inline AI Editing', icon: 'auto_fix', free: '—', pro: 'Unlimited*' },
+      { name: 'And many more...', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
   {
     category: 'Study Tools',
     features: [
-      { name: 'Notebooks', icon: <NotebookIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Text Files', icon: <TextFileIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Flashcard Creator', icon: 'style', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Quiz Creator', icon: 'quiz', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Notebooks', icon: <NotebookIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Text Files', icon: <TextFileIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Flashcard Creator', icon: 'style', free: '✓', pro: '✓' },
+      { name: 'Quiz Creator', icon: 'quiz', free: '✓', pro: '✓' },
+      { name: 'And many more...', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
   {
     category: 'Collaboration',
     features: [
-      { name: 'Study Groups', icon: 'groups', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Classes', icon: 'school', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Direct Messages', icon: 'chat', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Study Groups', icon: 'groups', free: '✓', pro: '✓' },
+      { name: 'Classes', icon: 'school', free: '✓', pro: '✓' },
+      { name: 'Direct Messages', icon: 'chat', free: '✓', pro: '✓' },
+      { name: 'And many more...', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
 ];
@@ -170,7 +166,7 @@ export default function FeatureComparison() {
               >
                 Feature
               </th>
-              {(['Free', 'Plus', 'Pro'] as const).map((tier) => (
+              {(['Free', 'Pro'] as const).map((tier) => (
                 <th
                   key={tier}
                   style={{
@@ -181,9 +177,7 @@ export default function FeatureComparison() {
                     color:
                       tier === 'Pro'
                         ? 'var(--tertiary-container)'
-                        : tier === 'Plus'
-                          ? 'var(--primary)'
-                          : 'var(--on-surface-variant)',
+                        : 'var(--on-surface-variant)',
                     borderBottom: '1px solid rgba(85,85,120,0.30)',
                     background: tier === 'Pro' ? 'rgba(255,222,89,0.03)' : 'transparent',
                   }}
@@ -198,7 +192,7 @@ export default function FeatureComparison() {
               <>
                 <tr key={`cat-${catIdx}`}>
                   <td
-                    colSpan={4}
+                    colSpan={3}
                     style={{
                       padding: '20px 16px 8px',
                       fontSize: 11,
@@ -256,9 +250,6 @@ export default function FeatureComparison() {
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px 16px' }}>
                       <CellValue value={feature.free} />
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '12px 16px' }}>
-                      <CellValue value={feature.plus} />
                     </td>
                     <td
                       style={{
@@ -350,13 +341,12 @@ export default function FeatureComparison() {
                     <div
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr 1fr',
+                        gridTemplateColumns: '1fr 1fr',
                         gap: 8,
                       }}
                     >
                       {[
                         { label: 'Free', value: feature.free },
-                        { label: 'Plus', value: feature.plus },
                         { label: 'Pro', value: feature.pro },
                       ].map((item) => (
                         <div
@@ -387,9 +377,7 @@ export default function FeatureComparison() {
                               color:
                                 item.label === 'Pro'
                                   ? 'var(--tertiary-container)'
-                                  : item.label === 'Plus'
-                                    ? 'var(--primary)'
-                                    : 'var(--outline)',
+                                  : 'var(--outline)',
                             }}
                           >
                             {item.label}

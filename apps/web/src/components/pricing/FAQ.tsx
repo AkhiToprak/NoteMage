@@ -22,7 +22,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     question: 'Is there a student discount?',
     answer:
-      'Our pricing is already designed to be student-friendly — starting at just CHF 5/month for Plus. We believe great study tools should be accessible to everyone.',
+      "Our pricing is already designed to be student-friendly — there's a generous free plan, and Pro is just CHF 10/month. We believe great study tools should be accessible to everyone.",
   },
   {
     question: 'What happens when I hit my monthly limit?',

@@ -9,7 +9,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 
-const VALID_TIERS = ['FREE', 'PLUS', 'PRO'] as const;
+const VALID_TIERS = ['FREE', 'PRO'] as const;
 type ValidTier = (typeof VALID_TIERS)[number];
 
 /** GET — return current subscription info */
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     // action === 'change'
     if (!newTier || !VALID_TIERS.includes(newTier as ValidTier)) {
-      return badRequestResponse('Invalid tier. Must be FREE, PLUS, or PRO.');
+      return badRequestResponse('Invalid tier. Must be FREE or PRO.');
     }
 
     if (newTier === user.tier) {
@@ -140,29 +140,9 @@ export async function POST(request: NextRequest) {
       return successResponse(updated, 'Plan change scheduled for end of billing period.');
     }
 
-    // Switch between paid tiers (PLUS ↔ PRO)
-    const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-    const subscriptionItemId = subscription.items.data[0]?.id;
-
-    if (!subscriptionItemId) {
-      return internalErrorResponse('Could not find subscription item.');
-    }
-
-    const priceId = TIER_PRICE_MAP[newTier as Exclude<ValidTier, 'FREE'>];
-
-    await stripe.subscriptions.update(user.stripeSubscriptionId, {
-      items: [{ id: subscriptionItemId, price: priceId }],
-      proration_behavior: 'create_prorations',
-    });
-
-    // The webhook will handle the actual tier update
-    const updated = await db.user.update({
-      where: { id: userId },
-      data: { pendingTier: null },
-      select: { tier: true, pendingTier: true, subscriptionPeriodEnd: true },
-    });
-
-    return successResponse(updated, 'Plan changed successfully.');
+    // FREE and PRO are the only tiers — the FREE→PRO checkout and PRO→FREE
+    // cancel branches above cover every valid plan change.
+    return badRequestResponse('Unsupported plan change.');
   } catch (error) {
     console.error('[POST /api/user/subscription]', error);
     return internalErrorResponse();

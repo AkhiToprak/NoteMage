@@ -15,7 +15,7 @@ export default function TierSelectionStep({ selectedTier, onSelect }: TierSelect
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'stretch' }}>
-        {(['FREE', 'PLUS', 'PRO'] as TierKey[]).map((tier) => (
+        {(['FREE', 'PRO'] as TierKey[]).map((tier) => (
           <PricingCard
             key={tier}
             tier={tier}
