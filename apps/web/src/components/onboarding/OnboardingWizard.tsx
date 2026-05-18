@@ -3,15 +3,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
-import StepIndicator from './StepIndicator';
+import OnboardingScreen from './OnboardingScreen';
 import AccountStep from './AccountStep';
 import UsernameStep from './UsernameStep';
 import TierSelectionStep from './TierSelectionStep';
 import PaymentStep from './PaymentStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoalsStep';
-import ScholarNameStep from './ScholarNameStep';
+import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
 import type { TierKey } from '@/lib/tiers';
 
 /**
@@ -22,6 +21,11 @@ import type { TierKey } from '@/lib/tiers';
  * is a single string constant unlikely to drift.
  */
 const OAUTH_USERNAME_PREFIX = 'oauth_';
+
+type StepId = 'account' | 'plan' | 'avatar' | 'mageName' | 'goals';
+
+/** Ordered flow — drives the progress bar fill. */
+const STEP_ORDER: readonly StepId[] = ['account', 'plan', 'avatar', 'mageName', 'goals'];
 
 interface FormData {
   username: string;
@@ -35,9 +39,6 @@ interface FormData {
   scholarName: string;
   goals: GoalValues;
 }
-
-const CREDENTIALS_STEP_LABELS = ['Account', 'Plan', 'Avatar', 'Mage', 'Goals'];
-const OAUTH_STEP_LABELS = ['Username', 'Plan', 'Avatar', 'Mage', 'Goals'];
 
 /** Suggest a starting username by sanitizing the email prefix. */
 function suggestUsernameFromEmail(email: string | null | undefined): string {
@@ -65,7 +66,7 @@ export default function OnboardingWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step, setStep] = useState<StepId>('account');
   const [formData, setFormData] = useState<FormData>(() => {
     const tierParam = searchParams.get('tier')?.toUpperCase();
     const initialTier =
@@ -73,8 +74,9 @@ export default function OnboardingWizard() {
     return { ...INITIAL_FORM, selectedTier: initialTier };
   });
   const [loading, setLoading] = useState(false);
-  const [stepErrors, setStepErrors] = useState<Record<number, string>>({});
+  const [stepErrors, setStepErrors] = useState<Partial<Record<StepId, string>>>({});
   const [showPayment, setShowPayment] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const paymentHandledRef = useRef(false);
 
   /**
@@ -87,8 +89,6 @@ export default function OnboardingWizard() {
     const u = session?.user?.username;
     return typeof u === 'string' && u.startsWith(OAUTH_USERNAME_PREFIX);
   }, [session?.user?.username]);
-
-  const stepLabels = isOauthPath ? OAUTH_STEP_LABELS : CREDENTIALS_STEP_LABELS;
 
   // For OAuth users, pre-fill avatar from the OAuth profile picture so
   // AvatarStep shows their existing image instead of a blank slate.
@@ -103,9 +103,10 @@ export default function OnboardingWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOauthPath, session?.user?.avatarUrl]);
 
-  const setStepError = (s: number, msg: string) => setStepErrors((prev) => ({ ...prev, [s]: msg }));
+  const setStepError = (s: StepId, msg: string) =>
+    setStepErrors((prev) => ({ ...prev, [s]: msg }));
 
-  const clearStepError = (s: number) => setStepErrors((prev) => ({ ...prev, [s]: '' }));
+  const clearStepError = (s: StepId) => setStepErrors((prev) => ({ ...prev, [s]: '' }));
 
   // Handle return from Stripe Embedded Checkout (redirect-based flow)
   useEffect(() => {
@@ -136,7 +137,7 @@ export default function OnboardingWizard() {
         await fetch('/api/stripe/checkout/verify', { method: 'POST' });
 
         await updateSession();
-        setStep(3);
+        setStep('avatar');
       } catch {
         paymentHandledRef.current = false;
       }
@@ -159,12 +160,12 @@ export default function OnboardingWizard() {
       // Non-fatal — the value is persisted server-side; the next middleware
       // hop will pick it up.
     }
-    setStep(2);
+    setStep('plan');
   };
 
   // ── Step 1 (credentials path): Register + auto-login ─────────────────────
   const handleAccountNext = async () => {
-    clearStepError(1);
+    clearStepError('account');
     setLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
@@ -179,7 +180,7 @@ export default function OnboardingWizard() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setStepError(1, data.error || 'Failed to create account');
+        setStepError('account', data.error || 'Failed to create account');
         return;
       }
       // Auto-login
@@ -189,14 +190,14 @@ export default function OnboardingWizard() {
         redirect: false,
       });
       if (signInResult?.error) {
-        setStepError(1, 'Account created but auto-login failed. Please log in manually.');
+        setStepError('account', 'Account created but auto-login failed. Please log in manually.');
         return;
       }
       // Clear sensitive data from state
       setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }));
-      setStep(2);
+      setStep('plan');
     } catch {
-      setStepError(1, 'Something went wrong. Please try again.');
+      setStepError('account', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -204,7 +205,7 @@ export default function OnboardingWizard() {
 
   // ── Step 2: Tier Selection ────────────────────────────────────────────────
   const handleTierNext = async () => {
-    clearStepError(2);
+    clearStepError('plan');
 
     if (formData.selectedTier === 'FREE') {
       // Free tier: save directly and advance
@@ -217,13 +218,13 @@ export default function OnboardingWizard() {
         });
         if (!res.ok) {
           const data = await res.json();
-          setStepError(2, data.error || 'Failed to save plan.');
+          setStepError('plan', data.error || 'Failed to save plan.');
           return;
         }
         await updateSession();
-        setStep(3);
+        setStep('avatar');
       } catch {
-        setStepError(2, 'Something went wrong. Please try again.');
+        setStepError('plan', 'Something went wrong. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -243,7 +244,7 @@ export default function OnboardingWizard() {
     }
     await updateSession();
     setShowPayment(false);
-    setStep(3);
+    setStep('avatar');
   };
 
   const handlePaymentBack = () => {
@@ -252,12 +253,12 @@ export default function OnboardingWizard() {
 
   // ── Step 3: Avatar ────────────────────────────────────────────────────────
   const handleAvatarNext = () => {
-    setStep(4);
+    setStep('mageName');
   };
 
   const handleAvatarSkip = () => {
     setFormData((prev) => ({ ...prev, avatarUrl: null }));
-    setStep(4);
+    setStep('mageName');
   };
 
   const handleAvatarChange = (url: string) => {
@@ -266,17 +267,27 @@ export default function OnboardingWizard() {
 
   // ── Step 4: Mage Name ─────────────────────────────────────────────────────
   const handleMageNameNext = () => {
-    setStep(5);
+    const trimmed = formData.scholarName.trim();
+    if (trimmed && !MAGE_NAME_REGEX.test(trimmed)) {
+      setStepError(
+        'mageName',
+        'Name can only contain letters, numbers, spaces, hyphens, and apostrophes.'
+      );
+      return;
+    }
+    clearStepError('mageName');
+    setStep('goals');
   };
 
   const handleMageNameSkip = () => {
     setFormData((prev) => ({ ...prev, scholarName: '' }));
-    setStep(5);
+    clearStepError('mageName');
+    setStep('goals');
   };
 
   // ── Step 5: Goals ─────────────────────────────────────────────────────────
   const submitOnboarding = async (goals: GoalValues) => {
-    clearStepError(5);
+    clearStepError('goals');
     setLoading(true);
     try {
       const scholarName = formData.scholarName.trim() || null;
@@ -289,7 +300,7 @@ export default function OnboardingWizard() {
       await updateSession();
       router.push('/dashboard');
     } catch {
-      setStepError(5, 'Something went wrong. Please try again.');
+      setStepError('goals', 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
@@ -297,169 +308,70 @@ export default function OnboardingWizard() {
   const handleGoalsFinish = () => submitOnboarding(formData.goals);
   const handleGoalsSkip = () => submitOnboarding({ ...EMPTY_GOAL_VALUES });
 
-  const stepSubtitle =
-    step === 1
-      ? isOauthPath
-        ? 'Pick the handle you want to be known by.'
-        : 'Join the Neon Scholar society.'
-      : step === 2
-        ? 'Choose your plan.'
-        : step === 3
-          ? "Let's set up your profile."
-          : step === 4
-            ? 'Give your mage a name.'
-            : 'Almost there — personalize your journey.';
+  // Back navigation is only offered on screens that mutate local formData
+  // and sit after every irreversible action (account creation, payment).
+  const handleBack = () => {
+    if (step === 'goals') setStep('mageName');
+    else if (step === 'mageName') setStep('avatar');
+  };
 
-  return (
-    <div
-      style={
-        step === 2 && !showPayment
-          ? { width: '90vw', maxWidth: '960px', marginLeft: '50%', transform: 'translateX(-50%)' }
-          : undefined
-      }
-    >
-      <style>{`
-        @keyframes fadeSlide {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes stepGlow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(174,137,255,0.3); }
-          50%       { box-shadow: 0 0 0 6px rgba(174,137,255,0); }
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-      `}</style>
+  const progress = (STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length;
+  const isWide = step === 'plan' && !showPayment;
+  const goalCount = Object.values(formData.goals).filter((v) => v !== null).length;
 
-      {/* Logo + Title */}
-      <div
+  const goalsBadge =
+    goalCount > 0 ? (
+      <span
         style={{
+          width: '24px',
+          height: '24px',
+          borderRadius: '9999px',
+          background: '#4dff91',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: step === 2 && !showPayment ? '14px' : '18px',
+          justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(77,255,145,0.35), 0 0 0 3px var(--surface-container-low)',
         }}
       >
-        <div
-          style={{
-            width: step === 2 && !showPayment ? '48px' : '56px',
-            height: step === 2 && !showPayment ? '48px' : '56px',
-            marginBottom: step === 2 && !showPayment ? '10px' : '12px',
-            background: 'var(--surface-container-highest)',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 40px rgba(174,137,255,0.15)',
-          }}
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: '15px', color: '#0c2a14', fontVariationSettings: "'FILL' 1, 'wght' 700" }}
         >
-          <Image
-            src="/logo_trimmed.png"
-            alt="NoteMage"
-            width={step === 2 && !showPayment ? 32 : 40}
-            height={step === 2 && !showPayment ? 32 : 40}
-            style={{ objectFit: 'contain' }}
-            priority
-          />
-        </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: step === 2 && !showPayment ? '26px' : '32px',
-            fontWeight: 800,
-            color: '#ae89ff',
-            margin: '0 0 4px',
-            letterSpacing: '-0.035em',
-            textAlign: 'center',
-          }}
-        >
-          NoteMage
-        </h1>
-        <p style={{ color: 'var(--on-surface-variant)', fontSize: '15px', margin: 0, textAlign: 'center' }}>
-          {stepSubtitle}
-        </p>
-      </div>
+          check
+        </span>
+      </span>
+    ) : undefined;
 
-      {/* Card */}
-      <div
-        style={{
-          background: 'var(--surface-container-low)',
-          borderRadius: '24px',
-          padding: step === 2 && !showPayment ? '20px 28px 24px' : '24px 32px 28px',
-          boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
-          position: 'relative',
-          overflow: 'hidden',
-          width: '100%',
-        }}
-      >
-        {/* Top gradient line */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '1px',
-            background: 'rgba(174,137,255,0.4)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Step Indicator */}
-        <StepIndicator currentStep={step} totalSteps={5} labels={stepLabels} />
-
-        {/* Step Content */}
-        <div
-          key={step}
-          style={{
-            marginTop: step === 2 && !showPayment ? '16px' : '20px',
-            animation: 'fadeSlide 0.35s cubic-bezier(0.22,1,0.36,1)',
-          }}
-        >
-          {/*
-            While the first useSession() call is still resolving on a hard
-            reload of /auth/register, we don't yet know whether this is an
-            OAuth user (→ UsernameStep) or a credentials signup (→ AccountStep).
-            Render a neutral placeholder so users never see AccountStep flash
-            in before it gets replaced.
-          */}
-          {step === 1 && sessionStatus === 'loading' && (
+  const renderScreen = () => {
+    // ── Step 1: identity — account (credentials) or username (OAuth) ─────────
+    if (step === 'account') {
+      return (
+        <OnboardingScreen screenKey="account" progress={progress}>
+          {sessionStatus === 'loading' ? (
             <div
               style={{
-                minHeight: '420px',
+                minHeight: '360px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--outline)',
-                fontSize: '14px',
               }}
             >
               <span
                 className="material-symbols-outlined"
-                style={{
-                  fontSize: '24px',
-                  color: '#ae89ff',
-                  animation: 'spin 1s linear infinite',
-                }}
+                style={{ fontSize: '24px', color: '#ae89ff', animation: 'spin 1s linear infinite' }}
               >
                 progress_activity
               </span>
             </div>
-          )}
-
-          {step === 1 && sessionStatus !== 'loading' && isOauthPath && (
+          ) : isOauthPath ? (
             <UsernameStep
               suggested={suggestUsernameFromEmail(session?.user?.email)}
               avatarUrl={session?.user?.avatarUrl ?? null}
               displayName={session?.user?.name ?? null}
               onSaved={handleUsernameSaved}
-              error={stepErrors[1] || ''}
+              error={stepErrors.account || ''}
             />
-          )}
-
-          {step === 1 && sessionStatus !== 'loading' && !isOauthPath && (
+          ) : (
             <AccountStep
               data={{
                 username: formData.username,
@@ -472,65 +384,161 @@ export default function OnboardingWizard() {
               onChange={handleFieldChange}
               onNext={handleAccountNext}
               loading={loading}
-              error={stepErrors[1] || ''}
+              error={stepErrors.account || ''}
             />
           )}
+        </OnboardingScreen>
+      );
+    }
 
-          {step === 2 && !showPayment && (
-            <TierSelectionStep
-              selectedTier={formData.selectedTier}
-              onSelect={(tier) => setFormData((prev) => ({ ...prev, selectedTier: tier }))}
-              onNext={handleTierNext}
-              loading={loading}
-              error={stepErrors[2] || ''}
-            />
-          )}
+    // ── Step 2a: Payment (embedded Stripe sub-screen of Plan) ────────────────
+    if (step === 'plan' && showPayment) {
+      return (
+        <OnboardingScreen screenKey="payment" progress={progress}>
+          <PaymentStep
+            tier={formData.selectedTier}
+            onSuccess={handlePaymentSuccess}
+            onBack={handlePaymentBack}
+            error={stepErrors.plan || ''}
+          />
+        </OnboardingScreen>
+      );
+    }
 
-          {step === 2 && showPayment && (
-            <PaymentStep
-              tier={formData.selectedTier}
-              onSuccess={handlePaymentSuccess}
-              onBack={handlePaymentBack}
-              error={stepErrors[2] || ''}
-            />
-          )}
+    // ── Step 2: Plan ─────────────────────────────────────────────────────────
+    if (step === 'plan') {
+      return (
+        <OnboardingScreen
+          screenKey="plan"
+          progress={progress}
+          mascotPose="thinking"
+          mascotIdle="sway"
+          heading="Choose your plan"
+          error={stepErrors.plan || ''}
+          primaryLabel={
+            loading
+              ? 'Saving…'
+              : formData.selectedTier === 'FREE'
+                ? 'Continue'
+                : 'Continue to Payment'
+          }
+          onPrimary={handleTierNext}
+          primaryDisabled={loading}
+          primaryLoading={loading}
+          compactFooter
+        >
+          <TierSelectionStep
+            selectedTier={formData.selectedTier}
+            onSelect={(tier) => setFormData((prev) => ({ ...prev, selectedTier: tier }))}
+          />
+        </OnboardingScreen>
+      );
+    }
 
-          {step === 3 && (
-            <AvatarStep
-              username={formData.username}
-              currentAvatarUrl={formData.avatarUrl}
-              onAvatarChange={handleAvatarChange}
-              onNext={handleAvatarNext}
-              onSkip={handleAvatarSkip}
-              loading={loading}
-              error={stepErrors[3] || ''}
-            />
-          )}
+    // ── Step 3: Avatar ───────────────────────────────────────────────────────
+    if (step === 'avatar') {
+      return (
+        <OnboardingScreen
+          screenKey="avatar"
+          progress={progress}
+          mascotPose="default"
+          mascotIdle="bounce"
+          heading="Choose your avatar"
+          subheading="This is how the community will see you."
+          primaryLabel="Continue"
+          onPrimary={handleAvatarNext}
+          primaryDisabled={loading || avatarBusy}
+          secondaryLabel="Skip for now"
+          onSecondary={handleAvatarSkip}
+          secondaryDisabled={loading || avatarBusy}
+        >
+          <AvatarStep
+            username={formData.username}
+            currentAvatarUrl={formData.avatarUrl}
+            onAvatarChange={handleAvatarChange}
+            onUploadingChange={setAvatarBusy}
+          />
+        </OnboardingScreen>
+      );
+    }
 
-          {step === 4 && (
-            <ScholarNameStep
-              scholarName={formData.scholarName}
-              onChange={(name) => setFormData((prev) => ({ ...prev, scholarName: name }))}
-              onNext={handleMageNameNext}
-              onSkip={handleMageNameSkip}
-              loading={loading}
-              error={stepErrors[4] || ''}
-            />
-          )}
+    // ── Step 4: Mage Name ────────────────────────────────────────────────────
+    if (step === 'mageName') {
+      return (
+        <OnboardingScreen
+          screenKey="mageName"
+          progress={progress}
+          onBack={handleBack}
+          mascotPose="default"
+          mascotIdle="bounce"
+          heading="Name your Mage"
+          subheading="Give your AI study assistant a name."
+          error={stepErrors.mageName || ''}
+          primaryLabel="Continue"
+          onPrimary={handleMageNameNext}
+          secondaryLabel="Skip for now"
+          onSecondary={handleMageNameSkip}
+        >
+          <ScholarNameStep
+            scholarName={formData.scholarName}
+            onChange={(name) => setFormData((prev) => ({ ...prev, scholarName: name }))}
+          />
+        </OnboardingScreen>
+      );
+    }
 
-          {step === 5 && (
-            <StudyGoalsStep
-              goals={formData.goals}
-              mageName={formData.scholarName.trim()}
-              onChange={(goals) => setFormData((prev) => ({ ...prev, goals }))}
-              onFinish={handleGoalsFinish}
-              onSkip={handleGoalsSkip}
-              loading={loading}
-              error={stepErrors[5] || ''}
-            />
-          )}
-        </div>
-      </div>
+    // ── Step 5: Goals ────────────────────────────────────────────────────────
+    return (
+      <OnboardingScreen
+        screenKey="goals"
+        progress={progress}
+        onBack={handleBack}
+        mascotPose="holding-scroll"
+        mascotIdle="sway"
+        mascotBadge={goalsBadge}
+        heading="Set your goals"
+        subheading="Pick what matters to you. You can change these anytime."
+        error={stepErrors.goals || ''}
+        primaryLabel={
+          loading ? (
+            'Saving…'
+          ) : (
+            <>
+              Get Started
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}
+              >
+                rocket_launch
+              </span>
+            </>
+          )
+        }
+        onPrimary={handleGoalsFinish}
+        primaryDisabled={loading}
+        primaryLoading={loading}
+        secondaryLabel="Skip for now"
+        onSecondary={handleGoalsSkip}
+        secondaryDisabled={loading}
+      >
+        <StudyGoalsStep
+          goals={formData.goals}
+          mageName={formData.scholarName.trim()}
+          onChange={(goals) => setFormData((prev) => ({ ...prev, goals }))}
+        />
+      </OnboardingScreen>
+    );
+  };
+
+  return (
+    <div
+      style={
+        isWide
+          ? { width: '90vw', maxWidth: '960px', marginLeft: '50%', transform: 'translateX(-50%)' }
+          : undefined
+      }
+    >
+      {renderScreen()}
 
       {/* Footer links */}
       <div
@@ -545,24 +553,27 @@ export default function OnboardingWizard() {
           <a
             key={item}
             href="#"
+            className="ob-footer-link"
             style={{
               fontSize: '12px',
               fontWeight: 500,
               color: 'var(--outline)',
               textDecoration: 'none',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = '#e5e3ff';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = '#8888a8';
             }}
           >
             {item}
           </a>
         ))}
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        .ob-footer-link:hover { color: #e5e3ff; }
+        .ob-footer-link:focus-visible { outline: 2px solid #ae89ff; outline-offset: 3px; border-radius: 4px; }
+      `}</style>
     </div>
   );
 }
