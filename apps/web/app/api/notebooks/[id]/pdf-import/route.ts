@@ -13,9 +13,9 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { validateStoragePath } from '@/lib/storage';
-import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { checkUsageLimit } from '@/lib/usage-limits';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
-import { engineForTier, pageCapForTier, runPdfImportJob } from '@/lib/pdf-import/run-job';
+import { engineForTier, runPdfImportJob } from '@/lib/pdf-import/run-job';
 
 // P5 — the entry point for the structured PDF import pipeline.
 //
@@ -105,17 +105,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    // Resolve the structure engine + per-tier page cap up front. An
-    // unconfigured engine (no API key) would make every page fall back to
-    // text-only extraction — no figures, no rich structure. Refuse here so
-    // the user gets an honest error instead of a silently degraded import,
-    // and so no usage credit is spent on it.
+    // Resolve the structure engine up front. An unconfigured engine (no
+    // API key) would make every page fall back to text-only extraction —
+    // no figures, no rich structure. Refuse here so the user gets an
+    // honest error instead of a silently degraded import, and so no
+    // import budget is spent on it.
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
       select: { tier: true },
     });
     const engine = engineForTier(user.tier);
-    const pageCap = pageCapForTier(user.tier);
     if (!engine.isConfigured()) {
       console.error('[pdf-import] structure engine is not configured — refusing import');
       return serviceUnavailableResponse(
@@ -156,16 +155,24 @@ export async function POST(request: NextRequest, { params }: Params) {
       return badRequestResponse('Invalid page image path');
     }
 
-    // Entitlement gate — the monthly import-count meter.
+    // Budget gate — PDF import is metered in pages, not import count.
+    // FREE gets a one-time lifetime allowance; PRO a monthly one. A PDF
+    // longer than the budget is not rejected: the worker imports up to
+    // `pageCap` pages and appends a truncation notice.
+    const totalPages = pageImagePaths.length;
     const usage = await checkUsageLimit(userId, 'pdf_import');
-    if (!usage.allowed) {
+    const remaining = usage.limit === -1 ? totalPages : usage.limit - usage.used;
+    if (remaining <= 0) {
       return tooManyRequestsResponse(
-        'You have reached your monthly PDF import limit. Upgrade your plan to import more.',
+        user.tier === 'FREE'
+          ? 'You have used your free PDF import allowance. Upgrade to Pro to import more.'
+          : 'You have reached your monthly PDF import limit. It resets at the start of next month.',
       );
     }
+    const pageCap = Math.min(totalPages, remaining);
 
-    // `engine.name` + `pageCap` (resolved above) are recorded on the row so
-    // the worker is self-contained and the choice is auditable later.
+    // `engine.name` + the budget-derived `pageCap` are recorded on the row
+    // so the worker is self-contained and the choice is auditable later.
     const job = await db.importJob.create({
       data: {
         notebookId,
@@ -181,12 +188,11 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
 
     // Fire-and-forget — `runPdfImportJob` never throws; the inner catch is
-    // only here for a synchronous scheduling failure.
+    // only here for a synchronous scheduling failure. Usage is metered by
+    // the worker on success (pages actually imported), not here.
     void runPdfImportJob(job.id).catch((err) => {
       console.error(`[pdf-import] worker crashed for job ${job.id}`, err);
     });
-
-    await incrementUsage(userId, 'pdf_import');
 
     return createdResponse({ jobId: job.id, status: job.status });
   } catch (error) {

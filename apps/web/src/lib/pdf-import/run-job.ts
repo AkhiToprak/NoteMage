@@ -15,6 +15,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { downloadFromStorage, deleteFile, saveImage } from '@/lib/storage';
 import { tiptapJsonToPlainText } from '@/lib/contentConverter';
+import { incrementUsage } from '@/lib/usage-limits';
 import type { TierKey } from '@/lib/tiers';
 import { assembleTiptap } from './assemble';
 import type { DocModelBlock } from './doc-model';
@@ -30,29 +31,12 @@ const TEXT_CONTENT_LIMIT = 500_000;
 /** Placeholder document for the page row while the worker fills it in. */
 const EMPTY_DOC = { type: 'doc', content: [{ type: 'paragraph' }] };
 
-/**
- * Pages processed per PDF, by tier. A fair volume limit — not a quality
- * difference — and the primary cost lever (each page is one LLM call).
- * Exceeding it does not hard-reject: the worker imports up to the cap and
- * appends an inline notice.
- */
-const PAGE_CAP_BY_TIER: Record<TierKey, number> = {
-  FREE: 15,
-  PLUS: 50,
-  PRO: 150,
-};
-
 /** One structure engine per tier — Gemini for all; single-engine is settled. */
 const ENGINE_BY_TIER: Record<TierKey, PdfStructureEngine> = {
   FREE: geminiEngine,
   PLUS: geminiEngine,
   PRO: geminiEngine,
 };
-
-/** Per-tier page cap for a single PDF import. */
-export function pageCapForTier(tier: TierKey): number {
-  return PAGE_CAP_BY_TIER[tier] ?? PAGE_CAP_BY_TIER.FREE;
-}
 
 /**
  * The structure engine for a tier. Gemini serves every tier — single-engine
@@ -282,7 +266,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
       });
     }
 
-    // Pages past the per-tier cap are dropped; say so inline.
+    // Pages beyond the user's remaining import budget are dropped; say so inline.
     const pageCapTruncated = ground.pageCount > pageCount;
     if (pageCapTruncated) {
       allBlocks.push({
@@ -293,7 +277,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
             type: 'paragraph',
             runs: [
               {
-                text: `This PDF has ${ground.pageCount} pages; only the first ${pageCount} could be imported.`,
+                text: `This PDF has ${ground.pageCount} pages; the first ${pageCount} were imported — the rest exceeded your PDF import limit.`,
               },
             ],
           },
@@ -385,6 +369,15 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         }),
       },
     });
+
+    // Meter the pages actually imported against the user's PDF-import
+    // budget (FREE: a lifetime allowance; PRO: monthly). Charged only on
+    // success, so a failed import costs the user nothing. Best-effort — a
+    // metering write must never fail an import that already succeeded.
+    await incrementUsage(job.userId, 'pdf_import', pageCount).catch((err) => {
+      console.error(`[pdf-import] usage increment failed for job ${jobId}`, err);
+    });
+
     succeeded = true;
   } catch (err) {
     const message =

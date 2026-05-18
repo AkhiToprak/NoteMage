@@ -35,7 +35,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_quizzes: 2,
       scholar_chat: 50,
       ai_inline_edit: 0,
-      pdf_import: 30,
+      pdf_import: 50, // pages, not imports — a one-time lifetime allowance (see LIFETIME_LIMITS)
     },
     badge: {
       label: 'Free',
@@ -53,7 +53,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_quizzes: 4,
       scholar_chat: 100,
       ai_inline_edit: 0,
-      pdf_import: 150,
+      pdf_import: 450, // dormant — PLUS is being retired; mirrors PRO so any legacy PLUS user is not under-served
     },
     badge: {
       label: 'Plus',
@@ -72,7 +72,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_quizzes: -1,
       scholar_chat: -1,
       ai_inline_edit: -1,
-      pdf_import: 250,
+      pdf_import: 450, // pages per month
     },
     badge: {
       label: 'Pro',
@@ -81,6 +81,21 @@ export const TIERS: Record<TierKey, TierConfig> = {
     },
   },
 };
+
+/**
+ * Feature limits that accumulate over the account's lifetime instead of
+ * resetting each month. FREE's PDF-import budget is a one-time allowance —
+ * a trial of the feature — so its usage is summed across every month
+ * rather than read from the current month alone.
+ */
+export const LIFETIME_LIMITS: Partial<Record<TierKey, readonly FeatureType[]>> = {
+  FREE: ['pdf_import'],
+};
+
+/** True when a tier's limit for a feature is a lifetime budget, not monthly. */
+export function isLifetimeLimit(tier: TierKey, feature: FeatureType): boolean {
+  return LIFETIME_LIMITS[tier]?.includes(feature) ?? false;
+}
 
 export function getMonthStart(): Date {
   const now = new Date();

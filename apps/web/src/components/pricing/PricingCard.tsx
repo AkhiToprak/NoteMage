@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TIERS, type TierKey, type FeatureType } from '@/lib/tiers';
+import { TIERS, isLifetimeLimit, type TierKey, type FeatureType } from '@/lib/tiers';
 
 interface PricingCardProps {
   tier: TierKey;
@@ -23,7 +23,7 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_quizzes: 'AI Quizzes',
   scholar_chat: 'Mage Chat messages',
   ai_inline_edit: 'Inline AI editing',
-  pdf_import: 'PDF imports',
+  pdf_import: 'PDF pages',
 };
 
 const FEATURE_ICONS: Record<FeatureType, string> = {
@@ -272,7 +272,11 @@ export default function PricingCard({
               )}
               {limit !== 0 && ' '}
               {FEATURE_LABELS[feature]}
-              {limit > 0 && <span style={{ color: 'var(--outline)' }}>/mo</span>}
+              {limit > 0 && (
+                <span style={{ color: 'var(--outline)' }}>
+                  {isLifetimeLimit(tier, feature) ? ' total' : '/mo'}
+                </span>
+              )}
               {limit === 0 && (
                 <span
                   style={{

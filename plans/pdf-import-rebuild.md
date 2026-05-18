@@ -66,21 +66,31 @@ later step and explicitly out of scope here.
 - The `PdfStructureEngine` interface + shared prompt make the model a one-line config
   swap — the engine count is deliberately deferred to corpus evidence, not guessed.
 
-### Caps (proposed — tune to cost budget)
+### Caps (updated 2026-05-18 — page-budget model, implemented)
 
-| Tier | Pages/PDF cap | Monthly import count |
+PDF import is metered in **pages**, not import operations. Pages are the real cost
+driver (one LLM call each), and an "import count" is meaningless once a single user
+action can import many PDFs (the onboarding / multi-PDF flow).
+
+| Tier | `pdf_import` budget | Window |
 |---|---|---|
-| FREE | 15  | 30 (abuse bound; the page cap is the real lever) |
-| PLUS | 50  | unlimited (`-1`) |
-| PRO  | 150 | unlimited (`-1`) |
+| FREE | 50 pages  | **lifetime** — a one-time allowance; never resets |
+| PRO  | 450 pages | monthly |
+| PLUS | dormant value (450) | tier being retired; `tiers.ts` keeps a value only to typecheck |
 
-One engine (Gemini Flash-Lite) serves all tiers to start. Tiering is by **page cap**
-only — a fair volume limit, not a quality difference (this also fits the user's
-ethical-pricing stance: no artificial degradation). Per that stance the per-PDF page
-cap is the primary lever; exceeding it does **not** hard-reject — it imports up to the
-cap and appends a truncation notice. Rate limiting (`rateLimit` from
-`src/lib/rate-limit.ts`) guards abuse. If P7 later forces a second engine, paid tiers
-switch to Claude; this cap table is unaffected.
+There is **no separate per-PDF page cap** — the budget is the single limit. A PDF
+longer than the remaining budget is not rejected: the worker imports up to the
+remaining pages and appends an inline truncation notice (the assembler's 460KB size
+guard still bounds one absurdly large PDF technically). A user with zero budget left
+is hard-blocked with an upsell. Rate limiting (`rateLimit` from `src/lib/rate-limit.ts`)
+guards the parallel-fire window. **Usage is charged by the worker on success only** —
+a failed import costs the user nothing.
+
+Lifetime scoping needs **no schema change**: `UsageRecord` rows are still written per
+month; a lifetime-scoped feature is read by summing `count` across every month
+(`LIFETIME_LIMITS` / `isLifetimeLimit` in `tiers.ts`; the sum branch in
+`checkUsageLimit`). `incrementUsage` takes an `amount` so the worker charges the page
+count, not 1.
 
 ---
 
@@ -151,8 +161,8 @@ Modified files:
 - `apps/web/package.json` — devDeps `vitest`, `@vitest/coverage-v8`; scripts
   `"test": "vitest run"`, `"test:watch": "vitest"`
 - `apps/web/src/lib/tiers.ts` — add `'pdf_import'` to the `FeatureType` union **and**
-  a `pdf_import` entry to FREE / PLUS / PRO `limits` (FREE 30, PLUS/PRO `-1`).
-  Omitting any tier makes `checkUsageLimit` read `undefined` — tripwire.
+  a `pdf_import` entry for every tier's `limits` (current values: see the Caps
+  section). Omitting any tier makes `checkUsageLimit` read `undefined` — tripwire.
 
 ```prisma
 model ImportJob {
@@ -285,7 +295,7 @@ New files:
   `status:'ready'`, `resultPageId`, `truncated`, `fallbackPages` → delete temp files
   in `finally`. Any failure → `status:'failed'` + friendly `error`.
 - `apps/web/app/api/notebooks/[id]/pdf-import/route.ts` — `POST`: auth, notebook
-  ownership, **entitlement gate + per-tier page cap + rate limit**, validate body
+  ownership, **page-budget gate + rate limit**, validate body
   paths via `validateStoragePath(_, 'temp-imports/')`, create `ImportJob` (record the
   resolved engine + page cap on the row), fire `void runPdfImportJob(job.id).catch(...)`,
   return `201 { jobId, status }`. Engine selection reads a single helper
