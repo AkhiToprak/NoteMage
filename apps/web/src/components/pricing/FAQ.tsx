@@ -17,7 +17,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     question: 'What payment methods do you accept?',
     answer:
-      'We accept all major credit and debit cards through Stripe, including Visa, Mastercard, and American Express. All payments are processed securely.',
+      'We accept all major credit and debit cards, including Visa, Mastercard, and American Express. All payments are processed securely.',
   },
   {
     question: 'Is there a student discount?',

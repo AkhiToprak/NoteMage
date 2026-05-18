@@ -8,7 +8,6 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { sendSignupNotification } from '@/lib/email';
-import { verifyAndFulfillCheckout } from '@/lib/stripe-fulfillment';
 import { validateGoals } from '../study-goals/route';
 
 export async function PUT(request: NextRequest) {
@@ -85,19 +84,11 @@ export async function PUT(request: NextRequest) {
       data,
     });
 
-    // Read user AFTER update for freshest tier.
-    // If tier is still FREE, verify directly with Stripe (fallback if webhook hasn't arrived).
-    let fullUser = await db.user.findUnique({
+    // Read user AFTER update for the freshest values.
+    const fullUser = await db.user.findUnique({
       where: { id: userId },
       select: { email: true, tier: true },
     });
-
-    if (fullUser && fullUser.tier === 'FREE') {
-      const verifiedTier = await verifyAndFulfillCheckout(userId);
-      if (verifiedTier && verifiedTier !== 'FREE') {
-        fullUser = { ...fullUser, tier: verifiedTier };
-      }
-    }
 
     if (fullUser?.email) {
       sendSignupNotification(fullUser.email, fullUser.tier);

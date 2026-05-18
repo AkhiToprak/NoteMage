@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import OnboardingScreen from './OnboardingScreen';
 import AccountStep from './AccountStep';
 import OAuthBirthDateStep from './OAuthBirthDateStep';
@@ -11,14 +11,11 @@ import LastNameStep from './LastNameStep';
 import UsernameStep from './UsernameStep';
 import ContextStep from './ContextStep';
 import FieldOfStudyStep from './FieldOfStudyStep';
-import TierSelectionStep from './TierSelectionStep';
-import PaymentStep from './PaymentStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoalsStep';
 import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
 import OnboardingImportStep from './OnboardingImportStep';
 import { parseBirthDate } from '@/lib/age';
-import type { TierKey } from '@/lib/tiers';
 import type { ImportPhase } from '@/hooks/useMultiImport';
 
 type StepId =
@@ -28,7 +25,6 @@ type StepId =
   | 'username'
   | 'context'
   | 'fieldOfStudy'
-  | 'plan'
   | 'avatar'
   | 'mageName'
   | 'goals'
@@ -42,7 +38,6 @@ const STEP_ORDER: readonly StepId[] = [
   'username',
   'context',
   'fieldOfStudy',
-  'plan',
   'avatar',
   'mageName',
   'goals',
@@ -51,9 +46,8 @@ const STEP_ORDER: readonly StepId[] = [
 
 /**
  * Back-chevron targets. Only screens that purely mutate local `formData`
- * appear here — there is no way back across account creation (screen 1) or a
- * completed payment, so `account`, `firstName`, `plan` and `avatar` are
- * deliberately absent.
+ * appear here — there is no way back across account creation (screen 1), so
+ * `account` and `firstName` are deliberately absent.
  */
 const BACK_TARGETS: Partial<Record<StepId, StepId>> = {
   lastName: 'firstName',
@@ -76,7 +70,6 @@ interface FormData {
   username: string;
   context: string;
   fieldOfStudy: string;
-  selectedTier: TierKey;
   avatarUrl: string | null;
   scholarName: string;
   goals: GoalValues;
@@ -110,7 +103,6 @@ const INITIAL_FORM: FormData = {
   username: '',
   context: '',
   fieldOfStudy: '',
-  selectedTier: 'FREE',
   avatarUrl: null,
   scholarName: '',
   goals: { ...EMPTY_GOAL_VALUES },
@@ -118,23 +110,15 @@ const INITIAL_FORM: FormData = {
 
 export default function OnboardingWizard() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const [step, setStep] = useState<StepId>('account');
-  const [formData, setFormData] = useState<FormData>(() => {
-    const tierParam = searchParams.get('tier')?.toUpperCase();
-    const initialTier =
-      tierParam === 'PRO' ? (tierParam as TierKey) : 'FREE';
-    return { ...INITIAL_FORM, selectedTier: initialTier };
-  });
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [stepErrors, setStepErrors] = useState<Partial<Record<StepId, string>>>({});
-  const [showPayment, setShowPayment] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   // Mirrors the import finale's internal sub-step so the shell chevron can
   // be context-aware (see screen 11 below).
   const [importPhase, setImportPhase] = useState<ImportPhase>('source');
-  const paymentHandledRef = useRef(false);
 
   /**
    * Path detection. A credentials user starts unauthenticated and creates a
@@ -168,42 +152,6 @@ export default function OnboardingWizard() {
     setStepErrors((prev) => ({ ...prev, [s]: msg }));
 
   const clearStepError = (s: StepId) => setStepErrors((prev) => ({ ...prev, [s]: '' }));
-
-  // Handle return from Stripe Embedded Checkout (redirect-based flow)
-  useEffect(() => {
-    const paymentSuccess = searchParams.get('payment_success');
-    const sessionId = searchParams.get('session_id');
-
-    if (paymentSuccess !== 'true' || !sessionId || paymentHandledRef.current) {
-      return;
-    }
-
-    // Mark as handled immediately to prevent re-entry from dependency changes
-    paymentHandledRef.current = true;
-
-    // Clear URL params so this effect cannot re-trigger on remount
-    const url = new URL(window.location.href);
-    url.searchParams.delete('payment_success');
-    url.searchParams.delete('session_id');
-    window.history.replaceState({}, '', url.pathname + url.search);
-
-    (async () => {
-      try {
-        const statusRes = await fetch(`/api/stripe/checkout/status?session_id=${sessionId}`);
-        const statusData = await statusRes.json();
-
-        if (statusData.data?.status !== 'complete') return;
-
-        // Verify and fulfill tier directly with Stripe (fallback if webhook is delayed)
-        await fetch('/api/stripe/checkout/verify', { method: 'POST' });
-
-        await updateSession();
-        setStep('avatar');
-      } catch {
-        paymentHandledRef.current = false;
-      }
-    })();
-  }, [searchParams, updateSession]);
 
   const handleFieldChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -297,54 +245,6 @@ export default function OnboardingWizard() {
     setStep('context');
   };
 
-  // ── Screen 7: Tier selection ─────────────────────────────────────────────
-  const handleTierNext = async () => {
-    clearStepError('plan');
-
-    if (formData.selectedTier === 'FREE') {
-      // Free tier: save directly and advance
-      setLoading(true);
-      try {
-        const res = await fetch('/api/user/tier', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: 'FREE' }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          setStepError('plan', data.error || 'Failed to save plan.');
-          return;
-        }
-        await updateSession();
-        setStep('avatar');
-      } catch {
-        setStepError('plan', 'Something went wrong. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Paid tier: show embedded Stripe checkout
-      setShowPayment(true);
-    }
-  };
-
-  // ── Payment success handler ──────────────────────────────────────────────
-  const handlePaymentSuccess = async () => {
-    // Verify and fulfill tier directly with Stripe (fallback if webhook is delayed)
-    try {
-      await fetch('/api/stripe/checkout/verify', { method: 'POST' });
-    } catch {
-      // Verification failed — tier may still be updated by webhook later
-    }
-    await updateSession();
-    setShowPayment(false);
-    setStep('avatar');
-  };
-
-  const handlePaymentBack = () => {
-    setShowPayment(false);
-  };
-
   // ── Screen 8: Avatar ─────────────────────────────────────────────────────
   const handleAvatarNext = () => {
     setStep('mageName');
@@ -426,7 +326,6 @@ export default function OnboardingWizard() {
   };
 
   const progress = (STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length;
-  const isWide = step === 'plan' && !showPayment;
   const goalCount = Object.values(formData.goals).filter((v) => v !== null).length;
 
   const goalsBadge =
@@ -616,61 +515,17 @@ export default function OnboardingWizard() {
           heading="What are you studying?"
           subheading="This helps NoteMage tailor your study material."
           primaryLabel="Continue"
-          onPrimary={() => setStep('plan')}
+          onPrimary={() => setStep('avatar')}
           primaryDisabled={!formData.fieldOfStudy.trim()}
           secondaryLabel="Skip for now"
           onSecondary={() => {
             setFormData((prev) => ({ ...prev, fieldOfStudy: '' }));
-            setStep('plan');
+            setStep('avatar');
           }}
         >
           <FieldOfStudyStep
             value={formData.fieldOfStudy}
             onChange={(value) => setFormData((prev) => ({ ...prev, fieldOfStudy: value }))}
-          />
-        </OnboardingScreen>
-      );
-    }
-
-    // ── Screen 7a: Payment (embedded Stripe sub-screen of Plan) ──────────────
-    if (step === 'plan' && showPayment) {
-      return (
-        <OnboardingScreen screenKey="payment" progress={progress}>
-          <PaymentStep
-            tier={formData.selectedTier}
-            onSuccess={handlePaymentSuccess}
-            onBack={handlePaymentBack}
-            error={stepErrors.plan || ''}
-          />
-        </OnboardingScreen>
-      );
-    }
-
-    // ── Screen 7: Plan ───────────────────────────────────────────────────────
-    if (step === 'plan') {
-      return (
-        <OnboardingScreen
-          screenKey="plan"
-          progress={progress}
-          mascotPose="thinking"
-          mascotIdle="sway"
-          heading="Choose your plan"
-          error={stepErrors.plan || ''}
-          primaryLabel={
-            loading
-              ? 'Saving…'
-              : formData.selectedTier === 'FREE'
-                ? 'Continue'
-                : 'Continue to Payment'
-          }
-          onPrimary={handleTierNext}
-          primaryDisabled={loading}
-          primaryLoading={loading}
-          compactFooter
-        >
-          <TierSelectionStep
-            selectedTier={formData.selectedTier}
-            onSelect={(tier) => setFormData((prev) => ({ ...prev, selectedTier: tier }))}
           />
         </OnboardingScreen>
       );
@@ -784,13 +639,7 @@ export default function OnboardingWizard() {
   };
 
   return (
-    <div
-      style={
-        isWide
-          ? { width: '90vw', maxWidth: '960px', marginLeft: '50%', transform: 'translateX(-50%)' }
-          : undefined
-      }
-    >
+    <div>
       {renderScreen()}
 
       {/* Footer links */}

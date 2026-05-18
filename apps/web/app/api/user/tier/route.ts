@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
       return badRequestResponse('Invalid tier. Must be FREE or PRO.');
     }
 
-    // Paid tiers can only be activated via Stripe payment
+    // Paid tiers cannot be self-assigned through this endpoint
     if (tier !== 'FREE') {
       return badRequestResponse('Paid tiers must be activated through payment.');
     }
