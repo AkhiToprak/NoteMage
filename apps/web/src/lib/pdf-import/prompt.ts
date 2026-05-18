@@ -58,6 +58,12 @@ the emphasis changes mid-line; otherwise use a single run.
 
 ## Figures
 Emit an "image" block for every figure, diagram, chart, photo or screenshot.
+A chart, graph, flow/tree diagram, map or infographic is ONE figure: emit a
+single "image" block for the whole figure region. Do NOT transcribe the text
+inside such a figure — axis labels, legends, node labels, data values — as
+paragraphs, lists or tables. That text belongs to the figure and is kept by
+the image itself. A figure often sits in a tinted box with a coloured title
+bar; box the entire container, title bar included.
 - "ref" MUST be exactly the id given to you in the user message for that
   figure slot (a string like "p3-fig-1"). Number figures in reading order.
 - "bbox" is [x0, y0, x1, y1], each a fraction from 0 to 1 of the page width

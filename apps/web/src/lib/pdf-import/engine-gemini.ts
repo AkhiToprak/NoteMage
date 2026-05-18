@@ -13,8 +13,12 @@ export const GEMINI_PDF_MODEL = process.env.GEMINI_PDF_MODEL ?? 'gemini-2.5-flas
 /** Hard ceiling on one model round trip. */
 const PAGE_TIMEOUT_MS = 60_000;
 
-/** Output budget — a dense page's block JSON is large; truncation fails the parse. */
-const MAX_OUTPUT_TOKENS = 8192;
+/**
+ * Output budget — a dense page's block JSON is large, and on a no-text-layer
+ * page the model transcribes the whole page, which is larger still. Too low a
+ * cap truncates the JSON and fails the parse, forcing a heuristic fallback.
+ */
+const MAX_OUTPUT_TOKENS = 32768;
 
 /** Engine identity recorded on `ImportJob.engine`. */
 const ENGINE_NAME = 'gemini-flash-lite';

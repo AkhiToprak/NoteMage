@@ -222,6 +222,16 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
       if (pngBuffer === null) {
         blocks = groundTruthToBlocks(gtPage);
         fallbackPages += 1;
+        // No page image and no text layer to recover from — leave a visible
+        // marker rather than silently dropping the page.
+        if (blocks.length === 0) {
+          blocks = [
+            {
+              type: 'paragraph',
+              runs: [{ text: `[Page ${gtPage.pageNumber} could not be imported.]` }],
+            },
+          ];
+        }
       } else {
         try {
           blocks = await engine.describePage({
@@ -238,6 +248,14 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           );
           blocks = groundTruthToBlocks(gtPage);
           fallbackPages += 1;
+        }
+
+        // Engine failed and the heuristic produced nothing (a no-text-layer
+        // page) — keep the page as a full-page image so it is never dropped.
+        if (blocks.length === 0) {
+          blocks = [
+            { type: 'image', ref: `p${gtPage.pageNumber}-full`, bbox: [0, 0, 1, 1] },
+          ];
         }
 
         // Crop every figure the engine boxed while the page PNG is in hand.
@@ -332,14 +350,16 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     const { doc, truncated } = assembleTiptap({ blocks: allBlocks }, imageSrcByRef);
 
     // `textContent` mirrors the page for search + AI context. The verbatim
-    // ground truth is the fullest source; a scanned PDF has none, so fall
-    // back to the assembled document's plain text.
+    // ground truth is the fullest source for a text-layer PDF; a scanned /
+    // no-text-layer PDF yields little or none, so use whichever of the two
+    // actually carries more text.
     const groundText = ground.pages
       .slice(0, pageCount)
       .map((p) => pageLinesToText(p))
       .filter((text) => text.length > 0)
       .join('\n\n');
-    const textContent = (groundText || tiptapJsonToPlainText(doc) || '').slice(
+    const docText = tiptapJsonToPlainText(doc) ?? '';
+    const textContent = (groundText.length >= docText.length ? groundText : docText).slice(
       0,
       TEXT_CONTENT_LIMIT,
     );
