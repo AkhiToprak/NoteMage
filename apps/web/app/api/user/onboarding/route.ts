@@ -26,9 +26,18 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { goals = {}, scholarName } = body as {
+    const {
+      goals = {},
+      scholarName,
+      name,
+      lineOfWork,
+      fieldOfStudy,
+    } = body as {
       goals?: unknown;
       scholarName?: string | null;
+      name?: string | null;
+      lineOfWork?: string | null;
+      fieldOfStudy?: string | null;
     };
 
     if (scholarName !== undefined && scholarName !== null) {
@@ -40,13 +49,40 @@ export async function PUT(request: NextRequest) {
     const validated = validateGoals(goals);
     if (!validated.ok) return badRequestResponse(validated.error);
 
+    const data: Record<string, unknown> = {
+      onboardingComplete: true,
+      ...validated.data,
+    };
+
+    if (scholarName) data.scholarName = scholarName.trim();
+
+    // Identity/personalization screens: first + last name are joined into
+    // `name` ("First Last"); the context screen feeds `lineOfWork`.
+    if (name !== undefined && name !== null) {
+      if (typeof name !== 'string') {
+        return badRequestResponse('name must be a string');
+      }
+      const trimmed = name.trim().slice(0, 100);
+      if (trimmed) data.name = trimmed;
+    }
+
+    if (lineOfWork !== undefined && lineOfWork !== null) {
+      if (typeof lineOfWork !== 'string' || lineOfWork.length > 100) {
+        return badRequestResponse('lineOfWork must be at most 100 characters');
+      }
+      data.lineOfWork = lineOfWork.trim() || null;
+    }
+
+    if (fieldOfStudy !== undefined && fieldOfStudy !== null) {
+      if (typeof fieldOfStudy !== 'string' || fieldOfStudy.length > 100) {
+        return badRequestResponse('fieldOfStudy must be at most 100 characters');
+      }
+      data.fieldOfStudy = fieldOfStudy.trim() || null;
+    }
+
     await db.user.update({
       where: { id: userId },
-      data: {
-        onboardingComplete: true,
-        ...(scholarName ? { scholarName: scholarName.trim() } : {}),
-        ...validated.data,
-      },
+      data,
     });
 
     // Read user AFTER update for freshest tier.

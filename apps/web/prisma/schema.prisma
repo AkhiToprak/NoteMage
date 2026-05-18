@@ -69,9 +69,11 @@ model User {
   avatarUrl             String? // URL to uploaded avatar image, null = default
   bio                   String?   @db.VarChar(160) // Short bio, max 160 chars
   age                   Int?
+  birthDate             DateTime? @db.Date // Date of birth — collected at sign-up for the 13+ age gate
   location              String?   @db.VarChar(100)
   school                String?   @db.VarChar(100)
   lineOfWork            String?   @db.VarChar(100)
+  fieldOfStudy          String?   @db.VarChar(100) // What the user studies — set in the onboarding personalization step
   instagramHandle       String?   @db.VarChar(30) // Public IG username (no @), shown on Socials bento card
   linkedinUrl           String?   @db.VarChar(200) // Full LinkedIn profile URL, shown on Socials bento card
   customGreeting        String?   @db.VarChar(120) // Custom dashboard greeting, null = use random

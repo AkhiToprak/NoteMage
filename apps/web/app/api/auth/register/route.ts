@@ -3,8 +3,9 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceIpCap, validateUserUsername } from '@/lib/registration';
+import { enforceIpCap, generatePlaceholderUsername } from '@/lib/registration';
 import { hasSignupBypass } from '@/lib/signup-bypass';
+import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -33,17 +34,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, name, username: rawUsername } = body;
+    const { email, password, birthDate } = body;
 
     if (!email || !password) {
       return badRequestResponse('Email and password are required');
     }
-
-    const usernameCheck = validateUserUsername(rawUsername);
-    if (!usernameCheck.ok) {
-      return badRequestResponse(usernameCheck.reason);
-    }
-    const username = usernameCheck.username;
 
     if (!EMAIL_REGEX.test(String(email))) {
       return badRequestResponse('Invalid email address');
@@ -53,25 +48,36 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Password must be 8–128 characters');
     }
 
-    const existingEmail = await db.user.findUnique({ where: { email } });
+    // 13+ age gate — verified before any account row is created, so an
+    // under-13 user never gets a User row (defense in depth: the sign-up
+    // form also blocks them client-side).
+    const birth = parseBirthDate(birthDate);
+    if (!birth) {
+      return badRequestResponse('A valid date of birth is required');
+    }
+    const age = computeAge(birth);
+    if (age < MIN_AGE) {
+      return badRequestResponse(`You must be at least ${MIN_AGE} years old to use NoteMage.`);
+    }
+
+    const existingEmail = await db.user.findUnique({ where: { email: String(email) } });
     if (existingEmail) {
       return badRequestResponse('An account with this email already exists');
     }
 
-    const existingUsername = await db.user.findUnique({ where: { username } });
-    if (existingUsername) {
-      return badRequestResponse('This username is already taken');
-    }
-
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Username is no longer collected on the form — it becomes its own
+    // onboarding step. Start with a placeholder handle the user replaces
+    // there, exactly like the OAuth path.
     const [user] = await db.$transaction([
       db.user.create({
         data: {
           email: String(email),
-          name: name ? String(name).slice(0, 100) : null,
           password: hashedPassword,
-          username,
+          username: generatePlaceholderUsername(),
+          birthDate: birth,
+          age,
         },
       }),
       db.ipRegistration.create({
@@ -79,10 +85,7 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    return createdResponse(
-      { id: user.id, email: user.email, name: user.name, username: user.username },
-      'Account created successfully'
-    );
+    return createdResponse({ id: user.id, email: user.email }, 'Account created successfully');
   } catch (error) {
     console.error('Registration error:', error);
     return internalErrorResponse('Failed to create account');

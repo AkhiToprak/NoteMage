@@ -4,10 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Mascot } from '@/components/mascot';
 
 /**
- * OAuth onboarding step 1: pick a real username to replace the `oauth_*`
- * placeholder that was generated when the User row was created in the
- * NextAuth signIn callback. Mirrors the username field in AccountStep so
- * the two paths look and feel identical.
+ * Onboarding screen 4 (every path): pick a real username to replace the
+ * `oauth_*` placeholder. Credentials users get the placeholder from the
+ * register route; OAuth users get it from the NextAuth signIn callback.
  */
 interface UsernameStepProps {
   /** Suggested starting value (usually derived from the OAuth email prefix). */
@@ -179,10 +178,19 @@ export default function UsernameStep({
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-        <Mascot pose="holding-pen" size="md" idle="bounce" />
+        <Mascot pose="default" size="md" idle="bounce" />
       </div>
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 6px' }}>
-        Pick a username
+      <h2
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '22px',
+          fontWeight: 800,
+          letterSpacing: '-0.02em',
+          color: 'var(--on-surface)',
+          margin: '0 0 6px',
+        }}
+      >
+        What should we call you?
       </h2>
       <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '0 0 16px' }}>
         This is how other mages will find you. You can change it later from settings.
