@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Mascot } from './Mascot';
 import { fireMascotConfetti } from './confetti';
-import { type MascotOneShot, type MascotPose, type MascotSize } from './poses';
+import { SIZE_PX, type MascotOneShot, type MascotPose, type MascotSize } from './poses';
 import styles from './celebration-overlay.module.css';
 
 export interface CelebrationOverlayProps {
@@ -26,6 +26,12 @@ export interface CelebrationOverlayProps {
 }
 
 const CONFETTI_DELAY_MS = 720;
+
+// The mascot renders in normal flow but is pulled up with a negative margin so
+// it pops above the card. The pull scales with the mascot size so that — for
+// any size (lg, xl, …) — the mascot's base lands this many pixels below the
+// card's top edge, and the eyebrow/headline below can never be overlapped.
+const MASCOT_BASE_INSET = 88;
 
 export function CelebrationOverlay({
   pose,
@@ -99,6 +105,8 @@ export function CelebrationOverlay({
         } as React.CSSProperties)
       : undefined;
 
+  const mascotMarginTop = MASCOT_BASE_INSET - SIZE_PX[size];
+
   const overlay = (
     <div
       className={`${styles.scrim}${exiting ? ` ${styles.scrimExit}` : ''}`}
@@ -113,7 +121,11 @@ export function CelebrationOverlay({
         style={cardStyle}
         onClick={(e) => e.stopPropagation()}
       >
-        <div ref={mascotWrapRef} className={`${styles.mascotSlot} ${styles.mascotEnter}`}>
+        <div
+          ref={mascotWrapRef}
+          className={`${styles.mascotSlot} ${styles.mascotEnter}`}
+          style={{ marginTop: mascotMarginTop }}
+        >
           <Mascot
             pose={pose}
             size={size}

@@ -42,7 +42,7 @@
   position: relative;
   width: 100%;
   max-width: 460px;
-  padding: 56px 32px 28px;
+  padding: 0 32px 28px;
   background: var(--surface-container);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-xl);
@@ -82,11 +82,9 @@
 }
 
 .mascotSlot {
-  position: absolute;
-  top: -88px;
-  left: 50%;
+  display: flex;
+  justify-content: center;
   transform-origin: 50% 100%;
-  transform: translate(-50%, 0);
   pointer-events: none;
 }
 
@@ -97,19 +95,19 @@
 
 @keyframes celebrationMascotIn {
   0% {
-    transform: translate(calc(-50% - 180px), 40px) rotate(-22deg) scale(0.55);
+    transform: translate(-180px, 40px) rotate(-22deg) scale(0.55);
     opacity: 0;
   }
   60% {
-    transform: translate(-50%, -12px) rotate(4deg) scale(1.04);
+    transform: translate(0, -12px) rotate(4deg) scale(1.04);
     opacity: 1;
   }
   85% {
-    transform: translate(-50%, 4px) rotate(-1deg) scale(0.99);
+    transform: translate(0, 4px) rotate(-1deg) scale(0.99);
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, 0) rotate(0deg) scale(1);
+    transform: translate(0, 0) rotate(0deg) scale(1);
     opacity: 1;
   }
 }
@@ -208,12 +206,8 @@
 
 @media (max-width: 480px) {
   .card {
-    padding: 52px 22px 22px;
+    padding: 0 22px 22px;
     border-radius: var(--radius-lg);
-  }
-
-  .mascotSlot {
-    top: -72px;
   }
 
   .headline {
