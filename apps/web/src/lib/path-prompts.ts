@@ -42,6 +42,8 @@ export interface SlotContentContext {
   slotTitle: string;
   slotKind: PathSlotKind;
   slotTopicHint: string;
+  /** Whether a SOURCE MATERIALS corpus block accompanies this prompt. */
+  hasSourceMaterials: boolean;
   /**
    * For `review` and `assessment` slots: short summaries of the prior
    * slots in the same phase the slot should review. Empty for `learning`
@@ -139,6 +141,11 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
     'Length: aim for ~300–500 words across introduction + keyPoints + examples (+ summary).',
     'Stay strictly within the slot\'s topic hint — do NOT drift into adjacent topics or other slots.',
     'For math/science topics: wrap every mathematical expression in `$...$` for inline use (e.g. "the formula $E = mc^2$ tells us…") and `$$...$$` for standalone display equations on their own line. The viewer renders these via KaTeX — never write math as plain text like "E = mc^2".',
+    ...(ctx.hasSourceMaterials
+      ? [
+          'Ground this section in the SOURCE MATERIALS above — explain the actual facts, definitions, terminology, and examples found there. Do not write a generic version of the topic; teach what the provided material covers.',
+        ]
+      : []),
     '',
     `Path: "${ctx.pathTitle}" — ${ctx.pathDescription}`,
     `Section: "${ctx.phaseTitle}" — ${ctx.phaseDescription}`,
@@ -170,6 +177,11 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
     'Aim for 8–12 cards. Vary the angles: definitions, recall prompts, comparisons, and 1–2 "explain why" cards.',
     'Keep each card a plain question → answer pair. Do NOT write blanks ("___") or fake quiz phrasing on the front — flashcards are flat Q→A; interactive question types live in review/assessment slot quizzes, not here.',
     'Keep each answer focused — 1–3 sentences or a short list. Stay strictly within the slot\'s topic hint.',
+    ...(ctx.hasSourceMaterials
+      ? [
+          'Build these cards from the SOURCE MATERIALS above — turn the actual facts, definitions, and details in that content into cards. Do not invent generic cards the materials do not support.',
+        ]
+      : []),
     '',
     `Path: "${ctx.pathTitle}" — ${ctx.pathDescription}`,
     `Section: "${ctx.phaseTitle}"`,
@@ -232,6 +244,11 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     '- code_output → {"language":"python","code":"print(2 + 2)","blank":{"acceptableAnswers":["4"]}}. `code` may contain newlines. The `prompt` is a short lead-in like "What does this print?" — never paste the code into the prompt; the renderer displays it as a syntax-highlighted block. Provide 2–4 `acceptableAnswers` covering common variants (e.g. trailing newline, quoted vs unquoted output).',
     '- code_write → {"language":"python","starterCode":"def reverse_string(s):\\n    # your code here\\n    pass\\n","tests":[{"name":"hello","stdin":"hello","expectedStdout":"olleh\\n"}],"runTimeoutMs":5000}. The learner edits `starterCode` and the server runs the final program once per test case, piping `stdin` (optional) and comparing the program\'s stdout to `expectedStdout` exactly (whitespace-sensitive). 1–6 tests. Always set `starterCode` so the learner has a scaffold — a function signature with a `# your code here` body for Python, an empty `function ...` for JS, etc. The `prompt` describes the task in plain English ("Write a function that returns the reverse of a string."). Languages: python, javascript, typescript, java, cpp, sql, go, rust.',
     '- timeline → {"events":[{"year":"1914","label":"Outbreak of WWI"}, …]}. 3–8 distinct events with their canonical year. Years are plain strings (e.g. "1914" or "300 BCE"). The `prompt` is a short framing line like "Place each event on the timeline." — do NOT list the events in the prompt.',
+    ...(ctx.hasSourceMaterials
+      ? [
+          'Write every question FROM the SOURCE MATERIALS above — test what that content actually states. Ground each prompt, answer, and explanation in the material rather than generic subject knowledge.',
+        ]
+      : []),
   ];
   if (ctx.slotKind === 'assessment') {
     lines.push(

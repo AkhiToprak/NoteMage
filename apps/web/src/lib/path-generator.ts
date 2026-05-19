@@ -44,6 +44,7 @@ import {
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
+import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
 import {
   QuizSetV2Schema,
   TheorySectionSchema,
@@ -426,6 +427,8 @@ interface PlanForGeneration {
   description: string;
   subjects: SubjectId[];
   subjectWeights: number[];
+  /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
+  corpus: string | null;
   phases: PhaseForGeneration[];
 }
 
@@ -465,6 +468,14 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   const resolvedSubjects: SubjectId[] = subjects.length > 0 ? subjects : ['general'];
   const resolvedWeights: number[] =
     subjects.length > 0 ? subjectWeights : [1];
+
+  // Rebuild the same material corpus Stage A used so every Stage B activity
+  // call is grounded in the learner's content. If a material was deleted
+  // since the path was created, loadMaterialCorpus returns null — generate
+  // without it rather than aborting the whole path.
+  const corpusEntries = await loadMaterialCorpus(plan.userId, plan.materialIds);
+  const corpus = corpusEntries ? renderMaterialCorpus(corpusEntries) : null;
+
   return {
     id: plan.id,
     userId: plan.userId,
@@ -473,6 +484,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     description: plan.description ?? '',
     subjects: resolvedSubjects,
     subjectWeights: resolvedWeights,
+    corpus,
     phases: plan.phases.map((p) => {
       const slotTitles = p.slots.map((s) => s.title);
       return {
@@ -537,6 +549,7 @@ function makeSlotContentContext(
     reviewOf,
     subjects: plan.subjects,
     subjectWeights: plan.subjectWeights,
+    hasSourceMaterials: Boolean(plan.corpus && plan.corpus.trim().length > 0),
   };
 }
 
@@ -551,7 +564,7 @@ async function generateTheoryActivity(
   nextSortOrder: number,
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
-  const system = buildTheoryPrompt(ctx);
+  const instructions = buildTheoryPrompt(ctx);
 
   // Retry on validation failure or missing examples. examples are optional
   // in the schema, so an example-less section is accepted once the retries
@@ -560,11 +573,11 @@ async function generateTheoryActivity(
   let exampleLess: TheorySection | null = null;
   let lastError = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !input; attempt++) {
-    const attemptSystem =
+    const attemptInstructions =
       attempt === 1
-        ? system
+        ? instructions
         : [
-            system,
+            instructions,
             '',
             '--- RETRY NOTICE ---',
             lastError,
@@ -572,7 +585,7 @@ async function generateTheoryActivity(
           ].join('\n');
     try {
       const raw = await forcedToolCall<unknown>({
-        system: attemptSystem,
+        system: buildCachedSystem(plan.corpus, attemptInstructions),
         tool: THEORY_SECTION_TOOL,
         userMessage: `Write the theory section for slot "${slot.title}".`,
       });
@@ -643,7 +656,7 @@ async function generateFlashcardsActivity(
   nextSortOrder: number,
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
-  const system = buildFlashcardsPrompt(ctx);
+  const instructions = buildFlashcardsPrompt(ctx);
 
   // The model intermittently returns an empty / unusable `flashcards` array
   // under the forced-tool call. Retry up to MAX_ACTIVITY_ATTEMPTS with a
@@ -652,11 +665,11 @@ async function generateFlashcardsActivity(
   let resolved: NormalizedFlashcardsInput | null = null;
   let lastDetail = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !resolved; attempt++) {
-    const attemptSystem =
+    const attemptInstructions =
       attempt === 1
-        ? system
+        ? instructions
         : [
-            system,
+            instructions,
             '',
             '--- RETRY NOTICE ---',
             'Your previous response had an empty or unusable `flashcards` array.',
@@ -664,7 +677,7 @@ async function generateFlashcardsActivity(
           ].join('\n');
     try {
       const raw = await forcedToolCall<unknown>({
-        system: attemptSystem,
+        system: buildCachedSystem(plan.corpus, attemptInstructions),
         tool: FLASHCARDS_FOR_SLOT_TOOL,
         userMessage: `Generate 8–12 flashcards for slot "${slot.title}". The flashcards array must not be empty.`,
       });
@@ -725,7 +738,7 @@ async function generateFlashcardsActivity(
 }
 
 async function callQuizTool(
-  system: string,
+  system: string | Anthropic.Messages.TextBlockParam[],
   slotTitle: string,
 ): Promise<QuizForSlotToolInput> {
   return forcedToolCall<QuizForSlotToolInput>({
@@ -761,7 +774,7 @@ async function generateQuizActivity(
   nextSortOrder: number,
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
-  const system = buildQuizPrompt(ctx);
+  const instructions = buildQuizPrompt(ctx);
 
   // Validate the v2 shape — the tool schema accepts a generic payload
   // object, so we Zod-check it (after normalizing common drift shapes)
@@ -770,18 +783,21 @@ async function generateQuizActivity(
   let parseResult: ValidatedQuizSet | null = null;
   let lastError = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !parseResult; attempt++) {
-    const attemptSystem =
+    const attemptInstructions =
       attempt === 1
-        ? system
+        ? instructions
         : [
-            system,
+            instructions,
             '',
             '--- RETRY NOTICE ---',
             `Your previous quiz was unusable: ${lastError}`,
             'Regenerate the entire quiz. The `questions` array MUST be non-empty and every question must match the exact payload shape for its kind.',
           ].join('\n');
     try {
-      const raw = await callQuizTool(attemptSystem, slot.title);
+      const raw = await callQuizTool(
+        buildCachedSystem(plan.corpus, attemptInstructions),
+        slot.title,
+      );
       const result = parseQuizInput(raw, slot.title);
       if (result.ok) {
         parseResult = result.data;
@@ -836,7 +852,7 @@ async function generateQuizActivity(
       minCount,
     });
     const corrective = [
-      system,
+      instructions,
       '',
       '--- RETRY NOTICE ---',
       'Your previous response included questions whose `kind` is outside the allowed list for this subject. Regenerate the entire quiz.',
@@ -844,7 +860,10 @@ async function generateQuizActivity(
       'Drop any kind not on this list.',
     ].join('\n');
     try {
-      const retryInput = await callQuizTool(corrective, slot.title);
+      const retryInput = await callQuizTool(
+        buildCachedSystem(plan.corpus, corrective),
+        slot.title,
+      );
       const retryResult = parseQuizInput(retryInput, slot.title);
       if (retryResult.ok) {
         const retryParsed = retryResult.data;
