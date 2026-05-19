@@ -180,7 +180,7 @@ interface NormalizedFlashcard {
   answer: string;
 }
 
-interface NormalizedFlashcardsInput {
+export interface NormalizedFlashcardsInput {
   title: string;
   flashcards: NormalizedFlashcard[];
 }

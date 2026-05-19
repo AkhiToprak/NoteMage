@@ -247,6 +247,36 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
               </span>
             );
           })() : null}
+
+          {/* Incomplete-generation badge — top-left corner. Shown when
+              one or more of the slot's activities failed to generate. */}
+          {slot.incompleteGeneration ? (
+            <span
+              aria-label="Content incomplete — needs regeneration"
+              style={{
+                position: 'absolute',
+                top: '-6px',
+                left: '-6px',
+                width: '22px',
+                height: '22px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--tertiary-container)',
+                color: 'var(--on-tertiary-container)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid var(--surface)',
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '14px' }}
+                aria-hidden
+              >
+                priority_high
+              </span>
+            </span>
+          ) : null}
         </button>
       </div>
 
@@ -305,6 +335,31 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
           }}
         >
           {done} / {total}
+        </span>
+      ) : null}
+
+      {/* Incomplete-generation caption — a checkpoint whose content
+          failed to generate (never an active or completed node). */}
+      {slot.incompleteGeneration ? (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            marginTop: '-2px',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: '13px' }}
+          >
+            sync_problem
+          </span>
+          Incomplete
         </span>
       ) : null}
     </div>

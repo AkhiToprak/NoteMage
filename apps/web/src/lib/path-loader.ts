@@ -80,6 +80,8 @@ export interface SerializedPathSlot {
   prerequisiteSlotIds: string[];
   unlocked: boolean;
   completed: boolean;
+  /** Missing one or more expected activities — AI generation failed. */
+  incompleteGeneration: boolean;
   isActive: boolean;
   activities: SerializedPathActivity[];
 }
@@ -160,6 +162,7 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
         prerequisiteSlotIds: s.prerequisiteSlotIds,
         unlocked: s.unlocked,
         completed: s.completed,
+        incompleteGeneration: s.incompleteGeneration,
         isActive: s.isActive,
         activities: s.activities.map((a) => ({
           id: a.id,

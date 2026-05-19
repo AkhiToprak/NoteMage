@@ -1,22 +1,22 @@
 import type { GateStrategy } from '@prisma/client';
+import { expectedActivityKinds } from './path-slot-activities';
 
 // Phase 10.6 — real slot-based gate logic (replaces the Phase 10.1 stub
 // that marked everything unlocked).
 //
 // Rules:
-//   - A slot is `completed` iff:
-//       • it has at least one activity, and
-//       • every activity is completed, and
-//       • for `assessment`-kind slots, `starsEarned >= 1`.
-//   - A slot is `unlocked` iff:
-//       • every slot listed in its `prerequisiteSlotIds` is completed,
-//         (an empty list means "no explicit prereqs"), AND
-//       • every prior slot in path order (across the whole plan) is
-//         completed. The sequential-between-slots gate is global so a
-//         section's first slot is locked until the previous section's
-//         last assessment is done.
-//   - A slot is `active` iff it's the first `unlocked && !completed`
-//     slot in path order.
+//   - A slot is `incompleteGeneration` iff it is missing one or more of
+//     the activity kinds its `kind` should contain (AI generation failed
+//     for some activity).
+//   - A slot is `completed` iff it is NOT incompleteGeneration, every
+//     activity is completed, and (for graded slots) `starsEarned >= 1`.
+//   - A slot is "passable" iff it is `completed` OR `incompleteGeneration`
+//     — passable slots never hold up the slots after them, so a failed
+//     checkpoint can never trap the learner.
+//   - A slot is `unlocked` iff every `prerequisiteSlotIds` entry is
+//     passable AND every prior slot in flat path order is passable.
+//   - A slot is `active` iff it's the first `unlocked && !completed &&
+//     !incompleteGeneration` slot in path order.
 //   - Phase `unlocked` mirrors "any slot in this phase is unlocked" so
 //     legacy UI bits that read phase-level flags keep working.
 //
@@ -59,8 +59,21 @@ function sortSlots<S extends SlotLite>(slots: S[]): S[] {
   return [...slots].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+/**
+ * A slot is generation-incomplete when it is missing one or more of the
+ * activity kinds its `kind` should contain — i.e. AI generation failed for
+ * some activity. These slots never block the path and surface a Regenerate
+ * affordance instead of trapping the learner.
+ */
+function isGenerationIncomplete(slot: SlotLite): boolean {
+  const present = new Set(slot.activities.map((a) => a.kind));
+  return expectedActivityKinds(slot.kind).some((k) => !present.has(k));
+}
+
 function isSlotCompleted(slot: SlotLite): boolean {
-  if (slot.activities.length === 0) return false;
+  // A slot missing generated content is surfaced as incompleteGeneration,
+  // never as completed.
+  if (isGenerationIncomplete(slot)) return false;
   if (!slot.activities.every((a) => a.completed)) return false;
   // Graded slots must also clear the 70% pass bar (1 star) before they
   // count as completed and unlock whatever comes next.
@@ -80,6 +93,8 @@ export type AnnotatedActivity<A extends ActivityLite = ActivityLite> = A;
 export type AnnotatedSlot<S extends SlotLite = SlotLite> = S & {
   unlocked: boolean;
   completed: boolean;
+  /** Missing one or more expected activities — AI generation failed. */
+  incompleteGeneration: boolean;
   isActive: boolean;
   activities: AnnotatedActivity<S['activities'][number]>[];
 };
@@ -105,43 +120,55 @@ export interface AnnotatedPhase<P extends PhaseLite> {
 export function annotatePhases<P extends PhaseLite>(phases: P[]): AnnotatedPhase<P>[] {
   const sortedPhases = sortPhases(phases);
 
-  // First pass: compute completion per slot (no dependencies).
+  // First pass: per-slot completion + generation-incomplete (no deps).
   const phaseSlots = sortedPhases.map((phase) =>
-    sortSlots(phase.slots).map((slot) => ({
-      slot,
-      completed: isSlotCompleted(slot),
-    })),
+    sortSlots(phase.slots).map((slot) => {
+      const incompleteGeneration = isGenerationIncomplete(slot);
+      const completed = isSlotCompleted(slot);
+      return {
+        slot,
+        completed,
+        incompleteGeneration,
+        // A slot is "passable" — i.e. it doesn't hold up the slots after
+        // it — once it's genuinely completed OR its generation failed.
+        passable: completed || incompleteGeneration,
+      };
+    }),
   );
 
   // Flatten for the cross-phase sequential gate.
-  const flat: { slot: SlotLite; completed: boolean }[] = phaseSlots.flat();
+  const flat = phaseSlots.flat();
   const slotById = new Map(flat.map((s) => [s.slot.id, s]));
 
-  // Second pass: compute unlocked. A slot is unlocked iff
-  // (a) every prior slot in flat order is completed, and
-  // (b) every prerequisite slot id is completed.
-  let firstIncompleteId: string | null = null;
-  let priorIncompleteHit = false;
+  // Second pass: compute unlocked + the single active slot.
+  let firstActiveId: string | null = null;
+  let priorBlockerHit = false;
   const unlockedById = new Map<string, boolean>();
-  for (const { slot, completed } of flat) {
+  for (const { slot, completed, incompleteGeneration, passable } of flat) {
     const prereqsOk = slot.prerequisiteSlotIds.every((pid) => {
       const ref = slotById.get(pid);
-      return ref ? ref.completed : true; // missing prereq id → treat as ok
+      return ref ? ref.passable : true; // missing prereq id → treat as ok
     });
-    const unlocked = !priorIncompleteHit && prereqsOk;
+    const unlocked = !priorBlockerHit && prereqsOk;
     unlockedById.set(slot.id, unlocked);
-    if (!completed && firstIncompleteId === null && unlocked) {
-      firstIncompleteId = slot.id;
+    // The active node is the first genuinely-doable, not-done slot.
+    // Generation-incomplete slots are skipped — they're flagged for
+    // regeneration, not presented as the next lesson.
+    if (!completed && !incompleteGeneration && firstActiveId === null && unlocked) {
+      firstActiveId = slot.id;
     }
-    if (!completed) priorIncompleteHit = true;
+    // A normal incomplete slot blocks everything after it; a generation-
+    // incomplete slot never does.
+    if (!passable) priorBlockerHit = true;
   }
 
   return sortedPhases.map((phase, i) => {
-    const slots = phaseSlots[i].map(({ slot, completed }) => ({
+    const slots = phaseSlots[i].map(({ slot, completed, incompleteGeneration }) => ({
       ...slot,
       unlocked: unlockedById.get(slot.id) ?? false,
       completed,
-      isActive: slot.id === firstIncompleteId,
+      incompleteGeneration,
+      isActive: slot.id === firstActiveId,
     })) as AnnotatedSlot<P['slots'][number]>[];
     const phaseUnlocked = slots.some((s) => s.unlocked);
     const phaseReason =

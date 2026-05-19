@@ -46,6 +46,8 @@ export interface PathSlot {
   prerequisiteSlotIds: string[];
   unlocked: boolean;
   completed: boolean;
+  /** Missing one or more expected activities — AI generation failed. */
+  incompleteGeneration: boolean;
   isActive: boolean;
   activities: PathActivity[];
 }

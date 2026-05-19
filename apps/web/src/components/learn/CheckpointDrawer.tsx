@@ -231,6 +231,61 @@ export default function CheckpointDrawer({
             padding: '18px 20px 24px',
           }}
         >
+          {slot.incompleteGeneration ? (
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                padding: '12px 14px',
+                marginBottom: '12px',
+                background: 'var(--surface-container-low)',
+                border: '1px solid var(--outline-variant)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <span
+                aria-hidden
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '20px',
+                  width: '32px',
+                  height: '32px',
+                  flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--tertiary-container)',
+                  color: 'var(--on-tertiary-container)',
+                }}
+              >
+                sync_problem
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                  }}
+                >
+                  Some content is still missing
+                </p>
+                <p
+                  style={{
+                    margin: '2px 0 0',
+                    fontSize: '12px',
+                    color: 'var(--on-surface-variant)',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  This checkpoint&apos;s content didn&apos;t fully generate. Use Regenerate
+                  on the path to fill it in — anything ready is still below.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <ActivityList slot={slot} onOpenActivity={(a) => onSelectActivity(a.id)} />
         </div>
       </aside>

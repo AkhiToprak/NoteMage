@@ -24,7 +24,10 @@ export const AI_MODEL = 'claude-haiku-4-5-20251001';
 export const AI_CLASSIFIER_MODEL = 'claude-haiku-4-5-20251001';
 export const AI_GENERATION_MODEL = 'claude-sonnet-4-6';
 
-// Claude Haiku 4.5: 200K input context, 64K max output.
-// We budget generously but leave headroom for system prompt, tools, and conversation history.
-export const MAX_OUTPUT_TOKENS = 16000;
+// Hard cap on output tokens per AI response. Both Haiku 4.5 and Sonnet
+// 4.6 allow up to 64K output; 32K leaves generous headroom for the
+// largest structured generations (a 12–20 question final exam) while
+// staying well under that ceiling. Does not affect cost — billing is
+// per token actually generated, not the cap.
+export const MAX_OUTPUT_TOKENS = 32000;
 export const MAX_CONTEXT_CHARS = 400_000;
