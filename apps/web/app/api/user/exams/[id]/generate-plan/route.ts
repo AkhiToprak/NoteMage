@@ -16,6 +16,7 @@ import {
 import { STUDY_PLAN_TOOL, extractToolUses } from '@/lib/ai-tools';
 import type { StudyPlanToolInput } from '@/lib/ai-tools';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -67,64 +68,28 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const notebookId = exam.notebookId;
 
-    // Load notebook inventory
-    const sections = await db.section.findMany({
-      where: { notebookId },
-      include: { pages: { select: { id: true, title: true } } },
-    });
-    const flashcardSets = await db.flashcardSet.findMany({
-      where: { notebookId },
-      select: { id: true, title: true },
-    });
-    const quizSets = await db.quizSet.findMany({
-      where: { notebookId },
-      select: { id: true, title: true },
-    });
-    const documents = await db.document.findMany({
-      where: { notebookId },
-      select: { id: true, fileName: true },
-    });
-
-    // Build inventory string with exact IDs
-    const inventoryParts: string[] = [];
-
-    if (sections.length > 0) {
-      const pageLines: string[] = [];
-      for (const s of sections) {
-        for (const p of s.pages) {
-          pageLines.push(`  - Page: "${p.title}" (id: ${p.id}, section: ${s.title})`);
-        }
-      }
-      if (pageLines.length > 0) {
-        inventoryParts.push(`Pages:\n${pageLines.join('\n')}`);
-      }
-    }
-
-    if (flashcardSets.length > 0) {
-      inventoryParts.push(
-        `Flashcard Sets:\n${flashcardSets.map((f) => `  - "${f.title}" (id: ${f.id})`).join('\n')}`
-      );
-    }
-
-    if (quizSets.length > 0) {
-      inventoryParts.push(
-        `Quiz Sets:\n${quizSets.map((q) => `  - "${q.title}" (id: ${q.id})`).join('\n')}`
-      );
-    }
-
-    if (documents.length > 0) {
-      inventoryParts.push(
-        `Documents:\n${documents.map((d) => `  - "${d.fileName}" (id: ${d.id})`).join('\n')}`
-      );
-    }
-
-    if (inventoryParts.length === 0) {
+    // Enumerate every material in the notebook, then load their actual
+    // content into a corpus the AI can plan from — page/document text and
+    // flashcard/quiz content, not just titles.
+    const [pages, documents, flashcardSets, quizSets] = await Promise.all([
+      db.page.findMany({ where: { section: { notebookId } }, select: { id: true } }),
+      db.document.findMany({ where: { notebookId }, select: { id: true } }),
+      db.flashcardSet.findMany({ where: { notebookId }, select: { id: true } }),
+      db.quizSet.findMany({ where: { notebookId }, select: { id: true } }),
+    ]);
+    const materialIds = [
+      ...pages.map((p) => p.id),
+      ...documents.map((d) => d.id),
+      ...flashcardSets.map((f) => f.id),
+      ...quizSets.map((q) => q.id),
+    ];
+    const materials = (await loadMaterialCorpus(userId, materialIds)) ?? [];
+    if (materials.length === 0) {
       return badRequestResponse(
         'This notebook has no content to create a study plan from. Add pages, flashcards, quizzes, or documents first.'
       );
     }
-
-    const inventory = inventoryParts.join('\n\n');
+    const corpus = renderMaterialCorpus(materials);
 
     // Calculate days until exam
     const now = new Date();
@@ -133,22 +98,11 @@ export async function POST(request: NextRequest, { params }: Params) {
       Math.ceil((exam.examDate.getTime() - now.getTime()) / 86400000)
     );
 
-    // Collect valid IDs
-    const validIds = new Set<string>();
-    for (const s of sections) {
-      for (const p of s.pages) validIds.add(p.id);
-    }
-    for (const f of flashcardSets) validIds.add(f.id);
-    for (const q of quizSets) validIds.add(q.id);
-    for (const d of documents) validIds.add(d.id);
-
     const systemPrompt = [
-      `You are ${mageName}, an AI study assistant. Create a structured study plan for an upcoming exam using ONLY the materials provided below.`,
-      'IMPORTANT: Only use the exact referenceId values from the inventory. Do not invent IDs.',
-      'Use the correct type for each material: "page" for Pages, "flashcard_set" for Flashcard Sets, "quiz_set" for Quiz Sets, "document" for Documents.',
+      `You are ${mageName}, an AI study assistant. Create a structured study plan for an upcoming exam, based on the source materials provided below.`,
       '',
       'Guidelines for the study plan:',
-      '- Distribute topics across the available days leading up to the exam.',
+      '- Break the material into topics and distribute them across the available days leading up to the exam.',
       '- Prioritize harder or larger topics earlier so there is time for review.',
       '- Include review/revision phases in the days right before the exam.',
       '- Account for weekends by assigning a lighter study load on Saturday and Sunday.',
@@ -159,7 +113,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       `Days until exam: ${daysUntilExam}`,
       `Notebook: "${exam.notebook.name}"`,
       '',
-      `Available materials:\n${inventory}`,
+      'SOURCE MATERIALS — base every phase on what these actually contain:',
+      corpus,
     ].join('\n');
 
     const response = await anthropic.messages.create({
@@ -229,13 +184,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
       for (let i = 0; i < phasesWithDates.length; i++) {
         const p = phasesWithDates[i];
-        // Phase 10.1 — the new schema replaced StudyMaterial with
-        // CheckpointSlot + CheckpointActivity. The AI generator for exam
-        // plans was the only consumer that wrote phase content inline; for
-        // 10.1 we create phases empty and let Phase 10.3's orchestrator
-        // populate slot/activity content. `validIds` and `validMaterials`
-        // become a no-op until 10.3 reworks this whole route.
-        void validIds;
+        // Phase 10 — the schema replaced StudyMaterial with CheckpointSlot +
+        // CheckpointActivity, so exam-plan phases are created empty; the AI's
+        // per-phase `materials` output is intentionally unused here.
         void p.materials;
 
         await tx.studyPhase.create({
