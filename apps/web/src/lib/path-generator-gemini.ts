@@ -83,6 +83,12 @@ export async function forcedStructuredCallGemini<T>(opts: {
           systemInstruction,
           maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
           responseMimeType: 'application/json',
+          // Gemini 2.5 Flash enables thinking by default; thinking tokens
+          // are billed at the output rate and can easily double the
+          // per-call cost. For structured path generation the shape is
+          // already enforced by the prompt + Zod post-validation, so the
+          // extra reasoning adds little value — disable it.
+          thinkingConfig: { thinkingBudget: 0 },
           ...(responseSchema ? { responseSchema: responseSchema as Schema } : {}),
         },
       });
