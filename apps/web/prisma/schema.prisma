@@ -671,6 +671,10 @@ model StudyPlan {
   endDate     DateTime
   source      String   @default("manual") // "manual" | "ai"
   contextNotebookIds String[] @default([])
+  // Phase 10 — exact material ids (pages / docs / flashcard + quiz sets) the
+  // learner picked as source content. Persisted so Stage B can rebuild the
+  // same material corpus the structure call was grounded in.
+  materialIds        String[] @default([])
   // Phase 10 — AI generation lifecycle for checkpoint bundles. POST returns
   // immediately with status="generating"; the orchestrator (Phase 10.2) flips
   // it to "ready" once every slot has its theory/flashcards/quiz, or "failed"
