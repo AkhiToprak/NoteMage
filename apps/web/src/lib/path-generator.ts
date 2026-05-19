@@ -150,6 +150,8 @@ async function forcedToolCall<T>(opts: {
   maxAttempts?: number;
   /** Override the default generation model. */
   model?: string;
+  /** Called with the token usage of every attempt, retries included. */
+  onUsage?: (usage: Anthropic.Messages.Usage) => void;
 }): Promise<T> {
   const {
     system,
@@ -157,6 +159,7 @@ async function forcedToolCall<T>(opts: {
     userMessage = 'Generate now.',
     maxAttempts = 2,
     model = AI_GENERATION_MODEL,
+    onUsage,
   } = opts;
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -169,6 +172,7 @@ async function forcedToolCall<T>(opts: {
         tools: [tool],
         tool_choice: { type: 'tool', name: tool.name },
       });
+      onUsage?.(response.usage);
       if (response.stop_reason === 'max_tokens') {
         throw new Error(`${tool.name} response was truncated (stop_reason: max_tokens)`);
       }
@@ -190,6 +194,37 @@ async function forcedToolCall<T>(opts: {
   throw lastError instanceof Error
     ? lastError
     : new Error(`forcedToolCall(${tool.name}) failed after ${maxAttempts} attempts`);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Token-usage metering — accumulated per generation and logged to
+// telemetry so cache effectiveness (read vs write tokens) is observable.
+// ─────────────────────────────────────────────────────────────────────
+
+interface UsageMeter {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
+function emptyMeter(): UsageMeter {
+  return {
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  };
+}
+
+function addUsage(meter: UsageMeter, usage: Anthropic.Messages.Usage): void {
+  meter.calls += 1;
+  meter.inputTokens += usage.input_tokens;
+  meter.outputTokens += usage.output_tokens;
+  meter.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
+  meter.cacheWriteTokens += usage.cache_creation_input_tokens ?? 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -334,6 +369,7 @@ export async function generatePathStructure(
     subjectWeights: opts.subjectWeights,
   };
   const instructions = buildPathStructurePrompt(ctx);
+  const meter = emptyMeter();
 
   // The model occasionally returns a phase with no `slots` (or drifted
   // phases/slots). normalizePathStructure coerces the output and drops
@@ -357,6 +393,7 @@ export async function generatePathStructure(
         system: buildCachedSystem(opts.corpus, attemptInstructions),
         tool: PATH_STRUCTURE_TOOL,
         userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
+        onUsage: (u) => addUsage(meter, u),
       });
       const normalized = normalizePathStructure(raw);
       if (normalized.phases.length > 0) {
@@ -390,6 +427,7 @@ export async function generatePathStructure(
       last.kind = 'assessment';
     }
   }
+  logTelemetry(opts.userId, 'path.structure.completed', { usage: meter });
   return structure;
 }
 
@@ -429,6 +467,8 @@ interface PlanForGeneration {
   subjectWeights: number[];
   /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
   corpus: string | null;
+  /** Token usage accumulated across this run's Stage B calls. */
+  usage: UsageMeter;
   phases: PhaseForGeneration[];
 }
 
@@ -485,6 +525,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     subjects: resolvedSubjects,
     subjectWeights: resolvedWeights,
     corpus,
+    usage: emptyMeter(),
     phases: plan.phases.map((p) => {
       const slotTitles = p.slots.map((s) => s.title);
       return {
@@ -588,6 +629,7 @@ async function generateTheoryActivity(
         system: buildCachedSystem(plan.corpus, attemptInstructions),
         tool: THEORY_SECTION_TOOL,
         userMessage: `Write the theory section for slot "${slot.title}".`,
+        onUsage: (u) => addUsage(plan.usage, u),
       });
       const parsed = TheorySectionSchema.safeParse(normalizeTheoryInput(raw));
       if (parsed.success && parsed.data.examples.length > 0) {
@@ -680,6 +722,7 @@ async function generateFlashcardsActivity(
         system: buildCachedSystem(plan.corpus, attemptInstructions),
         tool: FLASHCARDS_FOR_SLOT_TOOL,
         userMessage: `Generate 8–12 flashcards for slot "${slot.title}". The flashcards array must not be empty.`,
+        onUsage: (u) => addUsage(plan.usage, u),
       });
       const normalized = normalizeFlashcardsInput(raw);
       if (normalized.flashcards.length > 0) {
@@ -740,11 +783,13 @@ async function generateFlashcardsActivity(
 async function callQuizTool(
   system: string | Anthropic.Messages.TextBlockParam[],
   slotTitle: string,
+  onUsage: (usage: Anthropic.Messages.Usage) => void,
 ): Promise<QuizForSlotToolInput> {
   return forcedToolCall<QuizForSlotToolInput>({
     system,
     tool: QUIZ_FOR_SLOT_TOOL,
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
+    onUsage,
   });
 }
 
@@ -797,6 +842,7 @@ async function generateQuizActivity(
       const raw = await callQuizTool(
         buildCachedSystem(plan.corpus, attemptInstructions),
         slot.title,
+        (u) => addUsage(plan.usage, u),
       );
       const result = parseQuizInput(raw, slot.title);
       if (result.ok) {
@@ -863,6 +909,7 @@ async function generateQuizActivity(
       const retryInput = await callQuizTool(
         buildCachedSystem(plan.corpus, corrective),
         slot.title,
+        (u) => addUsage(plan.usage, u),
       );
       const retryResult = parseQuizInput(retryInput, slot.title);
       if (retryResult.ok) {
@@ -1084,5 +1131,6 @@ export async function generatePath(planId: string): Promise<void> {
     totalSlots: total,
     failedActivities: failedSlotIds.length,
     failedSlots: new Set(failedSlotIds).size,
+    usage: plan.usage,
   });
 }
