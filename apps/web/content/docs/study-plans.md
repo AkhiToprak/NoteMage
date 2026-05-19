@@ -40,7 +40,6 @@ Inside a plan you can mark materials as complete as you work through them, so yo
 AI-generated study plans count against a monthly cap:
 
 - **Free** — 2 AI study plans / month.
-- **Plus** — 4 AI study plans / month.
 - **Pro** — unlimited.
 
 See [Plans and limits](/docs/plans-and-limits).
