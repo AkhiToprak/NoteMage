@@ -46,6 +46,9 @@ export default function LearnPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [activeSubject, setActiveSubject] = useState<SubjectId | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PathPlanListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Distinct subjects present across the user's paths. Drives the filter
   // strip — hidden when only one subject (or zero) is in play.
@@ -95,6 +98,33 @@ export default function LearnPage() {
     setCreateOpen(false);
     void refresh();
   }, [refresh]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/learn/paths/${encodeURIComponent(deleteTarget.id)}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json?.success) {
+        setDeleteTarget(null);
+        await refresh();
+      } else {
+        setDeleteError(json?.error ?? 'Could not delete the path.');
+      }
+    } catch {
+      setDeleteError('Network error. Try again.');
+    }
+    setDeleting(false);
+  }, [deleteTarget, refresh]);
+
+  const handleCancelDelete = useCallback(() => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+  }, [deleting]);
 
   useEffect(() => {
     if (!plans) return;
@@ -204,13 +234,23 @@ export default function LearnPage() {
             isInFlight(plan) ? (
               <GeneratingCard key={plan.id} plan={plan} />
             ) : (
-              <PathCard key={plan.id} plan={plan} />
+              <PathCard key={plan.id} plan={plan} onRequestDelete={setDeleteTarget} />
             ),
           )}
         </div>
       )}
 
       {createOpen ? <LearnPathSetup onClose={handleCreateClose} /> : null}
+
+      {deleteTarget ? (
+        <DeletePathDialog
+          plan={deleteTarget}
+          deleting={deleting}
+          error={deleteError}
+          onCancel={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
+        />
+      ) : null}
 
       <style>{`
         @keyframes learnPathSpin {
@@ -237,18 +277,36 @@ export default function LearnPage() {
   );
 }
 
-function PathCard({ plan }: { plan: PathPlanListItem }) {
+function PathCard({
+  plan,
+  onRequestDelete,
+}: {
+  plan: PathPlanListItem;
+  onRequestDelete: (plan: PathPlanListItem) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const allSlots = plan.phases.flatMap((p) => p.slots);
   const total = allSlots.length;
   const done = allSlots.filter((s) => s.completed).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const primarySubject = primarySubjectOf(plan);
 
+  // Close the options menu on any outside click. The kebab's own click
+  // stops propagation, so opening the menu never trips this listener.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuOpen]);
+
   return (
     <Link
       href={`/learn/paths/${encodeURIComponent(plan.id)}`}
       className="learn-paths-card"
       style={{
+        position: 'relative',
+        zIndex: menuOpen ? 5 : undefined,
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
@@ -260,7 +318,103 @@ function PathCard({ plan }: { plan: PathPlanListItem }) {
         color: 'var(--on-surface)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Options kebab. preventDefault stops the Link navigating;
+          stopPropagation keeps the opening click off the document
+          click-away listener. */}
+      <button
+        type="button"
+        aria-label="Path options"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuOpen((o) => !o);
+        }}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          width: '32px',
+          height: '32px',
+          borderRadius: 'var(--radius-full)',
+          border: 'none',
+          background: menuOpen ? 'var(--surface-container-high)' : 'transparent',
+          color: 'var(--on-surface-variant)',
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
+          more_vert
+        </span>
+      </button>
+
+      {menuOpen ? (
+        <div
+          role="menu"
+          style={{
+            position: 'absolute',
+            top: '42px',
+            right: '8px',
+            zIndex: 1,
+            minWidth: '168px',
+            padding: '4px',
+            background: 'var(--surface-container-highest)',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen(false);
+              onRequestDelete(plan);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '9px 10px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--error)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 600,
+              textAlign: 'left',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              aria-hidden
+              style={{ fontSize: '18px' }}
+            >
+              delete
+            </span>
+            Delete path
+          </button>
+        </div>
+      ) : null}
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          paddingRight: '30px',
+        }}
+      >
         <span
           aria-hidden
           style={{
@@ -660,5 +814,154 @@ function FilterEmptyState({ onClear }: { onClear: () => void }) {
         Clear filter
       </button>
     </section>
+  );
+}
+
+// Confirmation dialog for deleting a path. Deleting removes the path
+// plus every activity it generated — and, since path-generated quiz /
+// flashcard sets carry the path's notebookId, those also disappear from
+// the linked notebook. The copy says so explicitly.
+function DeletePathDialog({
+  plan,
+  deleting,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  plan: PathPlanListItem;
+  deleting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Delete path"
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
+        padding: '20px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '440px',
+          maxWidth: '95vw',
+          background: 'var(--surface-container)',
+          color: 'var(--on-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--outline-variant)',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span
+            aria-hidden
+            className="material-symbols-outlined"
+            style={{
+              fontSize: '22px',
+              width: '40px',
+              height: '40px',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--surface-container-highest)',
+              color: 'var(--error)',
+            }}
+          >
+            delete
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: '18px',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Delete this path?
+            </h2>
+            <p
+              style={{
+                margin: '6px 0 0',
+                fontSize: '13px',
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> and
+              everything it generated — theory, flashcards, and quizzes — will be permanently
+              deleted. The flashcards and quizzes are also removed from the linked notebook.
+              This can&apos;t be undone.
+            </p>
+          </div>
+        </div>
+
+        {error ? (
+          <p role="alert" style={{ margin: 0, fontSize: '13px', color: 'var(--error)' }}>
+            {error}
+          </p>
+        ) : null}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            style={{
+              padding: '9px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'transparent',
+              color: 'var(--on-surface-variant)',
+              border: '1px solid var(--outline-variant)',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: deleting ? 'default' : 'pointer',
+              opacity: deleting ? 0.6 : 1,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            style={{
+              padding: '9px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--error)',
+              color: 'var(--on-error)',
+              border: 'none',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: deleting ? 'default' : 'pointer',
+              opacity: deleting ? 0.7 : 1,
+            }}
+          >
+            {deleting ? 'Deleting…' : 'Delete path'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
