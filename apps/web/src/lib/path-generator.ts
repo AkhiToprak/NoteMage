@@ -40,6 +40,7 @@ import {
   buildTheoryPrompt,
   buildFlashcardsPrompt,
   buildQuizPrompt,
+  buildCachedSystem,
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
@@ -79,11 +80,12 @@ export interface GeneratePathStructureOpts {
   /** Days the learner expects the path to span. Shapes phase count. */
   targetDays: number;
   /**
-   * Optional inventory string passed verbatim into the structure prompt.
-   * Phase 10.3 builds this from the request's `materialIds`. Empty/missing
-   * lets the AI design from the title + brief alone.
+   * Optional rendered material corpus — the learner's actual page/document
+   * text and flashcard/quiz content. Delivered as a cached system block so
+   * Stage A grounds the path's structure in it. Empty/missing lets the AI
+   * design from the title + brief alone.
    */
-  materialInventory?: string;
+  corpus?: string;
   /** Subject buckets from the classifier (sorted by weight). */
   subjects: SubjectId[];
   /** Per-subject weights aligned with `subjects`. */
@@ -326,11 +328,11 @@ export async function generatePathStructure(
     title: opts.title,
     brief: opts.brief,
     targetDays: opts.targetDays,
-    materialInventory: opts.materialInventory,
+    hasSourceMaterials: Boolean(opts.corpus && opts.corpus.trim().length > 0),
     subjects: opts.subjects,
     subjectWeights: opts.subjectWeights,
   };
-  const system = buildPathStructurePrompt(ctx);
+  const instructions = buildPathStructurePrompt(ctx);
 
   // The model occasionally returns a phase with no `slots` (or drifted
   // phases/slots). normalizePathStructure coerces the output and drops
@@ -339,11 +341,11 @@ export async function generatePathStructure(
   let structure: GeneratedPathStructure | null = null;
   let lastDetail = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !structure; attempt++) {
-    const attemptSystem =
+    const attemptInstructions =
       attempt === 1
-        ? system
+        ? instructions
         : [
-            system,
+            instructions,
             '',
             '--- RETRY NOTICE ---',
             `Your previous structure was unusable: ${lastDetail}`,
@@ -351,7 +353,7 @@ export async function generatePathStructure(
           ].join('\n');
     try {
       const raw = await forcedToolCall<unknown>({
-        system: attemptSystem,
+        system: buildCachedSystem(opts.corpus, attemptInstructions),
         tool: PATH_STRUCTURE_TOOL,
         userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
       });

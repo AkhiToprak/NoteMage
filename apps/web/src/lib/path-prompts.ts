@@ -23,10 +23,10 @@ export interface PathStructureContext {
   /** Target number of days the learner has — guides phase count + density. */
   targetDays: number;
   /**
-   * Optional inventory of source materials the AI must base the path on.
-   * Pre-formatted as one entry per line so the prompt stays compact.
+   * Whether a SOURCE MATERIALS corpus block accompanies this prompt. When
+   * true, the prompt instructs the AI to anchor the path to that content.
    */
-  materialInventory?: string;
+  hasSourceMaterials: boolean;
   /** Subject buckets returned by the classifier, sorted by weight. */
   subjects: SubjectId[];
   /** Per-subject weights aligned with `subjects`. Sums to ≤ 1.0. */
@@ -105,19 +105,19 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
     '- Middle and late sections may include one `review` slot before the assessment to consolidate earlier slots.',
     '- Slot titles are one short line (≤ 6 words). The `topicHint` is 1–2 sentences telling the content generator what to teach.',
     '- Section titles should read like "Section N: Topic" or similar — the UI renders them as banners.',
+  ];
+  if (ctx.hasSourceMaterials) {
+    lines.push(
+      '- A SOURCE MATERIALS section is provided above. Ground the whole path in it: every section and slot must cover a topic the materials actually teach, sequenced to follow how the material builds up. Do not pad the path with generic subject topics the materials do not cover. Make each `topicHint` point at the specific concepts the slot should teach from those materials.',
+    );
+  }
+  lines.push(
     '',
     `Path title (user-provided, you may refine): "${ctx.title}"`,
     `Target days the learner has: ${ctx.targetDays}`,
-  ];
+  );
   if (ctx.brief) {
     lines.push(`Learner brief: ${ctx.brief}`);
-  }
-  if (ctx.materialInventory && ctx.materialInventory.trim().length > 0) {
-    lines.push(
-      '',
-      'Source materials the path should be grounded in (anchor your section / slot topics to these):',
-      ctx.materialInventory,
-    );
   }
   const subjectFragment = subjectGuidanceFragment(ctx.subjects, ctx.subjectWeights);
   if (subjectFragment.length > 0) {

@@ -21,6 +21,8 @@ export interface MaterialCorpusEntry {
   content: string | null;
   /** Section title, for a page's header line. */
   sectionTitle?: string;
+  /** The notebook this material belongs to, if any. */
+  notebookId: string | null;
 }
 
 /**
@@ -43,18 +45,19 @@ export async function loadMaterialCorpus(
         id: true,
         title: true,
         textContent: true,
-        section: { select: { title: true } },
+        section: { select: { title: true, notebookId: true } },
       },
     }),
     db.document.findMany({
       where: { id: { in: materialIds }, notebook: { userId } },
-      select: { id: true, fileName: true, textContent: true },
+      select: { id: true, fileName: true, textContent: true, notebookId: true },
     }),
     db.flashcardSet.findMany({
       where: { id: { in: materialIds }, userId },
       select: {
         id: true,
         title: true,
+        notebookId: true,
         flashcards: {
           select: { question: true, answer: true },
           orderBy: { sortOrder: 'asc' },
@@ -66,6 +69,7 @@ export async function loadMaterialCorpus(
       select: {
         id: true,
         title: true,
+        notebookId: true,
         questions: {
           select: { question: true },
           orderBy: { sortOrder: 'asc' },
@@ -82,6 +86,7 @@ export async function loadMaterialCorpus(
       title: p.title,
       content: p.textContent,
       sectionTitle: p.section?.title,
+      notebookId: p.section?.notebookId ?? null,
     });
   }
   for (const d of documents) {
@@ -90,6 +95,7 @@ export async function loadMaterialCorpus(
       kind: 'document',
       title: d.fileName,
       content: d.textContent,
+      notebookId: d.notebookId,
     });
   }
   for (const f of flashcardSets) {
@@ -101,6 +107,7 @@ export async function loadMaterialCorpus(
       kind: 'flashcard_set',
       title: f.title,
       content: rendered.length > 0 ? rendered : null,
+      notebookId: f.notebookId,
     });
   }
   for (const q of quizSets) {
@@ -110,6 +117,7 @@ export async function loadMaterialCorpus(
       kind: 'quiz_set',
       title: q.title,
       content: rendered.length > 0 ? rendered : null,
+      notebookId: q.notebookId,
     });
   }
 

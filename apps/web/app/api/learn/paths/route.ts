@@ -10,6 +10,7 @@ import {
   tooManyRequestsResponse,
 } from '@/lib/api-response';
 import { generatePathStructure, generatePath } from '@/lib/path-generator';
+import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 import { loadPathsForUser, serializePath } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
@@ -44,104 +45,6 @@ export async function GET(request: NextRequest) {
 // ─────────────────────────────────────────────────────────────────────
 // POST — create a path (Stage A inline + Stage B fire-and-forget).
 // ─────────────────────────────────────────────────────────────────────
-
-type MaterialBucket = {
-  page: Array<{ id: string; title: string; sectionTitle: string }>;
-  flashcard_set: Array<{ id: string; title: string }>;
-  quiz_set: Array<{ id: string; title: string }>;
-  document: Array<{ id: string; title: string }>;
-};
-
-/**
- * Look up each materialId across pages / flashcard sets / quiz sets /
- * documents (whichever it belongs to) and bucket the results by type.
- * Returns `null` if any id is missing — the caller treats that as a
- * 400 because the AI must only be fed materials the user owns.
- */
-async function loadMaterialBucket(
-  userId: string,
-  materialIds: string[],
-): Promise<MaterialBucket | null> {
-  if (materialIds.length === 0) {
-    return { page: [], flashcard_set: [], quiz_set: [], document: [] };
-  }
-
-  const [pages, flashcardSets, quizSets, documents] = await Promise.all([
-    db.page.findMany({
-      where: { id: { in: materialIds }, section: { notebook: { userId } } },
-      select: { id: true, title: true, section: { select: { title: true } } },
-    }),
-    db.flashcardSet.findMany({
-      where: { id: { in: materialIds }, userId },
-      select: { id: true, title: true },
-    }),
-    db.quizSet.findMany({
-      where: { id: { in: materialIds }, userId },
-      select: { id: true, title: true },
-    }),
-    db.document.findMany({
-      where: { id: { in: materialIds }, notebook: { userId } },
-      select: { id: true, fileName: true },
-    }),
-  ]);
-
-  const seen = new Set<string>([
-    ...pages.map((p) => p.id),
-    ...flashcardSets.map((f) => f.id),
-    ...quizSets.map((q) => q.id),
-    ...documents.map((d) => d.id),
-  ]);
-  if (seen.size !== materialIds.length) {
-    return null;
-  }
-
-  return {
-    page: pages.map((p) => ({
-      id: p.id,
-      title: p.title,
-      sectionTitle: p.section?.title ?? '(unknown section)',
-    })),
-    flashcard_set: flashcardSets.map((f) => ({ id: f.id, title: f.title })),
-    quiz_set: quizSets.map((q) => ({ id: q.id, title: q.title })),
-    document: documents.map((d) => ({ id: d.id, title: d.fileName })),
-  };
-}
-
-/**
- * Render the bucket as a plain-text inventory the AI can ground its
- * section / slot topics in. Mirrors the format the exam plan generator
- * uses so the AI's prior at this task is consistent.
- */
-function renderInventory(bucket: MaterialBucket): string {
-  const sections: string[] = [];
-  if (bucket.page.length > 0) {
-    sections.push(
-      'Pages:\n' +
-        bucket.page
-          .map((p) => `  - Page: "${p.title}" (id: ${p.id}, section: ${p.sectionTitle})`)
-          .join('\n'),
-    );
-  }
-  if (bucket.flashcard_set.length > 0) {
-    sections.push(
-      'Flashcard sets:\n' +
-        bucket.flashcard_set.map((f) => `  - "${f.title}" (id: ${f.id})`).join('\n'),
-    );
-  }
-  if (bucket.quiz_set.length > 0) {
-    sections.push(
-      'Quiz sets:\n' +
-        bucket.quiz_set.map((q) => `  - "${q.title}" (id: ${q.id})`).join('\n'),
-    );
-  }
-  if (bucket.document.length > 0) {
-    sections.push(
-      'Documents:\n' +
-        bucket.document.map((d) => `  - "${d.title}" (id: ${d.id})`).join('\n'),
-    );
-  }
-  return sections.join('\n\n');
-}
 
 /** Compute the path's end date from `targetDays` (1 day = today). */
 function endDateFromTargetDays(targetDays: number): { start: Date; end: Date } {
@@ -208,46 +111,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate material ownership + build inventory string.
-    const bucket = await loadMaterialBucket(userId, materialIds);
-    if (!bucket) {
+    // Validate material ownership + load their actual content into a corpus.
+    // The corpus carries the real page/document text and flashcard/quiz
+    // content — Stage A grounds the path in it instead of bare titles.
+    const materials = await loadMaterialCorpus(userId, materialIds);
+    if (!materials) {
       return badRequestResponse('One or more material IDs are invalid');
     }
-    const inventory = renderInventory(bucket);
+    const corpus = renderMaterialCorpus(materials);
 
     // Derive the full context notebook set from caller-provided IDs plus
-    // every notebook the validated materials originate from. We re-query
-    // each bucket source for its notebook to keep this in one place.
+    // every notebook the validated materials originate from.
     const derivedNotebookIds = new Set<string>(allNotebookIds);
-    if (bucket.page.length > 0) {
-      const pageRows = await db.page.findMany({
-        where: { id: { in: bucket.page.map((p) => p.id) } },
-        select: { section: { select: { notebookId: true } } },
-      });
-      for (const row of pageRows) {
-        if (row.section?.notebookId) derivedNotebookIds.add(row.section.notebookId);
-      }
-    }
-    if (bucket.flashcard_set.length > 0) {
-      const rows = await db.flashcardSet.findMany({
-        where: { id: { in: bucket.flashcard_set.map((f) => f.id) } },
-        select: { notebookId: true },
-      });
-      for (const r of rows) if (r.notebookId) derivedNotebookIds.add(r.notebookId);
-    }
-    if (bucket.quiz_set.length > 0) {
-      const rows = await db.quizSet.findMany({
-        where: { id: { in: bucket.quiz_set.map((q) => q.id) } },
-        select: { notebookId: true },
-      });
-      for (const r of rows) if (r.notebookId) derivedNotebookIds.add(r.notebookId);
-    }
-    if (bucket.document.length > 0) {
-      const rows = await db.document.findMany({
-        where: { id: { in: bucket.document.map((d) => d.id) } },
-        select: { notebookId: true },
-      });
-      for (const r of rows) if (r.notebookId) derivedNotebookIds.add(r.notebookId);
+    for (const material of materials) {
+      if (material.notebookId) derivedNotebookIds.add(material.notebookId);
     }
 
     // Resolve a guaranteed-non-null primary notebook. Path-generated
@@ -280,7 +157,7 @@ export async function POST(request: NextRequest) {
     const classification = await classifySubjects({
       title,
       brief: body.brief,
-      inventory: inventory || undefined,
+      corpus: corpus || undefined,
     });
     logTelemetry(userId, 'path.classifier.result', {
       subjects: classification.subjects,
@@ -296,7 +173,7 @@ export async function POST(request: NextRequest) {
         title,
         brief: body.brief,
         targetDays,
-        materialInventory: inventory || undefined,
+        corpus: corpus || undefined,
         subjects: classification.subjects,
         subjectWeights: classification.weights,
       });
@@ -316,6 +193,7 @@ export async function POST(request: NextRequest) {
           userId,
           notebookId: resolvedPrimaryNotebookId,
           contextNotebookIds: Array.from(derivedNotebookIds),
+          materialIds,
           title: planTitle,
           description: planDescription,
           startDate: start,

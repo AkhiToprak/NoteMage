@@ -10,8 +10,8 @@ import {
 export interface ClassifySubjectsOpts {
   title: string;
   brief?: string;
-  /** Optional pre-rendered material inventory (one entry per line). */
-  inventory?: string;
+  /** Optional rendered material corpus — an excerpt is read to detect subject. */
+  corpus?: string;
 }
 
 export interface ClassifySubjectsResult {
@@ -51,13 +51,22 @@ function findToolUse(
   return null;
 }
 
+// The subject is detectable from a modest excerpt — cap the corpus fed to the
+// cheap, uncached classifier call rather than shipping the full corpus to it.
+const CLASSIFIER_CORPUS_CHARS = 16_000;
+
 function renderUserPrompt(opts: ClassifySubjectsOpts): string {
   const lines: string[] = [`Path title: "${opts.title}"`];
   if (opts.brief && opts.brief.trim().length > 0) {
     lines.push(`Learner brief: ${opts.brief.trim()}`);
   }
-  if (opts.inventory && opts.inventory.trim().length > 0) {
-    lines.push('', 'Source materials:', opts.inventory.trim());
+  const corpus = opts.corpus?.trim();
+  if (corpus && corpus.length > 0) {
+    const excerpt =
+      corpus.length > CLASSIFIER_CORPUS_CHARS
+        ? `${corpus.slice(0, CLASSIFIER_CORPUS_CHARS)}\n… [excerpt truncated]`
+        : corpus;
+    lines.push('', 'Source material excerpt:', excerpt);
   }
   lines.push('', 'Classify the subject(s) now using the tool.');
   return lines.join('\n');
