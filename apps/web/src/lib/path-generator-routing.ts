@@ -137,9 +137,17 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     ? `${buildSourceMaterialsBlock(ctx.corpus)}\n\n${ctx.instructions}`
     : ctx.instructions;
 
+  // `responseSchema` deliberately omitted from the SDK call — Gemini's
+  // constrained-decoding rejects the path-structure schema as "too many
+  // states for serving" because of nested arrays with min/max bounds and
+  // multi-value enums. The strict shape lives in the system prompt
+  // (`buildXxxPrompt`) and is enforced post-hoc by the same Zod
+  // validators the Anthropic path uses — matches the existing Gemini
+  // pattern in `engine-gemini.ts` and `subject-detect.ts`. The schemas
+  // in `ai-tools-gemini.ts` stay for documentation / future re-enable
+  // once Gemini relaxes the constraint.
   return forcedStructuredCallGemini<T>({
     systemInstruction,
-    responseSchema: ctx.geminiSchema,
     userMessage: ctx.userMessage,
     maxAttempts: ctx.maxAttempts,
     model,
