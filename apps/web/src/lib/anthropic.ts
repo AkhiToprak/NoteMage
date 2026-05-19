@@ -14,15 +14,15 @@ if (process.env.NODE_ENV !== 'production') globalForAnthropic.anthropic = anthro
 
 export const AI_MODEL = 'claude-haiku-4-5-20251001';
 
-// Path-generation model split. Classification is a cheap routing decision —
-// Haiku is fast and accurate enough for a closed enum of 7 buckets.
-// Generation (theory / flashcards / quiz / structure) benefits from Sonnet's
-// better instruction following: the subject-aware prompts ask the model to
-// stay inside a per-subject palette of question kinds, and Sonnet drifts
-// less. Per-call cost is ~4–5x Haiku; absolute cost stays bounded because
-// path generation is user-initiated and rare.
+// Path-generation model split. Classification, structure, theory and
+// flashcards run on Haiku — fast, cheap, and accurate enough. Quizzes are
+// the one step that benefits from Sonnet's tighter instruction following
+// (the strict per-kind payload shapes drift less), so an "ultra" path
+// upgrades only the quiz call to Sonnet. Non-ultra paths run entirely on
+// Haiku.
 export const AI_CLASSIFIER_MODEL = 'claude-haiku-4-5-20251001';
 export const AI_GENERATION_MODEL = 'claude-sonnet-4-6';
+export const AI_GENERATION_MODEL_LITE = 'claude-haiku-4-5-20251001';
 
 // Hard cap on output tokens per AI response. Kept at 16000: generation
 // calls are non-streaming, and the Anthropic SDK rejects a non-streaming

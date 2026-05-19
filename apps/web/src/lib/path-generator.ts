@@ -24,7 +24,12 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
-import { anthropic, AI_GENERATION_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
+import {
+  anthropic,
+  AI_GENERATION_MODEL,
+  AI_GENERATION_MODEL_LITE,
+  MAX_OUTPUT_TOKENS,
+} from './anthropic';
 import {
   PATH_STRUCTURE_TOOL,
   THEORY_SECTION_TOOL,
@@ -393,6 +398,7 @@ export async function generatePathStructure(
         system: buildCachedSystem(opts.corpus, attemptInstructions),
         tool: PATH_STRUCTURE_TOOL,
         userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
+        model: AI_GENERATION_MODEL_LITE,
         onUsage: (u) => addUsage(meter, u),
       });
       const normalized = normalizePathStructure(raw);
@@ -465,6 +471,8 @@ interface PlanForGeneration {
   description: string;
   subjects: SubjectId[];
   subjectWeights: number[];
+  /** Ultra path — Stage B generates quizzes with the premium model. */
+  ultra: boolean;
   /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
   corpus: string | null;
   /** Token usage accumulated across this run's Stage B calls. */
@@ -524,6 +532,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     description: plan.description ?? '',
     subjects: resolvedSubjects,
     subjectWeights: resolvedWeights,
+    ultra: plan.ultra,
     corpus,
     usage: emptyMeter(),
     phases: plan.phases.map((p) => {
@@ -629,6 +638,7 @@ async function generateTheoryActivity(
         system: buildCachedSystem(plan.corpus, attemptInstructions),
         tool: THEORY_SECTION_TOOL,
         userMessage: `Write the theory section for slot "${slot.title}".`,
+        model: AI_GENERATION_MODEL_LITE,
         onUsage: (u) => addUsage(plan.usage, u),
       });
       const parsed = TheorySectionSchema.safeParse(normalizeTheoryInput(raw));
@@ -722,6 +732,7 @@ async function generateFlashcardsActivity(
         system: buildCachedSystem(plan.corpus, attemptInstructions),
         tool: FLASHCARDS_FOR_SLOT_TOOL,
         userMessage: `Generate 8–12 flashcards for slot "${slot.title}". The flashcards array must not be empty.`,
+        model: AI_GENERATION_MODEL_LITE,
         onUsage: (u) => addUsage(plan.usage, u),
       });
       const normalized = normalizeFlashcardsInput(raw);
@@ -783,12 +794,14 @@ async function generateFlashcardsActivity(
 async function callQuizTool(
   system: string | Anthropic.Messages.TextBlockParam[],
   slotTitle: string,
+  model: string,
   onUsage: (usage: Anthropic.Messages.Usage) => void,
 ): Promise<QuizForSlotToolInput> {
   return forcedToolCall<QuizForSlotToolInput>({
     system,
     tool: QUIZ_FOR_SLOT_TOOL,
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
+    model,
     onUsage,
   });
 }
@@ -820,6 +833,9 @@ async function generateQuizActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const instructions = buildQuizPrompt(ctx);
+  // Ultra paths generate quizzes with the premium model; non-ultra quizzes
+  // (and every other activity) stay on the fast model.
+  const quizModel = plan.ultra ? AI_GENERATION_MODEL : AI_GENERATION_MODEL_LITE;
 
   // Validate the v2 shape — the tool schema accepts a generic payload
   // object, so we Zod-check it (after normalizing common drift shapes)
@@ -842,6 +858,7 @@ async function generateQuizActivity(
       const raw = await callQuizTool(
         buildCachedSystem(plan.corpus, attemptInstructions),
         slot.title,
+        quizModel,
         (u) => addUsage(plan.usage, u),
       );
       const result = parseQuizInput(raw, slot.title);
@@ -909,6 +926,7 @@ async function generateQuizActivity(
       const retryInput = await callQuizTool(
         buildCachedSystem(plan.corpus, corrective),
         slot.title,
+        quizModel,
         (u) => addUsage(plan.usage, u),
       );
       const retryResult = parseQuizInput(retryInput, slot.title);
@@ -1131,6 +1149,7 @@ export async function generatePath(planId: string): Promise<void> {
     totalSlots: total,
     failedActivities: failedSlotIds.length,
     failedSlots: new Set(failedSlotIds).size,
+    ultra: plan.ultra,
     usage: plan.usage,
   });
 }

@@ -103,6 +103,10 @@ export default function LearnPathSetup({
   const { data: session } = useSession();
   const mageName = getMageName(session?.user?.scholarName);
   const isCrossNotebookMode = !defaultNotebookId;
+  // Ultra path generation is Pro-only (admins bypass). Free users still see
+  // the toggle, greyed out; the server enforces the same gate.
+  const canUseUltra =
+    session?.user?.tier === 'PRO' || session?.user?.role === 'admin';
 
   const [tab, setTab] = useState<TabType>('ai');
   const [submitting, setSubmitting] = useState(false);
@@ -123,6 +127,7 @@ export default function LearnPathSetup({
   // AI fields
   const [aiDuration, setAiDuration] = useState(14);
   const [aiGoals, setAiGoals] = useState('');
+  const [ultra, setUltra] = useState(false);
   // Cross-notebook AI mode requires the user to nominate a single notebook
   // scope. The selected items get filtered down to that notebook before
   // posting; without exactly one notebook represented the AI submit blocks.
@@ -412,6 +417,7 @@ export default function LearnPathSetup({
           primaryNotebookId: targetNotebookId,
           contextNotebookIds: [targetNotebookId],
           materialIds: scopedItems.map((i) => i.id),
+          ultra: canUseUltra && ultra,
         }),
       });
       const json = await res.json();
@@ -432,6 +438,8 @@ export default function LearnPathSetup({
     aiNotebookId,
     aiDuration,
     aiGoals,
+    ultra,
+    canUseUltra,
     selectedIds,
     flatItems,
     noneSelected,
@@ -704,6 +712,9 @@ export default function LearnPathSetup({
               onDurationChange={setAiDuration}
               goals={aiGoals}
               onGoalsChange={setAiGoals}
+              ultra={ultra}
+              onUltraChange={setUltra}
+              canUseUltra={canUseUltra}
               selectedCount={selectedCount}
               allSelected={allSelected}
               mageName={mageName}
@@ -1307,6 +1318,9 @@ function AiTab({
   onDurationChange,
   goals,
   onGoalsChange,
+  ultra,
+  onUltraChange,
+  canUseUltra,
   selectedCount,
   allSelected,
   mageName,
@@ -1319,6 +1333,9 @@ function AiTab({
   onDurationChange: (n: number) => void;
   goals: string;
   onGoalsChange: (g: string) => void;
+  ultra: boolean;
+  onUltraChange: (v: boolean) => void;
+  canUseUltra: boolean;
   selectedCount: number;
   allSelected: boolean;
   mageName: string;
@@ -1419,6 +1436,8 @@ function AiTab({
           style={{ ...inputStyle, resize: 'vertical' }}
         />
       </Field>
+
+      <UltraToggle ultra={ultra} onUltraChange={onUltraChange} canUseUltra={canUseUltra} />
     </div>
   );
 }
@@ -2050,6 +2069,94 @@ function Field({
         {label}
       </span>
       {children}
+    </label>
+  );
+}
+
+function UltraToggle({
+  ultra,
+  onUltraChange,
+  canUseUltra,
+}: {
+  ultra: boolean;
+  onUltraChange: (v: boolean) => void;
+  canUseUltra: boolean;
+}) {
+  const checked = canUseUltra && ultra;
+  return (
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        padding: '12px 14px',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--surface-container-low)',
+        border: `1px solid ${checked ? 'var(--primary)' : 'var(--outline-variant)'}`,
+        cursor: canUseUltra ? 'pointer' : 'not-allowed',
+        opacity: canUseUltra ? 1 : 0.6,
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={!canUseUltra}
+        onChange={(e) => onUltraChange(e.target.checked)}
+        style={{
+          accentColor: 'var(--primary)',
+          marginTop: '2px',
+          cursor: canUseUltra ? 'pointer' : 'not-allowed',
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--on-surface)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '16px', color: 'var(--primary)' }}
+            aria-hidden
+          >
+            bolt
+          </span>
+          Ultra path
+          {!canUseUltra ? (
+            <span
+              style={{
+                padding: '1px 7px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(255, 222, 89, 0.14)',
+                border: '1px solid rgba(255, 222, 89, 0.32)',
+                color: '#ffde59',
+                fontSize: '10px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+            >
+              Pro
+            </span>
+          ) : null}
+        </span>
+        <span
+          style={{
+            fontSize: '12px',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          {canUseUltra
+            ? 'Generate quizzes with the premium model for sharper questions. Uses one of your 3 monthly Ultra paths.'
+            : 'Sharper AI-generated quizzes, powered by the premium model. Upgrade to Pro to unlock Ultra paths.'}
+        </span>
+      </div>
     </label>
   );
 }

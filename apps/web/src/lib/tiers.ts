@@ -6,6 +6,7 @@ export type FeatureType =
   | 'ai_flashcards'
   | 'ai_pptx'
   | 'ai_study_plan'
+  | 'ultra_path'
   | 'scholar_chat'
   | 'ai_quizzes'
   | 'ai_inline_edit'
@@ -31,7 +32,8 @@ export const TIERS: Record<TierKey, TierConfig> = {
     limits: {
       ai_flashcards: 1,
       ai_pptx: 1,
-      ai_study_plan: 2,
+      ai_study_plan: 3,
+      ultra_path: 0, // Pro-only — Free is rejected server-side and the toggle is greyed out
       ai_quizzes: 2,
       scholar_chat: 50,
       ai_inline_edit: 0,
@@ -50,6 +52,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_flashcards: -1,
       ai_pptx: -1,
       ai_study_plan: -1,
+      ultra_path: 3, // 3 ultra paths per month
       ai_quizzes: -1,
       scholar_chat: -1,
       ai_inline_edit: -1,

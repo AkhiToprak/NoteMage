@@ -690,6 +690,10 @@ model StudyPlan {
   // feature — the orchestrator treats this as `['general']` with weight 1.
   subjects        String[] @default([])
   subjectWeights  Float[]  @default([])
+  // Ultra path = quizzes generated with the premium model (Pro-only,
+  // quota-limited). Persisted because Stage B runs detached and reloads
+  // the plan from this row.
+  ultra           Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

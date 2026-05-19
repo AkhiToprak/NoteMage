@@ -62,6 +62,7 @@ interface CreatePathBody {
   primaryNotebookId?: string | null;
   targetDays?: number;
   materialIds?: string[];
+  ultra?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -69,19 +70,26 @@ export async function POST(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    // Usage gate — same meter as the legacy AI plan endpoint so a single
-    // monthly quota covers both surfaces while the chat-driven path
-    // creation flow exists alongside this one.
-    const usage = await checkUsageLimit(userId, 'ai_study_plan');
-    if (!usage.allowed) {
-      return tooManyRequestsResponse(
-        'Monthly AI path generation limit reached. Upgrade your plan for more.',
-      );
-    }
-
     const body = (await request.json().catch(() => ({}))) as CreatePathBody;
     const title = body.title?.trim();
     if (!title) return badRequestResponse('Title is required');
+
+    const ultra = body.ultra === true;
+
+    // Usage gate. Ultra paths draw from a separate Pro-only monthly meter
+    // (Free's ultra_path limit is 0, so a Free user is rejected here too —
+    // defence in depth behind the greyed-out modal toggle). Non-ultra paths
+    // use the shared ai_study_plan meter, which also covers the chat-driven
+    // path creation flow.
+    const usageFeature = ultra ? 'ultra_path' : 'ai_study_plan';
+    const usage = await checkUsageLimit(userId, usageFeature);
+    if (!usage.allowed) {
+      return tooManyRequestsResponse(
+        ultra
+          ? 'Ultra path limit reached — Ultra is a Pro feature, capped at 3 per month.'
+          : 'Monthly AI path generation limit reached. Upgrade your plan for more.',
+      );
+    }
 
     const targetDays =
       typeof body.targetDays === 'number' && body.targetDays > 0
@@ -199,6 +207,7 @@ export async function POST(request: NextRequest) {
           startDate: start,
           endDate: end,
           source: 'ai',
+          ultra,
           generationStatus: 'generating',
           subjects: classification.subjects,
           subjectWeights: classification.weights,
@@ -273,7 +282,7 @@ export async function POST(request: NextRequest) {
       console.error('[learn/paths POST] Stage B failed', err);
     });
 
-    await incrementUsage(userId, 'ai_study_plan');
+    await incrementUsage(userId, usageFeature);
 
     return createdResponse({ planId, status: 'generating' });
   } catch (error) {
