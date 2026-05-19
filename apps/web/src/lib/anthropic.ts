@@ -24,10 +24,10 @@ export const AI_MODEL = 'claude-haiku-4-5-20251001';
 export const AI_CLASSIFIER_MODEL = 'claude-haiku-4-5-20251001';
 export const AI_GENERATION_MODEL = 'claude-sonnet-4-6';
 
-// Hard cap on output tokens per AI response. Both Haiku 4.5 and Sonnet
-// 4.6 allow up to 64K output; 32K leaves generous headroom for the
-// largest structured generations (a 12–20 question final exam) while
-// staying well under that ceiling. Does not affect cost — billing is
-// per token actually generated, not the cap.
-export const MAX_OUTPUT_TOKENS = 32000;
+// Hard cap on output tokens per AI response. Kept at 16000: generation
+// calls are non-streaming, and the Anthropic SDK rejects a non-streaming
+// request whose max_tokens implies a possible >10-minute runtime — which
+// 32000 does on Sonnet ("Streaming is required…"). Raising this further
+// requires switching forcedToolCall to streaming. Does not affect cost.
+export const MAX_OUTPUT_TOKENS = 16000;
 export const MAX_CONTEXT_CHARS = 400_000;
