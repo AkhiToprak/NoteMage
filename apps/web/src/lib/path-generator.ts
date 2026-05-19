@@ -140,7 +140,7 @@ function previewToolOutput(raw: unknown): string {
  * retries.
  */
 async function forcedToolCall<T>(opts: {
-  system: string;
+  system: string | Anthropic.Messages.TextBlockParam[];
   tool: Anthropic.Messages.Tool;
   /** Optional extra user message body. Defaults to "Generate now." */
   userMessage?: string;

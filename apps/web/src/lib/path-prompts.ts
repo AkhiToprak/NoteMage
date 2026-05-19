@@ -6,6 +6,7 @@
 // orchestrator (`path-generator.ts`) forces the relevant tool via
 // `tool_choice` so the AI is constrained to a single structured output.
 
+import type Anthropic from '@anthropic-ai/sdk';
 import type { PathSlotKind } from './ai-tools';
 import {
   subjectGuidanceFragment,
@@ -51,6 +52,38 @@ export interface SlotContentContext {
   subjects: SubjectId[];
   /** Per-subject weights aligned with `subjects`. Sums to ≤ 1.0. */
   subjectWeights: number[];
+}
+
+/**
+ * Assemble the `system` payload for a path-generation call. When a material
+ * corpus is present it becomes its own leading text block tagged
+ * `cache_control: ephemeral`. That block is byte-identical across Stage A and
+ * every Stage B call, so Anthropic caches it once and the ~50-call run is
+ * billed for the corpus only a handful of times instead of fifty. With no
+ * corpus there is nothing to cache — fall back to a plain instruction string.
+ */
+export function buildCachedSystem(
+  corpus: string | null | undefined,
+  instructions: string,
+): string | Anthropic.Messages.TextBlockParam[] {
+  if (!corpus || corpus.trim().length === 0) {
+    return instructions;
+  }
+  return [
+    {
+      type: 'text',
+      text:
+        '# SOURCE MATERIALS\n\n' +
+        'The learner selected the materials below as the basis for this learning path. ' +
+        'Treat them as the single source of truth: ground every section, topic, ' +
+        'explanation, example, and question in this content, and prefer its facts, ' +
+        'terminology, and emphasis over generic knowledge. You may supplement when the ' +
+        'materials leave a gap, but never contradict them.\n\n' +
+        corpus,
+      cache_control: { type: 'ephemeral' },
+    },
+    { type: 'text', text: instructions },
+  ];
 }
 
 /**
