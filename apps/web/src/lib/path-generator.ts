@@ -13,9 +13,9 @@
 //     theory + flashcards + quiz AI calls in parallel per slot, persists
 //     each result, and updates `StudyPlan.generationProgress` after every
 //     slot. Per-activity retries (2 attempts) absorb transient Anthropic
-//     errors; activities that still fail are collected and surface in
-//     `generationError`. Phase 10.6 will read the failed list for the
-//     `regenerate` endpoint.
+//     errors; activities that still fail mark the plan `failed` with a
+//     learner-facing `generationError` summary, and the `regenerate`
+//     endpoint re-runs generation to retry them.
 //
 // Slot-kind → activity mapping (the orchestrator picks this):
 //   learning   → theory + flashcards + quiz
@@ -32,7 +32,6 @@ import {
   QUIZ_FOR_SLOT_TOOL,
   type PathStructureToolInput,
   type TheorySectionToolInput,
-  type FlashcardsForSlotToolInput,
   type QuizForSlotToolInput,
   type PathSlotKind,
 } from './ai-tools';
@@ -44,11 +43,20 @@ import {
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
-import { QuizSetV2Schema, TheorySectionSchema, type QuestionKind } from '@notemage/shared';
+import {
+  QuizSetV2Schema,
+  TheorySectionSchema,
+  type QuestionKind,
+  type TheorySection,
+} from '@notemage/shared';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
 import { logTelemetry } from './telemetry-server';
-import { normalizeQuizQuestions, normalizeTheoryInput } from './path-generator-normalize';
+import {
+  normalizeFlashcardsInput,
+  normalizeQuizQuestions,
+  normalizeTheoryInput,
+} from './path-generator-normalize';
 import {
   allowedKindsForSubjects,
   coerceSubjectIds,
@@ -101,6 +109,11 @@ function findToolUse(
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Trim a Zod error message so it stays readable inside a retry prompt. */
+function truncateError(message: string): string {
+  return message.length > 600 ? `${message.slice(0, 600)}…` : message;
 }
 
 /**
@@ -353,13 +366,6 @@ interface PlanForGeneration {
   phases: PhaseForGeneration[];
 }
 
-interface ActivityFailure {
-  slotId: string;
-  slotTitle: string;
-  activityKind: 'theory' | 'flashcards' | 'quiz';
-  message: string;
-}
-
 /**
  * Load a plan into the orchestrator's working shape. Returns null if the
  * plan doesn't exist (caller should treat as a no-op).
@@ -494,17 +500,63 @@ async function generateTheoryActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const system = buildTheoryPrompt(ctx);
-  const rawInput = await forcedToolCall<unknown>({
-    system,
-    tool: THEORY_SECTION_TOOL,
-    userMessage: `Write the theory section for slot "${slot.title}".`,
-  });
-  const normalized = normalizeTheoryInput(rawInput);
-  const parsed = TheorySectionSchema.safeParse(normalized);
-  if (!parsed.success) {
-    throw new Error(`Theory validation failed: ${parsed.error.message}`);
+  const firstParsed = TheorySectionSchema.safeParse(
+    normalizeTheoryInput(
+      await forcedToolCall<unknown>({
+        system,
+        tool: THEORY_SECTION_TOOL,
+        userMessage: `Write the theory section for slot "${slot.title}".`,
+      }),
+    ),
+  );
+
+  // Retry once when the first attempt fails validation OR omits examples.
+  // examples are optional in the schema, so the empty-examples retry is a
+  // quality nudge: if the retry still omits them we keep the section
+  // rather than failing the slot.
+  let input: TheorySection;
+  if (firstParsed.success && firstParsed.data.examples.length > 0) {
+    input = firstParsed.data;
+  } else {
+    logTelemetry(plan.userId, 'path.theory.retry', {
+      planId: plan.id,
+      slotId: slot.id,
+      reason: firstParsed.success ? 'no_examples' : 'validation_failed',
+    });
+    const corrective = [
+      system,
+      '',
+      '--- RETRY NOTICE ---',
+      firstParsed.success
+        ? 'Your previous theory section had an empty `examples` array. Include 2–3 concrete worked examples.'
+        : `Your previous theory section failed validation: ${truncateError(firstParsed.error.message)}`,
+      '`examples` MUST be a JSON array of { label, explanation } objects. Regenerate the full section.',
+    ].join('\n');
+    let retried: TheorySection | null = null;
+    try {
+      const retryParsed = TheorySectionSchema.safeParse(
+        normalizeTheoryInput(
+          await forcedToolCall<unknown>({
+            system: corrective,
+            tool: THEORY_SECTION_TOOL,
+            userMessage: `Write the theory section for slot "${slot.title}".`,
+          }),
+        ),
+      );
+      if (retryParsed.success) retried = retryParsed.data;
+    } catch (error) {
+      console.error('[path-generator] theory retry failed', error);
+    }
+    if (retried) {
+      input = retried;
+    } else if (firstParsed.success) {
+      // Retry failed; the first attempt was valid (just example-less) — keep it.
+      input = firstParsed.data;
+    } else {
+      throw new Error(`Theory validation failed: ${firstParsed.error.message}`);
+    }
   }
-  const input = parsed.data;
+
   const body = theoryInputToTipTap(input);
 
   await db.$transaction(async (tx) => {
@@ -534,12 +586,17 @@ async function generateFlashcardsActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const system = buildFlashcardsPrompt(ctx);
-  const input = await forcedToolCall<FlashcardsForSlotToolInput>({
-    system,
-    tool: FLASHCARDS_FOR_SLOT_TOOL,
-    userMessage: `Generate the flashcards for slot "${slot.title}".`,
-  });
-  if (!input.flashcards || input.flashcards.length === 0) {
+  // forcedToolCall is typed `unknown` — the tool schema doesn't bind the
+  // shape tightly, so normalizeFlashcardsInput coerces the common drift
+  // shapes (object-keyed-by-index, stringified array) to a real array.
+  const input = normalizeFlashcardsInput(
+    await forcedToolCall<unknown>({
+      system,
+      tool: FLASHCARDS_FOR_SLOT_TOOL,
+      userMessage: `Generate the flashcards for slot "${slot.title}".`,
+    }),
+  );
+  if (input.flashcards.length === 0) {
     throw new Error('Flashcards tool returned an empty set');
   }
 
@@ -584,16 +641,21 @@ async function callQuizTool(
 
 type ValidatedQuizSet = ReturnType<typeof QuizSetV2Schema.parse>;
 
+type QuizParseResult =
+  | { ok: true; data: ValidatedQuizSet }
+  | { ok: false; error: string };
+
 function parseQuizInput(
   raw: QuizForSlotToolInput,
   fallbackTitle: string,
-): ValidatedQuizSet | null {
+): QuizParseResult {
   const normalizedQuestions = normalizeQuizQuestions(raw.questions);
   const parsed = QuizSetV2Schema.safeParse({
     title: raw.title || fallbackTitle,
     questions: normalizedQuestions,
   });
-  return parsed.success ? parsed.data : null;
+  if (parsed.success) return { ok: true, data: parsed.data };
+  return { ok: false, error: parsed.error.message };
 }
 
 async function generateQuizActivity(
@@ -609,10 +671,40 @@ async function generateQuizActivity(
   // Validate v2 shape — the tool schema accepts a generic payload object,
   // so we Zod-check it the same way chat-stream does before persisting.
   // Normalize first to recover from common drift shapes (options-as-objects,
-  // hoisted acceptableAnswers, renamed match_pairs keys, etc.).
-  let parsed = parseQuizInput(firstInput, slot.title);
-  if (!parsed) {
-    throw new Error('Quiz validation failed on first attempt');
+  // hoisted acceptableAnswers, renamed match_pairs keys, etc.). On a
+  // validation failure, retry once with the Zod error fed back as a
+  // corrective notice before giving up.
+  let parsed: ValidatedQuizSet;
+  const firstResult = parseQuizInput(firstInput, slot.title);
+  if (firstResult.ok) {
+    parsed = firstResult.data;
+  } else {
+    logTelemetry(plan.userId, 'path.quiz.retry', {
+      planId: plan.id,
+      slotId: slot.id,
+      reason: 'validation_failed',
+    });
+    const corrective = [
+      system,
+      '',
+      '--- RETRY NOTICE ---',
+      `Your previous quiz failed validation: ${truncateError(firstResult.error)}`,
+      'Regenerate the entire quiz. Match the exact payload shape for every question kind.',
+    ].join('\n');
+    let retried: ValidatedQuizSet | null = null;
+    try {
+      const retryResult = parseQuizInput(
+        await callQuizTool(corrective, slot.title),
+        slot.title,
+      );
+      if (retryResult.ok) retried = retryResult.data;
+    } catch (error) {
+      console.error('[path-generator] quiz validation retry failed', error);
+    }
+    if (!retried) {
+      throw new Error(`Quiz validation failed after retry: ${firstResult.error}`);
+    }
+    parsed = retried;
   }
 
   const allowedKinds = allowedKindsForSubjects(plan.subjects);
@@ -650,8 +742,9 @@ async function generateQuizActivity(
     ].join('\n');
     try {
       const retryInput = await callQuizTool(corrective, slot.title);
-      const retryParsed = parseQuizInput(retryInput, slot.title);
-      if (retryParsed) {
+      const retryResult = parseQuizInput(retryInput, slot.title);
+      if (retryResult.ok) {
+        const retryParsed = retryResult.data;
         const retryFiltered = retryParsed.questions.filter((q) => allowedSet.has(q.kind));
         const droppedRetry = retryParsed.questions.length - retryFiltered.length;
         if (droppedRetry > 0) {
@@ -789,7 +882,7 @@ export async function generatePath(planId: string): Promise<void> {
   });
   logTelemetry(plan.userId, 'path.generation.started', { planId, totalSlots: total });
 
-  const failures: ActivityFailure[] = [];
+  const failedSlotIds: string[] = [];
   let completedSlots = 0;
 
   for (const phase of plan.phases) {
@@ -831,12 +924,7 @@ export async function generatePath(planId: string): Promise<void> {
         if (res.status === 'rejected') {
           const message =
             res.reason instanceof Error ? res.reason.message : String(res.reason);
-          failures.push({
-            slotId: slot.id,
-            slotTitle: slot.title,
-            activityKind: missingKinds[i],
-            message,
-          });
+          failedSlotIds.push(slot.id);
           logTelemetry(plan.userId, 'path.generation.activity_failed', {
             planId,
             slotId: slot.id,
@@ -862,24 +950,22 @@ export async function generatePath(planId: string): Promise<void> {
     }
   }
 
-  if (failures.length > 0) {
-    const summary = `${failures.length} activity generation${
-      failures.length === 1 ? '' : 's'
-    } failed`;
-    const detail = failures
-      .slice(0, 5)
-      .map((f) => `• ${f.slotTitle} (${f.activityKind}): ${f.message}`)
-      .join('\n');
+  if (failedSlotIds.length > 0) {
+    // generationError is rendered verbatim in the generation modal, so it
+    // stays one friendly sentence. Raw per-activity errors are never shown
+    // to the learner — they live in path.generation.activity_failed events.
+    const failedSlots = new Set(failedSlotIds).size;
+    const generationError = `${failedSlots} checkpoint${
+      failedSlots === 1 ? '' : 's'
+    } didn't finish generating. Try again and we'll finish the rest.`;
     await db.studyPlan.update({
       where: { id: planId },
-      data: {
-        generationStatus: 'failed',
-        generationError: `${summary}\n${detail}`,
-      },
+      data: { generationStatus: 'failed', generationError },
     });
     logTelemetry(plan.userId, 'path.generation.failed', {
       planId,
-      failures: failures.length,
+      failures: failedSlotIds.length,
+      failedSlots,
     });
     return;
   }

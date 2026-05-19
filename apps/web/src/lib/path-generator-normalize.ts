@@ -63,6 +63,26 @@ function toStringArray(v: unknown): string[] {
   return [];
 }
 
+// Coerce a value that should be an array back to one. Handles the same
+// drift shapes as `toStringArray` (object-keyed-by-index, JSON-stringified
+// array) but leaves elements untyped so object normalizers map them.
+function toUnknownArray(v: unknown): unknown[] {
+  if (Array.isArray(v)) return v;
+  if (isPlainObject(v)) return Object.values(v);
+  if (typeof v === 'string') {
+    const trimmed = v.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // fall through
+      }
+    }
+  }
+  return [];
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Theory normalizer
 // ─────────────────────────────────────────────────────────────────────
@@ -149,6 +169,55 @@ export function normalizeTheoryInput(raw: unknown): NormalizedTheoryInput {
   const result: NormalizedTheoryInput = { title, introduction, keyPoints, examples };
   if (summary !== undefined) result.summary = summary;
   return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Flashcards normalizer
+// ─────────────────────────────────────────────────────────────────────
+
+interface NormalizedFlashcard {
+  question: string;
+  answer: string;
+}
+
+interface NormalizedFlashcardsInput {
+  title: string;
+  flashcards: NormalizedFlashcard[];
+}
+
+// Coerce the `create_flashcards_for_slot` tool output to canonical form.
+// The model has been observed to return `flashcards` as an object keyed by
+// index or a JSON-stringified array — both slip past a truthy/`.length`
+// guard and then crash a downstream `.map`. Cards missing a question or
+// answer are dropped; the caller treats an empty result as a failure.
+export function normalizeFlashcardsInput(raw: unknown): NormalizedFlashcardsInput {
+  if (!isPlainObject(raw)) {
+    return { title: '', flashcards: [] };
+  }
+  const title = asNonEmptyString(raw.title) ?? '';
+  const list = toUnknownArray(
+    raw.flashcards ?? raw.cards ?? raw.flashCards ?? raw.flash_cards,
+  );
+  const flashcards: NormalizedFlashcard[] = [];
+  for (const item of list) {
+    if (!isPlainObject(item)) continue;
+    const question =
+      asNonEmptyString(item.question) ??
+      asNonEmptyString(item.front) ??
+      asNonEmptyString(item.prompt) ??
+      asNonEmptyString(item.q) ??
+      asNonEmptyString(item.term);
+    const answer =
+      asNonEmptyString(item.answer) ??
+      asNonEmptyString(item.back) ??
+      asNonEmptyString(item.a) ??
+      asNonEmptyString(item.definition) ??
+      asNonEmptyString(item.response);
+    if (question && answer) {
+      flashcards.push({ question, answer });
+    }
+  }
+  return { title, flashcards };
 }
 
 // ─────────────────────────────────────────────────────────────────────

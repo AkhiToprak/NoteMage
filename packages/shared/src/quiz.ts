@@ -243,14 +243,15 @@ export const TheorySectionSchema = z.object({
   title: z.string().min(1),
   introduction: z.string().min(1),
   keyPoints: z.array(z.string().min(1)).min(1),
-  examples: z
-    .array(
-      z.object({
-        label: z.string().min(1),
-        explanation: z.string().min(1),
-      }),
-    )
-    .min(1),
+  // examples may be empty: the path generator retries once for examples and
+  // then accepts an example-less section rather than failing the slot —
+  // theoryInputToTipTap renders fine without an Examples block.
+  examples: z.array(
+    z.object({
+      label: z.string().min(1),
+      explanation: z.string().min(1),
+    }),
+  ),
   summary: z.string().optional(),
 });
 export type TheorySection = z.infer<typeof TheorySectionSchema>;
