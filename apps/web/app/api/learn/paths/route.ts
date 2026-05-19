@@ -63,6 +63,10 @@ interface CreatePathBody {
   targetDays?: number;
   materialIds?: string[];
   ultra?: boolean;
+  /** Per-path Gemini override. Forces every stage through Gemini 2.5
+   *  Flash for this generation, regardless of PATH_PROVIDER env vars or
+   *  the ultra flag. Toggle from the path-creation UI for testing. */
+  gemini?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -75,6 +79,7 @@ export async function POST(request: NextRequest) {
     if (!title) return badRequestResponse('Title is required');
 
     const ultra = body.ultra === true;
+    const gemini = body.gemini === true;
 
     // Usage gate. Ultra paths draw from a separate Pro-only monthly meter
     // (Free's ultra_path limit is 0, so a Free user is rejected here too —
@@ -184,6 +189,7 @@ export async function POST(request: NextRequest) {
         corpus: corpus || undefined,
         subjects: classification.subjects,
         subjectWeights: classification.weights,
+        gemini,
       });
     } catch (error) {
       console.error('[learn/paths POST] Stage A failed', error);
@@ -208,6 +214,7 @@ export async function POST(request: NextRequest) {
           endDate: end,
           source: 'ai',
           ultra,
+          gemini,
           generationStatus: 'generating',
           subjects: classification.subjects,
           subjectWeights: classification.weights,

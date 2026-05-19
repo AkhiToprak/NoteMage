@@ -22,14 +22,7 @@
 //   review     → flashcards + quiz
 //   assessment → quiz   (becomes the section checkpoint)
 
-import type Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
-import {
-  anthropic,
-  AI_GENERATION_MODEL,
-  AI_GENERATION_MODEL_LITE,
-  MAX_OUTPUT_TOKENS,
-} from './anthropic';
 import {
   PATH_STRUCTURE_TOOL,
   THEORY_SECTION_TOOL,
@@ -41,14 +34,21 @@ import {
   type PathSlotKind,
 } from './ai-tools';
 import {
+  PATH_STRUCTURE_SCHEMA_GEMINI,
+  THEORY_SECTION_SCHEMA_GEMINI,
+  FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI,
+  QUIZ_FOR_SLOT_SCHEMA_GEMINI,
+} from './ai-tools-gemini';
+import {
   buildPathStructurePrompt,
   buildTheoryPrompt,
   buildFlashcardsPrompt,
   buildQuizPrompt,
-  buildCachedSystem,
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
+import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
+import { computeCost, type ModelUsage } from './path-generator-cost';
 import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
 import {
   QuizSetV2Schema,
@@ -96,6 +96,9 @@ export interface GeneratePathStructureOpts {
   subjects: SubjectId[];
   /** Per-subject weights aligned with `subjects`. */
   subjectWeights: number[];
+  /** Per-path Gemini override — when true, Stage A (and Stage B via the
+   *  persisted plan flag) routes through Gemini regardless of env vars. */
+  gemini?: boolean;
 }
 
 export type GeneratedPathStructure = PathStructureToolInput;
@@ -103,24 +106,6 @@ export type GeneratedPathStructure = PathStructureToolInput;
 // ─────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────
-
-type ToolUseBlock = Extract<Anthropic.Messages.ContentBlock, { type: 'tool_use' }>;
-
-function findToolUse(
-  content: Anthropic.Messages.ContentBlock[],
-  name: string,
-): ToolUseBlock | null {
-  for (const block of content) {
-    if (block.type === 'tool_use' && block.name === name) {
-      return block;
-    }
-  }
-  return null;
-}
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 /** Trim a Zod error message so it stays readable inside a retry prompt. */
 function truncateError(message: string): string {
@@ -141,77 +126,27 @@ function previewToolOutput(raw: unknown): string {
   }
 }
 
-/**
- * Call Anthropic with `tool_choice` forced to a single tool. Retries up
- * to `maxAttempts` times with exponential backoff (1s, 2s, …) on any
- * thrown error. Returns the parsed tool input or throws after exhausting
- * retries.
- */
-async function forcedToolCall<T>(opts: {
-  system: string | Anthropic.Messages.TextBlockParam[];
-  tool: Anthropic.Messages.Tool;
-  /** Optional extra user message body. Defaults to "Generate now." */
-  userMessage?: string;
-  maxAttempts?: number;
-  /** Override the default generation model. */
-  model?: string;
-  /** Called with the token usage of every attempt, retries included. */
-  onUsage?: (usage: Anthropic.Messages.Usage) => void;
-}): Promise<T> {
-  const {
-    system,
-    tool,
-    userMessage = 'Generate now.',
-    maxAttempts = 2,
-    model = AI_GENERATION_MODEL,
-    onUsage,
-  } = opts;
-  let lastError: unknown = null;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const response = await anthropic.messages.create({
-        model,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        system,
-        messages: [{ role: 'user', content: userMessage }],
-        tools: [tool],
-        tool_choice: { type: 'tool', name: tool.name },
-      });
-      onUsage?.(response.usage);
-      if (response.stop_reason === 'max_tokens') {
-        throw new Error(`${tool.name} response was truncated (stop_reason: max_tokens)`);
-      }
-      const block = findToolUse(response.content, tool.name);
-      if (!block) {
-        throw new Error(
-          `AI did not call ${tool.name} (stop_reason: ${response.stop_reason ?? 'unknown'})`,
-        );
-      }
-      return block.input as T;
-    } catch (error) {
-      lastError = error;
-      if (attempt < maxAttempts) {
-        const delay = 1000 * Math.pow(2, attempt - 1);
-        await sleep(delay);
-      }
-    }
-  }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error(`forcedToolCall(${tool.name}) failed after ${maxAttempts} attempts`);
-}
-
 // ─────────────────────────────────────────────────────────────────────
 // Token-usage metering — accumulated per generation and logged to
 // telemetry so cache effectiveness (read vs write tokens) is observable.
+// Provider-agnostic: the routing dispatcher hands us `NormalizedUsage`
+// for every call regardless of which provider served it.
 // ─────────────────────────────────────────────────────────────────────
 
 interface UsageMeter {
   calls: number;
+  // Rolled-up totals across every provider — preserved for telemetry
+  // continuity with downstream log consumers that key off these.
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
+  // Per-model breakdown. Required for cost computation because Sonnet
+  // and Haiku are both 'anthropic' but priced very differently — a
+  // provider-level rollup would hide the Sonnet upgrade on ultra quizzes.
+  perModel: Record<string, ModelUsage>;
+  // Per-provider call counts — quick at-a-glance signal in telemetry.
+  byProvider: { anthropic: number; gemini: number };
 }
 
 function emptyMeter(): UsageMeter {
@@ -221,15 +156,32 @@ function emptyMeter(): UsageMeter {
     outputTokens: 0,
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
+    perModel: {},
+    byProvider: { anthropic: 0, gemini: 0 },
   };
 }
 
-function addUsage(meter: UsageMeter, usage: Anthropic.Messages.Usage): void {
+function addNormalizedUsage(meter: UsageMeter, u: NormalizedUsage): void {
   meter.calls += 1;
-  meter.inputTokens += usage.input_tokens;
-  meter.outputTokens += usage.output_tokens;
-  meter.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
-  meter.cacheWriteTokens += usage.cache_creation_input_tokens ?? 0;
+  meter.inputTokens += u.inputTokens;
+  meter.outputTokens += u.outputTokens;
+  meter.cacheReadTokens += u.cacheReadTokens;
+  meter.cacheWriteTokens += u.cacheWriteTokens;
+  const m: ModelUsage = meter.perModel[u.model] ?? {
+    model: u.model,
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  };
+  m.calls += 1;
+  m.inputTokens += u.inputTokens;
+  m.outputTokens += u.outputTokens;
+  m.cacheReadTokens += u.cacheReadTokens;
+  m.cacheWriteTokens += u.cacheWriteTokens;
+  meter.perModel[u.model] = m;
+  meter.byProvider[u.provider] += 1;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -394,12 +346,15 @@ export async function generatePathStructure(
             'Return 3–6 sections; every section MUST have a non-empty `slots` array of 4–6 slots.',
           ].join('\n');
     try {
-      const raw = await forcedToolCall<unknown>({
-        system: buildCachedSystem(opts.corpus, attemptInstructions),
-        tool: PATH_STRUCTURE_TOOL,
+      const raw = await forcedStructuredCall<unknown>({
+        stage: 'structure',
+        corpus: opts.corpus ?? null,
+        instructions: attemptInstructions,
+        anthropicTool: PATH_STRUCTURE_TOOL,
+        geminiSchema: PATH_STRUCTURE_SCHEMA_GEMINI,
         userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
-        model: AI_GENERATION_MODEL_LITE,
-        onUsage: (u) => addUsage(meter, u),
+        providerOverride: opts.gemini ? 'gemini' : undefined,
+        onUsage: (u) => addNormalizedUsage(meter, u),
       });
       const normalized = normalizePathStructure(raw);
       if (normalized.phases.length > 0) {
@@ -433,7 +388,10 @@ export async function generatePathStructure(
       last.kind = 'assessment';
     }
   }
-  logTelemetry(opts.userId, 'path.structure.completed', { usage: meter });
+  logTelemetry(opts.userId, 'path.structure.completed', {
+    usage: meter,
+    cost: computeCost(meter.perModel),
+  });
   return structure;
 }
 
@@ -473,6 +431,9 @@ interface PlanForGeneration {
   subjectWeights: number[];
   /** Ultra path — Stage B generates quizzes with the premium model. */
   ultra: boolean;
+  /** Per-path Gemini override — when true, every Stage B call routes
+   *  through Gemini regardless of env vars (wins over `ultra` too). */
+  gemini: boolean;
   /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
   corpus: string | null;
   /** Token usage accumulated across this run's Stage B calls. */
@@ -533,6 +494,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     subjects: resolvedSubjects,
     subjectWeights: resolvedWeights,
     ultra: plan.ultra,
+    gemini: plan.gemini,
     corpus,
     usage: emptyMeter(),
     phases: plan.phases.map((p) => {
@@ -634,12 +596,15 @@ async function generateTheoryActivity(
             '`examples` MUST be a non-empty JSON array of { label, explanation } objects. Regenerate the full section.',
           ].join('\n');
     try {
-      const raw = await forcedToolCall<unknown>({
-        system: buildCachedSystem(plan.corpus, attemptInstructions),
-        tool: THEORY_SECTION_TOOL,
+      const raw = await forcedStructuredCall<unknown>({
+        stage: 'theory',
+        corpus: plan.corpus,
+        instructions: attemptInstructions,
+        anthropicTool: THEORY_SECTION_TOOL,
+        geminiSchema: THEORY_SECTION_SCHEMA_GEMINI,
         userMessage: `Write the theory section for slot "${slot.title}".`,
-        model: AI_GENERATION_MODEL_LITE,
-        onUsage: (u) => addUsage(plan.usage, u),
+        providerOverride: plan.gemini ? 'gemini' : undefined,
+        onUsage: (u) => addNormalizedUsage(plan.usage, u),
       });
       const parsed = TheorySectionSchema.safeParse(normalizeTheoryInput(raw));
       if (parsed.success && parsed.data.examples.length > 0) {
@@ -728,12 +693,15 @@ async function generateFlashcardsActivity(
             '`flashcards` MUST be a non-empty JSON array of { question, answer } objects (8–12 cards).',
           ].join('\n');
     try {
-      const raw = await forcedToolCall<unknown>({
-        system: buildCachedSystem(plan.corpus, attemptInstructions),
-        tool: FLASHCARDS_FOR_SLOT_TOOL,
+      const raw = await forcedStructuredCall<unknown>({
+        stage: 'flashcards',
+        corpus: plan.corpus,
+        instructions: attemptInstructions,
+        anthropicTool: FLASHCARDS_FOR_SLOT_TOOL,
+        geminiSchema: FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI,
         userMessage: `Generate 8–12 flashcards for slot "${slot.title}". The flashcards array must not be empty.`,
-        model: AI_GENERATION_MODEL_LITE,
-        onUsage: (u) => addUsage(plan.usage, u),
+        providerOverride: plan.gemini ? 'gemini' : undefined,
+        onUsage: (u) => addNormalizedUsage(plan.usage, u),
       });
       const normalized = normalizeFlashcardsInput(raw);
       if (normalized.flashcards.length > 0) {
@@ -791,18 +759,21 @@ async function generateFlashcardsActivity(
   });
 }
 
-async function callQuizTool(
-  system: string | Anthropic.Messages.TextBlockParam[],
+async function callQuizDispatch(
+  plan: PlanForGeneration,
   slotTitle: string,
-  model: string,
-  onUsage: (usage: Anthropic.Messages.Usage) => void,
+  attemptInstructions: string,
 ): Promise<QuizForSlotToolInput> {
-  return forcedToolCall<QuizForSlotToolInput>({
-    system,
-    tool: QUIZ_FOR_SLOT_TOOL,
+  return forcedStructuredCall<QuizForSlotToolInput>({
+    stage: 'quiz',
+    corpus: plan.corpus,
+    instructions: attemptInstructions,
+    anthropicTool: QUIZ_FOR_SLOT_TOOL,
+    geminiSchema: QUIZ_FOR_SLOT_SCHEMA_GEMINI,
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
-    model,
-    onUsage,
+    providerOverride: plan.gemini ? 'gemini' : undefined,
+    onUsage: (u) => addNormalizedUsage(plan.usage, u),
+    ultra: plan.ultra,
   });
 }
 
@@ -834,8 +805,9 @@ async function generateQuizActivity(
   const ctx = makeSlotContentContext(plan, phase, slot);
   const instructions = buildQuizPrompt(ctx);
   // Ultra paths generate quizzes with the premium model; non-ultra quizzes
-  // (and every other activity) stay on the fast model.
-  const quizModel = plan.ultra ? AI_GENERATION_MODEL : AI_GENERATION_MODEL_LITE;
+  // (and every other activity) stay on the fast model. The routing
+  // dispatcher reads `plan.ultra` and forces Anthropic+Sonnet on ultra
+  // quizzes regardless of `PATH_PROVIDER` — see callQuizDispatch.
 
   // Validate the v2 shape — the tool schema accepts a generic payload
   // object, so we Zod-check it (after normalizing common drift shapes)
@@ -855,12 +827,7 @@ async function generateQuizActivity(
             'Regenerate the entire quiz. The `questions` array MUST be non-empty and every question must match the exact payload shape for its kind.',
           ].join('\n');
     try {
-      const raw = await callQuizTool(
-        buildCachedSystem(plan.corpus, attemptInstructions),
-        slot.title,
-        quizModel,
-        (u) => addUsage(plan.usage, u),
-      );
+      const raw = await callQuizDispatch(plan, slot.title, attemptInstructions);
       const result = parseQuizInput(raw, slot.title);
       if (result.ok) {
         parseResult = result.data;
@@ -923,12 +890,7 @@ async function generateQuizActivity(
       'Drop any kind not on this list.',
     ].join('\n');
     try {
-      const retryInput = await callQuizTool(
-        buildCachedSystem(plan.corpus, corrective),
-        slot.title,
-        quizModel,
-        (u) => addUsage(plan.usage, u),
-      );
+      const retryInput = await callQuizDispatch(plan, slot.title, corrective);
       const retryResult = parseQuizInput(retryInput, slot.title);
       if (retryResult.ok) {
         const retryParsed = retryResult.data;
@@ -1151,5 +1113,6 @@ export async function generatePath(planId: string): Promise<void> {
     failedSlots: new Set(failedSlotIds).size,
     ultra: plan.ultra,
     usage: plan.usage,
+    cost: computeCost(plan.usage.perModel),
   });
 }

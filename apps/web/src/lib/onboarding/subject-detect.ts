@@ -1,5 +1,6 @@
-import { GoogleGenAI } from '@google/genai';
+import type { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
+import { getGeminiClient } from '../gemini';
 
 // Subject detection for the multi-PDF import flow. Given a set of uploaded
 // PDFs (file name + a short text sample each), one Gemini Flash-Lite call
@@ -49,16 +50,15 @@ Group the files into notebooks by academic subject or topic. Rules:
 
 Return ONLY a JSON object of the form { "groups": [ { "name": string, "subject": string, "fileIds": string[] } ] }. No prose, no markdown.`;
 
-const globalForGenai = globalThis as unknown as { multiImportGeminiClient?: GoogleGenAI };
-
-/** Lazily build (and in dev, cache) a Gemini client; null when unconfigured. */
+/** Resolve the shared Gemini client, returning null when the API key is
+ *  missing so the multi-import flow can fall back to one-notebook-per-file
+ *  without throwing. */
 function getClient(): GoogleGenAI | null {
-  if (globalForGenai.multiImportGeminiClient) return globalForGenai.multiImportGeminiClient;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  const client = new GoogleGenAI({ apiKey });
-  if (process.env.NODE_ENV !== 'production') globalForGenai.multiImportGeminiClient = client;
-  return client;
+  try {
+    return getGeminiClient();
+  } catch {
+    return null;
+  }
 }
 
 /** Strip the extension and tidy separators for a friendly notebook name. */

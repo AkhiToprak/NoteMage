@@ -1,6 +1,7 @@
-import { type Content, GoogleGenAI } from '@google/genai';
+import type { Content, GoogleGenAI } from '@google/genai';
 import type { DocModelBlock } from './doc-model';
 import { type DescribePageInput, type PdfStructureEngine, StructureEngineError } from './engine';
+import { getGeminiClient } from '../gemini';
 import { buildPageUserText, buildRepairSuffix, STRUCTURE_SYSTEM_PROMPT } from './prompt';
 import { parseDocModelBlocks } from './validate';
 
@@ -42,18 +43,18 @@ export interface ModelRequest {
 
 export type ModelCall = (req: ModelRequest) => Promise<string>;
 
-const globalForGemini = globalThis as unknown as { geminiClient?: GoogleGenAI };
-
-/** Lazily build (and in dev, cache) the Gemini client. */
+/** Resolve the shared Gemini client, translating a missing-key error into
+ *  this engine's error type so the import worker's catch-all sees the
+ *  expected shape. */
 function getClient(): GoogleGenAI {
-  if (globalForGemini.geminiClient) return globalForGemini.geminiClient;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new StructureEngineError('GEMINI_API_KEY is not set');
+  try {
+    return getGeminiClient();
+  } catch (err) {
+    throw new StructureEngineError(
+      err instanceof Error ? err.message : String(err),
+      err,
+    );
   }
-  const client = new GoogleGenAI({ apiKey });
-  if (process.env.NODE_ENV !== 'production') globalForGemini.geminiClient = client;
-  return client;
 }
 
 /** The real Gemini-backed model call. */

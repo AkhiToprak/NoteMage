@@ -128,6 +128,7 @@ export default function LearnPathSetup({
   const [aiDuration, setAiDuration] = useState(14);
   const [aiGoals, setAiGoals] = useState('');
   const [ultra, setUltra] = useState(false);
+  const [gemini, setGemini] = useState(false);
   // Cross-notebook AI mode requires the user to nominate a single notebook
   // scope. The selected items get filtered down to that notebook before
   // posting; without exactly one notebook represented the AI submit blocks.
@@ -418,6 +419,7 @@ export default function LearnPathSetup({
           contextNotebookIds: [targetNotebookId],
           materialIds: scopedItems.map((i) => i.id),
           ultra: canUseUltra && ultra,
+          gemini,
         }),
       });
       const json = await res.json();
@@ -439,6 +441,7 @@ export default function LearnPathSetup({
     aiDuration,
     aiGoals,
     ultra,
+    gemini,
     canUseUltra,
     selectedIds,
     flatItems,
@@ -715,6 +718,8 @@ export default function LearnPathSetup({
               ultra={ultra}
               onUltraChange={setUltra}
               canUseUltra={canUseUltra}
+              gemini={gemini}
+              onGeminiChange={setGemini}
               selectedCount={selectedCount}
               allSelected={allSelected}
               mageName={mageName}
@@ -1321,6 +1326,8 @@ function AiTab({
   ultra,
   onUltraChange,
   canUseUltra,
+  gemini,
+  onGeminiChange,
   selectedCount,
   allSelected,
   mageName,
@@ -1336,6 +1343,8 @@ function AiTab({
   ultra: boolean;
   onUltraChange: (v: boolean) => void;
   canUseUltra: boolean;
+  gemini: boolean;
+  onGeminiChange: (v: boolean) => void;
   selectedCount: number;
   allSelected: boolean;
   mageName: string;
@@ -1438,6 +1447,7 @@ function AiTab({
       </Field>
 
       <UltraToggle ultra={ultra} onUltraChange={onUltraChange} canUseUltra={canUseUltra} />
+      <GeminiToggle gemini={gemini} onGeminiChange={onGeminiChange} />
     </div>
   );
 }
@@ -2155,6 +2165,87 @@ function UltraToggle({
           {canUseUltra
             ? 'Generate quizzes with the premium model for sharper questions. Uses one of your 3 monthly Ultra paths.'
             : 'Sharper AI-generated quizzes, powered by the premium model. Upgrade to Pro to unlock Ultra paths.'}
+        </span>
+      </div>
+    </label>
+  );
+}
+
+function GeminiToggle({
+  gemini,
+  onGeminiChange,
+}: {
+  gemini: boolean;
+  onGeminiChange: (v: boolean) => void;
+}) {
+  return (
+    <label
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        padding: '12px 14px',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--surface-container-low)',
+        border: `1px solid ${gemini ? 'var(--primary)' : 'var(--outline-variant)'}`,
+        cursor: 'pointer',
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={gemini}
+        onChange={(e) => onGeminiChange(e.target.checked)}
+        style={{
+          accentColor: 'var(--primary)',
+          marginTop: '2px',
+          cursor: 'pointer',
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--on-surface)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '16px', color: 'var(--primary)' }}
+            aria-hidden
+          >
+            science
+          </span>
+          Use Gemini (test)
+          <span
+            style={{
+              padding: '1px 7px',
+              borderRadius: 'var(--radius-full)',
+              background: 'rgba(174, 137, 255, 0.14)',
+              border: '1px solid rgba(174, 137, 255, 0.32)',
+              color: 'var(--primary)',
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            Beta
+          </span>
+        </span>
+        <span
+          style={{
+            fontSize: '12px',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          Route this path&apos;s generation through Gemini 2.5 Flash for a cost/quality
+          comparison against the default Anthropic model. Overrides the Ultra
+          quiz upgrade for this run.
         </span>
       </div>
     </label>

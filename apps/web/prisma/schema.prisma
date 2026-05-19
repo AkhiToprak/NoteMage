@@ -694,6 +694,11 @@ model StudyPlan {
   // quota-limited). Persisted because Stage B runs detached and reloads
   // the plan from this row.
   ultra           Boolean  @default(false)
+  // Per-path Gemini override (test toggle). When true, every stage
+  // (structure / theory / flashcards / quiz) routes through Gemini
+  // regardless of PATH_PROVIDER env vars OR the ultra flag. Default
+  // false → behavior unchanged.
+  gemini          Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

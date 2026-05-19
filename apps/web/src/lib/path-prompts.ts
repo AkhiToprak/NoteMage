@@ -57,6 +57,24 @@ export interface SlotContentContext {
 }
 
 /**
+ * Build just the source-materials block text (preamble + corpus). Pulled
+ * out so both providers can use the byte-identical string — Anthropic
+ * wraps it in a `cache_control: ephemeral` block, Gemini concatenates it
+ * into the flat `systemInstruction` for implicit caching.
+ */
+export function buildSourceMaterialsBlock(corpus: string): string {
+  return (
+    '# SOURCE MATERIALS\n\n' +
+    'The learner selected the materials below as the basis for this learning path. ' +
+    'Treat them as the single source of truth: ground every section, topic, ' +
+    'explanation, example, and question in this content, and prefer its facts, ' +
+    'terminology, and emphasis over generic knowledge. You may supplement when the ' +
+    'materials leave a gap, but never contradict them.\n\n' +
+    corpus
+  );
+}
+
+/**
  * Assemble the `system` payload for a path-generation call. When a material
  * corpus is present it becomes its own leading text block tagged
  * `cache_control: ephemeral`. That block is byte-identical across Stage A and
@@ -74,14 +92,7 @@ export function buildCachedSystem(
   return [
     {
       type: 'text',
-      text:
-        '# SOURCE MATERIALS\n\n' +
-        'The learner selected the materials below as the basis for this learning path. ' +
-        'Treat them as the single source of truth: ground every section, topic, ' +
-        'explanation, example, and question in this content, and prefer its facts, ' +
-        'terminology, and emphasis over generic knowledge. You may supplement when the ' +
-        'materials leave a gap, but never contradict them.\n\n' +
-        corpus,
+      text: buildSourceMaterialsBlock(corpus),
       cache_control: { type: 'ephemeral' },
     },
     { type: 'text', text: instructions },
