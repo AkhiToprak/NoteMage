@@ -54,6 +54,7 @@ import { db } from './db';
 import { logTelemetry } from './telemetry-server';
 import {
   normalizeFlashcardsInput,
+  normalizePathStructure,
   normalizeQuizQuestions,
   normalizeTheoryInput,
   type NormalizedFlashcardsInput,
@@ -330,24 +331,63 @@ export async function generatePathStructure(
     subjectWeights: opts.subjectWeights,
   };
   const system = buildPathStructurePrompt(ctx);
-  const result = await forcedToolCall<PathStructureToolInput>({
-    system,
-    tool: PATH_STRUCTURE_TOOL,
-    userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
-  });
+
+  // The model occasionally returns a phase with no `slots` (or drifted
+  // phases/slots). normalizePathStructure coerces the output and drops
+  // unusable phases; retry up to MAX_ACTIVITY_ATTEMPTS when nothing
+  // usable comes back, feeding the problem back as a corrective notice.
+  let structure: GeneratedPathStructure | null = null;
+  let lastDetail = '';
+  for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !structure; attempt++) {
+    const attemptSystem =
+      attempt === 1
+        ? system
+        : [
+            system,
+            '',
+            '--- RETRY NOTICE ---',
+            `Your previous structure was unusable: ${lastDetail}`,
+            'Return 3–6 sections; every section MUST have a non-empty `slots` array of 4–6 slots.',
+          ].join('\n');
+    try {
+      const raw = await forcedToolCall<unknown>({
+        system: attemptSystem,
+        tool: PATH_STRUCTURE_TOOL,
+        userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
+      });
+      const normalized = normalizePathStructure(raw);
+      if (normalized.phases.length > 0) {
+        structure = normalized;
+      } else {
+        lastDetail = `no usable sections; raw output: ${previewToolOutput(raw)}`;
+        logTelemetry(opts.userId, 'path.structure.retry', {
+          attempt,
+          reason: 'no_phases',
+          preview: previewToolOutput(raw),
+        });
+      }
+    } catch (error) {
+      lastDetail = error instanceof Error ? error.message : String(error);
+      logTelemetry(opts.userId, 'path.structure.retry', {
+        attempt,
+        reason: 'call_failed',
+      });
+    }
+  }
+  if (!structure) {
+    throw new Error(`Path structure generation failed: ${lastDetail}`);
+  }
 
   // Enforce the "last slot of every section is assessment" rule that the
-  // tool schema only describes in prose. If the AI slipped a non-assessment
-  // slot at the end, coerce it. The orchestrator depends on this rule when
-  // mapping slot kind → activities.
-  for (const phase of result.phases) {
-    if (phase.slots.length === 0) continue;
+  // tool schema only describes in prose. normalizePathStructure guarantees
+  // every section has at least one slot, so the index access is safe.
+  for (const phase of structure.phases) {
     const last = phase.slots[phase.slots.length - 1];
     if (last.kind !== 'assessment') {
       last.kind = 'assessment';
     }
   }
-  return result;
+  return structure;
 }
 
 // ─────────────────────────────────────────────────────────────────────

@@ -14,6 +14,8 @@
 // failure collection ([path-generator.ts] `Promise.allSettled` loop) still
 // gets a clean Zod error message.
 
+import type { PathStructureToolInput } from './ai-tools';
+
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
@@ -507,4 +509,62 @@ export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
     out.push(normalized);
   }
   return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Path structure normalizer (Stage A)
+// ─────────────────────────────────────────────────────────────────────
+
+function normalizeSlotKind(v: unknown): 'learning' | 'review' | 'assessment' {
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  if (s === 'review') return 'review';
+  if (s === 'assessment') return 'assessment';
+  return 'learning';
+}
+
+// Coerce the `create_path_structure` tool output to canonical form. The
+// model sometimes omits `slots` on a phase or returns phases/slots in a
+// drifted shape — without this, generatePathStructure crashes on
+// `phase.slots.length`. Phases with no usable slot are dropped; the
+// caller checks the result has at least one phase before using it.
+export function normalizePathStructure(raw: unknown): PathStructureToolInput {
+  if (!isPlainObject(raw)) {
+    return { title: '', description: '', phases: [] };
+  }
+  const phases: PathStructureToolInput['phases'] = [];
+  for (const phaseRaw of toUnknownArray(raw.phases)) {
+    if (!isPlainObject(phaseRaw)) continue;
+    const slots: PathStructureToolInput['phases'][number]['slots'] = [];
+    for (const slotRaw of toUnknownArray(phaseRaw.slots)) {
+      if (!isPlainObject(slotRaw)) continue;
+      const slotTitle =
+        asNonEmptyString(slotRaw.title) ??
+        asNonEmptyString(slotRaw.name) ??
+        asNonEmptyString(slotRaw.label);
+      if (!slotTitle) continue;
+      slots.push({
+        title: slotTitle,
+        kind: normalizeSlotKind(slotRaw.kind),
+        topicHint:
+          asNonEmptyString(slotRaw.topicHint) ??
+          asNonEmptyString(slotRaw.topic_hint) ??
+          asNonEmptyString(slotRaw.description) ??
+          slotTitle,
+      });
+    }
+    if (slots.length === 0) continue;
+    phases.push({
+      title:
+        asNonEmptyString(phaseRaw.title) ??
+        asNonEmptyString(phaseRaw.name) ??
+        `Section ${phases.length + 1}`,
+      description: asNonEmptyString(phaseRaw.description) ?? '',
+      slots,
+    });
+  }
+  return {
+    title: asNonEmptyString(raw.title) ?? '',
+    description: asNonEmptyString(raw.description) ?? '',
+    phases,
+  };
 }
