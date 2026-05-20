@@ -1,17 +1,28 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { describeModerationReason } from '@/lib/notification-utils';
+import {
+  L5_NOTE_MAX_CHARS,
+  L5_REJECT_CATEGORIES,
+  L5_REJECT_CATEGORY_LABELS,
+  type L5RejectCategory,
+} from '@/lib/moderation/layer5';
 
 /**
- * Admin ticket detail (P6).
+ * Admin ticket detail (P6 + P7).
  *
  * AC-Admin-3: surfaces SharedPath summary + the FULL ModerationAudit chain
- * (every layer, every reasoning) + author profile link. P6 is read-only —
- * approve / reject buttons land in P7; this page declares that intent
- * inline so the admin isn't surprised by the missing actions.
+ * (every layer, every reasoning) + author profile link.
+ *
+ * P7 wires the decision panel: approve / reject buttons that POST to
+ * /api/admin/tickets/[id]/{approve,reject}, with the 8-state interactive
+ * contract (default · hover · focus-visible · active · disabled · loading
+ * · error · success). When the ticket is already resolved the panel
+ * collapses to a compact footer; the audit timeline above always carries
+ * the L5 row.
  */
 
 type Actor = { id: string; username: string | null } | null;
@@ -87,6 +98,12 @@ export default function AdminTicketDetailPage({
   const [data, setData] = useState<DetailResponse | null>(null);
   const [error, setError] = useState<{ status: number; message: string } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  // Bumped by the decision panel after a successful approve/reject so
+  // the timeline refetches and the L5 audit row appears without a
+  // page reload. Kept as a counter (not a boolean toggle) so two
+  // back-to-back actions both invalidate cleanly.
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +138,7 @@ export default function AdminTicketDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -156,13 +173,23 @@ export default function AdminTicketDetailPage({
           }
         />
       ) : data ? (
-        <DetailBody data={data} isPhone={isPhone} />
+        <DetailBody data={data} isPhone={isPhone} ticketId={id} onChanged={reload} />
       ) : null}
     </div>
   );
 }
 
-function DetailBody({ data, isPhone }: { data: DetailResponse; isPhone: boolean }) {
+function DetailBody({
+  data,
+  isPhone,
+  ticketId,
+  onChanged,
+}: {
+  data: DetailResponse;
+  isPhone: boolean;
+  ticketId: string;
+  onChanged: () => void;
+}) {
   const { ticket, sharedPath, audits } = data;
   return (
     <>
@@ -251,10 +278,11 @@ function DetailBody({ data, isPhone }: { data: DetailResponse; isPhone: boolean 
         )}
       </section>
 
-      <Notice
-        icon="construction"
-        title="Decision UI lands in Phase 7"
-        body="Approve / Reject buttons (with reason codes) wire up in P7. P6 is read-only — this is the surface, not the action."
+      <DecisionPanel
+        ticket={ticket}
+        sharedPath={sharedPath}
+        ticketId={ticketId}
+        onChanged={onChanged}
       />
     </>
   );
@@ -713,6 +741,566 @@ function Notice({ icon, title, body }: { icon: string; title: string; body: stri
       </span>
     </div>
   );
+}
+
+// ── decision panel (P7) ──────────────────────────────────────────────────
+//
+// Hallmark · component: admin-decision-panel · genre: editorial
+// states: default · hover · focus · active · disabled · loading · error · success
+// contrast: token-driven (every fg/bg derives from globals.css; both
+//           dark and light themes flip automatically — gates 46–50 pass)
+//
+// Two render branches:
+//   1. Already-resolved ticket → compact footer ("Resolved by @admin").
+//      The L5 audit row is already in the timeline above; the panel
+//      doesn't repeat that history.
+//   2. Out-of-queue path (path moved to approved/rejected via another
+//      channel) → an inert state notice. No controls offered because
+//      no action is meaningful.
+//   3. In-queue path (`flagged_pending_human`) → two-mode panel:
+//      approve-first (primary CTA) with a secondary "Reject…" trigger
+//      that expands the reason-code select + note. This avoids the
+//      "two symmetric buttons" anti-pattern (gate 56) — approval is
+//      the affirmative single-click; rejection requires a deliberate
+//      reveal so the admin can't fat-finger an irreversible reject.
+//
+// Note + reasonCode are validated client-side at the same caps as the
+// API to keep the round-trip honest, but the server is the source of
+// truth — a stale client can't slip a 2K-char note or a non-allow-list
+// reason code through.
+
+interface TicketLike {
+  id: string;
+  status: string;
+  resolvedBy: Actor;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+}
+
+interface SharedPathLike {
+  moderationStatus: string;
+}
+
+function DecisionPanel({
+  ticket,
+  sharedPath,
+  ticketId,
+  onChanged,
+}: {
+  ticket: TicketLike;
+  sharedPath: SharedPathLike;
+  ticketId: string;
+  onChanged: () => void;
+}) {
+  // Branch 1 — ticket is already resolved/dismissed. Show provenance.
+  if (ticket.status === 'resolved' || ticket.status === 'dismissed') {
+    return <ResolvedFooter ticket={ticket} pathStatus={sharedPath.moderationStatus} />;
+  }
+
+  // Branch 2 — ticket is open but the path moved out of the human
+  // queue (another admin acted, author unpublished). Surface as inert.
+  if (sharedPath.moderationStatus !== 'flagged_pending_human') {
+    return (
+      <Notice
+        icon="lock"
+        title={`Path is in state "${sharedPath.moderationStatus.replace(/_/g, ' ')}"`}
+        body="The ticket is still open but the path is no longer in the human queue. Dismiss the ticket or wait for the upstream layer to reconcile."
+      />
+    );
+  }
+
+  // Branch 3 — actionable.
+  return (
+    <DecisionPanelControls ticketId={ticketId} onChanged={onChanged} />
+  );
+}
+
+function ResolvedFooter({
+  ticket,
+  pathStatus,
+}: {
+  ticket: TicketLike;
+  pathStatus: string;
+}) {
+  const who = ticket.resolvedBy?.username
+    ? `@${ticket.resolvedBy.username}`
+    : ticket.resolvedBy?.id
+      ? `admin ${ticket.resolvedBy.id.slice(0, 8)}`
+      : 'an admin';
+  const when = ticket.resolvedAt ? fmtDate(ticket.resolvedAt) : null;
+  const outcome =
+    pathStatus === 'approved'
+      ? 'approved'
+      : pathStatus === 'rejected'
+        ? 'rejected'
+        : 'closed';
+
+  return (
+    <section
+      aria-label="Ticket resolved"
+      style={{
+        background: 'var(--surface-container)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--on-surface-variant)',
+        }}
+      >
+        Ticket resolved
+      </span>
+      <p
+        style={{
+          fontSize: 14,
+          color: 'var(--on-surface)',
+          margin: 0,
+          lineHeight: 1.55,
+        }}
+      >
+        {who} {outcome} this path{when ? ` on ${when}` : ''}.
+      </p>
+      {ticket.resolutionNote ? (
+        <p
+          style={{
+            fontSize: 13,
+            color: 'var(--on-surface-variant)',
+            margin: 0,
+            lineHeight: 1.55,
+            padding: '10px 12px',
+            background: 'var(--surface-container-low)',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-sm)',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {ticket.resolutionNote}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function DecisionPanelControls({
+  ticketId,
+  onChanged,
+}: {
+  ticketId: string;
+  onChanged: () => void;
+}) {
+  const [mode, setMode] = useState<'approve' | 'reject'>('approve');
+  const [note, setNote] = useState('');
+  const [reasonCategory, setReasonCategory] = useState<L5RejectCategory | ''>('');
+  const [submitting, setSubmitting] = useState<null | 'approve' | 'reject'>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const isApproving = submitting === 'approve';
+  const isRejecting = submitting === 'reject';
+  const noteOverCap = note.length > L5_NOTE_MAX_CHARS;
+  const rejectReady = !!reasonCategory && !noteOverCap;
+  const anyDisabled = submitting !== null;
+
+  async function submit(action: 'approve' | 'reject') {
+    if (anyDisabled) return;
+    if (action === 'reject' && !rejectReady) {
+      setError(
+        !reasonCategory
+          ? 'Pick a reason before rejecting.'
+          : `Note is over the ${L5_NOTE_MAX_CHARS}-character limit.`,
+      );
+      return;
+    }
+    if (noteOverCap) {
+      setError(`Note is over the ${L5_NOTE_MAX_CHARS}-character limit.`);
+      return;
+    }
+    setError(null);
+    setSubmitting(action);
+    try {
+      const body: Record<string, unknown> = {};
+      if (note.trim().length > 0) body.note = note.trim();
+      if (action === 'reject') body.reasonCode = `l5.${reasonCategory}`;
+      const res = await fetch(`/api/admin/tickets/${ticketId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const json = await safeReadJson(res);
+        const message =
+          (json && typeof json === 'object' && 'error' in json
+            ? String((json as { error: unknown }).error)
+            : null) ?? `request failed (${res.status})`;
+        setError(message);
+        setSubmitting(null);
+        return;
+      }
+      // Successful — clear the form and ask the parent to refetch. The
+      // parent re-render will swap this control panel for the
+      // ResolvedFooter, so we don't need a local success surface.
+      setNote('');
+      setReasonCategory('');
+      setSubmitting(null);
+      onChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'request failed');
+      setSubmitting(null);
+    }
+  }
+
+  return (
+    <section
+      aria-label="Moderation decision"
+      style={{
+        background: 'var(--surface-container)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '18px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+      }}
+    >
+      <DecisionPanelStyles />
+
+      <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span
+          style={{
+            fontSize: 11,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          Human decision
+        </span>
+        <h2
+          className="font-display"
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 17,
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            margin: 0,
+            color: 'var(--on-surface)',
+          }}
+        >
+          {mode === 'approve' ? 'Approve or reject this path' : 'Reject this path'}
+        </h2>
+        <p
+          style={{
+            fontSize: 13,
+            color: 'var(--on-surface-variant)',
+            margin: '2px 0 0',
+            lineHeight: 1.55,
+          }}
+        >
+          {mode === 'approve'
+            ? 'Approving publishes the path to the community library. Rejecting keeps it private and notifies the author with the reason.'
+            : 'Pick a reason and (optionally) leave a short note. Both surface to the author on their publication-status page.'}
+        </p>
+      </header>
+
+      {error ? (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            padding: '10px 12px',
+            background: 'var(--error-container)',
+            color: 'var(--on-error)',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-sm)',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+            error
+          </span>
+          <span style={{ fontSize: 13, lineHeight: 1.5 }}>{error}</span>
+        </div>
+      ) : null}
+
+      {mode === 'reject' ? (
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
+          <span
+            style={{
+              fontSize: 12,
+              color: 'var(--on-surface-variant)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Reason
+          </span>
+          <select
+            className="admin-decision-select"
+            value={reasonCategory}
+            onChange={(e) => {
+              setReasonCategory(e.target.value as L5RejectCategory | '');
+              setError(null);
+            }}
+            disabled={anyDisabled}
+          >
+            <option value="">Pick a reason…</option>
+            {L5_REJECT_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {L5_REJECT_CATEGORY_LABELS[cat]}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span
+          style={{
+            fontSize: 12,
+            color: 'var(--on-surface-variant)',
+            letterSpacing: '0.04em',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span>Note {mode === 'approve' ? '(optional)' : '(optional, recommended)'}</span>
+          <span
+            style={{
+              fontSize: 11,
+              color: noteOverCap ? 'var(--on-error)' : 'var(--on-surface-variant)',
+            }}
+            aria-live="polite"
+          >
+            {note.length}/{L5_NOTE_MAX_CHARS}
+          </span>
+        </span>
+        <textarea
+          className="admin-decision-textarea"
+          value={note}
+          onChange={(e) => {
+            setNote(e.target.value);
+            if (error) setError(null);
+          }}
+          placeholder={
+            mode === 'approve'
+              ? 'Optional internal note — appears on the audit trail.'
+              : 'Optional qualifier — appears in the author-facing reason after the canned category phrase.'
+          }
+          maxLength={L5_NOTE_MAX_CHARS + 200} /* server is the cap; +200 buffer to allow the live "over-cap" warning */
+          rows={3}
+          disabled={anyDisabled}
+          aria-invalid={noteOverCap || undefined}
+        />
+      </label>
+
+      <footer
+        style={{
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+          paddingTop: 4,
+          justifyContent: mode === 'approve' ? 'space-between' : 'flex-end',
+          alignItems: 'center',
+        }}
+      >
+        {mode === 'approve' ? (
+          <>
+            <button
+              type="button"
+              className="admin-decision-btn admin-decision-btn--ghost"
+              onClick={() => {
+                setMode('reject');
+                setError(null);
+              }}
+              disabled={anyDisabled}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                block
+              </span>
+              Reject…
+            </button>
+            <button
+              type="button"
+              className="admin-decision-btn admin-decision-btn--primary"
+              onClick={() => submit('approve')}
+              disabled={anyDisabled || noteOverCap}
+              aria-busy={isApproving || undefined}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                {isApproving ? 'progress_activity' : 'check'}
+              </span>
+              {isApproving ? 'Approving…' : 'Approve & publish'}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="admin-decision-btn admin-decision-btn--ghost"
+              onClick={() => {
+                setMode('approve');
+                setError(null);
+              }}
+              disabled={anyDisabled}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                arrow_back
+              </span>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="admin-decision-btn admin-decision-btn--danger"
+              onClick={() => submit('reject')}
+              disabled={anyDisabled || !rejectReady}
+              aria-busy={isRejecting || undefined}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                {isRejecting ? 'progress_activity' : 'gavel'}
+              </span>
+              {isRejecting ? 'Rejecting…' : 'Reject'}
+            </button>
+          </>
+        )}
+      </footer>
+    </section>
+  );
+}
+
+/**
+ * Scoped CSS for the decision-panel controls. Pseudo-states (:hover,
+ * :focus-visible, :active, :disabled) aren't expressible from inline
+ * style objects, so the project's inline-style convention bends to a
+ * single in-component <style> block here. Mirrors the token surface
+ * the rest of the admin shell uses (var(--primary), var(--error),
+ * var(--surface-container-high)) — light theme auto-flips.
+ */
+function DecisionPanelStyles() {
+  return (
+    <style>{`
+      .admin-decision-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 9px 16px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        cursor: pointer;
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+        transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+                    opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .admin-decision-btn:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      .admin-decision-btn:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+      .admin-decision-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .admin-decision-btn[aria-busy="true"] .material-symbols-outlined {
+        animation: admin-decision-spin 0.9s linear infinite;
+      }
+
+      .admin-decision-btn--primary {
+        background: var(--primary);
+        color: var(--on-primary);
+        border-color: var(--primary);
+      }
+      .admin-decision-btn--primary:hover:not(:disabled) {
+        background: var(--primary-dim);
+        border-color: var(--primary-dim);
+      }
+
+      .admin-decision-btn--danger {
+        background: var(--error);
+        color: var(--on-error);
+        border-color: var(--error);
+      }
+      .admin-decision-btn--danger:hover:not(:disabled) {
+        filter: brightness(0.92);
+      }
+
+      .admin-decision-btn--ghost {
+        background: transparent;
+        color: var(--on-surface-variant);
+        border-color: var(--outline-variant);
+      }
+      .admin-decision-btn--ghost:hover:not(:disabled) {
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+      }
+
+      .admin-decision-select,
+      .admin-decision-textarea {
+        font: inherit;
+        font-size: 14px;
+        color: var(--on-surface);
+        background: var(--surface-container-low);
+        border: 1px solid var(--outline-variant);
+        border-radius: var(--radius-md);
+        padding: 10px 12px;
+        line-height: 1.5;
+        resize: vertical;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .admin-decision-select:focus-visible,
+      .admin-decision-textarea:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+        border-color: var(--primary);
+      }
+      .admin-decision-textarea[aria-invalid="true"] {
+        border-color: var(--error);
+      }
+      .admin-decision-select:disabled,
+      .admin-decision-textarea:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      @keyframes admin-decision-spin {
+        to { transform: rotate(360deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .admin-decision-btn[aria-busy="true"] .material-symbols-outlined {
+          animation: none;
+          opacity: 0.7;
+        }
+      }
+    `}</style>
+  );
+}
+
+async function safeReadJson(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 // ── data tables ──────────────────────────────────────────────────────────
