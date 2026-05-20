@@ -7,13 +7,21 @@
 // Phase 3 extension: after the SharedPath row is persisted in `pending`,
 // L1 (wordlist filter) runs synchronously and transitions the row to
 // either `auditing_l2` (pass) or `rejected` (block hit) per AC-Publish-5
-// and AC-Moderate-2. L2's async hook lands in P4.
+// and AC-Moderate-2.
+//
+// Phase 4 extension: when L1 passes (state → `auditing_l2`) we kick off
+// L2 (cheap-model safety / spam / off-topic audit) fire-and-forget per
+// the existing async pattern (`void runLayer2().catch(...)`). The L2
+// runner is reentrant and idempotent so a duplicate fire is safe; the
+// publish response still returns the post-L1 status because L2 is
+// off-request work the client polls for via the publication-status
+// endpoint.
 //
 // Per P0 spec §4.1 the seeded-bypass branch (admin + seeded=true →
 // approved directly + pre-translation fan-out) is also part of this
 // endpoint's contract, but the bypass shortcut depends on AdminAuditLog
 // (first-used in P7's admin approve/reject) and the P11 pre-translation
-// fan-out hook. P3 keeps the admin-only `seeded` flag silently ignored
+// fan-out hook. P3/P4 keep the admin-only `seeded` flag silently ignored
 // for now; the bypass lands in P7/P11.
 //
 // Non-owner → 404 (existence-leak policy, same as the rest of the public
@@ -24,6 +32,7 @@ import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { runLayer1 } from '@/lib/moderation/layer1-runner';
+import { runLayer2 } from '@/lib/moderation/layer2-runner';
 import {
   successResponse,
   unauthorizedResponse,
@@ -195,6 +204,19 @@ export async function POST(request: NextRequest, { params }: Params) {
       postL1Reason = l1.judgement.rejectionReason;
     } catch (l1Err) {
       console.error('[publish] L1 run failed; row stays in pending', l1Err);
+    }
+
+    // Phase 4 — fire-and-forget L2 when L1 passed. Same shape as
+    // path-generation's Stage B fire-and-forget (`void … .catch(...)`):
+    // we don't await the result, errors are logged but never surfaced
+    // to the publish response. The client polls publication-status to
+    // observe the transition out of `auditing_l2`. The L2 runner is
+    // reentrant (idempotency guard checks `moderationStatus`) so a
+    // duplicate fire from a retry-then-race is a quiet no-op.
+    if (postL1Status === 'auditing_l2') {
+      void runLayer2(created.id).catch((l2Err) => {
+        console.error('[publish] L2 background run failed', l2Err);
+      });
     }
 
     const payload: PublishResponse = {
