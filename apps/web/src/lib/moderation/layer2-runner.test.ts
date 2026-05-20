@@ -34,6 +34,11 @@ const mocks = vi.hoisted(() => {
     sendPathApprovedEmailMock: vi.fn().mockResolvedValue(undefined),
     sendPathRejectedEmailMock: vi.fn().mockResolvedValue(undefined),
     sendPathFlaggedEmailMock: vi.fn().mockResolvedValue(undefined),
+    // P5 — the L2 runner now fires L3 fire-and-forget on `flag`. Mock
+    // it out at the L2-test boundary so L2 tests stay isolated and
+    // don't try to drag L3's DB surface into the mock graph. L3 has
+    // its own dedicated test file.
+    runLayer3Mock: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -53,6 +58,10 @@ vi.mock('./moderation-email', () => ({
   sendPathFlaggedEmail: mocks.sendPathFlaggedEmailMock,
 }));
 
+vi.mock('./layer3-runner', () => ({
+  runLayer3: mocks.runLayer3Mock,
+}));
+
 // Aliases so the tests below read naturally instead of `mocks.tx.…`.
 const {
   tx,
@@ -62,6 +71,7 @@ const {
   sendPathApprovedEmailMock,
   sendPathRejectedEmailMock,
   sendPathFlaggedEmailMock,
+  runLayer3Mock,
 } = mocks;
 
 // Import AFTER vi.mock declarations so the runner picks up the mocked deps.
@@ -319,6 +329,38 @@ describe('runLayer2 — flag branch (low-confidence reject → flag, plus explic
     const result = await runLayer2(SHARED_PATH_ID);
     expect(result.status).toBe('auditing_l3');
     expect(result.judgement.reasonCode).toBe('l2.offtopic');
+  });
+
+  it('fires runLayer3 fire-and-forget when state moves to auditing_l3 (P5 wire-up)', async () => {
+    dbMock.sharedPath.findUnique.mockResolvedValue(happySharedPath());
+    loadSharedPathSnapshotMock.mockResolvedValue(happySnapshot());
+    mockModelOutput({
+      verdict: 'flag',
+      category: 'offtopic',
+      confidence: 0.6,
+      reason: 'Borderline.',
+    });
+
+    await runLayer2(SHARED_PATH_ID);
+    // Microtask drain so the void-async wrapper has a chance to dispatch.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(runLayer3Mock).toHaveBeenCalledTimes(1);
+    expect(runLayer3Mock).toHaveBeenCalledWith(SHARED_PATH_ID);
+  });
+
+  it('does NOT fire runLayer3 on pass or reject (only flag escalates)', async () => {
+    dbMock.sharedPath.findUnique.mockResolvedValue(happySharedPath());
+    loadSharedPathSnapshotMock.mockResolvedValue(happySnapshot());
+    mockModelOutput({
+      verdict: 'pass',
+      category: 'other',
+      confidence: 0.95,
+      reason: 'Clean.',
+    });
+
+    await runLayer2(SHARED_PATH_ID);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(runLayer3Mock).not.toHaveBeenCalled();
   });
 });
 

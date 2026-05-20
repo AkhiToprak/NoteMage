@@ -37,6 +37,7 @@ import {
   type L2Judgement,
   type L2ModelOutput,
 } from './layer2';
+import { runLayer3 } from './layer3-runner';
 import {
   moderationStructuredCall,
   type ModerationUsage,
@@ -265,6 +266,18 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
         console.error('[layer2-runner] email dispatch failed', mailErr);
       }
     })();
+  }
+
+  // 9) Phase 5 — fire-and-forget L3 on `flag`. State is now
+  //    `auditing_l3`; runLayer3 will move it to either `rejected`
+  //    (auto_reject) or `flagged_pending_human` (escalate, ticket
+  //    opened). Reentrant + idempotent — a duplicate fire is a quiet
+  //    no-op. Same async pattern as publish→L2 in
+  //    `app/api/learn/paths/[planId]/publish/route.ts`.
+  if (targetStatus === 'auditing_l3') {
+    void runLayer3(sharedPathId).catch((l3Err) => {
+      console.error('[layer2-runner] L3 background run failed', l3Err);
+    });
   }
 
   return {
