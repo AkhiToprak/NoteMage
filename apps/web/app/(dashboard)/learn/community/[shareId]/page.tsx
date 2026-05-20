@@ -9,13 +9,13 @@
 //   - Structure preview: phase + checkpoint titles only — no theory /
 //     flashcards / quiz content. Full content lands behind clone (P9)
 //     or translate-then-view (P10).
-//   - Clone CTA: route to a server action in P9. P8 ships the affordance
-//     and a disabled-with-rationale fallback that links back to the
-//     list — never a fake button that 404s.
+//   - Clone CTA: live in P9 — calls POST /api/community/paths/[shareId]/
+//     clone, routes the user to /learn/paths/[planId] on success. The
+//     CTA flips to "Open your copy" when `userClonePlanId` is set so a
+//     re-visit lands the user back on their existing clone.
 //
 // What this page does NOT do (deferred to later phases):
-//   - Clone the path. POST /api/community/paths/[shareId]/clone is P9.
-//   - Rate the path. POST /api/community/paths/[shareId]/rating is also
+//   - Rate the path. POST /api/community/paths/[shareId]/rating is
 //     post-P8 (the GET detail endpoint exposes the requester's existing
 //     rating so the UI can display it, but a rating editor is post-P8).
 //   - Translate the path. GET /api/community/paths/[shareId]?lang=… is
@@ -155,8 +155,19 @@ export default function CommunityPathDetailPage() {
           outline: 3px solid var(--primary);
           outline-offset: 2px;
         }
-        .community-detail-cta--primary:hover {
+        .community-detail-cta--primary:not(:disabled):hover {
           background: var(--primary-dim, var(--primary));
+        }
+        .community-detail-cta:not(:disabled):active {
+          transform: translateY(1px);
+        }
+        .community-detail-cta__spinner {
+          animation: community-detail-spin 1s linear infinite;
+          transform-origin: center;
+        }
+        @keyframes community-detail-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         .community-detail-slot {
           transition: background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1);
@@ -166,6 +177,7 @@ export default function CommunityPathDetailPage() {
         }
         @media (prefers-reduced-motion: reduce) {
           .community-detail-slot { transition: none; }
+          .community-detail-cta__spinner { animation: none; }
         }
       `}</style>
     </div>
@@ -343,18 +355,59 @@ function DetailContent({ data }: { data: DetailResponse }) {
 }
 
 function CloneCTA({
-  shareId: _shareId,
+  shareId,
   userClonePlanId,
 }: {
   shareId: string;
   userClonePlanId: string | null;
 }) {
-  // P8 ships the affordance only — the POST /clone endpoint lands in
-  // P9 per the plan. When a user already has a clone, the CTA flips to
-  // "Open your copy" and links into the existing private path. New
-  // clones surface a deliberately disabled button with a copy line
-  // pointing at P9, rather than a button that 404s on click.
-  void _shareId; // reserved for the P9 wiring; keeps the prop stable.
+  // P9 ships the working endpoint — clicking the button POSTs to
+  // /api/community/paths/[shareId]/clone, then redirects to
+  // /learn/paths/[planId]. Re-visiting after cloning surfaces the
+  // "Open your copy" link instead so the user lands directly in their
+  // private path. The endpoint is idempotent per (userId, shareId), so
+  // a double-click or a back-then-clone-again is still safe — but we
+  // local-disable during the in-flight request to keep the UX honest.
+  const router = useRouter();
+  const [cloning, setCloning] = useState(false);
+  const [cloneError, setCloneError] = useState<string | null>(null);
+
+  const onClone = useCallback(async () => {
+    if (cloning) return;
+    setCloning(true);
+    setCloneError(null);
+    try {
+      const res = await fetch(
+        `/api/community/paths/${encodeURIComponent(shareId)}/clone`,
+        { method: 'POST' },
+      );
+      if (res.status === 404) {
+        setCloneError(
+          'This path is no longer available. It may have been unpublished.',
+        );
+        return;
+      }
+      if (res.status === 409) {
+        setCloneError('Cloning is busy — try again in a moment.');
+        return;
+      }
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { planId?: string }; error?: string }
+        | null;
+      if (!res.ok || !json?.success || !json.data?.planId) {
+        setCloneError(json?.error ?? 'Could not clone this path. Try again.');
+        return;
+      }
+      // Whether this was the first clone or an idempotent retry, the
+      // destination is the same — the cloner's private plan view.
+      router.push(`/learn/paths/${encodeURIComponent(json.data.planId)}`);
+    } catch {
+      setCloneError('Network error. Try again.');
+    } finally {
+      setCloning(false);
+    }
+  }, [cloning, router, shareId]);
+
   if (userClonePlanId) {
     return (
       <Link
@@ -383,6 +436,7 @@ function CloneCTA({
       </Link>
     );
   }
+
   return (
     <div
       style={{
@@ -394,29 +448,37 @@ function CloneCTA({
     >
       <button
         type="button"
-        disabled
-        aria-disabled="true"
-        className="community-detail-cta"
+        onClick={() => void onClone()}
+        disabled={cloning}
+        aria-busy={cloning}
+        aria-disabled={cloning}
+        className="community-detail-cta community-detail-cta--primary"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
           padding: '12px 20px',
-          background: 'var(--surface-container-high)',
-          color: 'var(--on-surface-variant)',
-          border: '1px solid var(--outline-variant)',
+          background: cloning ? 'var(--surface-container-high)' : 'var(--primary)',
+          color: cloning ? 'var(--on-surface-variant)' : 'var(--on-primary)',
+          border: cloning ? '1px solid var(--outline-variant)' : 'none',
           borderRadius: 'var(--radius-md)',
           fontFamily: 'inherit',
           fontSize: '15px',
           fontWeight: 700,
-          cursor: 'not-allowed',
-          opacity: 0.85,
+          cursor: cloning ? 'progress' : 'pointer',
+          boxShadow: cloning
+            ? 'none'
+            : '0 2px 0 var(--primary-container, var(--outline))',
         }}
       >
-        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
-          download
+        <span
+          className={`material-symbols-outlined${cloning ? ' community-detail-cta__spinner' : ''}`}
+          aria-hidden
+          style={{ fontSize: '20px' }}
+        >
+          {cloning ? 'progress_activity' : 'download'}
         </span>
-        Clone to your library
+        {cloning ? 'Cloning…' : 'Clone to your library'}
       </button>
       <p
         style={{
@@ -427,9 +489,24 @@ function CloneCTA({
           lineHeight: 1.5,
         }}
       >
-        Cloning lands in the next phase. The preview below shows what
-        you&apos;ll get.
+        Creates a private copy in your library. Progress, streaks, and
+        completion all start fresh.
       </p>
+      {cloneError ? (
+        <p
+          role="alert"
+          style={{
+            margin: '4px 0 0',
+            fontSize: '12px',
+            color: 'var(--error)',
+            maxWidth: '360px',
+            lineHeight: 1.5,
+            fontWeight: 600,
+          }}
+        >
+          {cloneError}
+        </p>
+      ) : null}
     </div>
   );
 }
