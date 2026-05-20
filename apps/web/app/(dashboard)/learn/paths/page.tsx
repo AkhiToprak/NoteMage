@@ -9,6 +9,21 @@ import {
   isSubjectId,
   type SubjectId,
 } from '@/lib/path-subjects';
+import { PublishStatusChip } from '@/components/path-publish/PublishStatusChip';
+import PublishDialog from '@/components/path-publish/PublishDialog';
+import type { SharedPathModerationStatus } from '@notemage/shared';
+
+// Phase 2 of plans/path-publishing-community-library.md — the list
+// endpoint now returns a `publication` companion for every plan so the
+// card can render the chip + Publish/View-status menu items without a
+// second fetch per card. See SerializedPath in lib/path-loader.ts.
+interface PathPublicationSummary {
+  shareId: string;
+  moderationStatus: SharedPathModerationStatus;
+  rejectionReason: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+}
 
 // Phase 10.8 — /learn/paths list page.
 //
@@ -28,6 +43,7 @@ const POLL_INTERVAL_MS = 3000;
 type PathPlanListItem = PathPlan & {
   generationStatus?: string;
   subjects?: string[];
+  publication?: PathPublicationSummary | null;
 };
 
 function primarySubjectOf(plan: PathPlanListItem): SubjectId | null {
@@ -40,6 +56,42 @@ function isInFlight(plan: PathPlanListItem): boolean {
   return status === 'queued' || status === 'generating';
 }
 
+// Path-publishing P2 — non-terminal moderation states the page polls
+// for so the chip can update without a manual refresh.
+const PUBLICATION_IN_FLIGHT: Set<SharedPathModerationStatus> = new Set([
+  'pending',
+  'auditing_l2',
+  'auditing_l3',
+  'flagged_pending_human',
+]);
+
+function hasInFlightPublication(plan: PathPlanListItem): boolean {
+  const pub = plan.publication;
+  if (!pub) return false;
+  return PUBLICATION_IN_FLIGHT.has(pub.moderationStatus);
+}
+
+// Shared style for items inside the kebab menu — keeps Publish, View
+// status, and Delete visually aligned. `color` lets the destructive
+// item ride red.
+function menuItemStyle(color: string): React.CSSProperties {
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '9px 10px',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 'var(--radius-sm)',
+    color,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: '13px',
+    fontWeight: 600,
+    textAlign: 'left',
+  };
+}
+
 export default function LearnPage() {
   const [plans, setPlans] = useState<PathPlanListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +101,9 @@ export default function LearnPage() {
   const [deleteTarget, setDeleteTarget] = useState<PathPlanListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Path-publishing P2 — the plan currently being walked through the
+  // PublishDialog. null = closed; non-null = modal open for this plan.
+  const [publishTarget, setPublishTarget] = useState<PathPlanListItem | null>(null);
 
   // Distinct subjects present across the user's paths. Drives the filter
   // strip — hidden when only one subject (or zero) is in play.
@@ -126,9 +181,23 @@ export default function LearnPage() {
     setDeleteError(null);
   }, [deleting]);
 
+  // Close the publish dialog after a successful submit and refresh so
+  // the card immediately gets the new chip (no UX flicker waiting for
+  // the next poll).
+  const handlePublishComplete = useCallback(() => {
+    setPublishTarget(null);
+    void refresh();
+  }, [refresh]);
+
   useEffect(() => {
     if (!plans) return;
-    const anyInFlight = plans.some(isInFlight);
+    // Two reasons to keep polling: a path is still generating, or a
+    // path has a publication that's still moving through moderation.
+    // Either way, the next refresh swaps the card's chip / state for
+    // the user.
+    const anyInFlight = plans.some(
+      (p) => isInFlight(p) || hasInFlightPublication(p),
+    );
     if (!anyInFlight) {
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
@@ -234,7 +303,12 @@ export default function LearnPage() {
             isInFlight(plan) ? (
               <GeneratingCard key={plan.id} plan={plan} />
             ) : (
-              <PathCard key={plan.id} plan={plan} onRequestDelete={setDeleteTarget} />
+              <PathCard
+                key={plan.id}
+                plan={plan}
+                onRequestDelete={setDeleteTarget}
+                onRequestPublish={setPublishTarget}
+              />
             ),
           )}
         </div>
@@ -249,6 +323,16 @@ export default function LearnPage() {
           error={deleteError}
           onCancel={handleCancelDelete}
           onConfirm={handleConfirmDelete}
+        />
+      ) : null}
+
+      {publishTarget ? (
+        <PublishDialog
+          planId={publishTarget.id}
+          defaultTitle={publishTarget.title}
+          defaultDescription={publishTarget.description}
+          onClose={() => setPublishTarget(null)}
+          onPublished={handlePublishComplete}
         />
       ) : null}
 
@@ -280,9 +364,11 @@ export default function LearnPage() {
 function PathCard({
   plan,
   onRequestDelete,
+  onRequestPublish,
 }: {
   plan: PathPlanListItem;
   onRequestDelete: (plan: PathPlanListItem) => void;
+  onRequestPublish: (plan: PathPlanListItem) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const allSlots = plan.phases.flatMap((p) => p.slots);
@@ -290,6 +376,8 @@ function PathCard({
   const done = allSlots.filter((s) => s.completed).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const primarySubject = primarySubjectOf(plan);
+  const publication = plan.publication ?? null;
+  const canPublish = plan.generationStatus === 'ready' && !publication;
 
   // Close the options menu on any outside click. The kebab's own click
   // stops propagation, so opening the menu never trips this listener.
@@ -360,7 +448,7 @@ function PathCard({
             top: '42px',
             right: '8px',
             zIndex: 1,
-            minWidth: '168px',
+            minWidth: '200px',
             padding: '4px',
             background: 'var(--surface-container-highest)',
             border: '1px solid var(--outline-variant)',
@@ -370,6 +458,40 @@ function PathCard({
             flexDirection: 'column',
           }}
         >
+          {canPublish ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+                onRequestPublish(plan);
+              }}
+              style={menuItemStyle('var(--primary)')}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                rocket_launch
+              </span>
+              Publish to library
+            </button>
+          ) : null}
+          {publication ? (
+            <Link
+              role="menuitem"
+              href={`/learn/paths/${encodeURIComponent(plan.id)}/publication`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+              }}
+              style={{ ...menuItemStyle('var(--on-surface)'), textDecoration: 'none' }}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                fact_check
+              </span>
+              View publication status
+            </Link>
+          ) : null}
           <button
             type="button"
             role="menuitem"
@@ -379,21 +501,7 @@ function PathCard({
               setMenuOpen(false);
               onRequestDelete(plan);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '9px 10px',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--error)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '13px',
-              fontWeight: 600,
-              textAlign: 'left',
-            }}
+            style={menuItemStyle('var(--error)')}
           >
             <span
               className="material-symbols-outlined"
@@ -463,7 +571,19 @@ function PathCard({
         </div>
       </div>
 
-      {primarySubject ? <SubjectChip subject={primarySubject} /> : null}
+      {primarySubject || publication ? (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            alignItems: 'center',
+          }}
+        >
+          {primarySubject ? <SubjectChip subject={primarySubject} /> : null}
+          {publication ? <PublishStatusChip status={publication.moderationStatus} /> : null}
+        </div>
+      ) : null}
 
       <div
         aria-hidden

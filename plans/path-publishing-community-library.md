@@ -125,6 +125,8 @@ Notation: `Pn` = phase `n` build. `PnV` = phase `n` verification gate. Gate **mu
 - Integration: submit → `pending` row exists → manually flip to `approved` via seed → public surface (Phase 8 not built yet, so verify via direct DB read + JSON dump).
 - Manual: status chip renders correctly in dark and light themes; copy is clear in each state.
 
+**P2 status:** Shipped 2026-05-20. New endpoints: `POST /api/learn/paths/[planId]/publish`, `GET /api/learn/paths/[planId]/publication-status`, `DELETE /api/community/paths/[shareId]` (204 no body; auto-dismisses open `Ticket`s; `AdminAuditLog{action:'shared_path.unpublish'}` when an admin force-deletes). Idempotent publish via `SharedPath @@unique([planId])` plus a P2002 race-recovery branch. Author UX wired through: chip on path card + dedicated `/learn/paths/[planId]/publication` page with polling, audit timeline, and two-step Unpublish flow. `path-loader.ts` extended so `SerializedPath` ships a nullable `publication` companion (zero extra round-trips for the list view). Admin-only `seeded` shortcut is silently ignored in P2 — it lands with the moderation pipeline in P3/P7/P11. **P2V signed off 2026-05-20**: `prisma generate` clean, `tsc --noEmit` exit 0 across apps/web, eslint clean on all new files, schema untouched. Pre-existing `react-hooks/set-state-in-effect` baseline on the path list page was not introduced by P2 (verified via `git stash`). P3 may begin.
+
 ---
 
 ### P3 — Moderation Layer 1 (wordlist filter, sync)
