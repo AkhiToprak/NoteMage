@@ -33,6 +33,35 @@ export function safeStr(val: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Translate a path-moderation reasonCode (e.g. "wordlist.en.adult" /
+ * "l2.spam" / "l5.offtopic") into a short human phrase suitable for
+ * a notification line. The raw code stays useful in admin/audit
+ * surfaces; this helper is just for the author-facing strip.
+ */
+export function describeModerationReason(reasonCode: unknown): string {
+  if (typeof reasonCode !== 'string' || reasonCode.length === 0) return 'see review notes';
+  const last = reasonCode.split('.').pop() ?? reasonCode;
+  switch (last) {
+    case 'adult':
+      return 'contains explicit or adult content';
+    case 'hateful':
+      return 'contains hateful language';
+    case 'spam':
+      return 'looks like spam or promotion';
+    case 'copyright':
+      return 'contains piracy or copyright bypass terms';
+    case 'offtopic':
+      return 'looks off-topic for a learning resource';
+    case 'low_quality':
+      return 'was flagged as low quality';
+    case 'other':
+      return 'was flagged by the review pipeline';
+    default:
+      return 'see review notes';
+  }
+}
+
 export function getNotificationText(n: Notification): string {
   const data = n.data && typeof n.data === 'object' ? n.data : {};
   switch (n.type) {
@@ -74,7 +103,7 @@ export function getNotificationText(n: Notification): string {
     case 'path_published':
       return `Your path "${safeStr(data.title, 'Untitled')}" was approved and is live in the community library`;
     case 'path_rejected':
-      return `Your path "${safeStr(data.title, 'Untitled')}" was rejected: ${safeStr(data.reasonCode, 'see review notes')}`;
+      return `Your path "${safeStr(data.title, 'Untitled')}" was rejected — ${describeModerationReason(data.reasonCode)}`;
     case 'path_flagged_for_review':
       return `Your path "${safeStr(data.title, 'Untitled')}" is queued for human review`;
     default:

@@ -30,6 +30,9 @@ const ID = {
     'seedplnsharedpathseed00003',
     'seedplnsharedpathseed00004',
     'seedplnsharedpathseed00005',
+    // P3 — L1-rejected fixture so the wordlist-reject branch of the
+    // publication page is reachable in dev without invoking the API.
+    'seedplnsharedpathseed00006',
   ] as const,
   sharedPaths: {
     pending: 'seedshpsharedpathpending01',
@@ -37,6 +40,8 @@ const ID = {
     flagged: 'seedshpsharedpathflagged1',
     approved: 'seedshpsharedpathapproved',
     rejected: 'seedshpsharedpathrejected',
+    // P3 — terminal-reject at L1 (wordlist) instead of L2.
+    l1Rejected: 'seedshpsharedpathl1reject',
   },
   ticketFlagged: 'seedtktsharedpathflagged1',
 } as const;
@@ -195,6 +200,13 @@ async function main() {
       language: 'en',
       subjects: ['general'],
     }),
+    upsertPlan({
+      id: ID.plans[5],
+      userId: userB.id,
+      title: 'L1 wordlist-reject fixture',
+      language: 'en',
+      subjects: ['general'],
+    }),
   ]);
 
   const now = new Date();
@@ -258,6 +270,22 @@ async function main() {
     rejectionReason: 'l2.offtopic — content did not match a learnable topic',
   });
 
+  // P3 — L1 wordlist-reject fixture. State is terminal-reject and the
+  // ModerationAudit chain stops at layer 1 (no L2 row), mirroring what
+  // runLayer1 produces on a real block hit. The rejection reason is
+  // the copy composeAuthorMessage() generates for the adult category.
+  await upsertSharedPath({
+    id: ID.sharedPaths.l1Rejected,
+    planId: ID.plans[5],
+    sharedById: userB.id,
+    title: 'L1 wordlist-reject fixture',
+    language: 'en',
+    subjects: ['general'],
+    moderationStatus: 'rejected',
+    rejectionReason:
+      'wordlist.en.adult — your published path contains explicit or adult content not allowed in the community library (in: title).',
+  });
+
   // Audit-chain fixtures so the admin dashboard (P6) has data to render.
   // We keep this simple: one L1 pass for every non-pending path, and the
   // appropriate L2/L3 rows for paths that progressed further.
@@ -312,6 +340,15 @@ async function main() {
         reasoning: 'Content did not match a learnable topic.',
         model: 'gemini-2.5-flash',
       },
+      // P3 — L1 reject (wordlist). Chain stops here; no L2 row.
+      // reasoning mirrors composeAuditNotes()'s output shape.
+      {
+        sharedPathId: ID.sharedPaths.l1Rejected,
+        layer: 1,
+        verdict: 'reject',
+        reasonCode: 'wordlist.en.adult',
+        reasoning: 'block:en:fuck:adult@title×1',
+      },
     ],
   });
 
@@ -332,7 +369,7 @@ async function main() {
   console.log('Seeded path-publishing fixtures:');
   console.log(`  users     → admin=${admin.username}, ${userA.username}, ${userB.username}`);
   console.log(`  plans     → ${ID.plans.length}`);
-  console.log(`  paths     → ${Object.keys(ID.sharedPaths).length} (one per state)`);
+  console.log(`  paths     → ${Object.keys(ID.sharedPaths).length} (incl. L1-reject + L2-reject + flagged)`);
   console.log(`  tickets   → 1 open (refers to flagged path)`);
 }
 

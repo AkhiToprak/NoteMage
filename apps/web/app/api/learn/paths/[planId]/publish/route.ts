@@ -4,12 +4,17 @@
 // owns the row lifecycle: create on first call, return existing on retry,
 // 409 if the underlying StudyPlan isn't `ready` yet.
 //
+// Phase 3 extension: after the SharedPath row is persisted in `pending`,
+// L1 (wordlist filter) runs synchronously and transitions the row to
+// either `auditing_l2` (pass) or `rejected` (block hit) per AC-Publish-5
+// and AC-Moderate-2. L2's async hook lands in P4.
+//
 // Per P0 spec §4.1 the seeded-bypass branch (admin + seeded=true →
 // approved directly + pre-translation fan-out) is also part of this
 // endpoint's contract, but the bypass shortcut depends on AdminAuditLog
-// and the P11 fan-out hook — both phased downstream. P2 keeps the
-// admin-only `seeded` flag silently ignored for now; the bypass lands
-// alongside the moderation pipeline in P3/P7/P11.
+// (first-used in P7's admin approve/reject) and the P11 pre-translation
+// fan-out hook. P3 keeps the admin-only `seeded` flag silently ignored
+// for now; the bypass lands in P7/P11.
 //
 // Non-owner → 404 (existence-leak policy, same as the rest of the public
 // surface). Not 403.
@@ -18,6 +23,7 @@ import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { runLayer1 } from '@/lib/moderation/layer1-runner';
 import {
   successResponse,
   unauthorizedResponse,
@@ -149,7 +155,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     } catch (err) {
       // Race with a concurrent publish — the @@unique([planId]) trips
       // P2002. Re-read and return the existing row so the second caller
-      // still gets a useful 200 instead of a 500.
+      // still gets a useful 200 instead of a 500. The existing row
+      // already had L1 run by the racer, so we don't re-run here.
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         const race = await db.sharedPath.findUnique({
           where: { planId },
@@ -174,10 +181,26 @@ export async function POST(request: NextRequest, { params }: Params) {
       throw err;
     }
 
+    // Phase 3 — run L1 wordlist filter synchronously. judgeL1 transitions
+    // the SharedPath state machine + writes the ModerationAudit row + on
+    // reject also writes a Notification, all in one transaction. If L1
+    // itself fails we still return the row in `pending` to the caller —
+    // the path can be re-judged once the bug is fixed, no need to undo
+    // the publish.
+    let postL1Status = created.moderationStatus;
+    let postL1Reason = created.rejectionReason;
+    try {
+      const l1 = await runLayer1(created.id);
+      postL1Status = l1.status;
+      postL1Reason = l1.judgement.rejectionReason;
+    } catch (l1Err) {
+      console.error('[publish] L1 run failed; row stays in pending', l1Err);
+    }
+
     const payload: PublishResponse = {
       shareId: created.id,
-      moderationStatus: created.moderationStatus,
-      rejectionReason: created.rejectionReason,
+      moderationStatus: postL1Status,
+      rejectionReason: postL1Reason,
       createdAt: created.createdAt.toISOString(),
     };
     return successResponse(payload);
