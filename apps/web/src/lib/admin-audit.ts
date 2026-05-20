@@ -8,7 +8,15 @@ export type AdminAction =
   | 'comment.delete'
   | 'community_notebook.delete'
   | 'cosmetic.grant'
-  | 'cosmetic.revoke';
+  | 'cosmetic.revoke'
+  // Path publishing (P1 plan, P7+ surfaces) — moderation outcomes,
+  // unpublish, manual popularity-trigger override, and ticket workflow.
+  | 'shared_path.approve'
+  | 'shared_path.reject'
+  | 'shared_path.unpublish'
+  | 'shared_path.pretranslate_force'
+  | 'ticket.resolve'
+  | 'ticket.assign';
 
 /**
  * Log an admin action for auditing purposes.

@@ -22,6 +22,10 @@ export const NOTIFICATION_ICONS: Record<string, string> = {
   group_message: 'chat',
   dm_message: 'chat_bubble',
   group_content_shared: 'share',
+  // Path-publishing moderation lifecycle (Phase 1 of path-publishing plan).
+  path_published: 'rocket_launch',
+  path_rejected: 'block',
+  path_flagged_for_review: 'hourglass_top',
 };
 
 export function safeStr(val: unknown, fallback: string): string {
@@ -67,6 +71,12 @@ export function getNotificationText(n: Notification): string {
       return `${safeStr(data.senderName, 'Someone')} sent you a message`;
     case 'group_content_shared':
       return `${safeStr(data.sharerName, 'Someone')} shared "${safeStr(data.contentTitle, 'content')}"`;
+    case 'path_published':
+      return `Your path "${safeStr(data.title, 'Untitled')}" was approved and is live in the community library`;
+    case 'path_rejected':
+      return `Your path "${safeStr(data.title, 'Untitled')}" was rejected: ${safeStr(data.reasonCode, 'see review notes')}`;
+    case 'path_flagged_for_review':
+      return `Your path "${safeStr(data.title, 'Untitled')}" is queued for human review`;
     default:
       return 'You have a new notification';
   }
@@ -91,6 +101,13 @@ export function getNotificationLink(n: Notification): string | null {
     case 'dm_message':
     case 'group_content_shared':
       return typeof data.groupId === 'string' ? `/groups/${data.groupId}` : null;
+    case 'path_published':
+      return typeof data.shareId === 'string' ? `/learn/community/${data.shareId}` : null;
+    case 'path_rejected':
+    case 'path_flagged_for_review':
+      // Author needs to land on their own publication-status surface, not
+      // the public listing (which won't show non-approved paths).
+      return typeof data.shareId === 'string' ? `/learn/paths?status=${data.shareId}` : null;
     default:
       return null;
   }

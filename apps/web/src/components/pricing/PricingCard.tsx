@@ -25,6 +25,7 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   scholar_chat: 'Mage Chat messages',
   ai_inline_edit: 'Inline AI editing',
   pdf_import: 'PDF pages',
+  path_translation: 'Path translations',
 };
 
 const FEATURE_ICONS: Record<FeatureType, string> = {
@@ -36,6 +37,7 @@ const FEATURE_ICONS: Record<FeatureType, string> = {
   scholar_chat: 'forum',
   ai_inline_edit: 'auto_fix',
   pdf_import: 'upload_file',
+  path_translation: 'translate',
 };
 
 const ACCENT: Record<

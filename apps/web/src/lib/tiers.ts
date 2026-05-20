@@ -10,7 +10,10 @@ export type FeatureType =
   | 'scholar_chat'
   | 'ai_quizzes'
   | 'ai_inline_edit'
-  | 'pdf_import';
+  | 'pdf_import'
+  // Path-publishing (Phase 1) — counts AI-call (cache-miss) translations of
+  // community paths. FREE is lifetime-capped; PRO is monthly anti-abuse.
+  | 'path_translation';
 
 export interface TierConfig {
   name: string;
@@ -38,6 +41,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       scholar_chat: 50,
       ai_inline_edit: 0,
       pdf_import: 50, // pages, not imports — a one-time lifetime allowance (see LIFETIME_LIMITS)
+      path_translation: 5, // lifetime allowance — see LIFETIME_LIMITS.FREE
     },
     badge: {
       label: 'Free',
@@ -57,6 +61,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       scholar_chat: -1,
       ai_inline_edit: -1,
       pdf_import: 450, // pages per month
+      path_translation: 50, // anti-abuse monthly cap (never shipped as -1)
     },
     badge: {
       label: 'Pro',
@@ -73,7 +78,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
  * rather than read from the current month alone.
  */
 export const LIFETIME_LIMITS: Partial<Record<TierKey, readonly FeatureType[]>> = {
-  FREE: ['pdf_import'],
+  FREE: ['pdf_import', 'path_translation'],
 };
 
 /** True when a tier's limit for a feature is a lifetime budget, not monthly. */
