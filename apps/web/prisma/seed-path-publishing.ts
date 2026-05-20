@@ -44,7 +44,78 @@ const ID = {
     l1Rejected: 'seedshpsharedpathl1reject',
   },
   ticketFlagged: 'seedtktsharedpathflagged1',
+  // P8 — variety set for the community library manual smoke test.
+  // 16 approved fixtures spanning 4 languages × 4 subjects × 3 slot
+  // buckets so the filter matrix + sort modes are exercisable in dev.
+  // Stable cuid-shaped IDs keyed off (language, subject, idx) so the
+  // upsert remains idempotent.
+  librarySetPlanPrefix: 'seedplnlibrary',
+  librarySetSharedPrefix: 'seedshplibrary',
 } as const;
+
+// P8 — community library fixtures. Sixteen approved rows so the
+// /learn/community page has enough variety to manually exercise the
+// subject × language × length matrix + the popular / recent / rating
+// sort modes during the deploy-time walkthrough. Subjects are pulled
+// from `path-subjects.ts` SUBJECT_IDS so the cards group cleanly with
+// the existing subject filter strip. The plan's P8V "Pagination
+// correctness against 100+ fixture rows" gate is covered numerically
+// by the route's vitest suite (see `paths-list.test.ts § pages cleanly
+// across a 100+ row fixture set`) — this seed gives dev/staging real
+// rows for the manual leg, not a 100-row stress fixture.
+const LIBRARY_FIXTURES: Array<{
+  idx: number;
+  language: 'en' | 'de' | 'fr' | 'es';
+  subjects: string[];
+  title: string;
+  phaseCount: number;
+  slotCount: number;
+  downloadCount: number;
+  viewCount: number;
+  ratingAverage: number | null;
+  ratingCount: number;
+  seeded: boolean;
+}> = [
+  // EN — coding (short + medium + long)
+  { idx: 0, language: 'en', subjects: ['coding'], title: 'TypeScript essentials', phaseCount: 3, slotCount: 9, downloadCount: 240, viewCount: 1620, ratingAverage: 4.7, ratingCount: 32, seeded: true },
+  { idx: 1, language: 'en', subjects: ['coding'], title: 'React Server Components in practice', phaseCount: 4, slotCount: 16, downloadCount: 88, viewCount: 540, ratingAverage: 4.4, ratingCount: 14, seeded: false },
+  { idx: 2, language: 'en', subjects: ['coding'], title: 'Compiler design fundamentals', phaseCount: 6, slotCount: 24, downloadCount: 19, viewCount: 220, ratingAverage: null, ratingCount: 0, seeded: false },
+  // EN — math
+  { idx: 3, language: 'en', subjects: ['math'], title: 'Linear algebra refresh', phaseCount: 4, slotCount: 12, downloadCount: 71, viewCount: 480, ratingAverage: 4.6, ratingCount: 9, seeded: false },
+  // EN — language (Spanish for English speakers)
+  { idx: 4, language: 'en', subjects: ['language'], title: 'Spanish A1 — survival kit', phaseCount: 3, slotCount: 9, downloadCount: 412, viewCount: 2310, ratingAverage: 4.8, ratingCount: 56, seeded: true },
+  // DE — coding
+  { idx: 5, language: 'de', subjects: ['coding'], title: 'Python für Einsteiger', phaseCount: 4, slotCount: 12, downloadCount: 156, viewCount: 980, ratingAverage: 4.5, ratingCount: 22, seeded: true },
+  // DE — math
+  { idx: 6, language: 'de', subjects: ['math'], title: 'Analysis I — Kompaktkurs', phaseCount: 5, slotCount: 18, downloadCount: 64, viewCount: 410, ratingAverage: 4.2, ratingCount: 7, seeded: false },
+  // DE — science
+  { idx: 7, language: 'de', subjects: ['science_natural'], title: 'Zellbiologie Schnelldurchlauf', phaseCount: 3, slotCount: 9, downloadCount: 31, viewCount: 220, ratingAverage: 4.0, ratingCount: 5, seeded: false },
+  // DE — history
+  { idx: 8, language: 'de', subjects: ['history_humanities'], title: 'Weimarer Republik', phaseCount: 4, slotCount: 12, downloadCount: 27, viewCount: 195, ratingAverage: null, ratingCount: 0, seeded: false },
+  // DE — language (English for German speakers)
+  { idx: 9, language: 'de', subjects: ['language'], title: 'Englisch B2 — Wirtschaftssprache', phaseCount: 5, slotCount: 19, downloadCount: 49, viewCount: 320, ratingAverage: 4.1, ratingCount: 6, seeded: false },
+  // FR — coding
+  { idx: 10, language: 'fr', subjects: ['coding'], title: 'JavaScript moderne (ES2024)', phaseCount: 3, slotCount: 9, downloadCount: 18, viewCount: 140, ratingAverage: null, ratingCount: 0, seeded: false },
+  // FR — language
+  { idx: 11, language: 'fr', subjects: ['language'], title: 'Allemand A2 — bases solides', phaseCount: 4, slotCount: 12, downloadCount: 22, viewCount: 165, ratingAverage: null, ratingCount: 0, seeded: false },
+  // FR — social studies
+  { idx: 12, language: 'fr', subjects: ['social_studies'], title: 'Droit constitutionnel français', phaseCount: 5, slotCount: 20, downloadCount: 11, viewCount: 90, ratingAverage: null, ratingCount: 0, seeded: false },
+  // ES — language
+  { idx: 13, language: 'es', subjects: ['language'], title: 'Inglés B1 — conversación cotidiana', phaseCount: 4, slotCount: 12, downloadCount: 36, viewCount: 240, ratingAverage: 4.3, ratingCount: 8, seeded: false },
+  // ES — science
+  { idx: 14, language: 'es', subjects: ['science_natural'], title: 'Física básica — mecánica', phaseCount: 3, slotCount: 9, downloadCount: 14, viewCount: 110, ratingAverage: null, ratingCount: 0, seeded: false },
+  // ES — math
+  { idx: 15, language: 'es', subjects: ['math'], title: 'Cálculo diferencial', phaseCount: 5, slotCount: 18, downloadCount: 9, viewCount: 75, ratingAverage: null, ratingCount: 0, seeded: false },
+];
+
+// 26 char IDs to satisfy the cuid-shaped stable-id convention used by
+// the rest of the seed.
+function libraryPlanId(idx: number): string {
+  return `${ID.librarySetPlanPrefix}${String(idx).padStart(2, '0')}plan`;
+}
+function librarySharedId(idx: number): string {
+  return `${ID.librarySetSharedPrefix}${String(idx).padStart(2, '0')}shp`;
+}
 
 async function upsertUser(opts: {
   id: string;
@@ -366,10 +437,69 @@ async function main() {
     },
   });
 
+  // P8 — community library variety set. Cycles ownership across the
+  // three seed users so `filter=mine` lands on a non-empty result when
+  // logged in as either userA, userB, or admin. The approve timestamps
+  // step backwards by `idx` days so the `sort=recent` order is
+  // deterministic across re-runs (newest fixture = idx 0).
+  const libraryOwners = [admin.id, userA.id, userB.id];
+  const baseApprovedAt = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  for (const fx of LIBRARY_FIXTURES) {
+    const ownerId = libraryOwners[fx.idx % libraryOwners.length];
+    const planId = libraryPlanId(fx.idx);
+    const sharedId = librarySharedId(fx.idx);
+    const approvedAt = new Date(baseApprovedAt - fx.idx * ONE_DAY_MS);
+
+    await db.studyPlan.upsert({
+      where: { id: planId },
+      update: {},
+      create: {
+        id: planId,
+        userId: ownerId,
+        title: fx.title,
+        description: `Seed library fixture (${fx.language}, ${fx.subjects[0]})`,
+        startDate: new Date(approvedAt.getTime() - 30 * ONE_DAY_MS),
+        endDate: new Date(approvedAt.getTime() + 30 * ONE_DAY_MS),
+        source: 'manual',
+        generationStatus: 'ready',
+        language: fx.language,
+        subjects: fx.subjects,
+        subjectWeights: fx.subjects.map(() => 1),
+      },
+    });
+
+    await db.sharedPath.upsert({
+      where: { id: sharedId },
+      update: {},
+      create: {
+        id: sharedId,
+        planId,
+        sharedById: ownerId,
+        title: fx.title,
+        description: `A ${fx.language.toUpperCase()} ${fx.subjects[0]} path — ${fx.phaseCount} phases, ${fx.slotCount} checkpoints.`,
+        language: fx.language,
+        subjects: fx.subjects,
+        phaseCount: fx.phaseCount,
+        slotCount: fx.slotCount,
+        moderationStatus: 'approved',
+        seeded: fx.seeded,
+        approvedAt,
+        downloadCount: fx.downloadCount,
+        viewCount: fx.viewCount,
+        ratingAverage: fx.ratingAverage,
+        ratingCount: fx.ratingCount,
+        popularityTriggeredAt: fx.seeded ? approvedAt : null,
+      },
+    });
+  }
+
   console.log('Seeded path-publishing fixtures:');
   console.log(`  users     → admin=${admin.username}, ${userA.username}, ${userB.username}`);
-  console.log(`  plans     → ${ID.plans.length}`);
-  console.log(`  paths     → ${Object.keys(ID.sharedPaths).length} (incl. L1-reject + L2-reject + flagged)`);
+  console.log(`  plans     → ${ID.plans.length} (state machine) + ${LIBRARY_FIXTURES.length} (library)`);
+  console.log(
+    `  paths     → ${Object.keys(ID.sharedPaths).length} (state machine, incl. L1/L2-reject + flagged) + ${LIBRARY_FIXTURES.length} (approved library)`,
+  );
   console.log(`  tickets   → 1 open (refers to flagged path)`);
 }
 

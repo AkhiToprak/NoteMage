@@ -250,31 +250,67 @@ export default function LearnPage() {
             Pick a path to open its checkpoints. Pass a checkpoint to unlock the next phase.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
+        {/* Path-publishing P8 — the library is the front door for the
+            paths-led growth strategy (cf. project_paths_led_growth memory).
+            Surfacing it next to the "New path" CTA keeps it discoverable
+            from the user's own paths surface, where they're most likely
+            to think "what else is out there?". Visually de-emphasised
+            relative to the primary CTA so the create flow still leads. */}
+        <div
           style={{
             flexShrink: 0,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '10px 16px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--primary)',
-            color: 'var(--on-primary)',
-            border: 'none',
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 2px 0 var(--primary-container, var(--outline))',
+            gap: '8px',
           }}
         >
-          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-            add
-          </span>
-          New path
-        </button>
+          <Link
+            href="/learn/community"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--surface-container)',
+              color: 'var(--on-surface)',
+              border: '1px solid var(--outline-variant)',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              explore
+            </span>
+            Browse community
+          </Link>
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--primary)',
+              color: 'var(--on-primary)',
+              border: 'none',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 0 var(--primary-container, var(--outline))',
+            }}
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              add
+            </span>
+            New path
+          </button>
+        </div>
       </header>
 
       {subjectsInUse.length >= 2 && (
