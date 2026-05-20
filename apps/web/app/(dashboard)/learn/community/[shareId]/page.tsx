@@ -2,29 +2,39 @@
 
 // Phase 8 of plans/path-publishing-community-library.md — community
 // path detail / preview surface. Sister to /learn/community (list).
+// Phase 10 of the same plan — language picker chip rail + translated
+// overlay when `?lang=` is requested.
 //
 // What this page renders (per AC-Browse-6):
 //   - Hero: title, author, subjects/language pills, social signals
-//     (clones / views / rating).
+//     (clones / views / rating). Title + description + structure-
+//     preview titles are swapped to the translated overlay whenever a
+//     non-source language is selected.
 //   - Structure preview: phase + checkpoint titles only — no theory /
-//     flashcards / quiz content. Full content lands behind clone (P9)
-//     or translate-then-view (P10).
-//   - Clone CTA: live in P9 — calls POST /api/community/paths/[shareId]/
-//     clone, routes the user to /learn/paths/[planId] on success. The
-//     CTA flips to "Open your copy" when `userClonePlanId` is set so a
-//     re-visit lands the user back on their existing clone.
-//
-// What this page does NOT do (deferred to later phases):
-//   - Rate the path. POST /api/community/paths/[shareId]/rating is
-//     post-P8 (the GET detail endpoint exposes the requester's existing
-//     rating so the UI can display it, but a rating editor is post-P8).
-//   - Translate the path. GET /api/community/paths/[shareId]?lang=… is
-//     P10; the UI offers a language switcher placeholder that says so.
+//     flashcards / quiz content. Full content lands behind clone (P9).
+//   - Language picker chip rail: P10 inline switcher; popular set
+//     (de/en/fr/es/it/tr) plus the source language if not in the set.
+//     Clicking a non-source chip fires GET ?lang=X and polls if the
+//     translation lands in `translating` status (single-flight cache
+//     populates while we wait). 402 / 429 / failed surface inline.
+//   - Clone CTA: P9 — calls POST /api/community/paths/[shareId]/clone,
+//     routes the user to /learn/paths/[planId] on success.
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
+
+// Popular-language set from P0 spec §6 — the languages we keep daily-
+// budget headroom for and that get pre-baked on popular paths. The rail
+// shows these six plus the source language if it isn't already in the
+// set (e.g. a `pt-br` source path adds a 7th chip).
+const POPULAR_LANGUAGES = ['de', 'en', 'fr', 'es', 'it', 'tr'] as const;
+
+// Polling cadence for an in-flight translation. The runner is bounded
+// at ~30s on the server side so the worst case is ≈15 polls before the
+// row flips to `ready` or `failed`.
+const TRANSLATION_POLL_INTERVAL_MS = 2_000;
 
 interface PhasePreview {
   id: string;
@@ -41,7 +51,29 @@ interface SlotPreview {
   sortOrder: number;
 }
 
+interface TranslationPayload {
+  title: string;
+  description: string | null;
+  phases: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    slots: Array<{ id: string; title: string; description: string | null }>;
+  }>;
+}
+
+type TranslationEnvelope =
+  | { status: 'ready'; language: string; payload: TranslationPayload; cachedAt: string }
+  | { status: 'translating'; language: string }
+  | { status: 'failed'; language: string; error: string };
+
 interface DetailResponse {
+  shareId: string;
+  /** The language the response was served in. Equals source.language for
+   *  source-language requests; equals the requested `?lang=` for ready
+   *  cache hits; equals the source on `translating` / `failed`
+   *  responses (the UI still renders source while the overlay loads). */
+  language: string;
   source: {
     shareId: string;
     title: string;
@@ -61,8 +93,28 @@ interface DetailResponse {
     author: { id: string; username: string | null; avatarUrl: string | null };
     phases: PhasePreview[];
   };
+  /** Translation envelope — null when the request was for source
+   *  language. Carries the translated overlay on `ready`, a polling
+   *  hint on `translating`, or the failure reason on `failed`. */
+  translation: TranslationEnvelope | null;
   userRating: number | null;
   userClonePlanId: string | null;
+}
+
+/**
+ * Per-request error from the translation endpoint that the picker
+ * surfaces inline (separate from a "couldn't load the path at all"
+ * error). 402 / 429 / `failed` envelope all land here.
+ */
+interface TranslationUiError {
+  /** Human copy to show in the inline alert. */
+  message: string;
+  /** When true, the chip rail offers an "Upgrade" CTA instead of a
+   *  retry button — used for the FREE-lifetime-exhausted 402 branch. */
+  upgrade?: boolean;
+  /** When true, the chip rail offers a "Try again" button — used for
+   *  rate-limit 429 and `failed` envelope retries. */
+  retry?: boolean;
 }
 
 const SLOT_KIND_LABEL: Record<string, { label: string; icon: string }> = {
@@ -81,36 +133,166 @@ export default function CommunityPathDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!shareId) return;
-    setLoading(true);
-    setError(null);
-    setNotFound(false);
-    try {
-      const res = await fetch(`/api/community/paths/${encodeURIComponent(shareId)}`);
-      if (res.status === 404) {
-        setNotFound(true);
-        setData(null);
-        return;
-      }
-      const json = await res.json();
-      if (json?.success) {
-        setData(json.data as DetailResponse);
-      } else {
-        setError(json?.error ?? 'Could not load this path.');
-        setData(null);
-      }
-    } catch {
-      setError('Network error. Try again.');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [shareId]);
+  // The chip the user clicked — set the instant a request fires so the
+  // rail can highlight it as pending. Cleared on terminal response.
+  const [pendingLanguage, setPendingLanguage] = useState<string | null>(null);
+  // Inline translation-specific error (separate from `error` which is a
+  // "couldn't load the whole path" failure mode). 402 / 429 / `failed`
+  // envelope all land here so the rest of the page stays mounted.
+  const [translationError, setTranslationError] = useState<TranslationUiError | null>(null);
 
+  // Polling guard — each call to `load` bumps this; stale polls (e.g.
+  // the user switched language during a translating-status retry) check
+  // their captured epoch against the ref and bail without setState.
+  const requestEpochRef = useRef(0);
+  // Track an in-flight poll timer so we can clear it on the next click.
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelPoll = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const load = useCallback(
+    async (lang: string | null | undefined, opts?: { silent?: boolean }) => {
+      if (!shareId) return;
+      cancelPoll();
+      const epoch = ++requestEpochRef.current;
+      if (!opts?.silent) {
+        setLoading(true);
+        setError(null);
+        setNotFound(false);
+      }
+      try {
+        const qs = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+        const res = await fetch(
+          `/api/community/paths/${encodeURIComponent(shareId)}${qs}`,
+        );
+        if (epoch !== requestEpochRef.current) return; // stale
+
+        // Translation-specific status codes land outside the normal
+        // `success: true` envelope. The body still carries `error` (and,
+        // for 402, `upgrade: true`).
+        if (res.status === 402) {
+          const json = await res.json().catch(() => null);
+          setTranslationError({
+            message:
+              json?.error ??
+              `You've used your free translations. Upgrade to Pro to translate more paths.`,
+            upgrade: true,
+          });
+          setPendingLanguage(null);
+          if (!opts?.silent) setLoading(false);
+          return;
+        }
+        if (res.status === 429) {
+          const json = await res.json().catch(() => null);
+          setTranslationError({
+            message: json?.error ?? `Try again in a minute.`,
+            retry: true,
+          });
+          setPendingLanguage(null);
+          if (!opts?.silent) setLoading(false);
+          return;
+        }
+        if (res.status === 400) {
+          const json = await res.json().catch(() => null);
+          setTranslationError({
+            message: json?.error ?? `Invalid language.`,
+            retry: false,
+          });
+          setPendingLanguage(null);
+          if (!opts?.silent) setLoading(false);
+          return;
+        }
+        if (res.status === 404) {
+          setNotFound(true);
+          setData(null);
+          setPendingLanguage(null);
+          return;
+        }
+        const json = await res.json().catch(() => null);
+        if (epoch !== requestEpochRef.current) return; // stale
+        if (!json?.success) {
+          setError(json?.error ?? 'Could not load this path.');
+          setData(null);
+          setPendingLanguage(null);
+          return;
+        }
+        const payload = json.data as DetailResponse;
+        setData(payload);
+
+        // Branch on the translation envelope. `ready` → swap view to
+        // translation, clear pending + error. `translating` → keep the
+        // pending highlight and schedule a re-poll. `failed` → surface
+        // the failure inline, clear pending. Null envelope (source-lang
+        // request) → just clear pending.
+        if (payload.translation?.status === 'ready') {
+          setPendingLanguage(null);
+          setTranslationError(null);
+        } else if (payload.translation?.status === 'translating') {
+          // Keep pendingLanguage as-is (the chip stays in loading
+          // state) — re-poll in a couple of seconds.
+          pollTimerRef.current = setTimeout(() => {
+            void load(lang ?? null, { silent: true });
+          }, TRANSLATION_POLL_INTERVAL_MS);
+        } else if (payload.translation?.status === 'failed') {
+          setPendingLanguage(null);
+          setTranslationError({
+            message: `Couldn't translate this path: ${payload.translation.error}`,
+            retry: true,
+          });
+        } else {
+          // Source-language request — no translation envelope expected.
+          setPendingLanguage(null);
+          setTranslationError(null);
+        }
+      } catch {
+        if (epoch !== requestEpochRef.current) return; // stale
+        setError('Network error. Try again.');
+        setData(null);
+        setPendingLanguage(null);
+      } finally {
+        if (epoch === requestEpochRef.current && !opts?.silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [shareId, cancelPoll],
+  );
+
+  // Initial load — source language. Subsequent language clicks re-use
+  // the same loader with a `lang` parameter.
   useEffect(() => {
-    void load();
+    void load(null);
   }, [load]);
+
+  // Tear down any pending poll timer on unmount so we don't setState on
+  // an unmounted tree if the user clicks away mid-translation.
+  useEffect(() => {
+    return () => {
+      cancelPoll();
+    };
+  }, [cancelPoll]);
+
+  const onSelectLanguage = useCallback(
+    (lang: string) => {
+      if (!data) return;
+      // Clicking the currently-displayed language is a no-op — avoids
+      // burning a rate-limit token on a redundant fetch.
+      if (lang === data.language) return;
+      const isSource = lang === data.source.language;
+      setPendingLanguage(lang);
+      setTranslationError(null);
+      // Source-lang click → fetch without `?lang=` so the server
+      // short-circuits and we don't end up routed through the
+      // translation gates accidentally.
+      void load(isSource ? null : lang);
+    },
+    [data, load],
+  );
 
   return (
     <div style={{ maxWidth: '880px', margin: '0 auto', padding: '24px 16px 64px' }}>
@@ -145,9 +327,14 @@ export default function CommunityPathDetailPage() {
       ) : notFound ? (
         <NotFoundPanel />
       ) : error ? (
-        <ErrorPanel error={error} onRetry={() => void load()} />
+        <ErrorPanel error={error} onRetry={() => void load(null)} />
       ) : data ? (
-        <DetailContent data={data} />
+        <DetailContent
+          data={data}
+          pendingLanguage={pendingLanguage}
+          translationError={translationError}
+          onSelectLanguage={onSelectLanguage}
+        />
       ) : null}
 
       <style>{`
@@ -175,17 +362,83 @@ export default function CommunityPathDetailPage() {
         .community-detail-slot:hover {
           background-color: var(--surface-container-high);
         }
+
+        /* Hallmark · component: language-picker · genre: editorial · theme: inherit (NoteMage tokens)
+         * states: default · hover · focus · active · disabled · loading · error · success
+         * contrast: pass (46–50)
+         * pre-emit critique: P5 H4 E5 S4 R5 V4
+         */
+        .community-lang-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: var(--surface-container-high);
+          border: 1px solid var(--outline-variant);
+          color: var(--on-surface);
+          border-radius: var(--radius-full);
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+        .community-lang-chip:not(:disabled):hover {
+          background: var(--surface-container-highest);
+        }
+        .community-lang-chip:focus-visible {
+          outline: 3px solid var(--primary);
+          outline-offset: 2px;
+        }
+        .community-lang-chip:not(:disabled):active {
+          transform: translateY(1px);
+        }
+        .community-lang-chip[aria-pressed="true"] {
+          background: var(--primary);
+          color: var(--on-primary);
+          border-color: var(--primary);
+        }
+        .community-lang-chip[aria-pressed="true"]:not(:disabled):hover {
+          background: var(--primary-dim, var(--primary));
+        }
+        .community-lang-chip[aria-busy="true"] {
+          /* loading state — chip stays clickable visually but cursor
+             flips to progress. The icon swap to progress_activity is
+             what carries the actual "loading" signal. */
+          cursor: progress;
+        }
+        .community-lang-chip:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .community-lang-chip__spinner {
+          animation: community-detail-spin 1s linear infinite;
+          transform-origin: center;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .community-detail-slot { transition: none; }
           .community-detail-cta__spinner { animation: none; }
+          .community-lang-chip__spinner { animation: none; }
         }
       `}</style>
     </div>
   );
 }
 
-function DetailContent({ data }: { data: DetailResponse }) {
-  const { source, userClonePlanId } = data;
+function DetailContent({
+  data,
+  pendingLanguage,
+  translationError,
+  onSelectLanguage,
+}: {
+  data: DetailResponse;
+  pendingLanguage: string | null;
+  translationError: TranslationUiError | null;
+  onSelectLanguage: (lang: string) => void;
+}) {
+  const { source, userClonePlanId, translation } = data;
   const subjectId = useMemo<SubjectId | null>(() => {
     const found = source.subjects.find((s) => isSubjectId(s));
     return found ? (found as SubjectId) : null;
@@ -195,6 +448,27 @@ function DetailContent({ data }: { data: DetailResponse }) {
     source.ratingAverage !== null && source.ratingCount > 0
       ? source.ratingAverage.toFixed(1)
       : null;
+
+  // Translation overlay — when `translation.status === 'ready'` we
+  // swap the user-visible strings (title, description, phase titles,
+  // slot titles + descriptions). Everything structural (IDs, sort
+  // order, slot kinds) stays on the source. Phase / slot lookups go
+  // through Maps keyed on source IDs because the runner re-keys the
+  // overlay by source-id (drift safety — see prompt.ts §
+  // projectTranslationOnto).
+  const overlayPhases = useMemo(() => {
+    if (translation?.status !== 'ready') return null;
+    const map = new Map<string, TranslationPayload['phases'][number]>();
+    for (const p of translation.payload.phases) map.set(p.id, p);
+    return map;
+  }, [translation]);
+
+  const displayTitle =
+    translation?.status === 'ready' ? translation.payload.title : source.title;
+  const displayDescription =
+    translation?.status === 'ready'
+      ? translation.payload.description
+      : source.description;
 
   return (
     <article style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -213,7 +487,7 @@ function DetailContent({ data }: { data: DetailResponse }) {
           {subjectDef ? (
             <Pill icon={subjectDef.icon} label={subjectDef.shortLabel} />
           ) : null}
-          <Pill icon="translate" label={source.language.toUpperCase()} />
+          <Pill icon="translate" label={data.language.toUpperCase()} />
           {source.seeded ? <Pill icon="verified" label="Curated by NoteMage" accent /> : null}
         </div>
 
@@ -229,7 +503,7 @@ function DetailContent({ data }: { data: DetailResponse }) {
             overflowWrap: 'anywhere',
           }}
         >
-          {source.title}
+          {displayTitle}
         </h1>
 
         <p
@@ -252,7 +526,7 @@ function DetailContent({ data }: { data: DetailResponse }) {
           )}
         </p>
 
-        {source.description ? (
+        {displayDescription ? (
           <p
             style={{
               margin: 0,
@@ -262,9 +536,18 @@ function DetailContent({ data }: { data: DetailResponse }) {
               overflowWrap: 'anywhere',
             }}
           >
-            {source.description}
+            {displayDescription}
           </p>
         ) : null}
+
+        <LanguagePicker
+          sourceLanguage={source.language}
+          currentLanguage={data.language}
+          pendingLanguage={pendingLanguage}
+          translation={translation}
+          translationError={translationError}
+          onSelect={onSelectLanguage}
+        />
 
         <dl
           style={{
@@ -346,11 +629,200 @@ function DetailContent({ data }: { data: DetailResponse }) {
           }}
         >
           {source.phases.map((phase, idx) => (
-            <PhasePreviewCard key={phase.id} phase={phase} index={idx} />
+            <PhasePreviewCard
+              key={phase.id}
+              phase={phase}
+              index={idx}
+              overlay={overlayPhases?.get(phase.id) ?? null}
+            />
           ))}
         </ol>
       </section>
     </article>
+  );
+}
+
+function LanguagePicker({
+  sourceLanguage,
+  currentLanguage,
+  pendingLanguage,
+  translation,
+  translationError,
+  onSelect,
+}: {
+  sourceLanguage: string;
+  currentLanguage: string;
+  pendingLanguage: string | null;
+  translation: TranslationEnvelope | null;
+  translationError: TranslationUiError | null;
+  onSelect: (lang: string) => void;
+}) {
+  // Popular set + source language, deduped. The source chip is always
+  // present so the user can flip back to it even when the source isn't
+  // in the popular set (e.g. a Polish path on a UI that doesn't pre-
+  // bake Polish — `pl` is added to the rail).
+  const languages = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const lang of [...POPULAR_LANGUAGES, sourceLanguage]) {
+      if (!seen.has(lang)) {
+        seen.add(lang);
+        out.push(lang);
+      }
+    }
+    return out;
+  }, [sourceLanguage]);
+
+  // A click is in flight whenever EITHER (a) we have a pending chip
+  // selection OR (b) the server told us the row is still translating
+  // (pending may already be cleared by then, but the row is still
+  // populating so we should keep the rail disabled to avoid stacking
+  // requests).
+  const requestInFlight =
+    pendingLanguage !== null || translation?.status === 'translating';
+
+  return (
+    <div
+      role="group"
+      aria-label="Translate path"
+      style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span
+          className="material-symbols-outlined"
+          aria-hidden
+          style={{ fontSize: '16px', color: 'var(--on-surface-variant)' }}
+        >
+          translate
+        </span>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          Read in
+        </span>
+        <ul
+          style={{
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+          }}
+        >
+          {languages.map((lang) => {
+            const isCurrent = lang === currentLanguage;
+            const isPending = lang === pendingLanguage;
+            const isLoading =
+              isPending ||
+              (translation?.status === 'translating' && translation.language === lang);
+            // Disable every other chip while a request is in flight so
+            // the user can't queue up a second translation. The chip
+            // they clicked stays clickable visually but is `aria-busy`.
+            const disabled = requestInFlight && !isLoading;
+            const isSource = lang === sourceLanguage;
+            return (
+              <li key={lang}>
+                <button
+                  type="button"
+                  className="community-lang-chip"
+                  aria-pressed={isCurrent}
+                  aria-busy={isLoading}
+                  aria-label={`Read in ${lang.toUpperCase()}${isSource ? ' (source)' : ''}`}
+                  disabled={disabled}
+                  onClick={() => onSelect(lang)}
+                >
+                  {isLoading ? (
+                    <span
+                      className="material-symbols-outlined community-lang-chip__spinner"
+                      aria-hidden
+                      style={{ fontSize: '14px' }}
+                    >
+                      progress_activity
+                    </span>
+                  ) : isSource ? (
+                    <span
+                      className="material-symbols-outlined"
+                      aria-hidden
+                      style={{ fontSize: '14px' }}
+                    >
+                      home
+                    </span>
+                  ) : null}
+                  {lang.toUpperCase()}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {translation?.status === 'translating' ? (
+        <p
+          style={{
+            margin: 0,
+            fontSize: '12px',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          Translating into {translation.language.toUpperCase()}… this usually takes
+          a few seconds.
+        </p>
+      ) : null}
+
+      {translationError ? (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            padding: '8px 10px',
+            background: 'var(--surface-container-low)',
+            border: '1px solid var(--error)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: '16px', color: 'var(--error)', flexShrink: 0, marginTop: '1px' }}
+          >
+            error
+          </span>
+          <p
+            style={{
+              margin: 0,
+              fontSize: '12px',
+              color: 'var(--on-surface)',
+              lineHeight: 1.5,
+              fontWeight: 600,
+              flex: 1,
+            }}
+          >
+            {translationError.message}
+            {translationError.upgrade ? (
+              <>
+                {' '}
+                <Link
+                  href="/pricing"
+                  style={{ color: 'var(--primary)', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  See Pro plans →
+                </Link>
+              </>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -511,7 +983,27 @@ function CloneCTA({
   );
 }
 
-function PhasePreviewCard({ phase, index }: { phase: PhasePreview; index: number }) {
+function PhasePreviewCard({
+  phase,
+  index,
+  overlay,
+}: {
+  phase: PhasePreview;
+  index: number;
+  overlay: TranslationPayload['phases'][number] | null;
+}) {
+  // Build a slot-overlay map keyed on source slot ID so dropped IDs in
+  // the model output fall through to the source title (no per-slot
+  // diff logic in the render path).
+  const overlaySlots = useMemo(() => {
+    if (!overlay) return null;
+    const m = new Map<string, { id: string; title: string; description: string | null }>();
+    for (const s of overlay.slots) m.set(s.id, s);
+    return m;
+  }, [overlay]);
+
+  const displayPhaseTitle = overlay ? overlay.title : phase.title;
+
   return (
     <li
       style={{
@@ -556,7 +1048,7 @@ function PhasePreviewCard({ phase, index }: { phase: PhasePreview; index: number
             minWidth: 0,
           }}
         >
-          {phase.title}
+          {displayPhaseTitle}
         </h3>
       </div>
       <ol
@@ -570,7 +1062,11 @@ function PhasePreviewCard({ phase, index }: { phase: PhasePreview; index: number
         }}
       >
         {phase.slots.map((slot) => (
-          <SlotPreviewRow key={slot.id} slot={slot} />
+          <SlotPreviewRow
+            key={slot.id}
+            slot={slot}
+            overlay={overlaySlots?.get(slot.id) ?? null}
+          />
         ))}
         {phase.slots.length === 0 ? (
           <li style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
@@ -582,8 +1078,15 @@ function PhasePreviewCard({ phase, index }: { phase: PhasePreview; index: number
   );
 }
 
-function SlotPreviewRow({ slot }: { slot: SlotPreview }) {
+function SlotPreviewRow({
+  slot,
+  overlay,
+}: {
+  slot: SlotPreview;
+  overlay: { id: string; title: string; description: string | null } | null;
+}) {
   const meta = SLOT_KIND_LABEL[slot.kind] ?? { label: slot.kind, icon: 'check_circle' };
+  const displayTitle = overlay ? overlay.title : slot.title;
   return (
     <li
       className="community-detail-slot"
@@ -617,7 +1120,7 @@ function SlotPreviewRow({ slot }: { slot: SlotPreview }) {
           minWidth: 0,
         }}
       >
-        {slot.title}
+        {displayTitle}
       </span>
       <span
         style={{
