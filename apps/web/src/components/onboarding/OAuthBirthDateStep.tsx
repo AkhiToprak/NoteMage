@@ -57,12 +57,22 @@ export default function OAuthBirthDateStep({
             cursor: disabled ? 'not-allowed' : 'pointer',
           }}
         >
-          I agree to the{' '}
-          <a href="#" style={{ color: '#b9c3ff', textDecoration: 'none' }}>
+          I have read and accept the{' '}
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#b9c3ff', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+          >
             Terms of Service
           </a>{' '}
           and{' '}
-          <a href="#" style={{ color: '#b9c3ff', textDecoration: 'none' }}>
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#b9c3ff', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+          >
             Privacy Policy
           </a>
           .

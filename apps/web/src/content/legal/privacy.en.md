@@ -16,8 +16,8 @@ For full provider details, see our [Legal Notice](/legal).
 
 ## What data we collect
 
-- **Account data** — your email address and name, and an identifier from your sign-in provider if you log in with Google, Apple, or Microsoft.
-- **Your content** — the notes, canvas drawings, flashcards, quizzes, study material, and files (such as PDFs or imported OneNote pages) you create or upload.
+- **Account data** — your email address and name, and an identifier from your sign-in provider if you log in with Google.
+- **Your content** — the notes, canvas drawings, flashcards, quizzes, study material, and files (such as PDFs) you create or upload.
 - **Usage and technical data** — basic logs about how the Service is used, plus technical information such as device and browser type and IP address, used for security and to keep the Service working.
 - **Payment data** — when you buy Pro, our payment provider (Paddle) collects and processes your payment details. We do **not** receive or store your full card number; we receive limited billing information (such as confirmation of payment, country, and the last digits of a card) needed to manage your subscription.
 - **Analytics data** — only if you consent (see *Analytics*).
@@ -55,10 +55,7 @@ We use a small set of trusted providers ("processors", or for payments our Merch
 | Google | AI generation (Gemini, optional), video recommendations, Google sign-in | US / global |
 | Paddle | Payments & Merchant of Record | UK / EU |
 | PostHog (opt-in) | Product analytics | EU |
-| Sentry | Error and crash monitoring | US |
 | Resend | Transactional and account emails | US |
-| Apple | "Sign in with Apple" (optional) | US |
-| Microsoft | OneNote import (optional) | US / EU |
 | Hosting provider | Running the application | Germany (EU) |
 
 We may also disclose data where required by law or to protect our rights, our users, or the Service. We do not sell your personal data.
