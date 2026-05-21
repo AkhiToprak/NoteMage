@@ -271,9 +271,10 @@ function StatTile({
             fontFamily: 'var(--font-display)',
             fontSize: 28,
             fontWeight: 700,
-            color: accent === 'warning' ? 'var(--tertiary-container)' : 'var(--on-surface)',
+            color: accent === 'warning' ? 'var(--warning)' : 'var(--on-surface)',
             letterSpacing: '-0.01em',
             lineHeight: 1.1,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {value}

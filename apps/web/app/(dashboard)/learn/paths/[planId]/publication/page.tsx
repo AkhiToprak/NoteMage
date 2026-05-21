@@ -598,10 +598,10 @@ function ProgressRail({ status }: { status: SharedPathModerationStatus }) {
           let labelColor: string = 'var(--on-surface-variant)';
           if (reached) {
             if (isOutcome) {
-              markerColor = isRejected ? 'var(--error)' : '#48ca9a';
-              labelColor = isRejected ? 'var(--error)' : '#2f9a72';
+              markerColor = isRejected ? 'var(--error)' : 'var(--success)';
+              labelColor = isRejected ? 'var(--error)' : 'var(--success)';
             } else {
-              markerColor = isPassed ? '#48ca9a' : 'var(--primary)';
+              markerColor = isPassed ? 'var(--success)' : 'var(--primary)';
               labelColor = 'var(--on-surface)';
             }
           }
@@ -631,7 +631,7 @@ function ProgressRail({ status }: { status: SharedPathModerationStatus }) {
                       left: '13px',
                       right: '-8px',
                       height: '1px',
-                      background: isPassed ? '#48ca9a' : 'var(--outline-variant)',
+                      background: isPassed ? 'var(--success)' : 'var(--outline-variant)',
                     }}
                   />
                 ) : null}
@@ -945,13 +945,13 @@ function VerdictPill({ verdict }: { verdict: ModerationVerdict }) {
 
 function verdictColorFor(v: ModerationVerdict): { bg: string; border: string; fg: string } {
   if (v === 'pass') {
-    return { bg: 'rgba(72,202,154,0.12)', border: 'rgba(72,202,154,0.40)', fg: '#2f9a72' };
+    return { bg: 'rgba(72,202,154,0.12)', border: 'rgba(72,202,154,0.40)', fg: 'var(--success)' };
   }
   if (v === 'reject' || v === 'auto_reject') {
     return { bg: 'rgba(253,111,133,0.12)', border: 'rgba(253,111,133,0.40)', fg: 'var(--error)' };
   }
   if (v === 'flag' || v === 'escalate_to_human') {
-    return { bg: 'rgba(255,167,38,0.12)', border: 'rgba(255,167,38,0.40)', fg: '#d98e25' };
+    return { bg: 'rgba(255,167,38,0.12)', border: 'rgba(255,167,38,0.40)', fg: 'var(--warning)' };
   }
   return {
     bg: 'var(--surface-container-high)',

@@ -413,7 +413,7 @@ export default function LearnPage() {
           to { transform: rotate(360deg); }
         }
         .learn-paths-card {
-          transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .learn-paths-card:hover {
           transform: translateY(-2px);

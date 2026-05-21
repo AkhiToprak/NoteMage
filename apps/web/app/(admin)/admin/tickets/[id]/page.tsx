@@ -452,6 +452,7 @@ function Stat({ label, value }: { label: string; value: string }) {
           fontWeight: 600,
           margin: 0,
           color: 'var(--on-surface)',
+          fontVariantNumeric: 'tabular-nums',
         }}
       >
         {value}
@@ -608,6 +609,7 @@ function Meta({ label, value, mono = false }: { label: string; value: string; mo
           fontSize: 12,
           color: 'var(--on-surface)',
           fontFamily: mono ? 'var(--font-jetbrains), ui-monospace, monospace' : undefined,
+          fontVariantNumeric: 'tabular-nums',
         }}
       >
         {value}

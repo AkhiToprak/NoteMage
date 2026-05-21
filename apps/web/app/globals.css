@@ -44,6 +44,12 @@
   --on-error: #7c0020;
   --on-error-container: #ffcad0;
 
+  /* Verdict / status accents — moderation rail + chips. Used as marker
+     backgrounds AND as label text; the [data-theme='light'] overrides below
+     darken them so they keep contrast on near-white surfaces. */
+  --success: #48ca9a;
+  --warning: #ffa726;
+
   /* Surface — navy palette (restored). Dashboard/profile cards inline-style
      `background: var(--surface-container)` etc; these resolve to navy in dark
      mode and to the [data-theme='light'] override values below in light mode. */
@@ -184,6 +190,12 @@
   /* Outlines — strong enough that dividers and borders are obvious. */
   --outline: #4a4a66;
   --outline-variant: #b8b8c4;
+
+  /* Verdict / status accents — darkened so green/amber/yellow labels keep
+     AA contrast on near-white (the bright dark-mode values would be
+     light-on-light). */
+  --success: #1f7a54;
+  --warning: #8a5a00;
 
   /* Notebook surface tokens — pure-white paper, near-black ink. */
   --notebook-page: #ffffff;

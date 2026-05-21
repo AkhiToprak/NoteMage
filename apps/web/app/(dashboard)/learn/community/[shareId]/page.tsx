@@ -183,10 +183,11 @@ export default function CommunityPathDetailPage() {
         // for 402, `upgrade: true`).
         if (res.status === 402) {
           const json = await res.json().catch(() => null);
+          if (epoch !== requestEpochRef.current) return; // stale
           setTranslationError({
             message:
               json?.error ??
-              `You've used your free translations. Upgrade to Pro to translate more paths.`,
+              `You’ve used your free translations. Upgrade to Pro to translate more paths.`,
             upgrade: true,
           });
           setPendingLanguage(null);
@@ -195,6 +196,7 @@ export default function CommunityPathDetailPage() {
         }
         if (res.status === 429) {
           const json = await res.json().catch(() => null);
+          if (epoch !== requestEpochRef.current) return; // stale
           setTranslationError({
             message: json?.error ?? `Try again in a minute.`,
             retry: true,
@@ -205,6 +207,7 @@ export default function CommunityPathDetailPage() {
         }
         if (res.status === 400) {
           const json = await res.json().catch(() => null);
+          if (epoch !== requestEpochRef.current) return; // stale
           setTranslationError({
             message: json?.error ?? `Invalid language.`,
             retry: false,
@@ -247,7 +250,7 @@ export default function CommunityPathDetailPage() {
         } else if (payload.translation?.status === 'failed') {
           setPendingLanguage(null);
           setTranslationError({
-            message: `Couldn't translate this path: ${payload.translation.error}`,
+            message: `Couldn’t translate this path: ${payload.translation.error}`,
             retry: true,
           });
         } else {
@@ -1714,7 +1717,7 @@ function Pill({
         alignItems: 'center',
         gap: '4px',
         padding: '4px 10px',
-        borderRadius: '999px',
+        borderRadius: 'var(--radius-full)',
         background: accent ? 'rgba(174,137,255,0.12)' : 'var(--surface-container-high)',
         border: `1px solid ${accent ? 'rgba(174,137,255,0.32)' : 'var(--outline-variant)'}`,
         color: accent ? 'var(--primary)' : 'var(--on-surface-variant)',

@@ -107,6 +107,10 @@ export default function CommunityLibraryPage() {
 
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirrors the live `searchInput` so the filter-change effect can flush the
+  // pending search debounce WITHOUT taking `searchInput` as a dependency
+  // (which would re-run that effect — and reset the page — every keystroke).
+  const searchInputRef = useRef(searchInput);
 
   // Debounced search — typing in the input updates `searchInput` every
   // keystroke (so the box stays responsive); the committed `search`
@@ -114,6 +118,7 @@ export default function CommunityLibraryPage() {
   // don't fire a query per character. Same shape as useSearch's
   // existing debounce.
   useEffect(() => {
+    searchInputRef.current = searchInput;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setSearch(searchInput.trim());
@@ -128,6 +133,14 @@ export default function CommunityLibraryPage() {
   // page 7 of one filter set and then flipping subjects to a smaller
   // result set would otherwise land on an empty page.
   useEffect(() => {
+    // Flush any pending search debounce so the filter change commits the
+    // current input in the SAME render cycle — otherwise the trailing
+    // debounce fires a second fetch ~300ms later, showing results for the
+    // {new filter, old search} pair in between. Reading the ref avoids a
+    // `searchInput` dep that would re-run this (and reset the page) on
+    // every keystroke.
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSearch(searchInputRef.current.trim());
     setPage(1);
   }, [filter, sort, subject, language, slotRange]);
 
@@ -352,7 +365,7 @@ export default function CommunityLibraryPage() {
       <style>{`
         .community-path-card {
           transition:
-            transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+            transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
             border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .community-path-card:hover {
@@ -613,7 +626,7 @@ function FilterChipRow<T extends string | null>({
               alignItems: 'center',
               gap: '6px',
               padding: '6px 12px',
-              borderRadius: '999px',
+              borderRadius: 'var(--radius-full)',
               background: active ? 'var(--primary)' : 'var(--surface-container)',
               color: active ? 'var(--on-primary)' : 'var(--on-surface-variant)',
               border: `1px solid ${active ? 'var(--primary)' : 'var(--outline-variant)'}`,
@@ -927,7 +940,7 @@ function Pill({
         alignItems: 'center',
         gap: '4px',
         padding: '3px 8px',
-        borderRadius: '999px',
+        borderRadius: 'var(--radius-full)',
         background: accent ? 'rgba(174,137,255,0.12)' : 'var(--surface-container-high)',
         border: `1px solid ${accent ? 'rgba(174,137,255,0.32)' : 'var(--outline-variant)'}`,
         color: accent ? 'var(--primary)' : 'var(--on-surface-variant)',
@@ -1008,7 +1021,7 @@ function EmptyState({ filter, search }: { filter: FilterMode; search: string }) 
         }}
       >
         {filter === 'mine'
-          ? "You haven't shared any approved paths yet"
+          ? "You haven’t shared any approved paths yet"
           : search
             ? 'No paths match your search'
             : 'No paths match these filters'}

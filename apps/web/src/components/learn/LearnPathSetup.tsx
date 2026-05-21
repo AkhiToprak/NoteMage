@@ -2372,7 +2372,7 @@ function UltraToggle({
                 borderRadius: 'var(--radius-full)',
                 background: 'rgba(255, 222, 89, 0.14)',
                 border: '1px solid rgba(255, 222, 89, 0.32)',
-                color: '#ffde59',
+                color: 'var(--warning)',
                 fontSize: '10px',
                 fontWeight: 700,
                 textTransform: 'uppercase',
