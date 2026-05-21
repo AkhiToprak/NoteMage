@@ -14,9 +14,23 @@
 // rows carry social signals; private-path rows carry progress bars.
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SUBJECT_REGISTRY, SUBJECT_IDS, isSubjectId, type SubjectId } from '@/lib/path-subjects';
-import { PATH_LANGUAGES } from '@/lib/path-languages';
+import {
+  PATH_LANGUAGES,
+  POPULAR_PATH_LANGUAGE_CODES,
+  type PathLanguageCode,
+} from '@/lib/path-languages';
+
+// Popular languages render as chips (the eagerly pre-translated set); every
+// other supported language lives in the "More…" dropdown beside them.
+const POPULAR_LANGUAGE_OPTIONS = PATH_LANGUAGES.filter((l) =>
+  POPULAR_PATH_LANGUAGE_CODES.includes(l.code),
+).map((l) => ({ value: l.code as string, label: l.endonym, icon: 'translate' }));
+
+const OTHER_LANGUAGES = PATH_LANGUAGES.filter(
+  (l) => !POPULAR_PATH_LANGUAGE_CODES.includes(l.code),
+);
 
 // Slot-range presets keep the filter strip honest — most learners think
 // in "quick / serious / long-haul" not in slot counts. The API accepts
@@ -289,7 +303,16 @@ export default function CommunityLibraryPage() {
           onChange={(v) => setSubject(typeof v === 'string' && isSubjectId(v) ? v : null)}
         />
 
-        <LanguageDropdown value={language} onChange={setLanguage} />
+        <FilterChipRow
+          label="Language"
+          options={[
+            { value: null, label: 'Any language', icon: 'language' },
+            ...POPULAR_LANGUAGE_OPTIONS,
+          ]}
+          value={language}
+          onChange={(v) => setLanguage(typeof v === 'string' ? v : null)}
+          trailing={<LanguageMoreDropdown value={language} onChange={setLanguage} />}
+        />
 
         <FilterChipRow
           label="Length"
@@ -553,78 +576,71 @@ function SortDropdown({
   );
 }
 
-// Language filter — a dropdown (not chips) so the full supported set
-// stays scannable without overflowing the filter strip. Mirrors the
-// chip rows' label rhythm so it sits cleanly beside Subject / Length.
-function LanguageDropdown({
+// The long-tail (non-popular) languages live in this "More…" dropdown so
+// the chip row stays compact. When one is active the control highlights
+// like an active chip; switching back to a popular language or "Any" is
+// done via the chips (the dropdown is purely additive).
+function LanguageMoreDropdown({
   value,
   onChange,
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
 }) {
+  const isOther =
+    value != null && !POPULAR_PATH_LANGUAGE_CODES.includes(value as PathLanguageCode);
   return (
-    <div
-      role="group"
-      aria-label="Language"
-      style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}
+    <label
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        background: isOther ? 'var(--primary)' : 'var(--surface-container)',
+        border: `1px solid ${isOther ? 'var(--primary)' : 'var(--outline-variant)'}`,
+        borderRadius: 'var(--radius-full)',
+        padding: '0 8px 0 10px',
+        maxWidth: '100%',
+      }}
     >
       <span
+        className="material-symbols-outlined"
+        aria-hidden
         style={{
-          fontSize: '11px',
-          fontWeight: 700,
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-          color: 'var(--on-surface-variant)',
-          minWidth: '70px',
+          fontSize: '16px',
+          color: isOther ? 'var(--on-primary)' : 'var(--on-surface-variant)',
         }}
       >
-        Language
+        more_horiz
       </span>
-      <label
+      <select
+        value={isOther ? (value as string) : ''}
+        onChange={(e) => {
+          // Additive only — picking a language sets it; selecting the
+          // placeholder is a no-op (clear via the "Any language" chip).
+          if (e.target.value) onChange(e.target.value);
+        }}
+        aria-label="More languages"
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'var(--surface-container)',
-          border: '1px solid var(--outline-variant)',
-          borderRadius: 'var(--radius-md)',
-          padding: '0 12px',
-          maxWidth: '100%',
+          background: 'transparent',
+          border: 'none',
+          color: isOther ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+          fontFamily: 'inherit',
+          fontSize: '12px',
+          fontWeight: 700,
+          letterSpacing: '0.02em',
+          padding: '7px 0',
+          cursor: 'pointer',
+          maxWidth: '150px',
         }}
       >
-        <span
-          className="material-symbols-outlined"
-          aria-hidden
-          style={{ fontSize: '18px', color: 'var(--on-surface-variant)' }}
-        >
-          translate
-        </span>
-        <select
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value || null)}
-          aria-label="Filter by language"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--on-surface)',
-            fontFamily: 'inherit',
-            fontSize: '13px',
-            fontWeight: 700,
-            padding: '8px 0',
-            cursor: 'pointer',
-            maxWidth: '100%',
-          }}
-        >
-          <option value="">Any language</option>
-          {PATH_LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.label} ({l.endonym})
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
+        <option value="">More…</option>
+        {OTHER_LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code}>
+            {l.label} ({l.endonym})
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -633,11 +649,15 @@ function FilterChipRow<T extends string | null>({
   options,
   value,
   onChange,
+  trailing,
 }: {
   label: string;
   options: Array<{ value: T; label: string; icon: string }>;
   value: T;
   onChange: (v: T) => void;
+  /** Optional control rendered after the chips, inside the same row (e.g.
+   *  the language "More…" dropdown for the long-tail languages). */
+  trailing?: ReactNode;
 }) {
   return (
     <div
@@ -695,6 +715,7 @@ function FilterChipRow<T extends string | null>({
           </button>
         );
       })}
+      {trailing}
     </div>
   );
 }

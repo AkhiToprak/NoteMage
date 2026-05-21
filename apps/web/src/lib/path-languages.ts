@@ -56,6 +56,20 @@ export type PathLanguageCode = (typeof PATH_LANGUAGES)[number]['code'];
 
 export const DEFAULT_PATH_LANGUAGE: PathLanguageCode = 'en';
 
+/**
+ * The eagerly pre-translated popular set (matches the `POPULAR_LANGUAGES`
+ * env default). The community filter renders these as chips; the remaining
+ * languages live in a "More…" dropdown beside them.
+ */
+export const POPULAR_PATH_LANGUAGE_CODES: readonly PathLanguageCode[] = [
+  'en',
+  'de',
+  'fr',
+  'es',
+  'it',
+  'tr',
+];
+
 const CODES = new Set<string>(PATH_LANGUAGES.map((l) => l.code));
 
 /** Type guard — true only for a supported, exact lowercase code. */
