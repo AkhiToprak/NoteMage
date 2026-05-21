@@ -26,7 +26,7 @@ export default function PricingPage() {
       style={{
         position: 'relative',
         isolation: 'isolate',
-        background: '#000000',
+        background: '#0c0a1a',
         color: 'var(--on-surface)',
         minHeight: '100vh',
         overflowX: 'hidden',

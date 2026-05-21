@@ -11,7 +11,6 @@ interface Tool {
   title: string;
   description: string;
   accent: string;
-  placeholder: string;
   docsHref: string;
 }
 
@@ -23,7 +22,6 @@ const tools: Tool[] = [
     description:
       'Generate a deck from any page in seconds. Hints, explanations, and image support built in.',
     accent: '#ae89ff',
-    placeholder: 'https://placehold.co/620x400/161630/ae89ff/png?text=Flashcards',
     docsHref: '/docs/flashcards',
   },
   {
@@ -33,7 +31,6 @@ const tools: Tool[] = [
     description:
       'Multiple choice with hints, explanations, and attempt history. Perfect for exam week.',
     accent: '#ffde59',
-    placeholder: 'https://placehold.co/620x400/14122c/ffde59/png?text=Quizzes',
     docsHref: '/docs/quizzes',
   },
   {
@@ -42,7 +39,6 @@ const tools: Tool[] = [
     title: 'Slides (.pptx)',
     description: 'Turn any set of pages into polished PowerPoint slides — ready to present.',
     accent: '#b9c3ff',
-    placeholder: 'https://placehold.co/620x400/12102a/b9c3ff/png?text=Slides',
     docsHref: '/docs/presentations',
   },
   {
@@ -51,7 +47,6 @@ const tools: Tool[] = [
     title: 'Mind maps',
     description: 'Hierarchies and connections auto-rendered from your notes via markmap.',
     accent: '#8ce5a7',
-    placeholder: 'https://placehold.co/620x400/0f0d24/8ce5a7/png?text=Mind+Maps',
     docsHref: '/docs/mind-maps',
   },
   {
@@ -60,7 +55,6 @@ const tools: Tool[] = [
     title: 'Exam countdown',
     description: 'Add exams, get daily goals, and watch a countdown that keeps you moving.',
     accent: '#fd6f85',
-    placeholder: 'https://placehold.co/620x400/1a1030/fd6f85/png?text=Countdown',
     docsHref: '/docs/exams-and-timers#exams',
   },
   {
@@ -70,7 +64,6 @@ const tools: Tool[] = [
     description:
       'Build a daily streak, rack up achievements, and unlock cosmetics for your profile.',
     accent: '#c9a6ff',
-    placeholder: 'https://placehold.co/620x400/160f2c/c9a6ff/png?text=Streaks',
     docsHref: '/docs/xp-streaks-achievements',
   },
   {
@@ -80,7 +73,6 @@ const tools: Tool[] = [
     description:
       '25-minute sprints with built-in breaks. Stay locked in without leaving your notebook.',
     accent: '#ff9566',
-    placeholder: 'https://placehold.co/620x400/1a1025/ff9566/png?text=Pomodoro',
     docsHref: '/docs/exams-and-timers#pomodoro',
   },
 ];
@@ -141,7 +133,7 @@ export default function LearningToolsCarousel() {
         aria-roledescription="carousel"
         aria-label="Learning tools"
       >
-        <div style={{ display: 'flex', gap: 24 }}>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'stretch' }}>
           {tools.map((t, i) => (
             <div
               key={t.title}
@@ -149,9 +141,10 @@ export default function LearningToolsCarousel() {
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${tools.length}: ${t.title}`}
               style={{
-                flex: '0 0 360px',
-                maxWidth: 360,
+                flex: '0 0 340px',
+                maxWidth: 340,
                 minWidth: 0,
+                display: 'flex',
               }}
               className="tool-slide"
             >
@@ -243,6 +236,7 @@ export default function LearningToolsCarousel() {
         @media (max-width: 639px) {
           .tool-slide {
             flex: 0 0 88% !important;
+            max-width: 88% !important;
           }
         }
       `}</style>
@@ -255,14 +249,18 @@ function ToolCard({ tool }: { tool: Tool }) {
     <div
       style={{
         position: 'relative',
+        width: '100%',
         borderRadius: 'var(--radius-xl)',
         background: '#16142c',
         border: `1px solid ${tool.accent}44`,
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 28,
+        minHeight: 280,
         transition:
           'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
         boxShadow: '0 24px 60px rgba(140, 82, 255, 0.08), 0 8px 24px rgba(0,0,0,0.35)',
-        cursor: 'pointer',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-6px)';
@@ -276,142 +274,117 @@ function ToolCard({ tool }: { tool: Tool }) {
         e.currentTarget.style.borderColor = `${tool.accent}44`;
       }}
     >
-      {/* Header preview */}
+      {/* Icon */}
       <div
         style={{
-          position: 'relative',
-          aspectRatio: '5 / 3',
-          background: '#181732',
-          overflow: 'hidden',
-          borderBottom: `1px solid ${tool.accent}22`,
+          width: 52,
+          height: 52,
+          borderRadius: 'var(--radius-md)',
+          background: `${tool.accent}14`,
+          border: `1px solid ${tool.accent}44`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 22,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={tool.placeholder}
-          alt={`${tool.title} preview`}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
-        {/* Icon badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            width: 44,
-            height: 44,
-            borderRadius: 'var(--radius-md)',
-            background: '#000000',
-            border: `1px solid ${tool.accent}66`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: `0 4px 16px ${tool.accent}33`,
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: tool.accent }}>
-            {tool.icon}
-          </span>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: 24 }}>
-        <span
-          style={{
-            display: 'inline-block',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-full)',
-            background: `${tool.accent}14`,
-            border: `1px solid ${tool.accent}33`,
-            fontFamily: 'var(--font-brand)',
-            fontSize: 10,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: tool.accent,
-            fontWeight: 600,
-            marginBottom: 14,
-          }}
-        >
-          {tool.tag}
+        <span className="material-symbols-outlined" style={{ fontSize: 26, color: tool.accent }}>
+          {tool.icon}
         </span>
-        <h3
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 24,
-            lineHeight: 1.15,
-            letterSpacing: '-0.02em',
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            margin: '0 0 10px 0',
-          }}
-        >
-          {tool.title}
-        </h3>
-        <p
-          style={{
-            fontSize: 14,
-            lineHeight: 1.55,
-            color: 'rgba(237, 233, 255, 0.58)',
-            margin: '0 0 20px 0',
-            fontFamily: 'var(--font-sans)',
-          }}
-        >
-          {tool.description}
-        </p>
-
-        <Link
-          href={tool.docsHref}
-          aria-label={`Explore ${tool.title} documentation`}
-          className="tool-explore"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12,
-            fontFamily: 'var(--font-brand)',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: tool.accent,
-            fontWeight: 600,
-            textDecoration: 'none',
-            cursor: 'pointer',
-            padding: '6px 10px',
-            margin: '-6px -10px',
-            borderRadius: 'var(--radius-sm)',
-            transition:
-              'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
-            outlineOffset: 3,
-            ['--tool-accent' as string]: tool.accent,
-          }}
-          onMouseEnter={(e) => {
-            const arrow = e.currentTarget.querySelector('span');
-            if (arrow) (arrow as HTMLElement).style.transform = 'translateX(3px)';
-            e.currentTarget.style.background = `${tool.accent}14`;
-          }}
-          onMouseLeave={(e) => {
-            const arrow = e.currentTarget.querySelector('span');
-            if (arrow) (arrow as HTMLElement).style.transform = 'translateX(0)';
-            e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          Explore
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: 16,
-              transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
-            }}
-          >
-            arrow_forward
-          </span>
-        </Link>
       </div>
+
+      <span
+        style={{
+          display: 'inline-block',
+          alignSelf: 'flex-start',
+          padding: '4px 10px',
+          borderRadius: 'var(--radius-full)',
+          background: `${tool.accent}14`,
+          border: `1px solid ${tool.accent}33`,
+          fontFamily: 'var(--font-brand)',
+          fontSize: 10,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: tool.accent,
+          fontWeight: 600,
+          marginBottom: 14,
+        }}
+      >
+        {tool.tag}
+      </span>
+      <h3
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 24,
+          lineHeight: 1.15,
+          letterSpacing: '-0.02em',
+          fontWeight: 800,
+          color: 'var(--on-surface)',
+          margin: '0 0 10px 0',
+        }}
+      >
+        {tool.title}
+      </h3>
+      <p
+        style={{
+          flex: 1,
+          fontSize: 14,
+          lineHeight: 1.55,
+          color: 'rgba(237, 233, 255, 0.58)',
+          margin: '0 0 20px 0',
+          fontFamily: 'var(--font-sans)',
+        }}
+      >
+        {tool.description}
+      </p>
+
+      <Link
+        href={tool.docsHref}
+        aria-label={`Explore ${tool.title} documentation`}
+        className="tool-explore"
+        style={{
+          display: 'inline-flex',
+          alignSelf: 'flex-start',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 12,
+          fontFamily: 'var(--font-brand)',
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: tool.accent,
+          fontWeight: 600,
+          textDecoration: 'none',
+          cursor: 'pointer',
+          padding: '6px 10px',
+          margin: '-6px -10px',
+          borderRadius: 'var(--radius-sm)',
+          transition:
+            'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+          outlineOffset: 3,
+          ['--tool-accent' as string]: tool.accent,
+        }}
+        onMouseEnter={(e) => {
+          const arrow = e.currentTarget.querySelector('span');
+          if (arrow) (arrow as HTMLElement).style.transform = 'translateX(3px)';
+          e.currentTarget.style.background = `${tool.accent}14`;
+        }}
+        onMouseLeave={(e) => {
+          const arrow = e.currentTarget.querySelector('span');
+          if (arrow) (arrow as HTMLElement).style.transform = 'translateX(0)';
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        Explore
+        <span
+          className="material-symbols-outlined"
+          style={{
+            fontSize: 16,
+            transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
+        >
+          arrow_forward
+        </span>
+      </Link>
     </div>
   );
 }

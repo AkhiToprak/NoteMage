@@ -43,7 +43,7 @@ export default function WaitlistPage() {
       className="waitlist-outer"
       style={{
         minHeight: '100vh',
-        background: '#000000',
+        background: '#0c0a1a',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

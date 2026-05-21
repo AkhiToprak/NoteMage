@@ -22,7 +22,7 @@ export default function LegalPageShell({
       className="nm-legal"
       style={{
         position: 'relative',
-        background: '#000000',
+        background: '#0c0a1a',
         color: 'var(--on-surface)',
         fontFamily: 'var(--font-sans)',
         minHeight: '100vh',

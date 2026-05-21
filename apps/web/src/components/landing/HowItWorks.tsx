@@ -59,64 +59,70 @@ export default function HowItWorks() {
           description="No tutorial hell. You'll be studying with AI in under 60 seconds."
         />
 
+        {/* Left-aligned numbered sequence — each step led by a ghost numeral */}
         <div
           style={{
             position: 'relative',
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 20,
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 40,
           }}
           className="steps-grid"
         >
-          {/* Horizontal connector line (desktop) */}
-          <div
-            aria-hidden
-            className="hide-tablet-down"
-            style={{
-              position: 'absolute',
-              top: 52,
-              left: '12%',
-              right: '12%',
-              height: 2,
-              background: 'rgba(174, 137, 255, 0.25)',
-              pointerEvents: 'none',
-            }}
-          />
-
           {steps.map((s) => (
             <div
               key={s.number}
               style={{
                 position: 'relative',
-                padding: 28,
-                borderRadius: 'var(--radius-xl)',
-                background: '#16142e',
-                border: '1px solid rgba(174, 137, 255, 0.40)',
-                boxShadow: '0 32px 64px rgba(140, 82, 255, 0.08), 0 8px 24px rgba(0,0,0,0.35)',
-                textAlign: 'center',
+                borderTop: '1px solid rgba(174, 137, 255, 0.30)',
+                paddingTop: 24,
+                textAlign: 'left',
               }}
             >
               <div
                 style={{
-                  margin: '0 auto 22px',
-                  width: 72,
-                  height: 72,
-                  borderRadius: '50%',
-                  background: 'rgba(174, 137, 255, 0.14)',
-                  border: '1px solid rgba(174, 137, 255, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative',
+                  gap: 16,
+                  marginBottom: 18,
                 }}
               >
                 <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 32, color: 'var(--primary)' }}
+                  aria-hidden
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 56,
+                    lineHeight: 0.9,
+                    fontWeight: 800,
+                    color: 'var(--on-surface)',
+                    opacity: 0.16,
+                    letterSpacing: '-0.04em',
+                  }}
                 >
-                  {s.icon}
+                  {s.number}
+                </span>
+                <span
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(174, 137, 255, 0.12)',
+                    border: '1px solid rgba(174, 137, 255, 0.40)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 24, color: 'var(--primary)' }}
+                  >
+                    {s.icon}
+                  </span>
                 </span>
               </div>
+
               <div
                 style={{
                   fontFamily: 'var(--font-brand)',
@@ -163,7 +169,7 @@ export default function HowItWorks() {
         @media (max-width: 1023px) {
           .steps-grid {
             grid-template-columns: 1fr !important;
-            gap: 22px !important;
+            gap: 28px !important;
           }
         }
       `}</style>

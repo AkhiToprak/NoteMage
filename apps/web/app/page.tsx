@@ -35,7 +35,7 @@ export default function LandingPage() {
       style={{
         position: 'relative',
         isolation: 'isolate',
-        background: '#000000',
+        background: '#0c0a1a',
         color: 'var(--on-surface)',
         fontFamily: 'var(--font-sans)',
         minHeight: '100vh',
