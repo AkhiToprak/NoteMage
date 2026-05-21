@@ -19,7 +19,7 @@ Vollständige Angaben zum Anbieter finden Sie in unserem [Impressum](/legal).
 - **Kontodaten** – Ihre E-Mail-Adresse und Ihren Namen sowie eine Kennung Ihres Login-Anbieters, wenn Sie sich mit Google anmelden.
 - **Ihre Inhalte** – die Notizen, Leinwand-Zeichnungen, Karteikarten, Quizze, Lernmaterialien und Dateien (z. B. PDFs), die Sie erstellen oder hochladen.
 - **Nutzungs- und technische Daten** – grundlegende Protokolle zur Nutzung des Dienstes sowie technische Angaben wie Geräte- und Browsertyp und IP-Adresse, die der Sicherheit und dem Betrieb des Dienstes dienen.
-- **Zahlungsdaten** – beim Kauf von Pro erhebt und verarbeitet unser Zahlungsdienstleister (Paddle) Ihre Zahlungsdaten. Wir erhalten oder speichern **nicht** Ihre vollständige Kartennummer; wir erhalten begrenzte Abrechnungsinformationen (z. B. Zahlungsbestätigung, Land und die letzten Ziffern einer Karte), die zur Verwaltung Ihres Abonnements erforderlich sind.
+- **Zahlungsdaten** – beim Kauf von Pro erhebt und verarbeitet unser externer Zahlungsdienstleister Ihre Zahlungsdaten. Wir erhalten oder speichern **nicht** Ihre vollständige Kartennummer; wir erhalten begrenzte Abrechnungsinformationen (z. B. Zahlungsbestätigung, Land und die letzten Ziffern einer Karte), die zur Verwaltung Ihres Abonnements erforderlich sind.
 - **Analysedaten** – nur mit Ihrer Einwilligung (siehe *Analyse*).
 - **Kommunikation** – Nachrichten, die Sie uns senden, etwa Supportanfragen, und die E-Mails, die wir Ihnen senden.
 
@@ -53,7 +53,7 @@ Wir nutzen eine kleine Auswahl vertrauenswürdiger Dienstleister („Auftragsver
 | Supabase | Authentifizierung und Dateispeicher | EU / USA |
 | Anthropic | KI-Erzeugung (Claude) | USA |
 | Google | KI-Erzeugung (Gemini, optional), Videoempfehlungen, Google-Login | USA / weltweit |
-| Paddle | Zahlungen & Merchant of Record | UK / EU |
+| Zahlungsdienstleister (Merchant of Record) | Zahlungsabwicklung | EU / USA |
 | PostHog (Opt-in) | Produktanalyse | EU |
 | Resend | Transaktions- und Konto-E-Mails | USA |
 | Hosting-Anbieter | Betrieb der Anwendung | Deutschland (EU) |

@@ -19,7 +19,7 @@ For full provider details, see our [Legal Notice](/legal).
 - **Account data** — your email address and name, and an identifier from your sign-in provider if you log in with Google.
 - **Your content** — the notes, canvas drawings, flashcards, quizzes, study material, and files (such as PDFs) you create or upload.
 - **Usage and technical data** — basic logs about how the Service is used, plus technical information such as device and browser type and IP address, used for security and to keep the Service working.
-- **Payment data** — when you buy Pro, our payment provider (Paddle) collects and processes your payment details. We do **not** receive or store your full card number; we receive limited billing information (such as confirmation of payment, country, and the last digits of a card) needed to manage your subscription.
+- **Payment data** — when you buy Pro, our third-party payment provider collects and processes your payment details. We do **not** receive or store your full card number; we receive limited billing information (such as confirmation of payment, country, and the last digits of a card) needed to manage your subscription.
 - **Analytics data** — only if you consent (see *Analytics*).
 - **Communications** — messages you send us, such as support requests, and the emails we send you.
 
@@ -53,7 +53,7 @@ We use a small set of trusted providers ("processors", or for payments our Merch
 | Supabase | Authentication and file storage | EU / US |
 | Anthropic | AI generation (Claude) | US |
 | Google | AI generation (Gemini, optional), video recommendations, Google sign-in | US / global |
-| Paddle | Payments & Merchant of Record | UK / EU |
+| Payment provider (Merchant of Record) | Payment processing and billing | EU / US |
 | PostHog (opt-in) | Product analytics | EU |
 | Resend | Transactional and account emails | US |
 | Hosting provider | Running the application | Germany (EU) |

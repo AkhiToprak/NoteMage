@@ -57,7 +57,7 @@ If you choose to publish content — for example, sharing a learning path to a c
 
 Notemage offers a free plan and a paid **Pro** plan.
 
-- **Seller of record.** Purchases of Pro are sold and processed by **Paddle** (Paddle.com Market Ltd.) acting as **Merchant of Record**. Paddle handles billing, payment, and applicable taxes, and Paddle's buyer terms also apply to the transaction.
+- **Seller of record.** Purchases of Pro are sold and processed by a third-party **Merchant of Record**. The provider handles billing, payment, and applicable taxes, and the provider's buyer terms also apply to the transaction.
 - **Billing and renewal.** Paid subscriptions renew automatically each billing period until cancelled. You can cancel at any time and keep access until the end of the paid period.
 - **Refunds.** Refunds are governed by our [Refund Policy](/refund), including a 14-day money-back guarantee on your first Pro payment.
 - **Price changes.** We may change prices or plan features. We will give reasonable advance notice of changes that affect an active subscription, and changes apply from your next billing period.

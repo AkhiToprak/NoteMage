@@ -57,7 +57,7 @@ Wenn Sie Inhalte veröffentlichen – etwa einen Lernpfad in einer Gemeinschafts
 
 Notemage bietet einen kostenlosen Tarif und einen kostenpflichtigen **Pro**-Tarif.
 
-- **Verkäufer im rechtlichen Sinne.** Käufe von Pro werden von **Paddle** (Paddle.com Market Ltd.) als **Merchant of Record** verkauft und abgewickelt. Paddle übernimmt Abrechnung, Zahlung und anfallende Steuern; zudem gelten die Käuferbedingungen von Paddle für die Transaktion.
+- **Verkäufer im rechtlichen Sinne.** Käufe von Pro werden von einem externen **Merchant of Record** verkauft und abgewickelt. Der Anbieter übernimmt Abrechnung, Zahlung und anfallende Steuern; zudem gelten die Käuferbedingungen des Anbieters für die Transaktion.
 - **Abrechnung und Verlängerung.** Kostenpflichtige Abonnements verlängern sich automatisch pro Abrechnungszeitraum, bis sie gekündigt werden. Sie können jederzeit kündigen und behalten den Zugang bis zum Ende des bezahlten Zeitraums.
 - **Rückerstattungen.** Rückerstattungen richten sich nach unserer [Rückerstattungsrichtlinie](/refund), einschliesslich einer 14-tägigen Geld-zurück-Garantie für Ihre erste Pro-Zahlung.
 - **Preisänderungen.** Wir können Preise oder Tarifleistungen ändern. Änderungen, die ein laufendes Abonnement betreffen, kündigen wir mit angemessener Vorlaufzeit an; sie gelten ab Ihrem nächsten Abrechnungszeitraum.

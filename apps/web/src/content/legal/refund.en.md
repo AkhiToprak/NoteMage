@@ -1,6 +1,6 @@
 # Refund Policy
 
-This Refund Policy explains when and how you can get a refund for a paid **Notemage** subscription. It applies to Pro subscriptions purchased through our checkout, which is operated by our payment provider, Paddle.
+This Refund Policy explains when and how you can get a refund for a paid **Notemage** subscription. It applies to Pro subscriptions purchased through our checkout, which is operated by our third-party payment provider.
 
 Notemage is operated by Toprak Demirel, an individual based in Switzerland (the "Provider", "we", "us"). If you have any questions, contact us at notemage.app@gmail.com or through our [contact page](/contact).
 
@@ -18,15 +18,15 @@ If your request meets these conditions, we refund the full amount you paid for t
 
 ## How payments and refunds are handled
 
-Our payments are processed by **Paddle** (Paddle.com Market Ltd.), which acts as the **Merchant of Record** for purchases of Notemage Pro. This means Paddle is the seller of record for the transaction, handles billing and applicable taxes (such as VAT), and processes refunds on our behalf.
+Our payments are processed by a third-party provider that acts as the **Merchant of Record** for purchases of Notemage Pro. This means the provider is the seller of record for the transaction, handles billing and applicable taxes (such as VAT), and processes refunds on our behalf.
 
 When a refund is approved:
 
 - It is issued to the **original payment method** used for the purchase.
-- Paddle processes the refund; the amount typically appears within **5–10 business days**, depending on your bank or card issuer.
+- The provider processes the refund; the amount typically appears within **5–10 business days**, depending on your bank or card issuer.
 - Any taxes collected at purchase are refunded together with the payment.
 
-You may also see Paddle named on your bank or card statement and on your purchase receipt.
+You may also see the provider named on your bank or card statement and on your purchase receipt.
 
 ## Your right of withdrawal (EU/EEA consumers)
 
@@ -36,7 +36,7 @@ Because Notemage is a digital service that starts immediately, you may be asked 
 
 ## Cancelling your subscription
 
-You can cancel your Pro subscription at any time from your account settings or through Paddle's customer portal.
+You can cancel your Pro subscription at any time from your account settings or through the provider's customer portal.
 
 - When you cancel, you keep Pro access until the **end of the period you have already paid for**.
 - Cancelling stops future renewals — it does not, by itself, trigger a refund of the current period, except within the 14-day window described above.
@@ -57,7 +57,7 @@ The Notemage Free plan has no charges, so there is nothing to refund. You can us
 Email **notemage.app@gmail.com** or use our [contact page](/contact). To help us process your request quickly, please include:
 
 - the email address on your Notemage account, and
-- the approximate date of the payment (and an order or receipt reference from Paddle, if you have it).
+- the approximate date of the payment (and an order or receipt reference from the provider, if you have it).
 
 We aim to respond within a few business days.
 
@@ -69,6 +69,6 @@ We may update this Refund Policy from time to time. If we make material changes,
 
 - **Provider:** Toprak Demirel, Switzerland
 - **Email:** notemage.app@gmail.com (or use our [contact page](/contact))
-- **Payments / Merchant of Record:** Paddle.com Market Ltd.
+- **Payments / Merchant of Record:** a third-party provider (named at checkout)
 
 _Last updated: 21 May 2026._

@@ -1,6 +1,6 @@
 # Rückerstattungsrichtlinie
 
-Diese Rückerstattungsrichtlinie erklärt, wann und wie Sie eine Rückerstattung für ein kostenpflichtiges **Notemage**-Abonnement erhalten können. Sie gilt für Pro-Abonnements, die über unseren Checkout gekauft werden, der von unserem Zahlungsdienstleister Paddle betrieben wird.
+Diese Rückerstattungsrichtlinie erklärt, wann und wie Sie eine Rückerstattung für ein kostenpflichtiges **Notemage**-Abonnement erhalten können. Sie gilt für Pro-Abonnements, die über unseren Checkout gekauft werden, der von unserem externen Zahlungsdienstleister betrieben wird.
 
 Notemage wird von Toprak Demirel betrieben, einer Einzelperson mit Sitz in der Schweiz (der „Anbieter", „wir", „uns"). Bei Fragen erreichen Sie uns unter notemage.app@gmail.com oder über unsere [Kontaktseite](/contact).
 
@@ -18,15 +18,15 @@ Erfüllt Ihre Anfrage diese Bedingungen, erstatten wir den vollen für diesen Ab
 
 ## Wie Zahlungen und Rückerstattungen abgewickelt werden
 
-Unsere Zahlungen werden über **Paddle** (Paddle.com Market Ltd.) abgewickelt, das als **Merchant of Record** (Verkäufer im rechtlichen Sinne) für Käufe von Notemage Pro auftritt. Das bedeutet, dass Paddle der Verkäufer der Transaktion ist, die Abrechnung und anfallende Steuern (z. B. Mehrwertsteuer) übernimmt und Rückerstattungen in unserem Auftrag durchführt.
+Unsere Zahlungen werden über einen externen Zahlungsdienstleister abgewickelt, der als **Merchant of Record** (Verkäufer im rechtlichen Sinne) für Käufe von Notemage Pro auftritt. Das bedeutet, dass dieser Anbieter der Verkäufer der Transaktion ist, die Abrechnung und anfallende Steuern (z. B. Mehrwertsteuer) übernimmt und Rückerstattungen in unserem Auftrag durchführt.
 
 Wenn eine Rückerstattung genehmigt wird:
 
 - erfolgt sie auf die **ursprüngliche Zahlungsmethode**.
-- wickelt Paddle die Rückerstattung ab; der Betrag erscheint in der Regel innerhalb von **5–10 Werktagen**, je nach Bank oder Kartenanbieter.
+- wickelt der Anbieter die Rückerstattung ab; der Betrag erscheint in der Regel innerhalb von **5–10 Werktagen**, je nach Bank oder Kartenanbieter.
 - werden beim Kauf erhobene Steuern zusammen mit der Zahlung erstattet.
 
-Paddle kann auch auf Ihrem Konto- oder Kartenauszug sowie auf Ihrem Kaufbeleg erscheinen.
+Der Anbieter kann auch auf Ihrem Konto- oder Kartenauszug sowie auf Ihrem Kaufbeleg erscheinen.
 
 ## Ihr Widerrufsrecht (Verbraucher in der EU/im EWR)
 
@@ -36,7 +36,7 @@ Da Notemage ein digitaler Dienst ist, der sofort beginnt, werden Sie beim Checko
 
 ## Kündigung Ihres Abonnements
 
-Sie können Ihr Pro-Abonnement jederzeit in Ihren Kontoeinstellungen oder über das Kundenportal von Paddle kündigen.
+Sie können Ihr Pro-Abonnement jederzeit in Ihren Kontoeinstellungen oder über das Kundenportal des Anbieters kündigen.
 
 - Bei einer Kündigung behalten Sie den Pro-Zugang bis zum **Ende des bereits bezahlten Zeitraums**.
 - Eine Kündigung beendet künftige Verlängerungen – sie löst für sich genommen keine Rückerstattung des laufenden Zeitraums aus, ausser innerhalb des oben beschriebenen 14-Tage-Fensters.
@@ -57,7 +57,7 @@ Der kostenlose Notemage-Plan ist mit keinen Kosten verbunden, daher gibt es nich
 Schreiben Sie an **notemage.app@gmail.com** oder nutzen Sie unsere [Kontaktseite](/contact). Damit wir Ihre Anfrage rasch bearbeiten können, geben Sie bitte an:
 
 - die E-Mail-Adresse Ihres Notemage-Kontos und
-- das ungefähre Datum der Zahlung (sowie eine Bestell- oder Belegreferenz von Paddle, falls vorhanden).
+- das ungefähre Datum der Zahlung (sowie eine Bestell- oder Belegreferenz des Anbieters, falls vorhanden).
 
 Wir bemühen uns, innerhalb weniger Werktage zu antworten.
 
@@ -69,6 +69,6 @@ Wir können diese Rückerstattungsrichtlinie von Zeit zu Zeit aktualisieren. Bei
 
 - **Anbieter:** Toprak Demirel, Schweiz
 - **E-Mail:** notemage.app@gmail.com (oder über unsere [Kontaktseite](/contact))
-- **Zahlungen / Merchant of Record:** Paddle.com Market Ltd.
+- **Zahlungen / Merchant of Record:** ein externer Anbieter (beim Checkout genannt)
 
 _Stand: 21. Mai 2026._
