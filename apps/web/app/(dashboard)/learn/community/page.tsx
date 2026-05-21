@@ -16,19 +16,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SUBJECT_REGISTRY, SUBJECT_IDS, isSubjectId, type SubjectId } from '@/lib/path-subjects';
-
-// Popular language set per P0 spec §6 (de, en, fr, es, it, tr). These
-// are the languages the user can filter on as chips; arbitrary BCP-47
-// codes still flow through the API for backward compatibility, but
-// surface as plain text in the card.
-const POPULAR_LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'de', label: 'Deutsch' },
-  { code: 'fr', label: 'Français' },
-  { code: 'es', label: 'Español' },
-  { code: 'it', label: 'Italiano' },
-  { code: 'tr', label: 'Türkçe' },
-] as const;
+import { PATH_LANGUAGES } from '@/lib/path-languages';
 
 // Slot-range presets keep the filter strip honest — most learners think
 // in "quick / serious / long-haul" not in slot counts. The API accepts
@@ -301,19 +289,7 @@ export default function CommunityLibraryPage() {
           onChange={(v) => setSubject(typeof v === 'string' && isSubjectId(v) ? v : null)}
         />
 
-        <FilterChipRow
-          label="Language"
-          options={[
-            { value: null, label: 'Any language', icon: 'language' },
-            ...POPULAR_LANGUAGES.map((l) => ({
-              value: l.code,
-              label: l.label,
-              icon: 'translate',
-            })),
-          ]}
-          value={language}
-          onChange={(v) => setLanguage(typeof v === 'string' ? v : null)}
-        />
+        <LanguageDropdown value={language} onChange={setLanguage} />
 
         <FilterChipRow
           label="Length"
@@ -574,6 +550,81 @@ function SortDropdown({
         <option value="rating">{SORT_LABELS.rating.label}</option>
       </select>
     </label>
+  );
+}
+
+// Language filter — a dropdown (not chips) so the full supported set
+// stays scannable without overflowing the filter strip. Mirrors the
+// chip rows' label rhythm so it sits cleanly beside Subject / Length.
+function LanguageDropdown({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Language"
+      style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}
+    >
+      <span
+        style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          color: 'var(--on-surface-variant)',
+          minWidth: '70px',
+        }}
+      >
+        Language
+      </span>
+      <label
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: 'var(--surface-container)',
+          border: '1px solid var(--outline-variant)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0 12px',
+          maxWidth: '100%',
+        }}
+      >
+        <span
+          className="material-symbols-outlined"
+          aria-hidden
+          style={{ fontSize: '18px', color: 'var(--on-surface-variant)' }}
+        >
+          translate
+        </span>
+        <select
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value || null)}
+          aria-label="Filter by language"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--on-surface)',
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: 700,
+            padding: '8px 0',
+            cursor: 'pointer',
+            maxWidth: '100%',
+          }}
+        >
+          <option value="">Any language</option>
+          {PATH_LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.label} ({l.endonym})
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
   );
 }
 

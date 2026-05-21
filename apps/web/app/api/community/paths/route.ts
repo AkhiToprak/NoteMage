@@ -105,7 +105,18 @@ function buildBaseWhere(opts: {
   }
 
   if (opts.language) {
-    where.language = opts.language;
+    // Match the path's OWN language OR any READY translation into it — so an
+    // English path that's been translated to German also surfaces under the
+    // German filter (and vice versa). Composed via AND so it stacks with the
+    // search OR group below without clobbering it (Prisma ANDs top-level keys).
+    where.AND = [
+      {
+        OR: [
+          { language: opts.language },
+          { translations: { some: { language: opts.language, status: 'ready' } } },
+        ],
+      },
+    ];
   }
   if (opts.subject) {
     where.subjects = { has: opts.subject };

@@ -224,14 +224,21 @@ describe('GET /api/community/paths — filter composition (AC-Browse-2)', () => 
     expect(call.where.subjects).toEqual({ has: 'math' });
   });
 
-  it('language filter is lowercased + length-capped', async () => {
+  it('language filter matches source OR a ready translation (lowercased + length-capped)', async () => {
     mocks.dbMock.sharedPath.findMany.mockResolvedValueOnce([]);
     mocks.dbMock.sharedPath.count.mockResolvedValueOnce(0);
 
     await GET(buildRequest('?language=DE'));
 
     const call = mocks.dbMock.sharedPath.findMany.mock.calls[0][0];
-    expect(call.where.language).toBe('de');
+    expect(call.where.AND).toEqual([
+      {
+        OR: [
+          { language: 'de' },
+          { translations: { some: { language: 'de', status: 'ready' } } },
+        ],
+      },
+    ]);
   });
 
   it('drops malformed language codes (over the BCP-47 length cap)', async () => {
@@ -241,6 +248,7 @@ describe('GET /api/community/paths — filter composition (AC-Browse-2)', () => 
     await GET(buildRequest('?language=this-is-way-too-long-to-be-bcp47'));
 
     const call = mocks.dbMock.sharedPath.findMany.mock.calls[0][0];
+    expect(call.where.AND).toBeUndefined();
     expect(call.where.language).toBeUndefined();
   });
 
@@ -278,13 +286,22 @@ describe('GET /api/community/paths — filter composition (AC-Browse-2)', () => 
     expect(call.where).toMatchObject({
       moderationStatus: 'approved',
       subjects: { has: 'coding' },
-      language: 'en',
       slotCount: { gte: 10, lte: 20 },
       OR: [
         { title: { contains: 'python', mode: 'insensitive' } },
         { description: { contains: 'python', mode: 'insensitive' } },
       ],
     });
+    // Language now composes via AND (source OR ready-translation), not a
+    // direct `where.language` scalar.
+    expect(call.where.AND).toEqual([
+      {
+        OR: [
+          { language: 'en' },
+          { translations: { some: { language: 'en', status: 'ready' } } },
+        ],
+      },
+    ]);
   });
 });
 
