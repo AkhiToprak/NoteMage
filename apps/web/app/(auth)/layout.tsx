@@ -4,7 +4,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <main
       style={{
-        background: '#000000',
+        background: '#0c0a1a',
         color: 'var(--on-surface)',
         minHeight: '100vh',
         overflowX: 'hidden',
@@ -46,6 +46,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         }}
       >
         <div
+          className="auth-rise"
           style={{
             width: '100%',
             maxWidth: '560px',
@@ -60,6 +61,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         @keyframes authSlideUp {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .auth-rise { animation: none !important; }
         }
       `}</style>
     </main>

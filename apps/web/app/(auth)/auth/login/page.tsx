@@ -168,7 +168,7 @@ function LoginForm() {
             fontFamily: 'var(--font-brand)',
             fontSize: '48px',
             fontWeight: 400,
-            color: '#ae89ff',
+            color: 'var(--brand-purple)',
             margin: '0 0 8px',
             letterSpacing: '-0.02em',
           }}
@@ -188,7 +188,7 @@ function LoginForm() {
           overflow: 'hidden',
         }}
       >
-        {/* Top gradient line */}
+        {/* Top accent line */}
         <div
           style={{
             position: 'absolute',
@@ -361,7 +361,7 @@ function LoginForm() {
             style={{
               width: '100%',
               padding: '16px',
-              background: loading ? '#464560' : '#ae89ff',
+              background: loading ? '#464560' : 'var(--brand-purple)',
               border: 'none',
               borderRadius: '16px',
               color: loading ? '#aaa8c8' : '#2a0066',
@@ -558,7 +558,7 @@ function LoginForm() {
         Don&apos;t have an account?{' '}
         <Link
           href="/waitlist"
-          style={{ color: '#ffde59', fontWeight: 900, textDecoration: 'none' }}
+          style={{ color: 'var(--brand-gold)', fontWeight: 900, textDecoration: 'none' }}
         >
           Sign Up
         </Link>
@@ -573,10 +573,14 @@ function LoginForm() {
           gap: '32px',
         }}
       >
-        {['Privacy Policy', 'Terms of Service', 'Help Center'].map((item) => (
+        {[
+          { label: 'Privacy Policy', href: '/privacy' },
+          { label: 'Terms of Service', href: '/terms' },
+          { label: 'Help Center', href: '/docs' },
+        ].map((item) => (
           <a
-            key={item}
-            href="#"
+            key={item.label}
+            href={item.href}
             style={{
               fontSize: '11px',
               fontWeight: 700,
@@ -593,7 +597,7 @@ function LoginForm() {
               (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(115,115,144,0.4)';
             }}
           >
-            {item}
+            {item.label}
           </a>
         ))}
       </div>
