@@ -28,18 +28,6 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   path_translation: 'Path translations',
 };
 
-const FEATURE_ICONS: Record<FeatureType, string> = {
-  ai_flashcards: 'auto_awesome',
-  ai_pptx: 'slideshow',
-  ai_study_plan: 'school',
-  ultra_path: 'bolt',
-  ai_quizzes: 'quiz',
-  scholar_chat: 'forum',
-  ai_inline_edit: 'auto_fix',
-  pdf_import: 'upload_file',
-  path_translation: 'translate',
-};
-
 const ACCENT: Record<
   TierKey,
   { border: string; glow: string; bg: string; text: string; hoverGlow: string }
@@ -109,13 +97,7 @@ export default function PricingCard({
     cursor: onSelect ? 'pointer' : 'default',
     boxShadow: selected ? `0 0 40px ${accent.text}33` : hovered ? accent.hoverGlow : accent.glow,
     opacity: isRevealed ? 1 : 0,
-    transform: isRevealed
-      ? hovered && !onSelect
-        ? `translateY(-8px)${isPro ? ' scale(1.03)' : ''}`
-        : isPro
-          ? 'scale(1.03)'
-          : 'translateY(0)'
-      : 'translateY(24px)',
+    transform: isRevealed ? (isPro ? 'scale(1.03)' : 'translateY(0)') : 'translateY(24px)',
     transition: `
       opacity 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}ms,
       transform 0.4s cubic-bezier(0.22,1,0.36,1),
@@ -376,7 +358,19 @@ export default function PricingCard({
             transform: selected ? 'scale(1.02)' : 'scale(1)',
           }}
         >
-          {selected ? '✓ Selected' : 'Select'}
+          {selected ? (
+            <>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 4 }}
+              >
+                check
+              </span>
+              Selected
+            </>
+          ) : (
+            'Select'
+          )}
         </div>
       ) : null}
     </>

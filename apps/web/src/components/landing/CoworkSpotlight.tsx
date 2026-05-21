@@ -7,7 +7,7 @@ export default function CoworkSpotlight() {
     <section
       style={{
         position: 'relative',
-        padding: '128px 32px',
+        padding: 'var(--space-section) var(--space-page)',
         background: 'transparent',
         overflow: 'hidden',
       }}

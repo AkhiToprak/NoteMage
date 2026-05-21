@@ -37,16 +37,16 @@ export default function BentoFeatures() {
     <section
       style={{
         position: 'relative',
-        padding: '128px 32px',
+        padding: 'var(--space-section) var(--space-page)',
         background: 'transparent',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
         <SectionHeader
-          eyebrow="And the rest"
+          align="left"
           title={
             <>
-              Built like an app <span style={{ color: '#ae89ff' }}>you’ll actually open.</span>
+              Built like an app <span style={{ color: 'var(--brand-purple)' }}>you’ll actually open.</span>
             </>
           }
           description="The small things that don’t fit on a carousel but make the day-to-day feel good."
@@ -90,19 +90,13 @@ function BentoCell({ cell: c, wide = false }: { cell: Cell; wide?: boolean }) {
         boxShadow: '0 24px 60px rgba(140, 82, 255, 0.06), 0 4px 16px var(--bento-rest-shadow)',
         minHeight: wide ? 188 : 240,
         overflow: 'hidden',
-        transition:
-          'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: 'border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
         e.currentTarget.style.borderColor = `${c.accent}77`;
-        e.currentTarget.style.boxShadow = `0 36px 80px ${c.accent}1a, 0 12px 28px var(--bento-hover-shadow)`;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.borderColor = `${c.accent}33`;
-        e.currentTarget.style.boxShadow =
-          '0 24px 60px rgba(140, 82, 255, 0.06), 0 4px 16px var(--bento-rest-shadow)';
       }}
     >
       <div

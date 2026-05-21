@@ -99,7 +99,7 @@ export default async function DocsPage({ params }: PageProps) {
             }}
           >
             {prev ? (
-              <Link href={`/docs/${prev.slug}`} style={prevNextCard('prev')}>
+              <Link href={`/docs/${prev.slug}`} style={prevNextCard()}>
                 <span style={prevNextEyebrow}>← Previous</span>
                 <span style={prevNextTitle}>{prev.title}</span>
               </Link>
@@ -107,7 +107,7 @@ export default async function DocsPage({ params }: PageProps) {
               <span />
             )}
             {next ? (
-              <Link href={`/docs/${next.slug}`} style={prevNextCard('next')}>
+              <Link href={`/docs/${next.slug}`} style={prevNextCard()}>
                 <span style={prevNextEyebrow}>Next →</span>
                 <span style={prevNextTitle}>{next.title}</span>
               </Link>
@@ -323,7 +323,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
           fontSize: 11,
           letterSpacing: '0.16em',
           textTransform: 'uppercase',
-          color: '#ffde59',
+          color: 'var(--brand-gold)',
           fontWeight: 600,
           marginBottom: 24,
         }}
@@ -346,16 +346,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
         }}
       >
         Everything Notemage{' '}
-        <span
-          style={{
-            background: '#ae89ff',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          can do for you.
-        </span>
+        <span style={{ color: 'var(--brand-purple)' }}>can do for you.</span>
       </h1>
       <p
         style={{
@@ -444,9 +435,7 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
 
       <style>{`
         .docs-index-card:hover {
-          transform: translateY(-3px);
           border-color: rgba(174,137,255,0.42) !important;
-          background: rgba(20, 17, 44, 0.7) !important;
         }
         @media (max-width: 639px) {
           .docs-card-grid { grid-template-columns: 1fr !important; }
@@ -469,7 +458,7 @@ const crumbSep: React.CSSProperties = {
   color: 'rgba(174,137,255,0.5)',
 };
 
-function prevNextCard(_kind: 'prev' | 'next'): React.CSSProperties {
+function prevNextCard(): React.CSSProperties {
   return {
     display: 'flex',
     flexDirection: 'column',

@@ -115,10 +115,7 @@ export default function MaintenancePage() {
             lineHeight: 1.1,
             margin: 0,
             marginBottom: 16,
-            background: '#ffffff',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+            color: 'var(--on-surface)',
           }}
         >
           We&rsquo;ll be back shortly.

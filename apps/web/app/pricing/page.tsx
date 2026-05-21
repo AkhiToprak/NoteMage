@@ -6,6 +6,7 @@ import PricingHero from '@/components/pricing/PricingHero';
 import FeatureComparison from '@/components/pricing/FeatureComparison';
 import FAQ from '@/components/pricing/FAQ';
 import LandingNavbar from '@/components/landing/LandingNavbar';
+import LandingFooter from '@/components/landing/LandingFooter';
 import { BGPattern } from '@/components/ui/bg-pattern';
 import { TIERS, type TierKey } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -42,16 +43,6 @@ export default function PricingPage() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .nlink {
-          color: var(--on-surface-variant);
-          opacity: 0.62;
-          font-size: 15px;
-          font-weight: 500;
-          text-decoration: none;
-          transition: opacity 0.25s cubic-bezier(0.22,1,0.36,1);
-        }
-        .nlink:hover { opacity: 1; }
-
         .grain {
           position: fixed;
           inset: 0;
@@ -61,7 +52,6 @@ export default function PricingPage() {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
         }
 
-        /* Aurora blob keyframes — transform only for GPU compositing */
         /* Popular badge float */
         @keyframes badge-float {
           0%, 100% { transform: translateX(-50%) translateY(0); }
@@ -121,11 +111,6 @@ export default function PricingPage() {
             flex-direction: column !important;
           }
           .cta-banner { padding: 60px 16px !important; }
-          .pricing-footer {
-            padding: 28px 16px !important;
-            flex-direction: column !important;
-            text-align: center !important;
-          }
         }
 
         /* Reduced motion */
@@ -272,44 +257,7 @@ export default function PricingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer
-        className="pricing-footer"
-        style={{
-          padding: '40px 48px',
-          borderTop: '1px solid rgba(174,137,255,0.16)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 20,
-          maxWidth: 1200,
-          margin: '0 auto',
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logo_trimmed.png"
-          alt="Notemage"
-          style={{ height: 32, width: 'auto', opacity: 0.6 }}
-        />
-        <p style={{ fontSize: 13, color: 'var(--on-surface-variant)', opacity: 0.35 }}>
-          &copy; 2026 Notemage &mdash; Built for students, by students.
-        </p>
-        <div style={{ display: 'flex', gap: 24 }}>
-          <Link href="/pricing" className="nlink" style={{ fontSize: 14 }}>
-            Pricing
-          </Link>
-          <Link href="/#how-it-works" className="nlink" style={{ fontSize: 14 }}>
-            How It Works
-          </Link>
-          <Link href="/auth/login" className="nlink" style={{ fontSize: 14 }}>
-            Log In
-          </Link>
-          <Link href="/waitlist" className="nlink" style={{ fontSize: 14 }}>
-            Sign Up
-          </Link>
-        </div>
-      </footer>
+      <LandingFooter />
     </main>
   );
 }

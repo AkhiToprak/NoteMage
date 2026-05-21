@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Component as MagicCursor } from '@/components/ui/magic-cursor';
 import { BGPattern } from '@/components/ui/bg-pattern';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import Hero from '@/components/landing/Hero';
@@ -47,7 +46,6 @@ export default function LandingPage() {
         fill="rgba(174, 137, 255, 0.14)"
         style={{ position: 'fixed' }}
       />
-      <MagicCursor />
       <LandingNavbar />
       <Hero />
       <NotetakingCanvasSpotlight />

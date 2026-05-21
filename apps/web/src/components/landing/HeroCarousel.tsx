@@ -44,9 +44,10 @@ export default function HeroCarousel() {
       skipSnaps: false,
       startIndex: slides.length, // start in the middle copy for smoothest wrap
     },
-    [Autoplay({ delay: 4200, stopOnInteraction: false, stopOnMouseEnter: true })]
+    [Autoplay({ delay: 4200, stopOnInteraction: false, stopOnMouseEnter: true, stopOnFocusIn: true })]
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   const scrollTo = useCallback(
     (index: number) => emblaApi?.scrollTo(slides.length + index),
@@ -77,6 +78,28 @@ export default function HeroCarousel() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [scrollPrev, scrollNext]);
+
+  const toggleAutoplay = useCallback(() => {
+    const autoplay = emblaApi?.plugins()?.autoplay;
+    if (!autoplay) return;
+    if (autoplay.isPlaying()) autoplay.stop();
+    else autoplay.play();
+  }, [emblaApi]);
+
+  // Respect reduced-motion (don't auto-rotate) and keep the button label in sync.
+  useEffect(() => {
+    const autoplay = emblaApi?.plugins()?.autoplay;
+    if (!autoplay) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      autoplay.stop();
+    }
+    const sync = () => setIsPlaying(autoplay.isPlaying());
+    sync();
+    emblaApi.on('autoplay:play', sync).on('autoplay:stop', sync);
+    return () => {
+      emblaApi.off('autoplay:play', sync).off('autoplay:stop', sync);
+    };
+  }, [emblaApi]);
 
   return (
     <div className="hero-carousel" style={{ position: 'relative', width: '100%' }}>
@@ -179,6 +202,35 @@ export default function HeroCarousel() {
 
         {/* Arrow buttons */}
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            aria-label={isPlaying ? 'Pause auto-rotation' : 'Resume auto-rotation'}
+            aria-pressed={!isPlaying}
+            onClick={toggleAutoplay}
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              background: 'rgba(174, 137, 255, 0.1)',
+              border: '1px solid rgba(174, 137, 255, 0.28)',
+              color: 'var(--on-surface)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(174, 137, 255, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(174, 137, 255, 0.1)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+              {isPlaying ? 'pause' : 'play_arrow'}
+            </span>
+          </button>
           {[
             { label: 'Previous slide', icon: 'arrow_back', onClick: scrollPrev },
             { label: 'Next slide', icon: 'arrow_forward', onClick: scrollNext },
@@ -203,11 +255,9 @@ export default function HeroCarousel() {
                   'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.background = 'rgba(174, 137, 255, 0.2)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.background = 'rgba(174, 137, 255, 0.1)';
               }}
             >

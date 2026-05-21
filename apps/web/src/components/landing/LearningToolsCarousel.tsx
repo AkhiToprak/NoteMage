@@ -109,17 +109,17 @@ export default function LearningToolsCarousel() {
     <section
       style={{
         position: 'relative',
-        padding: '128px 0',
+        padding: 'var(--space-section) 0',
         background: 'transparent',
         overflow: 'hidden',
       }}
     >
       <div style={{ padding: '0 32px' }}>
         <SectionHeader
-          eyebrow="Study toolkit"
+          align="left"
           title={
             <>
-              All your study tools, <span style={{ color: '#ffde59' }}>one tap away.</span>
+              All your study tools, <span style={{ color: 'var(--brand-gold)' }}>one tap away.</span>
             </>
           }
           description="Turn any page into a quiz, a flashcard deck, a mind map, or a polished slide export — without opening a single other app."
@@ -216,11 +216,9 @@ export default function LearningToolsCarousel() {
                   'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.background = 'rgba(174, 137, 255, 0.2)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.background = 'rgba(174, 137, 255, 0.1)';
               }}
             >
@@ -258,19 +256,13 @@ function ToolCard({ tool }: { tool: Tool }) {
         flexDirection: 'column',
         padding: 28,
         minHeight: 280,
-        transition:
-          'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: 'border-color 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
         boxShadow: '0 24px 60px rgba(140, 82, 255, 0.08), 0 8px 24px rgba(0,0,0,0.35)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-6px)';
-        e.currentTarget.style.boxShadow = `0 40px 90px ${tool.accent}22, 0 16px 32px rgba(0,0,0,0.4)`;
         e.currentTarget.style.borderColor = `${tool.accent}88`;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow =
-          '0 24px 60px rgba(140, 82, 255, 0.08), 0 8px 24px rgba(0,0,0,0.35)';
         e.currentTarget.style.borderColor = `${tool.accent}44`;
       }}
     >

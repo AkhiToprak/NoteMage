@@ -10,7 +10,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   return (
     <div
       style={{
-        background: '#000000',
+        background: '#0c0a1a',
         color: 'var(--on-surface)',
         minHeight: '100vh',
         position: 'relative',

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { TIERS } from '@/lib/tiers';
 
 interface FAQItem {
   question: string;
@@ -12,27 +13,27 @@ const FAQ_DATA: FAQItem[] = [
   {
     question: 'Can I switch plans at any time?',
     answer:
-      'Yes! You can upgrade or downgrade your plan anytime from your Settings page. Changes take effect immediately and your billing is prorated.',
+      'Yes! You can upgrade or downgrade your plan anytime from your Settings page. Changes take effect right away.',
   },
   {
     question: 'What payment methods do you accept?',
     answer:
-      'We accept all major credit and debit cards, including Visa, Mastercard, and American Express. All payments are processed securely.',
+      'We accept all major credit and debit cards, processed securely by our payment provider.',
   },
   {
     question: 'Is there a student discount?',
     answer:
-      "Our pricing is already designed to be student-friendly — there's a generous free plan, and Pro is just CHF 10/month. We believe great study tools should be accessible to everyone.",
+      `Our pricing is already designed to be student-friendly — there’s a generous free plan, and Pro is just CHF ${TIERS.PRO.priceCHF}/month. We believe great study tools should be accessible to everyone.`,
   },
   {
     question: 'What happens when I hit my monthly limit?',
     answer:
-      "You'll receive a notification when you're approaching your limit. Once reached, you can upgrade your plan to continue creating. Your existing content is never affected.",
+      "You’ll receive a notification when you’re approaching your limit. Once reached, you can upgrade your plan to continue creating. Your existing content is never affected.",
   },
   {
     question: 'Can I cancel my subscription?',
     answer:
-      "Absolutely. Cancel anytime from your Settings — no lock-in, no cancellation fees. You'll keep access until the end of your billing period.",
+      "Absolutely. Cancel anytime from your Settings — no lock-in, no cancellation fees. You’ll keep access until the end of your billing period.",
   },
 ];
 

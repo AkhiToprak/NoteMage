@@ -39,22 +39,28 @@ export default function LandingNavbar() {
           left: 0,
           right: 0,
           zIndex: 60,
-          padding: '16px 0',
-          background: scrolled ? '#0e0c22' : 'transparent',
-          borderBottom: scrolled ? '1px solid rgba(174, 137, 255, 0.36)' : '1px solid transparent',
-          transition:
-            'background 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+          padding: '16px 16px',
         }}
       >
         <nav
           style={{
-            maxWidth: 1280,
+            maxWidth: 1160,
             margin: '0 auto',
-            padding: '0 32px',
+            padding: '10px 16px 10px 22px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 32,
+            background: scrolled ? 'rgba(14, 12, 34, 0.9)' : 'rgba(14, 12, 34, 0.5)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: `1px solid rgba(174, 137, 255, ${scrolled ? 0.36 : 0.18})`,
+            borderRadius: 'var(--radius-full)',
+            boxShadow: scrolled
+              ? '0 14px 36px rgba(0, 0, 0, 0.4)'
+              : '0 6px 20px rgba(0, 0, 0, 0.2)',
+            transition:
+              'background 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
@@ -89,11 +95,8 @@ export default function LandingNavbar() {
               display: 'flex',
               listStyle: 'none',
               margin: 0,
-              padding: 6,
+              padding: 0,
               gap: 4,
-              background: 'rgba(174, 137, 255, 0.06)',
-              border: '1px solid rgba(174, 137, 255, 0.14)',
-              borderRadius: 'var(--radius-full)',
             }}
           >
             {links.map((l) => {

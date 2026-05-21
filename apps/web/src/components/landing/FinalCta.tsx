@@ -43,41 +43,6 @@ export default function FinalCta() {
       ))}
 
       <div style={{ position: 'relative', maxWidth: 860, margin: '0 auto' }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '8px 16px',
-            borderRadius: 'var(--radius-full)',
-            background: 'rgba(174, 137, 255, 0.1)',
-            border: '1px solid rgba(174, 137, 255, 0.28)',
-            marginBottom: 28,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#ffde59',
-              boxShadow: '0 0 10px #ffde59',
-            }}
-          />
-          <span
-            style={{
-              fontFamily: 'var(--font-brand)',
-              fontSize: 11,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: 'var(--on-surface)',
-              fontWeight: 600,
-            }}
-          >
-            Ready when you are
-          </span>
-        </div>
-
         <h2
           style={{
             fontFamily: 'var(--font-display)',
@@ -91,7 +56,7 @@ export default function FinalCta() {
         >
           Your next exam
           <br />
-          <span style={{ color: '#ffde59', fontStyle: 'italic' }}>starts here.</span>
+          <span style={{ color: 'var(--brand-gold)', fontStyle: 'italic' }}>starts here.</span>
         </h2>
 
         <p
@@ -123,8 +88,8 @@ export default function FinalCta() {
               gap: 10,
               padding: '18px 32px',
               borderRadius: 'var(--radius-full)',
-              background: '#ffde59',
-              color: '#2a2200',
+              background: 'var(--brand-gold)',
+              color: 'var(--brand-gold-ink)',
               fontSize: 16,
               fontWeight: 700,
               textDecoration: 'none',
@@ -171,11 +136,9 @@ export default function FinalCta() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#2a2550';
-              e.currentTarget.style.transform = 'translateY(-4px)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = '#1e1b3e';
-              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             See pricing

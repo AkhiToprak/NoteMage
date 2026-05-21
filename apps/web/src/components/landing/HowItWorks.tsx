@@ -32,7 +32,7 @@ export default function HowItWorks() {
       id="how-it-works"
       style={{
         position: 'relative',
-        padding: '128px 32px',
+        padding: 'var(--space-section) var(--space-page)',
         background: 'transparent',
       }}
     >
@@ -50,10 +50,10 @@ export default function HowItWorks() {
 
       <div style={{ position: 'relative', maxWidth: 1120, margin: '0 auto' }}>
         <SectionHeader
-          eyebrow="How it works"
+          align="left"
           title={
             <>
-              Three steps to your <span style={{ color: '#ae89ff' }}>first spell.</span>
+              Three steps to your <span style={{ color: 'var(--brand-purple)' }}>first spell.</span>
             </>
           }
           description="No tutorial hell. You'll be studying with AI in under 60 seconds."

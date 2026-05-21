@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import LandingFooter from '@/components/landing/LandingFooter';
+import MarketingHeroBackdrop from '@/components/landing/MarketingHeroBackdrop';
 
 const TOPICS = [
   { value: 'bug', label: 'Bug report' },
@@ -99,58 +100,7 @@ export default function ContactPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Radial glows */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            background: 'rgba(140, 82, 255, 0.16)',
-          }}
-        />
-        {/* Grain */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            opacity: 0.05,
-            mixBlendMode: 'overlay',
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          }}
-        />
-
-        {/* Sparkles */}
-        {[
-          { top: '28%', left: '14%', size: 16, delay: '0s' },
-          { top: '66%', left: '10%', size: 12, delay: '1.4s' },
-          { top: '32%', left: '84%', size: 18, delay: '0.8s' },
-          { top: '72%', left: '86%', size: 14, delay: '2.2s' },
-        ].map((s, i) => (
-          <div
-            key={i}
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: s.top,
-              left: s.left,
-              width: s.size,
-              height: s.size,
-              animation: `nm-contact-twinkle 3.6s ease-in-out infinite ${s.delay}`,
-              pointerEvents: 'none',
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"
-                fill="#ffde59"
-              />
-            </svg>
-          </div>
-        ))}
+        <MarketingHeroBackdrop />
 
         <div
           style={{
@@ -455,13 +405,11 @@ export default function ContactPage() {
                       }}
                       onMouseEnter={(e) => {
                         if (!active) {
-                          e.currentTarget.style.transform = 'translateY(-1px)';
                           e.currentTarget.style.borderColor = 'rgba(174, 137, 255, 0.4)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!active) {
-                          e.currentTarget.style.transform = 'translateY(0)';
                           e.currentTarget.style.borderColor = 'rgba(140, 82, 255, 0.22)';
                         }
                       }}
@@ -589,18 +537,6 @@ export default function ContactPage() {
       <LandingFooter />
 
       <style jsx global>{`
-        @keyframes nm-contact-twinkle {
-          0%,
-          100% {
-            opacity: 0.25;
-            transform: scale(0.9);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.15);
-          }
-        }
-
         .nm-contact a:focus-visible,
         .nm-contact button:focus-visible,
         .nm-contact input:focus-visible,

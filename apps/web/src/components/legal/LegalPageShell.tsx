@@ -1,6 +1,7 @@
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import LandingFooter from '@/components/landing/LandingFooter';
 import DocsMarkdown from '@/components/docs/DocsMarkdown';
+import MarketingHeroBackdrop from '@/components/landing/MarketingHeroBackdrop';
 
 interface LegalPageShellProps {
   eyebrow: string;
@@ -40,29 +41,7 @@ export default function LegalPageShell({
           overflow: 'hidden',
         }}
       >
-        {/* Restrained ambient glows — quieter than marketing pages */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            background: 'rgba(140, 82, 255, 0.12)',
-          }}
-        />
-        {/* Grain overlay for depth */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            opacity: 0.04,
-            mixBlendMode: 'overlay',
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          }}
-        />
+        <MarketingHeroBackdrop sparkles={false} wash="rgba(140, 82, 255, 0.12)" grainOpacity={0.04} />
 
         <div
           style={{
@@ -342,9 +321,7 @@ export default function LegalPageShell({
             border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .nm-legal .nm-legal-pill:hover {
-          transform: translateY(-2px);
           background: rgba(174, 137, 255, 0.18);
-          border-color: rgba(174, 137, 255, 0.4);
         }
         .nm-legal a:focus-visible,
         .nm-legal button:focus-visible {

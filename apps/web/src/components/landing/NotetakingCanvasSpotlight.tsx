@@ -21,16 +21,16 @@ export default function NotetakingCanvasSpotlight() {
       id="features"
       style={{
         position: 'relative',
-        padding: '128px 32px',
+        padding: 'var(--space-section) var(--space-page)',
         background: 'transparent',
       }}
     >
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
         <SectionHeader
-          eyebrow="Two canvases. One notebook."
+          align="left"
           title={
             <>
-              Type it, or <span style={{ color: '#ae89ff' }}>draw it.</span>
+              Type it, or <span style={{ color: 'var(--brand-purple)' }}>draw it.</span>
             </>
           }
           description="Some ideas are words. Others are arrows and doodles. Notemage supports both, inside every notebook, without ever switching tabs."
@@ -111,16 +111,13 @@ function FeatureCard({
         gap: 24,
         minWidth: 0,
         overflow: 'hidden',
-        transition:
-          'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: 'box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
         e.currentTarget.style.boxShadow =
-          '0 48px 100px rgba(140, 82, 255, 0.14), 0 16px 32px rgba(0,0,0,0.45)';
+          '0 40px 90px rgba(140, 82, 255, 0.12), 0 12px 28px rgba(0,0,0,0.45)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow =
           '0 32px 80px rgba(140, 82, 255, 0.08), 0 8px 24px rgba(0,0,0,0.4)';
       }}

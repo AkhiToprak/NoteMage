@@ -15,20 +15,6 @@ export default function Hero() {
         background: 'transparent',
       }}
     >
-      {/* Grain overlay */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          opacity: 0.05,
-          mixBlendMode: 'overlay',
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-        }}
-      />
-
       <ParticleCanvas />
 
       <div
@@ -60,7 +46,7 @@ export default function Hero() {
               marginBottom: 32,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ffde59' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--brand-gold)' }}>
               auto_awesome
             </span>
             <span
@@ -94,7 +80,7 @@ export default function Hero() {
             <br />
             <span
               style={{
-                color: '#ffde59',
+                color: 'var(--brand-gold)',
                 fontStyle: 'italic',
               }}
             >
@@ -132,8 +118,8 @@ export default function Hero() {
                 gap: 10,
                 padding: '16px 28px',
                 borderRadius: 'var(--radius-full)',
-                background: '#ffde59',
-                color: '#2a2200',
+                background: 'var(--brand-gold)',
+                color: 'var(--brand-gold-ink)',
                 fontSize: 15,
                 fontWeight: 700,
                 textDecoration: 'none',
@@ -180,17 +166,15 @@ export default function Hero() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#2a2550';
-                e.currentTarget.style.transform = 'translateY(-3px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = '#1e1b3e';
-                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                play_circle
+                arrow_downward
               </span>
-              Watch the magic
+              See features
             </Link>
           </div>
         </div>

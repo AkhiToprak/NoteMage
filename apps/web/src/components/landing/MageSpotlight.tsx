@@ -8,7 +8,7 @@ export default function MageSpotlight() {
     <section
       style={{
         position: 'relative',
-        padding: '128px 32px',
+        padding: 'var(--space-section) var(--space-page)',
         background: 'transparent',
         overflow: 'hidden',
       }}
@@ -22,10 +22,9 @@ export default function MageSpotlight() {
         }}
       >
         <SectionHeader
-          eyebrow="Personal Mage"
           title={
             <>
-              Meet your <span style={{ color: '#ae89ff' }}>personal tutor.</span>
+              Meet your <span style={{ color: 'var(--brand-purple)' }}>personal tutor.</span>
             </>
           }
           description="Ask anything, anywhere in your notebook. Mage reads your pages, your PDFs, your slides — and answers with citations you can actually trust."

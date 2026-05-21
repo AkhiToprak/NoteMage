@@ -37,6 +37,28 @@
   --on-tertiary-fixed: #7d6700;
   --on-tertiary-fixed-variant: #9d8200;
 
+  /* Brand accents (marketing surfaces) — fixed, NON theme-flipping. The public
+     landing/marketing pages render dark in both themes, so these stay constant.
+     --brand-purple matches --notebook-accent-rgb (174 137 255); --brand-gold is
+     the CTA gold; --brand-gold-ink is the readable ink used on gold fills. */
+  --brand-purple: #ae89ff;
+  --brand-gold: #ffde59;
+  --brand-gold-ink: #2a2200;
+
+  /* Spacing scale (4-pt base) — inline-style rhythm for marketing pages. */
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+  --space-page: 32px;
+  --space-section: 128px;
+
   /* Error */
   --error: #fea1b0;
   --error-container: #b61d42;

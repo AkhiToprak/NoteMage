@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 
 interface SectionHeaderProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: ReactNode;
   description?: ReactNode;
   align?: 'left' | 'center';
@@ -26,40 +26,42 @@ export default function SectionHeader({
         margin: align === 'center' ? `0 auto 64px` : `0 0 64px`,
       }}
     >
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '7px 14px',
-          borderRadius: 'var(--radius-full)',
-          background: 'rgba(174, 137, 255, 0.1)',
-          border: '1px solid rgba(174, 137, 255, 0.25)',
-          marginBottom: 20,
-        }}
-      >
-        <span
+      {eyebrow && (
+        <div
           style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: 'var(--primary)',
-            boxShadow: '0 0 10px var(--primary)',
-          }}
-        />
-        <span
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: 11,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: 'var(--primary)',
-            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '7px 14px',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(174, 137, 255, 0.1)',
+            border: '1px solid rgba(174, 137, 255, 0.25)',
+            marginBottom: 20,
           }}
         >
-          {eyebrow}
-        </span>
-      </div>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'var(--primary)',
+              boxShadow: '0 0 10px var(--primary)',
+            }}
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-brand)',
+              fontSize: 11,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: 'var(--primary)',
+              fontWeight: 600,
+            }}
+          >
+            {eyebrow}
+          </span>
+        </div>
+      )}
 
       <h2
         style={{

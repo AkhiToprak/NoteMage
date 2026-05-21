@@ -130,7 +130,7 @@ export default function WaitlistPage() {
               </div>
               <h2
                 style={{
-                  fontFamily: 'var(--font-epilogue), sans-serif',
+                  fontFamily: 'var(--font-display), sans-serif',
                   fontSize: '24px',
                   fontWeight: 700,
                   color: 'var(--on-surface)',
@@ -142,7 +142,7 @@ export default function WaitlistPage() {
               </h2>
               <p
                 style={{
-                  fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                  fontFamily: 'var(--font-sans), sans-serif',
                   fontSize: '15px',
                   color: 'var(--on-surface-variant)',
                   lineHeight: 1.7,
@@ -157,7 +157,7 @@ export default function WaitlistPage() {
               <h1
                 className="waitlist-heading"
                 style={{
-                  fontFamily: 'var(--font-epilogue), sans-serif',
+                  fontFamily: 'var(--font-display), sans-serif',
                   fontSize: '28px',
                   fontWeight: 700,
                   color: 'var(--on-surface)',
@@ -170,7 +170,7 @@ export default function WaitlistPage() {
               </h1>
               <p
                 style={{
-                  fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                  fontFamily: 'var(--font-sans), sans-serif',
                   fontSize: '15px',
                   color: 'var(--on-surface-variant)',
                   lineHeight: 1.7,
@@ -203,7 +203,7 @@ export default function WaitlistPage() {
                       borderRadius: '12px',
                       color: 'var(--on-surface)',
                       fontSize: '15px',
-                      fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                      fontFamily: 'var(--font-sans), sans-serif',
                       outline: 'none',
                       transition: 'border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                     }}
@@ -220,7 +220,7 @@ export default function WaitlistPage() {
                       padding: '14px 24px',
                       background: status === 'loading' ? '#ccb238' : '#ffde59',
                       color: '#000000',
-                      fontFamily: 'var(--font-epilogue), sans-serif',
+                      fontFamily: 'var(--font-display), sans-serif',
                       fontSize: '15px',
                       fontWeight: 700,
                       border: 'none',
@@ -241,7 +241,7 @@ export default function WaitlistPage() {
                       e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 222, 89, 0.25)';
                     }}
                   >
-                    {status === 'loading' ? 'Joining...' : 'Join the Waitlist'}
+                    {status === 'loading' ? 'Joining…' : 'Join the Waitlist'}
                   </button>
                 </div>
 
@@ -251,7 +251,7 @@ export default function WaitlistPage() {
                       color: '#fd6f85',
                       fontSize: '13px',
                       marginTop: '12px',
-                      fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                      fontFamily: 'var(--font-sans), sans-serif',
                     }}
                   >
                     {errorMsg}
@@ -268,7 +268,7 @@ export default function WaitlistPage() {
             marginTop: '28px',
             fontSize: '14px',
             color: 'var(--outline)',
-            fontFamily: 'var(--font-plus-jakarta), sans-serif',
+            fontFamily: 'var(--font-sans), sans-serif',
           }}
         >
           Already have an account?{' '}
@@ -299,6 +299,14 @@ export default function WaitlistPage() {
         }
       `}</style>
       <style>{`
+        .waitlist-outer a:focus-visible,
+        .waitlist-outer button:focus-visible,
+        .waitlist-outer input:focus-visible {
+          outline: 2px solid var(--brand-gold);
+          outline-offset: 3px;
+          border-radius: 12px;
+        }
+
         /* ── Responsive: Tablet (768–1023px) ── */
         @media (min-width: 768px) and (max-width: 1023px) {
           .waitlist-outer { padding: 24px 24px !important; }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactElement } from 'react';
+import { Fragment, useState, type ReactElement } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { CanvasIcon, NotebookIcon, TextFileIcon } from '@/components/icons/NavIcons';
 
@@ -42,7 +42,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
         pro: 'Unlimited*',
       },
       { name: 'Inline AI Editing', icon: 'auto_fix', free: '—', pro: 'Unlimited*' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', pro: '✓' },
+      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
   {
@@ -53,7 +53,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
       { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', pro: '✓' },
       { name: 'Flashcard Creator', icon: 'style', free: '✓', pro: '✓' },
       { name: 'Quiz Creator', icon: 'quiz', free: '✓', pro: '✓' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', pro: '✓' },
+      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
   {
@@ -62,7 +62,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
       { name: 'Study Groups', icon: 'groups', free: '✓', pro: '✓' },
       { name: 'Classes', icon: 'school', free: '✓', pro: '✓' },
       { name: 'Direct Messages', icon: 'chat', free: '✓', pro: '✓' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', pro: '✓' },
+      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
 ];
@@ -189,8 +189,8 @@ export default function FeatureComparison() {
           </thead>
           <tbody>
             {COMPARISON_DATA.map((category, catIdx) => (
-              <>
-                <tr key={`cat-${catIdx}`}>
+              <Fragment key={catIdx}>
+                <tr>
                   <td
                     colSpan={3}
                     style={{
@@ -262,7 +262,7 @@ export default function FeatureComparison() {
                     </td>
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -337,7 +337,7 @@ export default function FeatureComparison() {
                     >
                       {feature.name}
                     </span>
-                    {/* 3-column grid for tiers */}
+                    {/* Per-tier values */}
                     <div
                       style={{
                         display: 'grid',
