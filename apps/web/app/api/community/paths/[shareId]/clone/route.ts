@@ -29,13 +29,15 @@
 //       * SharedPath.downloadCount incremented +1 inside the same
 //         transaction so a clone-tx that rolls back can't leak a
 //         phantom +1 (AC-Clone-6).
-//   - The P0 §4.6 "popularity-threshold pre-translation fan-out"
-//     post-commit hook lands in P11 — that phase owns both the env
-//     gate (POPULAR_LANGUAGES, POPULARITY_THRESHOLD) and the fan-out
-//     itself. P9 ships the canonical clone surface; P11 wires the
-//     post-commit `popularityTriggeredAt` flip + fan-out trigger on
-//     top of it. Backfill of paths that crossed the threshold pre-P11
-//     is covered by the admin manual-trigger endpoint per the plan.
+//   - P11 wires the P0 §4.6 "popularity-threshold pre-translation fan-
+//     out" post-commit hook: after a real first clone commits we call
+//     `triggerPretranslationOnClone` fire-and-forget. It atomically
+//     flips `popularityTriggeredAt` iff the (now-incremented)
+//     `downloadCount` crossed `POPULARITY_THRESHOLD`, and on the winning
+//     flip fans out the popular-language translations. Idempotent re-
+//     clones never reach it (they don't increment the counter). Backfill
+//     of paths that crossed the threshold pre-P11 is the admin manual-
+//     trigger endpoint's job (`/api/admin/paths/[shareId]/pretranslate`).
 //
 // Why a single interactive `db.$transaction(async (tx) => ...)`:
 //   - We need fresh cuids allocated for every row in the graph and the
@@ -68,6 +70,7 @@ import {
   conflictResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { triggerPretranslationOnClone } from '@/lib/translation/pretranslate';
 
 type Params = { params: Promise<{ shareId: string }> };
 
@@ -328,6 +331,17 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
       { timeout: CLONE_TX_TIMEOUT_MS },
     );
+
+    // P11 — popularity-gate pre-translation fan-out (P0 §4.6). Only a
+    // real first clone can cross the threshold; an idempotent re-clone
+    // didn't increment downloadCount so it can't trigger. Fire-and-
+    // forget: neither the atomic flip nor the bounded AI fan-out may sit
+    // on the clone response's critical path.
+    if (!result.alreadyCloned) {
+      void triggerPretranslationOnClone(shareId).catch((err) => {
+        console.error('[community/paths/[shareId]/clone pretranslation]', err);
+      });
+    }
 
     const payload: CloneResponse = {
       planId: result.planId,

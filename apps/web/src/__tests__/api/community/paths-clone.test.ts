@@ -25,6 +25,11 @@ import { NextRequest } from 'next/server';
 
 const mocks = vi.hoisted(() => ({
   getAuthUserId: vi.fn(),
+  // P11 — the clone route fires this fire-and-forget after a first
+  // clone. Mocked here (returns a Promise so the route's `.catch`
+  // resolves) to keep the clone test hermetic — the real fan-out is
+  // unit-tested in pretranslate.test.ts.
+  triggerPretranslationOnClone: vi.fn(() => Promise.resolve(false)),
   dbMock: {
     sharedPath: {
       findUnique: vi.fn(),
@@ -39,6 +44,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({ getAuthUserId: mocks.getAuthUserId }));
+vi.mock('@/lib/translation/pretranslate', () => ({
+  triggerPretranslationOnClone: mocks.triggerPretranslationOnClone,
+}));
 vi.mock('@/lib/db', () => ({ db: mocks.dbMock }));
 
 import { POST } from '../../../../app/api/community/paths/[shareId]/clone/route';
@@ -263,6 +271,9 @@ describe('POST /api/community/paths/[shareId]/clone — idempotency (AC-Clone-5)
     // would fail this assertion.
     expect(mocks.dbMock.$transaction).not.toHaveBeenCalled();
     expect(mocks.dbMock.sharedPath.update).not.toHaveBeenCalled();
+    // P11 — an idempotent re-clone must NOT trigger pre-translation
+    // (it never incremented downloadCount, so it can't cross the gate).
+    expect(mocks.triggerPretranslationOnClone).not.toHaveBeenCalled();
   });
 
   it('queries existing clones with (userId, clonedFromSharedPathId)', async () => {
@@ -328,6 +339,10 @@ describe('POST /api/community/paths/[shareId]/clone — first clone (AC-Clone-2/
       success: true,
       data: { planId: 'plan-new', alreadyCloned: false },
     });
+    // P11 — a real first clone fires the popularity-gate trigger
+    // (fire-and-forget) with the shareId. The gate itself decides
+    // whether the threshold was crossed (unit-tested separately).
+    expect(mocks.triggerPretranslationOnClone).toHaveBeenCalledWith('shp-1');
   });
 
   it('opens a single transaction wrapping the create + downloadCount increment (AC-Clone-6)', async () => {

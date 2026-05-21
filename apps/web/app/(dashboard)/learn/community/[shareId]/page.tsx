@@ -23,6 +23,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
 
 // Popular-language set from P0 spec §6 — the languages we keep daily-
@@ -352,6 +353,22 @@ export default function CommunityPathDetailPage() {
           animation: community-detail-spin 1s linear infinite;
           transform-origin: center;
         }
+        /* P11 admin pre-translate — secondary outline variant. Default,
+           hover, and disabled live here; :focus-visible + :active + the
+           spinner are inherited from .community-detail-cta above, so the
+           full 8-state contract is shared with the primary CTA. */
+        .community-detail-cta--admin {
+          background: var(--surface-container-high);
+          color: var(--on-surface);
+          border: 1px solid var(--outline-variant);
+        }
+        .community-detail-cta--admin:not(:disabled):hover {
+          background: var(--surface-container-highest);
+        }
+        .community-detail-cta--admin:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
         @keyframes community-detail-spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -578,6 +595,8 @@ function DetailContent({
         </dl>
 
         <CloneCTA shareId={source.shareId} userClonePlanId={userClonePlanId} />
+
+        <AdminPretranslate shareId={source.shareId} />
       </header>
 
       <section
@@ -977,6 +996,183 @@ function CloneCTA({
           }}
         >
           {cloneError}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+// P11 — admin-only manual pre-translation trigger (P0 §4.10). Renders
+// nothing for non-admins. For an admin it surfaces a curation utility:
+// POST /api/admin/paths/[shareId]/pretranslate warms the popular-language
+// cache immediately — used to promote a high-quality path before it
+// crosses the popularity threshold, or to backfill a pre-rule row.
+//
+// Hallmark · component: admin-action-button · genre: inherit (NoteMage tokens)
+//   states: default · hover · focus-visible · active · disabled · loading · error · success
+//     default  → secondary outline (surface-container-high · on-surface · outline-variant border)
+//     hover    → surface-container-highest (.community-detail-cta--admin hover rule)
+//     focus    → 3px var(--primary) outline + 2px offset (inherited, shows instantly)
+//     active   → translateY(1px) (inherited)
+//     disabled → opacity .5 + not-allowed (shared with loading)
+//     loading  → aria-busy + progress_activity spinner + cursor:progress + "Pre-translating…"
+//     error    → inline role="alert" panel in var(--error)
+//     success  → static confirmation row (task_alt + "Pre-translation queued") in var(--primary)
+//   no gradients · animates transform/opacity only · spinner honours prefers-reduced-motion
+//   light-mode: every colour is a token (--on-surface / --on-surface-variant / --primary / --error)
+//   component-scope: macrostructure skipped · pre-emit critique: P5 H4 E5 S4 R4 V4
+function AdminPretranslate({ shareId }: { shareId: string }) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'admin';
+
+  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const onTrigger = useCallback(async () => {
+    if (state === 'loading') return;
+    setState('loading');
+    setErrorMsg(null);
+    try {
+      const res = await fetch(
+        `/api/admin/paths/${encodeURIComponent(shareId)}/pretranslate`,
+        { method: 'POST' },
+      );
+      if (res.status === 404) {
+        setErrorMsg('This path is no longer available, or you are not an admin.');
+        setState('idle');
+        return;
+      }
+      if (res.status === 409) {
+        setErrorMsg('This path is not approved yet — pre-translation is approved-only.');
+        setState('idle');
+        return;
+      }
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; error?: string }
+        | null;
+      if (!res.ok || !json?.success) {
+        setErrorMsg(json?.error ?? 'Could not queue pre-translation. Try again.');
+        setState('idle');
+        return;
+      }
+      setState('done');
+    } catch {
+      setErrorMsg('Network error. Try again.');
+      setState('idle');
+    }
+  }, [shareId, state]);
+
+  // Non-admins never see this surface.
+  if (!isAdmin) return null;
+
+  const loading = state === 'loading';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        alignSelf: 'flex-start',
+        marginTop: '4px',
+        padding: '12px',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--surface-container-low, var(--surface-container))',
+        maxWidth: '360px',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '11px',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--on-surface-variant)',
+        }}
+      >
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px' }}>
+          admin_panel_settings
+        </span>
+        Admin · curation
+      </span>
+
+      {state === 'done' ? (
+        <span
+          role="status"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px',
+            fontWeight: 700,
+            color: 'var(--primary)',
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
+            task_alt
+          </span>
+          Pre-translation queued
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void onTrigger()}
+          disabled={loading}
+          aria-busy={loading}
+          aria-disabled={loading}
+          className="community-detail-cta community-detail-cta--admin"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            borderRadius: 'var(--radius-md)',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: loading ? 'progress' : 'pointer',
+          }}
+        >
+          <span
+            className={`material-symbols-outlined${loading ? ' community-detail-cta__spinner' : ''}`}
+            aria-hidden
+            style={{ fontSize: '18px' }}
+          >
+            {loading ? 'progress_activity' : 'bolt'}
+          </span>
+          {loading ? 'Pre-translating…' : 'Pre-translate all languages'}
+        </button>
+      )}
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: '12px',
+          color: 'var(--on-surface-variant)',
+          lineHeight: 1.5,
+        }}
+      >
+        {state === 'done'
+          ? 'Popular languages are warming in the background.'
+          : 'Warms the popular-language cache now, before this path crosses the popularity threshold.'}
+      </p>
+
+      {errorMsg ? (
+        <p
+          role="alert"
+          style={{
+            margin: '4px 0 0',
+            fontSize: '12px',
+            color: 'var(--error)',
+            lineHeight: 1.5,
+            fontWeight: 600,
+          }}
+        >
+          {errorMsg}
         </p>
       ) : null}
     </div>

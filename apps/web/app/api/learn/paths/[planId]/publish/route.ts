@@ -17,22 +17,26 @@
 // off-request work the client polls for via the publication-status
 // endpoint.
 //
-// Per P0 spec §4.1 the seeded-bypass branch (admin + seeded=true →
-// approved directly + pre-translation fan-out) is also part of this
-// endpoint's contract, but the bypass shortcut depends on AdminAuditLog
-// (first-used in P7's admin approve/reject) and the P11 pre-translation
-// fan-out hook. P3/P4 keep the admin-only `seeded` flag silently ignored
-// for now; the bypass lands in P7/P11.
+// Phase 11 extension: the seeded-bypass branch (P0 spec §4.1) is now
+// wired. When an ADMIN publishes with `seeded: true`, the SharedPath is
+// created directly in `approved` (skipping L1/L2/L3), `approvedAt` and
+// `popularityTriggeredAt` are stamped, an `AdminAuditLog{action:
+// 'shared_path.approve', details:{seeded:true}}` row is written, and the
+// popular-language pre-translation fan-out fires immediately so the
+// free-funnel anchor is cache-warm for the first viewer. A non-admin
+// passing `seeded: true` is silently treated as a regular publish.
 //
 // Non-owner → 404 (existence-leak policy, same as the rest of the public
 // surface). Not 403.
 
 import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { getAuthUserId } from '@/lib/auth';
+import { getAuthUserId, getAdminUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logAdminAction } from '@/lib/admin-audit';
 import { runLayer1 } from '@/lib/moderation/layer1-runner';
 import { runLayer2 } from '@/lib/moderation/layer2-runner';
+import { runPretranslationFanOut } from '@/lib/translation/pretranslate';
 import {
   successResponse,
   unauthorizedResponse,
@@ -45,8 +49,8 @@ interface PublishBody {
   title?: string;
   description?: string;
   coverImageUrl?: string;
-  // Admin-only per P0 §4.1; silently ignored for non-admins. Wired up in
-  // the moderation phases that introduce the bypass — see file header.
+  // Admin-only per P0 §4.1; silently ignored for non-admins. Wired in
+  // P11 — see the seeded-bypass branch below and the file header.
   seeded?: boolean;
 }
 
@@ -138,6 +142,94 @@ export async function POST(request: NextRequest, { params }: Params) {
         : null;
 
     const slotCount = plan.phases.reduce((acc, p) => acc + p._count.slots, 0);
+
+    // P11 — seeded-path admin bypass (P0 §4.1). Only honoured for an
+    // admin caller; a non-admin's `seeded:true` falls through to the
+    // regular `pending` → L1 → L2 flow below. Creates the SharedPath
+    // directly in `approved` (skips L1/L2/L3), stamps approvedAt +
+    // popularityTriggeredAt, writes the admin audit row, and fires the
+    // popular-language pre-translation fan-out so the funnel anchor is
+    // cache-warm for the first viewer.
+    if (body.seeded === true) {
+      const adminId = await getAdminUserId(request);
+      if (adminId) {
+        const now = new Date();
+        let seededRow;
+        try {
+          seededRow = await db.sharedPath.create({
+            data: {
+              planId: plan.id,
+              sharedById: userId,
+              title: titleOverride ?? plan.title,
+              description: descriptionOverride ?? plan.description ?? null,
+              coverImageUrl,
+              language: plan.language,
+              subjects: plan.subjects,
+              phaseCount: plan._count.phases,
+              slotCount,
+              moderationStatus: 'approved',
+              seeded: true,
+              approvedAt: now,
+              popularityTriggeredAt: now,
+            },
+            select: {
+              id: true,
+              moderationStatus: true,
+              rejectionReason: true,
+              createdAt: true,
+            },
+          });
+        } catch (err) {
+          // Race with a concurrent publish — @@unique([planId]) trips
+          // P2002. Re-read and return the existing row (idempotent).
+          if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+          ) {
+            const race = await db.sharedPath.findUnique({
+              where: { planId },
+              select: {
+                id: true,
+                sharedById: true,
+                moderationStatus: true,
+                rejectionReason: true,
+                createdAt: true,
+              },
+            });
+            if (race && race.sharedById === userId) {
+              const payload: PublishResponse = {
+                shareId: race.id,
+                moderationStatus: race.moderationStatus,
+                rejectionReason: race.rejectionReason,
+                createdAt: race.createdAt.toISOString(),
+              };
+              return successResponse(payload);
+            }
+          }
+          throw err;
+        }
+
+        // AC-Auditability — a seeded publish is an admin moderation
+        // decision; log the bypass with the seeded marker (P0 §3.7).
+        await logAdminAction(adminId, 'shared_path.approve', seededRow.id, {
+          seeded: true,
+        });
+
+        // Cache-warm the funnel anchor — fire-and-forget, never on the
+        // publish response's critical path.
+        void runPretranslationFanOut(seededRow.id).catch((fanErr) => {
+          console.error('[publish seeded] pre-translation fan-out failed', fanErr);
+        });
+
+        const payload: PublishResponse = {
+          shareId: seededRow.id,
+          moderationStatus: seededRow.moderationStatus,
+          rejectionReason: seededRow.rejectionReason,
+          createdAt: seededRow.createdAt.toISOString(),
+        };
+        return successResponse(payload);
+      }
+    }
 
     let created;
     try {
