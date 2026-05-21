@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export type LegalLang = 'en' | 'de';
-export type LegalSlug = 'privacy' | 'terms' | 'legal-notice';
+export type LegalSlug = 'privacy' | 'terms' | 'refund' | 'legal-notice';
 
 const CONTENT_DIR = path.join(process.cwd(), 'src', 'content', 'legal');
 

@@ -11,6 +11,7 @@ const links = [
   { label: 'Docs', href: '/docs' },
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms', href: '/terms' },
+  { label: 'Refunds', href: '/refund' },
   { label: 'Legal Notice', href: '/legal' },
 ];
 
