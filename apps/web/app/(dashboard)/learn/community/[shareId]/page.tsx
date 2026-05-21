@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
+import { PATH_LANGUAGES, POPULAR_PATH_LANGUAGE_CODES } from '@/lib/path-languages';
 import {
   REPORT_REASONS,
   REPORT_REASON_LABELS,
@@ -36,6 +37,12 @@ import {
 // shows these six plus the source language if it isn't already in the
 // set (e.g. a `pt-br` source path adds a 7th chip).
 const POPULAR_LANGUAGES = ['de', 'en', 'fr', 'es', 'it', 'tr'] as const;
+
+// Every other supported language — surfaced in a "More…" dropdown beside the
+// popular translate chips, mirroring the community filter's hybrid pattern.
+const OTHER_LANGUAGES = PATH_LANGUAGES.filter(
+  (l) => !POPULAR_PATH_LANGUAGE_CODES.includes(l.code),
+);
 
 // Polling cadence for an in-flight translation. The runner is bounded
 // at ~30s on the server side so the worst case is ≈15 polls before the
@@ -441,6 +448,31 @@ export default function CommunityPathDetailPage() {
           animation: community-detail-spin 1s linear infinite;
           transform-origin: center;
         }
+        /* "More…" translate dropdown — reuses the chip pill via the shared
+           class; a <label> can't carry aria-pressed, so the active highlight
+           (when a long-tail language is showing) rides on data-active. */
+        .community-lang-more[data-active='true'] {
+          background: var(--primary);
+          border-color: var(--primary);
+          color: var(--on-primary);
+        }
+        .community-lang-more select {
+          background: transparent;
+          border: none;
+          color: inherit;
+          font: inherit;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          cursor: pointer;
+          max-width: 150px;
+        }
+        .community-lang-more select:disabled {
+          cursor: not-allowed;
+        }
+        .community-lang-more select:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 2px;
+        }
 
         /* P13 report affordance — full 8-state contract. Colour/border
            shifts are instant (transform/opacity-only animation rule);
@@ -753,6 +785,26 @@ function LanguagePicker({
   const requestInFlight =
     pendingLanguage !== null || translation?.status === 'translating';
 
+  // Long-tail languages live in a "More…" dropdown after the chips (the
+  // source always has its own chip, so it's excluded here). The dropdown
+  // counts as "active" whenever the shown/pending language isn't a chip.
+  const otherLanguages = useMemo(
+    () => OTHER_LANGUAGES.filter((l) => l.code !== sourceLanguage),
+    [sourceLanguage],
+  );
+  const isOtherCurrent = !languages.includes(currentLanguage);
+  const isOtherPending =
+    pendingLanguage !== null && !languages.includes(pendingLanguage);
+  const isOtherLoading =
+    isOtherPending ||
+    (translation?.status === 'translating' && !languages.includes(translation.language));
+  const otherValue = isOtherCurrent
+    ? currentLanguage
+    : isOtherPending
+      ? (pendingLanguage as string)
+      : '';
+  const otherDisabled = requestInFlight && !isOtherLoading;
+
   return (
     <div
       role="group"
@@ -832,6 +884,38 @@ function LanguagePicker({
               </li>
             );
           })}
+          {otherLanguages.length > 0 ? (
+            <li>
+              <label
+                className="community-lang-chip community-lang-more"
+                data-active={isOtherCurrent ? 'true' : undefined}
+              >
+                <span
+                  className={`material-symbols-outlined${isOtherLoading ? ' community-lang-chip__spinner' : ''}`}
+                  aria-hidden
+                  style={{ fontSize: '14px' }}
+                >
+                  {isOtherLoading ? 'progress_activity' : 'more_horiz'}
+                </span>
+                <select
+                  value={otherValue}
+                  onChange={(e) => {
+                    if (e.target.value) onSelect(e.target.value);
+                  }}
+                  disabled={otherDisabled}
+                  aria-busy={isOtherLoading}
+                  aria-label="Translate into another language"
+                >
+                  <option value="">More…</option>
+                  {otherLanguages.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </li>
+          ) : null}
         </ul>
       </div>
 
