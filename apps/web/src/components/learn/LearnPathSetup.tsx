@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import { getMageName } from '@/lib/scholar';
+import {
+  PATH_LANGUAGES,
+  DEFAULT_PATH_LANGUAGE,
+  type PathLanguageCode,
+} from '@/lib/path-languages';
 import GenerationProgressModal from '@/components/learn/GenerationProgressModal';
 
 // Phase 9.4 — unified setup for building Learn Paths. Two operating modes:
@@ -152,6 +157,7 @@ export default function LearnPathSetup({
   const [aiGoals, setAiGoals] = useState('');
   const [ultra, setUltra] = useState(false);
   const [gemini, setGemini] = useState(false);
+  const [language, setLanguage] = useState<PathLanguageCode>(DEFAULT_PATH_LANGUAGE);
   // Cross-notebook AI mode requires the user to nominate a single notebook
   // scope. The selected items get filtered down to that notebook before
   // posting; without exactly one notebook represented the AI submit blocks.
@@ -443,6 +449,7 @@ export default function LearnPathSetup({
           materialIds: scopedItems.map((i) => i.id),
           ultra: canUseUltra && ultra,
           gemini,
+          language,
         }),
       });
       const json = await res.json();
@@ -465,6 +472,7 @@ export default function LearnPathSetup({
     aiGoals,
     ultra,
     gemini,
+    language,
     canUseUltra,
     selectedIds,
     flatItems,
@@ -521,6 +529,7 @@ export default function LearnPathSetup({
             defaultNotebookId ?? (contextSet.size === 1 ? Array.from(contextSet)[0] : null),
           contextNotebookIds: Array.from(contextSet),
           materialIds,
+          language,
         }),
       });
       const json = await res.json();
@@ -542,6 +551,7 @@ export default function LearnPathSetup({
     planStart,
     planEnd,
     phases,
+    language,
   ]);
 
   // Manual mode draws its phase picker from the SELECTED set only — this
@@ -1002,14 +1012,65 @@ export default function LearnPathSetup({
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: '12px',
+            flexWrap: 'wrap',
             padding: '14px 20px',
             borderTop: '1px solid var(--outline-variant)',
           }}
         >
-          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
-            {selectedCount} of {flatItems.length} note
-            {flatItems.length === 1 ? '' : 's'} selected
-          </span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              minWidth: 0,
+            }}
+          >
+            <label
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                color: 'var(--on-surface-variant)',
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                aria-hidden
+                style={{ fontSize: '16px' }}
+              >
+                translate
+              </span>
+              <select
+                aria-label="Path language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as PathLanguageCode)}
+                disabled={submitting}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--outline-variant)',
+                  background: 'var(--surface-container-high)',
+                  color: 'var(--on-surface)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {PATH_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.endonym}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+              {selectedCount} of {flatItems.length} note
+              {flatItems.length === 1 ? '' : 's'} selected
+            </span>
+          </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"

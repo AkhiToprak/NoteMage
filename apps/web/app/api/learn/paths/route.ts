@@ -16,6 +16,7 @@ import { loadPathsForUser, serializePath } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import { classifySubjects } from '@/lib/path-classifier';
+import { normalizePathLanguage } from '@/lib/path-languages';
 import { logTelemetry } from '@/lib/telemetry-server';
 import { freeTierAiPathsDisabled } from '@/lib/feature-flags';
 import { trackFreeUserPathGenerationBlocked } from '@/lib/telemetry-switchover';
@@ -70,6 +71,10 @@ interface CreatePathBody {
    *  Flash for this generation, regardless of PATH_PROVIDER env vars or
    *  the ultra flag. Toggle from the path-creation UI for testing. */
   gemini?: boolean;
+  /** Author-selected content language (BCP-47 lowercase). Persisted as
+   *  StudyPlan.language and snapshotted onto SharedPath at publish time.
+   *  Validated against the supported set; junk falls back to 'en'. */
+  language?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -83,6 +88,9 @@ export async function POST(request: NextRequest) {
 
     const ultra = body.ultra === true;
     const gemini = body.gemini === true;
+    // Author-selected language → StudyPlan.language. The creation UI offers
+    // the supported set; anything else (or absent) normalises to 'en'.
+    const language = normalizePathLanguage(body.language);
 
     // Usage gate. Ultra paths draw from a separate Pro-only monthly meter
     // (Free's ultra_path limit is 0, so a Free user is rejected here too —
@@ -231,6 +239,7 @@ export async function POST(request: NextRequest) {
           source: 'ai',
           ultra,
           gemini,
+          language,
           generationStatus: 'generating',
           subjects: classification.subjects,
           subjectWeights: classification.weights,
