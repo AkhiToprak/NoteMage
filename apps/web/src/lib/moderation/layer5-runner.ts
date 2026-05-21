@@ -34,6 +34,7 @@ import {
   composeL5RejectionReason,
   type L5RejectReasonCode,
 } from './layer5';
+import { trustRejectPenalty } from './layer4';
 
 // ── shared types ──────────────────────────────────────────────────────────
 
@@ -177,6 +178,23 @@ export async function approveSharedPath(
             layer: 5,
           },
         },
+      });
+
+      // P13 — a human approval is a strong positive trust signal; bump
+      // the author toward the autoflag threshold so future publications
+      // can fast-path through L2.
+      await tx.user.update({
+        where: { id: sharedPath.sharedById },
+        data: { publishTrustScore: { increment: 1 } },
+      });
+
+      // P13 — any open community reports on this path were unfounded (a
+      // human looked and approved). Dismiss them so they stop counting
+      // toward a re-moderation trigger and the next reporter starts the
+      // count fresh.
+      await tx.report.updateMany({
+        where: { sharedPathId: sharedPath.id, status: 'open' },
+        data: { status: 'dismissed' },
       });
     });
   } catch (txErr) {
@@ -324,6 +342,24 @@ export async function rejectSharedPath(
             layer: 5,
           },
         },
+      });
+
+      // P13 — a human rejection penalises publish trust so the author
+      // drops back under the autoflag threshold and earns fresh scrutiny
+      // on their next publication. Score can go negative — that's just
+      // "very untrusted".
+      await tx.user.update({
+        where: { id: sharedPath.sharedById },
+        data: { publishTrustScore: { decrement: trustRejectPenalty() } },
+      });
+
+      // P13 — open community reports on this path were upheld. Mark them
+      // `actioned` (resolved-by-removal), distinct from the `dismissed`
+      // an approve writes, so report-accuracy stats can tell the two
+      // apart.
+      await tx.report.updateMany({
+        where: { sharedPathId: sharedPath.id, status: 'open' },
+        data: { status: 'actioned' },
       });
     });
   } catch (txErr) {

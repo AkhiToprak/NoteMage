@@ -87,6 +87,12 @@ model User {
   // every QuizAttempt.answers blob. Bumped by the attempts route.
   maxQuizStreakEver     Int       @default(0) // Longest consecutive-correct run in any single quiz session
   everHadComeback       Boolean   @default(false) // Has the user ever, in one session, hit ≥3 wrong then ≥5 right?
+  // Path-publishing Layer-4 trust score (P13). Net publication trust:
+  // +1 per approved community path, -penalty per human-rejected one.
+  // Below the autoflag threshold, an L2 "pass" is downgraded to a deep
+  // L3 audit (new authors get extra scrutiny). Can go negative — that's
+  // just "very untrusted". See src/lib/moderation/layer4.ts.
+  publishTrustScore     Int       @default(0)
   tier                  Tier      @default(FREE)
   pendingTier           Tier? // Tier to switch to at end of current period (null = no change)
   subscriptionPeriodEnd DateTime? // When the current billing period ends (null = free / no active period)
@@ -171,6 +177,8 @@ model User {
   moderationAudits       ModerationAudit[] @relation("ModerationActor")
   assignedTickets        Ticket[]          @relation("AssignedTickets")
   resolvedTickets        Ticket[]          @relation("ResolvedTickets")
+  // Path-publishing Layer-4 (P13) — community reports filed by this user.
+  reportsMade            Report[]          @relation("ReportsMade")
 
   @@map("users")
 }
@@ -1616,6 +1624,7 @@ model SharedPath {
   translations PathTranslation[]
   audits       ModerationAudit[]
   ratings      PathRating[]
+  reports      Report[]
   clones       StudyPlan[]       @relation("PathClones")
 
   @@unique([planId])
@@ -1662,17 +1671,18 @@ model PathTranslation {
   @@map("path_translations")
 }
 
-// Append-only per-layer log of every L1/L2/L3/L5 verdict on a SharedPath.
-// L4 is reserved for the deferred reports/trust-scoring phase (P13).
+// Append-only per-layer log of every L1/L2/L3/L4/L5 verdict on a SharedPath.
+// L4 (P13) = post-publish reports + trust-gate auto-flag.
 model ModerationAudit {
   id               String   @id @default(cuid())
   sharedPathId     String
-  layer            Int // 1 | 2 | 3 | 5
+  layer            Int // 1 | 2 | 3 | 4 | 5
   // Per-layer verdict ranges: L1 "pass"|"reject"; L2 "pass"|"reject"|"flag";
-  // L3 "auto_reject"|"escalate_to_human"; L5 "pass"|"reject".
+  // L3 "auto_reject"|"escalate_to_human"; L4 "flag"; L5 "pass"|"reject".
   verdict          String
   // Taxonomy: "wordlist.<lang>.<category>" | "l2.<category>"
-  //   | "l3.<category>" | "l5.<category>"
+  //   | "l3.<category>" | "l4.reports" | "l4.untrusted_author"
+  //   | "l5.<category>"
   // Categories: adult, hateful, spam, offtopic, low_quality, copyright, other.
   reasonCode       String?
   reasoning        String?  @db.Text // Model output (L2/L3) or admin note (L5)
@@ -1711,6 +1721,36 @@ model PathRating {
   @@unique([sharedPathId, userId])
   @@index([sharedPathId])
   @@map("path_ratings")
+}
+
+// Path-publishing Layer 4 (P13) — a community report against an approved
+// SharedPath. One report per (user, path) via the unique constraint
+// (the spam upper-bound, same shape as PathRating). When the distinct
+// count of `open` reports on an approved, non-seeded path crosses
+// REPORT_REMODERATION_THRESHOLD, `runReportAggregation` pulls the path
+// back to `flagged_pending_human` and opens a moderation_review ticket —
+// the post-publish recovery net for content the L1/L2/L3 pipeline let
+// through. Resolved by the human-review (L5) outcome: approve →
+// `dismissed`, reject → `actioned`.
+model Report {
+  id           String   @id @default(cuid())
+  sharedPathId String
+  reporterId   String
+  // Moderation category taxonomy (mirrors L2/L3/L5):
+  // adult | hateful | spam | copyright | offtopic | low_quality | other.
+  reason       String
+  detail       String?  @db.Text // Optional reporter note (capped in the API).
+  status       String   @default("open") // "open" | "actioned" | "dismissed"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sharedPath SharedPath @relation(fields: [sharedPathId], references: [id], onDelete: Cascade)
+  reporter   User       @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedPathId, reporterId])
+  @@index([sharedPathId, status])
+  @@index([status, createdAt])
+  @@map("reports")
 }
 
 // Generic human-actionable work item. v1 ships only type=moderation_review

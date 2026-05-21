@@ -38,6 +38,7 @@ import {
   type L2ModelOutput,
 } from './layer2';
 import { runLayer3 } from './layer3-runner';
+import { applyTrustGate, L4_UNTRUSTED_REASON_CODE } from './layer4';
 import {
   moderationStructuredCall,
   type ModerationUsage,
@@ -82,7 +83,9 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
       sharedById: true,
       title: true,
       moderationStatus: true,
-      sharedBy: { select: { email: true } },
+      // P13 trust gate — need the author's role (admins bypass) and
+      // current trust score in the same query, no extra round trip.
+      sharedBy: { select: { email: true, role: true, publishTrustScore: true } },
     },
   });
   if (!sharedPath) {
@@ -171,10 +174,22 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
   const cost = computeCost(usageMeter);
   const aggregateUsage = aggregateMeter(usageMeter);
 
-  // 7) Apply the state transition + write the audit row + post the
+  // 6.5) P13 trust gate — a clean `pass` by an untrusted, non-admin
+  //      author is downgraded to `flag` so the deep L3 audit (and
+  //      ultimately a human) sees a new author's first publications.
+  //      `effective` drives the state machine / notification / email;
+  //      the original `judgement` still backs the genuine L2 audit row
+  //      (the content WAS clean and that's worth recording honestly).
+  const gate = applyTrustGate(judgement, {
+    score: sharedPath.sharedBy.publishTrustScore,
+    role: sharedPath.sharedBy.role,
+  });
+  const effective = gate.judgement;
+
+  // 7) Apply the state transition + write the audit row(s) + post the
   //    notification in one transaction. Email goes out post-commit so
   //    a flaky SMTP doesn't roll back the state machine.
-  const targetStatus = statusFor(judgement.verdict);
+  const targetStatus = statusFor(effective.verdict);
   try {
     await db.$transaction(async (tx) => {
       // 7a) State transition — gate on the current status so we don't
@@ -188,7 +203,7 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
           // rejectionReason captured on terminal reject so the author UI
           // has something to surface immediately.
           ...(targetStatus === 'rejected'
-            ? { rejectionReason: judgement.rejectionReason }
+            ? { rejectionReason: effective.rejectionReason }
             : {}),
         },
       });
@@ -196,7 +211,10 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
       // audit row that would misrepresent the chain.
       if (updated.count === 0) return;
 
-      // 7b) Audit row — always written with the resolved model + cost.
+      // 7b) Genuine L2 audit row — always the ORIGINAL verdict + the
+      // resolved model + cost. When the trust gate downgraded a pass,
+      // this row still records "L2 said pass" so the chain reads
+      // honestly (content clean, author new → deeper look).
       await tx.moderationAudit.create({
         data: {
           sharedPathId,
@@ -213,18 +231,45 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
         },
       });
 
-      // 7c) Notification — per AC-Moderate-8 every terminal transition
-      // (including flag→human-queue) gets one. No notification on the
-      // reentrant skip branch above (handled by the early return).
+      // 7b-ii) P13 trust downgrade — append the layer:4 row that records
+      // WHY a clean path is being routed to L3 (the author is too new).
+      // Zero cost: this isn't a model decision, it's the trust rule.
+      if (gate.trustGated) {
+        await tx.moderationAudit.create({
+          data: {
+            sharedPathId,
+            layer: 4,
+            verdict: 'flag',
+            reasonCode: L4_UNTRUSTED_REASON_CODE,
+            reasoning: effective.reasoning,
+          },
+        });
+      }
+
+      // 7c) P13 trust reward — a genuine approval bumps the author's
+      // publish trust toward the autoflag threshold. Only fires on a
+      // real `approved` transition; an untrusted pass was downgraded to
+      // `auditing_l3` above so it never reaches here.
+      if (targetStatus === 'approved') {
+        await tx.user.update({
+          where: { id: sharedPath.sharedById },
+          data: { publishTrustScore: { increment: 1 } },
+        });
+      }
+
+      // 7d) Notification — per AC-Moderate-8 every terminal transition
+      // (including flag→human-queue) gets one. Uses the EFFECTIVE verdict
+      // so a trust-downgraded path notifies "queued for review", and
+      // tags layer:4 so the source of the flag is traceable.
       await tx.notification.create({
         data: {
           userId: sharedPath.sharedById,
-          type: notificationTypeFor(judgement.verdict),
+          type: notificationTypeFor(effective.verdict),
           data: {
             shareId: sharedPathId,
             title: sharedPath.title,
-            ...(judgement.reasonCode ? { reasonCode: judgement.reasonCode } : {}),
-            layer: 2,
+            ...(effective.reasonCode ? { reasonCode: effective.reasonCode } : {}),
+            layer: gate.trustGated ? 4 : 2,
           },
         },
       });
@@ -235,29 +280,30 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
     console.error(`[layer2-runner] transaction failed for ${sharedPathId}`, txErr);
     return {
       status: 'auditing_l3', // best-effort hint; real status unchanged
-      judgement,
+      judgement: effective,
       costUsd: cost.usd,
       model: modelId,
       usage: lastUsage,
     };
   }
 
-  // 8) Post-commit email — best-effort. Never throw, never await
-  //    inside the transaction (a stuck SMTP would lock state writes).
+  // 8) Post-commit email — best-effort. Branches on the EFFECTIVE verdict
+  //    so a trust-downgraded pass sends the "queued for review" email,
+  //    not the approval one. Never await inside the transaction.
   const to = sharedPath.sharedBy.email;
   if (to) {
     const title = sharedPath.title;
     // Fire-and-forget; errors are logged inside each helper.
     void (async () => {
       try {
-        if (judgement.verdict === 'pass') {
+        if (effective.verdict === 'pass') {
           await sendPathApprovedEmail({ to, title, shareId: sharedPathId });
-        } else if (judgement.verdict === 'reject') {
+        } else if (effective.verdict === 'reject') {
           await sendPathRejectedEmail({
             to,
             title,
             shareId: sharedPathId,
-            reasonCode: judgement.reasonCode,
+            reasonCode: effective.reasonCode,
           });
         } else {
           await sendPathFlaggedEmail({ to, title, shareId: sharedPathId });
@@ -268,12 +314,12 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
     })();
   }
 
-  // 9) Phase 5 — fire-and-forget L3 on `flag`. State is now
-  //    `auditing_l3`; runLayer3 will move it to either `rejected`
-  //    (auto_reject) or `flagged_pending_human` (escalate, ticket
-  //    opened). Reentrant + idempotent — a duplicate fire is a quiet
-  //    no-op. Same async pattern as publish→L2 in
-  //    `app/api/learn/paths/[planId]/publish/route.ts`.
+  // 9) Fire-and-forget L3 on `flag` — including a trust-downgraded pass,
+  //    which is the whole point of the gate (new authors get the deep
+  //    audit). State is now `auditing_l3`; runLayer3 moves it to
+  //    `rejected` (auto_reject) or `flagged_pending_human` (escalate,
+  //    ticket opened). Reentrant + idempotent. Same async pattern as
+  //    publish→L2 in `app/api/learn/paths/[planId]/publish/route.ts`.
   if (targetStatus === 'auditing_l3') {
     void runLayer3(sharedPathId).catch((l3Err) => {
       console.error('[layer2-runner] L3 background run failed', l3Err);
@@ -282,7 +328,7 @@ export async function runLayer2(sharedPathId: string): Promise<L2Result> {
 
   return {
     status: targetStatus,
-    judgement,
+    judgement: effective,
     costUsd: cost.usd,
     model: modelId,
     usage: lastUsage,

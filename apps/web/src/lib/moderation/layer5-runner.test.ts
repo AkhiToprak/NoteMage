@@ -22,6 +22,11 @@ const mocks = vi.hoisted(() => {
     moderationAudit: { create: vi.fn() },
     ticket: { updateMany: vi.fn() },
     notification: { create: vi.fn() },
+    // P13 — L5 now adjusts publishTrustScore and resolves open reports
+    // inside the same transaction. Stub both so the existing happy-path
+    // tests don't trip on an undefined tx.user / tx.report.
+    user: { update: vi.fn() },
+    report: { updateMany: vi.fn() },
   };
   const dbMock = {
     ticket: { findUnique: vi.fn() },
@@ -519,5 +524,84 @@ describe('rejectSharedPath — conflict + not_found mirror approve', () => {
     expect(tx.moderationAudit.create).not.toHaveBeenCalled();
     expect(tx.ticket.updateMany).not.toHaveBeenCalled();
     expect(tx.notification.create).not.toHaveBeenCalled();
+  });
+});
+
+// ── P13 — trust adjustment + report resolution ──────────────────────────────
+
+describe('approve/reject — P13 trust + report resolution', () => {
+  it('approve bumps publishTrustScore +1 and dismisses open reports', async () => {
+    dbMock.ticket.findUnique.mockResolvedValueOnce(happyTicket());
+    dbMock.sharedPath.findUnique.mockResolvedValueOnce(happySharedPath());
+
+    const result = await approveSharedPath({
+      ticketId: TICKET_ID,
+      adminId: ADMIN_ID,
+      note: null,
+    });
+
+    expect(result.outcome).toBe('applied');
+    expect(tx.user.update).toHaveBeenCalledTimes(1);
+    expect(tx.user.update.mock.calls[0][0]).toMatchObject({
+      where: { id: AUTHOR_ID },
+      data: { publishTrustScore: { increment: 1 } },
+    });
+    expect(tx.report.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.report.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { sharedPathId: SHARED_PATH_ID, status: 'open' },
+      data: { status: 'dismissed' },
+    });
+  });
+
+  it('reject penalises publishTrustScore and marks open reports actioned', async () => {
+    dbMock.ticket.findUnique.mockResolvedValueOnce(happyTicket());
+    dbMock.sharedPath.findUnique.mockResolvedValueOnce(happySharedPath());
+
+    const result = await rejectSharedPath({
+      ticketId: TICKET_ID,
+      adminId: ADMIN_ID,
+      reasonCode: 'l5.spam',
+      note: null,
+    });
+
+    expect(result.outcome).toBe('applied');
+    expect(tx.user.update).toHaveBeenCalledTimes(1);
+    const dec = tx.user.update.mock.calls[0][0];
+    expect(dec.where).toEqual({ id: AUTHOR_ID });
+    // Default penalty is 2; assert the shape + that it's a positive decrement.
+    expect(dec.data.publishTrustScore.decrement).toBeGreaterThanOrEqual(1);
+    expect(tx.report.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.report.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { sharedPathId: SHARED_PATH_ID, status: 'open' },
+      data: { status: 'actioned' },
+    });
+  });
+
+  it('idempotent re-approve does NOT mutate trust or reports (no-op, not error)', async () => {
+    dbMock.ticket.findUnique.mockResolvedValueOnce(happyTicket({ status: 'resolved' }));
+    dbMock.sharedPath.findUnique.mockResolvedValueOnce(
+      happySharedPath({ moderationStatus: 'approved' }),
+    );
+
+    const result = await approveSharedPath({
+      ticketId: TICKET_ID,
+      adminId: ADMIN_ID,
+      note: null,
+    });
+
+    expect(result.outcome).toBe('noop_already_terminal');
+    expect(tx.user.update).not.toHaveBeenCalled();
+    expect(tx.report.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does NOT mutate trust or reports when the in-tx state race loses (count=0)', async () => {
+    dbMock.ticket.findUnique.mockResolvedValueOnce(happyTicket());
+    dbMock.sharedPath.findUnique.mockResolvedValueOnce(happySharedPath());
+    tx.sharedPath.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await approveSharedPath({ ticketId: TICKET_ID, adminId: ADMIN_ID, note: null });
+
+    expect(tx.user.update).not.toHaveBeenCalled();
+    expect(tx.report.updateMany).not.toHaveBeenCalled();
   });
 });

@@ -784,6 +784,58 @@ async function main() {
   // Give the first curated seed a real, studiable content tree.
   await plantNestedContent(curatedPlanId(0), admin.id);
 
+  // ── P13 — Layer-4 reports + trust scoring fixtures ──────────────────
+  // A NON-seeded approved community path (userA-owned) carrying two open
+  // reports from two distinct reporters. Two is below the default
+  // REPORT_REMODERATION_THRESHOLD of 3, so it has NOT auto-pulled — the
+  // report dialog is reachable on a path you don't own, and adding a
+  // third report (or lowering the threshold) trips the re-moderation.
+  const P13_PLAN_ID = 'seedplnp13reported0000001';
+  const P13_SHARED_ID = 'seedshpp13reported000shp1';
+  await upsertPlan({
+    id: P13_PLAN_ID,
+    userId: userA.id,
+    title: 'Reported path — community flags demo',
+    language: 'en',
+    subjects: ['general'],
+  });
+  await upsertSharedPath({
+    id: P13_SHARED_ID,
+    planId: P13_PLAN_ID,
+    sharedById: userA.id,
+    title: 'Reported path — community flags demo',
+    language: 'en',
+    subjects: ['general'],
+    moderationStatus: 'approved',
+    approvedAt: now,
+  });
+  for (const [reporterId, reason, detail] of [
+    [admin.id, 'spam', 'Buy-now links in two checkpoint titles.'],
+    [userB.id, 'low_quality', 'Flashcards have several wrong dates.'],
+  ] as const) {
+    await db.report.upsert({
+      where: {
+        sharedPathId_reporterId: { sharedPathId: P13_SHARED_ID, reporterId },
+      },
+      update: { reason, detail },
+      create: {
+        sharedPathId: P13_SHARED_ID,
+        reporterId,
+        reason,
+        detail,
+        status: 'open',
+      },
+    });
+  }
+
+  // Trust scores: userA trusted (future publishes fast-path through L2),
+  // userB untrusted (their next L2-pass gets downgraded to the deep L3
+  // audit). Explicit updates so re-runs converge regardless of prior
+  // state (upsertUser's update clause is intentionally a no-op).
+  await db.user.update({ where: { id: admin.id }, data: { publishTrustScore: 10 } });
+  await db.user.update({ where: { id: userA.id }, data: { publishTrustScore: 3 } });
+  await db.user.update({ where: { id: userB.id }, data: { publishTrustScore: 0 } });
+
   console.log('Seeded path-publishing fixtures:');
   console.log(`  users     → admin=${admin.username}, ${userA.username}, ${userB.username}`);
   console.log(
@@ -796,6 +848,9 @@ async function main() {
     `  curated   → ${CURATED_SEED_FIXTURES.length} seeded paths (≥20 precondition for P12 switchover); idx 0 has full nested content for the clone→study E2E`,
   );
   console.log(`  tickets   → 1 open (refers to flagged path)`);
+  console.log(
+    `  reports   → 2 open on a non-seeded approved path (sub-threshold); trust scores set (admin=10, userA=3, userB=0)`,
+  );
 }
 
 main()

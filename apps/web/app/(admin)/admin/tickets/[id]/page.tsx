@@ -1309,6 +1309,10 @@ const LAYER_LABELS: Record<number, { label: string; icon: string; tag: string }>
   1: { label: 'Wordlist filter', icon: 'spellcheck', tag: 'L1' },
   2: { label: 'Cheap-model audit', icon: 'auto_awesome', tag: 'L2' },
   3: { label: 'Detailed AI audit', icon: 'psychology', tag: 'L3' },
+  // P13 — post-publish reports + new-author trust-gate auto-flag. The
+  // reasonCode (l4.reports / l4.untrusted_author) distinguishes the two
+  // triggers in the row body below.
+  4: { label: 'Reports & trust', icon: 'report', tag: 'L4' },
   5: { label: 'Human review', icon: 'gavel', tag: 'L5' },
 };
 

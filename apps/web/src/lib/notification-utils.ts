@@ -57,6 +57,12 @@ export function describeModerationReason(reasonCode: unknown): string {
       return 'was flagged as low quality';
     case 'other':
       return 'was flagged by the review pipeline';
+    // Layer 4 (P13) — report aggregation + new-author trust gate. These
+    // surface on the admin ticket timeline, not author-facing copy.
+    case 'reports':
+      return 'was pulled for re-review after community reports';
+    case 'untrusted_author':
+      return 'was sent for a deeper look (new author)';
     default:
       return 'see review notes';
   }

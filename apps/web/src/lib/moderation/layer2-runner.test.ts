@@ -21,6 +21,10 @@ const mocks = vi.hoisted(() => {
     sharedPath: { updateMany: vi.fn() },
     moderationAudit: { create: vi.fn() },
     notification: { create: vi.fn() },
+    // P13 — the L2 runner now bumps publishTrustScore on a genuine
+    // approve. Stub it so the trusted-author happy path doesn't trip on
+    // an undefined tx.user.
+    user: { update: vi.fn() },
   };
   const dbMock = {
     sharedPath: { findUnique: vi.fn() },
@@ -84,13 +88,23 @@ const AUTHOR_ID = 'usr_test_author_0001';
 const AUTHOR_EMAIL = 'author@example.test';
 const TITLE = 'Algorithms — a friendly intro';
 
-function happySharedPath(overrides: Partial<{ moderationStatus: string }> = {}) {
+function happySharedPath(
+  overrides: Partial<{ moderationStatus: string; role: string; publishTrustScore: number }> = {},
+) {
   return {
     id: SHARED_PATH_ID,
     sharedById: AUTHOR_ID,
     title: TITLE,
     moderationStatus: overrides.moderationStatus ?? 'auditing_l2',
-    sharedBy: { email: AUTHOR_EMAIL },
+    // P13 — default to a trusted author (score ≥ the default autoflag
+    // threshold of 2) so the existing pass-branch tests still land on
+    // `approved`. The trust-gate downgrade is exercised by its own tests
+    // that pass a low score.
+    sharedBy: {
+      email: AUTHOR_EMAIL,
+      role: overrides.role ?? 'user',
+      publishTrustScore: overrides.publishTrustScore ?? 5,
+    },
   };
 }
 
@@ -418,6 +432,118 @@ describe('runLayer2 — fail-closed (AC-Moderate-5)', () => {
     const result = await runLayer2(SHARED_PATH_ID);
     expect(result.judgement.verdict).toBe('flag');
     expect(result.judgement.failedClosed).toBe(true);
+  });
+});
+
+describe('runLayer2 — P13 trust gate', () => {
+  it('downgrades an untrusted non-admin author pass → auditing_l3 with both audit rows + fires L3', async () => {
+    dbMock.sharedPath.findUnique.mockResolvedValue(
+      happySharedPath({ publishTrustScore: 0, role: 'user' }),
+    );
+    loadSharedPathSnapshotMock.mockResolvedValue(happySnapshot());
+    mockModelOutput({
+      verdict: 'pass',
+      category: 'other',
+      confidence: 0.95,
+      reason: 'Clean educational path.',
+    });
+
+    const result = await runLayer2(SHARED_PATH_ID);
+
+    // The path goes to L3, not straight to approved.
+    expect(result.status).toBe('auditing_l3');
+    expect(result.judgement.verdict).toBe('flag');
+    expect(result.judgement.reasonCode).toBe('l4.untrusted_author');
+
+    const stateData = tx.sharedPath.updateMany.mock.calls[0][0].data;
+    expect(stateData.moderationStatus).toBe('auditing_l3');
+    expect(stateData.approvedAt).toBeUndefined();
+
+    // TWO audit rows: a genuine layer:2 pass (carries the model + cost)
+    // and a layer:4 trust flag (zero cost).
+    expect(tx.moderationAudit.create).toHaveBeenCalledTimes(2);
+    const rows = tx.moderationAudit.create.mock.calls.map((c) => c[0].data);
+    const l2row = rows.find((r) => r.layer === 2);
+    const l4row = rows.find((r) => r.layer === 4);
+    expect(l2row).toMatchObject({ verdict: 'pass', reasonCode: null });
+    expect(l2row.costUsd).toBeGreaterThan(0); // the L2 model call really happened
+    expect(l4row).toMatchObject({ verdict: 'flag', reasonCode: 'l4.untrusted_author' });
+    expect(l4row.costUsd ?? 0).toBe(0);
+
+    // No trust increment — it wasn't a real approval.
+    expect(tx.user.update).not.toHaveBeenCalled();
+
+    // Notification reads "flagged for review", tagged layer:4.
+    const notif = tx.notification.create.mock.calls[0][0].data;
+    expect(notif.type).toBe('path_flagged_for_review');
+    expect(notif.data).toMatchObject({ shareId: SHARED_PATH_ID, layer: 4 });
+
+    // Flagged email (not approved) + L3 fired fire-and-forget.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sendPathFlaggedEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendPathApprovedEmailMock).not.toHaveBeenCalled();
+    expect(runLayer3Mock).toHaveBeenCalledWith(SHARED_PATH_ID);
+  });
+
+  it('a trusted author pass → approved + trust +1 (single audit row, no L3)', async () => {
+    dbMock.sharedPath.findUnique.mockResolvedValue(
+      happySharedPath({ publishTrustScore: 5, role: 'user' }),
+    );
+    loadSharedPathSnapshotMock.mockResolvedValue(happySnapshot());
+    mockModelOutput({
+      verdict: 'pass',
+      category: 'other',
+      confidence: 0.95,
+      reason: 'Clean.',
+    });
+
+    const result = await runLayer2(SHARED_PATH_ID);
+
+    expect(result.status).toBe('approved');
+    expect(tx.moderationAudit.create).toHaveBeenCalledTimes(1); // no l4 row
+    expect(tx.user.update).toHaveBeenCalledTimes(1);
+    expect(tx.user.update.mock.calls[0][0]).toMatchObject({
+      where: { id: AUTHOR_ID },
+      data: { publishTrustScore: { increment: 1 } },
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(runLayer3Mock).not.toHaveBeenCalled();
+  });
+
+  it('an admin author bypasses the gate even at score 0 → approved', async () => {
+    dbMock.sharedPath.findUnique.mockResolvedValue(
+      happySharedPath({ publishTrustScore: 0, role: 'admin' }),
+    );
+    loadSharedPathSnapshotMock.mockResolvedValue(happySnapshot());
+    mockModelOutput({
+      verdict: 'pass',
+      category: 'other',
+      confidence: 0.95,
+      reason: 'Clean.',
+    });
+
+    const result = await runLayer2(SHARED_PATH_ID);
+    expect(result.status).toBe('approved');
+    expect(tx.moderationAudit.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('a reject by an untrusted author is unaffected (gate only touches pass)', async () => {
+    dbMock.sharedPath.findUnique.mockResolvedValue(
+      happySharedPath({ publishTrustScore: 0, role: 'user' }),
+    );
+    loadSharedPathSnapshotMock.mockResolvedValue(happySnapshot());
+    mockModelOutput({
+      verdict: 'reject',
+      category: 'spam',
+      confidence: 0.95,
+      reason: 'spam',
+    });
+
+    const result = await runLayer2(SHARED_PATH_ID);
+    expect(result.status).toBe('rejected');
+    expect(tx.moderationAudit.create).toHaveBeenCalledTimes(1); // single l2 row, no l4
+    expect(tx.user.update).not.toHaveBeenCalled();
   });
 });
 

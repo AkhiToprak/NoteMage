@@ -25,6 +25,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
+import {
+  REPORT_REASONS,
+  REPORT_REASON_LABELS,
+  REPORT_DETAIL_MAX_CHARS,
+} from '@/lib/moderation/layer4';
 
 // Popular-language set from P0 spec §6 — the languages we keep daily-
 // budget headroom for and that get pre-baked on popular paths. The rail
@@ -434,10 +439,53 @@ export default function CommunityPathDetailPage() {
           transform-origin: center;
         }
 
+        /* P13 report affordance — full 8-state contract. Colour/border
+           shifts are instant (transform/opacity-only animation rule);
+           the only animated property is the loading spinner's rotate. */
+        .community-report-trigger:not(:disabled):hover {
+          background: var(--surface-container-high);
+          color: var(--on-surface);
+        }
+        .community-report-trigger:focus-visible,
+        .community-report-cancel:focus-visible,
+        .community-report-submit:focus-visible {
+          outline: 3px solid var(--primary);
+          outline-offset: 2px;
+        }
+        .community-report-trigger:not(:disabled):active,
+        .community-report-cancel:not(:disabled):active,
+        .community-report-submit:not(:disabled):active {
+          transform: translateY(1px);
+        }
+        .community-report-option:hover {
+          border-color: var(--outline);
+        }
+        .community-report-option:focus-within {
+          outline: 2px solid var(--primary);
+          outline-offset: 1px;
+        }
+        .community-report-cancel:not(:disabled):hover {
+          background: var(--surface-container-high);
+          color: var(--on-surface);
+        }
+        .community-report-submit:not(:disabled):hover {
+          background: var(--primary-dim, var(--primary));
+        }
+        .community-report-detail:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 1px;
+          border-color: var(--primary);
+        }
+        .community-report-submit__spinner {
+          animation: community-detail-spin 1s linear infinite;
+          transform-origin: center;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .community-detail-slot { transition: none; }
           .community-detail-cta__spinner { animation: none; }
           .community-lang-chip__spinner { animation: none; }
+          .community-report-submit__spinner { animation: none; }
         }
       `}</style>
     </div>
@@ -597,6 +645,8 @@ function DetailContent({
         <CloneCTA shareId={source.shareId} userClonePlanId={userClonePlanId} />
 
         <AdminPretranslate shareId={source.shareId} />
+
+        <ReportControl shareId={source.shareId} authorId={source.author.id} />
       </header>
 
       <section
@@ -1175,6 +1225,320 @@ function AdminPretranslate({ shareId }: { shareId: string }) {
           {errorMsg}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+// P13 — community report affordance (Layer 4). A low-emphasis "Report
+// this path" disclosure that expands a reason picker. Hidden on the
+// author's own path (you can't report your own work). POSTs to
+// /api/community/paths/[shareId]/report; the server aggregates open
+// reports and, past the threshold, pulls the path back to the human
+// queue for re-moderation.
+//
+// Hallmark · component: report-dialog · genre: editorial · theme: inherit (NoteMage tokens)
+//   states: default · hover · focus-visible · active · disabled · loading · error · success
+//     default  → ghost trigger (transparent · on-surface-variant · flag icon)
+//     hover    → surface-container fill (.community-report-trigger hover rule)
+//     focus    → 3px var(--primary) outline + 2px offset (shared rule)
+//     active   → translateY(1px)
+//     disabled → submit dimmed (opacity .5 · not-allowed) until a reason is picked
+//     loading  → aria-busy + progress_activity spinner + "Reporting…"
+//     error    → inline role="alert" panel in var(--error)
+//     success  → panel collapses to a static "Reported" confirmation row
+//   no gradients · animates transform/opacity only · spinner honours prefers-reduced-motion
+//   light-mode: every colour is a token (--on-surface* / --primary / --on-primary / --error)
+//   component-scope: macrostructure skipped · pre-emit critique: P5 H4 E5 S4 R5 V4
+function ReportControl({ shareId, authorId }: { shareId: string; authorId: string }) {
+  const { data: session } = useSession();
+  const viewerId = session?.user?.id;
+
+  const [phase, setPhase] = useState<'idle' | 'open' | 'submitting' | 'done'>('idle');
+  const [reason, setReason] = useState<string | null>(null);
+  const [detail, setDetail] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const onSubmit = useCallback(async () => {
+    if (!reason || phase === 'submitting') return;
+    setPhase('submitting');
+    setErrorMsg(null);
+    try {
+      const res = await fetch(
+        `/api/community/paths/${encodeURIComponent(shareId)}/report`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reason,
+            detail: detail.trim() ? detail.trim() : undefined,
+          }),
+        },
+      );
+      if (res.status === 404) {
+        setErrorMsg('This path is no longer available.');
+        setPhase('open');
+        return;
+      }
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; error?: string }
+        | null;
+      if (!res.ok || !json?.success) {
+        setErrorMsg(json?.error ?? 'Could not submit your report. Try again.');
+        setPhase('open');
+        return;
+      }
+      setPhase('done');
+    } catch {
+      setErrorMsg('Network error. Try again.');
+      setPhase('open');
+    }
+  }, [reason, detail, phase, shareId]);
+
+  // Can't report your own path. The (dashboard) layout already guarantees
+  // an authed session, so this just guards the own-path case; if the
+  // viewer id isn't hydrated yet the affordance still shows and the
+  // server's 400 self-report guard is the backstop.
+  if (viewerId && viewerId === authorId) return null;
+
+  if (phase === 'done') {
+    return (
+      <div
+        className="community-report-done"
+        role="status"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          alignSelf: 'flex-start',
+          marginTop: '4px',
+          fontSize: '13px',
+          fontWeight: 700,
+          color: 'var(--primary)',
+        }}
+      >
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+          task_alt
+        </span>
+        Thanks — we&rsquo;ll re-review this path.
+      </div>
+    );
+  }
+
+  if (phase === 'idle') {
+    return (
+      <button
+        type="button"
+        className="community-report-trigger"
+        onClick={() => setPhase('open')}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          alignSelf: 'flex-start',
+          marginTop: '4px',
+          padding: '6px 10px',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--on-surface-variant)',
+          fontFamily: 'inherit',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}
+      >
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+          flag
+        </span>
+        Report this path
+      </button>
+    );
+  }
+
+  const submitting = phase === 'submitting';
+
+  return (
+    <div
+      role="group"
+      aria-label="Report this path"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        alignSelf: 'stretch',
+        marginTop: '4px',
+        padding: '16px',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-lg)',
+        background: 'var(--surface-container-low, var(--surface-container))',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontFamily: 'var(--font-display)',
+            fontSize: '15px',
+            fontWeight: 800,
+            color: 'var(--on-surface)',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+            flag
+          </span>
+          Report this path
+        </span>
+        <p style={{ margin: 0, fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
+          Tell us what&rsquo;s wrong. Reported paths get re-reviewed by our team.
+        </p>
+      </div>
+
+      <div
+        role="radiogroup"
+        aria-label="Reason for reporting"
+        style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
+      >
+        {REPORT_REASONS.map((r) => {
+          const selected = reason === r;
+          return (
+            <label
+              key={r}
+              className={`community-report-option${selected ? ' is-selected' : ''}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 12px',
+                border: `1px solid ${selected ? 'var(--primary)' : 'var(--outline-variant)'}`,
+                borderRadius: 'var(--radius-md)',
+                background: selected ? 'rgba(174,137,255,0.10)' : 'var(--surface-container)',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <input
+                type="radio"
+                name="report-reason"
+                value={r}
+                checked={selected}
+                disabled={submitting}
+                onChange={() => setReason(r)}
+                style={{ accentColor: 'var(--primary)', cursor: 'inherit' }}
+              />
+              <span
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: selected ? 'var(--on-surface)' : 'var(--on-surface-variant)',
+                }}
+              >
+                {REPORT_REASON_LABELS[r]}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+
+      <textarea
+        className="community-report-detail"
+        aria-label="Additional detail (optional)"
+        placeholder="Add any detail (optional)"
+        maxLength={REPORT_DETAIL_MAX_CHARS}
+        value={detail}
+        disabled={submitting}
+        onChange={(e) => setDetail(e.target.value)}
+        rows={2}
+        style={{
+          width: '100%',
+          boxSizing: 'border-box',
+          resize: 'vertical',
+          padding: '8px 10px',
+          background: 'var(--surface-container-high)',
+          border: '1px solid var(--outline-variant)',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--on-surface)',
+          fontFamily: 'inherit',
+          fontSize: '13px',
+          lineHeight: 1.5,
+        }}
+      />
+
+      {errorMsg ? (
+        <p
+          role="alert"
+          style={{
+            margin: 0,
+            fontSize: '12px',
+            color: 'var(--error)',
+            lineHeight: 1.5,
+            fontWeight: 600,
+          }}
+        >
+          {errorMsg}
+        </p>
+      ) : null}
+
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="community-report-cancel"
+          onClick={() => {
+            setPhase('idle');
+            setReason(null);
+            setDetail('');
+            setErrorMsg(null);
+          }}
+          disabled={submitting}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '10px 16px',
+            background: 'transparent',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--on-surface-variant)',
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: submitting ? 'not-allowed' : 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="community-report-submit"
+          onClick={() => void onSubmit()}
+          disabled={!reason || submitting}
+          aria-busy={submitting}
+          aria-disabled={!reason || submitting}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            background: !reason || submitting ? 'var(--surface-container-high)' : 'var(--primary)',
+            color: !reason || submitting ? 'var(--on-surface-variant)' : 'var(--on-primary)',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: submitting ? 'progress' : !reason ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <span
+            className={`material-symbols-outlined${submitting ? ' community-report-submit__spinner' : ''}`}
+            aria-hidden
+            style={{ fontSize: '18px' }}
+          >
+            {submitting ? 'progress_activity' : 'send'}
+          </span>
+          {submitting ? 'Reporting…' : 'Submit report'}
+        </button>
+      </div>
     </div>
   );
 }
