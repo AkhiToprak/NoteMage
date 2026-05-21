@@ -117,6 +117,239 @@ function librarySharedId(idx: number): string {
   return `${ID.librarySetSharedPrefix}${String(idx).padStart(2, '0')}shp`;
 }
 
+// P12 — curated seed library. The free-tier switchover (plan §P12) can't
+// ship until N≥20 seeded paths anchor the funnel (P0 §5.4). These are the
+// dev/staging stand-ins so the precondition AND the P12V clone→study E2E
+// are verifiable without hand-authoring 20 paths through the admin
+// dashboard. All seeded=true → moderationStatus jumps straight to
+// `approved`, `approvedAt`/`popularityTriggeredAt` are stamped (the
+// popularity gate is pre-tripped for seeds per AC-Translate-14). Spread
+// across the full popular language set (de/en/fr/es/it/tr) so the library
+// language filter has real seeded coverage. Index 0 gets a full nested
+// phase/slot/activity tree (see plantNestedContent) so a clone is
+// immediately studiable; the rest are metadata-only, same as the P8 set.
+const CURATED_SEED_FIXTURES: Array<{
+  idx: number;
+  language: 'en' | 'de' | 'fr' | 'es' | 'it' | 'tr';
+  subjects: string[];
+  title: string;
+  phaseCount: number;
+  slotCount: number;
+  downloadCount: number;
+  viewCount: number;
+  ratingAverage: number | null;
+  ratingCount: number;
+}> = [
+  { idx: 0, language: 'en', subjects: ['coding'], title: 'Git & GitHub from zero', phaseCount: 2, slotCount: 3, downloadCount: 980, viewCount: 5400, ratingAverage: 4.9, ratingCount: 124 },
+  { idx: 1, language: 'en', subjects: ['coding'], title: 'SQL for everyday analysis', phaseCount: 4, slotCount: 14, downloadCount: 612, viewCount: 3120, ratingAverage: 4.7, ratingCount: 88 },
+  { idx: 2, language: 'en', subjects: ['math'], title: 'Statistics you can actually use', phaseCount: 5, slotCount: 17, downloadCount: 433, viewCount: 2210, ratingAverage: 4.6, ratingCount: 51 },
+  { idx: 3, language: 'en', subjects: ['language'], title: 'French A1 — first 1000 words', phaseCount: 4, slotCount: 12, downloadCount: 720, viewCount: 4010, ratingAverage: 4.8, ratingCount: 96 },
+  { idx: 4, language: 'en', subjects: ['science_natural'], title: 'Chemistry: the mole & stoichiometry', phaseCount: 3, slotCount: 9, downloadCount: 188, viewCount: 1240, ratingAverage: 4.4, ratingCount: 27 },
+  { idx: 5, language: 'de', subjects: ['coding'], title: 'JavaScript Grundlagen', phaseCount: 4, slotCount: 13, downloadCount: 540, viewCount: 2890, ratingAverage: 4.6, ratingCount: 73 },
+  { idx: 6, language: 'de', subjects: ['math'], title: 'Lineare Algebra — Crashkurs', phaseCount: 5, slotCount: 18, downloadCount: 301, viewCount: 1670, ratingAverage: 4.5, ratingCount: 40 },
+  { idx: 7, language: 'de', subjects: ['history_humanities'], title: 'Französische Revolution', phaseCount: 3, slotCount: 10, downloadCount: 142, viewCount: 980, ratingAverage: 4.3, ratingCount: 19 },
+  { idx: 8, language: 'de', subjects: ['language'], title: 'Spanisch A2 — Alltag', phaseCount: 4, slotCount: 12, downloadCount: 233, viewCount: 1410, ratingAverage: 4.4, ratingCount: 31 },
+  { idx: 9, language: 'fr', subjects: ['coding'], title: 'Python pour débutants', phaseCount: 4, slotCount: 12, downloadCount: 410, viewCount: 2230, ratingAverage: 4.7, ratingCount: 58 },
+  { idx: 10, language: 'fr', subjects: ['math'], title: 'Probabilités — les bases', phaseCount: 3, slotCount: 9, downloadCount: 156, viewCount: 1020, ratingAverage: 4.2, ratingCount: 17 },
+  { idx: 11, language: 'fr', subjects: ['science_natural'], title: 'Biologie cellulaire', phaseCount: 4, slotCount: 11, downloadCount: 121, viewCount: 870, ratingAverage: 4.5, ratingCount: 22 },
+  { idx: 12, language: 'es', subjects: ['language'], title: 'Inglés A2 — viajar', phaseCount: 4, slotCount: 12, downloadCount: 388, viewCount: 2110, ratingAverage: 4.6, ratingCount: 49 },
+  { idx: 13, language: 'es', subjects: ['coding'], title: 'HTML y CSS desde cero', phaseCount: 3, slotCount: 10, downloadCount: 274, viewCount: 1560, ratingAverage: 4.5, ratingCount: 36 },
+  { idx: 14, language: 'es', subjects: ['history_humanities'], title: 'Historia del arte moderno', phaseCount: 5, slotCount: 16, downloadCount: 98, viewCount: 740, ratingAverage: 4.1, ratingCount: 12 },
+  { idx: 15, language: 'it', subjects: ['language'], title: 'Inglese A1 — primi passi', phaseCount: 4, slotCount: 12, downloadCount: 205, viewCount: 1290, ratingAverage: 4.4, ratingCount: 28 },
+  { idx: 16, language: 'it', subjects: ['math'], title: 'Analisi 1 — limiti e derivate', phaseCount: 5, slotCount: 19, downloadCount: 134, viewCount: 910, ratingAverage: 4.3, ratingCount: 16 },
+  { idx: 17, language: 'tr', subjects: ['coding'], title: 'Programlamaya giriş (Python)', phaseCount: 4, slotCount: 12, downloadCount: 367, viewCount: 1980, ratingAverage: 4.8, ratingCount: 61 },
+  { idx: 18, language: 'tr', subjects: ['language'], title: 'İngilizce A2 — günlük konuşma', phaseCount: 4, slotCount: 13, downloadCount: 290, viewCount: 1620, ratingAverage: 4.6, ratingCount: 44 },
+  { idx: 19, language: 'tr', subjects: ['math'], title: 'Lise matematiği — fonksiyonlar', phaseCount: 3, slotCount: 9, downloadCount: 118, viewCount: 820, ratingAverage: 4.2, ratingCount: 14 },
+  { idx: 20, language: 'en', subjects: ['social_studies'], title: 'Personal finance basics', phaseCount: 3, slotCount: 9, downloadCount: 845, viewCount: 4760, ratingAverage: 4.9, ratingCount: 110 },
+];
+
+function curatedPlanId(idx: number): string {
+  return `seedcurpath${String(idx).padStart(2, '0')}plan`;
+}
+function curatedSharedId(idx: number): string {
+  return `seedcurpath${String(idx).padStart(2, '0')}shp`;
+}
+
+// Plant a compact-but-complete phase/slot/activity tree on a curated seed
+// plan so a clone is immediately studiable end-to-end (theory →
+// flashcards → quiz). Idempotent: skips if the plan already has phases, so
+// re-running the seed never fans out duplicate content. Mirrors the slot-
+// kind composition rule (learning = theory+flashcards, review =
+// flashcards+quiz, assessment = quiz only).
+async function plantNestedContent(planId: string, ownerUserId: string) {
+  const existing = await db.studyPhase.count({ where: { planId } });
+  if (existing > 0) return;
+
+  const start = new Date();
+  const mid = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  const theoryBody = (text: string) => ({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+  });
+
+  await db.studyPhase.create({
+    data: {
+      planId,
+      title: 'Foundations',
+      description: 'Core concepts to get you moving.',
+      sortOrder: 0,
+      status: 'active',
+      startDate: start,
+      endDate: mid,
+      slots: {
+        create: [
+          {
+            title: 'Key ideas',
+            description: 'Read the essentials, then drill them.',
+            kind: 'learning',
+            sortOrder: 0,
+            activities: {
+              create: [
+                {
+                  kind: 'theory',
+                  title: 'Overview',
+                  sortOrder: 0,
+                  theory: {
+                    create: {
+                      title: 'Overview',
+                      body: theoryBody(
+                        'Welcome — this checkpoint introduces the core ideas you will build on throughout the path.',
+                      ),
+                    },
+                  },
+                },
+                {
+                  kind: 'flashcards',
+                  title: 'Drill the basics',
+                  sortOrder: 1,
+                  flashcardSet: {
+                    create: {
+                      userId: ownerUserId,
+                      title: 'Basics',
+                      source: 'manual',
+                      flashcards: {
+                        create: [
+                          { question: 'What does this path cover?', answer: 'The core fundamentals of the topic.', sortOrder: 0 },
+                          { question: 'How do I pass a checkpoint?', answer: 'Complete each activity in the slot.', sortOrder: 1 },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            title: 'Check yourself',
+            description: 'Review, then a quick quiz.',
+            kind: 'review',
+            sortOrder: 1,
+            activities: {
+              create: [
+                {
+                  kind: 'flashcards',
+                  title: 'Review cards',
+                  sortOrder: 0,
+                  flashcardSet: {
+                    create: {
+                      userId: ownerUserId,
+                      title: 'Review',
+                      source: 'manual',
+                      flashcards: {
+                        create: [
+                          { question: 'Recall: the first key idea?', answer: 'The fundamentals introduced in slot 1.', sortOrder: 0 },
+                        ],
+                      },
+                    },
+                  },
+                },
+                {
+                  kind: 'quiz',
+                  title: 'Quick check',
+                  sortOrder: 1,
+                  quizSet: {
+                    create: {
+                      userId: ownerUserId,
+                      title: 'Quick check',
+                      questions: {
+                        create: [
+                          {
+                            kind: 'mc',
+                            question: 'What is the goal of this checkpoint?',
+                            options: ['Skip ahead', 'Reinforce the basics', 'Delete the path', 'Nothing'],
+                            correctIndex: 1,
+                            hint: 'Think about why review exists.',
+                            correctExplanation: 'Right — review reinforces what you just learned.',
+                            wrongExplanation: 'Not quite — review is about reinforcing the basics.',
+                            sortOrder: 0,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  await db.studyPhase.create({
+    data: {
+      planId,
+      title: 'Put it together',
+      description: 'A graded assessment to lock it in.',
+      sortOrder: 1,
+      status: 'upcoming',
+      startDate: mid,
+      endDate: end,
+      slots: {
+        create: [
+          {
+            title: 'Assessment',
+            description: 'Pass to complete the path.',
+            kind: 'assessment',
+            sortOrder: 0,
+            activities: {
+              create: [
+                {
+                  kind: 'quiz',
+                  title: 'Final check',
+                  sortOrder: 0,
+                  quizSet: {
+                    create: {
+                      userId: ownerUserId,
+                      title: 'Final check',
+                      questions: {
+                        create: [
+                          {
+                            kind: 'mc',
+                            question: 'Did you complete the foundations phase?',
+                            options: ['Yes', 'No'],
+                            correctIndex: 0,
+                            hint: 'You did the work above.',
+                            correctExplanation: 'Great — you are ready.',
+                            wrongExplanation: 'Revisit the foundations phase first.',
+                            sortOrder: 0,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+}
+
 async function upsertUser(opts: {
   id: string;
   email: string;
@@ -494,11 +727,73 @@ async function main() {
     });
   }
 
+  // P12 — curated seed library (≥20 seeded paths). All admin-owned and
+  // seeded=true so they satisfy the §5.4 switchover precondition. Index 0
+  // gets the full nested content tree so the P12V clone→study E2E has a
+  // genuinely studiable target; the rest are metadata-only.
+  const curatedApprovedBase = Date.now();
+  for (const fx of CURATED_SEED_FIXTURES) {
+    const planId = curatedPlanId(fx.idx);
+    const sharedId = curatedSharedId(fx.idx);
+    const approvedAt = new Date(curatedApprovedBase - fx.idx * ONE_DAY_MS);
+
+    await db.studyPlan.upsert({
+      where: { id: planId },
+      update: {},
+      create: {
+        id: planId,
+        userId: admin.id,
+        title: fx.title,
+        description: `Curated seed path (${fx.language}, ${fx.subjects[0]})`,
+        startDate: new Date(approvedAt.getTime() - 14 * ONE_DAY_MS),
+        endDate: new Date(approvedAt.getTime() + 14 * ONE_DAY_MS),
+        source: 'manual',
+        generationStatus: 'ready',
+        language: fx.language,
+        subjects: fx.subjects,
+        subjectWeights: fx.subjects.map(() => 1),
+      },
+    });
+
+    await db.sharedPath.upsert({
+      where: { id: sharedId },
+      update: {},
+      create: {
+        id: sharedId,
+        planId,
+        sharedById: admin.id,
+        title: fx.title,
+        description: `A ${fx.language.toUpperCase()} ${fx.subjects[0]} path — ${fx.phaseCount} phases, ${fx.slotCount} checkpoints. Curated by the NoteMage team.`,
+        language: fx.language,
+        subjects: fx.subjects,
+        phaseCount: fx.phaseCount,
+        slotCount: fx.slotCount,
+        moderationStatus: 'approved',
+        seeded: true,
+        approvedAt,
+        downloadCount: fx.downloadCount,
+        viewCount: fx.viewCount,
+        ratingAverage: fx.ratingAverage,
+        ratingCount: fx.ratingCount,
+        // Seeded paths pre-trip the popularity gate (AC-Translate-14).
+        popularityTriggeredAt: approvedAt,
+      },
+    });
+  }
+
+  // Give the first curated seed a real, studiable content tree.
+  await plantNestedContent(curatedPlanId(0), admin.id);
+
   console.log('Seeded path-publishing fixtures:');
   console.log(`  users     → admin=${admin.username}, ${userA.username}, ${userB.username}`);
-  console.log(`  plans     → ${ID.plans.length} (state machine) + ${LIBRARY_FIXTURES.length} (library)`);
   console.log(
-    `  paths     → ${Object.keys(ID.sharedPaths).length} (state machine, incl. L1/L2-reject + flagged) + ${LIBRARY_FIXTURES.length} (approved library)`,
+    `  plans     → ${ID.plans.length} (state machine) + ${LIBRARY_FIXTURES.length} (library) + ${CURATED_SEED_FIXTURES.length} (curated seed)`,
+  );
+  console.log(
+    `  paths     → ${Object.keys(ID.sharedPaths).length} (state machine, incl. L1/L2-reject + flagged) + ${LIBRARY_FIXTURES.length} (approved library) + ${CURATED_SEED_FIXTURES.length} (curated seed, all seeded=true)`,
+  );
+  console.log(
+    `  curated   → ${CURATED_SEED_FIXTURES.length} seeded paths (≥20 precondition for P12 switchover); idx 0 has full nested content for the clone→study E2E`,
   );
   console.log(`  tickets   → 1 open (refers to flagged path)`);
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import type { PathPlan } from '@/components/learn/PathView';
@@ -93,9 +94,14 @@ function menuItemStyle(color: string): React.CSSProperties {
 }
 
 export default function LearnPage() {
+  const router = useRouter();
   const [plans, setPlans] = useState<PathPlanListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Phase 12 — null until the capability probe resolves. false = the
+  // FREE-tier switchover is on for this user, so the create CTA routes to
+  // the community library instead of opening the generator.
+  const [canGenerate, setCanGenerate] = useState<boolean | null>(null);
   const [activeSubject, setActiveSubject] = useState<SubjectId | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PathPlanListItem | null>(null);
@@ -153,6 +159,35 @@ export default function LearnPage() {
     setCreateOpen(false);
     void refresh();
   }, [refresh]);
+
+  // Phase 12 — resolve whether this user may still generate AI paths.
+  // Fail open to the existing modal flow on error: the modal's own gate
+  // and the server-side 402 still protect against a blocked generation.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/learn/paths/access')
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled && j?.success) setCanGenerate(Boolean(j.data?.canGenerate));
+      })
+      .catch(() => {
+        if (!cancelled) setCanGenerate(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // The create CTA: PRO / admins (and FREE pre-switchover) open the
+  // generator; a blocked FREE user lands on the community library with
+  // the explainer banner (AC-Switch-3).
+  const handleCreateClick = useCallback(() => {
+    if (canGenerate === false) {
+      router.push('/learn/community?from=create');
+      return;
+    }
+    setCreateOpen(true);
+  }, [canGenerate, router]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -288,7 +323,7 @@ export default function LearnPage() {
           </Link>
           <button
             type="button"
-            onClick={() => setCreateOpen(true)}
+            onClick={handleCreateClick}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -324,7 +359,7 @@ export default function LearnPage() {
       {plans === null ? (
         <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>Loading your paths…</p>
       ) : plans.length === 0 ? (
-        <EmptyState error={error} onCreate={() => setCreateOpen(true)} />
+        <EmptyState error={error} onCreate={handleCreateClick} />
       ) : filteredPlans && filteredPlans.length === 0 ? (
         <FilterEmptyState onClear={() => setActiveSubject(null)} />
       ) : (

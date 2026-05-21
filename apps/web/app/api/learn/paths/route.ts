@@ -8,6 +8,7 @@ import {
   unauthorizedResponse,
   internalErrorResponse,
   tooManyRequestsResponse,
+  paymentRequiredResponse,
 } from '@/lib/api-response';
 import { generatePathStructure, generatePath } from '@/lib/path-generator';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
@@ -16,6 +17,8 @@ import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import { classifySubjects } from '@/lib/path-classifier';
 import { logTelemetry } from '@/lib/telemetry-server';
+import { freeTierAiPathsDisabled } from '@/lib/feature-flags';
+import { trackFreeUserPathGenerationBlocked } from '@/lib/telemetry-switchover';
 
 // Phase 10.3 — POST kicks off the two-stage AI path generation. Stage A
 // (one inline AI call → `create_path_structure`) returns the section /
@@ -89,6 +92,19 @@ export async function POST(request: NextRequest) {
     const usageFeature = ultra ? 'ultra_path' : 'ai_study_plan';
     const usage = await checkUsageLimit(userId, usageFeature);
     if (!usage.allowed) {
+      // Phase 12 free-tier switchover (AC-Switch-1). When
+      // FREE_TIER_AI_PATHS_DISABLED is on, FREE's ai_study_plan limit is 0
+      // (tiers.ts). A 0 limit on the non-ultra meter can only mean a FREE
+      // user under the switchover — admins return allowed:true and PRO is
+      // unlimited (-1) — so this is a tier gate, not an exhausted quota:
+      // answer with 402 + library-pointing copy and drop a telemetry
+      // breadcrumb to size the friction. Everything else stays 429.
+      if (!ultra && usage.limit === 0 && freeTierAiPathsDisabled()) {
+        trackFreeUserPathGenerationBlocked(userId);
+        return paymentRequiredResponse(
+          'AI path generation is part of Pro. Browse the community library to clone a ready-made path — free.',
+        );
+      }
       return tooManyRequestsResponse(
         ultra
           ? 'Ultra path limit reached — Ultra is a Pro feature, capped at 3 per month.'

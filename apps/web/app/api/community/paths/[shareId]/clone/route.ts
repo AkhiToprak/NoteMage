@@ -71,6 +71,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { triggerPretranslationOnClone } from '@/lib/translation/pretranslate';
+import { trackFreeUserPathClone } from '@/lib/telemetry-switchover';
 
 type Params = { params: Promise<{ shareId: string }> };
 
@@ -340,6 +341,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!result.alreadyCloned) {
       void triggerPretranslationOnClone(shareId).catch((err) => {
         console.error('[community/paths/[shareId]/clone pretranslation]', err);
+      });
+      // Phase 12 — switchover funnel metric: did a FREE user clone a
+      // library path? Fire-and-forget; the helper self-checks tier so
+      // PRO / admin clones are excluded. Off the clone response's
+      // critical path, same as the pre-translation trigger above.
+      void trackFreeUserPathClone(userId, shareId).catch((err) => {
+        console.error('[community/paths/[shareId]/clone telemetry]', err);
       });
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import { getMageName } from '@/lib/scholar';
@@ -107,6 +108,28 @@ export default function LearnPathSetup({
   // the toggle, greyed out; the server enforces the same gate.
   const canUseUltra =
     session?.user?.tier === 'PRO' || session?.user?.role === 'admin';
+
+  // Phase 12 — safety net for the FREE-tier switchover. Every entry point
+  // that opens this modal (paths page, notebook sidebar, generate
+  // dropdown) funnels through here, so one capability probe blocks AI
+  // path generation for FREE users no matter where they came from.
+  // null = not yet known (render the form optimistically so PRO users see
+  // no delay); false = show the library hand-off panel instead.
+  const [canGenerate, setCanGenerate] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/learn/paths/access')
+      .then((r) => r.json())
+      .then((j) => {
+        if (!cancelled && j?.success) setCanGenerate(Boolean(j.data?.canGenerate));
+      })
+      .catch(() => {
+        if (!cancelled) setCanGenerate(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [tab, setTab] = useState<TabType>('ai');
   const [submitting, setSubmitting] = useState(false);
@@ -552,6 +575,211 @@ export default function LearnPathSetup({
   const subtitle = isCrossNotebookMode
     ? 'Pull from any of your notebooks'
     : defaultNotebookName ?? 'this notebook';
+
+  // Phase 12 — FREE-tier switchover hand-off. When the capability probe
+  // says this user can't generate AI paths, swap the whole generator for
+  // a panel that routes them to the community library (where cloning a
+  // ready-made path is free) and frames AI generation as a Pro perk.
+  // AC-Switch-3; covers every entry point that mounts this modal.
+  if (canGenerate === false) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI path generation is a Pro feature"
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+          padding: '20px',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'relative',
+            width: '460px',
+            maxWidth: '95vw',
+            background: 'var(--surface-container)',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--outline-variant)',
+            padding: '32px 24px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '16px',
+            fontFamily: 'inherit',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="lps-gate-close"
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+            }}
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
+              close
+            </span>
+          </button>
+
+          <span
+            aria-hidden
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--surface-container-high)',
+              color: 'var(--primary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '30px' }}>
+              explore
+            </span>
+          </span>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: '20px',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Paths come from the community library
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '14px',
+                lineHeight: 1.6,
+                color: 'var(--on-surface-variant)',
+              }}
+            >
+              Browse ready-made learning paths and clone one to your library in a tap —
+              no waiting, no setup. Generating your own paths with AI is part of{' '}
+              <span style={{ color: 'var(--on-surface)', fontWeight: 700 }}>Pro</span>.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              width: '100%',
+              marginTop: '4px',
+            }}
+          >
+            <Link
+              href="/learn/community?from=create"
+              className="lps-gate-primary"
+              onClick={onClose}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--primary)',
+                color: 'var(--on-primary)',
+                border: 'none',
+                fontFamily: 'inherit',
+                fontSize: '14px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 2px 0 var(--primary-container, var(--outline))',
+              }}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                explore
+              </span>
+              Browse the library
+            </Link>
+            <Link
+              href="/pricing"
+              className="lps-gate-secondary"
+              onClick={onClose}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '11px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'transparent',
+                color: 'var(--on-surface)',
+                border: '1px solid var(--outline-variant)',
+                fontFamily: 'inherit',
+                fontSize: '14px',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                workspace_premium
+              </span>
+              See what Pro includes
+            </Link>
+          </div>
+        </div>
+
+        <style>{`
+          .lps-gate-primary,
+          .lps-gate-secondary,
+          .lps-gate-close {
+            transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+          }
+          .lps-gate-primary:hover { transform: translateY(-1px); opacity: 0.94; }
+          .lps-gate-primary:active { transform: translateY(0); opacity: 0.88; }
+          .lps-gate-secondary:hover { transform: translateY(-1px); }
+          .lps-gate-secondary:active { transform: translateY(0); }
+          .lps-gate-close:hover { opacity: 0.7; }
+          .lps-gate-primary:focus-visible,
+          .lps-gate-secondary:focus-visible,
+          .lps-gate-close:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .lps-gate-primary,
+            .lps-gate-secondary,
+            .lps-gate-close { transition: none; }
+            .lps-gate-primary:hover,
+            .lps-gate-primary:active,
+            .lps-gate-secondary:hover,
+            .lps-gate-secondary:active { transform: none; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div

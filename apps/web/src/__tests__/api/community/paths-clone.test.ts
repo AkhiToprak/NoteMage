@@ -30,6 +30,10 @@ const mocks = vi.hoisted(() => ({
   // resolves) to keep the clone test hermetic — the real fan-out is
   // unit-tested in pretranslate.test.ts.
   triggerPretranslationOnClone: vi.fn(() => Promise.resolve(false)),
+  // P12 — fire-and-forget free-user clone telemetry. Mocked so the clone
+  // test stays hermetic; the helper itself is unit-tested in
+  // telemetry-switchover.test.ts.
+  trackFreeUserPathClone: vi.fn(() => Promise.resolve()),
   dbMock: {
     sharedPath: {
       findUnique: vi.fn(),
@@ -46,6 +50,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth', () => ({ getAuthUserId: mocks.getAuthUserId }));
 vi.mock('@/lib/translation/pretranslate', () => ({
   triggerPretranslationOnClone: mocks.triggerPretranslationOnClone,
+}));
+vi.mock('@/lib/telemetry-switchover', () => ({
+  trackFreeUserPathClone: mocks.trackFreeUserPathClone,
 }));
 vi.mock('@/lib/db', () => ({ db: mocks.dbMock }));
 
@@ -274,6 +281,8 @@ describe('POST /api/community/paths/[shareId]/clone — idempotency (AC-Clone-5)
     // P11 — an idempotent re-clone must NOT trigger pre-translation
     // (it never incremented downloadCount, so it can't cross the gate).
     expect(mocks.triggerPretranslationOnClone).not.toHaveBeenCalled();
+    // P12 — likewise no clone-funnel telemetry on an idempotent re-clone.
+    expect(mocks.trackFreeUserPathClone).not.toHaveBeenCalled();
   });
 
   it('queries existing clones with (userId, clonedFromSharedPathId)', async () => {
@@ -343,6 +352,9 @@ describe('POST /api/community/paths/[shareId]/clone — first clone (AC-Clone-2/
     // (fire-and-forget) with the shareId. The gate itself decides
     // whether the threshold was crossed (unit-tested separately).
     expect(mocks.triggerPretranslationOnClone).toHaveBeenCalledWith('shp-1');
+    // P12 — a real first clone fires the free-user clone-funnel metric
+    // (fire-and-forget; the helper self-checks tier).
+    expect(mocks.trackFreeUserPathClone).toHaveBeenCalledWith('user-1', 'shp-1');
   });
 
   it('opens a single transaction wrapping the create + downloadCount increment (AC-Clone-6)', async () => {

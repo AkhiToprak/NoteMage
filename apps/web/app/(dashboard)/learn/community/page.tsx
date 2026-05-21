@@ -93,6 +93,18 @@ export default function CommunityLibraryPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
+  // Phase 12 — the create-path CTA routes blocked FREE users here with
+  // ?from=create. Read it from the URL in an effect rather than
+  // useSearchParams (which would opt this page out of static rendering)
+  // and show a one-time explainer banner. AC-Switch-3.
+  const [fromCreate, setFromCreate] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  useEffect(() => {
+    setFromCreate(
+      new URLSearchParams(window.location.search).get('from') === 'create',
+    );
+  }, []);
+
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -231,6 +243,10 @@ export default function CommunityLibraryPage() {
           My paths
         </Link>
       </header>
+
+      {fromCreate && !bannerDismissed ? (
+        <SwitchoverBanner onDismiss={() => setBannerDismissed(true)} />
+      ) : null}
 
       <div
         style={{
@@ -1068,4 +1084,133 @@ function formatCount(n: number): string {
   if (n < 10_000) return `${(n / 1000).toFixed(1)}k`;
   if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
   return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+// Phase 12 — explainer shown when a blocked FREE user arrives from the
+// create-path CTA (?from=create). Frames the library as the path source
+// and AI generation as a Pro perk; dismissible. On-system tokens, solid
+// colours (no gradients), light-mode-safe text. AC-Switch-3.
+function SwitchoverBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <section
+      role="status"
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '14px',
+        padding: '16px 18px',
+        marginBottom: '20px',
+        background: 'var(--surface-container-high)',
+        border: '1px solid var(--outline-variant)',
+        borderLeft: '4px solid var(--primary)',
+        borderRadius: 'var(--radius-lg)',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: '40px',
+          height: '40px',
+          flexShrink: 0,
+          borderRadius: 'var(--radius-full)',
+          background: 'var(--surface-container)',
+          color: 'var(--primary)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
+          auto_stories
+        </span>
+      </span>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h2
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-display)',
+            fontSize: '15px',
+            fontWeight: 800,
+            color: 'var(--on-surface)',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Looking to create a path?
+        </h2>
+        <p
+          style={{
+            margin: '4px 0 0',
+            fontSize: '13px',
+            lineHeight: 1.6,
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          Generating your own paths with AI is part of Pro. In the meantime, browse the
+          library below and clone any path to your own library — free, instantly.
+        </p>
+        <Link
+          href="/pricing"
+          className="community-switchover-link"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginTop: '8px',
+            fontSize: '13px',
+            fontWeight: 700,
+            color: 'var(--primary)',
+            textDecoration: 'none',
+          }}
+        >
+          See what Pro includes
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+            arrow_forward
+          </span>
+        </Link>
+      </div>
+
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="community-switchover-dismiss"
+        style={{
+          flexShrink: 0,
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--on-surface-variant)',
+          cursor: 'pointer',
+          padding: '4px',
+          borderRadius: 'var(--radius-sm)',
+          display: 'flex',
+        }}
+      >
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+          close
+        </span>
+      </button>
+
+      <style>{`
+        .community-switchover-link,
+        .community-switchover-dismiss {
+          transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .community-switchover-link:hover { opacity: 0.82; }
+        .community-switchover-link:active { opacity: 0.7; }
+        .community-switchover-dismiss:hover { opacity: 0.7; }
+        .community-switchover-link:focus-visible,
+        .community-switchover-dismiss:focus-visible {
+          outline: 3px solid var(--primary);
+          outline-offset: 2px;
+          border-radius: var(--radius-sm);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .community-switchover-link,
+          .community-switchover-dismiss { transition: none; }
+        }
+      `}</style>
+    </section>
+  );
 }
