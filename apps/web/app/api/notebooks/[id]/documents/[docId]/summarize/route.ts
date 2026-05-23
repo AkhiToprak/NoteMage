@@ -3,6 +3,7 @@ import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL, MAX_CONTEXT_CHARS } from '@/lib/anthropic';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
   successResponse,
   badRequestResponse,
@@ -19,6 +20,14 @@ export async function POST(
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const rl = await rateLimit(rateLimitKey('doc-summarize', request, userId), 10, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse(
+        'You are sending requests too fast. Please wait a moment.',
+        rl.retryAfterMs
+      );
+    }
 
     const { id: notebookId, docId } = await params;
 

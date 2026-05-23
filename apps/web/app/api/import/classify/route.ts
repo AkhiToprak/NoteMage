@@ -9,6 +9,7 @@ import {
 } from '@/lib/api-response';
 import { validateStoragePath, downloadFromStorage } from '@/lib/storage';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { checkTokenBudget } from '@/lib/token-budget';
 import { extractGroundTruth, type GroundTruth } from '@/lib/pdf-import/ground-truth';
 import { detectSubjects, type SubjectDetectItem } from '@/lib/onboarding/subject-detect';
 import { PRESETS, getPresetForSubject } from '@/lib/presets';
@@ -52,6 +53,16 @@ export async function POST(request: NextRequest) {
       return tooManyRequestsResponse(
         'Too many import requests. Please wait a moment and try again.',
         limit.retryAfterMs,
+      );
+    }
+
+    // Classification is an AI (Gemini) call — gate it on the monthly token
+    // budget like every other AI route so an over-budget account can't keep
+    // firing it.
+    const { allowed: tokenAllowed, tokenLimit } = await checkTokenBudget(userId);
+    if (!tokenAllowed) {
+      return tooManyRequestsResponse(
+        `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`,
       );
     }
 

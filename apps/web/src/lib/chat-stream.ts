@@ -475,6 +475,17 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
             if (quizV2ToolUse) {
               const { title: quizTitle, questions } = quizV2ToolUse.input;
 
+              const quizUsage = await checkUsageLimit(userId, 'ai_quizzes');
+              if (!quizUsage.allowed) {
+                controller.enqueue(
+                  sseEvent('error', {
+                    error: 'Monthly quiz generation limit reached. Upgrade your plan for more.',
+                  })
+                );
+                controller.close();
+                return;
+              }
+
               for (const q of questions) {
                 if (q.kind !== 'mc') continue;
                 const mcPayload = q.payload;
@@ -560,6 +571,8 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 return { userMsg, assistantMsg, qSet };
               });
 
+              await incrementUsage(userId, 'ai_quizzes');
+
               controller.enqueue(
                 sseEvent('done', {
                   userMessage: {
@@ -613,6 +626,17 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   assistantText ||
                   'I tried to create a quiz but the format was invalid. Please try again.';
               } else {
+                const quizUsage = await checkUsageLimit(userId, 'ai_quizzes');
+                if (!quizUsage.allowed) {
+                  controller.enqueue(
+                    sseEvent('error', {
+                      error: 'Monthly quiz generation limit reached. Upgrade your plan for more.',
+                    })
+                  );
+                  controller.close();
+                  return;
+                }
+
                 const result = await db.$transaction(async (tx) => {
                   const userMsg = await tx.chatMessage.create({
                     data: {
@@ -669,6 +693,8 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   return { userMsg, assistantMsg, qSet };
                 });
 
+                await incrementUsage(userId, 'ai_quizzes');
+
                 controller.enqueue(
                   sseEvent('done', {
                     userMessage: {
@@ -708,6 +734,17 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               const { title: planTitle, description: planDesc, phases } = studyPlanToolUse.input;
 
               if (planTitle && Array.isArray(phases) && phases.length > 0) {
+                const planUsage = await checkUsageLimit(userId, 'ai_study_plan');
+                if (!planUsage.allowed) {
+                  controller.enqueue(
+                    sseEvent('error', {
+                      error: 'Monthly study plan limit reached. Upgrade your plan for more.',
+                    })
+                  );
+                  controller.close();
+                  return;
+                }
+
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 let cursor = new Date(today);
@@ -782,6 +819,8 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   });
                   return { userMsg, assistantMsg, plan };
                 });
+
+                await incrementUsage(userId, 'ai_study_plan');
 
                 controller.enqueue(
                   sseEvent('done', {

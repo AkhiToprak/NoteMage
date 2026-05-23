@@ -17,6 +17,7 @@ import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
 import { buildLegacyColumns } from '@/lib/quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
 import { checkTokenBudget } from '@/lib/token-budget';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
 
@@ -63,6 +64,19 @@ export async function POST(request: NextRequest, { params }: Params) {
       return tooManyRequestsResponse(
         `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens).`
       );
+    }
+
+    // Per-feature monthly quota (flashcards & quizzes; mind maps are uncapped)
+    const usageFeature =
+      type === 'flashcards' ? 'ai_flashcards' : type === 'quiz' ? 'ai_quizzes' : null;
+    if (usageFeature) {
+      const usage = await checkUsageLimit(userId, usageFeature);
+      if (!usage.allowed) {
+        const label = type === 'flashcards' ? 'flashcard' : 'quiz';
+        return tooManyRequestsResponse(
+          `Monthly ${label} generation limit reached (${usage.limit}). Upgrade to Pro for unlimited.`
+        );
+      }
     }
 
     // Build system prompt based on type
@@ -124,6 +138,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           },
           include: { flashcards: true },
         });
+        await incrementUsage(userId, 'ai_flashcards');
         return successResponse({
           type: 'flashcards',
           flashcardSet: { id: fSet.id, title: fSet.title, cardCount: fSet.flashcards.length },
@@ -183,6 +198,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
         include: { questions: true },
       });
+      await incrementUsage(userId, 'ai_quizzes');
       return successResponse({
         type: 'quiz',
         quizSet: { id: qSet.id, title: qSet.title, questionCount: qSet.questions.length },
@@ -229,6 +245,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           },
           include: { questions: true },
         });
+        await incrementUsage(userId, 'ai_quizzes');
         return successResponse({
           type: 'quiz',
           quizSet: { id: qSet.id, title: qSet.title, questionCount: qSet.questions.length },
