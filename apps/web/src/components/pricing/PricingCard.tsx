@@ -7,6 +7,8 @@ interface PricingCardProps {
   tier: TierKey;
   selected?: boolean;
   onSelect?: (tier: TierKey) => void;
+  /** When provided, the CTA becomes a button that runs this (e.g. open checkout) instead of navigating. Takes precedence over ctaHref. */
+  onUpgrade?: () => void;
   ctaText?: string;
   ctaHref?: string;
   formattedPrice?: string;
@@ -14,6 +16,13 @@ interface PricingCardProps {
   delay?: number;
   /** Tighter spacing/typography for embedded contexts like the onboarding wizard. */
   compact?: boolean;
+  /**
+   * Phase 12 switchover: when true, the FREE tier's AI path generation is off,
+   * so the FREE card shows "Community study paths" instead of an AI-path count.
+   * Must be resolved server-side and passed in — the env flag is stripped from
+   * the client bundle, so the component can't read it itself.
+   */
+  freeAiPathsDisabled?: boolean;
 }
 
 const FEATURE_LABELS: Record<FeatureType, string> = {
@@ -53,12 +62,14 @@ export default function PricingCard({
   tier,
   selected = false,
   onSelect,
+  onUpgrade,
   ctaText,
   ctaHref,
   formattedPrice,
   isRevealed = true,
   delay = 0,
   compact = false,
+  freeAiPathsDisabled = false,
 }: PricingCardProps) {
   const config = TIERS[tier];
   const accent = ACCENT[tier];
@@ -122,6 +133,49 @@ export default function PricingCard({
     opacity: hovered || selected ? 1 : 0,
     transition: 'opacity 0.35s cubic-bezier(0.22,1,0.36,1)',
   };
+
+  // Shared CTA visual — rendered as a <button> when onUpgrade is set, else an <a>.
+  const ctaStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    textAlign: 'center',
+    padding: '14px 24px',
+    borderRadius: 'var(--radius-md)',
+    fontWeight: 700,
+    fontSize: 14,
+    textDecoration: 'none',
+    background: isPro
+      ? 'var(--tertiary-container)'
+      : isPopular
+        ? 'var(--primary)'
+        : 'var(--surface-container-high)',
+    color: isPro ? '#22223a' : isPopular ? '#fff' : 'var(--on-surface-variant)',
+    border: tier === 'FREE' ? '1px solid rgba(136,136,168,0.15)' : 'none',
+    transform: ctaHovered ? 'translateY(-2px)' : 'translateY(0)',
+    boxShadow: ctaHovered
+      ? isPro
+        ? '0 8px 24px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.2)'
+        : isPopular
+          ? '0 8px 24px rgba(174,137,255,0.2), 0 2px 8px rgba(0,0,0,0.2)'
+          : '0 4px 16px rgba(0,0,0,0.2)'
+      : 'none',
+    transition:
+      'transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s cubic-bezier(0.22,1,0.36,1)',
+  };
+
+  const ctaInner = (
+    <>
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}
+      >
+        {isPro ? 'bolt' : isPopular ? 'rocket_launch' : 'arrow_forward'}
+      </span>
+      {ctaText ?? 'Get Started'}
+    </>
+  );
 
   const content = (
     <>
@@ -207,79 +261,98 @@ export default function PricingCard({
           flex: 1,
         }}
       >
-        {(Object.entries(config.limits) as [FeatureType, number][]).map(([feature, limit], idx) => (
-          <li
-            key={feature}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              fontSize: compact ? 13 : 14,
-              color: 'var(--on-surface-variant)',
-              lineHeight: 1.4,
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
+        {(Object.entries(config.limits) as [FeatureType, number][]).map(([feature, limit], idx) => {
+          // Phase 12 switchover: when FREE AI paths are off, surface the curated
+          // community-paths offering as an included feature instead of a count.
+          const isCommunityPaths =
+            freeAiPathsDisabled && tier === 'FREE' && feature === 'ai_study_plan';
+          const dimmed = !isCommunityPaths && limit === 0;
+          return (
+            <li
+              key={feature}
               style={{
-                fontSize: 18,
-                color: limit === 0 ? 'var(--outline)' : accent.text,
-                fontVariationSettings: "'FILL' 1",
-                flexShrink: 0,
-                opacity: isRevealed ? 1 : 0,
-                transform: isRevealed ? 'scale(1)' : 'scale(0.5)',
-                transition: `opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1)`,
-                transitionDelay: `${delay + 200 + idx * 50}ms`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontSize: compact ? 13 : 14,
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.4,
               }}
             >
-              {limit === -1 ? 'all_inclusive' : limit === 0 ? 'lock' : 'check_circle'}
-            </span>
-            <span
-              style={
-                limit === 0
-                  ? {
-                      color: 'var(--outline)',
-                      textDecoration: 'line-through',
-                    }
-                  : undefined
-              }
-            >
-              {limit === -1 ? (
-                <strong style={{ color: accent.text }}>Unlimited*</strong>
-              ) : limit === 0 ? null : (
-                limit
-              )}
-              {limit !== 0 && ' '}
-              {FEATURE_LABELS[feature]}
-              {limit > 0 && (
-                <span style={{ color: 'var(--outline)' }}>
-                  {isLifetimeLimit(tier, feature) ? ' total' : '/mo'}
-                </span>
-              )}
-              {limit === 0 && (
-                <span
-                  style={{
-                    display: 'inline-block',
-                    marginLeft: 6,
-                    padding: '1px 6px',
-                    borderRadius: 999,
-                    background: 'rgba(255, 222, 89, 0.14)',
-                    border: '1px solid rgba(255, 222, 89, 0.32)',
-                    color: '#ffde59',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    verticalAlign: 'middle',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Pro
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: 18,
+                  color: dimmed ? 'var(--outline)' : accent.text,
+                  fontVariationSettings: "'FILL' 1",
+                  flexShrink: 0,
+                  opacity: isRevealed ? 1 : 0,
+                  transform: isRevealed ? 'scale(1)' : 'scale(0.5)',
+                  transition: `opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1)`,
+                  transitionDelay: `${delay + 200 + idx * 50}ms`,
+                }}
+              >
+                {isCommunityPaths
+                  ? 'check_circle'
+                  : limit === -1
+                    ? 'all_inclusive'
+                    : limit === 0
+                      ? 'lock'
+                      : 'check_circle'}
+              </span>
+              <span
+                style={
+                  dimmed
+                    ? {
+                        color: 'var(--outline)',
+                        textDecoration: 'line-through',
+                      }
+                    : undefined
+                }
+              >
+                {isCommunityPaths ? (
+                  'Community study paths'
+                ) : (
+                  <>
+                    {limit === -1 ? (
+                      <strong style={{ color: accent.text }}>Unlimited*</strong>
+                    ) : limit === 0 ? null : (
+                      limit
+                    )}
+                    {limit !== 0 && ' '}
+                    {FEATURE_LABELS[feature]}
+                    {limit > 0 && (
+                      <span style={{ color: 'var(--outline)' }}>
+                        {isLifetimeLimit(tier, feature) ? ' total' : '/mo'}
+                      </span>
+                    )}
+                    {limit === 0 && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: 6,
+                          padding: '1px 6px',
+                          borderRadius: 999,
+                          background: 'rgba(255, 222, 89, 0.14)',
+                          border: '1px solid rgba(255, 222, 89, 0.32)',
+                          color: '#ffde59',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          verticalAlign: 'middle',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        Pro
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
       {/* Pro footnote */}
@@ -299,48 +372,24 @@ export default function PricingCard({
       )}
 
       {/* CTA */}
-      {ctaHref ? (
+      {onUpgrade ? (
+        <button
+          type="button"
+          onClick={onUpgrade}
+          onMouseEnter={() => setCtaHovered(true)}
+          onMouseLeave={() => setCtaHovered(false)}
+          style={{ ...ctaStyle, width: '100%', cursor: 'pointer' }}
+        >
+          {ctaInner}
+        </button>
+      ) : ctaHref ? (
         <a
           href={ctaHref}
           onMouseEnter={() => setCtaHovered(true)}
           onMouseLeave={() => setCtaHovered(false)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            textAlign: 'center',
-            padding: '14px 24px',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: 700,
-            fontSize: 14,
-            textDecoration: 'none',
-            background: isPro
-              ? 'var(--tertiary-container)'
-              : isPopular
-                ? 'var(--primary)'
-                : 'var(--surface-container-high)',
-            color: isPro ? '#22223a' : isPopular ? '#fff' : 'var(--on-surface-variant)',
-            border: tier === 'FREE' ? '1px solid rgba(136,136,168,0.15)' : 'none',
-            transform: ctaHovered ? 'translateY(-2px)' : 'translateY(0)',
-            boxShadow: ctaHovered
-              ? isPro
-                ? '0 8px 24px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.2)'
-                : isPopular
-                  ? '0 8px 24px rgba(174,137,255,0.2), 0 2px 8px rgba(0,0,0,0.2)'
-                  : '0 4px 16px rgba(0,0,0,0.2)'
-              : 'none',
-            transition:
-              'transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s cubic-bezier(0.22,1,0.36,1)',
-          }}
+          style={ctaStyle}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}
-          >
-            {isPro ? 'bolt' : isPopular ? 'rocket_launch' : 'arrow_forward'}
-          </span>
-          {ctaText ?? 'Get Started'}
+          {ctaInner}
         </a>
       ) : onSelect ? (
         <div
