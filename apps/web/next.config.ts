@@ -49,13 +49,23 @@ const nextConfig: NextConfig = {
   // both Next (web) and Metro (mobile) consume the same source. Without
   // this hint Next would refuse to compile a non-bundled workspace pkg.
   transpilePackages: ['@notemage/shared'],
-  serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas'],
+  serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas', 'geoip-lite'],
   // Monorepo: trace from the workspace root so pnpm-hoisted packages
   // are reachable. The pdfjs-dist worker file is bundled via a
   // new URL(..., import.meta.url) reference in src/lib/pdfjs-node.ts
   // (the file itself is copied into src/lib/vendor/ by the prebuild
   // script), which @vercel/nft treats as a static asset dependency.
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  // geoip-lite reads its GeoLite2 .dat files from disk at runtime via fs, not
+  // via import — so @vercel/nft can't infer them and the standalone build omits
+  // them, which would break /api/currency. Force them into that route's trace.
+  // (currencyFromIp also degrades to CHF if they're ever missing.)
+  outputFileTracingIncludes: {
+    '/api/currency': [
+      './node_modules/geoip-lite/data/**',
+      '../../node_modules/.pnpm/geoip-lite@*/node_modules/geoip-lite/data/**',
+    ],
+  },
   images: {
     remotePatterns: [
       {

@@ -19,6 +19,7 @@ For full provider details, see our [Legal Notice](/legal).
 - **Account data** — your email address and name, and an identifier from your sign-in provider if you log in with Google.
 - **Your content** — the notes, canvas drawings, flashcards, quizzes, study material, and files (such as PDFs) you create or upload.
 - **Usage and technical data** — basic logs about how the Service is used, plus technical information such as device and browser type and IP address, used for security and to keep the Service working.
+- **Approximate location (for pricing)** — to show prices in a relevant currency, we read your IP address from your request and look it up against a local MaxMind GeoLite2 database (bundled with our website) to estimate your country. Your IP is processed only in memory for that request to make this estimate; it is **not** stored or logged for this purpose, and the lookup runs on our own server — it is **not** sent to any third-party geolocation service. We use the result only to choose which currency to display. Prices shown this way are approximate estimates; the actual price and currency conversion at checkout are handled by our payment provider (our Merchant of Record). This product includes GeoLite2 data created by MaxMind, available from https://www.maxmind.com.
 - **Payment data** — when you buy Pro, our third-party payment provider collects and processes your payment details. We do **not** receive or store your full card number; we receive limited billing information (such as confirmation of payment, country, and the last digits of a card) needed to manage your subscription.
 - **Analytics data** — only if you consent (see *Analytics*).
 - **Communications** — messages you send us, such as support requests, and the emails we send you.
@@ -31,6 +32,7 @@ For full provider details, see our [Legal Notice](/legal).
 | Generate AI study material from your content | Performance of a contract |
 | Process payments and manage subscriptions | Performance of a contract |
 | Keep the Service secure and prevent abuse | Legitimate interests |
+| Estimate your country from your IP to show prices in a relevant currency | Legitimate interests |
 | Send service and transactional emails | Performance of a contract |
 | Product analytics | Your consent |
 | Comply with legal obligations | Legal obligation |
@@ -108,4 +110,4 @@ We may update this Privacy Policy from time to time. If we make material changes
 - **Controller:** Toprak Demirel, Switzerland
 - **Email:** notemage.app@gmail.com (or use our [contact page](/contact))
 
-_Last updated: 21 May 2026._
+_Last updated: 23 May 2026._

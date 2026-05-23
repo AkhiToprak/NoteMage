@@ -19,6 +19,7 @@ Vollständige Angaben zum Anbieter finden Sie in unserem [Impressum](/legal).
 - **Kontodaten** – Ihre E-Mail-Adresse und Ihren Namen sowie eine Kennung Ihres Login-Anbieters, wenn Sie sich mit Google anmelden.
 - **Ihre Inhalte** – die Notizen, Leinwand-Zeichnungen, Karteikarten, Quizze, Lernmaterialien und Dateien (z. B. PDFs), die Sie erstellen oder hochladen.
 - **Nutzungs- und technische Daten** – grundlegende Protokolle zur Nutzung des Dienstes sowie technische Angaben wie Geräte- und Browsertyp und IP-Adresse, die der Sicherheit und dem Betrieb des Dienstes dienen.
+- **Ungefährer Standort (für die Preisanzeige)** – um Preise in einer passenden Währung anzuzeigen, lesen wir Ihre IP-Adresse aus Ihrer Anfrage und gleichen sie mit einer lokalen MaxMind-GeoLite2-Datenbank (in unsere Website eingebunden) ab, um Ihr Land zu schätzen. Ihre IP-Adresse wird hierfür nur im Arbeitsspeicher für diese Anfrage verarbeitet; sie wird zu diesem Zweck **nicht** gespeichert oder protokolliert, und der Abgleich erfolgt auf unserem eigenen Server – er wird **nicht** an einen externen Geolokalisierungsdienst übermittelt. Wir nutzen das Ergebnis ausschliesslich, um die anzuzeigende Währung auszuwählen. Auf diese Weise angezeigte Preise sind ungefähre Schätzungen; der tatsächliche Preis und die Währungsumrechnung beim Bezahlvorgang werden von unserem Zahlungsdienstleister (unserem Merchant of Record) übernommen. Dieses Produkt enthält GeoLite2-Daten, die von MaxMind erstellt wurden und unter https://www.maxmind.com verfügbar sind.
 - **Zahlungsdaten** – beim Kauf von Pro erhebt und verarbeitet unser externer Zahlungsdienstleister Ihre Zahlungsdaten. Wir erhalten oder speichern **nicht** Ihre vollständige Kartennummer; wir erhalten begrenzte Abrechnungsinformationen (z. B. Zahlungsbestätigung, Land und die letzten Ziffern einer Karte), die zur Verwaltung Ihres Abonnements erforderlich sind.
 - **Analysedaten** – nur mit Ihrer Einwilligung (siehe *Analyse*).
 - **Kommunikation** – Nachrichten, die Sie uns senden, etwa Supportanfragen, und die E-Mails, die wir Ihnen senden.
@@ -31,6 +32,7 @@ Vollständige Angaben zum Anbieter finden Sie in unserem [Impressum](/legal).
 | KI-Lernmaterial aus Ihren Inhalten erzeugen | Vertragserfüllung |
 | Zahlungen abwickeln und Abonnements verwalten | Vertragserfüllung |
 | Den Dienst sicher halten und Missbrauch verhindern | Berechtigte Interessen |
+| Ihr Land aus Ihrer IP-Adresse schätzen, um Preise in einer passenden Währung anzuzeigen | Berechtigte Interessen |
 | Service- und Transaktions-E-Mails senden | Vertragserfüllung |
 | Produktanalyse | Ihre Einwilligung |
 | Gesetzliche Pflichten erfüllen | Rechtliche Verpflichtung |
@@ -108,4 +110,4 @@ Wir können diese Datenschutzerklärung von Zeit zu Zeit aktualisieren. Bei wese
 - **Verantwortlicher:** Toprak Demirel, Schweiz
 - **E-Mail:** notemage.app@gmail.com (oder über unsere [Kontaktseite](/contact))
 
-_Stand: 21. Mai 2026._
+_Stand: 23. Mai 2026._
