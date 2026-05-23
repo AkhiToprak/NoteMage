@@ -3,6 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import AvatarEditor from '@/components/ui/AvatarEditor';
+import SubscriptionPanel from '@/components/settings/SubscriptionPanel';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -13,6 +14,7 @@ import {
   type GoalKey,
   type GoalValues,
 } from '@/components/onboarding/StudyGoalsStep';
+import { TIERS } from '@/lib/tiers';
 
 function getInitials(name?: string | null): string {
   if (!name) return '?';
@@ -187,9 +189,6 @@ export default function SettingsPage() {
   );
   const [goalLoading, setGoalLoading] = useState(false);
 
-  // Subscription state
-  const [subTier, setSubTier] = useState<string>('FREE');
-
   // Custom greeting state
   const [customGreeting, setCustomGreeting] = useState('');
   const [greetingLoading, setGreetingLoading] = useState(false);
@@ -272,25 +271,6 @@ export default function SettingsPage() {
     }
     setMageNameLoading(false);
   };
-
-  const tierNames: Record<string, string> = { FREE: 'Free', PRO: 'Pro' };
-  const tierPrices: Record<string, number> = { FREE: 0, PRO: 10 };
-  const tierColors: Record<string, string> = { FREE: '#aaa8c8', PRO: '#fbbf24' };
-
-  const fetchSubscription = useCallback(() => {
-    fetch('/api/user/subscription')
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.data) {
-          setSubTier(res.data.tier);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetchSubscription();
-  }, [fetchSubscription]);
 
   useEffect(() => {
     fetch('/api/user/study-goals')
@@ -2074,65 +2054,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Current plan card */}
-            <div
-              style={{
-                background: 'var(--surface-container-low)',
-                borderRadius: '20px',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-              }}
-            >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div>
-                  <p
-                    style={{
-                      fontSize: '13px',
-                      color: 'var(--on-surface-variant)',
-                      margin: '0 0 4px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Current Plan
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span
-                      style={{
-                        fontSize: '28px',
-                        fontWeight: 800,
-                        color: tierColors[subTier] || '#e5e3ff',
-                      }}
-                    >
-                      {tierNames[subTier] || subTier}
-                    </span>
-                    {subTier !== 'FREE' && (
-                      <span style={{ fontSize: '15px', color: 'var(--on-surface-variant)', fontWeight: 600 }}>
-                        CHF {tierPrices[subTier]}/mo
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {subTier !== 'FREE' && (
-                  <div
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '9999px',
-                      background: 'rgba(74,222,128,0.15)',
-                      color: '#4ade80',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    Active
-                  </div>
-                )}
-              </div>
-
-            </div>
+            {/* Current plan + actions (upgrade / manage / cancel) */}
+            <SubscriptionPanel />
 
           </section>
 
@@ -2851,15 +2774,15 @@ export default function SettingsPage() {
                     accent="#ffde59"
                     label="Pro users"
                     value={adminStats.proUsers.toLocaleString()}
-                    sub={`$${(adminStats.proUsers * 10).toLocaleString()} / mo`}
+                    sub={`CHF ${Math.round(adminStats.proUsers * TIERS.PRO.priceCHF).toLocaleString()} / mo`}
                   />
                   {/* Revenue */}
                   <StatCard
                     icon="payments"
                     accent="#7ee3a0"
                     label="Total monthly revenue"
-                    value={`$${adminStats.totalRevenue.toLocaleString()}`}
-                    sub="pro × $10"
+                    value={`CHF ${adminStats.totalRevenue.toLocaleString()}`}
+                    sub={`pro × CHF ${TIERS.PRO.priceCHF}`}
                   />
                   {/* Weekly tokens */}
                   <StatCard

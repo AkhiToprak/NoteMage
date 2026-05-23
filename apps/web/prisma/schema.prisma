@@ -17,6 +17,16 @@ enum Tier {
   PRO
 }
 
+// Which payment provider currently backs a user's tier. Mirrors the
+// Entitlement.source union in packages/shared/src/bridge.ts exactly, so
+// /api/me/entitlement maps the DB column straight onto the shared shape.
+enum EntitlementSource {
+  APPLE_IAP // iOS in-app purchase via RevenueCat / StoreKit
+  PADDLE // web + desktop checkout (Merchant of Record)
+  LEMON_SQUEEZY // kept for parity with the shared union; unused for now
+  MANUAL // admin grants / comps
+}
+
 // Question kinds for QuizQuestion.kind — added in Phase 1 (Question Engine v2).
 // Schema mirrors packages/shared/src/quiz.ts QUESTION_KINDS exactly.
 // Phase 1 ships only `mc` end-to-end; Phase 2A/2B agents wire the rest.
@@ -96,8 +106,19 @@ model User {
   tier                  Tier      @default(FREE)
   pendingTier           Tier? // Tier to switch to at end of current period (null = no change)
   subscriptionPeriodEnd DateTime? // When the current billing period ends (null = free / no active period)
-  stripeCustomerId      String?   @unique // Stripe customer ID (cus_...)
-  stripeSubscriptionId  String?   @unique // Active Stripe subscription ID (sub_...)
+  // Which provider currently backs `tier`. Null when FREE. Drives the
+  // `source` field of /api/me/entitlement (see src/lib/entitlement.ts).
+  entitlementSource     EntitlementSource? // null = FREE / no active source
+  inGracePeriod         Boolean   @default(false) // dunning / billing-retry window — keep PRO, don't downgrade yet
+  // Lemon Squeezy (web/desktop, Merchant of Record).
+  lemonSqueezyCustomerId     String? @unique
+  lemonSqueezySubscriptionId String? @unique
+  // RevenueCat / Apple IAP (iOS). revenueCatAppUserId is set to User.id on
+  // logIn so the StoreKit purchase binds to this account; the Apple
+  // originalTransactionId is the stable per-Apple-account key used for
+  // idempotent restore/transfer handling.
+  revenueCatAppUserId        String? @unique
+  appleOriginalTransactionId String? @unique
   onboardingComplete    Boolean   @default(false) // false until wizard step 4 is done
   // Welcome tour state — { step: TutorialStep, completedAt?: ISO, dismissedAt?: ISO }
   tutorialState         Json      @default("{}")
@@ -205,6 +226,21 @@ model OAuthAccount {
   @@unique([provider, providerAccountId])
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+// Idempotency ledger for billing webhooks (Paddle + RevenueCat). Each provider
+// event carries a stable id; we record it on first processing and no-op on
+// replay so duplicate or out-of-order deliveries can't double-apply a change
+// or clobber newer subscription state. See app/api/billing/*/webhook/route.ts.
+model WebhookEvent {
+  provider   String // "paddle" | "revenuecat"
+  eventId    String // provider's stable event id (Paddle event_id / RevenueCat id)
+  eventType  String? // for debugging / audit
+  receivedAt DateTime @default(now())
+
+  @@id([provider, eventId])
+  @@index([receivedAt])
+  @@map("webhook_events")
 }
 
 // ============================================================================

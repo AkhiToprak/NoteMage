@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
         tier: true,
         pendingTier: true,
         subscriptionPeriodEnd: true,
+        entitlementSource: true,
+        inGracePeriod: true,
       },
     });
 

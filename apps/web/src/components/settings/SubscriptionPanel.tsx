@@ -1,0 +1,277 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { useUpgrade } from '@/hooks/useUpgrade';
+
+interface SubInfo {
+  tier: string;
+  pendingTier: string | null;
+  subscriptionPeriodEnd: string | null;
+  entitlementSource: string | null;
+  inGracePeriod: boolean;
+}
+
+const TIER_NAMES: Record<string, string> = { FREE: 'Free', PRO: 'Pro' };
+const TIER_COLORS: Record<string, string> = { FREE: '#aaa8c8', PRO: '#fbbf24' };
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Subscription management for the settings page. FREE users get an "Upgrade to
+ * Pro" button (Lemon Squeezy overlay via useUpgrade); PRO users see their status
+ * plus Manage (Lemon Squeezy portal) and Cancel (schedule downgrade) actions. App Store
+ * subscriptions are read-only here and point the user back to iOS Settings.
+ */
+export default function SubscriptionPanel() {
+  const { startUpgrade, upgrading } = useUpgrade();
+  const [sub, setSub] = useState<SubInfo | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(() => {
+    fetch('/api/user/subscription')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res?.data) setSub(res.data as SubInfo);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const tier = sub?.tier ?? 'FREE';
+  const isPro = tier === 'PRO';
+  const isApple = sub?.entitlementSource === 'APPLE_IAP';
+  const cancelScheduled = sub?.pendingTier === 'FREE';
+  const periodEnd = formatDate(sub?.subscriptionPeriodEnd ?? null);
+
+  const openPortal = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/billing/lemonsqueezy/portal').then((r) => r.json());
+      if (res?.data?.url) {
+        window.open(res.data.url, '_blank', 'noopener,noreferrer');
+      } else {
+        setError(res?.error ?? 'Could not open the billing portal.');
+      }
+    } catch {
+      setError('Could not open the billing portal.');
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const cancelSubscription = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/user/tier', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: 'FREE' }),
+      }).then((r) => r.json());
+      if (res?.success || res?.data) {
+        refresh();
+      } else {
+        setError(res?.error ?? 'Could not cancel. Please try again.');
+      }
+    } catch {
+      setError('Could not cancel. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }, [refresh]);
+
+  // Status line shown for active Pro users.
+  let status: { label: string; color: string; bg: string } | null = null;
+  if (isPro) {
+    if (sub?.inGracePeriod) {
+      status = { label: 'Payment issue', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' };
+    } else if (cancelScheduled) {
+      status = { label: 'Cancels soon', color: '#fb7185', bg: 'rgba(251,113,133,0.15)' };
+    } else {
+      status = { label: 'Active', color: '#4ade80', bg: 'rgba(74,222,128,0.15)' };
+    }
+  }
+
+  const primaryBtnStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 22px',
+    borderRadius: 'var(--radius-md)',
+    border: 'none',
+    fontWeight: 700,
+    fontSize: 14,
+    cursor: 'pointer',
+    background: 'var(--tertiary-container)',
+    color: '#22223a',
+  };
+
+  const secondaryBtnStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 22px',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--outline-variant)',
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: 'pointer',
+    background: 'transparent',
+    color: 'var(--on-surface-variant)',
+  };
+
+  return (
+    <div
+      style={{
+        background: 'var(--surface-container-low)',
+        borderRadius: '20px',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+      }}
+    >
+      <style>{`
+        .sub-btn { transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.22,1,.36,1), background .2s; }
+        .sub-btn:hover { transform: translateY(-2px); }
+        .sub-btn:active { transform: translateY(0); }
+        .sub-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .sub-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+        .sub-btn-primary:hover { box-shadow: 0 8px 24px rgba(255,222,89,0.22), 0 2px 8px rgba(0,0,0,0.2); }
+        .sub-btn-secondary:hover { background: var(--surface-container-high); }
+      `}</style>
+
+      {/* Current plan */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div>
+          <p
+            style={{
+              fontSize: '13px',
+              color: 'var(--on-surface-variant)',
+              margin: '0 0 4px',
+              fontWeight: 600,
+            }}
+          >
+            Current Plan
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '28px', fontWeight: 800, color: TIER_COLORS[tier] || '#e5e3ff' }}>
+              {TIER_NAMES[tier] || tier}
+            </span>
+          </div>
+        </div>
+        {status && (
+          <div
+            style={{
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              background: status.bg,
+              color: status.color,
+              fontSize: '12px',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {status.label}
+          </div>
+        )}
+      </div>
+
+      {/* Period / cancellation note */}
+      {isPro && periodEnd && (
+        <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
+          {cancelScheduled
+            ? `Your plan ends on ${periodEnd}. You'll keep Pro until then.`
+            : sub?.inGracePeriod
+              ? `We couldn't process your last payment. Update your billing to keep Pro — access continues until ${periodEnd}.`
+              : `Renews on ${periodEnd}.`}
+        </p>
+      )}
+
+      {/* FREE → upgrade pitch */}
+      {!isPro && (
+        <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+          Unlock unlimited AI flashcards, quizzes, study plans, and more with Pro.
+        </p>
+      )}
+
+      {error && (
+        <p style={{ fontSize: '13px', color: 'var(--error)', margin: 0 }} role="alert">
+          {error}
+        </p>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        {!isPro && (
+          <button
+            type="button"
+            className="sub-btn sub-btn-primary"
+            style={primaryBtnStyle}
+            onClick={startUpgrade}
+            disabled={upgrading}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+              bolt
+            </span>
+            {upgrading ? 'Opening checkout…' : 'Upgrade to Pro'}
+          </button>
+        )}
+
+        {isPro && isApple && (
+          <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
+            Your subscription is managed through the App Store. Open the App Store app → your account →
+            Subscriptions to make changes.
+          </p>
+        )}
+
+        {isPro && !isApple && (
+          <>
+            <button
+              type="button"
+              className="sub-btn sub-btn-secondary"
+              style={secondaryBtnStyle}
+              onClick={openPortal}
+              disabled={busy}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                receipt_long
+              </span>
+              Manage billing
+            </button>
+            {!cancelScheduled && (
+              <button
+                type="button"
+                className="sub-btn sub-btn-secondary"
+                style={secondaryBtnStyle}
+                onClick={cancelSubscription}
+                disabled={busy}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  cancel
+                </span>
+                {busy ? 'Working…' : 'Cancel subscription'}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

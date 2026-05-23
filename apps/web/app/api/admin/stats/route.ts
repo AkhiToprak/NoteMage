@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAdminUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { successResponse, forbiddenResponse, internalErrorResponse } from '@/lib/api-response';
+import { TIERS } from '@/lib/tiers';
 
 // GET — platform stats overview (admin only)
 export async function GET(request: NextRequest) {
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
     const weeklyTokensTotal = weeklyTokensAgg._sum.tokens ?? 0;
     const avgWeeklyTokensPerUser = totalUsers > 0 ? weeklyTokensTotal / totalUsers : 0;
 
-    const totalRevenue = proUsers * 10;
+    // Rough MRR estimate in CHF — Pro headcount × the monthly Pro price.
+    const totalRevenue = Math.round(proUsers * TIERS.PRO.priceCHF);
 
     return successResponse({
       totalUsers,
