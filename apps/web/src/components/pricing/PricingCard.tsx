@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { TIERS, isLifetimeLimit, type TierKey, type FeatureType } from '@/lib/tiers';
+import {
+  TIERS,
+  isLifetimeLimit,
+  INTERVAL_SUFFIX,
+  type TierKey,
+  type FeatureType,
+  type BillingInterval,
+} from '@/lib/tiers';
 
 interface PricingCardProps {
   tier: TierKey;
@@ -12,6 +19,10 @@ interface PricingCardProps {
   ctaText?: string;
   ctaHref?: string;
   formattedPrice?: string;
+  /** Billing cadence the price reflects — drives the "/wk · /mo · /yr" suffix. */
+  interval?: BillingInterval;
+  /** Optional secondary line under the price, e.g. the per-month equivalent on yearly. */
+  priceSubline?: string;
   isRevealed?: boolean;
   delay?: number;
   /** Tighter spacing/typography for embedded contexts like the onboarding wizard. */
@@ -66,6 +77,8 @@ export default function PricingCard({
   ctaText,
   ctaHref,
   formattedPrice,
+  interval = 'monthly',
+  priceSubline,
   isRevealed = true,
   delay = 0,
   compact = false,
@@ -78,8 +91,9 @@ export default function PricingCard({
   const [hovered, setHovered] = useState(false);
   const [ctaHovered, setCtaHovered] = useState(false);
 
+  const periodAmount = config.price[interval];
   const displayPrice =
-    formattedPrice ?? (config.priceCHF === 0 ? 'Free' : `CHF ${config.priceCHF}`);
+    formattedPrice ?? (periodAmount === 0 ? 'Free' : `CHF ${periodAmount}`);
 
   const cardPadding = compact
     ? isPro
@@ -222,21 +236,38 @@ export default function PricingCard({
       </h3>
 
       {/* Price */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        <span
-          style={{
-            fontSize: compact ? 30 : 40,
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            letterSpacing: '-0.03em',
-            fontFamily: 'var(--font-display)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {displayPrice}
-        </span>
-        {config.priceCHF > 0 && (
-          <span style={{ fontSize: 14, color: 'var(--outline)', fontWeight: 500 }}>/mo</span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+          <span
+            style={{
+              fontSize: compact ? 30 : 40,
+              fontWeight: 800,
+              color: 'var(--on-surface)',
+              letterSpacing: '-0.03em',
+              fontFamily: 'var(--font-display)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {displayPrice}
+          </span>
+          {periodAmount > 0 && (
+            <span style={{ fontSize: 14, color: 'var(--outline)', fontWeight: 500 }}>
+              {INTERVAL_SUFFIX[interval]}
+            </span>
+          )}
+        </div>
+        {priceSubline && periodAmount > 0 && (
+          <span
+            style={{
+              display: 'block',
+              marginTop: 4,
+              fontSize: 12,
+              color: 'var(--outline)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {priceSubline}
+          </span>
         )}
       </div>
 

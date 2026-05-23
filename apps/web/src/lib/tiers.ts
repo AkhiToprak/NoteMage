@@ -16,9 +16,26 @@ export type FeatureType =
   // community paths. FREE is lifetime-capped; PRO is monthly anti-abuse.
   | 'path_translation';
 
+/** The three billing cadences a paid tier can be purchased on. */
+export type BillingInterval = 'weekly' | 'monthly' | 'yearly';
+
+/** CHF charged per billing period, one figure per interval. FREE is all-zero. */
+export interface TierPricing {
+  weekly: number;
+  monthly: number;
+  yearly: number;
+}
+
 export interface TierConfig {
   name: string;
+  /**
+   * Canonical headline price (CHF / month). Kept for non-interval surfaces
+   * (FAQ copy, admin MRR estimate) — equal to `price.monthly`. Interval-aware
+   * surfaces should read `price[interval]` instead.
+   */
   priceCHF: number;
+  /** Per-interval CHF prices. The pricing page + onboarding switch on these. */
+  price: TierPricing;
   /** Monthly token budget (input + output combined). */
   tokenLimit: number;
   limits: Record<FeatureType, number>; // -1 = unlimited
@@ -32,6 +49,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
   FREE: {
     name: 'Free',
     priceCHF: 0,
+    price: { weekly: 0, monthly: 0, yearly: 0 },
     tokenLimit: 100_000,
     limits: {
       ai_flashcards: 1,
@@ -63,7 +81,8 @@ export const TIERS: Record<TierKey, TierConfig> = {
   },
   PRO: {
     name: 'Pro',
-    priceCHF: 10,
+    priceCHF: 12.99,
+    price: { weekly: 4.5, monthly: 12.99, yearly: 99 },
     tokenLimit: 1_000_000,
     limits: {
       ai_flashcards: -1,
@@ -102,4 +121,36 @@ export function isLifetimeLimit(tier: TierKey, feature: FeatureType): boolean {
 export function getMonthStart(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
+/** Short price suffix per interval, e.g. "/mo". */
+export const INTERVAL_SUFFIX: Record<BillingInterval, string> = {
+  weekly: '/wk',
+  monthly: '/mo',
+  yearly: '/yr',
+};
+
+/** Human label per interval, for toggles/segmented controls. */
+export const INTERVAL_LABEL: Record<BillingInterval, string> = {
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+};
+
+/** The CHF the yearly plan costs per month (yearly ÷ 12). 0 when no yearly price. */
+export function monthlyEquivalent(tier: TierKey): number {
+  const { yearly } = TIERS[tier].price;
+  return yearly > 0 ? yearly / 12 : 0;
+}
+
+/**
+ * Whole-percent saved by paying yearly instead of 12× monthly. Computed from the
+ * prices so the "Save N%" badge can never drift from what we actually charge.
+ * Returns 0 when either price is missing (e.g. the FREE tier).
+ */
+export function yearlySavingsPct(tier: TierKey): number {
+  const { monthly, yearly } = TIERS[tier].price;
+  if (monthly <= 0 || yearly <= 0) return 0;
+  const monthlyAnnualised = monthly * 12;
+  return Math.round(((monthlyAnnualised - yearly) / monthlyAnnualised) * 100);
 }

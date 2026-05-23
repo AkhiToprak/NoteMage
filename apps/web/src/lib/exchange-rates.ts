@@ -8,7 +8,10 @@ import { FALLBACK_RATES, SUPPORTED_CURRENCIES, type CurrencyCode } from '@/lib/c
  * never breaks. Server-only — never import from a client component.
  */
 
-const FRANKFURTER_URL = 'https://api.frankfurter.app/latest?from=CHF';
+// Frankfurter's canonical host is api.frankfurter.dev/v1 — the old
+// api.frankfurter.app only 301-redirects here now, so we hit it directly to
+// avoid a cross-origin redirect on every refresh.
+const FRANKFURTER_URL = 'https://api.frankfurter.dev/v1/latest?from=CHF';
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 let cache: { rates: Record<CurrencyCode, number>; fetchedAt: number } | null = null;

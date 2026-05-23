@@ -1,7 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import PricingCard from '@/components/pricing/PricingCard';
-import { TIERS, type TierKey } from '@/lib/tiers';
+import BillingIntervalToggle from '@/components/pricing/BillingIntervalToggle';
+import {
+  TIERS,
+  monthlyEquivalent,
+  yearlySavingsPct,
+  type TierKey,
+  type BillingInterval,
+} from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
 
 interface TierSelectionStepProps {
@@ -9,10 +17,9 @@ interface TierSelectionStepProps {
   onSelect: (tier: TierKey) => void;
   /**
    * Phase 12 switchover flag. Must be resolved server-side and passed in (the
-   * env var is stripped from the client bundle). NOTE: this component is not
-   * mounted anywhere right now — when the onboarding wizard re-adds a tier step,
-   * its route should read freeTierAiPathsDisabled() and pass it through, the
-   * same way app/pricing/page.tsx does.
+   * env var is stripped from the client bundle). Mounted as the wizard's plan
+   * step — app/(auth)/auth/register/page.tsx reads freeTierAiPathsDisabled()
+   * and threads it through OnboardingWizard, the same way app/pricing/page.tsx does.
    */
   freeAiPathsDisabled?: boolean;
 }
@@ -23,17 +30,35 @@ export default function TierSelectionStep({
   freeAiPathsDisabled = false,
 }: TierSelectionStepProps) {
   const { formatPrice } = useCurrency();
+  // Display-only: drives the prices shown on the cards. The actual cadence is
+  // chosen on the Lemon Squeezy checkout (single product link).
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'stretch' }}>
+      <BillingIntervalToggle
+        value={billingInterval}
+        onChange={setBillingInterval}
+        savingsPct={yearlySavingsPct('PRO')}
+        compact
+      />
+      <div
+        className="tier-step-cards"
+        style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'stretch' }}
+      >
         {(['FREE', 'PRO'] as TierKey[]).map((tier) => (
           <PricingCard
             key={tier}
             tier={tier}
             selected={selectedTier === tier}
             onSelect={onSelect}
-            formattedPrice={formatPrice(TIERS[tier].priceCHF)}
+            formattedPrice={formatPrice(TIERS[tier].price[billingInterval])}
+            interval={billingInterval}
+            priceSubline={
+              tier === 'PRO' && billingInterval === 'yearly'
+                ? `${formatPrice(monthlyEquivalent(tier))} / mo`
+                : undefined
+            }
             freeAiPathsDisabled={freeAiPathsDisabled}
             compact
           />
@@ -42,6 +67,18 @@ export default function TierSelectionStep({
       <p style={{ color: 'var(--on-surface-variant)', fontSize: '12px', margin: 0, textAlign: 'center' }}>
         You can change your plan anytime.
       </p>
+
+      <style>{`
+        /* Stack the two plan cards on narrow screens — the onboarding card is
+           too tight for a side-by-side row on a phone. */
+        @media (max-width: 520px) {
+          .tier-step-cards {
+            flex-direction: column !important;
+            align-items: center !important;
+          }
+          .tier-step-cards > * { width: 100% !important; max-width: 360px !important; }
+        }
+      `}</style>
     </div>
   );
 }

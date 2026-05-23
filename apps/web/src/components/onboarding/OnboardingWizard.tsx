@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import OnboardingScreen from './OnboardingScreen';
 import AccountStep from './AccountStep';
 import OAuthBirthDateStep from './OAuthBirthDateStep';
+import TierSelectionStep from './TierSelectionStep';
 import FirstNameStep from './FirstNameStep';
 import LastNameStep from './LastNameStep';
 import UsernameStep from './UsernameStep';
@@ -16,10 +17,13 @@ import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoals
 import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
 import OnboardingImportStep from './OnboardingImportStep';
 import { parseBirthDate } from '@/lib/age';
+import { useUpgrade } from '@/hooks/useUpgrade';
+import type { TierKey } from '@/lib/tiers';
 import type { ImportPhase } from '@/hooks/useMultiImport';
 
 type StepId =
   | 'account'
+  | 'tier'
   | 'firstName'
   | 'lastName'
   | 'username'
@@ -33,6 +37,7 @@ type StepId =
 /** Ordered flow — drives the progress bar fill. */
 const STEP_ORDER: readonly StepId[] = [
   'account',
+  'tier',
   'firstName',
   'lastName',
   'username',
@@ -47,9 +52,11 @@ const STEP_ORDER: readonly StepId[] = [
 /**
  * Back-chevron targets. Only screens that purely mutate local `formData`
  * appear here — there is no way back across account creation (screen 1), so
- * `account` and `firstName` are deliberately absent.
+ * `account` and `tier` (which sits immediately after it) are deliberately
+ * absent. `firstName` can return to the plan step.
  */
 const BACK_TARGETS: Partial<Record<StepId, StepId>> = {
+  firstName: 'tier',
   lastName: 'firstName',
   username: 'lastName',
   context: 'username',
@@ -73,6 +80,8 @@ interface FormData {
   avatarUrl: string | null;
   scholarName: string;
   goals: GoalValues;
+  /** Plan picked on the tier step. FREE proceeds; PRO takes payment here. */
+  tier: TierKey;
 }
 
 /** Suggest a starting username by sanitizing the email prefix. */
@@ -106,9 +115,15 @@ const INITIAL_FORM: FormData = {
   avatarUrl: null,
   scholarName: '',
   goals: { ...EMPTY_GOAL_VALUES },
+  tier: 'FREE',
 };
 
-export default function OnboardingWizard() {
+export default function OnboardingWizard({
+  freeAiPathsDisabled = false,
+}: {
+  /** Server-resolved FREE_TIER_AI_PATHS_DISABLED, threaded from the route. */
+  freeAiPathsDisabled?: boolean;
+}) {
   const router = useRouter();
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const [step, setStep] = useState<StepId>('account');
@@ -119,6 +134,10 @@ export default function OnboardingWizard() {
   // Mirrors the import finale's internal sub-step so the shell chevron can
   // be context-aware (see screen 11 below).
   const [importPhase, setImportPhase] = useState<ImportPhase>('source');
+
+  // Pro upgrade (tier step). On a completed purchase the session flips to PRO
+  // and we advance into the profile steps instead of the default refresh.
+  const { startUpgrade, upgrading } = useUpgrade(() => setStep('firstName'));
 
   /**
    * Path detection. A credentials user starts unauthenticated and creates a
@@ -188,7 +207,7 @@ export default function OnboardingWizard() {
       }
       // Clear sensitive data from state
       setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }));
-      setStep('firstName');
+      setStep('tier');
     } catch {
       setStepError('account', 'Something went wrong. Please try again.');
     } finally {
@@ -224,11 +243,33 @@ export default function OnboardingWizard() {
         setStepError('account', data.error || 'Something went wrong. Please try again.');
         return;
       }
-      setStep('firstName');
+      setStep('tier');
     } catch {
       setStepError('account', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Screen 2: Plan selection — FREE proceeds, PRO takes payment here ──────
+  const handleTierContinue = async () => {
+    // Free, or already upgraded to Pro (e.g. payment just completed) → proceed.
+    if (formData.tier === 'FREE' || session?.user?.tier === 'PRO') {
+      clearStepError('tier');
+      setStep('firstName');
+      return;
+    }
+    // Pro selected → take payment via the Lemon Squeezy overlay. useUpgrade's
+    // onSuccess advances to 'firstName'. If checkout is unavailable (LS store
+    // not yet live), surface a graceful message instead of throwing.
+    clearStepError('tier');
+    try {
+      await startUpgrade();
+    } catch {
+      setStepError(
+        'tier',
+        'Pro checkout isn’t available yet — start on Free and upgrade anytime from Settings.'
+      );
     }
   };
 
@@ -420,12 +461,46 @@ export default function OnboardingWizard() {
       );
     }
 
-    // ── Screen 2: First name ─────────────────────────────────────────────────
+    // ── Screen 2: Plan selection — FREE proceeds, PRO pays here ──────────────
+    if (step === 'tier') {
+      const proSelected = formData.tier === 'PRO';
+      const alreadyPro = session?.user?.tier === 'PRO';
+      return (
+        <OnboardingScreen
+          screenKey="tier"
+          progress={progress}
+          mascotPose="holding-scroll"
+          mascotIdle="sway"
+          heading="Choose your plan"
+          subheading="Start free, or unlock everything with Pro."
+          error={stepErrors.tier || ''}
+          primaryLabel={
+            proSelected && !alreadyPro
+              ? upgrading
+                ? 'Opening checkout…'
+                : 'Continue to checkout'
+              : 'Continue'
+          }
+          onPrimary={handleTierContinue}
+          primaryDisabled={upgrading}
+          primaryLoading={upgrading}
+        >
+          <TierSelectionStep
+            selectedTier={formData.tier}
+            onSelect={(tier) => setFormData((prev) => ({ ...prev, tier }))}
+            freeAiPathsDisabled={freeAiPathsDisabled}
+          />
+        </OnboardingScreen>
+      );
+    }
+
+    // ── Screen 3: First name ─────────────────────────────────────────────────
     if (step === 'firstName') {
       return (
         <OnboardingScreen
           screenKey="firstName"
           progress={progress}
+          onBack={handleBack}
           mascotPose="holding-pen"
           mascotIdle="bounce"
           heading="What's your first name?"

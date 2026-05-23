@@ -1,14 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import PricingCard from '@/components/pricing/PricingCard';
 import PricingHero from '@/components/pricing/PricingHero';
+import BillingIntervalToggle from '@/components/pricing/BillingIntervalToggle';
 import FeatureComparison from '@/components/pricing/FeatureComparison';
 import FAQ from '@/components/pricing/FAQ';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import LandingFooter from '@/components/landing/LandingFooter';
 import { BGPattern } from '@/components/ui/bg-pattern';
-import { TIERS, type TierKey } from '@/lib/tiers';
+import {
+  TIERS,
+  monthlyEquivalent,
+  yearlySavingsPct,
+  type TierKey,
+  type BillingInterval,
+} from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
@@ -18,6 +26,7 @@ export default function PricingPageClient({
   freeAiPathsDisabled: boolean;
 }) {
   const { formatPrice, currency } = useCurrency();
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
   const { ref: cardsRef, isRevealed: cardsRevealed } = useScrollReveal();
   const { ref: ctaRef, isRevealed: ctaRevealed } = useScrollReveal();
 
@@ -139,6 +148,15 @@ export default function PricingPageClient({
         className="pricing-cards-section"
         style={{ padding: '20px 40px 80px', position: 'relative', zIndex: 1 }}
       >
+        {/* Billing interval switcher */}
+        <div style={{ marginBottom: 40 }}>
+          <BillingIntervalToggle
+            value={billingInterval}
+            onChange={setBillingInterval}
+            savingsPct={yearlySavingsPct('PRO')}
+          />
+        </div>
+
         <div
           className="pricing-cards-grid"
           style={{
@@ -150,18 +168,26 @@ export default function PricingPageClient({
             margin: '0 auto',
           }}
         >
-          {tiers.map(({ key, ctaText }, idx) => (
-            <PricingCard
-              key={key}
-              tier={key}
-              freeAiPathsDisabled={freeAiPathsDisabled}
-              formattedPrice={formatPrice(TIERS[key].priceCHF)}
-              ctaHref={`/waitlist?tier=${key}`}
-              ctaText={ctaText}
-              isRevealed={cardsRevealed}
-              delay={idx * 120}
-            />
-          ))}
+          {tiers.map(({ key, ctaText }, idx) => {
+            const subline =
+              key === 'PRO' && billingInterval === 'yearly'
+                ? `${formatPrice(monthlyEquivalent(key))} / month`
+                : undefined;
+            return (
+              <PricingCard
+                key={key}
+                tier={key}
+                freeAiPathsDisabled={freeAiPathsDisabled}
+                formattedPrice={formatPrice(TIERS[key].price[billingInterval])}
+                interval={billingInterval}
+                priceSubline={subline}
+                ctaHref={`/waitlist?tier=${key}&interval=${billingInterval}`}
+                ctaText={ctaText}
+                isRevealed={cardsRevealed}
+                delay={idx * 120}
+              />
+            );
+          })}
         </div>
 
         {currency !== 'CHF' && (
