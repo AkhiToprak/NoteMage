@@ -218,6 +218,13 @@ export default function AvatarStep({
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes obSpinnerPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="spin 1s"] { animation: obSpinnerPulse 1.2s ease-in-out infinite !important; }
+        }
       `}</style>
     </div>
   );
