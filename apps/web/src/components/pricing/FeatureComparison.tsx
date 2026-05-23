@@ -3,6 +3,7 @@
 import { Fragment, useState, type ReactElement } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { CanvasIcon, NotebookIcon, TextFileIcon } from '@/components/icons/NavIcons';
+import { TIERS, isLifetimeLimit, type TierKey, type FeatureType } from '@/lib/tiers';
 
 interface FeatureRow {
   name: string;
@@ -17,6 +18,19 @@ interface FeatureCategory {
   features: FeatureRow[];
 }
 
+/**
+ * Format a TIERS limit the way the comparison cells expect:
+ * -1 → "Unlimited*", 0 → "—", otherwise "<n>/mo" (or "<n> total" for a
+ * lifetime budget). Driving this table off TIERS keeps it in lockstep with
+ * the pricing cards and the server-side enforcement — the numbers can't drift.
+ */
+function limitLabel(tier: TierKey, feature: FeatureType): string {
+  const limit = TIERS[tier].limits[feature];
+  if (limit === -1) return 'Unlimited*';
+  if (limit === 0) return '—';
+  return `${limit}${isLifetimeLimit(tier, feature) ? ' total' : '/mo'}`;
+}
+
 const COMPARISON_DATA: FeatureCategory[] = [
   {
     category: 'AI Features',
@@ -24,24 +38,57 @@ const COMPARISON_DATA: FeatureCategory[] = [
       {
         name: 'AI Flashcard Sets',
         icon: 'auto_awesome',
-        free: '1/mo',
-        pro: 'Unlimited*',
+        free: limitLabel('FREE', 'ai_flashcards'),
+        pro: limitLabel('PRO', 'ai_flashcards'),
       },
       {
         name: 'AI Presentations',
         icon: 'slideshow',
-        free: '1/mo',
-        pro: 'Unlimited*',
+        free: limitLabel('FREE', 'ai_pptx'),
+        pro: limitLabel('PRO', 'ai_pptx'),
       },
-      { name: 'AI Study Plans', icon: 'school', free: '2/mo', pro: 'Unlimited*' },
-      { name: 'AI Quizzes', icon: 'quiz', free: '2/mo', pro: 'Unlimited*' },
+      {
+        name: 'AI Study Plans',
+        icon: 'school',
+        free: limitLabel('FREE', 'ai_study_plan'),
+        pro: limitLabel('PRO', 'ai_study_plan'),
+      },
+      {
+        name: 'Ultra Paths',
+        icon: 'bolt',
+        free: limitLabel('FREE', 'ultra_path'),
+        pro: limitLabel('PRO', 'ultra_path'),
+      },
+      {
+        name: 'AI Quizzes',
+        icon: 'quiz',
+        free: limitLabel('FREE', 'ai_quizzes'),
+        pro: limitLabel('PRO', 'ai_quizzes'),
+      },
       {
         name: 'Mage Chat Messages',
         icon: 'forum',
-        free: '50/mo',
-        pro: 'Unlimited*',
+        free: limitLabel('FREE', 'scholar_chat'),
+        pro: limitLabel('PRO', 'scholar_chat'),
       },
-      { name: 'Inline AI Editing', icon: 'auto_fix', free: '—', pro: 'Unlimited*' },
+      {
+        name: 'Inline AI Editing',
+        icon: 'auto_fix',
+        free: limitLabel('FREE', 'ai_inline_edit'),
+        pro: limitLabel('PRO', 'ai_inline_edit'),
+      },
+      {
+        name: 'PDF Pages',
+        icon: 'picture_as_pdf',
+        free: limitLabel('FREE', 'pdf_import'),
+        pro: limitLabel('PRO', 'pdf_import'),
+      },
+      {
+        name: 'Path Translations',
+        icon: 'translate',
+        free: limitLabel('FREE', 'path_translation'),
+        pro: limitLabel('PRO', 'path_translation'),
+      },
       { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
