@@ -31,7 +31,11 @@ function getResend() {
 }
 
 function getFromAddress() {
-  return process.env.RESEND_FROM_EMAIL || 'Notemage <noreply@notemage.app>';
+  // Coolify env values can arrive with a trailing newline or stray whitespace,
+  // which Resend rejects with a 422 ("Invalid `from` field"). Strip a literal
+  // "\n" and trim the ends so a misconfigured env var can't break sends.
+  const raw = process.env.RESEND_FROM_EMAIL || 'Notemage <noreply@notemage.app>';
+  return raw.replace(/\\n/g, '').trim();
 }
 
 function getAppOrigin() {
