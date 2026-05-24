@@ -12,6 +12,12 @@ import {
 const VALID_STEPS = new Set([
   'idle',
   'welcome',
+  // New /learn-hub orientation tour.
+  'nav-menu',
+  'learn-tabs',
+  'learn-paths',
+  'learn-chats',
+  // Legacy steps — kept valid so any in-flight state still PATCHes cleanly.
   'step-1-dashboard',
   'step-2-notebook-form',
   'step-3-workspace',

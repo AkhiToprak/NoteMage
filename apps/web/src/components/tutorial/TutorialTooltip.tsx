@@ -8,6 +8,14 @@ interface Props {
   body: string;
   targetRect: DOMRect | null;
   placement: 'auto' | 'fixed-top-right' | 'fixed-bottom-left';
+  nextLabel: string;
+  /** Render a subtle "PRO" tag by the title (FREE-tier upsell steps). */
+  upsell?: boolean;
+  /** Zero-based index of this step within the tour, for progress dots. */
+  stepIndex?: number;
+  /** Total tour steps, for progress dots. */
+  stepCount?: number;
+  onNext: () => void;
   onSkip: () => void;
 }
 
@@ -131,7 +139,18 @@ function pickPointingPose(
   return rect.width > 48 ? 'pointing-right' : 'pointing-left';
 }
 
-export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: Props) {
+export function TutorialTooltip({
+  title,
+  body,
+  targetRect,
+  placement,
+  nextLabel,
+  upsell = false,
+  stepIndex,
+  stepCount,
+  onNext,
+  onSkip,
+}: Props) {
   const [opacity, setOpacity] = useState(0);
   const [safeArea, setSafeArea] = useState<SafeArea>({ top: 0, right: 0, bottom: 0, left: 0 });
   const [isPhone, setIsPhone] = useState(false);
@@ -220,6 +239,24 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
         >
           {title}
         </h4>
+        {upsell && (
+          <span
+            style={{
+              flexShrink: 0,
+              padding: '2px 8px',
+              borderRadius: 'var(--radius-full)',
+              background: 'rgba(255, 222, 89, 0.14)',
+              border: '1px solid rgba(255, 222, 89, 0.32)',
+              color: '#ffde59',
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
+          >
+            Pro
+          </span>
+        )}
         <button
           onClick={onSkip}
           aria-label="Skip tour"
@@ -244,7 +281,7 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
       </div>
       <p
         style={{
-          margin: '0 0 12px',
+          margin: '0 0 16px',
           fontSize: 14,
           lineHeight: 1.5,
           color: 'var(--on-surface-variant)',
@@ -252,22 +289,76 @@ export function TutorialTooltip({ title, body, targetRect, placement, onSkip }: 
       >
         {body}
       </p>
-      <button
-        onClick={onSkip}
+      <div
         style={{
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--on-surface-variant)',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          textDecoration: 'underline',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
         }}
       >
-        Skip tour
-      </button>
+        <button
+          onClick={onSkip}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--on-surface-variant)',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            textDecoration: 'underline',
+          }}
+        >
+          Skip tour
+        </button>
+        {typeof stepIndex === 'number' && stepIndex >= 0 && stepCount ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} aria-hidden>
+            {Array.from({ length: stepCount }).map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  width: i === stepIndex ? 18 : 6,
+                  height: 6,
+                  borderRadius: 'var(--radius-full)',
+                  background: i === stepIndex ? 'var(--primary)' : 'var(--outline-variant)',
+                  transition: reduceMotion ? 'none' : 'width 0.25s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
+        <button
+          onClick={onNext}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--primary)',
+            color: 'var(--background)',
+            border: 'none',
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            transition: reduceMotion ? 'none' : 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+          }}
+          onMouseEnter={(e) => {
+            if (!reduceMotion) e.currentTarget.style.transform = 'scale(1.03)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          {nextLabel}
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+            arrow_forward
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

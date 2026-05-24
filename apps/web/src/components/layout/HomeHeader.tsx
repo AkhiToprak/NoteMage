@@ -112,6 +112,8 @@ export default function HomeHeader() {
             onClick={() => setBurgerOpen(true)}
             onMouseEnter={() => setHoveredBurger(true)}
             onMouseLeave={() => setHoveredBurger(false)}
+            data-tutorial="nav-menu"
+            aria-label="Open menu"
             style={{
               width: 38,
               height: 38,

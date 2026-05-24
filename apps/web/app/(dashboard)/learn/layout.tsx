@@ -63,6 +63,7 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
       {!isLearnIndex ? (
         <nav
           aria-label="Learn sections"
+          data-tutorial="learn-tabs"
           style={{
             flexShrink: 0,
             display: 'flex',

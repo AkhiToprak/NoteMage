@@ -324,6 +324,7 @@ export default function LearnPage() {
           <button
             type="button"
             onClick={handleCreateClick}
+            data-tutorial="learn-generate-path"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

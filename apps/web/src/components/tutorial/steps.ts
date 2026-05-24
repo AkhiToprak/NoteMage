@@ -1,29 +1,86 @@
 import type { StepConfig, TutorialStep } from './types';
 
-export const STEP_CONFIG: Partial<Record<TutorialStep, StepConfig>> = {
-  'step-1-dashboard': {
-    title: 'Make your first notebook',
-    body: 'Notebooks hold your notes, AI chats, and quizzes. Start one here.',
-    targetKey: 'dashboard-cta',
-    renderBackdrop: true,
-    tooltipPlacement: 'auto',
-  },
-  'step-2-notebook-form': {
-    title: 'Name your notebook',
-    body: 'Pick a name and subject — both are easy to change later. Hit Create to continue.',
-    renderBackdrop: false,
-    tooltipPlacement: 'fixed-top-right',
-  },
-  // Phase 9.5 removed the in-notebook "New chat" sidebar button (the
-  // `chat-create` anchor). The `step-3-workspace` entry that pointed at
-  // that anchor is gone with it; the overlay simply skips any step that
-  // has no config. `step-4-chat-modal` stays for users mid-flow when the
-  // ?new=1 entry path fires (still reachable from header affordances).
-  'step-4-chat-modal': {
-    title: 'Set up the chat',
-    body: 'Name is optional. Pick any pages or files you want the AI to see, then hit Start Chat.',
-    targetKey: 'chat-modal',
-    renderBackdrop: false,
-    tooltipPlacement: 'fixed-bottom-left',
-  },
-};
+// The first-run tour orients a new user to the post-restructure app: notebooks
+// are the source material, the /learn hub is where studying happens. It's tier
+// -aware — FREE users see locked Pro capabilities framed as upsell rather than
+// dead ends (see the `upsell` flag + the completion recap). The provider drives
+// `router.push` to each step's `route`; the overlay spotlights `targetKey`.
+
+/** Ordered tour steps — drives the tooltip's progress dots. */
+export const TOUR_STEPS: readonly TutorialStep[] = [
+  'nav-menu',
+  'learn-tabs',
+  'learn-paths',
+  'learn-chats',
+];
+
+const HUB_BODY_PRO =
+  'Paths, Flashcards, Quizzes, and Chats — switch any time. Each one is built from your notebooks.';
+const HUB_BODY_FREE =
+  'Flashcards, Quizzes, and Chats — switch any time. Each one is built from your notebooks.';
+
+/**
+ * Resolve the config for a tour step. Returns `undefined` for `idle`,
+ * `welcome`, `complete`, and the legacy steps (those render their own
+ * surfaces or are inert). `isPro` selects the FREE-vs-PRO copy/upsell.
+ */
+export function getStepConfig(step: TutorialStep, isPro: boolean): StepConfig | undefined {
+  switch (step) {
+    case 'nav-menu':
+      return {
+        title: 'Find your way around',
+        body: 'Your notebooks, the Learn hub, and settings all live in this menu — tap it any time to get around.',
+        targetKey: 'nav-menu',
+        route: '/dashboard',
+        next: 'learn-tabs',
+        nextLabel: 'Show me the Learn hub',
+        renderBackdrop: true,
+        tooltipPlacement: 'auto',
+      };
+    case 'learn-tabs':
+      return {
+        title: 'Switch between tools',
+        body: isPro ? HUB_BODY_PRO : HUB_BODY_FREE,
+        targetKey: 'learn-tabs',
+        route: '/learn/paths',
+        next: 'learn-paths',
+        renderBackdrop: true,
+        tooltipPlacement: 'auto',
+      };
+    case 'learn-paths':
+      return isPro
+        ? {
+            title: 'Build a study path',
+            body: 'Turn any notebook into a Duolingo-style path — bite-size theory, flashcards, and quizzes, in order.',
+            targetKey: 'learn-generate-path',
+            route: '/learn/paths',
+            next: 'learn-chats',
+            renderBackdrop: true,
+            tooltipPlacement: 'auto',
+          }
+        : {
+            title: 'Study paths',
+            body: 'Auto-generated study paths are a Pro feature. On Free you can still explore Community paths here — upgrade any time to generate your own.',
+            targetKey: 'learn-generate-path',
+            route: '/learn/paths',
+            next: 'learn-chats',
+            renderBackdrop: true,
+            tooltipPlacement: 'auto',
+            upsell: true,
+          };
+    case 'learn-chats':
+      return {
+        title: 'Ask the Mage',
+        body: isPro
+          ? 'Chat with the Mage across all your notebooks — ask questions and get explanations, as much as you want.'
+          : 'Chat with the Mage across your notebooks — ask questions and get explanations. Free includes 50 messages to start.',
+        targetKey: 'learn-new-chat',
+        route: '/learn/chats',
+        nextLabel: 'Finish',
+        renderBackdrop: true,
+        tooltipPlacement: 'auto',
+      };
+    default:
+      return undefined;
+  }
+}

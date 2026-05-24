@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { TutorialContext, type TutorialContextValue } from './TutorialContext';
 import { TutorialOverlay } from './TutorialOverlay';
+import { getStepConfig } from './steps';
 import type {
   TutorialCompletionResult,
   TutorialPersistedState,
@@ -17,10 +18,10 @@ const LEGACY_STORAGE_KEY = 'notemage-tutorial';
 
 const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'welcome',
-  'step-1-dashboard',
-  'step-2-notebook-form',
-  'step-3-workspace',
-  'step-4-chat-modal',
+  'nav-menu',
+  'learn-tabs',
+  'learn-paths',
+  'learn-chats',
   'complete',
 ];
 
@@ -106,10 +107,12 @@ async function postComplete(): Promise<TutorialCompletionResult | null> {
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session, update: updateSession } = useSession();
   const onboardingComplete = session?.user?.onboardingComplete === true;
   const serverState = session?.user?.tutorialState;
   const userId = session?.user?.id ?? null;
+  const isPro = session?.user?.tier === 'PRO';
 
   const [step, setStep] = useState<TutorialStep>('idle');
   const [hydrated, setHydrated] = useState(false);
@@ -186,10 +189,21 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   const start = useCallback(() => {
-    setStep('step-1-dashboard');
-    persist({ ...persistedRef.current, step: 'step-1-dashboard' });
-    void patchServer({ step: 'step-1-dashboard' });
+    setStep('nav-menu');
+    persist({ ...persistedRef.current, step: 'nav-menu' });
+    void patchServer({ step: 'nav-menu' });
   }, [persist]);
+
+  // Active route-stepping: each tour step declares the route it's shown on.
+  // When the current step's route differs from where we are, navigate there so
+  // the step's anchor (e.g. a /learn tab) is on screen for the overlay to
+  // spotlight. The pathname guard makes this a no-op once we've arrived.
+  useEffect(() => {
+    if (!hydrated) return;
+    const route = getStepConfig(step, isPro)?.route;
+    if (!route || pathname === route) return;
+    router.push(route);
+  }, [step, isPro, hydrated, pathname, router]);
 
   const skip = useCallback(() => {
     const dismissedAt = new Date().toISOString();
@@ -258,15 +272,21 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setTargetVersion((v) => v + 1);
   }, []);
 
-  const getTarget = useCallback(
-    (key: TutorialTargetKey) => targetsRef.current.get(key) ?? null,
-    []
-  );
+  const getTarget = useCallback((key: TutorialTargetKey) => {
+    // Prefer an element registered via useTutorialTarget; otherwise fall back
+    // to a `data-tutorial="<key>"` attribute so anchors can be added to any
+    // page (server or client) without threading a ref through it.
+    const registered = targetsRef.current.get(key);
+    if (registered) return registered;
+    if (typeof document === 'undefined') return null;
+    return document.querySelector<HTMLElement>(`[data-tutorial="${key}"]`);
+  }, []);
 
   const value = useMemo<TutorialContextValue>(
     () => ({
       step,
       hydrated,
+      isPro,
       targetVersion,
       result,
       start,
@@ -281,6 +301,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     [
       step,
       hydrated,
+      isPro,
       targetVersion,
       result,
       start,

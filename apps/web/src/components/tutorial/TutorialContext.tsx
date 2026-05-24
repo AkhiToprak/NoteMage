@@ -6,6 +6,8 @@ import type { TutorialCompletionResult, TutorialStep, TutorialTargetKey } from '
 export interface TutorialContextValue {
   step: TutorialStep;
   hydrated: boolean;
+  /** True when the signed-in user is on the PRO tier — drives tier-aware copy. */
+  isPro: boolean;
   targetVersion: number;
   result: TutorialCompletionResult | null;
   start: () => void;
