@@ -283,7 +283,7 @@ export default function CheckpointTheoryViewer({
             {submitting
               ? 'Saving…'
               : activity.completed
-                ? 'Done ✓'
+                ? 'Done'
                 : 'Mark as read & continue'}
           </button>
         </footer>
