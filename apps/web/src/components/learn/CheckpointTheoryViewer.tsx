@@ -242,7 +242,7 @@ export default function CheckpointTheoryViewer({
           style={{
             maxWidth: '720px',
             margin: '0 auto',
-            padding: '32px 20px 64px',
+            padding: 'clamp(16px, 3vh, 32px) 20px clamp(32px, 7vh, 64px)',
           }}
         >
           {loadError ? (

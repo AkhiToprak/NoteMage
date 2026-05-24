@@ -297,7 +297,7 @@ export default function CheckpointQuizViewer({
           style={{
             maxWidth: '720px',
             margin: '0 auto',
-            padding: '24px 20px 48px',
+            padding: 'clamp(16px, 3vh, 24px) 20px clamp(28px, 6vh, 48px)',
           }}
         >
           {loadError ? (
@@ -417,7 +417,7 @@ function AssessmentResultPanel({
           fontSize: '14px',
           color: 'var(--on-surface-variant)',
           textAlign: 'center',
-          maxWidth: '360px',
+          maxWidth: 'min(360px, calc(100vw - 32px))',
         }}
       >
         {result.passed
@@ -461,7 +461,7 @@ function AssessmentResultPanel({
             flexDirection: 'column',
             gap: '8px',
             width: '100%',
-            maxWidth: '320px',
+            maxWidth: 'min(320px, calc(100vw - 32px))',
           }}
         >
           <button type="button" onClick={onRetake} style={primaryBtnStyle}>

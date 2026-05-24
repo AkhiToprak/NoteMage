@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
@@ -40,6 +41,7 @@ export default function StartDMModal({ open, onClose }: Props) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
+  const dims = useModalDimensions(440);
 
   // Defer all setState — including the leading reset of search/starting and
   // setLoading(true) — into a microtask via Promise.resolve().then() so the
@@ -142,11 +144,8 @@ export default function StartDMModal({ open, onClose }: Props) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
+          ...dims,
           background: COLORS.elevated,
-          borderRadius: 20,
-          width: '100%',
-          maxWidth: 440,
-          maxHeight: '70vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 32px 64px rgba(0,0,0,0.5)',

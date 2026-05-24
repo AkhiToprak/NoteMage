@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
@@ -47,6 +48,7 @@ export default function AddFriendModal({ open, onClose }: AddFriendModalProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [hoveredClose, setHoveredClose] = useState(false);
   const [hoveredButtons, setHoveredButtons] = useState<Record<string, boolean>>({});
+  const dims = useModalDimensions(480);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -540,10 +542,8 @@ export default function AddFriendModal({ open, onClose }: AddFriendModalProps) {
           aria-label="Find Friends"
           onKeyDown={handleKeyDown}
           style={{
-            maxWidth: 480,
-            width: 'calc(100% - 32px)',
+            ...dims,
             background: COLORS.cardBg,
-            borderRadius: 24,
             padding: 32,
             boxShadow: '0 32px 64px rgba(0, 0, 0, 0.5)',
             animation: `modalSlideUp 0.3s ${EASING}`,

@@ -20,6 +20,7 @@
 'use client';
 
 import { useEffect, useId, useState } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 const TITLE_MAX = 200;
 const DESCRIPTION_MAX = 10_000;
@@ -47,6 +48,7 @@ export default function PublishDialog({
   // engaged with the field — matches Hallmark's "validate on blur"
   // rule for forms.
   const [titleTouched, setTitleTouched] = useState(false);
+  const dims = useModalDimensions(560);
 
   const titleId = useId();
   const descriptionId = useId();
@@ -128,14 +130,11 @@ export default function PublishDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '560px',
-          maxWidth: '95vw',
-          maxHeight: '90vh',
+          ...dims,
           overflowY: 'auto',
           background: 'var(--surface-container)',
           color: 'var(--on-surface)',
           border: '1px solid var(--outline-variant)',
-          borderRadius: 'var(--radius-xl)',
           // Layered shadow with primary tint — project shadow language.
           boxShadow:
             '0 32px 64px rgba(174,137,255,0.08), 0 8px 24px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)',

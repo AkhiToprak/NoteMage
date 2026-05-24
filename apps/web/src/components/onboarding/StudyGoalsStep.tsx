@@ -103,7 +103,10 @@ export default function StudyGoalsStep({ goals, mageName, onChange }: StudyGoals
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+    <div
+      className="stack-phone"
+      style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}
+    >
       {GOAL_CONFIGS.map((config) => {
         const target = goals[config.key];
         const isSelected = target !== null;

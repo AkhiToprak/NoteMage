@@ -822,14 +822,10 @@ function NotebooksPageContent() {
       {/* Loading */}
       {isLoading && (
         <div
+          className="responsive-grid-auto"
           style={{
             display: 'grid',
-            gridTemplateColumns: responsiveValue(bp, {
-              phone: '1fr',
-              tablet: 'repeat(auto-fill, minmax(240px, 1fr))',
-              desktop: 'repeat(auto-fill, minmax(280px, 1fr))',
-            }),
-            gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+            gap: 'clamp(16px, 2vw, 24px)',
           }}
         >
           {[0, 1, 2].map((i) => (
@@ -841,14 +837,10 @@ function NotebooksPageContent() {
       {/* Grid */}
       {!isLoading && (
         <div
+          className="responsive-grid-auto"
           style={{
             display: 'grid',
-            gridTemplateColumns: responsiveValue(bp, {
-              phone: '1fr',
-              tablet: 'repeat(auto-fill, minmax(240px, 1fr))',
-              desktop: 'repeat(auto-fill, minmax(280px, 1fr))',
-            }),
-            gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+            gap: 'clamp(16px, 2vw, 24px)',
           }}
         >
           {/* Folders first */}
@@ -1340,7 +1332,7 @@ export default function NotebooksPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
               gap: '24px',
             }}
           >

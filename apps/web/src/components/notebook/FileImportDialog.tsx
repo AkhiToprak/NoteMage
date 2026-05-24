@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
 import { FileUp, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { validateFile } from '@/lib/file-validation';
 
 interface FileImportDialogProps {
@@ -28,6 +29,7 @@ export default function FileImportDialog({
   const [errorMessage, setErrorMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { upload } = useDirectUpload();
+  const dims = useModalDimensions(480);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -145,15 +147,15 @@ export default function FileImportDialog({
     >
       <div
         style={{
-          width: '100%',
-          maxWidth: '480px',
+          ...dims,
           background: 'var(--background)',
-          borderRadius: '16px',
           border: '1px solid rgba(174,137,255,0.36)',
           padding: '24px',
           fontFamily: 'inherit',
           color: 'var(--on-surface)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Header */}

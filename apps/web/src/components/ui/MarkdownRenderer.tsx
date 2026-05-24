@@ -190,7 +190,11 @@ const bubbleComponents: Components = {
         border: '1px solid rgba(174,137,255,0.36)',
         borderRadius: '8px',
         padding: '14px 16px',
-        overflow: 'hidden',
+        // Long code lines scroll horizontally instead of being clipped (was
+        // overflow:hidden, which silently truncated wide code on phones).
+        overflowX: 'auto',
+        maxWidth: '100%',
+        minWidth: 0,
         fontSize: '0.82em',
         lineHeight: 1.6,
         color: 'var(--md-pre)',

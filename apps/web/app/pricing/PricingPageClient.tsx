@@ -228,7 +228,7 @@ export default function PricingPageClient({
         ref={ctaRef}
         className="cta-banner"
         style={{
-          padding: '80px 40px',
+          padding: 'clamp(40px, 8vw, 80px) clamp(20px, 5vw, 40px)',
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden',

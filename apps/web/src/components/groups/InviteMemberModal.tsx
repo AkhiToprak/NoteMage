@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
@@ -43,6 +44,7 @@ export default function InviteMemberModal({ open, onClose, groupId, existingMemb
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  const dims = useModalDimensions(480);
 
   // Fetch friends. Every setState — including the leading setLoading(true)
   // and reset of invitedIds/search — is deferred into a microtask via
@@ -138,11 +140,8 @@ export default function InviteMemberModal({ open, onClose, groupId, existingMemb
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
+          ...dims,
           background: COLORS.elevated,
-          borderRadius: 20,
-          width: '100%',
-          maxWidth: 480,
-          maxHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 32px 64px rgba(0,0,0,0.5)',

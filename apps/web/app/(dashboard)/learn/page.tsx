@@ -222,7 +222,7 @@ function Skeleton({ rows = 2 }: { rows?: number }) {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
         gap: '12px',
       }}
     >
@@ -272,7 +272,7 @@ function PathsSection({ state }: { state: FetchState<PathItem> }) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
             gap: '12px',
           }}
         >
@@ -395,7 +395,7 @@ function NotebooksSection({ state }: { state: FetchState<NotebookItem> }) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))',
             gap: '12px',
           }}
         >
@@ -482,7 +482,7 @@ function FlashcardsSection({ state }: { state: FetchState<FlashcardSetItem> }) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
             gap: '12px',
           }}
         >
@@ -549,7 +549,7 @@ function QuizzesSection({ state }: { state: FetchState<QuizSetItem> }) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
             gap: '12px',
           }}
         >

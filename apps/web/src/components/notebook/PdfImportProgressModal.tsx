@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Mascot } from '@/components/mascot/Mascot';
 import type { MascotPose } from '@/components/mascot/poses';
 import { useImportJobStream, type ImportJobStatus } from '@/hooks/useImportJobStream';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import PdfImportSkeleton from './PdfImportSkeleton';
 
 // P6 — the user-facing surface of the structured PDF import pipeline.
@@ -61,6 +62,7 @@ export default function PdfImportProgressModal({
   onImported,
 }: PdfImportProgressModalProps) {
   const stream = useImportJobStream(notebookId, jobId, true);
+  const dims = useModalDimensions(480);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
 
@@ -143,13 +145,10 @@ export default function PdfImportProgressModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '480px',
-          maxWidth: '95vw',
-          maxHeight: '88vh',
+          ...dims,
           overflowY: 'auto',
           background: 'var(--surface-container)',
           color: 'var(--on-surface)',
-          borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--outline-variant)',
           padding: '32px 28px',
           display: 'flex',

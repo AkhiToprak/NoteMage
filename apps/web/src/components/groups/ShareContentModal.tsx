@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 interface ShareContentModalProps {
   open: boolean;
@@ -57,6 +58,7 @@ export default function ShareContentModal({
   const [hoveredClose, setHoveredClose] = useState(false);
   const [search, setSearch] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
+  const dims = useModalDimensions(520);
 
   const fetchContent = useCallback(async (type: string) => {
     setLoading(true);
@@ -246,11 +248,8 @@ export default function ShareContentModal({
           aria-modal="true"
           aria-label="Share Content"
           style={{
-            maxWidth: 520,
-            width: 'calc(100% - 32px)',
-            maxHeight: 'calc(100vh - 64px)',
+            ...dims,
             background: COLORS.cardBg,
-            borderRadius: 24,
             padding: 0,
             boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
             animation: `modalSlideUp 0.3s ${EASING}`,

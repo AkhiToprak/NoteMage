@@ -284,6 +284,9 @@ export default function HomeHeader() {
                     top: '100%',
                     marginTop: 8,
                     minWidth: 180,
+                    // Cap so a long username can't push the right-anchored menu
+                    // off the left edge on a narrow phone.
+                    maxWidth: 'calc(100vw - 16px)',
                     background: COLORS.cardBg,
                     border: '1px solid rgba(174,137,255,0.30)',
                     borderRadius: 14,

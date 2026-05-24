@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       style={{
         background: '#0c0a1a',
         color: 'var(--on-surface)',
-        minHeight: '100vh',
+        minHeight: '100dvh',
         overflowX: 'hidden',
         position: 'relative',
         isolation: 'isolate',
@@ -37,7 +37,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         style={{
           position: 'relative',
           zIndex: 10,
-          minHeight: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

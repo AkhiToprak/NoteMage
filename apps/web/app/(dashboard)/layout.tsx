@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import HomeHeader from '@/components/layout/HomeHeader';
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
@@ -75,6 +76,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {children}
             </main>
+            {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
+                workspace, group detail, learn chats) which own the viewport. */}
+            {!isFullHeight && <MobileBottomNav />}
           </div>
         </UnlockProvider>
       </TimerProvider>

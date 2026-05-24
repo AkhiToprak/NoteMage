@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { useMultiImport } from '@/hooks/useMultiImport';
 import ImportSourceStep from './ImportSourceStep';
 import ImportPreparingStep from './ImportPreparingStep';
@@ -20,6 +21,7 @@ interface MultiPdfImportModalProps {
 
 export default function MultiPdfImportModal({ folderId, onClose }: MultiPdfImportModalProps) {
   const mi = useMultiImport({ folderId });
+  const dims = useModalDimensions(600);
 
   // Uploads hold the picked File objects in memory — block dismiss while
   // the "preparing" step is running so the work is not lost mid-upload.
@@ -93,13 +95,10 @@ export default function MultiPdfImportModal({ folderId, onClose }: MultiPdfImpor
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '600px',
-          maxWidth: '95vw',
-          maxHeight: '90vh',
+          ...dims,
           overflowY: 'auto',
           background: 'var(--surface-container)',
           color: 'var(--on-surface)',
-          borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--outline-variant)',
           padding: '16px 24px 24px',
           display: 'flex',

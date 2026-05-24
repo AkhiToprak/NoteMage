@@ -864,13 +864,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div
+            className="responsive-grid-3"
             style={{
               display: 'grid',
-              gridTemplateColumns: responsiveValue(bp, {
-                phone: '1fr',
-                tablet: 'repeat(2, 1fr)',
-                desktop: 'repeat(3, 1fr)',
-              }),
               gap: '16px',
             }}
           >
@@ -900,17 +896,7 @@ export default function DashboardPage() {
 
       {/* Bento grid */}
       <section>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: responsiveValue(bp, {
-              phone: '1fr',
-              tablet: '2fr 1fr',
-              desktop: '3fr 1fr',
-            }),
-            gap: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
-          }}
-        >
+        <div className="bento-3-1">
           {/* Recent Activity */}
           <div
             style={{

@@ -348,7 +348,9 @@
 html {
   background: var(--background);
   color: var(--on-surface);
-  overflow-x: hidden;
+  /* `clip` (not `hidden`) prevents accidental horizontal scroll without
+     creating a scroll container that can be programmatically scrolled. */
+  overflow-x: clip;
 }
 
 body {
@@ -358,7 +360,7 @@ body {
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ─── Global scrollbar: hidden everywhere ────────────────────────────── */
@@ -719,4 +721,73 @@ body {
 
 .scroll-hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ─── Responsive primitives (SSR-safe — mobile overhaul Phase 0) ──────── */
+/* These work during SSR (no JS), so they don't suffer the desktop-flash that
+   the useBreakpoint() hook does. Prefer them for layout-critical responsiveness. */
+
+/* A horizontal row that wraps; collapses to a stack on phone. Children set
+   their own flex-basis / min-width:0 as needed. */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cluster-gap, 16px);
+  min-width: 0;
+}
+
+/* Force any flex/grid container to a single column on phone, regardless of its
+   desktop direction. Pair with the element's own desktop layout. */
+@media (max-width: 767px) {
+  .stack-phone {
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .cluster {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Absolute/fixed dropdown that must never exceed the viewport. Set
+   --dropdown-w to the desktop width; on phone it always caps to the viewport. */
+.dropdown-phone-safe {
+  max-width: min(var(--dropdown-w, 360px), calc(100vw - 16px));
+}
+
+@media (max-width: 767px) {
+  .dropdown-phone-safe {
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+
+/* Opt-in 44px minimum hit area on coarse pointers (touch) without enlarging
+   the control on desktop. Add `tap-target` to small icon buttons. */
+@media (pointer: coarse) {
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Dashboard bento: main content + side rail. SSR-safe replacement for a JS
+   responsiveValue grid that flashed desktop columns on phone load. */
+.bento-3-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 768px) {
+  .bento-3-1 {
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+}
+@media (min-width: 1024px) {
+  .bento-3-1 {
+    grid-template-columns: 3fr 1fr;
+    gap: 24px;
+  }
 }
