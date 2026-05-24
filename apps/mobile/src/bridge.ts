@@ -38,11 +38,17 @@ import type {
   BridgeMessage,
   BridgeRequest,
   BridgeResponse,
+  Entitlement,
   HapticStyle,
+  Product,
+  PurchaseResult,
   PushRegistration,
+  RestoreResult,
   ShareContent,
   SignInWithAppleResult,
 } from '@notemage/shared';
+import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
+import Constants from 'expo-constants';
 
 // ─── Pencil native module (custom Swift, registered via the bridging header).
 // On non-iOS or when the module isn't installed (e.g. Expo Go) we no-op.
@@ -129,6 +135,7 @@ export const INJECTED_BEFORE_CONTENT_LOADED = `
     purchase: function (id) { return send('purchase', { productId: id }); },
     restorePurchases: function () { return send('restorePurchases'); },
     getEntitlement: function () { return send('getEntitlement'); },
+    setAppUser: function (userId) { return send('setAppUser', { userId: userId }); },
 
     haptic: function (style) { send('haptic', { style: style }); },
     share: function (content) { return send('share', content); },
@@ -171,6 +178,56 @@ function toHapticStyle(style: HapticStyle | string | undefined): Haptics.ImpactF
     default:
       return Haptics.ImpactFeedbackStyle.Light;
   }
+}
+
+// ─── RevenueCat (in-app purchases) ─────────────────────────────────────────
+// The RevenueCat Entitlement id that maps to NoteMage PRO — matches the `pro`
+// entitlement in the RevenueCat dashboard and the server webhook's RC_ENTITLEMENT.
+const RC_ENTITLEMENT = 'pro';
+
+let rcConfigured = false;
+
+// Configure RevenueCat once, anonymously. The web app reports the signed-in
+// NoteMage user id via the `setAppUser` bridge call, which then runs
+// Purchases.logIn so a StoreKit purchase binds to that account
+// (appUserID = User.id). iOS-only — there's no Android build and we only hold
+// an iOS key.
+export function configureRevenueCat(): void {
+  if (rcConfigured || Platform.OS !== 'ios') return;
+  const apiKey =
+    process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ??
+    (Constants.expoConfig?.extra as { revenueCatIosKey?: string } | undefined)?.revenueCatIosKey;
+  if (!apiKey) {
+    console.warn('[RevenueCat] iOS API key missing — in-app purchases disabled');
+    return;
+  }
+  Purchases.configure({ apiKey });
+  rcConfigured = true;
+}
+
+function toProduct(pkg: PurchasesPackage): Product {
+  const p = pkg.product;
+  return {
+    id: p.identifier,
+    title: p.title,
+    description: p.description,
+    priceString: p.priceString,
+    priceMicros: Math.round(p.price * 1_000_000),
+    currencyCode: p.currencyCode ?? '',
+  };
+}
+
+function toEntitlement(info: CustomerInfo): Entitlement {
+  const active = info.entitlements.active[RC_ENTITLEMENT];
+  if (!active) {
+    return { tier: 'FREE', source: null, expiresAt: null, inGracePeriod: false };
+  }
+  return {
+    tier: 'PRO',
+    source: 'APPLE_IAP',
+    expiresAt: active.expirationDate ?? null,
+    inGracePeriod: active.billingIssueDetectedAt != null,
+  };
 }
 
 export interface ShellBridgeOptions {
@@ -354,12 +411,58 @@ export class ShellBridge {
         };
         return result;
       }
-      case 'getEntitlement':
-      case 'getProducts':
-      case 'purchase':
+      case 'setAppUser': {
+        const userId = (req.args as { userId?: string } | undefined)?.userId;
+        if (!userId) throw new Error('setAppUser() requires a userId');
+        configureRevenueCat();
+        await Purchases.logIn(userId);
+        return null;
+      }
+      case 'getProducts': {
+        configureRevenueCat();
+        const offerings = await Purchases.getOfferings();
+        return (offerings.current?.availablePackages ?? []).map(toProduct);
+      }
+      case 'purchase': {
+        configureRevenueCat();
+        const productId = (req.args as { productId?: string } | undefined)?.productId;
+        if (!productId) throw new Error('purchase() requires a productId');
+        const offerings = await Purchases.getOfferings();
+        const pkg = (offerings.current?.availablePackages ?? []).find(
+          (p) => p.product.identifier === productId
+        );
+        if (!pkg) {
+          return { status: 'error', message: 'Product not available' } satisfies PurchaseResult;
+        }
+        try {
+          const { customerInfo } = await Purchases.purchasePackage(pkg);
+          return {
+            status: 'success',
+            entitlement: toEntitlement(customerInfo),
+          } satisfies PurchaseResult;
+        } catch (e) {
+          const err = e as { userCancelled?: boolean; message?: string };
+          return (
+            err.userCancelled
+              ? { status: 'cancelled' }
+              : { status: 'error', message: err.message ?? 'Purchase failed' }
+          ) satisfies PurchaseResult;
+        }
+      }
       case 'restorePurchases': {
-        // Wired in Phase 6 (RevenueCat IAP).
-        throw new Error(`${req.method} is not implemented yet`);
+        configureRevenueCat();
+        const info = await Purchases.restorePurchases();
+        const ent = toEntitlement(info);
+        return (
+          ent.tier === 'PRO'
+            ? { status: 'restored', entitlement: ent }
+            : { status: 'nothing-to-restore' }
+        ) satisfies RestoreResult;
+      }
+      case 'getEntitlement': {
+        configureRevenueCat();
+        const info = await Purchases.getCustomerInfo();
+        return toEntitlement(info);
       }
       default:
         throw new Error(`Unknown bridge method: ${String((req as BridgeRequest).method)}`);

@@ -5,7 +5,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { WebViewErrorEvent, WebViewHttpErrorEvent } from 'react-native-webview/lib/WebViewTypes';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
-import { ShellBridge, INJECTED_BEFORE_CONTENT_LOADED } from './src/bridge';
+import { ShellBridge, INJECTED_BEFORE_CONTENT_LOADED, configureRevenueCat } from './src/bridge';
 import { OfflineScreen } from './src/screens/OfflineScreen';
 import { ErrorScreen } from './src/screens/ErrorScreen';
 
@@ -31,6 +31,11 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+// Initialise RevenueCat once at launch (anonymous). The web app binds the
+// signed-in NoteMage user via the setAppUser bridge call. iOS-only; no-ops
+// when no API key is configured.
+configureRevenueCat();
 
 export default function App() {
   const webviewRef = useRef<WebView | null>(null);

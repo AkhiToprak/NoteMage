@@ -18,6 +18,8 @@ import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
 import OnboardingImportStep from './OnboardingImportStep';
 import { parseBirthDate } from '@/lib/age';
 import { useUpgrade } from '@/hooks/useUpgrade';
+import { getNativePlatform } from '@/lib/native-bridge';
+import IosUpgradeSheet from '@/components/settings/IosUpgradeSheet';
 import type { TierKey } from '@/lib/tiers';
 import type { ImportPhase } from '@/hooks/useMultiImport';
 
@@ -138,6 +140,8 @@ export default function OnboardingWizard({
   // Pro upgrade (tier step). On a completed purchase the session flips to PRO
   // and we advance into the profile steps instead of the default refresh.
   const { startUpgrade, upgrading } = useUpgrade(() => setStep('firstName'));
+  // iOS uses StoreKit IAP via the native sheet, not the Lemon Squeezy overlay.
+  const [iosSheetOpen, setIosSheetOpen] = useState(false);
 
   /**
    * Path detection. A credentials user starts unauthenticated and creates a
@@ -259,10 +263,15 @@ export default function OnboardingWizard({
       setStep('firstName');
       return;
     }
-    // Pro selected → take payment via the Lemon Squeezy overlay. useUpgrade's
-    // onSuccess advances to 'firstName'. If checkout is unavailable (LS store
-    // not yet live), surface a graceful message instead of throwing.
+    // Pro selected. Inside the iOS shell, App Store IAP is required, so open the
+    // native purchase sheet (its onPurchased advances the wizard). On web/desktop,
+    // take payment via the Lemon Squeezy overlay — useUpgrade's onSuccess advances
+    // to 'firstName'; if checkout is unavailable, surface a graceful message.
     clearStepError('tier');
+    if (getNativePlatform() === 'ios') {
+      setIosSheetOpen(true);
+      return;
+    }
     try {
       await startUpgrade();
     } catch {
@@ -489,6 +498,14 @@ export default function OnboardingWizard({
             selectedTier={formData.tier}
             onSelect={(tier) => setFormData((prev) => ({ ...prev, tier }))}
             freeAiPathsDisabled={freeAiPathsDisabled}
+          />
+          <IosUpgradeSheet
+            open={iosSheetOpen}
+            onClose={() => setIosSheetOpen(false)}
+            onPurchased={() => {
+              setIosSheetOpen(false);
+              setStep('firstName');
+            }}
           />
         </OnboardingScreen>
       );

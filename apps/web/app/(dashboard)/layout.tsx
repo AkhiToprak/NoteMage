@@ -9,6 +9,7 @@ import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
+import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
@@ -29,6 +30,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/auth/register');
     }
   }, [status, session, router]);
+
+  // Bind the iOS in-app-purchase identity to this account (RevenueCat
+  // appUserID = User.id) so StoreKit purchases attach to the right user.
+  // No-op outside the iOS shell.
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id && isInsideNativeShell()) {
+      void nativeBridge.setAppUser?.(session.user.id);
+    }
+  }, [status, session?.user?.id]);
 
   // Track minutes-in-app for the activity heatmap. Only runs when authed.
   useStudyHeartbeat(status === 'authenticated');

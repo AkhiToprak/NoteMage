@@ -80,6 +80,10 @@ export interface NativeBridge {
 
   // ── Auth / account ────────────────────────────────────────────────────
   signInWithApple(): Promise<SignInWithAppleResult>;
+  // Binds the StoreKit / RevenueCat identity to the logged-in account so iOS
+  // purchases attach to this user (RevenueCat appUserID = User.id). Optional:
+  // only the iOS shell implements it; web/desktop are no-ops.
+  setAppUser?(userId: string): Promise<void>;
 
   // ── In-app purchases (wired in Phase 6 / Phase 7) ─────────────────────
   getProducts(): Promise<Product[]>;
@@ -122,6 +126,7 @@ export type BridgeRequestMethod =
   | 'openExternal'
   | 'requestBiometricUnlock'
   | 'registerPush'
+  | 'setAppUser'
   | 'ready'; // sent by web → shell once the bridge has hooked up listeners
 
 export interface BridgeRequest {

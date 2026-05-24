@@ -14,6 +14,7 @@ import { generatePathStructure, generatePath } from '@/lib/path-generator';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 import { loadPathsForUser, serializePath } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { checkTokenBudget } from '@/lib/token-budget';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import { classifySubjects } from '@/lib/path-classifier';
 import { normalizePathLanguage } from '@/lib/path-languages';
@@ -117,6 +118,16 @@ export async function POST(request: NextRequest) {
         ultra
           ? 'Ultra path limit reached — Ultra is a Pro feature, capped at 3 per month.'
           : 'Monthly AI path generation limit reached. Upgrade your plan for more.',
+      );
+    }
+
+    // Hard ceiling on total AI token spend — the same budget every other AI
+    // route enforces. PRO's per-feature ai_study_plan is unlimited (-1), so
+    // without this a PRO user could generate unbounded paths; this caps the COGS.
+    const { allowed: tokenAllowed, tokenLimit } = await checkTokenBudget(userId);
+    if (!tokenAllowed) {
+      return tooManyRequestsResponse(
+        `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`
       );
     }
 

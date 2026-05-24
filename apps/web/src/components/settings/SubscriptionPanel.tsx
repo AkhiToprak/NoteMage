@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useUpgrade } from '@/hooks/useUpgrade';
+import { getNativePlatform } from '@/lib/native-bridge';
+import IosUpgradeSheet from '@/components/settings/IosUpgradeSheet';
 
 interface SubInfo {
   tier: string;
@@ -29,7 +31,8 @@ function formatDate(iso: string | null): string {
 
 /**
  * Subscription management for the settings page. FREE users get an "Upgrade to
- * Pro" button (Lemon Squeezy overlay via useUpgrade); PRO users see their status
+ * Pro" button — Lemon Squeezy overlay on web/desktop, the native StoreKit sheet
+ * (IosUpgradeSheet) inside the iOS shell; PRO users see their status
  * plus Manage (Lemon Squeezy portal) and Cancel (schedule downgrade) actions. App Store
  * subscriptions are read-only here and point the user back to iOS Settings.
  */
@@ -38,6 +41,8 @@ export default function SubscriptionPanel() {
   const [sub, setSub] = useState<SubInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isIos, setIsIos] = useState(false);
+  const [iosSheetOpen, setIosSheetOpen] = useState(false);
 
   const refresh = useCallback(() => {
     fetch('/api/user/subscription')
@@ -51,6 +56,12 @@ export default function SubscriptionPanel() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // The iOS shell can't use the Lemon Squeezy overlay — StoreKit requires IAP,
+  // so the Upgrade button opens the native purchase sheet instead.
+  useEffect(() => {
+    setIsIos(getNativePlatform() === 'ios');
+  }, []);
 
   const tier = sub?.tier ?? 'FREE';
   const isPro = tier === 'PRO';
@@ -224,7 +235,7 @@ export default function SubscriptionPanel() {
             type="button"
             className="sub-btn sub-btn-primary"
             style={primaryBtnStyle}
-            onClick={startUpgrade}
+            onClick={isIos ? () => setIosSheetOpen(true) : startUpgrade}
             disabled={upgrading}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
@@ -272,6 +283,14 @@ export default function SubscriptionPanel() {
           </>
         )}
       </div>
+
+      {isIos && (
+        <IosUpgradeSheet
+          open={iosSheetOpen}
+          onClose={() => setIosSheetOpen(false)}
+          onPurchased={refresh}
+        />
+      )}
     </div>
   );
 }
