@@ -88,6 +88,10 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
         password: null,
         username: placeholderUsername,
         onboardingComplete: false,
+        // OAuth providers (Google/Apple) only hand us verified emails, so the
+        // account is confirmed at creation — it must never hit the credentials
+        // email-confirmation gate.
+        emailVerified: new Date(),
       },
     });
     await tx.oAuthAccount.create({

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
+import VerifyCodeForm from '@/components/auth/VerifyCodeForm';
 
 export default function LoginPage() {
   // useSearchParams in a client page must be wrapped in Suspense for the
@@ -26,6 +27,10 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
+  // Set when authorize() rejects an unverified credentials account. Swaps the
+  // login card for the inline code-entry flow (the password is still in state,
+  // so we can finish signing in once the email is confirmed).
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   // Surface errors redirected here by the NextAuth signIn callback —
   // the most important one is OAuthAccountExists, which fires when an
@@ -105,6 +110,10 @@ function LoginForm() {
           setError(
             `Your account has been locked due to too many failed login attempts. It will be unlocked at ${timeStr}.`
           );
+        } else if (result.error === 'EMAIL_NOT_VERIFIED') {
+          // Correct password, but the email was never confirmed — swap to the
+          // inline verify flow instead of showing a wrong-password error.
+          setNeedsVerification(true);
         } else {
           setError('Invalid email or password');
         }
@@ -115,6 +124,19 @@ function LoginForm() {
       setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // After the code is confirmed, finish the sign-in the user already started
+  // (email + password are still in state). The account is now verified, so the
+  // same credentials sail through authorize().
+  const handleVerifiedLogin = async () => {
+    const result = await signIn('credentials', { email, password, redirect: false });
+    if (result?.ok) {
+      router.push('/dashboard');
+    } else {
+      setNeedsVerification(false);
+      setError('Email verified! Please sign in.');
     }
   };
 
@@ -132,6 +154,99 @@ function LoginForm() {
     boxSizing: 'border-box',
     transition: 'box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
   };
+
+  // Inline email-confirmation flow — shown when a correct-password login is
+  // blocked because the account's email is unverified.
+  if (needsVerification) {
+    return (
+      <>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            marginBottom: '40px',
+          }}
+        >
+          <div style={{ position: 'relative', marginBottom: '24px' }}>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(174,137,255,0.2)',
+                filter: 'blur(24px)',
+                borderRadius: '50%',
+              }}
+            />
+            <Image
+              src="/logo_trimmed.png"
+              alt="Notemage"
+              width={96}
+              height={96}
+              style={{ objectFit: 'contain', position: 'relative' }}
+              priority
+            />
+          </div>
+          <h1
+            style={{
+              fontFamily: 'var(--font-brand)',
+              fontSize: '40px',
+              fontWeight: 400,
+              color: 'var(--brand-purple)',
+              margin: '0 0 8px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Verify your email
+          </h1>
+        </div>
+
+        <div
+          style={{
+            background: '#121222',
+            borderRadius: '32px',
+            padding: '40px',
+            boxShadow: '0 32px 64px -12px rgba(0,0,0,0.5)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '1px',
+              background: 'rgba(174,137,255,0.4)',
+            }}
+          />
+          <VerifyCodeForm email={email} resendOnMount onVerified={handleVerifiedLogin} />
+          <button
+            type="button"
+            onClick={() => {
+              setNeedsVerification(false);
+              setError('');
+            }}
+            style={{
+              width: '100%',
+              marginTop: '18px',
+              padding: '12px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--outline)',
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
+            Back to login
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

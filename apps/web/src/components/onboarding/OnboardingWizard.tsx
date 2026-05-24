@@ -16,6 +16,7 @@ import AvatarStep from './AvatarStep';
 import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoalsStep';
 import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
 import OnboardingImportStep from './OnboardingImportStep';
+import VerifyCodeForm from '@/components/auth/VerifyCodeForm';
 import { parseBirthDate } from '@/lib/age';
 import { useUpgrade } from '@/hooks/useUpgrade';
 import { getNativePlatform } from '@/lib/native-bridge';
@@ -25,6 +26,7 @@ import type { ImportPhase } from '@/hooks/useMultiImport';
 
 type StepId =
   | 'account'
+  | 'verify'
   | 'tier'
   | 'firstName'
   | 'lastName'
@@ -199,21 +201,39 @@ export default function OnboardingWizard({
         setStepError('account', data.error || 'Failed to create account');
         return;
       }
-      // Auto-login
+      // Account created but unverified — credentials login is hard-blocked
+      // until the email is confirmed (see authorize() in src/auth/config.ts),
+      // so advance to the verify step rather than signing in. The 6-digit code
+      // was already emailed by /api/auth/register. Password stays in state so
+      // handleVerified can sign in once the email is confirmed.
+      setStep('verify');
+    } catch {
+      setStepError('account', 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Verify step (credentials path): confirm email, then sign in ──────────
+  const handleVerified = async () => {
+    setLoading(true);
+    try {
       const signInResult = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false,
       });
       if (signInResult?.error) {
-        setStepError('account', 'Account created but auto-login failed. Please log in manually.');
+        // Verification succeeded server-side; only the immediate auto-login
+        // hiccuped. A manual login will now work since the account is verified.
+        setStepError('verify', 'Email verified! Please log in to continue.');
         return;
       }
-      // Clear sensitive data from state
+      // Clear sensitive data now that the session exists.
       setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }));
       setStep('tier');
     } catch {
-      setStepError('account', 'Something went wrong. Please try again.');
+      setStepError('verify', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -375,7 +395,11 @@ export default function OnboardingWizard({
     if (target) setStep(target);
   };
 
-  const progress = (STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length;
+  // 'verify' is a credentials-only interstitial between account and tier that
+  // OAuth users skip, so it's deliberately absent from STEP_ORDER. Pin its bar
+  // to the account step's fill so the progress doesn't jump back to empty.
+  const orderIndex = step === 'verify' ? 0 : STEP_ORDER.indexOf(step);
+  const progress = (orderIndex + 1) / STEP_ORDER.length;
   const goalCount = Object.values(formData.goals).filter((v) => v !== null).length;
 
   const goalsBadge =
@@ -466,6 +490,22 @@ export default function OnboardingWizard({
             loading={loading}
             error={stepErrors.account || ''}
           />
+        </OnboardingScreen>
+      );
+    }
+
+    // ── Verify email — credentials path only (OAuth users are pre-verified) ──
+    if (step === 'verify') {
+      return (
+        <OnboardingScreen
+          screenKey="verify"
+          progress={progress}
+          mascotPose="holding-pen"
+          mascotIdle="bounce"
+          heading="Check your inbox"
+          error={stepErrors.verify || ''}
+        >
+          <VerifyCodeForm email={formData.email} onVerified={handleVerified} />
         </OnboardingScreen>
       );
     }

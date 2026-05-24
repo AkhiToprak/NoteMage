@@ -5,6 +5,8 @@ import { createdResponse, badRequestResponse, internalErrorResponse } from '@/li
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { enforceIpCap, generatePlaceholderUsername } from '@/lib/registration';
 import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
+import { issueEmailVerificationCode } from '@/lib/verification';
+import { sendVerificationCode } from '@/lib/verification-email';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -78,7 +80,18 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    return createdResponse({ id: user.id, email: user.email }, 'Account created successfully');
+    // Issue + email the 6-digit confirmation code. The account row exists but
+    // is unverified, so CredentialsProvider.authorize() blocks login until the
+    // user confirms (see src/lib/verification.ts). A failed send is non-fatal:
+    // the account is created and the user can request a fresh code on the
+    // verify screen.
+    const code = await issueEmailVerificationCode(user.id);
+    await sendVerificationCode(user.email, code);
+
+    return createdResponse(
+      { id: user.id, email: user.email, requiresVerification: true },
+      'Account created — check your email for a verification code'
+    );
   } catch (error) {
     console.error('Registration error:', error);
     return internalErrorResponse('Failed to create account');

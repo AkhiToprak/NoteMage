@@ -63,6 +63,12 @@ model User {
   email                 String    @unique
   name                  String?
   password              String? // Hashed with bcrypt; null for OAuth-only accounts
+  // Email-confirmation gate for credentials sign-ups. Null = not yet
+  // verified → CredentialsProvider.authorize() refuses login (hard block).
+  // OAuth accounts are provider-verified, so they're stamped on create.
+  // Pre-existing rows were grandfathered (set to createdAt) in the
+  // add_email_verification migration so only new signups are gated.
+  emailVerified         DateTime?
   role                  String    @default("user") // "user" | "admin"
   banned                Boolean   @default(false) // Banned users cannot log in
   banReason             String? // Optional reason shown to banned user
@@ -200,6 +206,9 @@ model User {
   resolvedTickets        Ticket[]          @relation("ResolvedTickets")
   // Path-publishing Layer-4 (P13) — community reports filed by this user.
   reportsMade            Report[]          @relation("ReportsMade")
+  // Email-confirmation codes for the credentials-signup gate (one active
+  // row per user; reissued on resend).
+  emailVerificationCodes EmailVerificationCode[]
 
   @@map("users")
 }
@@ -1575,6 +1584,24 @@ model IpRegistration {
 
   @@index([ip, createdAt])
   @@map("ip_registrations")
+}
+
+// 6-digit email-confirmation codes for the credentials-signup gate. The code
+// is stored bcrypt-hashed (never plaintext) — a 6-digit space is small, so
+// the `attempts` cap + 15-min expiry are what make brute force infeasible.
+// One active row per user: reissuing (resend) deletes prior rows first, and a
+// successful verify deletes them all.
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String // bcrypt hash of the 6-digit code
+  attempts  Int      @default(0) // wrong-guess counter; row is dead past the cap
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("email_verification_codes")
 }
 
 // ============================================================================

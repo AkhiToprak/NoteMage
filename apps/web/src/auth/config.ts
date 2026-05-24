@@ -114,6 +114,7 @@ export const authOptions: NextAuthOptions = {
             email: true,
             name: true,
             password: true,
+            emailVerified: true,
             username: true,
             avatarUrl: true,
             onboardingComplete: true,
@@ -195,6 +196,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error(
             user.banReason ? `Account banned: ${user.banReason}` : 'Your account has been banned.'
           );
+        }
+
+        // Email-confirmation hard gate. A correct password on an account whose
+        // `emailVerified` is null means the user registered but never confirmed
+        // their email — refuse login with a distinct error string the login UI
+        // maps to the code-entry screen. OAuth accounts never reach this branch
+        // (they're created provider-verified), and pre-existing accounts were
+        // grandfathered in the add_email_verification migration.
+        if (!user.emailVerified) {
+          throw new Error('EMAIL_NOT_VERIFIED');
         }
 
         // Successful login — reset failed attempt counter
