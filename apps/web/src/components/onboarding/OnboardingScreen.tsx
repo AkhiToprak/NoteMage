@@ -66,19 +66,16 @@ export default function OnboardingScreen({
     <div
       style={{
         position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
         background: 'var(--surface-container-low)',
         borderRadius: '24px',
+        // overflow:visible so absolutely-positioned badges (the billing
+        // "Save N%" pill, the "Most Popular" tag) aren't clipped. The page
+        // scrolls naturally if a step is taller than the viewport; steps are
+        // kept short enough (e.g. the plan step caps its feature list) that
+        // this rarely happens.
         padding: 'clamp(16px, 2.4vh, 24px) clamp(18px, 4vw, 30px) clamp(18px, 2.4vh, 28px)',
         boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
-        overflow: 'hidden',
         width: '100%',
-        // Never taller than the viewport (the auth shell adds ~40px vertical
-        // padding). The content region scrolls internally so the page never
-        // scrolls and the CTA stays pinned — fixes the plan-step scroll on
-        // short laptops.
-        maxHeight: 'calc(100dvh - 40px)',
       }}
     >
       {/* top accent line */}
@@ -107,7 +104,7 @@ export default function OnboardingScreen({
       </div>
 
       {/* mascot + wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '14px' }}>
         {mascotPose && (
           <span style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
             <Mascot pose={mascotPose} size="xs" idle={mascotIdle} />
@@ -179,19 +176,8 @@ export default function OnboardingScreen({
         </div>
       )}
 
-      {/* content — scrolls internally on short viewports so the footer CTA
-          below stays pinned and the page itself never scrolls */}
-      <div
-        key={screenKey}
-        className="ob-fade"
-        style={{
-          marginTop: '18px',
-          flex: '1 1 auto',
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}
-      >
+      {/* content */}
+      <div key={screenKey} className="ob-fade" style={{ marginTop: '18px' }}>
         {children}
       </div>
 

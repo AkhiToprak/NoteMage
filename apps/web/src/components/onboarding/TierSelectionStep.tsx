@@ -61,6 +61,7 @@ export default function TierSelectionStep({
             }
             freeAiPathsDisabled={freeAiPathsDisabled}
             compact
+            maxFeatures={5}
           />
         ))}
       </div>

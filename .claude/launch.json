@@ -4,7 +4,7 @@
     {
       "name": "notemage-dev",
       "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": ["-c", "export PATH=/usr/local/bin:$PATH && cd /Users/toprakdemirel/Entwicklung/Quizzard && pnpm dev:web"],
+      "runtimeArgs": ["-c", "export PATH=/usr/local/bin:$PATH && cd /Users/toprakdemirel/Entwicklung/Quizzard && corepack pnpm --filter web dev"],
       "port": 3001,
       "autoPort": false
     }

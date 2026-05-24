@@ -34,6 +34,9 @@ interface PricingCardProps {
    * the client bundle, so the component can't read it itself.
    */
   freeAiPathsDisabled?: boolean;
+  /** Cap the number of feature rows shown. Used by the compact onboarding plan
+   *  step so two cards fit a laptop viewport without scrolling. */
+  maxFeatures?: number;
 }
 
 const FEATURE_LABELS: Record<FeatureType, string> = {
@@ -83,6 +86,7 @@ export default function PricingCard({
   delay = 0,
   compact = false,
   freeAiPathsDisabled = false,
+  maxFeatures,
 }: PricingCardProps) {
   const config = TIERS[tier];
   const accent = ACCENT[tier];
@@ -292,7 +296,9 @@ export default function PricingCard({
           flex: 1,
         }}
       >
-        {(Object.entries(config.limits) as [FeatureType, number][]).map(([feature, limit], idx) => {
+        {(Object.entries(config.limits) as [FeatureType, number][])
+          .slice(0, maxFeatures ?? Infinity)
+          .map(([feature, limit], idx) => {
           // Phase 12 switchover: when FREE AI paths are off, surface the curated
           // community-paths offering as an included feature instead of a count.
           const isCommunityPaths =
@@ -386,8 +392,9 @@ export default function PricingCard({
         })}
       </ul>
 
-      {/* Pro footnote */}
-      {isPro && (
+      {/* Pro footnote — hidden in compact (onboarding) to keep the card short;
+          the full explanation lives on the /pricing page. */}
+      {isPro && !compact && (
         <p
           style={{
             margin: 0,
