@@ -348,6 +348,86 @@ export default function LearnPage() {
         </div>
       </header>
 
+      {/* Phase 12 free-tier switchover — when the capability probe says this
+          user can't generate (FREE under the switchover), surface a passive,
+          always-visible note that AI path generation is Pro and point at the
+          community library, the free way to get the experience (AC-Switch-3,
+          mirrors the inline-AI Pro upsell). The "New path" CTA still routes
+          here on click; this just sets expectations before the click. */}
+      {canGenerate === false && (
+        <section
+          role="note"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '14px',
+            padding: '16px 18px',
+            marginBottom: '24px',
+            background: 'var(--surface-container-high)',
+            border: '1px solid var(--outline-variant)',
+            borderLeft: '4px solid var(--primary)',
+            borderRadius: 'var(--radius-lg)',
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: '40px',
+              height: '40px',
+              flexShrink: 0,
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--surface-container)',
+              color: 'var(--primary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
+              workspace_premium
+            </span>
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2
+              style={{
+                margin: '0 0 4px',
+                fontFamily: 'var(--font-display)',
+                fontSize: '15px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+              }}
+            >
+              Generating paths with AI is part of Pro
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '13.5px',
+                lineHeight: 1.6,
+                color: 'var(--on-surface-variant)',
+              }}
+            >
+              Explore paths shared by the community and clone any one to your library —
+              free, instantly — to get the full experience.{' '}
+              <Link
+                href="/learn/community?from=create"
+                style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+              >
+                Browse community paths
+              </Link>{' '}
+              or{' '}
+              <Link
+                href="/pricing"
+                style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+              >
+                see what Pro includes
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+      )}
+
       {subjectsInUse.length >= 2 && (
         <SubjectFilterStrip
           subjects={subjectsInUse}

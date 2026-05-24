@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe('freeTierAiPathsDisabled()', () => {
-  it('is true only when the env var is exactly "true"', () => {
+  it('is false only when the env var is exactly "false" (blocked by default)', () => {
     process.env.FREE_TIER_AI_PATHS_DISABLED = 'true';
     expect(freeTierAiPathsDisabled()).toBe(true);
 
@@ -26,18 +26,20 @@ describe('freeTierAiPathsDisabled()', () => {
     expect(freeTierAiPathsDisabled()).toBe(false);
 
     process.env.FREE_TIER_AI_PATHS_DISABLED = '1';
-    expect(freeTierAiPathsDisabled()).toBe(false);
+    expect(freeTierAiPathsDisabled()).toBe(true);
 
     delete process.env.FREE_TIER_AI_PATHS_DISABLED;
-    expect(freeTierAiPathsDisabled()).toBe(false);
+    expect(freeTierAiPathsDisabled()).toBe(true);
   });
 });
 
 describe('FREE.limits.ai_study_plan switchover gate', () => {
-  it('stays at the legacy 3 when the flag is off (default / "false")', () => {
+  it('drops to 0 by default — an unset flag means blocked (AC-Switch-1)', () => {
     delete process.env.FREE_TIER_AI_PATHS_DISABLED;
-    expect(TIERS.FREE.limits.ai_study_plan).toBe(3);
+    expect(TIERS.FREE.limits.ai_study_plan).toBe(0);
+  });
 
+  it('restores the legacy 3 only when explicitly re-enabled ("false")', () => {
     process.env.FREE_TIER_AI_PATHS_DISABLED = 'false';
     expect(TIERS.FREE.limits.ai_study_plan).toBe(3);
   });

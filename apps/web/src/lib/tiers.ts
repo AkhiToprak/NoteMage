@@ -54,16 +54,17 @@ export const TIERS: Record<TierKey, TierConfig> = {
     limits: {
       ai_flashcards: 1,
       ai_pptx: 1,
-      // Phase 12 (path-publishing) free-tier switchover — gated by the
-      // FREE_TIER_AI_PATHS_DISABLED env var. When the flag is on this
-      // returns 0 so checkUsageLimit blocks FREE AI path generation and
-      // FREE users get paths from the community library instead; when off
-      // it stays at the legacy allowance of 3. A getter (not a constant)
-      // so a container restart flips it without a rebuild — the one-minute
+      // Phase 12 (path-publishing) free-tier switchover — AI path
+      // generation is a Pro feature, so this returns 0 by DEFAULT:
+      // checkUsageLimit then blocks FREE AI path generation and FREE users
+      // get paths from the community library instead. Set
+      // FREE_TIER_AI_PATHS_DISABLED=false to restore the legacy allowance
+      // of 3 (the re-enable lever). A getter (not a constant) so a
+      // container restart flips it without a rebuild — the one-minute
       // rollback in plan §5.2 / AC-Switch-5 depends on this. Per P0 spec
       // §5.1 the change lives in exactly this one place. (On the client
-      // the env var is undefined, so this reads 3; the authoritative gate
-      // is server-side.)
+      // the env var is undefined, so this reads 0 — matching the default;
+      // the authoritative gate is server-side.)
       get ai_study_plan(): number {
         return freeTierAiPathsDisabled() ? 0 : 3;
       },

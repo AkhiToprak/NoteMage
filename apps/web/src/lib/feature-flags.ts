@@ -10,9 +10,9 @@
  * FREE users regain AI path generation within a minute.
  *
  * Non-`NEXT_PUBLIC_` vars are stripped from the client bundle, so on the
- * browser these resolve to their default (flag off). Every authoritative
- * gate that depends on them runs server-side; the client only ever uses
- * them for optimistic UX and always defers to the server's response.
+ * browser this resolves to its default (blocked — AI paths are Pro). Every
+ * authoritative gate that depends on it runs server-side; the client only
+ * ever uses it for optimistic UX and always defers to the server's response.
  */
 
 /**
@@ -21,7 +21,13 @@
  * instead of the AI path generator. Consumed by `tiers.ts` (the limit
  * getter), `POST /api/learn/paths` (the server gate), and
  * `GET /api/learn/paths/access` (the client capability probe).
+ *
+ * Blocked is the DEFAULT: AI path generation is a Pro feature, so this
+ * returns true unless the env var is explicitly "false". The flag is now a
+ * re-enable (opt-OUT) lever — set FREE_TIER_AI_PATHS_DISABLED=false and
+ * restart the container to hand FREE users AI paths back within a minute
+ * (the AC-Switch-5 rollback still holds, just inverted).
  */
 export function freeTierAiPathsDisabled(): boolean {
-  return process.env.FREE_TIER_AI_PATHS_DISABLED === 'true';
+  return process.env.FREE_TIER_AI_PATHS_DISABLED !== 'false';
 }

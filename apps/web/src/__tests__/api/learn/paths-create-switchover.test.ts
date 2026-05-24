@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getAuthUserId: vi.fn(),
   checkUsageLimit: vi.fn(),
   incrementUsage: vi.fn(),
+  checkTokenBudget: vi.fn(),
   trackFreeUserPathGenerationBlocked: vi.fn(),
   loadMaterialCorpus: vi.fn(),
   renderMaterialCorpus: vi.fn(),
@@ -36,6 +37,9 @@ vi.mock('@/lib/db', () => ({ db: mocks.db }));
 vi.mock('@/lib/usage-limits', () => ({
   checkUsageLimit: mocks.checkUsageLimit,
   incrementUsage: mocks.incrementUsage,
+}));
+vi.mock('@/lib/token-budget', () => ({
+  checkTokenBudget: mocks.checkTokenBudget,
 }));
 vi.mock('@/lib/telemetry-switchover', () => ({
   trackFreeUserPathGenerationBlocked: mocks.trackFreeUserPathGenerationBlocked,
@@ -125,6 +129,11 @@ describe('POST /api/learn/paths — PRO unchanged flow (AC-Switch-2 regression)'
     process.env.FREE_TIER_AI_PATHS_DISABLED = 'true';
     mocks.getAuthUserId.mockResolvedValue('pro-user');
     mocks.checkUsageLimit.mockResolvedValue({ allowed: true, used: 0, limit: -1 });
+    mocks.checkTokenBudget.mockResolvedValue({
+      allowed: true,
+      usedTokens: 0,
+      tokenLimit: 1_000_000,
+    });
     mocks.loadMaterialCorpus.mockResolvedValue([]);
     mocks.renderMaterialCorpus.mockReturnValue('');
     mocks.db.notebook.findFirst.mockResolvedValue({ id: 'nb1' });
