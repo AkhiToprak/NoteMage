@@ -165,7 +165,7 @@ export default function LandingNavbar() {
               Log in
             </Link>
             <Link
-              href="/waitlist"
+              href="/auth/register"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -273,17 +273,17 @@ export default function LandingNavbar() {
             }}
           />
           <Link
-            href="/waitlist"
+            href="/auth/register"
             style={{
               fontSize: 18,
               color: 'var(--ink-70)',
               textDecoration: 'none',
             }}
           >
-            Join waitlist
+            Sign up
           </Link>
           <Link
-            href="/waitlist"
+            href="/auth/register"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

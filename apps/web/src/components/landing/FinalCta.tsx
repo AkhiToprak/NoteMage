@@ -81,7 +81,7 @@ export default function FinalCta() {
           }}
         >
           <Link
-            href="/waitlist"
+            href="/auth/register"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -17,7 +17,6 @@ import { encode, type JWT } from 'next-auth/jwt';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
 import { hydrateTokenFromDb } from '@/auth/config';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { hasSignupBypass } from '@/lib/signup-bypass';
 
 const APPLE_JWKS = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
 const APPLE_BUNDLE_ID = 'app.notemage.mobile';
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     name: fullName,
     avatarUrl: null,
     ip,
-    allowNewUser: hasSignupBypass(req),
+    allowNewUser: true,
   });
 
   if (!resolution.ok) {

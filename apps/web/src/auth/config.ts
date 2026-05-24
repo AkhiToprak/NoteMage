@@ -7,7 +7,6 @@ import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { getIpFromHeaders } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
-import { hasSignupBypassFromAppCookies } from '@/lib/signup-bypass';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -268,7 +267,7 @@ export const authOptions: NextAuthOptions = {
         // ignore
       }
 
-      const allowNewUser = await hasSignupBypassFromAppCookies();
+      const allowNewUser = true; // signups are open
 
       const resolution = await findOrCreateOAuthUser({
         provider,

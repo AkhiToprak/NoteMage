@@ -111,7 +111,7 @@ export default function Hero() {
             }}
           >
             <Link
-              href="/waitlist"
+              href="/auth/register"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
