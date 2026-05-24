@@ -546,7 +546,7 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Waitlist link */}
+      {/* Sign-up link */}
       <p
         style={{
           marginTop: '32px',
@@ -557,7 +557,7 @@ function LoginForm() {
       >
         Don&apos;t have an account?{' '}
         <Link
-          href="/waitlist"
+          href="/auth/register"
           style={{ color: 'var(--brand-gold)', fontWeight: 900, textDecoration: 'none' }}
         >
           Sign Up

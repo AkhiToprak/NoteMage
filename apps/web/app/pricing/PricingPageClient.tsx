@@ -181,7 +181,7 @@ export default function PricingPageClient({
                 formattedPrice={formatPrice(TIERS[key].price[billingInterval])}
                 interval={billingInterval}
                 priceSubline={subline}
-                ctaHref={`/waitlist?tier=${key}&interval=${billingInterval}`}
+                ctaHref="/auth/register"
                 ctaText={ctaText}
                 isRevealed={cardsRevealed}
                 delay={idx * 120}
@@ -267,7 +267,7 @@ export default function PricingPageClient({
           Pick a plan and start learning in minutes.
         </p>
         <Link
-          href="/waitlist"
+          href="/auth/register"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

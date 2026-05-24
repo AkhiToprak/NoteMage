@@ -285,9 +285,6 @@ export const authOptions: NextAuthOptions = {
         if (resolution.reason === 'account_exists') {
           return '/auth/login?error=OAuthAccountExists';
         }
-        if (resolution.reason === 'signup_disabled') {
-          return '/waitlist';
-        }
         return false;
       }
 
