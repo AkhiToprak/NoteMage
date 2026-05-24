@@ -173,6 +173,19 @@ export default function OnboardingWizard({
     }));
   }, [authPath, session?.user?.name, session?.user?.avatarUrl]);
 
+  // A credentials user becomes authenticated mid-flow (right after verifying
+  // their email), and an OAuth user is authenticated from the start. If the
+  // wizard remounts while authenticated — e.g. the iOS shell reloads after an
+  // app-switch — the path is re-derived as 'oauth' and the DOB gate (rendered
+  // for `isOauthPath` on the 'account' step) would ask for the birth date a
+  // *second* time even though it's already on file. Skip straight past it
+  // whenever the account already has a birth date.
+  useEffect(() => {
+    if (isOauthPath && step === 'account' && session?.user?.hasBirthDate) {
+      setStep('tier');
+    }
+  }, [isOauthPath, step, session?.user?.hasBirthDate]);
+
   const setStepError = (s: StepId, msg: string) =>
     setStepErrors((prev) => ({ ...prev, [s]: msg }));
 
@@ -266,6 +279,13 @@ export default function OnboardingWizard({
         const data = await res.json().catch(() => ({}));
         setStepError('account', data.error || 'Something went wrong. Please try again.');
         return;
+      }
+      // Refresh the JWT so `hasBirthDate` is now true — if the wizard later
+      // remounts (app-switch reload), the gate above won't re-ask for it.
+      try {
+        await updateSession();
+      } catch {
+        // Non-fatal — the value is persisted server-side already.
       }
       setStep('tier');
     } catch {

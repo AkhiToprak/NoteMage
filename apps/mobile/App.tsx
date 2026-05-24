@@ -94,6 +94,14 @@ export default function App() {
       if (next === 'background' || next === 'inactive') {
         lastBackgroundedAt.current = Date.now();
       } else if (next === 'active') {
+        // Returning from background (e.g. the user left to grab an email
+        // verification code). NetInfo only emits on *change*, so a transient
+        // drop while suspended can leave `online` stuck false with no event to
+        // clear it — the user then sees a false "You're offline" and has to
+        // force-quit. Assume connectivity on resume so any stale offline flag
+        // clears immediately, then reconcile against the device's real state.
+        setOnline(true);
+        void ShellBridge.refreshNetwork().then(setOnline);
         const last = lastBackgroundedAt.current;
         const elapsed = last ? Date.now() - last : 0;
         if (elapsed > 30_000) bridge.emit('appResumed', { elapsedMs: elapsed });
@@ -134,6 +142,10 @@ export default function App() {
 
   const handleReload = useCallback(() => {
     setErrorState(null);
+    // Re-probe connectivity. Without this the offline flag stays stale (NetInfo
+    // fires only on change), so the OfflineScreen's "Try again" could never
+    // clear it and a force-quit was the only escape.
+    void ShellBridge.refreshNetwork().then(setOnline);
     setReloadKey((k) => k + 1);
   }, []);
 

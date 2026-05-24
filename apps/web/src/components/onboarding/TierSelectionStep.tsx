@@ -70,11 +70,15 @@ export default function TierSelectionStep({
 
       <style>{`
         /* Stack the two plan cards on narrow screens — the onboarding card is
-           too tight for a side-by-side row on a phone. */
+           too tight for a side-by-side row on a phone. column-reverse keeps
+           PRO (second in source order, so right-hand on desktop) on top on a
+           phone instead of below the fold. The padding-top gives PRO's Most
+           Popular badge room to sit above the card. */
         @media (max-width: 520px) {
           .tier-step-cards {
-            flex-direction: column !important;
+            flex-direction: column-reverse !important;
             align-items: center !important;
+            padding-top: 8px !important;
           }
           .tier-step-cards > * { width: 100% !important; max-width: 360px !important; }
         }

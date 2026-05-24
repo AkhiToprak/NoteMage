@@ -27,6 +27,7 @@ export async function hydrateTokenFromDb(
     where: { id: userId },
     select: {
       onboardingComplete: true,
+      birthDate: true,
       username: true,
       avatarUrl: true,
       role: true,
@@ -41,6 +42,7 @@ export async function hydrateTokenFromDb(
   });
   if (!freshUser) return;
   token.onboardingComplete = freshUser.onboardingComplete;
+  token.hasBirthDate = freshUser.birthDate != null;
   token.username = freshUser.username;
   token.avatarUrl = freshUser.avatarUrl ?? undefined;
   token.role = freshUser.role;
@@ -115,6 +117,7 @@ export const authOptions: NextAuthOptions = {
             name: true,
             password: true,
             emailVerified: true,
+            birthDate: true,
             username: true,
             avatarUrl: true,
             onboardingComplete: true,
@@ -223,6 +226,7 @@ export const authOptions: NextAuthOptions = {
           username: user.username,
           avatarUrl: user.avatarUrl ?? undefined,
           onboardingComplete: user.onboardingComplete,
+          hasBirthDate: user.birthDate != null,
           role: user.role,
           tier: user.tier,
           scholarName: user.scholarName ?? undefined,
@@ -315,6 +319,7 @@ export const authOptions: NextAuthOptions = {
           username?: string;
           avatarUrl?: string;
           onboardingComplete?: boolean;
+          hasBirthDate?: boolean;
           role?: string;
           tier?: string;
           scholarName?: string;
@@ -333,6 +338,7 @@ export const authOptions: NextAuthOptions = {
         token.username = u.username;
         token.avatarUrl = u.avatarUrl;
         token.onboardingComplete = u.onboardingComplete;
+        token.hasBirthDate = u.hasBirthDate;
         token.role = u.role;
         token.tier = u.tier;
         token.scholarName = u.scholarName;
@@ -364,6 +370,7 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username as string;
         session.user.avatarUrl = token.avatarUrl as string | undefined;
         session.user.onboardingComplete = token.onboardingComplete as boolean;
+        session.user.hasBirthDate = (token.hasBirthDate as boolean) ?? false;
         session.user.role = (token.role as string) ?? 'user';
         session.user.tier = (token.tier as string) ?? 'FREE';
         session.user.scholarName = token.scholarName as string | undefined;

@@ -30,6 +30,8 @@ export default function IosUpgradeSheet({ open, onClose, onPurchased }: IosUpgra
   const [busyId, setBusyId] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Bumped by the "Try again" button to re-run the load effect.
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -42,13 +44,16 @@ export default function IosUpgradeSheet({ open, onClose, onPurchased }: IosUpgra
       .then((p) => {
         if (!cancelled) setProducts(p);
       })
-      .catch(() => {
+      .catch((e) => {
+        // Surface the real reason in logs — e.g. "IAP_UNAVAILABLE" (RevenueCat
+        // not configured / no StoreKit module) vs a genuine network failure.
+        console.warn('[IosUpgradeSheet] getProducts failed:', e);
         if (!cancelled) setLoadError(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, reloadTick]);
 
   // Wait for the RevenueCat webhook to flip the server tier, then refresh the
   // session so `tier` (the gate) updates without a manual reload.
@@ -203,9 +208,35 @@ export default function IosUpgradeSheet({ open, onClose, onPurchased }: IosUpgra
 
         {/* Plans */}
         {loadError ? (
-          <p style={{ fontSize: 13, color: 'var(--error)', margin: 0 }} role="alert">
-            Couldn&apos;t load plans. Check your connection and try again.
-          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ fontSize: 13, color: 'var(--error)', margin: 0 }} role="alert">
+              Couldn&apos;t load plans. Check your connection and try again.
+            </p>
+            <button
+              type="button"
+              className="ios-plan"
+              onClick={() => setReloadTick((t) => t + 1)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--outline-variant)',
+                background: 'var(--surface-container-low)',
+                color: 'var(--on-surface)',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                refresh
+              </span>
+              Try again
+            </button>
+          </div>
         ) : products === null ? (
           <p style={{ fontSize: 13, color: 'var(--on-surface-variant)', margin: 0 }}>Loading plans…</p>
         ) : products.length === 0 ? (

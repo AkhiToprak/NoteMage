@@ -107,8 +107,11 @@ export default function PricingPageClient({
         @media (max-width: 767px) {
           .pricing-hero { padding: 120px 16px 40px !important; }
           .pricing-cards-grid {
-            flex-direction: column !important;
+            /* column-reverse keeps PRO (second in source order) on top on a
+               phone so it isn't below the fold; FREE follows underneath. */
+            flex-direction: column-reverse !important;
             align-items: center !important;
+            padding-top: 8px !important;
           }
           .pricing-cards-grid > * {
             width: 100% !important;

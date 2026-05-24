@@ -420,6 +420,12 @@ export class ShellBridge {
       }
       case 'getProducts': {
         configureRevenueCat();
+        if (!rcConfigured) {
+          // No API key, or running where the StoreKit native module isn't
+          // available (e.g. Expo Go). Throw a named error so the web sheet's
+          // catch logs something actionable instead of an opaque RC message.
+          throw new Error('IAP_UNAVAILABLE: RevenueCat is not configured on this build.');
+        }
         const offerings = await Purchases.getOfferings();
         return (offerings.current?.availablePackages ?? []).map(toProduct);
       }
@@ -546,6 +552,15 @@ export class ShellBridge {
       cb(state.isConnected !== false && state.isInternetReachable !== false);
     });
     return unsub;
+  }
+
+  // One-shot connectivity probe. NetInfo's listener only fires on *change*,
+  // so a transient drop while the app is backgrounded can leave the cached
+  // state stale with no event to correct it. App.tsx calls this on resume and
+  // on the offline-screen retry to reconcile against the device's real state.
+  static async refreshNetwork(): Promise<boolean> {
+    const state = await NetInfo.fetch();
+    return state.isConnected !== false && state.isInternetReachable !== false;
   }
 }
 
