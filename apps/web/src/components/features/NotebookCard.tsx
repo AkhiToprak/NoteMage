@@ -30,55 +30,35 @@ interface AccentTheme {
   hoverBorder: string;
 }
 
-/** Map stored color hex → Neon Scholar accent theme */
+const DEFAULT_NOTEBOOK_COLOR = '#8c52ff';
+
+/**
+ * Build an accent theme from the notebook's own stored color, so each swatch
+ * renders as the color the user actually picked. (The previous version ran an
+ * RGB heuristic that quantised every color into one of four fixed themes —
+ * green, orange and blue all collapsed onto purple/pink/periwinkle and the
+ * chosen hex was never shown.) Tints are derived from the hex; badge and title
+ * text mix toward --on-surface, which flips with the theme, so the text stays
+ * readable in both light and dark mode instead of being light-on-light.
+ */
 function getAccent(color: string | null): AccentTheme {
-  if (!color) return PRIMARY_THEME;
-  const hex = color.replace('#', '');
+  const base =
+    color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_NOTEBOOK_COLOR;
+  const hex = base.replace('#', '');
   const r = parseInt(hex.slice(0, 2), 16) || 0;
   const g = parseInt(hex.slice(2, 4), 16) || 0;
   const b = parseInt(hex.slice(4, 6), 16) || 0;
+  const tint = (a: number) => `rgba(${r},${g},${b},${a})`;
 
-  // Yellow / warm
-  if (r > 180 && g > 150 && b < 120) return TERTIARY_THEME;
-  // Red / pink dominant
-  if (r > g + 40 && r > b + 40) return ERROR_THEME;
-  // Blue / periwinkle
-  if (b > r + 20 && b > g - 30 && r < 160) return SECONDARY_THEME;
-  return PRIMARY_THEME;
+  return {
+    accent: base,
+    accentBg: tint(0.1),
+    badgeBg: tint(0.12),
+    badgeBorder: tint(0.32),
+    badgeText: `color-mix(in srgb, ${base}, var(--on-surface) 42%)`,
+    hoverBorder: tint(0.5),
+  };
 }
-
-const PRIMARY_THEME: AccentTheme = {
-  accent: '#ae89ff',
-  accentBg: 'rgba(174,137,255,0.1)',
-  badgeBg: 'rgba(174,137,255,0.1)',
-  badgeBorder: 'rgba(174,137,255,0.2)',
-  badgeText: 'var(--md-h4)',
-  hoverBorder: 'rgba(174,137,255,0.4)',
-};
-const SECONDARY_THEME: AccentTheme = {
-  accent: '#b9c3ff',
-  accentBg: 'rgba(185,195,255,0.1)',
-  badgeBg: 'rgba(185,195,255,0.1)',
-  badgeBorder: 'rgba(185,195,255,0.32)',
-  badgeText: 'var(--md-h3)',
-  hoverBorder: 'rgba(185,195,255,0.55)',
-};
-const TERTIARY_THEME: AccentTheme = {
-  accent: '#ffedb3',
-  accentBg: 'rgba(255,237,179,0.1)',
-  badgeBg: 'rgba(255,237,179,0.1)',
-  badgeBorder: 'rgba(255,237,179,0.2)',
-  badgeText: 'var(--warning)',
-  hoverBorder: 'rgba(255,237,179,0.4)',
-};
-const ERROR_THEME: AccentTheme = {
-  accent: '#fd6f85',
-  accentBg: 'rgba(253,111,133,0.1)',
-  badgeBg: 'rgba(253,111,133,0.1)',
-  badgeBorder: 'rgba(253,111,133,0.2)',
-  badgeText: 'var(--error)',
-  hoverBorder: 'rgba(253,111,133,0.4)',
-};
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
