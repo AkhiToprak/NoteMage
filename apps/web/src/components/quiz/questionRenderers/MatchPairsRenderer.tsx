@@ -8,21 +8,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { MatchPairsPayload } from '@notemage/shared';
+import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps, UserAnswer } from './types';
 
-// Deterministic shuffle keyed off the question id so re-renders don't
-// re-shuffle (which would re-arrange items mid-quiz).
-function shuffleByKey<T>(items: T[], key: string): T[] {
-  const arr = items.map((item, i) => ({ item, sort: hash(`${key}:${i}`) }));
-  arr.sort((a, b) => a.sort - b.sort);
-  return arr.map((x) => x.item);
-}
-
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
-}
+// Shuffling is deterministic per question id (see ./quizShuffle) so re-renders
+// don't re-arrange items mid-quiz. The earlier local `hash("${key}:${i}")`
+// implementation here was monotonic for ≤10 items, so right-column labels came
+// out in their original order and the pairing was already solved — quizShuffle's
+// Mulberry32 + Fisher-Yates fixes that.
 
 interface Endpoint {
   x: number;

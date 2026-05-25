@@ -179,6 +179,10 @@ export default function QuizViewer({
   const correctCount = Array.from(answers.values()).filter((a) => a.isCorrect).length;
   const wrongCount = totalAnswered - correctCount;
   const skippedCount = questions.length - totalAnswered;
+  // Graded checkpoints block "Finish" until every question has an answer — a
+  // skipped question counts as wrong, so an accidental partial submission would
+  // be an instant fail. Self-study (non-checkpoint) quizzes stay skip-friendly.
+  const allAnswered = totalAnswered >= questions.length;
 
   // Commit an answer for one question and fire any matching mascot reaction.
   // Idempotent per index (the committedRef guard handles re-presses and
@@ -372,6 +376,20 @@ export default function QuizViewer({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (editingId) return;
+      // Don't hijack keys while the learner is typing into a text-input question
+      // (fill-blank, translation, equation, code). Otherwise "H" never reaches
+      // the field (it toggles the hint and preventDefault eats the keystroke) and
+      // ←/→ move between questions instead of the caret. Hint stays reachable via
+      // its on-screen button.
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
       if (e.code === 'ArrowLeft') {
         e.preventDefault();
         prev();
@@ -634,7 +652,12 @@ export default function QuizViewer({
 
   // ── Results screen ──
   if (mode === 'results') {
-    const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+    // Score against the full question count, not just answered ones — skipped
+    // questions count as wrong, so dividing by `totalAnswered` would inflate the
+    // headline % (2/2 answered + 8 skipped is 20%, not 100%) and disagree with
+    // the server's score/total.
+    const accuracy =
+      questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
     return (
       <>
         <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
@@ -1244,7 +1267,16 @@ export default function QuizViewer({
           <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>replay</span>
         </NavButton>
         {currentIndex === questions.length - 1 && mode === 'quiz' ? (
-          <NavButton onClick={finish} title="Finish Quiz" highlight>
+          <NavButton
+            onClick={finish}
+            disabled={isCheckpoint && !allAnswered}
+            highlight={!isCheckpoint || allAnswered}
+            title={
+              isCheckpoint && !allAnswered
+                ? `Answer every question to finish (${skippedCount} unanswered)`
+                : 'Finish Quiz'
+            }
+          >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>check</span>
           </NavButton>
         ) : (
@@ -1257,6 +1289,25 @@ export default function QuizViewer({
           </NavButton>
         )}
       </div>
+
+      {isCheckpoint &&
+        mode === 'quiz' &&
+        currentIndex === questions.length - 1 &&
+        !allAnswered && (
+          <p
+            role="status"
+            style={{
+              fontSize: '12px',
+              color: 'var(--warning)',
+              margin: '0 0 16px',
+              textAlign: 'center',
+              maxWidth: '320px',
+            }}
+          >
+            Answer all {questions.length} questions to finish — {skippedCount}{' '}
+            {skippedCount === 1 ? 'still needs' : 'still need'} an answer.
+          </p>
+        )}
 
       {/* Per-question action bar — all notebook-management UI
           (edit / export / delete / add-to-notebook). Hidden entirely
