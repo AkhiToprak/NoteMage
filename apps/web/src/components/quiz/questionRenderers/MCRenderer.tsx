@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { McPayload } from '@notemage/shared';
+import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps } from './types';
 
 // MCRenderer renders a multiple-choice question. Phase 1 reads the answer
@@ -24,6 +26,17 @@ export default function MCRenderer({
   const selectedIdx = currentAnswer?.kind === 'mc' ? currentAnswer.selectedIdx : undefined;
   const reviewIdx = reviewAnswer?.kind === 'mc' ? reviewAnswer.selectedIdx : undefined;
   const isCorrect = isAnswered && selectedIdx === question.correctIndex;
+
+  // Present options in a content-independent order so the correct answer's
+  // position can't be predicted from how the AI happened to emit them (models
+  // cluster the right answer even when told to spread it). Seeded by
+  // question.id so the order is stable across re-renders — no reshuffle
+  // mid-attempt. We shuffle the option INDICES, so `selectedIdx` still refers
+  // to the original option index and grading (server + client) is untouched.
+  const displayOrder = useMemo(
+    () => shuffleByKey(question.options.map((_, i) => i), question.id),
+    [question.options, question.id]
+  );
 
   return (
     <div
@@ -49,12 +62,13 @@ export default function MCRenderer({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-        {question.options.map((option, i) => {
-          const letter = String.fromCharCode(65 + i);
-          const isSelected = selectedIdx === i;
-          const isCorrectOption = question.correctIndex === i;
+        {displayOrder.map((origIdx, pos) => {
+          const option = question.options[origIdx];
+          const letter = String.fromCharCode(65 + pos);
+          const isSelected = selectedIdx === origIdx;
+          const isCorrectOption = question.correctIndex === origIdx;
           const showResult = isAnswered || mode === 'review';
-          const reviewSelected = mode === 'review' && reviewIdx === i;
+          const reviewSelected = mode === 'review' && reviewIdx === origIdx;
 
           let borderColor = 'rgba(140,82,255,0.15)';
           let bg = 'rgba(255,255,255,0.07)';
@@ -78,8 +92,8 @@ export default function MCRenderer({
 
           return (
             <button
-              key={i}
-              onClick={() => onSelectAnswer({ kind: 'mc', selectedIdx: i })}
+              key={origIdx}
+              onClick={() => onSelectAnswer({ kind: 'mc', selectedIdx: origIdx })}
               disabled={isAnswered || mode === 'review'}
               style={{
                 display: 'flex',

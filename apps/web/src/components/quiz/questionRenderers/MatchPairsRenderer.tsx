@@ -51,10 +51,18 @@ export default function MatchPairsRenderer({
   const payload = question.payload;
   const pairs = useMemo(() => payload?.pairs ?? [], [payload]);
 
-  // Right column is the only thing we shuffle. Left preserves payload order
-  // so the grader's `connections[].left` index matches `payload.pairs[left]`.
   const shuffledRights = useMemo(
     () => shuffleByKey(pairs.map((p) => p.right), question.id),
+    [pairs, question.id]
+  );
+
+  // Shuffle the LEFT column too, independently from the right (different seed),
+  // so the pairs aren't presented in the AI's generation order — that made the
+  // matching predictable. We shuffle the INDICES, not the items, so each
+  // rendered row keeps its payload index and the grader's `connections[].left`
+  // index still matches `payload.pairs[left]`.
+  const leftOrder = useMemo(
+    () => shuffleByKey(pairs.map((_, i) => i), `${question.id}:left`),
     [pairs, question.id]
   );
 
@@ -253,28 +261,32 @@ export default function MatchPairsRenderer({
           })}
         </svg>
 
-        {/* Left column */}
+        {/* Left column (rendered in shuffled order; `i` stays the payload index) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {pairs.map((p, i) => (
-            <PairItem
-              key={`left-${i}`}
-              label={p.left}
-              connected={isLeftConnected(i)}
-              selected={selectedLeft === i}
-              disabled={mode === 'review'}
-              showResult={
-                showResults && isLeftConnected(i)
-                  ? isConnectionCorrect(
-                      i,
-                      connections.find((c) => c.left === i)?.rightLabel ?? ''
-                    )
-                  : null
-              }
-              onClick={() => handleLeftClick(i)}
-              refCallback={(el) => setLeftRef(i, el)}
-              side="left"
-            />
-          ))}
+          {leftOrder.map((i) => {
+            const p = pairs[i];
+            if (!p) return null;
+            return (
+              <PairItem
+                key={`left-${i}`}
+                label={p.left}
+                connected={isLeftConnected(i)}
+                selected={selectedLeft === i}
+                disabled={mode === 'review'}
+                showResult={
+                  showResults && isLeftConnected(i)
+                    ? isConnectionCorrect(
+                        i,
+                        connections.find((c) => c.left === i)?.rightLabel ?? ''
+                      )
+                    : null
+                }
+                onClick={() => handleLeftClick(i)}
+                refCallback={(el) => setLeftRef(i, el)}
+                side="left"
+              />
+            );
+          })}
         </div>
 
         {/* Center spacer (the SVG draws through this column) */}

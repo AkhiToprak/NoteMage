@@ -4,7 +4,7 @@
 // rule misfires on this standard API.
 /* eslint-disable react-hooks/refs */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -21,6 +21,10 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TimelinePayload } from '@notemage/shared';
 import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps } from './types';
+
+function normalizeStr(s: string): string {
+  return s.trim().toLowerCase();
+}
 
 function parseYearForSort(year: string): number {
   const trimmed = year.trim();
@@ -48,13 +52,32 @@ export default function TimelineRenderer({
   const payload = question.payload;
 
   // Years are fixed on the axis (canonical, sorted ascending). Labels are
-  // the draggable chips the learner has to place.
+  // the draggable chips the learner has to place. Each slot carries the
+  // event's ORIGINAL payload index (`idx`) — slots are keyed by that index,
+  // not by year, so two events sharing a year get two independent slots
+  // instead of colliding on one `placements[year]` entry.
   const sortedEvents = useMemo(() => {
     if (!payload) return [];
-    return [...payload.events].sort(
-      (a, b) => parseYearForSort(a.year) - parseYearForSort(b.year)
-    );
+    return payload.events
+      .map((e, idx) => ({ year: e.year, label: e.label, idx }))
+      .sort((a, b) => parseYearForSort(a.year) - parseYearForSort(b.year));
   }, [payload]);
+
+  // label → canonical year, so same-year slots are interchangeable: a label
+  // is "correct" in any slot whose year matches the label's true year.
+  const labelToYear = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of payload?.events ?? []) m.set(normalizeStr(e.label), e.year);
+    return m;
+  }, [payload]);
+
+  const labelFitsYear = useCallback(
+    (label: string, year: string): boolean => {
+      const canonical = labelToYear.get(normalizeStr(label));
+      return canonical !== undefined && normalizeStr(canonical) === normalizeStr(year);
+    },
+    [labelToYear]
+  );
 
   const shuffledLabels = useMemo(() => {
     const labels = sortedEvents.map((e) => e.label);
@@ -66,7 +89,9 @@ export default function TimelineRenderer({
     return shuffled;
   }, [sortedEvents, question.id]);
 
-  // Live placements: year → label (or empty). On submit, becomes UserAnswer.
+  // Live placements: slot index (as string) → label. Keyed by slot index, not
+  // year, so two events on the same year stay independent. On submit, becomes
+  // UserAnswer (the grader reads the same slot-index keys).
   const [placements, setPlacements] = useState<Record<string, string>>({});
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
   const [tappedLabel, setTappedLabel] = useState<string | null>(null);
@@ -87,31 +112,28 @@ export default function TimelineRenderer({
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } })
   );
 
-  const placeLabelOnYear = (label: string, year: string) => {
+  const placeLabelOnSlot = (label: string, slotKey: string) => {
     if (isAnswered || mode === 'review') return;
     setPlacements((prev) => {
-      const next: Record<string, string> = { ...prev };
-      for (const [y, l] of Object.entries(next)) {
-        if (l === label) delete next[y];
+      // Drop any prior placement of this label so it can't occupy two slots,
+      // then drop it into the target slot — overwriting whatever was there,
+      // which sends that previous label back to the bank.
+      const next: Record<string, string> = {};
+      for (const [k, l] of Object.entries(prev)) {
+        if (l !== label) next[k] = l;
       }
-      const previousLabel = next[year];
-      next[year] = label;
-      // If something was already at this year, return it to the bank by
-      // simply removing it from placements (it'll show up in remainingLabels).
-      if (previousLabel && previousLabel !== label) {
-        // already removed via overwrite — no extra work needed
-      }
+      next[slotKey] = label;
       return next;
     });
     setTappedLabel(null);
   };
 
-  const unplaceYear = (year: string) => {
+  const unplaceSlot = (slotKey: string) => {
     if (isAnswered || mode === 'review') return;
     setPlacements((prev) => {
-      if (!(year in prev)) return prev;
+      if (!(slotKey in prev)) return prev;
       const next = { ...prev };
-      delete next[year];
+      delete next[slotKey];
       return next;
     });
   };
@@ -121,12 +143,12 @@ export default function TimelineRenderer({
     setTappedLabel(tappedLabel === label ? null : label);
   };
 
-  const handleYearTap = (year: string) => {
+  const handleSlotTap = (slotKey: string) => {
     if (mode !== 'quiz' || isAnswered) return;
     if (tappedLabel) {
-      placeLabelOnYear(tappedLabel, year);
-    } else if (placements[year]) {
-      unplaceYear(year);
+      placeLabelOnSlot(tappedLabel, slotKey);
+    } else if (placements[slotKey]) {
+      unplaceSlot(slotKey);
     }
   };
 
@@ -141,19 +163,22 @@ export default function TimelineRenderer({
     if (!e.over) return;
     const label = String(e.active.id);
     const overId = String(e.over.id);
-    if (!overId.startsWith('year-')) return;
-    const year = overId.slice('year-'.length);
-    placeLabelOnYear(label, year);
+    if (!overId.startsWith('slot-')) return;
+    const slotKey = overId.slice('slot-'.length);
+    placeLabelOnSlot(label, slotKey);
   };
 
   const allPlaced =
     sortedEvents.length > 0 &&
-    sortedEvents.every((e) => typeof effectivePlacements[e.year] === 'string');
+    sortedEvents.every((e) => typeof effectivePlacements[String(e.idx)] === 'string');
 
   const isCorrect = useMemo(() => {
     if (sortedEvents.length === 0) return false;
-    return sortedEvents.every((e) => effectivePlacements[e.year] === e.label);
-  }, [sortedEvents, effectivePlacements]);
+    return sortedEvents.every((e) => {
+      const placed = effectivePlacements[String(e.idx)];
+      return typeof placed === 'string' && labelFitsYear(placed, e.year);
+    });
+  }, [sortedEvents, effectivePlacements, labelFitsYear]);
 
   const submit = () => {
     if (isAnswered || mode === 'review') return;
@@ -262,17 +287,21 @@ export default function TimelineRenderer({
           }}
         >
           {sortedEvents.map((event) => {
-            const placedLabel = effectivePlacements[event.year];
-            const correctAtYear = showResults ? placedLabel === event.label : null;
+            const slotKey = String(event.idx);
+            const placedLabel = effectivePlacements[slotKey];
+            const correctAtYear = showResults
+              ? typeof placedLabel === 'string' && labelFitsYear(placedLabel, event.year)
+              : null;
             return (
               <YearSlot
-                key={event.year}
+                key={slotKey}
+                slotKey={slotKey}
                 year={event.year}
                 placedLabel={placedLabel}
                 disabled={mode === 'review' || isAnswered}
                 showResult={correctAtYear}
-                onTap={() => handleYearTap(event.year)}
-                onUnplace={() => unplaceYear(event.year)}
+                onTap={() => handleSlotTap(slotKey)}
+                onUnplace={() => unplaceSlot(slotKey)}
                 correctLabel={mode === 'review' ? event.label : null}
               />
             );
@@ -461,6 +490,7 @@ function LabelChipPreview({ label }: { label: string }) {
 }
 
 function YearSlot({
+  slotKey,
   year,
   placedLabel,
   disabled,
@@ -469,6 +499,7 @@ function YearSlot({
   onUnplace,
   correctLabel,
 }: {
+  slotKey: string;
   year: string;
   placedLabel: string | undefined;
   disabled: boolean;
@@ -477,7 +508,7 @@ function YearSlot({
   onUnplace: () => void;
   correctLabel: string | null;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `year-${year}`, disabled });
+  const { setNodeRef, isOver } = useDroppable({ id: `slot-${slotKey}`, disabled });
 
   let labelBorder = 'rgba(140,82,255,0.45)';
   let labelBg = 'rgba(140,82,255,0.12)';

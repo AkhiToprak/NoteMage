@@ -151,13 +151,23 @@ export function grade(
       if (userAnswer.kind !== 'timeline') return { isCorrect: false };
       const p = readTimelinePayload(payload);
       if (!p) return { isCorrect: false };
-      if (Object.keys(userAnswer.placements).length !== p.events.length) {
+      const placements = userAnswer.placements;
+      if (Object.keys(placements).length !== p.events.length) {
         return { isCorrect: false };
       }
-      for (const event of p.events) {
-        const submitted = userAnswer.placements[event.year];
+      // Each label's canonical year. Lets same-year events be interchangeable
+      // across their (identical-year) slots: a label is correct in any slot
+      // whose year matches the label's true year.
+      const labelToYear = new Map<string, string>();
+      for (const e of p.events) labelToYear.set(normalize(e.label), normalize(e.year));
+      for (let i = 0; i < p.events.length; i++) {
+        // New answers key placements by event index; older answers (unique
+        // years only) keyed by year — fall back to that so they still grade.
+        const submitted = placements[String(i)] ?? placements[p.events[i].year];
         if (typeof submitted !== 'string') return { isCorrect: false };
-        if (normalize(submitted) !== normalize(event.label)) return { isCorrect: false };
+        const placedYear = labelToYear.get(normalize(submitted));
+        if (placedYear === undefined) return { isCorrect: false };
+        if (placedYear !== normalize(p.events[i].year)) return { isCorrect: false };
       }
       return { isCorrect: true };
     }
