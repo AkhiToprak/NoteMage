@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { useRef, useState } from 'react';
 import type { PickedFile } from '@/hooks/useMultiImport';
+import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 
 // Sub-step A of the multi-PDF import flow — pick the PDFs. PDF upload is
 // the fully wired source; paste-notes and link import are planned as
@@ -25,22 +26,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Touch / WebView devices can't drag-and-drop — detect a coarse pointer
-// reactively and SSR-safely, mirroring the `useSyncExternalStore` pattern
-// in `useBreakpoint` (the lint-blessed alternative to useEffect+setState).
-const COARSE_POINTER_QUERY = '(pointer: coarse)';
-
-function subscribeCoarsePointer(callback: () => void): () => void {
-  if (typeof window === 'undefined') return () => {};
-  const mql = window.matchMedia(COARSE_POINTER_QUERY);
-  mql.addEventListener('change', callback);
-  return () => mql.removeEventListener('change', callback);
-}
-
-function getCoarsePointer(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia(COARSE_POINTER_QUERY).matches;
-}
-
 export default function ImportSourceStep({
   files,
   maxFiles,
@@ -54,11 +39,7 @@ export default function ImportSourceStep({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   // Touch / WebView devices can't drag-and-drop — adapt the dropzone copy.
-  const coarsePointer = useSyncExternalStore(
-    subscribeCoarsePointer,
-    getCoarsePointer,
-    () => false,
-  );
+  const coarsePointer = useCoarsePointer();
   const atLimit = files.length >= maxFiles;
 
   return (

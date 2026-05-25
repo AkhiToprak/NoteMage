@@ -33,10 +33,10 @@ function getStreakColor(streak: number): string {
 }
 
 function getMilestone(streak: number): string | null {
-  if (streak >= 365) return '365 🔥';
-  if (streak >= 100) return '100 🔥';
-  if (streak >= 30) return '30 🔥';
-  if (streak >= 7) return '7 🔥';
+  if (streak >= 365) return '365';
+  if (streak >= 100) return '100';
+  if (streak >= 30) return '30';
+  if (streak >= 7) return '7';
   return null;
 }
 
@@ -203,7 +203,14 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
                   textAlign: 'center',
                 }}
               >
-                Milestone: {milestone}
+                Milestone: {milestone}{' '}
+                <span
+                  className="material-symbols-outlined filled"
+                  style={{ fontSize: 13, verticalAlign: 'middle' }}
+                  aria-hidden
+                >
+                  local_fire_department
+                </span>
               </div>
             )}
             {isAtRisk && (

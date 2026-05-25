@@ -230,7 +230,7 @@ export default function CoWorkChat({
           alignItems: 'center',
           justifyContent: 'center',
           boxShadow: isOpen ? '0 8px 24px rgba(174,137,255,0.3)' : '0 4px 16px rgba(0,0,0,0.3)',
-          transition: `all 0.2s ${EASING}`,
+          transition: `background 0.2s ${EASING}, color 0.2s ${EASING}, box-shadow 0.2s ${EASING}`,
           zIndex: 1000,
         }}
       >
@@ -454,7 +454,7 @@ export default function CoWorkChat({
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                transition: `all 0.15s ${EASING}`,
+                transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>

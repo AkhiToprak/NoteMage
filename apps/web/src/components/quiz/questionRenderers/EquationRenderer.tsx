@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, Lightbulb, XCircle, Sigma } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { EquationPayload } from '@notemage/shared';
 import type { QuestionProps } from './types';
@@ -16,6 +15,7 @@ export default function EquationRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<EquationPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -72,7 +72,7 @@ export default function EquationRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -103,7 +103,7 @@ export default function EquationRenderer({
             textTransform: 'uppercase',
           }}
         >
-          <Sigma size={12} /> Math input
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>functions</span> Math input
         </span>
       </div>
 
@@ -199,8 +199,8 @@ export default function EquationRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -245,11 +245,11 @@ export default function EquationRenderer({
           >
             {matchedLiteral ? (
               <>
-                <CheckCircle2 size={16} /> Exact match
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Exact match
               </>
             ) : (
               <>
-                <XCircle size={16} /> Submitted — see expected expression below
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Submitted — see expected expression below
               </>
             )}
           </div>

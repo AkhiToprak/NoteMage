@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, Check, ChevronDown, Layers, CreditCard, FileUp } from 'lucide-react';
 import FlashcardImportDialog from '@/components/notebook/FlashcardImportDialog';
 
 interface FlashcardSet {
@@ -283,7 +282,9 @@ export default function FlashcardSetManager({
               display: 'flex',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -330,7 +331,13 @@ export default function FlashcardSetManager({
                 color: 'var(--ink-30)',
               }}
             >
-              <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 20, animation: 'spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
             </div>
           ) : sets.length === 0 ? (
             <div
@@ -399,7 +406,13 @@ export default function FlashcardSetManager({
                               color: 'var(--ink-30)',
                             }}
                           >
-                            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                              aria-hidden
+                            >
+                              progress_activity
+                            </span>
                           </div>
                         ) : expandedCards.length === 0 ? (
                           <div
@@ -608,7 +621,9 @@ function ImportButton({ onClick }: { onClick: () => void }) {
         transition: 'background 0.12s ease, color 0.12s ease, border-color 0.12s ease',
       }}
     >
-      <FileUp size={13} />
+      <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+        upload_file
+      </span>
       Import
     </button>
   );
@@ -719,24 +734,42 @@ function SetRow({
             transition: 'border-color 0.12s ease, background 0.12s ease',
           }}
         >
-          {isSelectedForMerge && <Check size={10} style={{ color: '#c4a9ff' }} />}
+          {isSelectedForMerge && (
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 10, color: '#c4a9ff' }}
+              aria-hidden
+            >
+              check
+            </span>
+          )}
         </div>
       )}
 
       {/* Expand chevron for browse/split */}
       {mode !== 'merge' && (
-        <ChevronDown
-          size={13}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 13,
             color: 'var(--ink-30)',
             transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
             transition: 'transform 0.15s ease',
             flexShrink: 0,
           }}
-        />
+          aria-hidden
+        >
+          expand_more
+        </span>
       )}
 
-      <Layers size={13} style={{ color: '#8c52ff', flexShrink: 0 }} />
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: 13, color: '#8c52ff', flexShrink: 0 }}
+        aria-hidden
+      >
+        layers
+      </span>
 
       <span
         style={{
@@ -819,15 +852,26 @@ function CardRow({
             transition: 'border-color 0.12s ease, background 0.12s ease',
           }}
         >
-          {isSelected && <Check size={8} style={{ color: '#c4a9ff' }} />}
+          {isSelected && (
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 8, color: '#c4a9ff' }}
+              aria-hidden
+            >
+              check
+            </span>
+          )}
         </div>
       )}
 
       {mode !== 'split' && (
-        <CreditCard
-          size={11}
-          style={{ color: 'rgba(140,82,255,0.4)', flexShrink: 0, marginTop: '2px' }}
-        />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 11, color: 'rgba(140,82,255,0.4)', flexShrink: 0, marginTop: '2px' }}
+          aria-hidden
+        >
+          credit_card
+        </span>
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -976,7 +1020,15 @@ function TitleDialog({
               fontWeight: 600,
             }}
           >
-            {operating && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+            {operating && (
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
+            )}
             {confirmLabel}
           </button>
         </div>

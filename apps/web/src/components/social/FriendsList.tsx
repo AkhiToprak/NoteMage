@@ -226,7 +226,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                   height: 18,
                   borderRadius: '50%',
                   background: '#ae89ff',
-                  color: '#fff',
+                  color: 'var(--on-primary)',
                   fontSize: 10,
                   fontWeight: 700,
                 }}
@@ -443,7 +443,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                   height: 20,
                   borderRadius: 10,
                   background: '#ae89ff',
-                  color: '#fff',
+                  color: 'var(--on-primary)',
                   fontSize: 11,
                   fontWeight: 700,
                   padding: '0 5px',
@@ -467,12 +467,13 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
 
           <div
             style={{
-              maxHeight: pendingExpanded ? 300 : 0,
+              display: 'grid',
+              gridTemplateRows: pendingExpanded ? '1fr' : '0fr',
               overflow: 'hidden',
-              transition: 'max-height 0.3s cubic-bezier(0.22,1,0.36,1)',
+              transition: 'grid-template-rows 0.3s cubic-bezier(0.22,1,0.36,1)',
             }}
           >
-            <div style={{ padding: '0 16px 12px' }}>
+            <div style={{ minHeight: 0, overflow: 'hidden', padding: '0 16px 12px' }}>
               {pendingRequests.map((request) => (
                 <div
                   key={request.friendshipId}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
-import { FileUp, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { validateFile } from '@/lib/file-validation';
@@ -201,7 +200,9 @@ export default function FileImportDialog({
             }}
             aria-label="Close"
           >
-            <X size={18} />
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -247,7 +248,13 @@ export default function FileImportDialog({
                   justifyContent: 'center',
                 }}
               >
-                <FileUp size={24} style={{ color: '#8c52ff' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 24, color: '#8c52ff' }}
+                  aria-hidden
+                >
+                  upload_file
+                </span>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <p
@@ -275,13 +282,17 @@ export default function FileImportDialog({
 
           {uploadState === 'uploading' && (
             <>
-              <Loader2
-                size={28}
+              <span
+                className="material-symbols-outlined"
                 style={{
+                  fontSize: 28,
                   color: '#8c52ff',
                   animation: 'spin 1s linear infinite',
                 }}
-              />
+                aria-hidden
+              >
+                progress_activity
+              </span>
               <p
                 style={{
                   margin: 0,
@@ -299,7 +310,13 @@ export default function FileImportDialog({
 
           {uploadState === 'success' && (
             <>
-              <CheckCircle2 size={28} style={{ color: '#4ade80' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 28, color: '#4ade80' }}
+                aria-hidden
+              >
+                check_circle
+              </span>
               <p
                 style={{
                   margin: 0,
@@ -315,7 +332,13 @@ export default function FileImportDialog({
 
           {uploadState === 'error' && (
             <>
-              <AlertCircle size={28} style={{ color: '#f87171' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 28, color: '#f87171' }}
+                aria-hidden
+              >
+                error
+              </span>
               <div style={{ textAlign: 'center' }}>
                 <p
                   style={{

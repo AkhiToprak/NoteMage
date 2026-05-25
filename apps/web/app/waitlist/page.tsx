@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BGPattern } from '@/components/ui/bg-pattern';
 
 // =====================================================================
 // WAITLIST PAGE
@@ -54,13 +53,6 @@ export default function WaitlistPage() {
         padding: '24px',
       }}
     >
-      <BGPattern
-        variant="dots"
-        size={22}
-        fill="rgba(174, 137, 255, 0.14)"
-        style={{ position: 'fixed' }}
-      />
-
       {/* Content card */}
       <div
         style={{

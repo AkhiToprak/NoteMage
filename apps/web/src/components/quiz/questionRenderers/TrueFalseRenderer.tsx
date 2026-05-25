@@ -1,6 +1,5 @@
 'use client';
 
-import { Check, CheckCircle2, Lightbulb, X, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TrueFalsePayload } from '@notemage/shared';
 import type { QuestionProps } from './types';
@@ -15,15 +14,16 @@ export default function TrueFalseRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<TrueFalsePayload>) {
   const selectedValue = currentAnswer?.kind === 'true_false' ? currentAnswer.value : undefined;
   const reviewValue = reviewAnswer?.kind === 'true_false' ? reviewAnswer.value : undefined;
   const correctValue = question.payload?.correct ?? false;
   const isCorrect = isAnswered && selectedValue === correctValue;
 
-  const options: { value: boolean; label: string; icon: typeof Check }[] = [
-    { value: true, label: 'True', icon: Check },
-    { value: false, label: 'False', icon: X },
+  const options: { value: boolean; label: string; icon: string }[] = [
+    { value: true, label: 'True', icon: 'check' },
+    { value: false, label: 'False', icon: 'close' },
   ];
 
   return (
@@ -36,7 +36,7 @@ export default function TrueFalseRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -57,7 +57,7 @@ export default function TrueFalseRenderer({
           marginBottom: '12px',
         }}
       >
-        {options.map(({ value, label, icon: Icon }) => {
+        {options.map(({ value, label, icon }) => {
           const isSelected = selectedValue === value;
           const isCorrectOption = correctValue === value;
           const showResult = isAnswered || mode === 'review';
@@ -124,11 +124,17 @@ export default function TrueFalseRenderer({
                 }}
               >
                 {showResult && isCorrectOption ? (
-                  <CheckCircle2 size={16} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                    check_circle
+                  </span>
                 ) : showResult && (isSelected || reviewSelected) ? (
-                  <XCircle size={16} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                    cancel
+                  </span>
                 ) : (
-                  <Icon size={16} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                    {icon}
+                  </span>
                 )}
               </span>
               <span style={{ fontSize: '17px', fontWeight: 600, color: textColor }}>{label}</span>
@@ -157,8 +163,10 @@ export default function TrueFalseRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+            lightbulb
+          </span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -201,11 +209,17 @@ export default function TrueFalseRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> Correct!
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                  check_circle
+                </span>{' '}
+                Correct!
               </>
             ) : (
               <>
-                <XCircle size={16} /> Not quite
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                  cancel
+                </span>{' '}
+                Not quite
               </>
             )}
           </div>
@@ -255,11 +269,17 @@ export default function TrueFalseRenderer({
               >
                 {reviewValue === correctValue ? (
                   <>
-                    <CheckCircle2 size={16} /> You answered correctly
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                      check_circle
+                    </span>{' '}
+                    You answered correctly
                   </>
                 ) : (
                   <>
-                    <XCircle size={16} /> You answered incorrectly
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                      cancel
+                    </span>{' '}
+                    You answered incorrectly
                   </>
                 )}
               </div>

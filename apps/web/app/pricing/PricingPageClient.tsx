@@ -9,7 +9,6 @@ import FeatureComparison from '@/components/pricing/FeatureComparison';
 import FAQ from '@/components/pricing/FAQ';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import LandingFooter from '@/components/landing/LandingFooter';
-import { BGPattern } from '@/components/ui/bg-pattern';
 import {
   TIERS,
   monthlyEquivalent,
@@ -46,12 +45,6 @@ export default function PricingPageClient({
         overflowX: 'hidden',
       }}
     >
-      <BGPattern
-        variant="dots"
-        size={22}
-        fill="rgba(174, 137, 255, 0.14)"
-        style={{ position: 'fixed' }}
-      />
       {/* ── GLOBAL STYLES ── */}
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

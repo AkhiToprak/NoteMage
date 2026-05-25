@@ -125,11 +125,13 @@ export default function ImportCreatingStep({
           >
             <div
               style={{
-                width: `${Math.max(percent, 4)}%`,
+                width: '100%',
                 height: '100%',
+                transform: `scaleX(${Math.max(percent, 4) / 100})`,
+                transformOrigin: 'left',
                 background: 'var(--primary)',
                 borderRadius: 'var(--radius-full)',
-                transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
+                transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
               }}
             />
           </div>

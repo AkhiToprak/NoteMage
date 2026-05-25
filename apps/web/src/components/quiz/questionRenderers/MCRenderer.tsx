@@ -1,6 +1,5 @@
 'use client';
 
-import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { McPayload } from '@notemage/shared';
 import type { QuestionProps } from './types';
@@ -20,6 +19,7 @@ export default function MCRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<McPayload | null>) {
   const selectedIdx = currentAnswer?.kind === 'mc' ? currentAnswer.selectedIdx : undefined;
   const reviewIdx = reviewAnswer?.kind === 'mc' ? reviewAnswer.selectedIdx : undefined;
@@ -35,7 +35,7 @@ export default function MCRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -119,9 +119,9 @@ export default function MCRenderer({
                 }}
               >
                 {showResult && isCorrectOption ? (
-                  <CheckCircle2 size={14} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>check_circle</span>
                 ) : showResult && (isSelected || reviewSelected) ? (
-                  <XCircle size={14} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>cancel</span>
                 ) : (
                   letter
                 )}
@@ -154,8 +154,8 @@ export default function MCRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -198,11 +198,11 @@ export default function MCRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> Correct!
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Correct!
               </>
             ) : (
               <>
-                <XCircle size={16} /> Not quite
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
               </>
             )}
           </div>
@@ -252,11 +252,11 @@ export default function MCRenderer({
               >
                 {reviewIdx === question.correctIndex ? (
                   <>
-                    <CheckCircle2 size={16} /> You answered correctly
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> You answered correctly
                   </>
                 ) : (
                   <>
-                    <XCircle size={16} /> You answered incorrectly
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> You answered incorrectly
                   </>
                 )}
               </div>

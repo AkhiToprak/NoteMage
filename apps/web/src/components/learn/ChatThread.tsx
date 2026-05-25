@@ -5,21 +5,6 @@ import { useSession } from 'next-auth/react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { getMageName } from '@/lib/scholar';
 import Link from 'next/link';
-import {
-  X,
-  Upload,
-  BookOpen,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-  Plus,
-  Layers,
-  HelpCircle,
-  Presentation,
-  Youtube,
-  Square,
-} from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { useStreamingChat } from '@/hooks/useStreamingChat';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -545,7 +530,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '15px', color: '#c4a9ff', fontVariationSettings: "'FILL' 1" }}
+              style={{ fontSize: '15px', color: 'var(--md-h3)', fontVariationSettings: "'FILL' 1" }}
             >
               auto_fix_high
             </span>
@@ -583,7 +568,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             borderRadius: '10px',
             border: '1px solid rgba(140,82,255,0.3)',
             background: 'rgba(140,82,255,0.1)',
-            color: '#c4a9ff',
+            color: 'var(--md-h3)',
             fontSize: '12px',
             fontWeight: 700,
             cursor: 'pointer',
@@ -611,7 +596,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             <span
               style={{
                 background: 'rgba(140,82,255,0.35)',
-                color: '#e0d0ff',
+                color: 'var(--md-em)',
                 borderRadius: '9999px',
                 padding: '1px 7px',
                 fontSize: '10px',
@@ -657,7 +642,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               fontFamily: 'var(--font-chat)',
             }}
           >
-            <X size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>close</span>
           </button>
         </div>
       )}
@@ -700,7 +685,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '32px', color: '#ae89ff', fontVariationSettings: "'FILL' 1" }}
+                style={{ fontSize: '32px', color: 'var(--md-h4)', fontVariationSettings: "'FILL' 1" }}
               >
                 auto_fix_high
               </span>
@@ -760,7 +745,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '14px', color: '#c4a9ff', fontVariationSettings: "'FILL' 1" }}
+                  style={{ fontSize: '14px', color: 'var(--md-h3)', fontVariationSettings: "'FILL' 1" }}
                 >
                   auto_fix_high
                 </span>
@@ -780,9 +765,9 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                       : '70%',
                 padding: isPhone ? '10px 12px' : '12px 16px',
                 borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: msg.role === 'user' ? '#8c52ff' : 'var(--ink-08)',
+                background: msg.role === 'user' ? 'var(--accent-strong)' : 'var(--ink-08)',
                 border: msg.role === 'user' ? 'none' : '1px solid var(--ink-08)',
-                color: 'var(--on-surface)',
+                color: msg.role === 'user' ? 'var(--on-primary-container)' : 'var(--on-surface)',
                 fontSize: '14px',
                 lineHeight: 1.65,
                 whiteSpace: msg.role === 'user' ? 'pre-wrap' : undefined,
@@ -819,7 +804,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '14px', color: '#c4a9ff', fontVariationSettings: "'FILL' 1" }}
+                style={{ fontSize: '14px', color: 'var(--md-h3)', fontVariationSettings: "'FILL' 1" }}
               >
                 auto_fix_high
               </span>
@@ -856,7 +841,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    background: '#ae89ff',
+                    background: 'var(--brand-purple)',
                     animation: 'dotPulse 1.4s ease-in-out infinite',
                     animationDelay: '0s',
                   }}
@@ -866,7 +851,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    background: '#ae89ff',
+                    background: 'var(--brand-purple)',
                     animation: 'dotPulse 1.4s ease-in-out infinite',
                     animationDelay: '0.2s',
                   }}
@@ -876,7 +861,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    background: '#ae89ff',
+                    background: 'var(--brand-purple)',
                     animation: 'dotPulse 1.4s ease-in-out infinite',
                     animationDelay: '0.4s',
                   }}
@@ -899,7 +884,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             background: 'rgba(253,111,133,0.08)',
             border: '1px solid rgba(253,111,133,0.25)',
             fontSize: '12px',
-            color: '#fd6f85',
+            color: 'var(--error)',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
@@ -912,13 +897,13 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#fd6f85',
+              color: 'var(--error)',
               cursor: 'pointer',
               padding: '2px',
               display: 'flex',
             }}
           >
-            <X size={12} />
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>close</span>
           </button>
         </div>
       )}
@@ -994,7 +979,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                 (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.3)';
               }}
             >
-              <Square size={12} fill="#c4a9ff" stroke="#c4a9ff" />
+              <span className="material-symbols-outlined filled" style={{ fontSize: 12, color: 'var(--md-h3)' }} aria-hidden>stop</span>
             </button>
           ) : (
             <button
@@ -1006,8 +991,8 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                 borderRadius: '9px',
                 border: 'none',
                 flexShrink: 0,
-                background: inputValue.trim() ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                color: inputValue.trim() ? 'var(--on-surface)' : 'var(--ink-30)',
+                background: inputValue.trim() ? 'var(--accent-strong)' : 'rgb(var(--accent-strong-rgb) / 0.2)',
+                color: inputValue.trim() ? 'var(--on-primary-container)' : 'var(--ink-30)',
                 cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
@@ -1048,7 +1033,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               bottom: 0,
               width: isPhone ? '100%' : '380px',
               zIndex: 11,
-              background: '#0a0a0a',
+              background: 'var(--surface-container-lowest)',
               borderLeft: '1px solid rgba(174,137,255,0.40)',
               display: 'flex',
               flexDirection: 'column',
@@ -1068,11 +1053,11 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '18px', color: '#ae89ff', fontVariationSettings: "'FILL' 1" }}
+                  style={{ fontSize: '18px', color: 'var(--md-h4)', fontVariationSettings: "'FILL' 1" }}
                 >
                   cloud_upload
                 </span>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#f0edff' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--on-surface)' }}>
                   Feed {mageName}
                 </h3>
               </div>
@@ -1100,7 +1085,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                   (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-40)';
                 }}
               >
-                <X size={13} />
+                <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>close</span>
               </button>
             </div>
 
@@ -1120,11 +1105,11 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '14px', color: '#ae89ff', fontVariationSettings: "'FILL' 1" }}
+                  style={{ fontSize: '14px', color: 'var(--md-h4)', fontVariationSettings: "'FILL' 1" }}
                 >
                   check_circle
                 </span>
-                <span style={{ fontSize: '13px', color: '#c4a9ff', fontWeight: 600 }}>
+                <span style={{ fontSize: '13px', color: 'var(--md-h3)', fontWeight: 600 }}>
                   {totalContext} source{totalContext !== 1 ? 's' : ''} selected as context
                 </span>
               </div>
@@ -1165,11 +1150,11 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                           justifyContent: 'center',
                           gap: '6px',
                           background: feedTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
-                          color: feedTab === tab ? '#d4c0ff' : 'rgba(200,210,255,0.6)',
+                          color: feedTab === tab ? 'var(--md-em)' : 'var(--ink-60)',
                           transition: 'background 0.12s, color 0.12s',
                         }}
                       >
-                        {tab === 'notebook' ? <BookOpen size={12} /> : <Upload size={12} />}
+                        {tab === 'notebook' ? <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>menu_book</span> : <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>upload</span>}
                         {tab === 'notebook' ? 'From Notebook' : 'Upload File'}
                       </button>
                     ))}
@@ -1201,7 +1186,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                           <p
                             style={{
                               fontSize: '14px',
-                              color: 'rgba(200,210,255,0.65)',
+                              color: 'var(--ink-60)',
                               margin: 0,
                             }}
                           >
@@ -1261,7 +1246,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                     padding: '10px 12px',
                     fontSize: '12px',
                     lineHeight: 1.6,
-                    color: 'rgba(200,210,255,0.75)',
+                    color: 'var(--ink-70)',
                     background: 'rgba(140,82,255,0.06)',
                     border: '1px solid rgba(140,82,255,0.18)',
                     borderRadius: '8px',
@@ -1300,8 +1285,8 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                   padding: '11px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: isSavingContext ? 'rgba(140,82,255,0.4)' : '#8c52ff',
-                  color: 'var(--on-surface)',
+                  background: isSavingContext ? 'rgb(var(--accent-strong-rgb) / 0.4)' : 'var(--accent-strong)',
+                  color: 'var(--on-primary-container)',
                   fontSize: '14px',
                   fontWeight: 700,
                   cursor: isSavingContext ? 'not-allowed' : 'pointer',
@@ -1316,7 +1301,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               >
                 {isSavingContext ? (
                   <>
-                    <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Saving…
+                    <span className="material-symbols-outlined" style={{ fontSize: 13, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span> Saving…
                   </>
                 ) : (
                   <>Update Context</>
@@ -1422,9 +1407,9 @@ function UploadAndDocsList({
           }}
         >
           {isUploading ? (
-            <Loader2 size={16} style={{ color: '#ae89ff', animation: 'spin 0.8s linear infinite' }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--md-h4)', animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span>
           ) : (
-            <Plus size={16} style={{ color: '#ae89ff' }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--md-h4)' }} aria-hidden>add</span>
           )}
         </div>
         <div>
@@ -1433,14 +1418,14 @@ function UploadAndDocsList({
               margin: '0 0 1px',
               fontSize: '14px',
               fontWeight: 700,
-              color: '#f0edff',
+              color: 'var(--on-surface)',
             }}
           >
             {isUploading ? 'Uploading…' : 'Drop or click to upload'}
           </p>
-          <p style={{ margin: 0, fontSize: '12px', color: '#a0a0c0' }}>PDF · DOCX · TXT · MD</p>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--on-surface-variant)' }}>PDF · DOCX · TXT · MD</p>
           {uploadError && (
-            <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#fd6f85' }}>{uploadError}</p>
+            <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--error)' }}>{uploadError}</p>
           )}
         </div>
       </div>
@@ -1460,7 +1445,7 @@ function UploadAndDocsList({
               padding: '8px 12px 4px',
               fontSize: '11px',
               fontWeight: 600,
-              color: 'rgba(200,210,255,0.6)',
+              color: 'var(--ink-60)',
               letterSpacing: '0.07em',
               textTransform: 'uppercase',
             }}
@@ -1497,15 +1482,15 @@ function UploadAndDocsList({
                     height: '16px',
                     borderRadius: '4px',
                     flexShrink: 0,
-                    border: `1.5px solid ${isSelected ? '#8c52ff' : 'rgba(140,82,255,0.25)'}`,
-                    background: isSelected ? '#8c52ff' : 'transparent',
+                    border: `1.5px solid ${isSelected ? 'var(--accent-strong)' : 'rgba(140,82,255,0.25)'}`,
+                    background: isSelected ? 'var(--accent-strong)' : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'border-color 0.1s, background 0.1s',
                   }}
                 >
-                  {isSelected && <Check size={10} style={{ color: 'var(--on-surface)' }} />}
+                  {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 10, color: 'var(--on-primary-container)' }} aria-hidden>check</span>}
                 </div>
                 <span
                   style={{
@@ -1519,7 +1504,7 @@ function UploadAndDocsList({
                 >
                   {doc.fileName}
                 </span>
-                <span style={{ fontSize: '11px', color: '#a0a0c0', flexShrink: 0 }}>
+                <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)', flexShrink: 0 }}>
                   {formatBytes(doc.fileSize)}
                 </span>
               </div>
@@ -1559,14 +1544,14 @@ function PanelSectionItem({
           borderBottom: '1px solid var(--ink-12)',
         }}
       >
-        <span style={{ color: 'rgba(200,210,255,0.7)', display: 'flex' }}>
-          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        <span style={{ color: 'var(--ink-70)', display: 'flex' }}>
+          {open ? <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>expand_more</span> : <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>chevron_right</span>}
         </span>
         <span
           style={{
             fontSize: '13px',
             fontWeight: 600,
-            color: 'rgba(210,215,255,0.8)',
+            color: 'var(--ink-80)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
             flex: 1,
@@ -1575,7 +1560,7 @@ function PanelSectionItem({
           {section.title}
         </span>
         {section.pages.length > 0 && (
-          <span style={{ fontSize: '11px', color: 'rgba(200,210,255,0.5)' }}>
+          <span style={{ fontSize: '11px', color: 'var(--ink-50)' }}>
             {section.pages.filter((p) => selectedPageIds.has(p.id)).length}/{section.pages.length}
           </span>
         )}
@@ -1606,20 +1591,20 @@ function PanelSectionItem({
                     height: '15px',
                     borderRadius: '4px',
                     flexShrink: 0,
-                    border: `1.5px solid ${isSelected ? '#8c52ff' : 'rgba(140,82,255,0.25)'}`,
-                    background: isSelected ? '#8c52ff' : 'transparent',
+                    border: `1.5px solid ${isSelected ? 'var(--accent-strong)' : 'rgba(140,82,255,0.25)'}`,
+                    background: isSelected ? 'var(--accent-strong)' : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'border-color 0.1s, background 0.1s',
                   }}
                 >
-                  {isSelected && <Check size={9} style={{ color: 'var(--on-surface)' }} />}
+                  {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 9, color: 'var(--on-primary-container)' }} aria-hidden>check</span>}
                 </div>
                 <span
                   style={{
                     fontSize: '13px',
-                    color: isSelected ? '#f0edff' : 'var(--ink-70)',
+                    color: isSelected ? 'var(--on-surface)' : 'var(--ink-70)',
                     flex: 1,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -1642,7 +1627,7 @@ function PanelSectionItem({
           ))}
           {section.pages.length === 0 && !section.children?.length && (
             <div style={{ padding: `6px 12px 6px ${24 + depth * 14}px` }}>
-              <span style={{ fontSize: '12px', color: 'rgba(200,210,255,0.45)' }}>No pages</span>
+              <span style={{ fontSize: '12px', color: 'var(--ink-40)' }}>No pages</span>
             </div>
           )}
         </>
@@ -1685,7 +1670,7 @@ function PresentationButton({ title, jsonData }: { title: string; jsonData: stri
           borderRadius: '10px',
           background: hovered ? 'rgba(255,140,50,0.3)' : 'rgba(255,140,50,0.2)',
           border: `1px solid ${hovered ? 'rgba(255,140,50,0.5)' : 'rgba(255,140,50,0.3)'}`,
-          color: '#ffb380',
+          color: 'var(--warning)',
           fontSize: '13px',
           fontWeight: 600,
           cursor: 'pointer',
@@ -1693,7 +1678,7 @@ function PresentationButton({ title, jsonData }: { title: string; jsonData: stri
           transition: 'background 0.15s ease, border-color 0.15s ease',
         }}
       >
-        <Presentation size={14} />
+        <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>slideshow</span>
         View Powerpoint — {title}
       </button>
       {showModal && (
@@ -1735,7 +1720,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
           gap: '6px',
         }}
       >
-        <Youtube size={13} style={{ color: '#ff4444' }} />
+        <span className="material-symbols-outlined" style={{ fontSize: 13, color: '#ff4444' }} aria-hidden>smart_display</span>
         Recommended videos
       </div>
       {videos.map((video) => (
@@ -1803,7 +1788,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
               {video.channelTitle}
             </div>
           </div>
-          <Youtube size={20} style={{ color: '#ff4444', flexShrink: 0 }} />
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#ff4444', flexShrink: 0 }} aria-hidden>smart_display</span>
         </a>
       ))}
     </div>
@@ -1936,14 +1921,14 @@ function MessageContent({
               borderRadius: '10px',
               background: isQuiz ? 'rgba(81,112,255,0.1)' : 'rgba(140,82,255,0.1)',
               border: `1px solid ${isQuiz ? 'rgba(81,112,255,0.18)' : 'rgba(140,82,255,0.18)'}`,
-              color: isQuiz ? '#93a8ff' : '#c4a9ff',
+              color: isQuiz ? 'var(--secondary-dim)' : 'var(--md-h3)',
               fontSize: '13px',
               fontWeight: 600,
               opacity: 0.7,
               fontFamily: 'var(--font-chat)',
             }}
           >
-            {isQuiz ? <HelpCircle size={14} /> : <Layers size={14} />}
+            {isQuiz ? <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>help</span> : <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>layers</span>}
             {isQuiz ? 'Quiz' : 'Flashcards'}
           </span>
         );
@@ -1966,7 +1951,7 @@ function MessageContent({
               borderRadius: '10px',
               background: isQuiz ? 'rgba(81,112,255,0.2)' : 'rgba(140,82,255,0.2)',
               border: `1px solid ${isQuiz ? 'rgba(81,112,255,0.3)' : 'rgba(140,82,255,0.3)'}`,
-              color: isQuiz ? '#93a8ff' : '#c4a9ff',
+              color: isQuiz ? 'var(--secondary-dim)' : 'var(--md-h3)',
               fontSize: '13px',
               fontWeight: 600,
               textDecoration: 'none',
@@ -1989,7 +1974,7 @@ function MessageContent({
                 : 'rgba(140,82,255,0.3)';
             }}
           >
-            {isQuiz ? <HelpCircle size={14} /> : <Layers size={14} />}
+            {isQuiz ? <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>help</span> : <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>layers</span>}
             {isQuiz ? 'Open Quiz' : 'Open Flashcards'}
           </Link>
         );

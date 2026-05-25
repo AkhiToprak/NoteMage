@@ -1,7 +1,6 @@
 'use client';
 
-import { use, useEffect } from 'react';
-import { ChevronsRight } from 'lucide-react';
+import { use, useEffect, useLayoutEffect, useState } from 'react';
 import {
   NotebookWorkspaceProvider,
   useNotebookWorkspace,
@@ -9,21 +8,40 @@ import {
 import UnifiedSidebar from '@/components/notebook/UnifiedSidebar';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
+// useLayoutEffect on the client (commits before the browser paints, so desktop
+// shows no sidebar shift), useEffect on the server (sidesteps the SSR
+// "useLayoutEffect does nothing on the server" warning).
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useNotebookWorkspace();
   const { isPhone, isPhoneOrTablet } = useBreakpoint();
 
-  // Auto-collapse sidebar on phone/tablet
-  useEffect(() => {
-    if (isPhoneOrTablet) {
-      setSidebarCollapsed(true);
-    }
+  // Gate every breakpoint-dependent branch behind a mount flag. useBreakpoint
+  // returns 'desktop' on the SSR snapshot, so without this the 280px desktop
+  // sidebar painted at phone widths and squeezed the content until hydration.
+  // A layout effect flips `mounted` before the first paint, so the phone never
+  // paints the desktop sidebar and the desktop sees no sidebar shift.
+  const [mounted, setMounted] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Auto-collapse on phone/tablet. As a layout effect it commits before paint,
+  // so the overlay drawer never flashes open on first load (sidebarCollapsed
+  // seeds to false in context).
+  useIsomorphicLayoutEffect(() => {
+    if (isPhoneOrTablet) setSidebarCollapsed(true);
   }, [isPhoneOrTablet, setSidebarCollapsed]);
+
+  const showInlineSidebar = mounted && !isPhoneOrTablet;
+  const showOverlaySidebar = mounted && isPhoneOrTablet && !sidebarCollapsed;
+  const showToggle = mounted && sidebarCollapsed;
 
   return (
     <div style={{ display: 'flex', flex: 1, height: '100%', overflow: 'hidden' }}>
       {/* Desktop: inline sidebar with width transition */}
-      {!isPhoneOrTablet && (
+      {showInlineSidebar && (
         <div
           style={{
             width: sidebarCollapsed ? '0px' : '280px',
@@ -38,7 +56,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
         </div>
       )}
       {/* Phone/Tablet: overlay sidebar */}
-      {isPhoneOrTablet && !sidebarCollapsed && (
+      {showOverlaySidebar && (
         <>
           <style>{`
             @keyframes burgerSlideIn {
@@ -88,9 +106,13 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
+          // Reserve a left gutter for the floating expand toggle so it never
+          // overlaps page titles (canvas, flashcard/quiz viewers, editor). The
+          // toggle is absolutely positioned inside this padding gutter.
+          paddingLeft: showToggle ? 44 : 0,
         }}
       >
-        {sidebarCollapsed && (
+        {showToggle && (
           <button
             onClick={() => setSidebarCollapsed(false)}
             title="Expand sidebar"
@@ -121,7 +143,7 @@ function NotebookWorkspaceInner({ children }: { children: React.ReactNode }) {
                 'color-mix(in srgb, var(--surface-container) 90%, transparent)';
             }}
           >
-            <ChevronsRight size={15} />
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>keyboard_double_arrow_right</span>
           </button>
         )}
         {children}

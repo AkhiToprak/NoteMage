@@ -347,7 +347,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
                         cursor: 'pointer',
                         fontFamily: 'inherit',
                         outline: active ? `2px solid ${COLORS.primary}55` : '2px solid transparent',
-                        transition: `all 0.2s ${EASING}`,
+                        transition: `background 0.2s ${EASING}, color 0.2s ${EASING}, outline 0.2s ${EASING}`,
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Trash2, Loader, Sparkles, X } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { Mascot } from '@/components/mascot';
 
@@ -121,7 +120,7 @@ export default function DocumentList({
                 opacity: isDeleting ? 0.6 : 1,
               }}
             >
-              <FileText size={15} style={{ color: '#5170ff', flexShrink: 0 }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 15, color: '#5170ff', flexShrink: 0 }} aria-hidden>description</span>
               <span
                 style={{
                   fontFamily: 'inherit',
@@ -187,7 +186,7 @@ export default function DocumentList({
                   (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent';
                 }}
               >
-                <Sparkles size={12} />
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>auto_awesome</span>
               </button>
 
               {/* Delete button */}
@@ -225,9 +224,9 @@ export default function DocumentList({
                 title="Delete document"
               >
                 {isDeleting ? (
-                  <Loader size={12} style={{ animation: 'spin 0.8s linear infinite' }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 12, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span>
                 ) : (
-                  <Trash2 size={12} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>delete</span>
                 )}
                 <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
               </button>
@@ -288,7 +287,7 @@ export default function DocumentList({
                     gap: '8px',
                   }}
                 >
-                  <Sparkles size={16} style={{ color: '#c4a9ff' }} /> AI Summary
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#c4a9ff' }} aria-hidden>auto_awesome</span> AI Summary
                 </h3>
                 <p style={{ fontSize: '12px', color: 'rgba(237,233,255,0.35)', margin: '4px 0 0' }}>
                   {summaryDoc.fileName}
@@ -305,7 +304,7 @@ export default function DocumentList({
                   display: 'flex',
                 }}
               >
-                <X size={16} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>close</span>
               </button>
             </div>
 
@@ -357,10 +356,13 @@ export default function DocumentList({
                     gap: '12px',
                   }}
                 >
-                  <Loader
-                    size={24}
-                    style={{ color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
-                  />
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 24, color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
+                    aria-hidden
+                  >
+                    progress_activity
+                  </span>
                   <span style={{ fontSize: '13px', color: 'rgba(237,233,255,0.4)' }}>
                     Generating {summaryLength} summary...
                   </span>

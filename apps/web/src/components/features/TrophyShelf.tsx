@@ -325,12 +325,14 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                     <div
                       style={{
                         height: '100%',
-                        width: `${
-                          progress ? Math.min((progress.current / progress.target) * 100, 100) : 0
-                        }%`,
+                        width: '100%',
+                        transform: `scaleX(${
+                          progress ? Math.min(progress.current / progress.target, 1) : 0
+                        })`,
+                        transformOrigin: 'left',
                         borderRadius: '3px',
                         background: '#ae89ff',
-                        transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
+                        transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
                       }}
                     />
                   </div>

@@ -175,7 +175,7 @@ export default function GroupInvitePage() {
               justifyContent: 'center',
               fontSize: 32,
               fontWeight: 700,
-              color: '#fff',
+              color: 'var(--on-primary)',
             }}
           >
             {initial}
@@ -235,7 +235,7 @@ export default function GroupInvitePage() {
                 justifyContent: 'center',
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#fff',
+                color: 'var(--on-primary)',
               }}
             >
               {(inviter.username[0] || '?').toUpperCase()}

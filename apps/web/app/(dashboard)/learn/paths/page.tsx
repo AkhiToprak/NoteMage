@@ -250,7 +250,7 @@ export default function LearnPage() {
   }, [plans, refresh]);
 
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 48px' }}>
+    <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '24px 16px 48px' }}>
       <header
         style={{
           marginBottom: '24px',
@@ -293,10 +293,12 @@ export default function LearnPage() {
             relative to the primary CTA so the create flow still leads. */}
         <div
           style={{
-            flexShrink: 0,
-            display: 'inline-flex',
+            display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
+            justifyContent: 'flex-end',
             gap: '8px',
+            minWidth: 0,
           }}
         >
           <Link

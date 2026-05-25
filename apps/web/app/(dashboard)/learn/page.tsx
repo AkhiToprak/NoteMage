@@ -95,7 +95,7 @@ export default function LearnDashboardPage() {
   }, []);
 
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 48px' }}>
+    <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '24px 16px 48px' }}>
       <header style={{ marginBottom: '28px' }}>
         <h1
           style={{

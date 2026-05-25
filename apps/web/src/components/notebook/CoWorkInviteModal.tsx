@@ -211,7 +211,7 @@ export default function CoWorkInviteModal({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               flexShrink: 0,
             }}
           >
@@ -304,7 +304,7 @@ export default function CoWorkInviteModal({
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      transition: `all 0.15s ${EASING}`,
+                      transition: `border-color 0.15s ${EASING}, background 0.15s ${EASING}`,
                     }}
                   >
                     {isSelected && (
@@ -422,7 +422,7 @@ export default function CoWorkInviteModal({
               fontSize: 13,
               fontWeight: 700,
               cursor: selected.size === 0 || sending ? 'not-allowed' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}, box-shadow 0.15s ${EASING}, transform 0.15s ${EASING}`,
               fontFamily: 'inherit',
               boxShadow:
                 selected.size > 0 && hoveredSend ? '0 8px 24px rgba(174,137,255,0.3)' : 'none',

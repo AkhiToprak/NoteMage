@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Plus, Trash2, Download, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import SlidePreview from './SlidePreview';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
@@ -271,7 +270,9 @@ export default function SlideEditorModal({
                   justifyContent: 'center',
                 }}
               >
-                <Plus size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  add
+                </span>
               </button>
             </div>
           ) : (
@@ -486,7 +487,9 @@ export default function SlideEditorModal({
               disabled={activeIndex <= 0}
               title="Move slide up"
             >
-              <ChevronUp size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                expand_less
+              </span>
             </FooterIconButton>
 
             {/* Move down */}
@@ -495,7 +498,9 @@ export default function SlideEditorModal({
               disabled={activeIndex >= slides.length - 1}
               title="Move slide down"
             >
-              <ChevronDown size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                expand_more
+              </span>
             </FooterIconButton>
 
             {/* Delete slide */}
@@ -505,7 +510,9 @@ export default function SlideEditorModal({
               title="Delete slide"
               danger
             >
-              <Trash2 size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                delete
+              </span>
             </FooterIconButton>
 
             {/* Cancel */}
@@ -562,9 +569,17 @@ export default function SlideEditorModal({
               }}
             >
               {exporting ? (
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                  aria-hidden
+                >
+                  progress_activity
+                </span>
               ) : (
-                <Download size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  download
+                </span>
               )}
               {exporting ? 'Exporting...' : 'Export PPTX'}
             </button>
@@ -606,7 +621,9 @@ function CloseButton({ onClick }: { onClick: () => void }) {
         transition: 'background 0.12s ease, color 0.12s ease',
       }}
     >
-      <X size={16} />
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+        close
+      </span>
     </button>
   );
 }
@@ -636,7 +653,10 @@ function AddSlideButton({ onClick }: { onClick: () => void }) {
         flexShrink: 0,
       }}
     >
-      <Plus size={12} /> Add Slide
+      <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+        add
+      </span>{' '}
+      Add Slide
     </button>
   );
 }

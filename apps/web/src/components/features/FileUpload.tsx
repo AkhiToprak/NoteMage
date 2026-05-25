@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, Loader } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
 
@@ -93,13 +92,17 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
       >
         {isUploading || isDirectUploading ? (
           <>
-            <Loader
-              size={26}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 26,
                 color: '#5170ff',
                 animation: 'spin 0.8s linear infinite',
               }}
-            />
+              aria-hidden
+            >
+              progress_activity
+            </span>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             <span
               style={{
@@ -113,13 +116,17 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
           </>
         ) : (
           <>
-            <Upload
-              size={26}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 26,
                 color: isDragging ? '#5170ff' : 'rgba(81,112,255,0.5)',
                 transition: 'color 0.15s ease',
               }}
-            />
+              aria-hidden
+            >
+              upload
+            </span>
             <div>
               <p
                 style={{

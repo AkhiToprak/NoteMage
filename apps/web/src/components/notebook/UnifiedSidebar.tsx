@@ -4,21 +4,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ContextualMascot, useMascotContextPose } from '@/components/mascot';
-import {
-  ArrowLeft,
-  Plus,
-  FolderPlus,
-  ChevronRight,
-  Trash2,
-  ChevronsLeft,
-  FilePlus,
-  GraduationCap,
-  Layers,
-  HelpCircle,
-  Search,
-  Upload,
-  Download,
-} from 'lucide-react';
 import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import { getSectionColor } from '@/components/notebook/SectionListItem';
@@ -171,7 +156,7 @@ export default function UnifiedSidebar() {
               (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-40)';
             }}
           >
-            <ArrowLeft size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>arrow_back</span>
           </Link>
           <div
             style={{
@@ -222,7 +207,7 @@ export default function UnifiedSidebar() {
               e.currentTarget.style.color = 'var(--ink-40)';
             }}
           >
-            <ChevronsLeft size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>keyboard_double_arrow_left</span>
           </button>
         </div>
       </div>
@@ -230,9 +215,10 @@ export default function UnifiedSidebar() {
       {/* ── Search bar ─────────────────────────────────────────────── */}
       <div style={{ padding: '8px 10px 4px', position: 'relative' }}>
         <div style={{ position: 'relative' }}>
-          <Search
-            size={14}
+          <span
+            className="material-symbols-outlined"
             style={{
+              fontSize: 14,
               position: 'absolute',
               left: 10,
               top: '50%',
@@ -241,7 +227,10 @@ export default function UnifiedSidebar() {
               transition: 'color 0.15s',
               pointerEvents: 'none',
             }}
-          />
+            aria-hidden
+          >
+            search
+          </span>
           <input
             type="text"
             placeholder="Search in notebook…"
@@ -355,7 +344,7 @@ export default function UnifiedSidebar() {
                     (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-20)';
                   }}
                 >
-                  <Plus size={13} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>add</span>
                 </button>
               </div>
 
@@ -375,7 +364,7 @@ export default function UnifiedSidebar() {
                     borderLeft: '3px solid rgba(140,82,255,0.4)',
                   }}
                 >
-                  <FolderPlus size={12} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }} aria-hidden>create_new_folder</span>
                   <input
                     ref={sectionInputRef}
                     type="text"
@@ -481,7 +470,7 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <GraduationCap size={11} style={{ color: '#ffde59' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#ffde59' }} aria-hidden>school</span>
               </div>
               Create learning path
             </button>
@@ -528,7 +517,7 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <Upload size={11} style={{ color: '#c4a9ff' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#c4a9ff' }} aria-hidden>upload</span>
               </div>
               Import
             </button>
@@ -575,7 +564,7 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <Download size={11} style={{ color: '#c4a9ff' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#c4a9ff' }} aria-hidden>download</span>
               </div>
               Export
             </button>
@@ -831,13 +820,17 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
           }}
         >
           {hasContent ? (
-            <ChevronRight
-              size={13}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 13,
                 transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
                 transition: 'transform 0.12s ease',
               }}
-            />
+              aria-hidden
+            >
+              chevron_right
+            </span>
           ) : (
             <div style={{ width: '13px' }} />
           )}
@@ -888,7 +881,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <FilePlus size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>note_add</span>
             </button>
             {/* Add subsection */}
             <button
@@ -915,7 +908,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <FolderPlus size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>create_new_folder</span>
             </button>
             {/* Delete section */}
             <button
@@ -942,7 +935,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <Trash2 size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
             </button>
           </div>
         )}
@@ -1013,7 +1006,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: `3px solid ${color}60`,
               }}
             >
-              <FilePlus size={11} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }} aria-hidden>note_add</span>
               <input
                 ref={pageInputRef}
                 type="text"
@@ -1065,7 +1058,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: '3px solid rgba(140,82,255,0.4)',
               }}
             >
-              <FolderPlus size={11} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }} aria-hidden>create_new_folder</span>
               <input
                 ref={childInputRef}
                 type="text"
@@ -1210,7 +1203,7 @@ function PageTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
-            <Trash2 size={11} />
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
           </button>
         )}
       </div>
@@ -1262,10 +1255,13 @@ function FlashcardSetTreeRow({
           cursor: 'pointer',
         }}
       >
-        <Layers
-          size={12}
-          style={{ color: isActive ? accentColor : 'rgba(140,82,255,0.45)', flexShrink: 0 }}
-        />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 12, color: isActive ? accentColor : 'rgba(140,82,255,0.45)', flexShrink: 0 }}
+          aria-hidden
+        >
+          layers
+        </span>
         <span
           style={{
             flex: 1,
@@ -1306,7 +1302,7 @@ function FlashcardSetTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
             }}
           >
-            <Trash2 size={11} />
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
           </button>
         )}
       </div>
@@ -1358,10 +1354,13 @@ function QuizSetTreeRow({
           cursor: 'pointer',
         }}
       >
-        <HelpCircle
-          size={12}
-          style={{ color: isActive ? accentColor : 'rgba(81,112,255,0.45)', flexShrink: 0 }}
-        />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 12, color: isActive ? accentColor : 'rgba(81,112,255,0.45)', flexShrink: 0 }}
+          aria-hidden
+        >
+          help
+        </span>
         <span
           style={{
             flex: 1,
@@ -1402,7 +1401,7 @@ function QuizSetTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
             }}
           >
-            <Trash2 size={11} />
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
           </button>
         )}
       </div>

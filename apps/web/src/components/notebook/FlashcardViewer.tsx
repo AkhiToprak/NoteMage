@@ -1,29 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Download,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-  Check,
-  BookPlus,
-  ChevronDown,
-  Loader2,
-  BookCheck,
-  Copy,
-  ImagePlus,
-  Brain,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 
@@ -80,6 +61,7 @@ export default function FlashcardViewer({
 }: FlashcardViewerProps) {
   const { upload } = useDirectUpload();
   const { isPhone } = useBreakpoint();
+  const coarsePointer = useCoarsePointer();
   const [cards, setCards] = useState<Flashcard[]>(initialCards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -590,7 +572,7 @@ export default function FlashcardViewer({
         >
           <div
             style={{
-              background: '#0a0a0a',
+              background: 'var(--surface-container-lowest)',
               borderRadius: '24px',
               padding: isPhone ? '32px 20px' : '48px 40px',
               border: '1px solid rgba(140,82,255,0.2)',
@@ -611,7 +593,7 @@ export default function FlashcardViewer({
                 margin: '0 auto 20px',
               }}
             >
-              <Brain size={28} style={{ color: pct >= 70 ? '#4ade80' : '#fbbf24' }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 28, color: pct >= 70 ? 'var(--success)' : 'var(--warning)' }} aria-hidden>psychology</span>
             </div>
             <h2
               style={{
@@ -648,7 +630,7 @@ export default function FlashcardViewer({
                   border: '1px solid rgba(74,222,128,0.2)',
                 }}
               >
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#4ade80' }}>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--success)' }}>
                   {studyResults.correct}
                 </div>
                 <div
@@ -670,7 +652,7 @@ export default function FlashcardViewer({
                   border: '1px solid rgba(252,165,165,0.2)',
                 }}
               >
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#fca5a5' }}>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--error)' }}>
                   {studyResults.total - studyResults.correct}
                 </div>
                 <div
@@ -692,11 +674,11 @@ export default function FlashcardViewer({
                   border: '1px solid rgba(140,82,255,0.2)',
                 }}
               >
-                <div style={{ fontSize: '24px', fontWeight: 700, color: '#c4a9ff' }}>{pct}%</div>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--md-h3)' }}>{pct}%</div>
                 <div
                   style={{
                     fontSize: '11px',
-                    color: 'rgba(196,169,255,0.7)',
+                    color: 'var(--md-em)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -717,7 +699,7 @@ export default function FlashcardViewer({
                     borderRadius: '12px',
                     background: 'rgba(252,165,165,0.12)',
                     border: '1px solid rgba(252,165,165,0.3)',
-                    color: '#fca5a5',
+                    color: 'var(--error)',
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -728,7 +710,7 @@ export default function FlashcardViewer({
                     gap: '8px',
                   }}
                 >
-                  <RotateCcw size={15} /> Repeat missed cards ({repeatCardsRef.current.size})
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>replay</span> Repeat missed cards ({repeatCardsRef.current.size})
                 </button>
               )}
               <button
@@ -745,9 +727,9 @@ export default function FlashcardViewer({
                 style={{
                   padding: '12px 24px',
                   borderRadius: '12px',
-                  background: '#8c52ff',
+                  background: 'var(--accent-strong)',
                   border: 'none',
-                  color: 'var(--on-surface)',
+                  color: 'var(--on-primary-container)',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -758,7 +740,7 @@ export default function FlashcardViewer({
                   gap: '8px',
                 }}
               >
-                <RotateCcw size={15} /> Repeat entire set
+                <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>replay</span> Repeat entire set
               </button>
               <button
                 onClick={exitStudyMode}
@@ -824,7 +806,7 @@ export default function FlashcardViewer({
               fontFamily: 'inherit',
             }}
           >
-            <X size={14} /> Exit
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>close</span> Exit
           </button>
         </div>
 
@@ -855,10 +837,12 @@ export default function FlashcardViewer({
             <div
               style={{
                 height: '100%',
-                width: `${(studyIndex / studyCards.length) * 100}%`,
-                background: '#8c52ff',
+                width: '100%',
+                transform: `scaleX(${studyIndex / studyCards.length})`,
+                transformOrigin: 'left',
+                background: 'var(--accent-strong)',
                 borderRadius: '2px',
-                transition: 'width 0.3s ease',
+                transition: 'transform 0.3s ease',
               }}
             />
           </div>
@@ -883,8 +867,8 @@ export default function FlashcardViewer({
                   : swipingDirection === 'left'
                     ? 'rgba(252,165,165,0.15)'
                     : studyFlipped
-                      ? '#1a1040'
-                      : '#0a0a0a',
+                      ? 'var(--surface-container-high)'
+                      : 'var(--surface-container-lowest)',
               border: `1px solid ${
                 swipingDirection === 'right'
                   ? 'rgba(74,222,128,0.4)'
@@ -946,7 +930,7 @@ export default function FlashcardViewer({
                 borderRadius: '12px',
                 background: 'rgba(252,165,165,0.1)',
                 border: '1px solid rgba(252,165,165,0.25)',
-                color: '#fca5a5',
+                color: 'var(--error)',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -963,7 +947,7 @@ export default function FlashcardViewer({
                 (e.currentTarget as HTMLButtonElement).style.opacity = '1';
               }}
             >
-              <ArrowLeft size={16} /> Repeat
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>arrow_back</span> Repeat
             </button>
             <button
               onClick={() => rateCard(4)}
@@ -972,7 +956,7 @@ export default function FlashcardViewer({
                 borderRadius: '12px',
                 background: 'rgba(74,222,128,0.1)',
                 border: '1px solid rgba(74,222,128,0.25)',
-                color: '#4ade80',
+                color: 'var(--success)',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -989,7 +973,7 @@ export default function FlashcardViewer({
                 (e.currentTarget as HTMLButtonElement).style.opacity = '1';
               }}
             >
-              Known <ArrowRight size={16} />
+              Known <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>arrow_forward</span>
             </button>
           </div>
         )}
@@ -1010,6 +994,7 @@ export default function FlashcardViewer({
         overflow: 'auto',
       }}
     >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       {/* Title */}
       <h2
         style={{
@@ -1042,7 +1027,7 @@ export default function FlashcardViewer({
           letterSpacing: '0.04em',
         }}
       >
-        <span style={{ color: '#d6c2ff', fontWeight: 700 }}>{currentIndex + 1}</span>
+        <span style={{ color: 'var(--md-em)', fontWeight: 700 }}>{currentIndex + 1}</span>
         <span style={{ color: 'var(--ink-30)' }}>/</span>
         <span>{cards.length}</span>
       </div>
@@ -1066,7 +1051,7 @@ export default function FlashcardViewer({
               width: '100%',
               height: '100%',
               borderRadius: '16px',
-              background: '#0a0a0a',
+              background: 'var(--surface-container-lowest)',
               border: '1px solid rgba(140,82,255,0.3)',
               padding: '24px',
               display: 'flex',
@@ -1170,9 +1155,9 @@ export default function FlashcardViewer({
                       }}
                     >
                       {uploadingSide === side ? (
-                        <Loader2 size={10} className="animate-spin" />
+                        <span className="material-symbols-outlined" style={{ fontSize: 10, animation: 'spin 1s linear infinite' }} aria-hidden>progress_activity</span>
                       ) : (
-                        <ImagePlus size={10} />
+                        <span className="material-symbols-outlined" style={{ fontSize: 10 }} aria-hidden>add_photo_alternate</span>
                       )}
                       Add
                     </button>
@@ -1210,8 +1195,8 @@ export default function FlashcardViewer({
                                 height: '16px',
                                 borderRadius: '50%',
                                 border: 'none',
-                                background: '#ef4444',
-                                color: 'var(--on-surface)',
+                                background: 'var(--error)',
+                                color: 'var(--on-error)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1220,7 +1205,7 @@ export default function FlashcardViewer({
                                 fontSize: '10px',
                               }}
                             >
-                              <X size={10} />
+                              <span className="material-symbols-outlined" style={{ fontSize: 10 }} aria-hidden>close</span>
                             </button>
                           </div>
                         ))}
@@ -1271,7 +1256,7 @@ export default function FlashcardViewer({
                   fontFamily: 'inherit',
                 }}
               >
-                <X size={14} /> Cancel
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>close</span> Cancel
               </button>
               <button
                 onClick={saveEdit}
@@ -1282,14 +1267,14 @@ export default function FlashcardViewer({
                   padding: '8px 14px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: '#8c52ff',
-                  color: 'var(--on-surface)',
+                  background: 'var(--accent-strong)',
+                  color: 'var(--on-primary-container)',
                   fontSize: '13px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}
               >
-                <Check size={14} /> Save
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>check</span> Save
               </button>
             </div>
           </div>
@@ -1379,7 +1364,7 @@ export default function FlashcardViewer({
                   fontWeight: 600,
                 }}
               >
-                Space to flip
+                {coarsePointer ? 'Tap to flip' : 'Space to flip'}
               </div>
             </div>
 
@@ -1460,57 +1445,57 @@ export default function FlashcardViewer({
         }}
       >
         <NavButton onClick={prev} disabled={currentIndex === 0} title="Previous (←)">
-          <ChevronLeft size={20} />
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>chevron_left</span>
         </NavButton>
         <NavButton onClick={reset} title="Reset">
-          <RotateCcw size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>replay</span>
         </NavButton>
         <NavButton onClick={next} disabled={currentIndex === cards.length - 1} title="Next (→)">
-          <ChevronRight size={20} />
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>chevron_right</span>
         </NavButton>
       </div>
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <DropdownButton
-          icon={<Pencil size={12} />}
+          icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>edit</span>}
           label="Edit"
           items={[
             {
               onClick: () => card && startEdit(card),
-              icon: <Pencil size={12} />,
+              icon: <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>edit</span>,
               label: 'Edit Card',
               hidden: !card || editingId === card?.id,
             },
-            { onClick: () => duplicateCard(), icon: <Copy size={12} />, label: 'Duplicate' },
-            { onClick: () => setIsAdding(true), icon: <Plus size={12} />, label: 'Add Card' },
+            { onClick: () => duplicateCard(), icon: <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>content_copy</span>, label: 'Duplicate' },
+            { onClick: () => setIsAdding(true), icon: <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>add</span>, label: 'Add Card' },
             {
               onClick: () => card && deleteCard(card.id),
-              icon: <Trash2 size={12} />,
+              icon: <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>delete</span>,
               label: 'Delete Card',
               danger: true,
               hidden: !card,
             },
-            { onClick: deleteSet, icon: <Trash2 size={12} />, label: 'Delete Set', danger: true },
+            { onClick: deleteSet, icon: <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>delete</span>, label: 'Delete Set', danger: true },
           ]}
         />
-        <SmallButton onClick={downloadCSV} icon={<Download size={12} />} label="CSV" />
+        <SmallButton onClick={downloadCSV} icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>download</span>} label="CSV" />
         {sectionSaved ? (
           <SmallButton
             onClick={openSectionPicker}
-            icon={<BookCheck size={12} />}
+            icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>task_alt</span>}
             label="In Notebook"
           />
         ) : (
           <SmallButton
             onClick={openSectionPicker}
-            icon={<BookPlus size={12} />}
+            icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>library_add</span>}
             label="Add to Notebook"
           />
         )}
         <SmallButton
           onClick={startStudyMode}
-          icon={loadingStudy ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
+          icon={loadingStudy ? <span className="material-symbols-outlined" style={{ fontSize: 12, animation: 'spin 1s linear infinite' }} aria-hidden>progress_activity</span> : <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>psychology</span>}
           label={dueCount !== null && dueCount > 0 ? `Study (${dueCount} due)` : 'Study'}
         />
       </div>
@@ -1576,7 +1561,7 @@ export default function FlashcardViewer({
                   display: 'flex',
                 }}
               >
-                <X size={16} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>close</span>
               </button>
             </div>
 
@@ -1598,7 +1583,7 @@ export default function FlashcardViewer({
                     color: 'var(--ink-30)',
                   }}
                 >
-                  <Loader2 size={20} className="animate-spin" />
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, animation: 'spin 1s linear infinite' }} aria-hidden>progress_activity</span>
                 </div>
               ) : sections.length === 0 ? (
                 <div
@@ -1635,7 +1620,7 @@ export default function FlashcardViewer({
             marginTop: '20px',
             width: '100%',
             maxWidth: '360px',
-            background: '#0a0a0a',
+            background: 'var(--surface-container-lowest)',
             border: '1px solid rgba(140,82,255,0.3)',
             borderRadius: '12px',
             padding: '16px',
@@ -1724,8 +1709,8 @@ export default function FlashcardViewer({
                 padding: '7px 12px',
                 borderRadius: '8px',
                 border: 'none',
-                background: '#8c52ff',
-                color: 'var(--on-surface)',
+                background: 'var(--accent-strong)',
+                color: 'var(--on-primary-container)',
                 fontSize: '12px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -1798,20 +1783,24 @@ function SectionPickerNode({
               display: 'flex',
             }}
           >
-            <ChevronDown
-              size={14}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 14,
                 transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
                 transition: 'transform 0.15s ease',
               }}
-            />
+              aria-hidden
+            >
+              expand_more
+            </span>
           </button>
         )}
         {!hasChildren && <div style={{ width: '14px' }} />}
         <span
           style={{
             fontSize: '13px',
-            color: isSelected ? '#c4a9ff' : 'var(--on-surface)',
+            color: isSelected ? 'var(--md-h3)' : 'var(--on-surface)',
             fontWeight: isSelected ? 600 : 400,
             fontFamily: 'inherit',
             flex: 1,
@@ -1822,7 +1811,7 @@ function SectionPickerNode({
         >
           {section.title}
         </span>
-        {isSelected && <Check size={14} style={{ color: '#8c52ff', flexShrink: 0 }} />}
+        {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--accent-strong)', flexShrink: 0 }} aria-hidden>check</span>}
       </div>
       {hasChildren &&
         expanded &&
@@ -1875,7 +1864,7 @@ function NavButton({
           : hovered
             ? 'rgba(140,82,255,0.18)'
             : 'rgba(140,82,255,0.10)',
-        color: disabled ? 'var(--ink-20)' : hovered ? '#ede4ff' : '#d6c2ff',
+        color: disabled ? 'var(--ink-20)' : hovered ? 'var(--on-surface)' : 'var(--md-em)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
       }}
@@ -1917,10 +1906,10 @@ function SmallButton({
           : 'transparent',
         color: danger
           ? hovered
-            ? '#fca5a5'
+            ? 'var(--error)'
             : 'rgba(252,165,165,0.6)'
           : hovered
-            ? '#c4a9ff'
+            ? 'var(--md-h3)'
             : 'var(--ink-40)',
         fontSize: '12px',
         cursor: 'pointer',
@@ -1982,7 +1971,7 @@ function DropdownButton({
             : hovered
               ? 'rgba(140,82,255,0.1)'
               : 'transparent',
-          color: open || hovered ? '#c4a9ff' : 'var(--ink-40)',
+          color: open || hovered ? 'var(--md-h3)' : 'var(--ink-40)',
           fontSize: '12px',
           cursor: 'pointer',
           fontFamily: 'inherit',
@@ -1990,13 +1979,17 @@ function DropdownButton({
         }}
       >
         {icon} {label}{' '}
-        <ChevronDown
-          size={10}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 10,
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.15s ease',
           }}
-        />
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -2062,10 +2055,10 @@ function DropdownItem({
           : 'transparent',
         color: danger
           ? hovered
-            ? '#fca5a5'
+            ? 'var(--error)'
             : 'rgba(252,165,165,0.6)'
           : hovered
-            ? '#c4a9ff'
+            ? 'var(--md-h3)'
             : 'var(--ink-50)',
         fontSize: '12px',
         cursor: 'pointer',

@@ -2,16 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Sparkles,
-  BookOpen,
-  ClipboardCheck,
-  Network,
-  Loader2,
-  SpellCheck,
-  MessageCircle,
-  GraduationCap,
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAiTask } from './AiTaskContext';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
@@ -27,10 +17,10 @@ interface GenerateDropdownProps {
 
 type GenerateType = 'flashcards' | 'quiz' | 'mindmap';
 
-const OPTIONS: { type: GenerateType; label: string; icon: typeof BookOpen }[] = [
-  { type: 'flashcards', label: 'Generate Flashcards', icon: BookOpen },
-  { type: 'quiz', label: 'Generate Quiz', icon: ClipboardCheck },
-  { type: 'mindmap', label: 'Generate Mind Map', icon: Network },
+const OPTIONS: { type: GenerateType; label: string; icon: string }[] = [
+  { type: 'flashcards', label: 'Generate Flashcards', icon: 'menu_book' },
+  { type: 'quiz', label: 'Generate Quiz', icon: 'quiz' },
+  { type: 'mindmap', label: 'Generate Mind Map', icon: 'hub' },
 ];
 
 // Labels shown in the global AI status pill while each action is running.
@@ -218,9 +208,17 @@ export default function GenerateDropdown({
         }}
       >
         {loading ? (
-          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 15, animation: 'spin 1s linear infinite' }}
+            aria-hidden
+          >
+            progress_activity
+          </span>
         ) : (
-          <Sparkles size={15} />
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+            auto_awesome
+          </span>
         )}
       </button>
       {open &&
@@ -254,7 +252,7 @@ export default function GenerateDropdown({
               width: '220px',
             }}
           >
-            {OPTIONS.map(({ type, label, icon: Icon }) => {
+            {OPTIONS.map(({ type, label, icon }) => {
               const isThisLoading = loading && loadingType === type;
               return (
                 <button
@@ -290,12 +288,21 @@ export default function GenerateDropdown({
                   }}
                 >
                   {isThisLoading ? (
-                    <Loader2
-                      size={14}
-                      style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}
-                    />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, animation: 'spin 1s linear infinite', flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                   ) : (
-                    <Icon size={14} style={{ flexShrink: 0 }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      {icon}
+                    </span>
                   )}
                   <span>{isThisLoading ? 'Generating...' : label}</span>
                 </button>
@@ -351,7 +358,13 @@ export default function GenerateDropdown({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <MessageCircle size={14} style={{ flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, flexShrink: 0 }}
+                aria-hidden
+              >
+                chat_bubble
+              </span>
               <span>Ask the mage about this page</span>
             </button>
             <button
@@ -395,7 +408,13 @@ export default function GenerateDropdown({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <GraduationCap size={14} style={{ flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, flexShrink: 0 }}
+                aria-hidden
+              >
+                school
+              </span>
               <span>Generate study path from this notebook</span>
             </button>
 
@@ -449,7 +468,13 @@ export default function GenerateDropdown({
                     e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  <SpellCheck size={14} style={{ flexShrink: 0 }} />
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 14, flexShrink: 0 }}
+                    aria-hidden
+                  >
+                    spellcheck
+                  </span>
                   <span>Check Grammar & Spelling</span>
                 </button>
               </>

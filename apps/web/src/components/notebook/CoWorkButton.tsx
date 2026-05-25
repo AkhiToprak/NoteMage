@@ -137,7 +137,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
             fontSize: 12,
             fontWeight: 600,
             cursor: actionLoading ? 'wait' : 'pointer',
-            transition: `all 0.15s ${EASING}`,
+            transition: `border-color 0.15s ${EASING}, background 0.15s ${EASING}, color 0.15s ${EASING}`,
             fontFamily: 'inherit',
           }}
         >
@@ -177,7 +177,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
               fontSize: 12,
               fontWeight: 700,
               cursor: 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               fontFamily: 'inherit',
               position: 'relative',
             }}
@@ -233,7 +233,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
               background: 'rgba(253,111,133,0.1)',
               color: '#fd6f85',
               cursor: actionLoading ? 'wait' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >
@@ -329,7 +329,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
             background: 'rgba(253,111,133,0.1)',
             color: '#fd6f85',
             cursor: actionLoading ? 'wait' : 'pointer',
-            transition: `all 0.15s ${EASING}`,
+            transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
             fontFamily: 'inherit',
           }}
         >
@@ -367,7 +367,7 @@ export default function CoWorkButton({ notebookId, currentUserId }: CoWorkButton
         fontSize: 12,
         fontWeight: 700,
         cursor: actionLoading ? 'wait' : 'pointer',
-        transition: `all 0.15s ${EASING}`,
+        transition: `background 0.15s ${EASING}, color 0.15s ${EASING}, box-shadow 0.15s ${EASING}`,
         fontFamily: 'inherit',
         boxShadow: hovered ? '0 4px 16px rgba(174,137,255,0.3)' : 'none',
       }}

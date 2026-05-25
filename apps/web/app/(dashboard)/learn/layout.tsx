@@ -73,6 +73,7 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
             background: 'var(--surface-container-low)',
             borderBottom: '1px solid var(--outline-variant)',
             overflowX: 'auto',
+            minWidth: 0,
           }}
         >
           {TABS.map((tab) => {
@@ -88,6 +89,7 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
           flexDirection: 'column',
           flex: 1,
           minHeight: 0,
+          minWidth: 0,
         }}
       >
         {children}

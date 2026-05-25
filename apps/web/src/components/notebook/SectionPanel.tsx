@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Plus, FolderPlus } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import SectionListItem from '@/components/notebook/SectionListItem';
 
@@ -99,7 +98,9 @@ export default function SectionPanel() {
               (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-40)';
             }}
           >
-            <ArrowLeft size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              arrow_back
+            </span>
           </Link>
           <div
             style={{
@@ -144,7 +145,13 @@ export default function SectionPanel() {
               borderLeft: '3px solid rgba(140,82,255,0.4)',
             }}
           >
-            <FolderPlus size={12} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+              aria-hidden
+            >
+              create_new_folder
+            </span>
             <input
               ref={inputRef}
               type="text"
@@ -312,7 +319,9 @@ export default function SectionPanel() {
             (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
           }}
         >
-          <Plus size={12} />
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            add
+          </span>
           Add section
         </button>
       </div>

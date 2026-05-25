@@ -155,11 +155,23 @@ export function UserAvatar({
         justifyContent: 'center',
         fontSize: Math.max(10, Math.round(size * 0.38)),
         fontWeight: 700,
-        color: '#ffffff',
+        color: 'var(--on-primary)',
         flexShrink: 0,
       }}
     >
-      {getInitials(name)}
+      {name ? (
+        getInitials(name)
+      ) : (
+        // No name yet (e.g. session still loading) — a neutral person glyph
+        // reads as "no avatar" instead of a jarring "?" that flickers in.
+        <span
+          className="material-symbols-outlined"
+          aria-hidden
+          style={{ fontSize: Math.max(16, Math.round(size * 0.56)) }}
+        >
+          person
+        </span>
+      )}
     </div>
   );
 

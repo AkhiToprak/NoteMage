@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronRight, Plus, Trash2, FileUp, Layers, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import PageItem from '@/components/notebook/PageItem';
 import { TextFileIcon } from '@/components/icons/NavIcons';
@@ -113,15 +112,19 @@ export default function SectionItem({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
       >
-        <ChevronRight
-          size={14}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 14,
             color: 'var(--ink-30)',
             flexShrink: 0,
             transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
             transition: 'transform 0.12s ease',
           }}
-        />
+          aria-hidden
+        >
+          chevron_right
+        </span>
         <span
           style={{
             fontFamily: 'inherit',
@@ -176,7 +179,9 @@ export default function SectionItem({
                 e.currentTarget.style.color = 'var(--ink-40)';
               }}
             >
-              <Plus size={14} />
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                add
+              </span>
             </button>
             <div ref={importMenuRef} style={{ position: 'relative' }}>
               <button
@@ -206,7 +211,9 @@ export default function SectionItem({
                   e.currentTarget.style.color = 'var(--ink-40)';
                 }}
               >
-                <FileUp size={12} />
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  upload_file
+                </span>
               </button>
               {showImportMenu && (
                 <div
@@ -252,7 +259,13 @@ export default function SectionItem({
                       e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <FileUp size={14} style={{ color: '#8c52ff', flexShrink: 0 }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, color: '#8c52ff', flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      upload_file
+                    </span>
                     Upload File
                   </button>
                   <button
@@ -321,7 +334,9 @@ export default function SectionItem({
                 e.currentTarget.style.color = 'var(--ink-40)';
               }}
             >
-              <Trash2 size={12} />
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                delete
+              </span>
             </button>
           </div>
         )}
@@ -462,14 +477,18 @@ function FlashcardSetItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Layers
-        size={14}
+      <span
+        className="material-symbols-outlined"
         style={{
+          fontSize: 14,
           color: hovered ? '#8c52ff' : 'rgba(140,82,255,0.45)',
           flexShrink: 0,
           transition: 'color 0.12s ease',
         }}
-      />
+        aria-hidden
+      >
+        layers
+      </span>
       <span
         style={{
           fontFamily: 'inherit',
@@ -513,14 +532,18 @@ function QuizSetItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <HelpCircle
-        size={14}
+      <span
+        className="material-symbols-outlined"
         style={{
+          fontSize: 14,
           color: hovered ? '#5170ff' : 'rgba(81,112,255,0.45)',
           flexShrink: 0,
           transition: 'color 0.12s ease',
         }}
-      />
+        aria-hidden
+      >
+        help
+      </span>
       <span
         style={{
           fontFamily: 'inherit',

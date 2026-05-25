@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ChevronRight, Trash2, FolderPlus } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import type { SectionNode } from '@/components/notebook/SectionTree';
 
@@ -132,13 +131,17 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
           }}
         >
           {section.children.length > 0 || isCreatingChild ? (
-            <ChevronRight
-              size={13}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 13,
                 transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
                 transition: 'transform 0.12s ease',
               }}
-            />
+              aria-hidden
+            >
+              chevron_right
+            </span>
           ) : (
             <div style={{ width: '13px' }} />
           )}
@@ -189,7 +192,9 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <FolderPlus size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                create_new_folder
+              </span>
             </button>
             {/* Delete */}
             <button
@@ -216,7 +221,9 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <Trash2 size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                delete
+              </span>
             </button>
           </div>
         )}
@@ -236,7 +243,13 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
             borderLeft: '3px solid rgba(140,82,255,0.4)',
           }}
         >
-          <FolderPlus size={11} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }}
+            aria-hidden
+          >
+            create_new_folder
+          </span>
           <input
             ref={childInputRef}
             type="text"

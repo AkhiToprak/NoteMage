@@ -40,7 +40,7 @@ export default function FlashcardsHubPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '24px 24px 48px', width: '100%' }}>
+        <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '24px 24px 48px', width: '100%', minWidth: 0 }}>
           <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', margin: 0 }}>
             Loading your flashcards…
           </p>
@@ -157,6 +157,7 @@ function FlashcardsHubContent() {
         margin: '0 auto',
         padding: '24px 24px 48px',
         width: '100%',
+        minWidth: 0,
       }}
     >
       <header style={{ marginBottom: '24px' }}>
@@ -425,7 +426,7 @@ function GroupSection({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
           gap: '16px',
         }}
       >
@@ -511,7 +512,7 @@ function SetCard({
     flexDirection: 'column',
     gap: '8px',
     padding: '16px',
-    minHeight: '140px',
+    minHeight: '96px',
     borderRadius: 'var(--radius-md)',
     background: 'var(--surface-container)',
     border: isPulsing

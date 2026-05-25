@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, FileText, Layers, HelpCircle, File, Check } from 'lucide-react';
 
 interface MaterialItem {
   id: string;
@@ -113,13 +112,29 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
   const getTabIcon = (tab: TabType) => {
     switch (tab) {
       case 'pages':
-        return <FileText size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            description
+          </span>
+        );
       case 'flashcard_sets':
-        return <Layers size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            layers
+          </span>
+        );
       case 'quiz_sets':
-        return <HelpCircle size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            help
+          </span>
+        );
       case 'documents':
-        return <File size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            description
+          </span>
+        );
     }
   };
 
@@ -189,7 +204,9 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               padding: '4px',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -285,10 +302,18 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      transition: 'all 0.12s ease',
+                      transition: 'background 0.12s ease, border-color 0.12s ease',
                     }}
                   >
-                    {isChecked && <Check size={12} style={{ color: 'var(--on-surface)' }} />}
+                    {isChecked && (
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 12, color: 'var(--on-surface)' }}
+                        aria-hidden
+                      >
+                        check
+                      </span>
+                    )}
                   </div>
                   <span
                     style={{

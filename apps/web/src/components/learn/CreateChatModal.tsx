@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { X, Upload, Check, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { getMageName } from '@/lib/scholar';
@@ -565,7 +564,7 @@ export default function CreateChatModal({
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-40)';
             }}
           >
-            <X size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>close</span>
           </button>
         </div>
 
@@ -684,7 +683,7 @@ export default function CreateChatModal({
                             transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
                           }}
                         >
-                          <ChevronDown size={14} />
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>expand_more</span>
                         </span>
                         {isInbox ? (
                           <span
@@ -867,12 +866,15 @@ export default function CreateChatModal({
                 }}
               >
                 {isUploading ? (
-                  <Loader2
-                    size={18}
-                    style={{ color: '#ae89ff', animation: 'spin 0.8s linear infinite' }}
-                  />
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 18, color: '#ae89ff', animation: 'spin 0.8s linear infinite' }}
+                    aria-hidden
+                  >
+                    progress_activity
+                  </span>
                 ) : (
-                  <Upload size={18} style={{ color: '#ae89ff' }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ae89ff' }} aria-hidden>upload</span>
                 )}
               </div>
               <div style={{ minWidth: 0 }}>
@@ -930,7 +932,7 @@ export default function CreateChatModal({
                   (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface-variant)';
                 }}
               >
-                <ChevronRight size={12} />
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>chevron_right</span>
                 Custom title (optional)
               </button>
             ) : (
@@ -1066,7 +1068,7 @@ export default function CreateChatModal({
           >
             {isCreating ? (
               <>
-                <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Creating…
+                <span className="material-symbols-outlined" style={{ fontSize: 13, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span> Creating…
               </>
             ) : (
               <>
@@ -1193,7 +1195,7 @@ function DocRow({
           transition: 'border-color 0.1s, background 0.1s',
         }}
       >
-        {isSelected && <Check size={10} style={{ color: 'var(--on-surface)' }} />}
+        {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 10, color: 'var(--on-surface)' }} aria-hidden>check</span>}
       </div>
       <span
         style={{
@@ -1244,7 +1246,7 @@ function SectionPickerItem({
         }}
       >
         <span style={{ color: 'var(--on-surface-variant)', display: 'flex' }}>
-          {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+          {open ? <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>expand_more</span> : <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>chevron_right</span>}
         </span>
         <span
           style={{
@@ -1305,7 +1307,7 @@ function SectionPickerItem({
                     transition: 'border-color 0.1s, background 0.1s',
                   }}
                 >
-                  {isSelected && <Check size={9} style={{ color: 'var(--on-surface)' }} />}
+                  {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 9, color: 'var(--on-surface)' }} aria-hidden>check</span>}
                 </div>
                 <span
                   style={{

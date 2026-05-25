@@ -1199,11 +1199,13 @@ export default function DashboardPage() {
                             <div
                               style={{
                                 height: '100%',
-                                width: `${pct}%`,
+                                width: '100%',
+                                transform: `scaleX(${pct / 100})`,
+                                transformOrigin: 'left',
                                 background: '#ffde59',
                                 borderRadius: '9999px',
                                 boxShadow: pct > 0 ? '0 0 10px rgba(255,222,89,0.4)' : 'none',
-                                transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+                                transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)',
                               }}
                             />
                           </div>
@@ -1241,11 +1243,13 @@ export default function DashboardPage() {
                     <div
                       style={{
                         height: '100%',
-                        width: `${goalProgress}%`,
+                        width: '100%',
+                        transform: `scaleX(${goalProgress / 100})`,
+                        transformOrigin: 'left',
                         background: '#ffde59',
                         borderRadius: '9999px',
                         boxShadow: goalProgress > 0 ? '0 0 15px rgba(255,222,89,0.5)' : 'none',
-                        transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+                        transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)',
                       }}
                     />
                   </div>

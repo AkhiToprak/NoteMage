@@ -17,7 +17,6 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { CheckCircle2, Lightbulb, XCircle, Calendar } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TimelinePayload } from '@notemage/shared';
 import { shuffleByKey } from './quizShuffle';
@@ -44,6 +43,7 @@ export default function TimelineRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<TimelinePayload | null>) {
   const payload = question.payload;
 
@@ -174,7 +174,7 @@ export default function TimelineRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -205,7 +205,7 @@ export default function TimelineRenderer({
             textTransform: 'uppercase',
           }}
         >
-          <Calendar size={12} /> Drag each label onto its year
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>calendar_month</span> Drag each label onto its year
         </span>
       </div>
 
@@ -328,8 +328,8 @@ export default function TimelineRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -372,11 +372,11 @@ export default function TimelineRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> Timeline complete
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Timeline complete
               </>
             ) : (
               <>
-                <XCircle size={16} /> Not quite
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
               </>
             )}
           </div>

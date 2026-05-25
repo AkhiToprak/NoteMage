@@ -1,16 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useMemo, type DragEvent, type ChangeEvent } from 'react';
-import {
-  X,
-  FileUp,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  FileSpreadsheet,
-  ClipboardPaste,
-  Archive,
-} from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface FlashcardImportDialogProps {
@@ -25,10 +15,10 @@ type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 type TermSepOption = 'tab' | 'comma' | 'semicolon' | 'colon' | 'custom';
 type CardSepOption = 'newline' | 'double-newline' | 'semicolon' | 'custom';
 
-const TABS: { key: Tab; label: string; icon: typeof FileSpreadsheet }[] = [
-  { key: 'csv', label: 'CSV / Excel', icon: FileSpreadsheet },
-  { key: 'paste', label: 'Paste Text', icon: ClipboardPaste },
-  { key: 'anki', label: 'Anki', icon: Archive },
+const TABS: { key: Tab; label: string; icon: string }[] = [
+  { key: 'csv', label: 'CSV / Excel', icon: 'grid_on' },
+  { key: 'paste', label: 'Paste Text', icon: 'content_paste' },
+  { key: 'anki', label: 'Anki', icon: 'archive' },
 ];
 
 function truncate(s: string, max: number): string {
@@ -378,7 +368,9 @@ export default function FlashcardImportDialog({
               e.currentTarget.style.color = 'var(--ink-40)';
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -392,7 +384,6 @@ export default function FlashcardImportDialog({
         >
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
-            const Icon = tab.icon;
             return (
               <button
                 key={tab.key}
@@ -421,7 +412,9 @@ export default function FlashcardImportDialog({
                   if (!isActive) e.currentTarget.style.color = 'var(--ink-40)';
                 }}
               >
-                <Icon size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  {tab.icon}
+                </span>
                 {tab.label}
               </button>
             );
@@ -496,7 +489,13 @@ export default function FlashcardImportDialog({
                         justifyContent: 'center',
                       }}
                     >
-                      <FileUp size={22} style={{ color: '#8c52ff' }} />
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 22, color: '#8c52ff' }}
+                        aria-hidden
+                      >
+                        upload_file
+                      </span>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <p
@@ -525,13 +524,17 @@ export default function FlashcardImportDialog({
 
                 {uploadState === 'uploading' && (
                   <>
-                    <Loader2
-                      size={26}
+                    <span
+                      className="material-symbols-outlined"
                       style={{
+                        fontSize: 26,
                         color: '#8c52ff',
                         animation: 'flashcard-import-spin 1s linear infinite',
                       }}
-                    />
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                     <p
                       style={{
                         margin: 0,
@@ -547,7 +550,13 @@ export default function FlashcardImportDialog({
 
                 {uploadState === 'success' && (
                   <>
-                    <CheckCircle2 size={26} style={{ color: '#4ade80' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 26, color: '#4ade80' }}
+                      aria-hidden
+                    >
+                      check_circle
+                    </span>
                     <p
                       style={{
                         margin: 0,
@@ -563,7 +572,13 @@ export default function FlashcardImportDialog({
 
                 {uploadState === 'error' && (
                   <>
-                    <AlertCircle size={26} style={{ color: '#f87171' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 26, color: '#f87171' }}
+                      aria-hidden
+                    >
+                      error
+                    </span>
                     <div style={{ textAlign: 'center' }}>
                       <p
                         style={{
@@ -826,10 +841,13 @@ export default function FlashcardImportDialog({
               }}
             >
               {pasteSubmitting && (
-                <Loader2
-                  size={14}
-                  style={{ animation: 'flashcard-import-spin 1s linear infinite' }}
-                />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, animation: 'flashcard-import-spin 1s linear infinite' }}
+                  aria-hidden
+                >
+                  progress_activity
+                </span>
               )}
               {pasteSubmitting ? 'Importing...' : `Import ${parsedCards.length} Cards`}
             </button>

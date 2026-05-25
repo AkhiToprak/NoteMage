@@ -118,7 +118,7 @@ export default function MobileBottomNav() {
         }
         .mbn-link:active { transform: scale(0.96); }
         .mbn-link:focus-visible {
-          outline: 2px solid ${ACTIVE};
+          outline: 2px solid var(--color-focus);
           outline-offset: -2px;
           border-radius: 8px;
         }

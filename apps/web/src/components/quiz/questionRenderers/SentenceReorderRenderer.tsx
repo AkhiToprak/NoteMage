@@ -17,7 +17,6 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { CheckCircle2, Lightbulb, XCircle, ArrowDownUp } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { SentenceReorderPayload } from '@notemage/shared';
 import { shuffleByKey } from './quizShuffle';
@@ -38,6 +37,7 @@ export default function SentenceReorderRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<SentenceReorderPayload | null>) {
   const payload = question.payload;
   const correctOrder = useMemo(() => payload?.correctOrder ?? [], [payload]);
@@ -163,7 +163,7 @@ export default function SentenceReorderRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -194,7 +194,7 @@ export default function SentenceReorderRenderer({
             textTransform: 'uppercase',
           }}
         >
-          <ArrowDownUp size={12} /> Drag to reorder
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>swap_vert</span> Drag to reorder
         </span>
       </div>
 
@@ -290,8 +290,8 @@ export default function SentenceReorderRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -334,11 +334,11 @@ export default function SentenceReorderRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> Correct order
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Correct order
               </>
             ) : (
               <>
-                <XCircle size={16} /> Not quite
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
               </>
             )}
           </div>
@@ -376,11 +376,13 @@ function DropZone({ idx, disabled }: { idx: number; disabled: boolean }) {
       <span
         style={{
           display: 'inline-block',
-          width: isOver ? '6px' : '2px',
+          width: '6px',
           height: '28px',
           borderRadius: '4px',
           background: isOver ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.2)',
-          transition: 'background 0.12s, width 0.12s',
+          transform: isOver ? 'scaleX(1)' : 'scaleX(0.3333)',
+          transformOrigin: 'center',
+          transition: 'background 0.12s, transform 0.12s',
         }}
       />
     </span>

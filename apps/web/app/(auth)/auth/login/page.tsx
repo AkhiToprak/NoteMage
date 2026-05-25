@@ -514,11 +514,6 @@ function LoginForm() {
             }}
           >
             {loading ? 'Signing in…' : 'Log In'}
-            {!loading && (
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                auto_awesome
-              </span>
-            )}
           </button>
         </form>
 
@@ -684,8 +679,9 @@ function LoginForm() {
         style={{
           marginTop: '48px',
           display: 'flex',
+          flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: '32px',
+          gap: '12px 24px',
         }}
       >
         {[
@@ -703,6 +699,7 @@ function LoginForm() {
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               textDecoration: 'none',
+              whiteSpace: 'nowrap',
               transition: 'color 0.15s',
             }}
             onMouseEnter={(e) => {

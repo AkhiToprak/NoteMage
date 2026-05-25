@@ -1,5 +1,3 @@
-import { BGPattern } from '@/components/ui/bg-pattern';
-
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main
@@ -12,13 +10,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         isolation: 'isolate',
       }}
     >
-      <BGPattern
-        variant="dots"
-        size={22}
-        fill="rgba(174, 137, 255, 0.14)"
-        style={{ position: 'fixed' }}
-      />
-
       {/* Grain texture */}
       <div
         style={{

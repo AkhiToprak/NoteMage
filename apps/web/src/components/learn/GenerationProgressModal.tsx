@@ -331,11 +331,13 @@ function ProgressBar({
       >
         <div
           style={{
-            width: status === 'failed' ? '100%' : `${percent}%`,
+            width: '100%',
             height: '100%',
+            transform: `scaleX(${status === 'failed' ? 1 : percent / 100})`,
+            transformOrigin: 'left',
             background: status === 'failed' ? 'var(--error)' : 'var(--primary)',
             borderRadius: '999px',
-            transition: 'width 0.35s cubic-bezier(0.22,1,0.36,1)',
+            transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1)',
           }}
         />
       </div>

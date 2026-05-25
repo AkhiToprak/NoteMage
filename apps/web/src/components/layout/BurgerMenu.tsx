@@ -224,7 +224,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
                   textDecoration: 'none',
                   fontSize: 14,
                   fontWeight: isActive ? 700 : 500,
-                  transition: `all 0.15s ${EASING}`,
+                  transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
                 }}
               >
                 {typeof item.icon === 'function' ? (
@@ -282,7 +282,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
               fontSize: 14,
               fontWeight: 500,
               cursor: 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               textAlign: 'left',
             }}
           >

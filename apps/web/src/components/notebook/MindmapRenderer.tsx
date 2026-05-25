@@ -1,8 +1,6 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Download, Copy, Check, Maximize2, Minimize2, FileText, Image, Brain } from 'lucide-react';
-
 interface MindmapRendererProps {
   title: string;
   markdown: string;
@@ -399,7 +397,9 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
               color: '#93a8ff',
             }}
           >
-            <Brain size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              psychology
+            </span>
           </span>
           <span
             style={{
@@ -415,22 +415,56 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
         <div style={{ display: 'flex', gap: '4px' }}>
           <ToolbarButton
             onClick={() => setExpanded((v) => !v)}
-            icon={expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            icon={
+              expanded ? (
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  close_fullscreen
+                </span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  open_in_full
+                </span>
+              )
+            }
             tooltip={expanded ? 'Collapse' : 'Expand'}
           />
           <ToolbarButton
             onClick={copyImage}
-            icon={copiedType === 'image' ? <Check size={12} /> : <Image size={12} />}
+            icon={
+              copiedType === 'image' ? (
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  check
+                </span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  image
+                </span>
+              )
+            }
             tooltip={copiedType === 'image' ? 'Copied image!' : 'Copy as image'}
           />
           <ToolbarButton
             onClick={copyMarkdown}
-            icon={copiedType === 'markdown' ? <Check size={12} /> : <FileText size={12} />}
+            icon={
+              copiedType === 'markdown' ? (
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  check
+                </span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  description
+                </span>
+              )
+            }
             tooltip={copiedType === 'markdown' ? 'Copied!' : 'Copy markdown'}
           />
           <ToolbarButton
             onClick={downloadHtml}
-            icon={<Download size={12} />}
+            icon={
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                download
+              </span>
+            }
             tooltip="Download interactive HTML"
           />
         </div>
@@ -441,7 +475,6 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
         ref={containerRef}
         style={{
           height: containerHeight,
-          transition: 'height 0.3s ease',
           position: 'relative',
           background: '#0f0e1e',
         }}

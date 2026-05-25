@@ -45,6 +45,21 @@
   --brand-gold: #ffde59;
   --brand-gold-ink: #2a2200;
 
+  /* Quiz question card — a fixed deep navy-violet (NOT theme-flipping): the
+     card carries near-white question text in both themes, so it must stay
+     dark in light mode too. Replaces the former flat pure-black (#000). */
+  --quiz-question-surface: #0c0a1a;
+
+  /* Strong action purple — the saturated CTA / selection fill used across the
+     notebook viewers, chat, and forms (formerly the hardcoded #8c52ff). Fixed
+     (NON theme-flipping): it's a brand-accent fill that reads on both the dark
+     navy and the light near-white pages, and always carries white text
+     (var(--on-primary-container)) on top. The -rgb triplet composes the
+     translucent border / hover / disabled variants via
+     `rgb(var(--accent-strong-rgb) / a)` (same pattern as the --notebook-*-rgb). */
+  --accent-strong: #8c52ff;
+  --accent-strong-rgb: 140 82 255;
+
   /* Spacing scale (4-pt base) — inline-style rhythm for marketing pages. */
   --space-2: 8px;
   --space-3: 12px;
@@ -58,6 +73,18 @@
   --space-32: 128px;
   --space-page: 32px;
   --space-section: 128px;
+
+  /* Z-index scale — named layering tokens so stacking order reads as intent
+     instead of magic numbers. Adopt incrementally (legacy inline z-indexes
+     migrate in the token-discipline pass); raise a layer by referencing the
+     next token up, never an arbitrary value. */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
 
   /* Error */
   --error: #fea1b0;
@@ -110,10 +137,16 @@
   --outline: #a5a5be;
   --outline-variant: #6a6a96;
 
+  /* Focus ring — keyboard :focus-visible. Theme-flipping so it keeps ≥3:1
+     contrast on both the dark navy and the light near-white surfaces. On the
+     dark theme it's the light lavender; the [data-theme='light'] block below
+     swaps it for a deep purple that reads on near-white. */
+  --color-focus: #d1bcff;
+
   /* Notebook surface tokens. The *-rgb triplets are space-separated so
      callers can compose translucent variants with the modern
-     `rgb(var(--token) / alpha)` syntax (same pattern as
-     --mouse-sparkles-glow-rgb below). */
+     `rgb(var(--token) / alpha)` syntax (same pattern as the
+     --notebook-*-rgb triplets below). */
   --notebook-page: #1a1933;
   --notebook-page-rgb: 26 25 51;
   --notebook-ink-rgb: 237 233 255;
@@ -213,11 +246,27 @@
   --outline: #4a4a66;
   --outline-variant: #b8b8c4;
 
+  /* Focus ring (light) — deep purple; the dark-theme light lavender would be
+     ~1.1:1 on near-white. #5e3aa8 holds ~7:1 on white and ≥4.5:1 on the
+     tinted surface tiers. */
+  --color-focus: #5e3aa8;
+
   /* Verdict / status accents — darkened so green/amber/yellow labels keep
      AA contrast on near-white (the bright dark-mode values would be
      light-on-light). */
   --success: #1f7a54;
   --warning: #8a5a00;
+
+  /* Error family — the base tokens don't theme-flip on their own (their dark
+     values are a light pink tuned for dark surfaces), so error text / borders /
+     fills were illegible on near-white in light mode (Phase 2 deferred this
+     here). Flip the whole family to Material's light error scheme: a deep red
+     that reads on white, white ink on the fill, and a pale container with
+     near-black ink. */
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
 
   /* Notebook surface tokens — pure-white paper, near-black ink. */
   --notebook-page: #ffffff;
@@ -412,15 +461,6 @@ body {
   font-family: var(--font-brand);
 }
 
-/* ─── Glass panel ─────────────────────────────────────────────────────── */
-
-.glass-panel {
-  background: rgba(33, 33, 54, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-xl);
-}
-
 /* ─── Neon glow ───────────────────────────────────────────────────────── */
 
 .neon-glow {
@@ -449,17 +489,6 @@ body {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--outline);
-}
-
-/* ─── Gradient CTA ────────────────────────────────────────────────────── */
-
-.btn-primary-gradient {
-  background: var(--primary);
-  color: var(--on-primary-container);
-}
-
-.btn-primary-gradient:hover {
-  background: var(--primary-fixed);
 }
 
 /* ─── Tonal surface helpers ───────────────────────────────────────────── */
@@ -508,79 +537,11 @@ body {
   color: var(--on-surface-variant);
 }
 
-.ns-input:focus {
-  box-shadow: 0 0 0 2px var(--primary);
-}
-
-/* ─── Magic Cursor ────────────────────────────────────────────────────── */
-
-:root {
-  --mouse-sparkles-glow-rgb: 174 137 255;
-}
-
-.mouse-sparkles-star {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  width: 1em;
-  height: 1em;
-  animation-fill-mode: forwards;
-}
-
-.mouse-sparkles-glow-point {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9998;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgb(var(--mouse-sparkles-glow-rgb) / 0.6);
-  box-shadow: 0 0 6px 2px rgb(var(--mouse-sparkles-glow-rgb) / 0.4);
-}
-
-@keyframes fall-1 {
-  0% {
-    transform: translate(0px, 0px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(0.25);
-    opacity: 0;
-  }
-  5% {
-    transform: translate(10px, -10px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(25px, 200px) rotateX(180deg) rotateY(270deg) rotateZ(90deg) scale(1);
-    opacity: 0;
-  }
-}
-
-@keyframes fall-2 {
-  0% {
-    transform: translate(0px, 0px) rotateX(-20deg) rotateY(10deg) scale(0.25);
-    opacity: 0;
-  }
-  10% {
-    transform: translate(-10px, -5px) rotateX(-20deg) rotateY(10deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-10px, 160px) rotateX(-90deg) rotateY(45deg) scale(0.25);
-    opacity: 0;
-  }
-}
-
-@keyframes fall-3 {
-  0% {
-    transform: translate(0px, 0px) rotateX(0deg) rotateY(45deg) scale(0.5);
-    opacity: 0;
-  }
-  15% {
-    transform: translate(7px, 5px) rotateX(0deg) rotateY(45deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(20px, 120px) rotateX(-180deg) rotateY(-90deg) scale(0.5);
-    opacity: 0;
-  }
+.ns-input:focus-visible {
+  /* The box-shadow IS this input's focus ring, so suppress the global
+     outline (below) to avoid a double ring; --color-focus theme-flips. */
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus);
 }
 
 /* ─── Responsive Utilities ───────────────────────────────────────────── */
@@ -789,5 +750,48 @@ body {
   .bento-3-1 {
     grid-template-columns: 3fr 1fr;
     gap: 24px;
+  }
+}
+
+/* ─── Focus visibility (keyboard a11y — audit finding 10) ─────────────── */
+/* A visible :focus-visible ring on every shared interactive primitive
+   (bottom nav, burger drawer, notebook cards, buttons, links, inputs).
+   Normal specificity + no !important, so components that ship their own
+   :focus-visible treatment still win, and elements that deliberately inline
+   `outline: none` keep opting out. The ring never animates (shows instantly
+   on focus); --color-focus theme-flips to hold ≥3:1 in both modes. Modern
+   browsers hug the element's own border-radius, so we don't set one here. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role='button']:focus-visible,
+[role='link']:focus-visible,
+[role='tab']:focus-visible,
+[role='switch']:focus-visible,
+[role='checkbox']:focus-visible,
+[role='radio']:focus-visible,
+[role='menuitem']:focus-visible,
+[role='option']:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ─── Reduced motion (global baseline — audit finding 22) ─────────────── */
+/* Safety net beneath the ~36 per-component handlers: when the OS asks to
+   reduce motion, collapse all spatial transitions and finite animations to
+   near-instant. A genuinely-essential continuous indicator (e.g. a long-load
+   spinner) can opt back out with a higher-specificity rule of its own. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

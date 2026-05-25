@@ -45,12 +45,13 @@ export default function MaintenancePage() {
       />
 
       <section
-        className="glass-panel"
         style={{
           position: 'relative',
           width: '100%',
           maxWidth: 520,
           padding: '48px 36px 40px',
+          background: 'var(--surface-container-high)',
+          borderRadius: 'var(--radius-xl)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { PenTool, Eraser, Trash2, Check } from 'lucide-react';
 
 export interface StrokeData {
   points: { x: number; y: number }[];
@@ -265,7 +264,9 @@ export default function DrawingCanvas({ drawingData, onSave, onClose }: DrawingC
       >
         {/* Pen tool indicator */}
         <button onClick={() => setIsErasing(false)} style={toolButtonStyle(!isErasing)} title="Pen">
-          <PenTool size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+            draw
+          </span>
         </button>
 
         {/* Divider */}
@@ -308,12 +309,16 @@ export default function DrawingCanvas({ drawingData, onSave, onClose }: DrawingC
           style={toolButtonStyle(isErasing)}
           title="Eraser"
         >
-          <Eraser size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+            ink_eraser
+          </span>
         </button>
 
         {/* Clear All */}
         <button onClick={handleClearAll} style={toolButtonStyle(false)} title="Clear All">
-          <Trash2 size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+            delete
+          </span>
         </button>
 
         {/* Divider */}
@@ -328,7 +333,9 @@ export default function DrawingCanvas({ drawingData, onSave, onClose }: DrawingC
           }}
           title="Done"
         >
-          <Check size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+            check
+          </span>
         </button>
       </div>
 

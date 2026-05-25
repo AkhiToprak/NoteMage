@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Lightbulb, XCircle, Code2 } from 'lucide-react';
 import { all, createLowlight } from 'lowlight';
 import { toHtml } from 'hast-util-to-html';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -35,6 +34,7 @@ export default function CodeOutputRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<CodeOutputPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -85,7 +85,7 @@ export default function CodeOutputRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '24px 22px',
@@ -115,7 +115,7 @@ export default function CodeOutputRenderer({
               textTransform: 'uppercase',
             }}
           >
-            <Code2 size={12} /> {payload?.language ?? 'code'}
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>code</span> {payload?.language ?? 'code'}
           </span>
         </div>
 
@@ -229,8 +229,8 @@ export default function CodeOutputRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -273,11 +273,11 @@ export default function CodeOutputRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> {mode === 'review' ? 'You answered correctly' : 'Correct!'}
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> {mode === 'review' ? 'You answered correctly' : 'Correct!'}
               </>
             ) : (
               <>
-                <XCircle size={16} /> {mode === 'review' ? 'You answered incorrectly' : 'Not quite'}
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> {mode === 'review' ? 'You answered incorrectly' : 'Not quite'}
               </>
             )}
           </div>

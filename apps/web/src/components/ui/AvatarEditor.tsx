@@ -320,7 +320,7 @@ export default function AvatarEditor({ open, onClose, onSaved }: AvatarEditorPro
                   borderRadius: '12px',
                   border: 'none',
                   background: uploading ? '#6b5a99' : '#ae89ff',
-                  color: '#ffffff',
+                  color: uploading ? '#ffffff' : 'var(--on-primary)',
                   fontSize: '14px',
                   fontWeight: 700,
                   cursor: uploading ? 'not-allowed' : 'pointer',

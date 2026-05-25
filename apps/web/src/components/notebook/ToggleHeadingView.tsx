@@ -2,9 +2,8 @@
 
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { TOGGLE_HEADING_STYLES, type ToggleLevel } from '@/lib/tiptap-toggle-heading';
-import { ChevronRight } from 'lucide-react';
 
 export default function ToggleHeadingView({
   node,
@@ -16,8 +15,6 @@ export default function ToggleHeadingView({
   const collapsed = !!node.attrs.collapsed;
   const summary = (node.attrs.summary as string) || '';
   const style = TOGGLE_HEADING_STYLES[level];
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [contentHeight, setContentHeight] = useState<number | undefined>(undefined);
 
   // New-style flat toggle headings have a single empty paragraph as
   // their only child (a schema-compliance placeholder — the real
@@ -33,22 +30,7 @@ export default function ToggleHeadingView({
     node.content.firstChild.content.size === 0
   );
 
-  // Track content height via ResizeObserver so it updates when images load, etc.
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setContentHeight(el.scrollHeight);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   const toggleCollapsed = useCallback(() => {
-    // Measure before toggling so animation works
-    if (contentRef.current) {
-      setContentHeight(contentRef.current.scrollHeight);
-    }
     updateAttributes({ collapsed: !collapsed });
   }, [collapsed, updateAttributes]);
 
@@ -108,9 +90,10 @@ export default function ToggleHeadingView({
         }}
         onClick={toggleCollapsed}
       >
-        <ChevronRight
-          size={16}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 16,
             position: 'absolute',
             left: '-22px',
             top: '50%',
@@ -118,7 +101,10 @@ export default function ToggleHeadingView({
             transform: `translateY(-50%) rotate(${collapsed ? '0deg' : '90deg'})`,
             transition: 'transform 0.2s ease',
           }}
-        />
+          aria-hidden
+        >
+          chevron_right
+        </span>
 
         {/* Editable summary input */}
         <input
@@ -152,16 +138,15 @@ export default function ToggleHeadingView({
           NodeViewContent must always be mounted in the DOM (even when
           hidden) so ProseMirror can keep tracking the child positions. */}
       <div
-        ref={contentRef}
         style={{
-          display: hasInlineBody ? 'block' : 'none',
+          display: hasInlineBody ? 'grid' : 'none',
+          gridTemplateRows: collapsed ? '0fr' : '1fr',
           overflow: 'hidden',
-          transition: 'max-height 0.25s ease, opacity 0.2s ease',
-          maxHeight: collapsed ? '0px' : contentHeight ? `${contentHeight + 40}px` : '2000px',
+          transition: 'grid-template-rows 0.25s ease, opacity 0.2s ease',
           opacity: collapsed ? 0 : 1,
         }}
       >
-        <div style={{ padding: '4px 0 4px 0' }}>
+        <div style={{ minHeight: 0, overflow: 'hidden', padding: '4px 0 4px 0' }}>
           <NodeViewContent />
         </div>
       </div>

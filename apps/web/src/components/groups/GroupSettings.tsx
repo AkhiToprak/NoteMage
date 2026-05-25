@@ -448,8 +448,9 @@ export default function GroupSettings({
                     background: '#fff',
                     position: 'absolute',
                     top: 3,
-                    left: perm.value ? 23 : 3,
-                    transition: `left 0.2s ${EASING}`,
+                    left: 3,
+                    transform: perm.value ? 'translateX(20px)' : 'translateX(0)',
+                    transition: `transform 0.2s ${EASING}`,
                     boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                   }}
                 />

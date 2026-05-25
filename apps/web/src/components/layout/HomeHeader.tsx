@@ -16,17 +16,20 @@ import { ContextualMascot, useMascotContextPose } from '@/components/mascot';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
+// Theme-aware chrome tokens. The header surface flips with var(--background),
+// so every child colour must be a token too (no hardcoded near-white text /
+// dark fills that would strand the search bar dark on the light header).
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#0f0f0f',
-  elevated: '#1f1f1f',
-  inputBg: '#1a1a1a',
-  primary: '#ae89ff',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
-  error: '#fd6f85',
-  border: 'rgba(174,137,255,0.18)',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-high)',
+  primary: 'var(--brand-purple)',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
+  error: 'var(--error)',
+  border: 'var(--outline-variant)',
 } as const;
 
 export default function HomeHeader() {
@@ -126,7 +129,7 @@ export default function HomeHeader() {
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
@@ -349,7 +352,7 @@ export default function HomeHeader() {
                           color: isHovered ? COLORS.textPrimary : COLORS.textSecondary,
                           textDecoration: 'none',
                           fontSize: 13,
-                          transition: `all 0.1s`,
+                          transition: `background 0.1s, color 0.1s`,
                         }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
@@ -385,7 +388,7 @@ export default function HomeHeader() {
                         fontSize: 13,
                         cursor: 'pointer',
                         textAlign: 'left',
-                        transition: `all 0.1s`,
+                        transition: `background 0.1s, color 0.1s`,
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 18 }}>

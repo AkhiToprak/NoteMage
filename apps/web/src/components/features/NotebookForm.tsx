@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
 import type { NotebookData } from './NotebookCard';
 import { PRESETS, matchPresets, type Preset } from '@/lib/presets';
 
@@ -50,7 +49,7 @@ const labelStyle: React.CSSProperties = {
   fontFamily: 'inherit',
   fontSize: '12px',
   fontWeight: '600',
-  color: 'rgba(237,233,255,0.5)',
+  color: 'var(--ink-50)',
   marginBottom: '6px',
   letterSpacing: '0.04em',
   textTransform: 'uppercase',
@@ -172,7 +171,7 @@ export default function NotebookForm({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--surface-container)',
           border: '1px solid rgba(174,137,255,0.40)',
           borderRadius: '18px',
           padding: '28px',
@@ -198,8 +197,8 @@ export default function NotebookForm({
             gap: 6px;
             padding: 5px 12px;
             border-radius: 9999px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.07);
+            border: 1px solid var(--ink-12);
+            background: var(--ink-08);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -208,8 +207,8 @@ export default function NotebookForm({
             white-space: nowrap;
           }
           .preset-pill:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.2);
+            background: var(--ink-08);
+            border-color: var(--ink-20);
             transform: translateY(-1px);
           }
           .preset-pill:active { transform: scale(0.96); }
@@ -227,7 +226,7 @@ export default function NotebookForm({
             font-family: 'Gliker', 'DM Sans', sans-serif;
             transition: background 0.1s ease;
           }
-          .preset-all-item:hover { background: rgba(255,255,255,0.06); }
+          .preset-all-item:hover { background: var(--ink-04); }
         `}</style>
 
         {/* Header */}
@@ -257,25 +256,25 @@ export default function NotebookForm({
               width: '30px',
               height: '30px',
               borderRadius: '8px',
-              background: 'rgba(237,233,255,0.06)',
-              border: '1px solid rgba(237,233,255,0.1)',
+              background: 'var(--ink-04)',
+              border: '1px solid var(--ink-08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'var(--ink-50)',
               transition: 'background 0.12s ease, color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(237,233,255,0.1)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-08)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(237,233,255,0.06)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.5)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-04)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-50)';
             }}
           >
-            <X size={15} />
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>close</span>
           </button>
         </div>
 
@@ -286,7 +285,7 @@ export default function NotebookForm({
           {/* Name */}
           <div>
             <label style={labelStyle}>
-              Name <span style={{ color: '#8c52ff' }}>*</span>
+              Name <span style={{ color: 'var(--accent-strong)' }}>*</span>
             </label>
             <input
               type="text"
@@ -350,13 +349,13 @@ export default function NotebookForm({
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'rgba(237,233,255,0.35)',
+                    color: 'var(--ink-30)',
                     padding: '0',
                     display: 'flex',
                     alignItems: 'center',
                   }}
                 >
-                  <X size={13} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>close</span>
                 </button>
               </div>
             )}
@@ -403,13 +402,13 @@ export default function NotebookForm({
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'rgba(237,233,255,0.35)',
+                      color: 'var(--ink-30)',
                       padding: '0',
                       display: 'flex',
                       alignItems: 'center',
                     }}
                   >
-                    <X size={13} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>close</span>
                   </button>
                 </div>
                 <label
@@ -418,7 +417,7 @@ export default function NotebookForm({
                     fontFamily: 'inherit',
                     fontSize: '11px',
                     fontWeight: '600',
-                    color: 'rgba(237,233,255,0.4)',
+                    color: 'var(--ink-40)',
                     marginBottom: '6px',
                     letterSpacing: '0.04em',
                     textTransform: 'uppercase',
@@ -507,7 +506,7 @@ export default function NotebookForm({
                     cursor: 'pointer',
                     fontFamily: 'inherit',
                     fontSize: '12px',
-                    color: 'rgba(174,137,255,0.7)',
+                    color: 'var(--md-link)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -526,8 +525,8 @@ export default function NotebookForm({
               <div
                 style={{
                   marginTop: '8px',
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.16)',
+                  background: 'var(--ink-08)',
+                  border: '1px solid var(--ink-12)',
                   borderRadius: '12px',
                   padding: '6px',
                   animation: 'fadeIn 0.15s ease',
@@ -546,7 +545,7 @@ export default function NotebookForm({
                       fontFamily: 'inherit',
                       fontSize: '11px',
                       fontWeight: '600',
-                      color: 'rgba(237,233,255,0.35)',
+                      color: 'var(--ink-30)',
                       letterSpacing: '0.06em',
                       textTransform: 'uppercase',
                     }}
@@ -560,12 +559,12 @@ export default function NotebookForm({
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      color: 'rgba(237,233,255,0.3)',
+                      color: 'var(--ink-30)',
                       display: 'flex',
                       padding: '0',
                     }}
                   >
-                    <X size={13} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>close</span>
                   </button>
                 </div>
                 {PRESETS.map((preset) => (
@@ -598,7 +597,7 @@ export default function NotebookForm({
                       style={{
                         fontFamily: 'inherit',
                         fontSize: '11px',
-                        color: 'rgba(237,233,255,0.35)',
+                        color: 'var(--ink-30)',
                         marginLeft: 'auto',
                       }}
                     >
@@ -644,7 +643,7 @@ export default function NotebookForm({
                     height: '28px',
                     borderRadius: '50%',
                     background: c,
-                    border: form.color === c ? '2px solid #fff' : '2px solid transparent',
+                    border: form.color === c ? '2px solid var(--on-surface)' : '2px solid transparent',
                     outline: form.color === c ? `2px solid ${c}` : 'none',
                     outlineOffset: '2px',
                     cursor: 'pointer',
@@ -667,22 +666,22 @@ export default function NotebookForm({
                 flex: 1,
                 padding: '11px',
                 borderRadius: '12px',
-                background: 'rgba(237,233,255,0.06)',
-                border: '1px solid rgba(237,233,255,0.12)',
+                background: 'var(--ink-04)',
+                border: '1px solid var(--ink-12)',
                 fontFamily: 'inherit',
                 fontSize: '14px',
                 fontWeight: '600',
-                color: 'rgba(237,233,255,0.6)',
+                color: 'var(--ink-60)',
                 cursor: 'pointer',
                 transition: 'background 0.12s ease, color 0.12s ease',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(237,233,255,0.1)';
-                (e.currentTarget as HTMLButtonElement).style.color = '#ede9ff';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-08)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(237,233,255,0.06)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.6)';
+                (e.currentTarget as HTMLButtonElement).style.background = 'var(--ink-04)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-60)';
               }}
             >
               Cancel
@@ -694,12 +693,12 @@ export default function NotebookForm({
                 flex: 2,
                 padding: '11px',
                 borderRadius: '12px',
-                background: isLoading || !form.name.trim() ? 'rgba(140,82,255,0.3)' : '#8c52ff',
+                background: isLoading || !form.name.trim() ? 'rgb(var(--accent-strong-rgb) / 0.3)' : 'var(--accent-strong)',
                 border: 'none',
                 fontFamily: 'inherit',
                 fontSize: '14px',
                 fontWeight: '700',
-                color: isLoading || !form.name.trim() ? 'rgba(237,233,255,0.4)' : '#ede9ff',
+                color: isLoading || !form.name.trim() ? 'var(--ink-40)' : 'var(--on-primary-container)',
                 cursor: isLoading || !form.name.trim() ? 'not-allowed' : 'pointer',
                 boxShadow:
                   isLoading || !form.name.trim() ? 'none' : '0 4px 20px rgba(140,82,255,0.28)',

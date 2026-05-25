@@ -22,12 +22,10 @@ These rules define how to translate Figma MCP output into code for the Notemage 
 
 | Class                  | Purpose                                                                                               |
 | ---------------------- | ----------------------------------------------------------------------------------------------------- |
-| `glass-panel`          | Frosted glass: `rgba(33,33,54,0.7)` + `blur(20px)` + `border-radius: var(--radius-xl)`                |
 | `neon-glow`            | Purple glow: `box-shadow: 0 0 40px 12px rgba(174,137,255,0.15), 0 0 80px 24px rgba(174,137,255,0.08)` |
 | `notebook-pattern`     | Dot grid background with primary-tinted dots                                                          |
 | `surface-elevated`     | `background: var(--surface-container)` + `border-radius: var(--radius-lg)`                            |
 | `surface-floating`     | `background: var(--surface-container-high)` + shadow + `border-radius: var(--radius-lg)`              |
-| `btn-primary-gradient` | Gradient CTA button using primary colors                                                              |
 | `ns-input`             | Standard input styling with focus ring                                                                |
 | `transition-spring`    | Spring easing on transform + opacity (`cubic-bezier(0.22, 1, 0.36, 1)`)                               |
 | `shadow-ambient`       | Large ambient shadow with primary tint                                                                |
@@ -86,7 +84,7 @@ When Figma returns colors, map them to CSS variables:
 | `var(--radius-sm)`   | 8px    | Small elements, badges         |
 | `var(--radius-md)`   | 12px   | Buttons, inputs, cards         |
 | `var(--radius-lg)`   | 16px   | Panels, elevated surfaces      |
-| `var(--radius-xl)`   | 24px   | Glass panels, large containers |
+| `var(--radius-xl)`   | 24px   | Large containers, modals       |
 | `var(--radius-full)` | 9999px | Circles, pills                 |
 
 ## Shadow Patterns

@@ -242,7 +242,7 @@ export default function AddFriendModal({ open, onClose }: AddFriendModalProps) {
               padding: '6px 16px',
               border: 'none',
               cursor: 'pointer',
-              transition: `all 0.2s ${EASING}`,
+              transition: `background 0.2s ${EASING}`,
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}
@@ -284,7 +284,7 @@ export default function AddFriendModal({ open, onClose }: AddFriendModalProps) {
               padding: '6px 16px',
               border: 'none',
               cursor: 'pointer',
-              transition: `all 0.2s ${EASING}`,
+              transition: `background 0.2s ${EASING}`,
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}

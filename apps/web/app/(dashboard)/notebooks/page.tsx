@@ -685,6 +685,7 @@ function NotebooksPageContent() {
           style={{
             marginLeft: isPhone ? undefined : 'auto',
             display: 'flex',
+            flexWrap: 'wrap',
             gap: '10px',
             width: isPhone ? '100%' : undefined,
           }}
@@ -709,7 +710,7 @@ function NotebooksPageContent() {
               fontWeight: 700,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              flex: isPhone ? 1 : undefined,
+              flex: isPhone ? '1 1 100%' : undefined,
               transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
             }}
             onMouseEnter={(e) => {
@@ -750,7 +751,7 @@ function NotebooksPageContent() {
               fontWeight: 700,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              flex: isPhone ? 1 : undefined,
+              flex: isPhone ? '1 1 100%' : undefined,
               transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
             }}
             onMouseEnter={(e) => {
@@ -794,7 +795,7 @@ function NotebooksPageContent() {
               fontWeight: 700,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              flex: isPhone ? 1 : undefined,
+              flex: isPhone ? '1 1 100%' : undefined,
               boxShadow: '0 4px 16px rgba(174,137,255,0.25)',
               transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
             }}

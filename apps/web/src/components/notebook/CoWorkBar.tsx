@@ -383,7 +383,7 @@ export default function CoWorkBar({
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >
@@ -436,7 +436,7 @@ export default function CoWorkBar({
             fontSize: 11,
             fontWeight: 600,
             cursor: 'pointer',
-            transition: `all 0.15s ${EASING}`,
+            transition: `background 0.15s ${EASING}`,
             fontFamily: 'inherit',
           }}
         >
@@ -465,7 +465,7 @@ export default function CoWorkBar({
               fontSize: 11,
               fontWeight: 600,
               cursor: ending ? 'wait' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >
@@ -499,7 +499,7 @@ export default function CoWorkBar({
               fontSize: 11,
               fontWeight: 600,
               cursor: leaving ? 'wait' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >

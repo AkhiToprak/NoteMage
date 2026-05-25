@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BGPattern } from '@/components/ui/bg-pattern';
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import Hero from '@/components/landing/Hero';
 import NotetakingCanvasSpotlight from '@/components/landing/NotetakingCanvasSpotlight';
@@ -40,12 +39,6 @@ export default function LandingPage() {
         minHeight: '100vh',
       }}
     >
-      <BGPattern
-        variant="dots"
-        size={22}
-        fill="rgba(174, 137, 255, 0.14)"
-        style={{ position: 'fixed' }}
-      />
       <LandingNavbar />
       <Hero />
       <NotetakingCanvasSpotlight />

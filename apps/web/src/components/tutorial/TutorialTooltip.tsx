@@ -323,7 +323,7 @@ export function TutorialTooltip({
                   height: 6,
                   borderRadius: 'var(--radius-full)',
                   background: i === stepIndex ? 'var(--primary)' : 'var(--outline-variant)',
-                  transition: reduceMotion ? 'none' : 'width 0.25s cubic-bezier(0.22,1,0.36,1)',
+                  transition: reduceMotion ? 'none' : 'background 0.25s cubic-bezier(0.22,1,0.36,1)',
                 }}
               />
             ))}

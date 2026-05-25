@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Trash2, Plus, Loader2 } from 'lucide-react';
 
 interface FlashcardSetCreatorProps {
   notebookId: string;
@@ -136,7 +135,9 @@ export default function FlashcardSetCreator({
               display: 'flex',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -234,7 +235,13 @@ export default function FlashcardSetCreator({
                       (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.5)';
                     }}
                   >
-                    <Trash2 size={13} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 13 }}
+                      aria-hidden
+                    >
+                      delete
+                    </span>
                   </button>
                 )}
               </div>
@@ -306,7 +313,10 @@ export default function FlashcardSetCreator({
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.6)';
             }}
           >
-            <Plus size={14} /> Add Card
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              add
+            </span>{' '}
+            Add Card
           </button>
 
           {/* Error */}
@@ -368,7 +378,15 @@ export default function FlashcardSetCreator({
               fontWeight: 600,
             }}
           >
-            {isSubmitting && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+            {isSubmitting && (
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
+            )}
             {isSubmitting ? 'Creating...' : 'Create Set'}
           </button>
         </div>

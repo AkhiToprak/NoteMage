@@ -52,7 +52,7 @@ const PRIMARY_THEME: AccentTheme = {
   accentBg: 'rgba(174,137,255,0.1)',
   badgeBg: 'rgba(174,137,255,0.1)',
   badgeBorder: 'rgba(174,137,255,0.2)',
-  badgeText: '#ae89ff',
+  badgeText: 'var(--md-h4)',
   hoverBorder: 'rgba(174,137,255,0.4)',
 };
 const SECONDARY_THEME: AccentTheme = {
@@ -60,7 +60,7 @@ const SECONDARY_THEME: AccentTheme = {
   accentBg: 'rgba(185,195,255,0.1)',
   badgeBg: 'rgba(185,195,255,0.1)',
   badgeBorder: 'rgba(185,195,255,0.32)',
-  badgeText: '#b9c3ff',
+  badgeText: 'var(--md-h3)',
   hoverBorder: 'rgba(185,195,255,0.55)',
 };
 const TERTIARY_THEME: AccentTheme = {
@@ -68,7 +68,7 @@ const TERTIARY_THEME: AccentTheme = {
   accentBg: 'rgba(255,237,179,0.1)',
   badgeBg: 'rgba(255,237,179,0.1)',
   badgeBorder: 'rgba(255,237,179,0.2)',
-  badgeText: '#f0d04c',
+  badgeText: 'var(--warning)',
   hoverBorder: 'rgba(255,237,179,0.4)',
 };
 const ERROR_THEME: AccentTheme = {
@@ -76,7 +76,7 @@ const ERROR_THEME: AccentTheme = {
   accentBg: 'rgba(253,111,133,0.1)',
   badgeBg: 'rgba(253,111,133,0.1)',
   badgeBorder: 'rgba(253,111,133,0.2)',
-  badgeText: '#c8475d',
+  badgeText: 'var(--error)',
   hoverBorder: 'rgba(253,111,133,0.4)',
 };
 
@@ -126,7 +126,7 @@ export default function NotebookCard({
         <div
           style={{
             position: 'relative',
-            background: '#12122a',
+            background: 'var(--surface-container)',
             borderRadius: '12px',
             overflow: 'hidden',
             border: `1px solid ${hovered ? theme.hoverBorder : 'rgba(70,69,96,0.1)'}`,
@@ -176,7 +176,7 @@ export default function NotebookCard({
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  border: '1.5px solid #ffffff',
+                  border: '1.5px solid var(--outline)',
                 }}
               />
             ))}
@@ -242,10 +242,10 @@ export default function NotebookCard({
                   transition: 'color 0.15s',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = theme.accent;
+                  (e.currentTarget as HTMLButtonElement).style.color = theme.badgeText;
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = '#aaa8c8';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface-variant)';
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
@@ -260,7 +260,7 @@ export default function NotebookCard({
                 fontFamily: '"Epilogue", serif',
                 fontSize: '18px',
                 fontWeight: 700,
-                color: hovered ? theme.accent : '#e5e3ff',
+                color: hovered ? theme.badgeText : 'var(--on-surface)',
                 margin: 0,
                 lineHeight: 1.3,
                 transition: 'color 0.3s cubic-bezier(0.22,1,0.36,1)',
@@ -340,7 +340,7 @@ export default function NotebookCard({
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '18px', color: '#ae89ff' }}
+              style={{ fontSize: '18px', color: 'var(--md-h4)' }}
             >
               edit
             </span>
@@ -360,7 +360,7 @@ export default function NotebookCard({
               padding: '12px 16px',
               background: 'transparent',
               border: 'none',
-              color: '#fd6f85',
+              color: 'var(--error)',
               fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',

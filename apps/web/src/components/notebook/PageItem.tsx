@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
 import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 import type { PageSummary } from '@/components/notebook/SectionTree';
 
@@ -126,7 +125,9 @@ export default function PageItem({
             e.currentTarget.style.color = 'var(--ink-30)';
           }}
         >
-          <Trash2 size={12} />
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            delete
+          </span>
         </button>
       )}
     </Link>

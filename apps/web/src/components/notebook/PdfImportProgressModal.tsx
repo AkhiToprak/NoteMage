@@ -379,11 +379,13 @@ function ProgressBar({
       >
         <div
           style={{
-            width: `${percent}%`,
+            width: '100%',
             height: '100%',
+            transform: `scaleX(${percent / 100})`,
+            transformOrigin: 'left',
             background: 'var(--primary)',
             borderRadius: '999px',
-            transition: 'width 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         />
       </div>

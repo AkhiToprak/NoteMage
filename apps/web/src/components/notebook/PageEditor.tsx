@@ -21,7 +21,6 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import FontFamily from '@tiptap/extension-font-family';
-import { Loader } from 'lucide-react';
 import EditorToolbar from './EditorToolbar';
 import DrawingOverlay, { hydrateStrokes, hydrateTexts } from './DrawingOverlay';
 import type {
@@ -1265,7 +1264,13 @@ export default function PageEditor({
             }}
           >
             {saveStatus === 'saving' && (
-              <Loader size={11} style={{ animation: 'spin 0.8s linear infinite' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 11, animation: 'spin 0.8s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
             )}
             {saveStatus === 'saved' && 'Saved'}
             {saveStatus === 'saving' && 'Saving...'}

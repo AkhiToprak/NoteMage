@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, FileText, FilePlus, Trash2, MessageSquare, Sparkles } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import { getSectionColor } from '@/components/notebook/SectionListItem';
 import type { NotebookChatItem } from '@/components/notebook/NotebookWorkspaceContext';
@@ -137,7 +136,13 @@ export default function PagePanel() {
               flexShrink: 0,
             }}
           >
-            <Sparkles size={9} style={{ color: '#c4a9ff' }} />
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 9, color: '#c4a9ff' }}
+              aria-hidden
+            >
+              auto_awesome
+            </span>
           </div>
           <span
             style={{
@@ -215,7 +220,9 @@ export default function PagePanel() {
                 (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.5)';
               }}
             >
-              <Plus size={12} />
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                add
+              </span>
               New chat
             </button>
           </Link>
@@ -324,7 +331,13 @@ export default function PagePanel() {
               borderLeft: `2px solid ${accentColor}60`,
             }}
           >
-            <FilePlus size={12} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+              aria-hidden
+            >
+              note_add
+            </span>
             <input
               ref={inputRef}
               type="text"
@@ -394,7 +407,9 @@ export default function PagePanel() {
               : 'var(--ink-12)';
           }}
         >
-          <Plus size={12} />
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            add
+          </span>
           Add page
         </button>
       </div>
@@ -436,13 +451,17 @@ function ChatRow({
           cursor: 'pointer',
         }}
       >
-        <MessageSquare
-          size={13}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 13,
             color: isActive ? accentColor : 'var(--ink-20)',
             flexShrink: 0,
           }}
-        />
+          aria-hidden
+        >
+          chat
+        </span>
         <span
           style={{
             flex: 1,
@@ -483,7 +502,9 @@ function ChatRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
-            <Trash2 size={11} />
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+              delete
+            </span>
           </button>
         )}
       </div>
@@ -529,13 +550,17 @@ function PageRow({
           cursor: 'pointer',
         }}
       >
-        <FileText
-          size={13}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 13,
             color: isActive ? accentColor : 'var(--ink-20)',
             flexShrink: 0,
           }}
-        />
+          aria-hidden
+        >
+          description
+        </span>
         <span
           style={{
             flex: 1,
@@ -576,7 +601,9 @@ function PageRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
-            <Trash2 size={11} />
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+              delete
+            </span>
           </button>
         )}
       </div>

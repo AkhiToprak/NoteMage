@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Loader } from 'lucide-react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 // NOTE: This whole module is only ever loaded client-side because the parent
 // `app/(dashboard)/notebooks/[id]/pages/[pageId]/page.tsx` imports it via
@@ -23,6 +22,7 @@ import type {
 } from '@excalidraw/excalidraw/element/types';
 import { useCoworkSocket } from '@/lib/cowork-socket';
 import { isInsideNativeShell, nativeBridge } from '@/lib/native-bridge';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import RemoteCursor from './RemoteCursor';
 import PageLockIndicator from './PageLockIndicator';
 
@@ -294,6 +294,13 @@ export default function InfiniteCanvas({
   const backgroundStyleRef = useRef<BackgroundStyle>('blank');
   const patternElementRef = useRef<SVGPatternElement | null>(null);
   titleRef.current = title;
+
+  // Component is loaded via dynamic(ssr:false), so useBreakpoint reads the real
+  // viewport on the first client render — no SSR snapshot to flash past.
+  const { isPhone, isTablet, isPhoneOrTablet } = useBreakpoint();
+  // Tracks the last page we fit-to-viewport on so the mobile fit runs once per
+  // page (and re-runs when the user switches canvas pages).
+  const fittedPageRef = useRef<string | null>(null);
 
   /* ─── Co-work state ─────────────────────────────────────────────────── *
    * Mirrors PageEditor's cowork plumbing but adapted for Excalidraw's
@@ -1123,6 +1130,47 @@ export default function InfiniteCanvas({
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [page]);
 
+  /* ─── Mobile: fit the saved drawing into the viewport on load ───────── *
+   * Excalidraw mounts at 100% zoom anchored near the scene origin. On a
+   * phone or tablet that left the saved drawing scrolled out of frame —
+   * the elements exist in the DOM but aren't presented in the small
+   * viewport, so the canvas reads as blank. Once the absolute-inset
+   * wrapper has a real size AND the imperative API is ready, fit the
+   * content to the viewport so the whole drawing is visible at a sane
+   * zoom. Desktop keeps Excalidraw's default centring (initialData's
+   * scrollToContent) untouched. The RAF retry covers the first frames
+   * where the wrapper hasn't been measured yet (the common cause of the
+   * "blank on mobile" report). Blank canvases are left at the origin —
+   * there's nothing to frame. */
+  useEffect(() => {
+    if (isLoading || !page) return;
+    if (!isPhoneOrTablet) return;
+    if (fittedPageRef.current === pageId) return;
+
+    let raf = 0;
+    let tries = 0;
+    const attempt = () => {
+      const api = excalidrawAPIRef.current;
+      const wrap = canvasWrapperRef.current;
+      if (api && wrap && wrap.clientWidth > 0 && wrap.clientHeight > 0) {
+        const els = api.getSceneElements();
+        if (els.length > 0) {
+          api.scrollToContent(els, {
+            fitToViewport: true,
+            viewportZoomFactor: 0.9,
+            maxZoom: 1,
+          });
+        }
+        fittedPageRef.current = pageId;
+        return;
+      }
+      // ~0.66s of frames to let the canvas mount + lay out before giving up.
+      if (tries++ < 40) raf = requestAnimationFrame(attempt);
+    };
+    raf = requestAnimationFrame(attempt);
+    return () => cancelAnimationFrame(raf);
+  }, [isLoading, page, isPhoneOrTablet, pageId]);
+
   /* ─── Derive initial data from fetched page (memoized per page) ─────── */
   const initialData = useMemo<ExcalidrawInitialDataState | null>(() => {
     if (!page) return null;
@@ -1365,7 +1413,12 @@ export default function InfiniteCanvas({
       `}</style>
 
       {/* Title + save status */}
-      <div style={{ padding: '18px 40px 0', flexShrink: 0 }}>
+      <div
+        style={{
+          padding: isPhone ? '14px 14px 0' : isTablet ? '16px 24px 0' : '18px 40px 0',
+          flexShrink: 0,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
           <input
             value={title}
@@ -1430,7 +1483,7 @@ export default function InfiniteCanvas({
             }}
           >
             {saveStatus === 'saving' && (
-              <Loader size={11} style={{ animation: 'spin 0.8s linear infinite' }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span>
             )}
             {saveStatus === 'saved' && 'Saved'}
             {saveStatus === 'saving' && 'Saving...'}

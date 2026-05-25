@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, Lightbulb, XCircle, Globe2 } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TranslationPayload } from '@notemage/shared';
 import { fuzzyMatch } from '@/lib/quiz-grading';
@@ -18,6 +17,7 @@ export default function TranslationRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<TranslationPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -67,7 +67,7 @@ export default function TranslationRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -99,7 +99,7 @@ export default function TranslationRenderer({
               textTransform: 'uppercase',
             }}
           >
-            <Globe2 size={12} /> Answer in {targetLanguage}
+            <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>translate</span> Answer in {targetLanguage}
           </span>
         </div>
       )}
@@ -187,8 +187,8 @@ export default function TranslationRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -231,11 +231,11 @@ export default function TranslationRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> {mode === 'review' ? 'You answered correctly' : 'Correct!'}
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> {mode === 'review' ? 'You answered correctly' : 'Correct!'}
               </>
             ) : (
               <>
-                <XCircle size={16} /> {mode === 'review' ? 'You answered incorrectly' : 'Not quite'}
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> {mode === 'review' ? 'You answered incorrectly' : 'Not quite'}
               </>
             )}
           </div>

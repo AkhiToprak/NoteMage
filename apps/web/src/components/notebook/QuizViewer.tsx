@@ -1,29 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Download,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-  Check,
-  BookPlus,
-  ChevronDown,
-  Loader2,
-  BookCheck,
-  Clock,
-  History,
-  TrendingUp,
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
+import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import { grade } from '@/lib/quiz-grading';
 import {
   QuizReactionLayer,
@@ -110,6 +93,7 @@ export default function QuizViewer({
   onComplete,
 }: QuizViewerProps) {
   const { isPhone, isTablet } = useBreakpoint();
+  const coarsePointer = useCoarsePointer();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
@@ -712,7 +696,7 @@ export default function QuizViewer({
             style={{
               fontSize: '36px',
               fontWeight: 800,
-              color: accuracy >= 70 ? '#4ade80' : accuracy >= 40 ? '#fbbf24' : '#fca5a5',
+              color: accuracy >= 70 ? 'var(--success)' : accuracy >= 40 ? 'var(--warning)' : 'var(--error)',
             }}
           >
             {accuracy}%
@@ -732,9 +716,9 @@ export default function QuizViewer({
           }}
         >
           {[
-            { label: 'Score', value: `${correctCount}/${questions.length}`, color: '#c4a9ff' },
-            { label: 'Right', value: `${correctCount}`, color: '#4ade80' },
-            { label: 'Wrong', value: `${wrongCount}`, color: '#fca5a5' },
+            { label: 'Score', value: `${correctCount}/${questions.length}`, color: 'var(--md-h3)' },
+            { label: 'Right', value: `${correctCount}`, color: 'var(--success)' },
+            { label: 'Wrong', value: `${wrongCount}`, color: 'var(--error)' },
             {
               label: 'Skipped',
               value: `${skippedCount}`,
@@ -779,7 +763,7 @@ export default function QuizViewer({
               marginBottom: '16px',
             }}
           >
-            <Clock size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>schedule</span>
             <span>{elapsedSeconds}s</span>
           </div>
         )}
@@ -799,11 +783,11 @@ export default function QuizViewer({
               fontSize: '13px',
             }}
           >
-            <TrendingUp size={14} style={{ color: '#c4a9ff' }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--md-h3)' }} aria-hidden>trending_up</span>
             <span style={{ color: 'var(--ink-60)' }}>
-              Previous best: <strong style={{ color: '#c4a9ff' }}>{bestScore}%</strong>
+              Previous best: <strong style={{ color: 'var(--md-h3)' }}>{bestScore}%</strong>
               {' · '}
-              Attempts: <strong style={{ color: '#c4a9ff' }}>{attemptHistory.length}</strong>
+              Attempts: <strong style={{ color: 'var(--md-h3)' }}>{attemptHistory.length}</strong>
             </span>
           </div>
         )}
@@ -877,7 +861,7 @@ export default function QuizViewer({
                     gap: '8px',
                   }}
                 >
-                  <History size={16} /> Quiz History
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>history</span> Quiz History
                 </h3>
                 <button
                   onClick={() => setShowHistory(false)}
@@ -890,7 +874,7 @@ export default function QuizViewer({
                     display: 'flex',
                   }}
                 >
-                  <X size={16} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>close</span>
                 </button>
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
@@ -945,10 +929,10 @@ export default function QuizViewer({
                             fontWeight: 700,
                             color:
                               attempt.percentage >= 70
-                                ? '#4ade80'
+                                ? 'var(--success)'
                                 : attempt.percentage >= 40
-                                  ? '#fbbf24'
-                                  : '#fca5a5',
+                                  ? 'var(--warning)'
+                                  : 'var(--error)',
                           }}
                         >
                           {Math.round(attempt.percentage)}%
@@ -964,7 +948,7 @@ export default function QuizViewer({
                             {attempt.score}/{attempt.total} correct
                             {i === 0 && (
                               <span
-                                style={{ color: '#c4a9ff', fontSize: '11px', marginLeft: '6px' }}
+                                style={{ color: 'var(--md-h3)', fontSize: '11px', marginLeft: '6px' }}
                               >
                                 Latest
                               </span>
@@ -1015,12 +999,13 @@ export default function QuizViewer({
         overflow: 'auto',
       }}
     >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       {/* Title */}
       <h2
         style={{
           fontSize: '20px',
           fontWeight: 700,
-          color: '#f5f1ff',
+          color: 'var(--on-surface)',
           margin: '0 0 4px',
           textAlign: 'center',
           fontFamily: 'inherit',
@@ -1035,7 +1020,7 @@ export default function QuizViewer({
           style={{
             fontSize: '11px',
             fontWeight: 600,
-            color: bestScore >= 70 ? '#4ade80' : bestScore >= 40 ? '#fbbf24' : '#fca5a5',
+            color: bestScore >= 70 ? 'var(--success)' : bestScore >= 40 ? 'var(--warning)' : 'var(--error)',
             background:
               bestScore >= 70
                 ? 'rgba(74,222,128,0.1)'
@@ -1056,7 +1041,7 @@ export default function QuizViewer({
         <span
           style={{
             fontSize: '11px',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontWeight: 600,
             background: 'rgba(251,191,36,0.1)',
             border: '1px solid rgba(251,191,36,0.2)',
@@ -1086,7 +1071,7 @@ export default function QuizViewer({
           letterSpacing: '0.04em',
         }}
       >
-        <span style={{ color: '#d6c2ff', fontWeight: 700 }}>{currentIndex + 1}</span>
+        <span style={{ color: 'var(--md-em)', fontWeight: 700 }}>{currentIndex + 1}</span>
         <span style={{ color: 'var(--ink-30)' }}>/</span>
         <span>{questions.length}</span>
       </div>
@@ -1099,7 +1084,7 @@ export default function QuizViewer({
             width: '100%',
             maxWidth: isPhone ? '100%' : '480px',
             borderRadius: '16px',
-            background: '#0a0a0a',
+            background: 'var(--surface-container-lowest)',
             border: '1px solid rgba(174,137,255,0.45)',
             padding: isPhone ? '16px' : '24px',
             display: 'flex',
@@ -1124,18 +1109,18 @@ export default function QuizViewer({
                   height: '24px',
                   borderRadius: '50%',
                   flexShrink: 0,
-                  border: `2px solid ${editCorrectIndex === i ? '#4ade80' : 'rgba(140,82,255,0.3)'}`,
+                  border: `2px solid ${editCorrectIndex === i ? 'var(--success)' : 'rgba(140,82,255,0.3)'}`,
                   background: editCorrectIndex === i ? 'rgba(74,222,128,0.15)' : 'transparent',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: editCorrectIndex === i ? '#4ade80' : 'transparent',
+                  color: editCorrectIndex === i ? 'var(--success)' : 'transparent',
                   fontSize: '12px',
                   fontWeight: 700,
                 }}
               >
-                {editCorrectIndex === i && <Check size={12} />}
+                {editCorrectIndex === i && <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>check</span>}
               </button>
               <input
                 value={opt}
@@ -1183,10 +1168,10 @@ export default function QuizViewer({
             style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}
           >
             <button onClick={() => setEditingId(null)} style={cancelBtnStyle}>
-              <X size={14} /> Cancel
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>close</span> Cancel
             </button>
             <button onClick={saveEdit} style={saveBtnStyle}>
-              <Check size={14} /> Save
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>check</span> Save
             </button>
           </div>
         </div>
@@ -1205,7 +1190,7 @@ export default function QuizViewer({
                   borderRadius: '12px',
                   border: '1px solid rgba(252,165,165,0.3)',
                   background: 'rgba(252,165,165,0.06)',
-                  color: '#fca5a5',
+                  color: 'var(--error)',
                   fontSize: '13px',
                   lineHeight: 1.6,
                 }}
@@ -1237,6 +1222,7 @@ export default function QuizViewer({
               onToggleHint={() => setShowHint((v) => !v)}
               onSelectAnswer={selectAnswer}
               isPhone={isPhone}
+              coarsePointer={coarsePointer}
             />
           );
         })()
@@ -1252,14 +1238,14 @@ export default function QuizViewer({
         }}
       >
         <NavButton onClick={prev} disabled={currentIndex === 0} title="Previous (←)">
-          <ChevronLeft size={20} />
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>chevron_left</span>
         </NavButton>
         <NavButton onClick={reset} title="Reset">
-          <RotateCcw size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>replay</span>
         </NavButton>
         {currentIndex === questions.length - 1 && mode === 'quiz' ? (
           <NavButton onClick={finish} title="Finish Quiz" highlight>
-            <Check size={18} />
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>check</span>
           </NavButton>
         ) : (
           <NavButton
@@ -1267,7 +1253,7 @@ export default function QuizViewer({
             disabled={currentIndex === questions.length - 1}
             title="Next (→)"
           >
-            <ChevronRight size={20} />
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>chevron_right</span>
           </NavButton>
         )}
       </div>
@@ -1284,35 +1270,35 @@ export default function QuizViewer({
             (question.kind ?? 'mc') === 'mc' && (
               <SmallButton
                 onClick={() => startEdit(question)}
-                icon={<Pencil size={12} />}
+                icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>edit</span>}
                 label="Edit"
               />
             )}
-          <SmallButton onClick={downloadJSON} icon={<Download size={12} />} label="JSON" />
-          <SmallButton onClick={openSlideEditor} icon={<Download size={12} />} label="PPTX" />
-          <SmallButton onClick={downloadPdf} icon={<Download size={12} />} label="PDF" />
+          <SmallButton onClick={downloadJSON} icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>download</span>} label="JSON" />
+          <SmallButton onClick={openSlideEditor} icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>download</span>} label="PPTX" />
+          <SmallButton onClick={downloadPdf} icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>download</span>} label="PDF" />
           {sectionSaved ? (
             <SmallButton
               onClick={openSectionPicker}
-              icon={<BookCheck size={12} />}
+              icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>task_alt</span>}
               label="In Notebook"
             />
           ) : (
             <SmallButton
               onClick={openSectionPicker}
-              icon={<BookPlus size={12} />}
+              icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>library_add</span>}
               label="Add to Notebook"
             />
           )}
           {question && mode !== 'review' && (
             <SmallButton
               onClick={() => deleteQuestion(question.id)}
-              icon={<Trash2 size={12} />}
+              icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>delete</span>}
               label="Delete Question"
               danger
             />
           )}
-          <SmallButton onClick={deleteSet} icon={<Trash2 size={12} />} label="Delete Set" danger />
+          <SmallButton onClick={deleteSet} icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>delete</span>} label="Delete Set" danger />
         </div>
       )}
 
@@ -1376,7 +1362,7 @@ export default function QuizViewer({
                   display: 'flex',
                 }}
               >
-                <X size={16} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>close</span>
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
@@ -1390,7 +1376,7 @@ export default function QuizViewer({
                     color: 'var(--ink-30)',
                   }}
                 >
-                  <Loader2 size={20} className="animate-spin" />
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, animation: 'spin 1s linear infinite' }} aria-hidden>progress_activity</span>
                 </div>
               ) : sections.length === 0 ? (
                 <div
@@ -1480,7 +1466,7 @@ export default function QuizViewer({
                   gap: '8px',
                 }}
               >
-                <History size={16} /> Quiz History
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>history</span> Quiz History
               </h3>
               <button
                 onClick={() => setShowHistory(false)}
@@ -1493,7 +1479,7 @@ export default function QuizViewer({
                   display: 'flex',
                 }}
               >
-                <X size={16} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>close</span>
               </button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
@@ -1548,10 +1534,10 @@ export default function QuizViewer({
                           fontWeight: 700,
                           color:
                             attempt.percentage >= 70
-                              ? '#4ade80'
+                              ? 'var(--success)'
                               : attempt.percentage >= 40
-                                ? '#fbbf24'
-                                : '#fca5a5',
+                                ? 'var(--warning)'
+                                : 'var(--error)',
                         }}
                       >
                         {Math.round(attempt.percentage)}%
@@ -1562,7 +1548,7 @@ export default function QuizViewer({
                         >
                           {attempt.score}/{attempt.total} correct
                           {i === 0 && (
-                            <span style={{ color: '#c4a9ff', fontSize: '11px', marginLeft: '6px' }}>
+                            <span style={{ color: 'var(--md-h3)', fontSize: '11px', marginLeft: '6px' }}>
                               Latest
                             </span>
                           )}
@@ -1642,8 +1628,8 @@ const saveBtnStyle: React.CSSProperties = {
   padding: '8px 14px',
   borderRadius: '8px',
   border: 'none',
-  background: '#8c52ff',
-  color: 'var(--on-surface)',
+  background: 'var(--accent-strong)',
+  color: 'var(--on-primary-container)',
   fontSize: '13px',
   cursor: 'pointer',
   fontFamily: 'inherit',
@@ -1708,20 +1694,24 @@ function SectionPickerNode({
               display: 'flex',
             }}
           >
-            <ChevronDown
-              size={14}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 14,
                 transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
                 transition: 'transform 0.15s ease',
               }}
-            />
+              aria-hidden
+            >
+              expand_more
+            </span>
           </button>
         )}
         {!hasChildren && <div style={{ width: '14px' }} />}
         <span
           style={{
             fontSize: '13px',
-            color: isSelected ? '#c4a9ff' : 'var(--on-surface)',
+            color: isSelected ? 'var(--md-h3)' : 'var(--on-surface)',
             fontWeight: isSelected ? 600 : 400,
             fontFamily: 'inherit',
             flex: 1,
@@ -1732,7 +1722,7 @@ function SectionPickerNode({
         >
           {section.title}
         </span>
-        {isSelected && <Check size={14} style={{ color: '#8c52ff', flexShrink: 0 }} />}
+        {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--accent-strong)', flexShrink: 0 }} aria-hidden>check</span>}
       </div>
       {hasChildren &&
         expanded &&
@@ -1784,19 +1774,19 @@ function NavButton({
             ? '1px solid rgba(174,137,255,0.12)'
             : `1px solid ${hovered ? 'rgba(174,137,255,0.55)' : 'rgba(174,137,255,0.32)'}`,
         background: highlight
-          ? '#8c52ff'
+          ? 'var(--accent-strong)'
           : disabled
             ? 'rgba(140,82,255,0.03)'
             : hovered
               ? 'rgba(140,82,255,0.18)'
               : 'rgba(140,82,255,0.10)',
         color: highlight
-          ? 'var(--on-surface)'
+          ? 'var(--on-primary-container)'
           : disabled
             ? 'var(--ink-20)'
             : hovered
-              ? '#ede4ff'
-              : '#d6c2ff',
+              ? 'var(--on-surface)'
+              : 'var(--md-em)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
       }}
@@ -1837,10 +1827,10 @@ function SmallButton({
           : 'transparent',
         color: danger
           ? hovered
-            ? '#fca5a5'
+            ? 'var(--error)'
             : 'rgba(252,165,165,0.6)'
           : hovered
-            ? '#c4a9ff'
+            ? 'var(--md-h3)'
             : 'var(--ink-40)',
         fontSize: '12px',
         cursor: 'pointer',
@@ -1872,8 +1862,8 @@ function ActionButton({
         padding: '10px 20px',
         borderRadius: '10px',
         border: primary ? 'none' : '1px solid rgba(140,82,255,0.3)',
-        background: primary ? '#8c52ff' : hovered ? 'rgba(140,82,255,0.1)' : 'transparent',
-        color: primary ? 'var(--on-surface)' : '#c4a9ff',
+        background: primary ? 'var(--accent-strong)' : hovered ? 'rgba(140,82,255,0.1)' : 'transparent',
+        color: primary ? 'var(--on-primary-container)' : 'var(--md-h3)',
         fontSize: '13px',
         fontWeight: 600,
         cursor: 'pointer',

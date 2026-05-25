@@ -962,8 +962,9 @@ export default function ProfilePage() {
                     background: '#fff',
                     position: 'absolute',
                     top: '3px',
-                    left: form.profilePrivate ? '23px' : '3px',
-                    transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)',
+                    left: '3px',
+                    transform: form.profilePrivate ? 'translateX(20px)' : 'translateX(0)',
+                    transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
                   }}
                 />
               </button>
@@ -1017,8 +1018,9 @@ export default function ProfilePage() {
                     background: '#fff',
                     position: 'absolute',
                     top: '3px',
-                    left: form.hideAchievements ? '23px' : '3px',
-                    transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)',
+                    left: '3px',
+                    transform: form.hideAchievements ? 'translateX(20px)' : 'translateX(0)',
+                    transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
                   }}
                 />
               </button>

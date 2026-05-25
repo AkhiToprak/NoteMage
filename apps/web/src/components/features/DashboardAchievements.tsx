@@ -390,10 +390,12 @@ export default function DashboardAchievements() {
                       <div
                         style={{
                           height: '100%',
-                          width: `${pct}%`,
+                          width: '100%',
+                          transform: `scaleX(${pct / 100})`,
+                          transformOrigin: 'left',
                           borderRadius: '3px',
                           background: '#ae89ff',
-                          transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
+                          transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
                         }}
                       />
                     </div>

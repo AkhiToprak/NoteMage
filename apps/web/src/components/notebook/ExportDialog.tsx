@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Download, Loader2, FileText, ChevronRight } from 'lucide-react';
 
 interface SectionWithPages {
   id: string;
@@ -199,7 +198,13 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Download size={18} style={{ color: '#8c52ff' }} />
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 18, color: '#8c52ff' }}
+              aria-hidden
+            >
+              download
+            </span>
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--on-surface)' }}>
               Export Pages
             </span>
@@ -217,7 +222,9 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               alignItems: 'center',
             }}
           >
-            <X size={18} />
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -421,7 +428,13 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                         gap: 6,
                       }}
                     >
-                      <FileText size={12} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+                        aria-hidden
+                      >
+                        description
+                      </span>
                       {page.title}
                     </div>
                     {idx < orderedSelectedPages.length - 1 && (
@@ -439,7 +452,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                           fontSize: 10,
                           fontWeight: 500,
                           textAlign: 'center',
-                          transition: 'all 0.15s',
+                          transition: 'background 0.15s, border-color 0.15s, color 0.15s',
                         }}
                       >
                         {splitAfter.has(idx) ? '✂ Split here' : '— click to split —'}
@@ -517,15 +530,24 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               }}
             >
               {isExporting ? (
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                  aria-hidden
+                >
+                  progress_activity
+                </span>
               ) : (
-                <Download size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  download
+                </span>
               )}
               {isExporting ? 'Exporting…' : 'Export'}
             </button>
           </div>
         </div>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
@@ -571,15 +593,19 @@ function SectionGroup({
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <ChevronRight
-          size={12}
+        <span
+          className="material-symbols-outlined"
           style={{
+            fontSize: 12,
             color: 'var(--ink-30)',
             transform: expanded ? 'rotate(90deg)' : 'none',
             transition: 'transform 0.15s',
             flexShrink: 0,
           }}
-        />
+          aria-hidden
+        >
+          chevron_right
+        </span>
         <input
           type="checkbox"
           checked={allChecked}
@@ -619,7 +645,13 @@ function SectionGroup({
                 onChange={() => onTogglePage(page.id)}
                 style={{ accentColor: '#8c52ff', flexShrink: 0 }}
               />
-              <FileText size={12} style={{ color: 'var(--ink-30)', flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+                aria-hidden
+              >
+                description
+              </span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {page.title}
               </span>

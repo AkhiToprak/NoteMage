@@ -89,7 +89,7 @@ function LearnQuizzesPageInner() {
   const effectiveHighlight = createdHighlightId ?? highlightId;
 
   return (
-    <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '8px 0 48px', width: '100%' }}>
+    <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '8px 0 48px', width: '100%', minWidth: 0 }}>
       <header style={{ marginBottom: '24px', padding: '0 16px' }}>
         <h1
           style={{
@@ -230,7 +230,7 @@ function GroupSection({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
           gap: '12px',
           padding: '0 16px',
         }}

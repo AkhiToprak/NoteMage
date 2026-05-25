@@ -2,7 +2,6 @@
 
 import { useRef } from 'react';
 import type { Editor } from '@tiptap/react';
-import { ImagePlus, Loader } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
 
@@ -110,11 +109,12 @@ export default function ImageUploadButton({
         }}
       >
         {isUploading ? (
-          <Loader size={16} style={{ animation: 'spin 0.8s linear infinite' }} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span>
         ) : (
-          <ImagePlus size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>add_photo_alternate</span>
         )}
       </button>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

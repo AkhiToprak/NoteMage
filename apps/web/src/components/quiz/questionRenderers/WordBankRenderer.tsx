@@ -17,7 +17,6 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { WordBankPayload } from '@notemage/shared';
 import { substituteBlankMarker } from './blankPlaceholder';
@@ -63,6 +62,7 @@ export default function WordBankRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<WordBankPayload | null>) {
   const payload = question.payload;
   const slotCount = payload?.slots.length ?? 0;
@@ -234,7 +234,7 @@ export default function WordBankRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -378,8 +378,8 @@ export default function WordBankRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -424,11 +424,11 @@ export default function WordBankRenderer({
           >
             {allCorrect ? (
               <>
-                <CheckCircle2 size={16} /> All slots correct
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> All slots correct
               </>
             ) : (
               <>
-                <XCircle size={16} /> Some slots are off
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Some slots are off
               </>
             )}
           </div>

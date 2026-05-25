@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import type { Editor } from '@tiptap/react';
-import { FileUp, Loader2 } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { renderPdfToPngs } from '@/lib/pdf-client-render';
 
@@ -116,11 +115,12 @@ export default function PageAppendPdfButton({
         }}
       >
         {busy ? (
-          <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span>
         ) : (
-          <FileUp size={16} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>upload_file</span>
         )}
       </button>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

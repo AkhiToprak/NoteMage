@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { Globe, X, Loader2, AlertCircle, CheckCircle2, Youtube } from 'lucide-react';
 
 interface UrlImportDialogProps {
   notebookId: string;
@@ -165,7 +164,9 @@ export default function UrlImportDialog({
             }}
             aria-label="Close"
           >
-            <X size={18} />
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -199,9 +200,21 @@ export default function UrlImportDialog({
               }}
             >
               {isYouTubeUrl ? (
-                <Youtube size={24} style={{ color: '#ff0000' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 24, color: '#ff0000' }}
+                  aria-hidden
+                >
+                  smart_display
+                </span>
               ) : (
-                <Globe size={24} style={{ color: '#8c52ff' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 24, color: '#8c52ff' }}
+                  aria-hidden
+                >
+                  public
+                </span>
               )}
             </div>
             <p
@@ -248,7 +261,13 @@ export default function UrlImportDialog({
                   gap: '4px',
                 }}
               >
-                <Youtube size={14} style={{ color: 'var(--on-surface)' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, color: 'var(--on-surface)' }}
+                  aria-hidden
+                >
+                  smart_display
+                </span>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--on-surface)' }}>
                   YouTube
                 </span>
@@ -301,13 +320,17 @@ export default function UrlImportDialog({
                 padding: '8px 0',
               }}
             >
-              <Loader2
-                size={16}
+              <span
+                className="material-symbols-outlined"
                 style={{
+                  fontSize: 16,
                   color: '#8c52ff',
                   animation: 'url-import-spin 1s linear infinite',
                 }}
-              />
+                aria-hidden
+              >
+                progress_activity
+              </span>
               <p
                 style={{
                   margin: 0,
@@ -329,7 +352,13 @@ export default function UrlImportDialog({
                 padding: '8px 0',
               }}
             >
-              <CheckCircle2 size={16} style={{ color: '#4ade80' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: '#4ade80' }}
+                aria-hidden
+              >
+                check_circle
+              </span>
               <p
                 style={{
                   margin: 0,
@@ -352,7 +381,13 @@ export default function UrlImportDialog({
                 padding: '8px 0',
               }}
             >
-              <AlertCircle size={16} style={{ color: '#f87171', flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: '#f87171', flexShrink: 0 }}
+                aria-hidden
+              >
+                error
+              </span>
               <p
                 style={{
                   margin: 0,
@@ -430,7 +465,13 @@ export default function UrlImportDialog({
             }}
           >
             {importState === 'importing' && (
-              <Loader2 size={14} style={{ animation: 'url-import-spin 1s linear infinite' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, animation: 'url-import-spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
             )}
             {importState === 'importing'
               ? isYouTubeUrl

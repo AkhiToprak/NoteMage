@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Lightbulb, XCircle, Play, Send, Loader2 } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import CodeMirrorEditor from '@/components/quiz/CodeMirrorEditor';
 import type { CodeWritePayload, ExecutableCodeLanguage } from '@notemage/shared';
@@ -35,6 +34,7 @@ export default function CodeWriteRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<CodeWritePayload | null>) {
   const payload = question.payload;
 
@@ -123,7 +123,7 @@ export default function CodeWriteRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '24px 22px',
@@ -196,9 +196,9 @@ export default function CodeWriteRenderer({
               }}
             >
               {pendingMode === 'run' ? (
-                <Loader2 size={14} className="cm-spin" />
+                <span className="material-symbols-outlined cm-spin" style={{ fontSize: 14 }} aria-hidden>progress_activity</span>
               ) : (
-                <Play size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>play_arrow</span>
               )}
               Run
             </button>
@@ -223,9 +223,9 @@ export default function CodeWriteRenderer({
               }}
             >
               {pendingMode === 'grade' ? (
-                <Loader2 size={14} className="cm-spin" />
+                <span className="material-symbols-outlined cm-spin" style={{ fontSize: 14 }} aria-hidden>progress_activity</span>
               ) : (
-                <Send size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>send</span>
               )}
               Submit
             </button>
@@ -249,8 +249,8 @@ export default function CodeWriteRenderer({
               fontFamily: 'inherit',
             }}
           >
-            <Lightbulb size={13} />
-            {showHint ? 'Hide hint' : 'Show hint (H)'}
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+            {showHint ? 'Hide hint' : coarsePointer ? 'Show hint' : 'Show hint (H)'}
           </button>
         )}
       </div>
@@ -337,11 +337,11 @@ export default function CodeWriteRenderer({
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> All tests passed
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> All tests passed
               </>
             ) : (
               <>
-                <XCircle size={16} /> Some tests failed
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Some tests failed
               </>
             )}
           </div>
@@ -400,11 +400,11 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
         }}
       >
         {verdict === true ? (
-          <CheckCircle2 size={14} />
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>check_circle</span>
         ) : verdict === false ? (
-          <XCircle size={14} />
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>cancel</span>
         ) : (
-          <Play size={14} />
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>play_arrow</span>
         )}
         {label}
         <span style={{ marginLeft: 'auto', color: 'rgba(237,233,255,0.5)' }}>

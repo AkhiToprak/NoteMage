@@ -1,15 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  X,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  AlertCircle,
-  FileText,
-  SpellCheck,
-} from 'lucide-react';
 
 interface EssayIssue {
   type: 'spelling' | 'grammar' | 'clarity' | 'structure';
@@ -158,7 +149,14 @@ export default function EssayChecker({
               gap: '8px',
             }}
           >
-            <SpellCheck size={16} style={{ color: '#c4a9ff' }} /> Grammar & Writing Check
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16, color: '#c4a9ff' }}
+              aria-hidden
+            >
+              spellcheck
+            </span>{' '}
+            Grammar & Writing Check
           </h3>
           <button
             onClick={onClose}
@@ -171,7 +169,9 @@ export default function EssayChecker({
               display: 'flex',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -227,9 +227,17 @@ export default function EssayChecker({
                   }}
                 >
                   {loading ? (
-                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                   ) : (
-                    <SpellCheck size={14} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                      spellcheck
+                    </span>
                   )}
                   Check Grammar
                 </button>
@@ -254,9 +262,17 @@ export default function EssayChecker({
                   }}
                 >
                   {loading ? (
-                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                   ) : (
-                    <FileText size={14} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                      description
+                    </span>
                   )}
                   Full Review
                 </button>
@@ -275,10 +291,13 @@ export default function EssayChecker({
                 gap: '12px',
               }}
             >
-              <Loader2
-                size={28}
-                style={{ color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
-              />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 28, color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
               <span style={{ fontSize: '13px', color: 'var(--ink-40)' }}>
                 Analyzing your text...
               </span>
@@ -405,7 +424,13 @@ export default function EssayChecker({
                     gap: '8px',
                   }}
                 >
-                  <CheckCircle2 size={32} style={{ color: '#4ade80' }} />
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 32, color: '#4ade80' }}
+                    aria-hidden
+                  >
+                    check_circle
+                  </span>
                   <span style={{ fontSize: '14px', color: '#4ade80', fontWeight: 600 }}>
                     No issues found!
                   </span>

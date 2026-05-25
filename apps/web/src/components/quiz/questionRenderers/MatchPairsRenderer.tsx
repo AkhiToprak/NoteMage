@@ -6,7 +6,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { MatchPairsPayload } from '@notemage/shared';
 import type { QuestionProps, UserAnswer } from './types';
@@ -47,6 +46,7 @@ export default function MatchPairsRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<MatchPairsPayload | null>) {
   const payload = question.payload;
   const pairs = useMemo(() => payload?.pairs ?? [], [payload]);
@@ -194,7 +194,7 @@ export default function MatchPairsRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -341,8 +341,8 @@ export default function MatchPairsRenderer({
             transition: 'background 0.12s',
           }}
         >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
+          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
+          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
         </button>
       )}
       {showHint && question.hint && (
@@ -476,11 +476,11 @@ function SummaryBanner({
       >
         {allCorrect ? (
           <>
-            <CheckCircle2 size={16} /> All pairs correct
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> All pairs correct
           </>
         ) : (
           <>
-            <XCircle size={16} /> Some pairs were off
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Some pairs were off
           </>
         )}
       </div>

@@ -46,9 +46,6 @@ export default function Hero() {
               marginBottom: 32,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--brand-gold)' }}>
-              auto_awesome
-            </span>
             <span
               style={{
                 fontFamily: 'var(--font-brand)',

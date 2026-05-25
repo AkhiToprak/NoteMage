@@ -141,7 +141,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
         width: '56px',
         height: '32px',
         borderRadius: '9999px',
-        background: checked ? '#ae89ff' : '#35355c',
+        background: checked ? 'var(--brand-purple)' : 'var(--surface-container-highest)',
         border: 'none',
         cursor: 'pointer',
         flexShrink: 0,
@@ -153,12 +153,13 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
         style={{
           position: 'absolute',
           top: '4px',
-          left: checked ? '28px' : '4px',
+          left: '4px',
           width: '24px',
           height: '24px',
           borderRadius: '50%',
           background: '#ffffff',
-          transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)',
+          transform: checked ? 'translateX(24px)' : 'translateX(0)',
+          transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
           display: 'block',
         }}
       />
@@ -650,7 +651,7 @@ export default function SettingsPage() {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '16px 20px',
-    background: 'rgba(14,14,28,0.6)',
+    background: 'var(--surface-container-high)',
     border: 'none',
     borderRadius: '16px',
     color: 'var(--on-surface)',
@@ -727,7 +728,7 @@ export default function SettingsPage() {
             fontFamily: 'var(--font-brand)',
             fontSize: isPhone ? '32px' : '48px',
             fontWeight: 400,
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
             margin: '0 0 8px',
             letterSpacing: '-0.02em',
           }}
@@ -743,16 +744,16 @@ export default function SettingsPage() {
         style={{
           display: isPhone ? 'flex' : 'grid',
           flexDirection: isPhone ? 'column' : undefined,
-          gridTemplateColumns: isPhone ? undefined : '1fr 2fr',
+          gridTemplateColumns: isPhone ? undefined : 'minmax(0, 1fr) minmax(0, 2fr)',
           gap: isPhone ? '16px' : '32px',
-          alignItems: 'start',
+          alignItems: isPhone ? 'stretch' : 'start',
           position: 'relative',
           zIndex: 1,
           overflow: 'hidden',
         }}
       >
         {/* Left column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '16px' : '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '16px' : '24px', minWidth: 0 }}>
           {/* Profile card */}
           <div
             style={{
@@ -793,13 +794,13 @@ export default function SettingsPage() {
                       width: isPhone ? '64px' : '96px',
                       height: isPhone ? '64px' : '96px',
                       borderRadius: isPhone ? '16px' : '24px',
-                      background: '#ae89ff',
+                      background: 'var(--brand-purple)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: isPhone ? '24px' : '32px',
                       fontWeight: 700,
-                      color: '#ffffff',
+                      color: 'var(--on-primary)',
                       letterSpacing: '-0.01em',
                     }}
                   >
@@ -812,8 +813,8 @@ export default function SettingsPage() {
                     position: 'absolute',
                     bottom: isPhone ? '-4px' : '-8px',
                     right: isPhone ? '-4px' : '-8px',
-                    background: '#ae89ff',
-                    color: '#2a0066',
+                    background: 'var(--brand-purple)',
+                    color: 'var(--on-primary)',
                     border: 'none',
                     borderRadius: isPhone ? '8px' : '12px',
                     width: isPhone ? '24px' : '32px',
@@ -847,7 +848,7 @@ export default function SettingsPage() {
                   {session?.user?.name ?? 'Mage'}
                 </h3>
                 {session?.user?.username && (
-                  <p style={{ fontSize: '13px', color: '#b9c3ff', fontWeight: 500, margin: 0 }}>
+                  <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', fontWeight: 500, margin: 0 }}>
                     @{session.user.username}
                   </p>
                 )}
@@ -880,7 +881,7 @@ export default function SettingsPage() {
                       borderRadius: '12px',
                       border: 'none',
                       background: active ? 'rgba(174,137,255,0.1)' : 'transparent',
-                      color: active ? '#ae89ff' : '#aaa8c8',
+                      color: active ? 'var(--md-h4)' : 'var(--on-surface-variant)',
                       fontWeight: active ? 700 : 500,
                       fontSize: isPhone ? '13px' : '15px',
                       cursor: 'pointer',
@@ -917,7 +918,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Right column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '16px' : '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '16px' : '24px', minWidth: 0 }}>
           {/* Account Security */}
           <section
             style={{
@@ -943,7 +944,7 @@ export default function SettingsPage() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                  style={{ color: 'var(--md-h4)', fontSize: '24px' }}
                 >
                   fingerprint
                 </span>
@@ -967,7 +968,7 @@ export default function SettingsPage() {
                   style={{
                     fontSize: '13px',
                     fontWeight: 700,
-                    color: '#cbd2ff',
+                    color: 'var(--on-surface-variant)',
                     paddingLeft: '4px',
                   }}
                 >
@@ -995,7 +996,7 @@ export default function SettingsPage() {
                   transition: 'background 0.15s',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = '#292946';
+                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-container)';
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-strong)';
@@ -1025,7 +1026,7 @@ export default function SettingsPage() {
                         pwStatus.type === 'error'
                           ? 'rgba(253,111,133,0.12)'
                           : 'rgba(174,137,255,0.12)',
-                      color: pwStatus.type === 'error' ? '#fd6f85' : '#ae89ff',
+                      color: pwStatus.type === 'error' ? 'var(--error)' : 'var(--md-h4)',
                       fontSize: '14px',
                     }}
                   >
@@ -1085,8 +1086,8 @@ export default function SettingsPage() {
                   style={{
                     alignSelf: 'flex-start',
                     padding: '14px 32px',
-                    background: pwLoading ? '#555578' : '#ae89ff',
-                    color: pwLoading ? '#aaa8c8' : '#2a0066',
+                    background: pwLoading ? 'var(--outline-variant)' : 'var(--brand-purple)',
+                    color: pwLoading ? 'var(--on-surface-variant)' : 'var(--on-primary)',
                     border: 'none',
                     borderRadius: '16px',
                     fontWeight: 700,
@@ -1151,7 +1152,7 @@ export default function SettingsPage() {
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
                   Set a custom greeting. Use {'{'}
-                  <span style={{ color: '#ae89ff' }}>name</span>
+                  <span style={{ color: 'var(--md-h4)' }}>name</span>
                   {'}'} to include your name.
                 </p>
               </div>
@@ -1183,7 +1184,7 @@ export default function SettingsPage() {
                   gap: '12px',
                 }}
               >
-                <span style={{ fontSize: '12px', color: 'var(--outline-variant)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
                   {customGreeting.length}/120 &middot; Leave empty for random greetings
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1216,7 +1217,7 @@ export default function SettingsPage() {
                       style={{
                         padding: '10px 20px',
                         background: 'transparent',
-                        border: '1px solid #555578',
+                        border: '1px solid var(--outline-variant)',
                         borderRadius: '12px',
                         color: 'var(--on-surface-variant)',
                         fontSize: '14px',
@@ -1233,10 +1234,10 @@ export default function SettingsPage() {
                     disabled={greetingLoading}
                     style={{
                       padding: '10px 24px',
-                      background: greetingLoading ? 'rgba(174,137,255,0.3)' : '#ae89ff',
+                      background: greetingLoading ? 'rgba(174,137,255,0.3)' : 'var(--brand-purple)',
                       border: 'none',
                       borderRadius: '12px',
-                      color: '#fff',
+                      color: 'var(--on-primary)',
                       fontSize: '14px',
                       fontWeight: 600,
                       cursor: greetingLoading ? 'not-allowed' : 'pointer',
@@ -1260,7 +1261,7 @@ export default function SettingsPage() {
                 <p
                   style={{
                     fontSize: '14px',
-                    color: greetingStatus.type === 'success' ? '#4ade80' : '#fd6f85',
+                    color: greetingStatus.type === 'success' ? 'var(--success)' : 'var(--error)',
                     margin: 0,
                   }}
                 >
@@ -1295,7 +1296,7 @@ export default function SettingsPage() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                  style={{ color: 'var(--md-h4)', fontSize: '24px' }}
                 >
                   auto_awesome
                 </span>
@@ -1336,7 +1337,7 @@ export default function SettingsPage() {
                   gap: '12px',
                 }}
               >
-                <span style={{ fontSize: '12px', color: 'var(--outline-variant)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
                   {mageNameInput.length}/30 &middot; Leave empty for default &ldquo;Mage&rdquo;
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1367,7 +1368,7 @@ export default function SettingsPage() {
                       style={{
                         padding: '10px 20px',
                         background: 'transparent',
-                        border: '1px solid #555578',
+                        border: '1px solid var(--outline-variant)',
                         borderRadius: '12px',
                         color: 'var(--on-surface-variant)',
                         fontSize: '14px',
@@ -1384,10 +1385,10 @@ export default function SettingsPage() {
                     disabled={mageNameLoading}
                     style={{
                       padding: '10px 24px',
-                      background: mageNameLoading ? 'rgba(174,137,255,0.3)' : '#ae89ff',
+                      background: mageNameLoading ? 'rgba(174,137,255,0.3)' : 'var(--brand-purple)',
                       border: 'none',
                       borderRadius: '12px',
-                      color: '#fff',
+                      color: 'var(--on-primary)',
                       fontSize: '14px',
                       fontWeight: 600,
                       cursor: mageNameLoading ? 'not-allowed' : 'pointer',
@@ -1411,7 +1412,7 @@ export default function SettingsPage() {
                 <p
                   style={{
                     fontSize: '14px',
-                    color: mageNameStatus.type === 'success' ? '#4ade80' : '#fd6f85',
+                    color: mageNameStatus.type === 'success' ? 'var(--success)' : 'var(--error)',
                     margin: 0,
                   }}
                 >
@@ -1456,7 +1457,7 @@ export default function SettingsPage() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                  style={{ color: 'var(--md-h4)', fontSize: '24px' }}
                 >
                   tour
                 </span>
@@ -1476,10 +1477,10 @@ export default function SettingsPage() {
               }}
               style={{
                 padding: '12px 22px',
-                background: '#ae89ff',
+                background: 'var(--brand-purple)',
                 border: 'none',
                 borderRadius: '12px',
-                color: '#fff',
+                color: 'var(--on-primary)',
                 fontSize: '14px',
                 fontWeight: 700,
                 fontFamily: 'inherit',
@@ -1526,7 +1527,7 @@ export default function SettingsPage() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ color: '#ae89ff', fontSize: '24px' }}
+                  style={{ color: 'var(--md-h4)', fontSize: '24px' }}
                 >
                   palette
                 </span>
@@ -1626,8 +1627,8 @@ export default function SettingsPage() {
                         padding: '6px 14px',
                         borderRadius: '9999px',
                         border: 'none',
-                        background: active ? '#ae89ff' : 'transparent',
-                        color: active ? '#ffffff' : 'var(--on-surface-variant)',
+                        background: active ? 'var(--brand-purple)' : 'transparent',
+                        color: active ? 'var(--on-primary)' : 'var(--on-surface-variant)',
                         fontSize: '13px',
                         fontWeight: 600,
                         fontFamily: 'var(--font-display)',
@@ -1707,7 +1708,7 @@ export default function SettingsPage() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ color: '#b9c3ff', fontSize: '24px' }}
+                  style={{ color: 'var(--on-surface-variant)', fontSize: '24px' }}
                 >
                   campaign
                 </span>
@@ -1847,7 +1848,7 @@ export default function SettingsPage() {
                         background: 'var(--surface-container-high)',
                         borderRadius: '20px',
                         padding: '20px',
-                        border: isSelected ? '2px solid #ae89ff' : '1px solid #555578',
+                        border: isSelected ? '2px solid var(--brand-purple)' : '1px solid var(--outline-variant)',
                         boxShadow: isSelected ? '0 0 0 4px rgba(174,137,255,0.1)' : 'none',
                         cursor: 'pointer',
                         transition:
@@ -1859,7 +1860,7 @@ export default function SettingsPage() {
                         className="material-symbols-outlined"
                         style={{
                           fontSize: '24px',
-                          color: isSelected ? '#ae89ff' : '#8888a8',
+                          color: isSelected ? 'var(--md-h4)' : 'var(--on-surface-variant)',
                           display: 'block',
                           marginBottom: '8px',
                           transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
@@ -1874,7 +1875,7 @@ export default function SettingsPage() {
                           margin: '0 0 4px',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: isSelected ? '#e5e3ff' : '#aaa8c8',
+                          color: isSelected ? 'var(--on-surface)' : 'var(--on-surface-variant)',
                           lineHeight: '1.4',
                           transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
                         }}
@@ -1888,13 +1889,13 @@ export default function SettingsPage() {
                             margin: '0 0 12px',
                             fontSize: '13px',
                             fontWeight: 700,
-                            color: '#ae89ff',
+                            color: 'var(--md-h4)',
                           }}
                         >
                           {target} {config.unit} / {config.cadence}
                         </p>
                       ) : (
-                        <p style={{ margin: '0 0 0', fontSize: '11px', color: 'var(--outline-variant)' }}>
+                        <p style={{ margin: '0 0 0', fontSize: '11px', color: 'var(--on-surface-variant)' }}>
                           Tap to set goal
                         </p>
                       )}
@@ -1920,9 +1921,9 @@ export default function SettingsPage() {
                                   setStudyGoalTarget(config.key, preset);
                                 }}
                                 style={{
-                                  background: isActive ? '#ae89ff' : '#35355c',
-                                  color: isActive ? '#1a0044' : '#aaa8c8',
-                                  border: `1px solid ${isActive ? '#ae89ff' : '#555578'}`,
+                                  background: isActive ? 'var(--brand-purple)' : 'var(--surface-container-highest)',
+                                  color: isActive ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                                  border: `1px solid ${isActive ? 'var(--brand-purple)' : 'var(--outline-variant)'}`,
                                   borderRadius: '20px',
                                   padding: '4px 10px',
                                   fontSize: '12px',
@@ -1947,8 +1948,8 @@ export default function SettingsPage() {
                               width: '52px',
                               background: 'var(--surface-container-highest)',
                               border: goalCustomInputs[config.key]
-                                ? '1px solid #ae89ff'
-                                : '1px solid #555578',
+                                ? '1px solid var(--brand-purple)'
+                                : '1px solid var(--outline-variant)',
                               borderRadius: '8px',
                               padding: '4px 8px',
                               color: 'var(--on-surface)',
@@ -1973,7 +1974,7 @@ export default function SettingsPage() {
                       goalStatus.type === 'error'
                         ? 'rgba(253,111,133,0.12)'
                         : 'rgba(174,137,255,0.12)',
-                    color: goalStatus.type === 'error' ? '#fd6f85' : '#ae89ff',
+                    color: goalStatus.type === 'error' ? 'var(--error)' : 'var(--md-h4)',
                     fontSize: '14px',
                   }}
                 >
@@ -1987,8 +1988,8 @@ export default function SettingsPage() {
                 style={{
                   alignSelf: 'flex-start',
                   padding: '14px 32px',
-                  background: goalLoading ? '#555578' : '#ae89ff',
-                  color: goalLoading ? '#aaa8c8' : '#2a0066',
+                  background: goalLoading ? 'var(--outline-variant)' : 'var(--brand-purple)',
+                  color: goalLoading ? 'var(--on-surface-variant)' : 'var(--on-primary)',
                   border: 'none',
                   borderRadius: '16px',
                   fontWeight: 700,
@@ -2105,7 +2106,7 @@ export default function SettingsPage() {
                   <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
                     Search, ban, or delete users.{' '}
                     {adminTotal > 0 && (
-                      <span style={{ color: '#ae89ff' }}>{adminTotal} total users</span>
+                      <span style={{ color: 'var(--md-h4)' }}>{adminTotal} total users</span>
                     )}
                   </p>
                 </div>
@@ -2215,7 +2216,7 @@ export default function SettingsPage() {
                       <div
                         key={user.id}
                         style={{
-                          background: user.banned ? 'rgba(253,111,133,0.05)' : '#21213e',
+                          background: user.banned ? 'rgba(253,111,133,0.05)' : 'var(--surface-container-low)',
                           borderRadius: '16px',
                           padding: isPhone ? '14px' : '16px 20px',
                           display: 'flex',
@@ -2235,13 +2236,13 @@ export default function SettingsPage() {
                             width: '40px',
                             height: '40px',
                             borderRadius: '12px',
-                            background: user.banned ? '#fd6f85' : '#ae89ff',
+                            background: user.banned ? 'var(--error)' : 'var(--md-h4)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontSize: '14px',
                             fontWeight: 700,
-                            color: '#fff',
+                            color: user.banned ? 'var(--on-error)' : 'var(--on-primary)',
                             flexShrink: 0,
                           }}
                         >
@@ -2285,7 +2286,7 @@ export default function SettingsPage() {
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 700,
-                                  color: '#fd6f85',
+                                  color: 'var(--error)',
                                   background: 'rgba(253,111,133,0.12)',
                                   padding: '2px 8px',
                                   borderRadius: '6px',
@@ -2301,7 +2302,7 @@ export default function SettingsPage() {
                                 style={{
                                   fontSize: '10px',
                                   fontWeight: 700,
-                                  color: '#4ade80',
+                                  color: 'var(--success)',
                                   background: 'rgba(74,222,128,0.12)',
                                   padding: '2px 8px',
                                   borderRadius: '6px',
@@ -2331,7 +2332,7 @@ export default function SettingsPage() {
                             <p
                               style={{
                                 fontSize: '11px',
-                                color: '#fd6f85',
+                                color: 'var(--error)',
                                 margin: '4px 0 0',
                                 fontStyle: 'italic',
                               }}
@@ -2398,7 +2399,7 @@ export default function SettingsPage() {
                               borderRadius: '10px',
                               border: 'none',
                               background: 'rgba(174,137,255,0.18)',
-                              color: '#ae89ff',
+                              color: 'var(--md-h4)',
                               fontSize: '12px',
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -2432,7 +2433,7 @@ export default function SettingsPage() {
                               borderRadius: '10px',
                               border: '1px solid rgba(253,111,133,0.35)',
                               background: 'transparent',
-                              color: '#fd6f85',
+                              color: 'var(--error)',
                               fontSize: '12px',
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -2453,7 +2454,7 @@ export default function SettingsPage() {
                               style={{
                                 fontSize: '11px',
                                 fontStyle: 'italic',
-                                color: grantFeedback.kind === 'ok' ? '#4ade80' : '#fd6f85',
+                                color: grantFeedback.kind === 'ok' ? 'var(--success)' : 'var(--error)',
                               }}
                             >
                               {grantFeedback.msg}
@@ -2476,7 +2477,7 @@ export default function SettingsPage() {
                                   borderRadius: '10px',
                                   border: 'none',
                                   background: 'rgba(74,222,128,0.12)',
-                                  color: '#4ade80',
+                                  color: 'var(--success)',
                                   fontSize: '12px',
                                   fontWeight: 700,
                                   cursor: 'pointer',
@@ -2551,7 +2552,7 @@ export default function SettingsPage() {
                                 borderRadius: '10px',
                                 border: 'none',
                                 background: 'rgba(253,111,133,0.1)',
-                                color: '#fd6f85',
+                                color: 'var(--error)',
                                 fontSize: '12px',
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -2601,8 +2602,8 @@ export default function SettingsPage() {
                       padding: '8px 16px',
                       borderRadius: '10px',
                       border: 'none',
-                      background: adminPage <= 1 ? '#2d2d52' : '#35355c',
-                      color: adminPage <= 1 ? '#555578' : '#e5e3ff',
+                      background: adminPage <= 1 ? 'var(--surface-container-high)' : 'var(--surface-container-highest)',
+                      color: adminPage <= 1 ? 'var(--outline-variant)' : 'var(--on-surface)',
                       fontSize: '13px',
                       fontWeight: 700,
                       cursor: adminPage <= 1 ? 'default' : 'pointer',
@@ -2621,8 +2622,8 @@ export default function SettingsPage() {
                       padding: '8px 16px',
                       borderRadius: '10px',
                       border: 'none',
-                      background: adminPage >= adminTotalPages ? '#2d2d52' : '#35355c',
-                      color: adminPage >= adminTotalPages ? '#555578' : '#e5e3ff',
+                      background: adminPage >= adminTotalPages ? 'var(--surface-container-high)' : 'var(--surface-container-highest)',
+                      color: adminPage >= adminTotalPages ? 'var(--outline-variant)' : 'var(--on-surface)',
                       fontSize: '13px',
                       fontWeight: 700,
                       cursor: adminPage >= adminTotalPages ? 'default' : 'pointer',
@@ -2672,7 +2673,7 @@ export default function SettingsPage() {
                   >
                     <span
                       className="material-symbols-outlined"
-                      style={{ color: '#ae89ff', fontSize: '24px' }}
+                      style={{ color: 'var(--md-h4)', fontSize: '24px' }}
                     >
                       query_stats
                     </span>
@@ -2704,7 +2705,7 @@ export default function SettingsPage() {
                     borderRadius: '12px',
                     border: '1px solid rgba(174,137,255,0.25)',
                     background: 'rgba(174,137,255,0.08)',
-                    color: '#ae89ff',
+                    color: 'var(--md-h4)',
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: adminStatsLoading ? 'default' : 'pointer',
@@ -2739,7 +2740,7 @@ export default function SettingsPage() {
                     borderRadius: '12px',
                     background: 'rgba(253,111,133,0.08)',
                     border: '1px solid rgba(253,111,133,0.2)',
-                    color: '#fd6f85',
+                    color: 'var(--error)',
                     fontSize: '13px',
                   }}
                 >
@@ -2751,21 +2752,21 @@ export default function SettingsPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: isPhone ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gridTemplateColumns: isPhone ? '1fr' : 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
                     gap: '16px',
                   }}
                 >
                   {/* Total users */}
                   <StatCard
                     icon="group"
-                    accent="#ae89ff"
+                    accent="var(--brand-purple)"
                     label="Total users"
                     value={adminStats.totalUsers.toLocaleString()}
                   />
                   {/* Tier breakdown */}
                   <StatCard
                     icon="person"
-                    accent="#8888a8"
+                    accent="var(--on-surface-variant)"
                     label="Free users"
                     value={adminStats.freeUsers.toLocaleString()}
                   />
@@ -2787,7 +2788,7 @@ export default function SettingsPage() {
                   {/* Weekly tokens */}
                   <StatCard
                     icon="token"
-                    accent="#ae89ff"
+                    accent="var(--brand-purple)"
                     label="Avg tokens / user (7d)"
                     value={adminStats.avgWeeklyTokensPerUser.toLocaleString()}
                     sub={`${adminStats.weeklyTokensTotal.toLocaleString()} total`}
@@ -2795,7 +2796,7 @@ export default function SettingsPage() {
                   {/* Waitlist */}
                   <StatCard
                     icon="mark_email_read"
-                    accent="#b9c3ff"
+                    accent="var(--on-surface-variant)"
                     label="Waitlist signups"
                     value={adminStats.waitlistCount.toLocaleString()}
                   />
@@ -2844,7 +2845,7 @@ export default function SettingsPage() {
                     display: 'block',
                     fontSize: '13px',
                     fontWeight: 700,
-                    color: '#cbd2ff',
+                    color: 'var(--on-surface-variant)',
                     marginBottom: '8px',
                     paddingLeft: '4px',
                   }}
@@ -2942,14 +2943,14 @@ export default function SettingsPage() {
                 }}
               >
                 <h3
-                  style={{ fontSize: '20px', fontWeight: 700, color: '#fd6f85', margin: '0 0 8px' }}
+                  style={{ fontSize: '20px', fontWeight: 700, color: 'var(--error)', margin: '0 0 8px' }}
                 >
                   Delete @{deleteConfirmUser.username}?
                 </h3>
                 <p
                   style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: '0 0 8px', lineHeight: 1.6 }}
                 >
-                  This will <strong style={{ color: '#fd6f85' }}>permanently delete</strong> this
+                  This will <strong style={{ color: 'var(--error)' }}>permanently delete</strong> this
                   user and all their data:
                 </p>
                 <ul
@@ -3031,7 +3032,7 @@ export default function SettingsPage() {
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(253,111,133,0.5)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#fd6f85';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(253,111,133,0.2)';
@@ -3102,7 +3103,7 @@ export default function SettingsPage() {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ color: '#fd6f85', fontSize: '28px' }}
+                style={{ color: 'var(--error)', fontSize: '28px' }}
               >
                 warning
               </span>
@@ -3111,7 +3112,7 @@ export default function SettingsPage() {
               style={{
                 fontSize: '20px',
                 fontWeight: 700,
-                color: '#ffffff',
+                color: 'var(--on-surface)',
                 margin: 0,
                 textAlign: 'center',
               }}
@@ -3121,7 +3122,7 @@ export default function SettingsPage() {
             <p
               style={{
                 fontSize: '14px',
-                color: 'rgba(255,255,255,0.6)',
+                color: 'var(--on-surface-variant)',
                 lineHeight: 1.7,
                 margin: 0,
                 textAlign: 'center',
@@ -3134,12 +3135,12 @@ export default function SettingsPage() {
               <label
                 style={{
                   fontSize: '13px',
-                  color: 'rgba(255,255,255,0.5)',
+                  color: 'var(--on-surface-variant)',
                   marginBottom: '8px',
                   display: 'block',
                 }}
               >
-                Type <strong style={{ color: '#fd6f85' }}>DELETE</strong> to confirm
+                Type <strong style={{ color: 'var(--error)' }}>DELETE</strong> to confirm
               </label>
               <input
                 type="text"
@@ -3150,10 +3151,10 @@ export default function SettingsPage() {
                 style={{
                   width: '100%',
                   padding: '10px 14px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'var(--surface-container-high)',
+                  border: '1px solid var(--outline-variant)',
                   borderRadius: '12px',
-                  color: '#ffffff',
+                  color: 'var(--on-surface)',
                   fontSize: '14px',
                   fontFamily: 'inherit',
                   outline: 'none',
@@ -3171,9 +3172,9 @@ export default function SettingsPage() {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  background: 'rgba(255,255,255,0.08)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'var(--surface-container-high)',
+                  color: 'var(--on-surface)',
+                  border: '1px solid var(--outline-variant)',
                   borderRadius: '14px',
                   fontWeight: 600,
                   fontSize: '14px',

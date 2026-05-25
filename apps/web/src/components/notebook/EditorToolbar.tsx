@@ -4,53 +4,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Editor } from '@tiptap/react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Quote,
-  Code,
-  Palette,
-  Highlighter,
-  Undo,
-  Redo,
-  Pen,
-  ChevronDown,
-  ALargeSmall,
-  MessageSquareWarning,
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
-  MousePointer2,
-  Type,
-  Eraser,
-  Trash2,
-  Ruler,
-  Table2,
-  Rows3,
-  Columns3,
-  PanelTop,
-  Merge,
-  Plus,
-  Minus,
-  MoreHorizontal,
-} from 'lucide-react';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 
 import type { EditorMode, ActiveTool, LineStyle, RulerState, TextData } from './DrawingOverlay';
 
-const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
+const CALLOUT_ICONS: Record<string, string> = {
+  Info: 'info',
+  AlertTriangle: 'warning',
+  CheckCircle: 'check_circle',
+  Lightbulb: 'lightbulb',
 };
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
 
@@ -232,13 +194,13 @@ function useSelectionGuard(editor: Editor | null) {
 
 /* ── single toolbar button ── */
 function ToolbarButton({
-  icon: Icon,
+  icon,
   label,
   isActive,
   onClick,
   disabled,
 }: {
-  icon: typeof Bold;
+  icon: string;
   label: string;
   isActive?: boolean;
   onClick: () => void;
@@ -258,7 +220,7 @@ function ToolbarButton({
         borderRadius: '6px',
         border: 'none',
         background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-        color: isActive ? '#a47bff' : 'var(--ink-50)',
+        color: isActive ? 'var(--md-h4)' : 'var(--ink-50)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -280,7 +242,9 @@ function ToolbarButton({
         }
       }}
     >
-      <Icon size={15} />
+      <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+        {icon}
+      </span>
     </button>
   );
 }
@@ -305,13 +269,13 @@ function ColorPicker({
   colors,
   activeColor,
   onPick,
-  icon: Icon,
+  icon,
   label,
 }: {
   colors: string[];
   activeColor: string | undefined;
   onPick: (c: string) => void;
-  icon: typeof Palette;
+  icon: string;
   label: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -340,7 +304,7 @@ function ColorPicker({
           borderRadius: '6px',
           border: 'none',
           background: !!activeColor ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: !!activeColor ? '#a47bff' : 'var(--ink-50)',
+          color: !!activeColor ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -361,7 +325,9 @@ function ColorPicker({
           }
         }}
       >
-        <Icon size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+        {icon}
+      </span>
       </button>
       {open && (
         <div
@@ -395,7 +361,7 @@ function ColorPicker({
                 height: '24px',
                 borderRadius: '6px',
                 background: c,
-                border: activeColor === c ? '2px solid #a47bff' : '1px solid var(--ink-12)',
+                border: activeColor === c ? '2px solid var(--md-h4)' : '1px solid var(--ink-12)',
                 cursor: 'pointer',
                 transition: 'transform 0.1s',
               }}
@@ -502,7 +468,13 @@ function FontFamilySelect({
         }}
       >
         <span style={{ flex: 1, textAlign: 'left' }}>{current}</span>
-        <ChevronDown size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 11, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -543,7 +515,7 @@ function FontFamilySelect({
                 borderRadius: '6px',
                 border: 'none',
                 background: current === f.label ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: current === f.label ? '#a47bff' : 'var(--ink-70)',
+                color: current === f.label ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: f.value || 'inherit',
                 fontSize: '13px',
                 cursor: 'pointer',
@@ -630,7 +602,13 @@ function FontSizeControl({
         }}
       >
         <span style={{ flex: 1, textAlign: 'left' }}>{currentSize}px</span>
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 10, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -672,7 +650,7 @@ function FontSizeControl({
                 borderRadius: '5px',
                 border: 'none',
                 background: currentSize === s ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: currentSize === s ? '#a47bff' : 'var(--ink-70)',
+                color: currentSize === s ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -745,7 +723,7 @@ function InlineScaleDropdown({
               : open
                 ? 'rgba(140,82,255,0.12)'
                 : 'var(--ink-04)',
-          color: activeLevel !== null ? '#a47bff' : 'var(--ink-70)',
+          color: activeLevel !== null ? 'var(--md-h4)' : 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -763,8 +741,20 @@ function InlineScaleDropdown({
           }
         }}
       >
-        <ALargeSmall size={14} style={{ flexShrink: 0 }} />
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 14, flexShrink: 0 }}
+          aria-hidden
+        >
+          format_size
+        </span>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 10, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -800,7 +790,7 @@ function InlineScaleDropdown({
                 borderRadius: '5px',
                 border: 'none',
                 background: activeLevel === level ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: activeLevel === level ? '#a47bff' : 'var(--ink-70)',
+                color: activeLevel === level ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '13px',
                 fontWeight: level <= 2 ? 700 : 600,
@@ -890,7 +880,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
           borderRadius: '6px',
           border: 'none',
           background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'var(--ink-50)',
+          color: isActive ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -911,7 +901,9 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
           }
         }}
       >
-        <MessageSquareWarning size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          feedback
+        </span>
       </button>
       {open && (
         <div
@@ -963,8 +955,16 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
               >
                 <span style={{ display: 'flex', alignItems: 'center', color: s.borderColor }}>
                   {(() => {
-                    const Icon = CALLOUT_ICONS[s.icon];
-                    return Icon ? <Icon size={14} /> : null;
+                    const name = CALLOUT_ICONS[s.icon];
+                    return name ? (
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 14 }}
+                        aria-hidden
+                      >
+                        {name}
+                      </span>
+                    ) : null;
                   })()}
                 </span>
                 <span>{s.label}</span>
@@ -1051,7 +1051,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
           borderRadius: '6px',
           border: 'none',
           background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'var(--ink-50)',
+          color: isActive ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1072,7 +1072,9 @@ function TableGridPicker({ editor }: { editor: Editor }) {
           }
         }}
       >
-        <Table2 size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          table
+        </span>
       </button>
       {open && (
         <div
@@ -1148,31 +1150,31 @@ function TableContextButtons({ editor }: { editor: Editor }) {
     <>
       <Sep />
       <ToolbarButton
-        icon={PanelTop}
+        icon="view_day"
         label="Toggle header row"
         isActive={false}
         onClick={() => editor.chain().focus().toggleHeaderRow().run()}
       />
       <ToolbarButton
-        icon={Rows3}
+        icon="table_rows"
         label="Add row after"
         isActive={false}
         onClick={() => editor.chain().focus().addRowAfter().run()}
       />
       <ToolbarButton
-        icon={Columns3}
+        icon="view_column"
         label="Add column after"
         isActive={false}
         onClick={() => editor.chain().focus().addColumnAfter().run()}
       />
       <ToolbarButton
-        icon={Merge}
+        icon="cell_merge"
         label="Merge/split cells"
         isActive={false}
         onClick={() => editor.chain().focus().mergeOrSplit().run()}
       />
       <ToolbarButton
-        icon={Trash2}
+        icon="delete"
         label="Delete table"
         isActive={false}
         onClick={() => editor.chain().focus().deleteTable().run()}
@@ -1250,7 +1252,13 @@ function LineStylePicker({
             strokeDasharray={current.dasharray ?? 'none'}
           />
         </svg>
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 10, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -1284,7 +1292,7 @@ function LineStylePicker({
                 borderRadius: '6px',
                 border: 'none',
                 background: value === ls.value ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: value === ls.value ? '#a47bff' : 'var(--ink-70)',
+                color: value === ls.value ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -1305,7 +1313,7 @@ function LineStylePicker({
                   y1="5"
                   x2="30"
                   y2="5"
-                  stroke={value === ls.value ? '#a47bff' : 'var(--ink-60)'}
+                  stroke={value === ls.value ? 'var(--md-h4)' : 'var(--ink-60)'}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeDasharray={ls.dasharray ?? 'none'}
@@ -1362,7 +1370,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
           borderRadius: 6,
           border: 'none',
           background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: open ? '#a47bff' : 'var(--ink-50)',
+          color: open ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1370,7 +1378,9 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
           transition: 'background 0.1s, color 0.1s',
         }}
       >
-        <MoreHorizontal size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          more_horiz
+        </span>
       </button>
       {open && (
         <div
@@ -1398,7 +1408,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
               borderRadius: 6,
               border: 'none',
               background: 'transparent',
-              color: '#fca5a5',
+              color: 'var(--error)',
               fontSize: 13,
               fontFamily: 'inherit',
               cursor: 'pointer',
@@ -1411,7 +1421,9 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
               e.currentTarget.style.background = 'transparent';
             }}
           >
-            <Trash2 size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              delete
+            </span>
             Delete page
           </button>
         </div>
@@ -1451,15 +1463,18 @@ export default function EditorToolbar({
   const [, setTick] = useState(0);
   const bump = useCallback(() => setTick((t) => t + 1), []);
   const withSelection = useSelectionGuard(editor);
-  const { isPhone } = useBreakpoint();
+  const { isPhone, isPhoneOrTablet } = useBreakpoint();
 
+  // Phones AND tablets get horizontally-scrollable toolbar rows — the full
+  // button set is far wider than either viewport, so without this the trailing
+  // tools clipped off the right edge. Tighter padding only on phones.
   const responsiveRowStyle: React.CSSProperties = {
     ...ROW_STYLE,
-    ...(isPhone
+    ...(isPhoneOrTablet
       ? {
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
-          padding: '4px 8px',
+          padding: isPhone ? '4px 8px' : '4px 12px',
           gap: '2px',
           scrollbarWidth: 'none',
         }
@@ -1486,13 +1501,16 @@ export default function EditorToolbar({
         position: 'sticky',
         top: 0,
         zIndex: 200,
+        minWidth: 0,
       }}
     >
-      {isPhone && <style>{`.editor-toolbar-row::-webkit-scrollbar { display: none; }`}</style>}
+      {isPhoneOrTablet && (
+        <style>{`.editor-toolbar-row::-webkit-scrollbar { display: none; }`}</style>
+      )}
 
       {/* Row 1: Font controls + inline formatting */}
       <div
-        className={isPhone ? 'editor-toolbar-row' : undefined}
+        className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined}
         style={{
           ...responsiveRowStyle,
           borderBottom: '1px solid var(--ink-08)',
@@ -1519,7 +1537,7 @@ export default function EditorToolbar({
         />
         <Sep />
         <ToolbarButton
-          icon={Bold}
+          icon="format_bold"
           label="Bold (Cmd+B)"
           isActive={
             selectedTextAnnotation
@@ -1541,7 +1559,7 @@ export default function EditorToolbar({
           }}
         />
         <ToolbarButton
-          icon={Italic}
+          icon="format_italic"
           label="Italic (Cmd+I)"
           isActive={
             selectedTextAnnotation
@@ -1563,7 +1581,7 @@ export default function EditorToolbar({
           }}
         />
         <ToolbarButton
-          icon={Underline}
+          icon="format_underlined"
           label="Underline (Cmd+U)"
           isActive={
             selectedTextAnnotation
@@ -1585,7 +1603,7 @@ export default function EditorToolbar({
           }}
         />
         <ToolbarButton
-          icon={Strikethrough}
+          icon="format_strikethrough"
           label="Strikethrough"
           isActive={
             selectedTextAnnotation
@@ -1608,7 +1626,7 @@ export default function EditorToolbar({
         />
         <Sep />
         <ColorPicker
-          icon={Palette}
+          icon="palette"
           label="Text Color"
           colors={TEXT_COLORS}
           activeColor={
@@ -1634,7 +1652,7 @@ export default function EditorToolbar({
           }}
         />
         <ColorPicker
-          icon={Highlighter}
+          icon="ink_highlighter"
           label="Highlight"
           colors={HIGHLIGHT_COLORS}
           activeColor={editor.getAttributes('highlight').color as string | undefined}
@@ -1650,46 +1668,46 @@ export default function EditorToolbar({
       </div>
 
       {/* Row 2: Block formatting + utilities */}
-      <div className={isPhone ? 'editor-toolbar-row' : undefined} style={responsiveRowStyle}>
+      <div className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined} style={responsiveRowStyle}>
         <ToolbarButton
-          icon={Heading1}
+          icon="format_h1"
           label="Heading 1"
           isActive={editor.isActive('toggleHeading', { level: 1 })}
           onClick={() => editor.chain().focus().toggleToggleHeading({ level: 1 }).run()}
         />
         <ToolbarButton
-          icon={Heading2}
+          icon="format_h2"
           label="Heading 2"
           isActive={editor.isActive('toggleHeading', { level: 2 })}
           onClick={() => editor.chain().focus().toggleToggleHeading({ level: 2 }).run()}
         />
         <ToolbarButton
-          icon={Heading3}
+          icon="format_h3"
           label="Heading 3"
           isActive={editor.isActive('toggleHeading', { level: 3 })}
           onClick={() => editor.chain().focus().toggleToggleHeading({ level: 3 }).run()}
         />
         <Sep />
         <ToolbarButton
-          icon={List}
+          icon="format_list_bulleted"
           label="Bullet List"
           isActive={editor.isActive('bulletList')}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         />
         <ToolbarButton
-          icon={ListOrdered}
+          icon="format_list_numbered"
           label="Ordered List"
           isActive={editor.isActive('orderedList')}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         />
         <ToolbarButton
-          icon={Quote}
+          icon="format_quote"
           label="Blockquote"
           isActive={editor.isActive('blockquote')}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         />
         <ToolbarButton
-          icon={Code}
+          icon="code"
           label="Code Block"
           isActive={editor.isActive('codeBlock')}
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -1715,32 +1733,32 @@ export default function EditorToolbar({
         <Sep />
         {/* Cursor / Pen / Text mode toggle */}
         <ToolbarButton
-          icon={MousePointer2}
+          icon="arrow_selector_tool"
           label="Cursor mode"
           isActive={editorMode === 'cursor'}
           onClick={() => onModeChange('cursor')}
         />
         <ToolbarButton
-          icon={Pen}
+          icon="draw"
           label="Pen mode"
           isActive={editorMode === 'pen'}
           onClick={() => onModeChange('pen')}
         />
         <ToolbarButton
-          icon={Type}
+          icon="text_fields"
           label="Text mode"
           isActive={editorMode === 'text'}
           onClick={() => onModeChange('text')}
         />
         <Sep />
         <ToolbarButton
-          icon={Undo}
+          icon="undo"
           label="Undo (Cmd+Z)"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         />
         <ToolbarButton
-          icon={Redo}
+          icon="redo"
           label="Redo (Cmd+Shift+Z)"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
@@ -1751,7 +1769,7 @@ export default function EditorToolbar({
       {/* Row 3: Pen settings (visible only in pen mode) */}
       {editorMode === 'pen' && (
         <div
-          className={isPhone ? 'editor-toolbar-row' : undefined}
+          className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined}
           style={{
             ...responsiveRowStyle,
             borderTop: '1px solid var(--ink-08)',
@@ -1760,13 +1778,13 @@ export default function EditorToolbar({
         >
           {/* Pen / Eraser sub-tool */}
           <ToolbarButton
-            icon={Pen}
+            icon="draw"
             label="Pen"
             isActive={activeTool === 'pen'}
             onClick={() => onActiveToolChange('pen')}
           />
           <ToolbarButton
-            icon={Eraser}
+            icon="ink_eraser"
             label="Eraser"
             isActive={activeTool === 'eraser'}
             onClick={() => onActiveToolChange('eraser')}
@@ -1845,14 +1863,14 @@ export default function EditorToolbar({
 
           {/* Ruler toggle */}
           <ToolbarButton
-            icon={Ruler}
+            icon="straighten"
             label="Ruler"
             isActive={ruler.active}
             onClick={onRulerToggle}
           />
 
           {/* Clear all drawings */}
-          <ToolbarButton icon={Trash2} label="Clear All Drawings" onClick={onClearDrawing} />
+          <ToolbarButton icon="delete" label="Clear All Drawings" onClick={onClearDrawing} />
         </div>
       )}
     </div>

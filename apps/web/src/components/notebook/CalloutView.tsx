@@ -4,13 +4,12 @@ import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
 import { useState, useRef, useEffect } from 'react';
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
-import { ChevronDown, Info, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
 
-const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
+const CALLOUT_ICONS: Record<string, string> = {
+  Info: 'info',
+  AlertTriangle: 'warning',
+  CheckCircle: 'check_circle',
+  Lightbulb: 'lightbulb',
 };
 
 const TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip'];
@@ -76,11 +75,21 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
         >
           <span style={{ display: 'flex', alignItems: 'center', color: style.borderColor }}>
             {(() => {
-              const Icon = CALLOUT_ICONS[style.icon];
-              return Icon ? <Icon size={16} /> : null;
+              const name = CALLOUT_ICONS[style.icon];
+              return name ? (
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                  {name}
+                </span>
+              ) : null;
             })()}
           </span>
-          <ChevronDown size={10} style={{ opacity: 0.5 }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 10, opacity: 0.5 }}
+            aria-hidden
+          >
+            expand_more
+          </span>
         </button>
 
         {pickerOpen && (
@@ -135,8 +144,16 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                 >
                   <span style={{ display: 'flex', alignItems: 'center', color: s.borderColor }}>
                     {(() => {
-                      const Icon = CALLOUT_ICONS[s.icon];
-                      return Icon ? <Icon size={14} /> : null;
+                      const name = CALLOUT_ICONS[s.icon];
+                      return name ? (
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 14 }}
+                          aria-hidden
+                        >
+                          {name}
+                        </span>
+                      ) : null;
                     })()}
                   </span>
                   <span>{s.label}</span>

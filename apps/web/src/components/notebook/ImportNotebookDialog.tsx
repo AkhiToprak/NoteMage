@@ -1,16 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  X,
-  Loader2,
-  ChevronRight,
-  ChevronDown,
-  Check,
-  FileText,
-  FileUp,
-  Upload,
-} from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
 import { renderPdfToPngs, type RenderedPdfPage } from '@/lib/pdf-client-render';
@@ -101,7 +91,9 @@ export default function ImportNotebookDialog({
               padding: '4px',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -439,7 +431,13 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
             justifyContent: 'center',
           }}
         >
-          <Check size={24} style={{ color: 'rgba(74,222,128,0.8)' }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 24, color: 'rgba(74,222,128,0.8)' }}
+            aria-hidden
+          >
+            check
+          </span>
         </div>
         <div style={{ textAlign: 'center' }}>
           <p
@@ -592,15 +590,21 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                   }}
                 >
                   {isExpanded ? (
-                    <ChevronDown
-                      size={14}
-                      style={{ color: 'rgba(196,169,255,0.5)', flexShrink: 0 }}
-                    />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, color: 'rgba(196,169,255,0.5)', flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      expand_more
+                    </span>
                   ) : (
-                    <ChevronRight
-                      size={14}
-                      style={{ color: 'rgba(196,169,255,0.5)', flexShrink: 0 }}
-                    />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, color: 'rgba(196,169,255,0.5)', flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      chevron_right
+                    </span>
                   )}
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)' }}>
                     {nb.displayName}
@@ -643,15 +647,26 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
-                            transition: 'all 0.1s ease',
+                            transition: 'background 0.1s ease, border-color 0.1s ease',
                           }}
                         >
-                          {isSelected && <Check size={10} style={{ color: 'var(--on-surface)' }} />}
+                          {isSelected && (
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: 10, color: 'var(--on-surface)' }}
+                              aria-hidden
+                            >
+                              check
+                            </span>
+                          )}
                         </div>
-                        <FileText
-                          size={13}
-                          style={{ color: 'rgba(196,169,255,0.4)', flexShrink: 0 }}
-                        />
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 13, color: 'rgba(196,169,255,0.4)', flexShrink: 0 }}
+                          aria-hidden
+                        >
+                          description
+                        </span>
                         <span
                           style={{
                             fontSize: '12.5px',
@@ -698,7 +713,9 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
               fontFamily: 'inherit',
             }}
           >
-            <Upload size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              upload
+            </span>
             Import{selectedSections.size > 0 ? ` (${selectedSections.size})` : ''}
           </button>
         </div>
@@ -791,7 +808,13 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
             justifyContent: 'center',
           }}
         >
-          <FileText size={20} style={{ color: '#c4a9ff' }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20, color: '#c4a9ff' }}
+            aria-hidden
+          >
+            description
+          </span>
         </div>
         <div>
           <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
@@ -877,15 +900,28 @@ function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImport
       >
         {uploadState === 'uploading' ? (
           <>
-            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Importing PDF...
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}
+              aria-hidden
+            >
+              progress_activity
+            </span>{' '}
+            Importing PDF...
           </>
         ) : uploadState === 'success' ? (
           <>
-            <Check size={16} /> Imported!
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              check
+            </span>{' '}
+            Imported!
           </>
         ) : (
           <>
-            <Upload size={16} /> Import PDF from GoodNotes
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              upload
+            </span>{' '}
+            Import PDF from GoodNotes
           </>
         )}
       </button>
@@ -925,7 +961,13 @@ function AppleNotesTab() {
             justifyContent: 'center',
           }}
         >
-          <FileText size={20} style={{ color: '#c4a9ff' }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20, color: '#c4a9ff' }}
+            aria-hidden
+          >
+            description
+          </span>
         </div>
         <div>
           <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
@@ -1138,7 +1180,13 @@ function PdfTab({
             justifyContent: 'center',
           }}
         >
-          <FileUp size={20} style={{ color: '#c4a9ff' }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20, color: '#c4a9ff' }}
+            aria-hidden
+          >
+            upload_file
+          </span>
         </div>
         <div>
           <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
@@ -1215,12 +1263,21 @@ function PdfTab({
       >
         {busy ? (
           <>
-            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}
+              aria-hidden
+            >
+              progress_activity
+            </span>
             {buttonLabel}
           </>
         ) : (
           <>
-            <FileUp size={16} /> Choose PDF file
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              upload_file
+            </span>{' '}
+            Choose PDF file
           </>
         )}
       </button>
@@ -1263,7 +1320,15 @@ function CenteredMessage({ text, loading }: { text: string; loading?: boolean })
         fontSize: '13px',
       }}
     >
-      {loading && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+      {loading && (
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}
+          aria-hidden
+        >
+          progress_activity
+        </span>
+      )}
       {text}
       {loading && (
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
