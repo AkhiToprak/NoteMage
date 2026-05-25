@@ -196,13 +196,6 @@ function NotebooksPageContent() {
       const json = await res.json();
       if (json.success) {
         setShowForm(false);
-        if (data.presetId && json.data?.id) {
-          fetch(`/api/notebooks/${json.data.id}/scaffold`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ presetId: data.presetId }),
-          }).catch(() => {});
-        }
         if (tutorialStep === 'step-2-notebook-form' && json.data?.id) {
           tutorialAdvance('step-3-workspace');
           router.push(`/notebooks/${json.data.id}`);

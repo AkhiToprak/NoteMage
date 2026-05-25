@@ -20,7 +20,6 @@ export interface FormData {
   subject: string;
   description: string;
   color: string;
-  presetId?: string;
 }
 
 interface NotebookFormProps {
@@ -63,7 +62,7 @@ export default function NotebookForm({
 }: NotebookFormProps) {
   const isEditing = !!notebook;
 
-  const [form, setForm] = useState<Omit<FormData, 'presetId'>>({
+  const [form, setForm] = useState<FormData>({
     name: notebook?.name ?? '',
     subject: notebook?.subject ?? '',
     description: notebook?.description ?? '',
@@ -143,7 +142,7 @@ export default function NotebookForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    onSubmit({ ...form, presetId: selectedPreset?.id });
+    onSubmit(form);
   };
 
   const noSuggestions =
@@ -592,16 +591,6 @@ export default function NotebookForm({
                       }}
                     >
                       {preset.label}
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: 'inherit',
-                        fontSize: '11px',
-                        color: 'var(--ink-30)',
-                        marginLeft: 'auto',
-                      }}
-                    >
-                      {preset.scaffold.length} sections
                     </span>
                   </button>
                 ))}
