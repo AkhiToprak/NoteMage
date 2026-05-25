@@ -430,7 +430,7 @@ export default function UnifiedSidebar() {
             {/* ── Create Learning Path button — yellow accent ──────── */}
             <button
               onClick={() => setShowPathSetup(true)}
-              title="Generate a Duolingo-style learning path from this notebook"
+              title="Generate a guided learning path from this notebook"
               style={{
                 display: 'flex',
                 alignItems: 'center',

@@ -1,4 +1,4 @@
--- Phase 10.1 — Duolingo-style checkpoint bundles.
+-- Phase 10.1 — guided checkpoint bundles.
 -- Hard cutover: no users in production, so we wipe every study plan and drop
 -- the legacy material/checkpoint tables before recreating the new shape.
 

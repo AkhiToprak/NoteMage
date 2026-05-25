@@ -192,7 +192,7 @@ export interface StudyPlanToolInput {
 
 // ── Phase 10.2 — Path generation tool inputs ────────────────────────
 //
-// The new "Duolingo-style" path generator produces a path in two stages:
+// The new "guided" path generator produces a path in two stages:
 //   Stage A (`create_path_structure`): one AI call returns the section /
 //     slot skeleton. Slots specify kind + topicHint but no content.
 //   Stage B (three tools): per-slot calls fill the activities. Content is
@@ -667,15 +667,15 @@ export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
 export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
   name: 'create_path_structure',
   description: [
-    'Design the section / slot skeleton for a Duolingo-style learning path.',
+    'Design the section / slot skeleton for a guided learning path.',
     'Output the curriculum spine ONLY — title, description, and a list of phases ("sections"), each containing an ordered list of slots ("checkpoints").',
     'Each slot has: a short title; a "kind" (learning | review | assessment); a "topicHint" (what to TEACH); an "objective" (the concrete, testable thing the learner can DO after it); and, for review/assessment slots, "covers" (indices of earlier slots in the same section it tests).',
     'Scale to the material: produce as many sections and slots as the source material and available days genuinely support — never pad. Thin material → fewer, tighter slots. A focused 3-section path beats a bloated 6-section one.',
     'No two slots may overlap — each teaches a DISTINCT concept. Order slots so each builds on the ones before it (prerequisites first).',
-    'Rules for slot kinds:',
-    '- Early phases: mostly "learning" slots.',
-    '- Middle/late phases: may add one "review" slot before the assessment to consolidate earlier slots.',
-    '- The LAST slot of every phase MUST be "assessment" (it becomes the checkpoint quiz that gates the next section).',
+    'Rules for slot kinds — build in spaced repetition:',
+    '- "learning" teaches one new concept; "review" consolidates + quizzes earlier slots (no new theory); "assessment" is the graded gate.',
+    '- Add a "review" slot after roughly every 2 "learning" slots (its "covers" lists those learning slots). NEVER output a section that is only learning slots followed by one assessment.',
+    '- The LAST slot of every phase MUST be "assessment" (the checkpoint quiz that gates the next section; its "covers" lists every prior slot).',
     'Do not generate any actual lesson text, flashcards, or quiz questions here — the orchestrator fills those in per-slot via separate tools.',
   ].join('\n'),
   input_schema: {
@@ -716,7 +716,7 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
                     type: 'string',
                     enum: ['learning', 'review', 'assessment'],
                     description:
-                      'Slot kind. The LAST slot of every section MUST be "assessment".',
+                      'Slot kind. Interleave a "review" after ~every 2 "learning" slots; the LAST slot of every section MUST be "assessment".',
                   },
                   topicHint: {
                     type: 'string',
@@ -737,7 +737,8 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
                 },
                 required: ['title', 'kind', 'topicHint'],
               },
-              description: '4–6 slots per section. Last slot kind MUST be "assessment".',
+              description:
+                'Ordered slots: learning slots with a "review" interleaved after ~every 2 of them; the last slot kind MUST be "assessment".',
               minItems: 2,
               maxItems: 8,
             },
@@ -757,7 +758,7 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
   name: 'create_theory_section',
   description: [
     'Generate a compact theory section for one checkpoint slot.',
-    'Target ~300–500 words total. Keep the language warm, plain, and example-driven (Duolingo-style).',
+    'Target ~300–500 words total. Keep the language warm, plain, and example-driven.',
     'Output:',
     '- title: the heading shown above the section.',
     '- introduction: 1–2 paragraphs that set up the concept.',

@@ -7,7 +7,7 @@ import PathConnector from '@/components/learn/PathConnector';
 import PathDecoration, { decorationsForSection } from '@/components/learn/PathDecorations';
 import { sectionAverageGrade } from '@/lib/path-gating';
 
-// Phase 10.5 — Duolingo-style path view.
+// Phase 10.5 — guided path view.
 //
 // Single vertical scroll column. Each phase ("section") renders a
 // sticky banner that pins to the viewport top while the section's

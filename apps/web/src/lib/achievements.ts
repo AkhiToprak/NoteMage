@@ -20,7 +20,7 @@ export interface UserStats {
   flashcardReviewCount: number;
   documentCount: number;
   quizSetCount: number;
-  // ── Phase 7 — Personal-Duolingo rework signals ─────────────────────
+  // ── Phase 7 — personal learning-path rework signals ─────────────────────
   /** True if any quiz attempt scored 100% on a quiz with ≥5 questions. */
   hasPerfectQuiz: boolean;
   /** Longest consecutive-correct run in any single quiz session, ever. */
@@ -281,7 +281,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     unlocks: ['font.mono'],
   },
 
-  // ── Phase 7 — Personal-Duolingo rework ───────────────────────────────
+  // ── Phase 7 — personal learning-path rework ───────────────────────────────
   {
     badge: 'perfect_quiz',
     name: 'perfectionist',

@@ -1,4 +1,4 @@
--- Phase 7 (Personal-Duolingo rework) — denormalized achievement stats.
+-- Phase 7 (personal learning-path rework) — denormalized achievement stats.
 -- `maxQuizStreakEver` and `everHadComeback` are bumped by the quiz attempts
 -- route at submission time so `gatherUserStats()` can read them with a
 -- single column lookup instead of replaying every QuizAttempt.answers blob.

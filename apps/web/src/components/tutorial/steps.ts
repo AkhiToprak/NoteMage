@@ -119,7 +119,7 @@ export function getStepConfig(
       return isPro
         ? {
             title: 'Build a study path',
-            body: 'Turn any notebook into a Duolingo-style path — bite-size theory, flashcards, and quizzes, in order.',
+            body: 'Turn any notebook into a guided path — bite-size theory, flashcards, and quizzes, in order.',
             targetKey: 'learn-generate-path',
             route: '/learn/paths',
             next: 'learn-community',

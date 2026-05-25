@@ -127,7 +127,7 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     db.quizSet.count({ where: { userId } }),
   ]);
 
-  // ── Phase 7 — Personal-Duolingo rework gather ───────────────────────
+  // ── Phase 7 — personal learning-path rework gather ───────────────────────
   // Three of these go through Prisma (path/phase rollups), two through
   // raw SQL where Prisma's relational where-builder can't express the
   // condition cheaply (perfect-on-a-5+-question-quiz, first-attempt ace).

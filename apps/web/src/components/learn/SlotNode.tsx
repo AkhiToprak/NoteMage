@@ -4,7 +4,7 @@ import { CheckpointIcon } from '@/components/icons/CheckpointIcons';
 import type { PathSlot } from '@/components/learn/PathView';
 import { bestGrade } from '@/lib/path-gating';
 
-// Phase 10.5 — Duolingo-style slot node. Rounded square with a flat
+// Phase 10.5 — guided-path slot node. Rounded square with a flat
 // drop-shadow, kind-specific icon, four visual states (locked /
 // available / active / completed), an SVG completion ring on the
 // active node tracking activities-done / activities-total, and 1–3
@@ -178,7 +178,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
           aria-label={`${slot.title}${isLocked ? ' (locked)' : ''}`}
           aria-disabled={isLocked || undefined}
           // Phase 10.7 — surface the "current step" to assistive tech.
-          // The Duolingo-style path is a stepped sequence, so the
+          // The guided path is a stepped sequence, so the
           // first unlocked-and-incomplete slot maps to aria-current=step.
           aria-current={isActive ? 'step' : undefined}
           className="learn-path-node-btn"

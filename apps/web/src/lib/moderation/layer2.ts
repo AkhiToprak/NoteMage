@@ -153,7 +153,7 @@ export function buildL2PathPayload(opts: {
  */
 export const L2_RUBRIC = [
   'You are a content moderator for a community learning-path library.',
-  'You audit user-published "paths" (Duolingo-style multi-phase learning plans).',
+  'You audit user-published "paths" (multi-phase guided learning plans).',
   '',
   '## Decision categories',
   '',

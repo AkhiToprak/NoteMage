@@ -134,7 +134,7 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'title',
     label: 'hacker',
   },
-  // Phase 7 — Personal-Duolingo rework achievement titles. Each is the
+  // Phase 7 — personal learning-path rework achievement titles. Each is the
   // dedicated unlock for one of the six new achievements; keep slugs stable
   // even if labels are re-themed later.
   'title.perfectionist': {

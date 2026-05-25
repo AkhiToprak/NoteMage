@@ -5,7 +5,7 @@ import { LockIcon } from '@/components/icons/CheckpointIcons';
 
 // Phase 10.5 — sticky section header rendered above each section's slot
 // column. Pins to the viewport top while the section scrolls past so
-// the learner always sees which section they're in (Duolingo's section
+// the learner always sees which section they're in (a sticky section
 // banner pattern).
 //
 // Phase 10.8 — locked sections now render a greyed surface variant with

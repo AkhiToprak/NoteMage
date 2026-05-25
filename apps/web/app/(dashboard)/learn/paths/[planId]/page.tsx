@@ -18,7 +18,7 @@ import GenerationProgressModal from '@/components/learn/GenerationProgressModal'
 //
 // URL contract: `/learn/paths/[planId]?slot=<slotId>&activity=<activityId>`
 //
-// The page renders PathView (the Duolingo column) and overlays a
+// The page renders PathView (the guided path column) and overlays a
 // CheckpointDrawer when `?slot=` is present. URL-derived state means
 // the back button + refresh both preserve the exact drawer view, and
 // linking to a specific slot or activity Just Works.

@@ -1639,7 +1639,7 @@ function AiTab({
           lineHeight: 1.5,
         }}
       >
-        {mageName} will build a Duolingo-style path from{' '}
+        {mageName} will build a guided path from{' '}
         <strong style={{ color: 'var(--on-surface)' }}>
           {allSelected
             ? isCrossNotebookMode
@@ -1652,49 +1652,34 @@ function AiTab({
         , with phased lessons and checkpoint quizzes.
       </p>
 
-      {isCrossNotebookMode ? (
+      {isCrossNotebookMode && aiNotebookOptions.length > 0 ? (
         <Field label="Generate AI plan for notebook">
-          {aiNotebookOptions.length === 0 ? (
+          <select
+            value={aiNotebookId ?? ''}
+            onChange={(e) => onAiNotebookIdChange(e.target.value || null)}
+            style={inputStyle}
+          >
+            <option value="">Pick a notebook…</option>
+            {aiNotebookOptions.map((nb) => (
+              <option key={nb.id} value={nb.id}>
+                {nb.name}
+                {nb.kind === 'inbox' ? ' · Inbox' : ''}
+              </option>
+            ))}
+          </select>
+          {aiNotebookOptions.length > 1 ? (
             <p
               style={{
-                margin: 0,
+                margin: '6px 0 0',
                 fontSize: '12px',
                 color: 'var(--on-surface-variant)',
-                fontStyle: 'italic',
+                lineHeight: 1.5,
               }}
             >
-              Select notes from at least one notebook to enable AI mode.
+              AI mode generates from a single notebook at a time. Use Manual to
+              combine notes from multiple notebooks.
             </p>
-          ) : (
-            <>
-              <select
-                value={aiNotebookId ?? ''}
-                onChange={(e) => onAiNotebookIdChange(e.target.value || null)}
-                style={inputStyle}
-              >
-                <option value="">Pick a notebook…</option>
-                {aiNotebookOptions.map((nb) => (
-                  <option key={nb.id} value={nb.id}>
-                    {nb.name}
-                    {nb.kind === 'inbox' ? ' · Inbox' : ''}
-                  </option>
-                ))}
-              </select>
-              {aiNotebookOptions.length > 1 ? (
-                <p
-                  style={{
-                    margin: '6px 0 0',
-                    fontSize: '12px',
-                    color: 'var(--on-surface-variant)',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  AI mode generates from a single notebook at a time. Use Manual to
-                  combine notes from multiple notebooks.
-                </p>
-              ) : null}
-            </>
-          )}
+          ) : null}
         </Field>
       ) : null}
 

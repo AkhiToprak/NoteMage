@@ -98,7 +98,7 @@ model User {
   hideAchievements      Boolean   @default(false) // If true, achievements hidden on public profile
   quizReactionsMode     String    @default("all") // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
   quizReactionsAudio    Boolean   @default(false) // Opt-in sound effects for quiz reactions
-  // Phase 7 — Personal-Duolingo rework achievement stats. Denormalized
+  // Phase 7 — personal learning-path rework achievement stats. Denormalized
   // so achievement gathering reads a single column instead of replaying
   // every QuizAttempt.answers blob. Bumped by the attempts route.
   maxQuizStreakEver     Int       @default(0) // Longest consecutive-correct run in any single quiz session
@@ -815,7 +815,7 @@ model StudyPhase {
   @@map("study_phases")
 }
 
-// Phase 10 — a single node on the Duolingo-style path. Bundles 2–4 activities
+// Phase 10 — a single node on the guided path. Bundles 2–4 activities
 // (theory → flashcards → quiz) that the user works through inside an inline
 // drawer (Phase 10.6). Replaces the old `StudyMaterial` row.
 model CheckpointSlot {

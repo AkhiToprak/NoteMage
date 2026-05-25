@@ -1,4 +1,4 @@
-// Phase 10.2 — System prompts for the Duolingo-style path generator.
+// Phase 10.2 — System prompts for the guided path generator.
 //
 // Stage A builds the curriculum skeleton. Stage B fills each slot's
 // activities (theory / flashcards / quiz). Each builder returns a string
@@ -164,7 +164,7 @@ export function buildCachedSystem(
  */
 export function buildPathStructurePrompt(ctx: PathStructureContext): string {
   const lines: string[] = [
-    'You are NoteMage, an AI tutor that designs Duolingo-style learning paths.',
+    'You are NoteMage, an AI tutor that designs guided learning paths.',
     'Your job is to plan the SHAPE of the path — sections and slots — not the lesson content itself.',
     '',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` wrappers.',
@@ -187,10 +187,11 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
     '- `objective`: ONE line — the concrete, testable thing the learner can DO after this slot, phrased verb-first (e.g. "Conjugate regular -ar verbs in the present tense"). The slot\'s quiz is written to test exactly this, so make it sharp and measurable.',
     '- `covers`: for `review`/`assessment` slots, the 0-based indices of the EARLIER slots IN THE SAME SECTION this checkpoint tests (reference only slots before it). Use `[]` for `learning` slots. An `assessment` that tests the whole section lists every prior slot index in that section.',
     '',
-    'Slot kinds:',
-    '- The LAST slot of every section MUST have `kind: "assessment"`. This becomes the checkpoint that gates the next section.',
-    '- Early sections should be mostly `learning` slots.',
-    '- Middle and late sections may include one `review` slot before the assessment to consolidate earlier slots.',
+    'Slot kinds — build in spaced repetition; NEVER output a section that is just learning slots plus one assessment:',
+    '- `learning`: teaches ONE new concept (becomes theory + flashcards). Use `covers: []`.',
+    '- `review`: consolidates and quizzes earlier slots (flashcards + quiz, no new theory). Add a `review` slot after about every 2 `learning` slots so the learner practices before taking on more. Its `covers` lists the learning slots it reinforces.',
+    '- `assessment`: the LAST slot of every section MUST have `kind: "assessment"` — the graded checkpoint that gates the next section. Its `covers` lists every prior slot in the section.',
+    '- A healthy section reads like: learning, learning, review, learning, learning, review, assessment. Adapt the rhythm to the material, but always interleave reviews — do not stack all the learning first.',
     '- Section titles should read like "Section N: Topic" or similar — the UI renders them as banners.',
   ];
   if (ctx.hasSourceMaterials) {
@@ -220,7 +221,7 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
  */
 export function buildTheoryPrompt(ctx: SlotContentContext): string {
   const lines: string[] = [
-    'You are NoteMage, writing the theory section for ONE checkpoint slot inside a Duolingo-style learning path.',
+    'You are NoteMage, writing the theory section for ONE checkpoint slot inside a guided learning path.',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` wrappers.',
     '',
     'JSON shape (keys MUST match EXACTLY — camelCase, no snake_case):',
@@ -271,7 +272,7 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
  */
 export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
   const lines: string[] = [
-    'You are NoteMage, generating flashcards for ONE checkpoint slot inside a Duolingo-style learning path.',
+    'You are NoteMage, generating flashcards for ONE checkpoint slot inside a guided learning path.',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` / `parameters` wrappers — emit the JSON object directly.',
     '',
     'JSON shape (keys MUST match EXACTLY — camelCase, no snake_case):',
@@ -327,8 +328,8 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
   const questionRange = isFinalExam ? '12–20 questions' : '5–8 questions';
   const lines: string[] = [
     isFinalExam
-      ? 'You are NoteMage, writing the FINAL EXAM for a Duolingo-style learning path. This is the capstone — it should feel like a realistic, comprehensive exam that simulates the high-stakes test the learner is preparing for.'
-      : 'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a Duolingo-style learning path.',
+      ? 'You are NoteMage, writing the FINAL EXAM for a guided learning path. This is the capstone — it should feel like a realistic, comprehensive exam that simulates the high-stakes test the learner is preparing for.'
+      : 'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a guided learning path.',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` / `parameters` / `activity` / `quiz` envelopes — emit the JSON object directly.',
     '',
     'JSON shape (top-level keys MUST match EXACTLY — camelCase, no snake_case):',

@@ -1,4 +1,4 @@
-// Phase 10.2 — Duolingo-style path generation orchestrator.
+// Phase 10.2 — guided path generation orchestrator.
 //
 // Two-stage pipeline:
 //
@@ -450,20 +450,100 @@ export async function generatePathStructure(
     throw new Error(`Path structure generation failed: ${lastDetail}`);
   }
 
-  // Enforce the "last slot of every section is assessment" rule that the
-  // tool schema only describes in prose. normalizePathStructure guarantees
-  // every section has at least one slot, so the index access is safe.
-  for (const phase of structure.phases) {
-    const last = phase.slots[phase.slots.length - 1];
-    if (last.kind !== 'assessment') {
-      last.kind = 'assessment';
-    }
-  }
+  // Rebuild each section to interleave spaced-repetition `review` slots and
+  // guarantee a trailing graded `assessment`. The prompt asks for this but the
+  // model reliably falls back to a wall of learning slots + one assessment, so
+  // we enforce the rhythm in code.
+  enforceSpacedReviews(structure);
   logTelemetry(opts.userId, 'path.structure.completed', {
     usage: meter,
     cost: computeCost(meter.perModel),
   });
   return structure;
+}
+
+type StructureSlot = GeneratedPathStructure['phases'][number]['slots'][number];
+
+/**
+ * Stage A reliably emits a wall of `learning` slots and a single trailing
+ * `assessment`, which makes every path feel identical. Rebuild each section so
+ * a `review` slot lands after roughly every 2 `learning` slots (spaced
+ * repetition), the section still ends with a graded `assessment`, and every
+ * checkpoint's `covers` points at the correct preceding slots in the rebuilt
+ * order. Enforced in code because the prompt alone does not reliably produce
+ * reviews.
+ */
+function enforceSpacedReviews(structure: GeneratedPathStructure): void {
+  for (const phase of structure.phases) {
+    if (phase.slots.length === 0) continue;
+
+    // Split the section body from its trailing assessment. If the model didn't
+    // end with one, fold that slot back into the body and synthesize a fresh
+    // checkpoint so the section still gates.
+    const body = phase.slots.slice(0, -1);
+    let assessment = phase.slots[phase.slots.length - 1];
+    if (assessment.kind !== 'assessment') {
+      body.push(assessment);
+      assessment = {
+        title: 'Section Checkpoint',
+        kind: 'assessment',
+        topicHint: `Graded checkpoint for "${phase.title}". Tests every concept covered in this section.`,
+      };
+    }
+
+    const rebuilt: StructureSlot[] = [];
+    // rebuilt-array indices of the learning slots awaiting their next review.
+    let pending: number[] = [];
+
+    const pushReview = (existing?: StructureSlot) => {
+      const covered = [...pending];
+      let review: StructureSlot;
+      if (existing) {
+        existing.kind = 'review';
+        review = existing;
+      } else {
+        const titles = covered
+          .map((i) => rebuilt[i]?.title)
+          .filter((t): t is string => Boolean(t));
+        const last = titles[titles.length - 1];
+        const label = last ? `Review: ${last}` : 'Review & Practice';
+        review = {
+          title: label.length <= 34 ? label : 'Review & Practice',
+          kind: 'review',
+          topicHint:
+            titles.length > 0
+              ? `Consolidate and practice the concepts from: ${titles.join('; ')}.`
+              : 'Consolidate and practice the concepts from the previous slots.',
+        };
+      }
+      // Recompute covers against the rebuilt order — the model's indices are
+      // stale once slots move. Empty covers falls back to "all earlier slots"
+      // at resolution time, which is still a valid review.
+      review.covers = covered;
+      rebuilt.push(review);
+      pending = [];
+    };
+
+    for (const slot of body) {
+      if (slot.kind === 'review') {
+        // Keep model-authored reviews; have them consolidate the pending pair.
+        pushReview(slot);
+      } else {
+        // Learning (or any stray mid-section assessment) becomes a learning slot.
+        slot.kind = 'learning';
+        slot.covers = undefined;
+        rebuilt.push(slot);
+        pending.push(rebuilt.length - 1);
+        if (pending.length >= 2) pushReview();
+      }
+    }
+    // A lone leftover learning slot needs no review — the assessment covers it.
+
+    assessment.kind = 'assessment';
+    assessment.covers = rebuilt.map((_, i) => i);
+    rebuilt.push(assessment);
+    phase.slots = rebuilt;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
