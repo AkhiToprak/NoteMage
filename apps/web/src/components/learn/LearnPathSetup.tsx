@@ -153,7 +153,6 @@ export default function LearnPathSetup({
   const [showImport, setShowImport] = useState(false);
 
   // AI fields
-  const [aiDuration, setAiDuration] = useState(14);
   const [aiGoals, setAiGoals] = useState('');
   const [ultra, setUltra] = useState(false);
   const [gemini, setGemini] = useState(false);
@@ -443,7 +442,6 @@ export default function LearnPathSetup({
         body: JSON.stringify({
           title: fallbackTitle,
           brief: aiGoals.trim() || undefined,
-          targetDays: aiDuration,
           primaryNotebookId: targetNotebookId,
           contextNotebookIds: [targetNotebookId],
           materialIds: scopedItems.map((i) => i.id),
@@ -468,7 +466,6 @@ export default function LearnPathSetup({
     defaultNotebookId,
     defaultNotebookName,
     aiNotebookId,
-    aiDuration,
     aiGoals,
     ultra,
     gemini,
@@ -504,12 +501,6 @@ export default function LearnPathSetup({
       for (const m of allMaterials) {
         if (m.notebookId) contextSet.add(m.notebookId);
       }
-      const targetDays = Math.max(
-        1,
-        Math.round(
-          (new Date(planEnd).getTime() - new Date(planStart).getTime()) / 86400000,
-        ) + 1,
-      );
       const phaseHints = phases
         .map((p, i) => `${i + 1}. ${p.title.trim() || `Phase ${i + 1}`}`)
         .filter((s) => s.length > 0)
@@ -524,7 +515,6 @@ export default function LearnPathSetup({
         body: JSON.stringify({
           title: planTitle.trim(),
           brief: brief || undefined,
-          targetDays,
           primaryNotebookId:
             defaultNotebookId ?? (contextSet.size === 1 ? Array.from(contextSet)[0] : null),
           contextNotebookIds: Array.from(contextSet),
@@ -548,8 +538,6 @@ export default function LearnPathSetup({
     defaultNotebookId,
     planTitle,
     planDescription,
-    planStart,
-    planEnd,
     phases,
     language,
   ]);
@@ -949,8 +937,6 @@ export default function LearnPathSetup({
 
           {tab === 'ai' ? (
             <AiTab
-              durationDays={aiDuration}
-              onDurationChange={setAiDuration}
               goals={aiGoals}
               onGoalsChange={setAiGoals}
               ultra={ultra}
@@ -1608,8 +1594,6 @@ function InventoryRow({
 }
 
 function AiTab({
-  durationDays,
-  onDurationChange,
   goals,
   onGoalsChange,
   ultra,
@@ -1625,8 +1609,6 @@ function AiTab({
   aiNotebookId,
   onAiNotebookIdChange,
 }: {
-  durationDays: number;
-  onDurationChange: (n: number) => void;
   goals: string;
   onGoalsChange: (g: string) => void;
   ultra: boolean;
@@ -1716,15 +1698,6 @@ function AiTab({
         </Field>
       ) : null}
 
-      <Field label="Plan duration (days)">
-        <input
-          type="number"
-          value={durationDays}
-          onChange={(e) => onDurationChange(Math.max(1, parseInt(e.target.value) || 1))}
-          min={1}
-          style={inputStyle}
-        />
-      </Field>
       <Field label="Study goals (optional)">
         <textarea
           value={goals}

@@ -37,13 +37,26 @@ function languageDirective(language: PathLanguageCode | undefined): string | nul
   );
 }
 
+/**
+ * A prompt line carrying the learner's own goals / intent for the path (the
+ * "Study goals" brief). Shared by every Stage B builder so the learner's
+ * requested tone, emphasis, focus, and difficulty steer the actual content —
+ * not just the Stage A structure. Returns null when no brief was provided.
+ */
+function learnerBriefLine(ctx: SlotContentContext): string | null {
+  const brief = ctx.learnerBrief?.trim();
+  if (!brief) return null;
+  return (
+    "LEARNER'S GOALS for this path — honor any style, emphasis, focus, or " +
+    `difficulty level they ask for here: ${brief}`
+  );
+}
+
 export interface PathStructureContext {
   /** Path title the user requested. May be refined by the AI. */
   title: string;
   /** Optional brief from the user (notebook scope, learning goals, …). */
   brief?: string;
-  /** Target number of days the learner has — guides phase count + density. */
-  targetDays: number;
   /**
    * Whether a SOURCE MATERIALS corpus block accompanies this prompt. When
    * true, the prompt instructs the AI to anchor the path to that content.
@@ -60,12 +73,25 @@ export interface PathStructureContext {
 export interface SlotContentContext {
   pathTitle: string;
   pathDescription: string;
+  /**
+   * The learner's own goals / intent message for the whole path (the "Study
+   * goals" brief). Steers HOW content is written — tone, emphasis, focus,
+   * difficulty — across every slot. Optional.
+   */
+  learnerBrief?: string;
   /** The section ("phase") this slot belongs to. */
   phaseTitle: string;
   phaseDescription: string;
   slotTitle: string;
   slotKind: PathSlotKind;
   slotTopicHint: string;
+  /**
+   * Stage A's measurable objective for this slot — the verb-first capability
+   * the learner reaches ("conjugate regular -ar verbs in the present tense").
+   * Theory orients toward it; the quiz is written to test it. Optional —
+   * absent for legacy slots and the synthetic final exam.
+   */
+  slotObjective?: string;
   /** Whether a SOURCE MATERIALS corpus block accompanies this prompt. */
   hasSourceMaterials: boolean;
   /**
@@ -143,28 +169,38 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
     '',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` wrappers.',
     '',
-    'JSON shape (keys MUST match EXACTLY — `phases` NOT `sections`):',
-    '{ "title": string, "description": string, "phases": [ { "title": string, "description": string, "slots": [ { "title": string, "kind": "learning"|"review"|"assessment", "topicHint": string } ] } ] }',
+    'JSON shape (keys MUST match EXACTLY — `phases` NOT `sections`, camelCase):',
+    '{ "title": string, "description": string, "phases": [ { "title": string, "description": string, "slots": [ { "title": string, "kind": "learning"|"review"|"assessment", "topicHint": string, "objective": string, "covers": number[] } ] } ] }',
     'The UI renders each phase as a "Section" — but the JSON key stays `phases`. All titles MUST be non-empty strings.',
     '',
-    'Rules:',
-    '- Output 3–6 sections.',
-    '- Each section has 4–6 slots.',
+    'Scale to the material:',
+    '- Output 3–6 sections with 3–6 slots each — but only as many as the subject matter genuinely supports. Do NOT pad to hit a number; a tight 3-section path beats a bloated 6-section one full of filler slots.',
+    '- When the material is thin, make fewer, denser slots. When it is rich, spread it across more slots so each stays focused on one idea.',
+    '',
+    'Coherence — this is the ONLY step that sees the whole path, so get the structure right here:',
+    '- Every slot teaches a DISTINCT concept. No two slots may overlap or repeat. If two ideas are small, merge them into one slot rather than splitting hairs.',
+    '- Order the slots so each builds on the ones before it — prerequisites first, then the concepts that depend on them.',
+    '',
+    'Per-slot fields:',
+    '- `title`: one short line (≤ 6 words), shown on the path node.',
+    '- `topicHint`: 1–2 sentences naming the SPECIFIC concepts/skills this slot teaches — not a vague label. Drives the theory + flashcards.',
+    '- `objective`: ONE line — the concrete, testable thing the learner can DO after this slot, phrased verb-first (e.g. "Conjugate regular -ar verbs in the present tense"). The slot\'s quiz is written to test exactly this, so make it sharp and measurable.',
+    '- `covers`: for `review`/`assessment` slots, the 0-based indices of the EARLIER slots IN THE SAME SECTION this checkpoint tests (reference only slots before it). Use `[]` for `learning` slots. An `assessment` that tests the whole section lists every prior slot index in that section.',
+    '',
+    'Slot kinds:',
     '- The LAST slot of every section MUST have `kind: "assessment"`. This becomes the checkpoint that gates the next section.',
     '- Early sections should be mostly `learning` slots.',
     '- Middle and late sections may include one `review` slot before the assessment to consolidate earlier slots.',
-    '- Slot titles are one short line (≤ 6 words). The `topicHint` is 1–2 sentences telling the content generator what to teach.',
     '- Section titles should read like "Section N: Topic" or similar — the UI renders them as banners.',
   ];
   if (ctx.hasSourceMaterials) {
     lines.push(
-      '- A SOURCE MATERIALS section is provided above. Ground the whole path in it: every section and slot must cover a topic the materials actually teach, sequenced to follow how the material builds up. Do not pad the path with generic subject topics the materials do not cover. Make each `topicHint` point at the specific concepts the slot should teach from those materials.',
+      '- A SOURCE MATERIALS section is provided above. Ground the whole path in it: every section and slot must cover a topic the materials actually teach, sequenced to follow how the material builds up, and TOGETHER the slots should cover the material\'s important topics without leaving big gaps. Do not pad with generic subject topics the materials do not cover. Make each `topicHint` and `objective` point at the specific concepts and skills from those materials.',
     );
   }
   lines.push(
     '',
     `Path title (user-provided, you may refine): "${ctx.title}"`,
-    `Target days the learner has: ${ctx.targetDays}`,
   );
   if (ctx.brief) {
     lines.push(`Learner brief: ${ctx.brief}`);
@@ -206,10 +242,17 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   ];
+  if (ctx.slotObjective && ctx.slotObjective.trim().length > 0) {
+    lines.push(
+      `Learning objective — orient the whole explanation toward enabling this: ${ctx.slotObjective.trim()}`,
+    );
+  }
+  const briefLine = learnerBriefLine(ctx);
+  if (briefLine) lines.push('', briefLine);
   if (ctx.reviewOf && ctx.reviewOf.length > 0) {
     lines.push(
       '',
-      'This slot reviews prior slots — keep the explanation focused on connecting / reinforcing these:',
+      'This slot reviews earlier slots — keep the explanation focused on connecting / reinforcing them. Each line below shows a slot and what it taught:',
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
@@ -250,6 +293,8 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   ];
+  const briefLine = learnerBriefLine(ctx);
+  if (briefLine) lines.push('', briefLine);
   if (ctx.theoryText && ctx.theoryText.trim().length > 0) {
     lines.push(
       '',
@@ -260,7 +305,7 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
   if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
     lines.push(
       '',
-      'This is a REVIEW slot — pull from the following prior slots:',
+      'This is a REVIEW slot — pull cards from the following earlier slots. Each line shows a slot and what it taught:',
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
@@ -334,7 +379,10 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
       'This is the SECTION CHECKPOINT (the assessment slot). It should test the whole section, not just the most recent slot.',
     );
     if (ctx.reviewOf && ctx.reviewOf.length > 0) {
-      lines.push('Cover these prior slots from the section:', ...ctx.reviewOf.map((s) => `- ${s}`));
+      lines.push(
+        'Cover these earlier slots from the section. Each line shows a slot and what it taught:',
+        ...ctx.reviewOf.map((s) => `- ${s}`),
+      );
     }
   } else if (ctx.slotKind === 'final_exam') {
     lines.push(
@@ -342,10 +390,17 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
       'This is the FINAL EXAM — the path-wide capstone. Cover material from every section below, weighted by importance, not by recency.',
     );
     if (ctx.reviewOf && ctx.reviewOf.length > 0) {
-      lines.push('Topics covered across the path:', ...ctx.reviewOf.map((s) => `- ${s}`));
+      lines.push(
+        'Topics covered across the path. Each line shows a slot and what it taught:',
+        ...ctx.reviewOf.map((s) => `- ${s}`),
+      );
     }
   } else if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
-    lines.push('', 'This is a REVIEW slot — pull from:', ...ctx.reviewOf.map((s) => `- ${s}`));
+    lines.push(
+      '',
+      'This is a REVIEW slot — pull questions from these earlier slots. Each line shows a slot and what it taught:',
+      ...ctx.reviewOf.map((s) => `- ${s}`),
+    );
   }
   const subjectFragment = subjectQuizGuidanceFragment(ctx.subjects, ctx.subjectWeights);
   if (subjectFragment.length > 0) {
@@ -358,6 +413,13 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   );
+  if (!isFinalExam && ctx.slotObjective && ctx.slotObjective.trim().length > 0) {
+    lines.push(
+      `Objective to test — write questions that verify the learner can do this: ${ctx.slotObjective.trim()}`,
+    );
+  }
+  const briefLine = learnerBriefLine(ctx);
+  if (briefLine) lines.push('', briefLine);
   const dir = languageDirective(ctx.language);
   if (dir) lines.unshift(dir, '');
   return lines.join('\n');

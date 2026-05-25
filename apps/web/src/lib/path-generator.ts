@@ -84,8 +84,6 @@ export interface GeneratePathStructureOpts {
   title: string;
   /** Optional brief from the user (intent, focus, …). */
   brief?: string;
-  /** Days the learner expects the path to span. Shapes phase count. */
-  targetDays: number;
   /**
    * Optional rendered material corpus — the learner's actual page/document
    * text and flashcard/quiz content. Delivered as a cached system block so
@@ -393,7 +391,6 @@ export async function generatePathStructure(
   const ctx: PathStructureContext = {
     title: opts.title,
     brief: opts.brief,
-    targetDays: opts.targetDays,
     hasSourceMaterials: Boolean(opts.corpus && opts.corpus.trim().length > 0),
     subjects: opts.subjects,
     subjectWeights: opts.subjectWeights,
@@ -417,7 +414,7 @@ export async function generatePathStructure(
             '',
             '--- RETRY NOTICE ---',
             `Your previous structure was unusable: ${lastDetail}`,
-            'Return 3–6 sections; every section MUST have a non-empty `slots` array of 4–6 slots.',
+            'Return 3–6 sections; every section MUST have a non-empty `slots` array of 3–6 slots.',
           ].join('\n');
     try {
       const raw = await forcedStructuredCall<unknown>({
@@ -426,7 +423,7 @@ export async function generatePathStructure(
         instructions: attemptInstructions,
         anthropicTool: PATH_STRUCTURE_TOOL,
         geminiSchema: PATH_STRUCTURE_SCHEMA_GEMINI,
-        userMessage: `Design the path "${opts.title}" for a learner with ${opts.targetDays} days. Use the tool now.`,
+        userMessage: `Design the path "${opts.title}". Use the tool now.`,
         providerOverride: opts.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(meter, u),
       });
@@ -478,9 +475,16 @@ interface SlotForGeneration {
   title: string;
   kind: PathSlotKind;
   topicHint: string;
+  /** Stage A's measurable objective for the slot (verb-first capability). */
+  objective: string | null;
   sortOrder: number;
-  /** Other slot titles in the same phase, used as `reviewOf` for review/assessment kinds. */
-  phaseSiblingTitles: string[];
+  /**
+   * Stage A's resolved `covers` — ids of the earlier slots in the same phase
+   * this review/assessment checkpoint tests. Empty for learning slots; when
+   * empty on a checkpoint the orchestrator falls back to every earlier slot
+   * in the section.
+   */
+  coversSlotIds: string[];
   /**
    * Phase 10.3 — set of activity kinds the slot already has in DB. The
    * orchestrator skips these so `generatePath` is safe to re-run as the
@@ -501,6 +505,8 @@ interface PlanForGeneration {
   primaryNotebookId: string | null;
   title: string;
   description: string;
+  /** The learner's "Study goals" brief, persisted so Stage B content honors it. */
+  learnerBrief: string | null;
   subjects: SubjectId[];
   subjectWeights: number[];
   /** Ultra path — Stage B generates quizzes with the premium model. */
@@ -568,6 +574,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     primaryNotebookId: plan.notebookId,
     title: plan.title,
     description: plan.description ?? '',
+    learnerBrief: plan.learnerBrief ?? null,
     subjects: resolvedSubjects,
     subjectWeights: resolvedWeights,
     ultra: plan.ultra,
@@ -575,29 +582,27 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     language: normalizePathLanguage(plan.language),
     corpus,
     usage: emptyMeter(),
-    phases: plan.phases.map((p) => {
-      const slotTitles = p.slots.map((s) => s.title);
-      return {
-        title: p.title,
-        description: p.description ?? '',
-        slots: p.slots.map((s) => ({
-          id: s.id,
-          title: s.title,
-          kind: (s.kind as PathSlotKind) ?? 'learning',
-          topicHint: s.description ?? s.title,
-          sortOrder: s.sortOrder,
-          phaseSiblingTitles: slotTitles.filter((t) => t !== s.title),
-          existingActivityKinds: new Set(
-            s.activities
-              .map((a) => a.kind)
-              .filter(
-                (k): k is 'theory' | 'flashcards' | 'quiz' =>
-                  k === 'theory' || k === 'flashcards' || k === 'quiz',
-              ),
-          ),
-        })),
-      };
-    }),
+    phases: plan.phases.map((p) => ({
+      title: p.title,
+      description: p.description ?? '',
+      slots: p.slots.map((s) => ({
+        id: s.id,
+        title: s.title,
+        kind: (s.kind as PathSlotKind) ?? 'learning',
+        topicHint: s.description ?? s.title,
+        objective: s.objective ?? null,
+        sortOrder: s.sortOrder,
+        coversSlotIds: Array.isArray(s.coversSlotIds) ? s.coversSlotIds : [],
+        existingActivityKinds: new Set(
+          s.activities
+            .map((a) => a.kind)
+            .filter(
+              (k): k is 'theory' | 'flashcards' | 'quiz' =>
+                k === 'theory' || k === 'flashcards' || k === 'quiz',
+            ),
+        ),
+      })),
+    })),
   };
 }
 
@@ -611,23 +616,39 @@ function makeSlotContentContext(
   slot: SlotForGeneration,
   theoryText?: string,
 ): SlotContentContext {
-  // `review` and `assessment` slots take the other slot titles in their
-  // phase as the "review of" pool. `learning` slots stand on their own.
-  // `final_exam` is the capstone — it pulls from every learning/review
-  // slot across the whole plan so the AI writes a comprehensive exam.
+  // Build the "review of" pool — the earlier slots a checkpoint consolidates.
+  // Each entry is rendered as "Title — what it taught" so Stage B tests the
+  // actual content rather than a bare title. `learning` slots stand on their
+  // own. `review`/`assessment` use Stage A's `covers` (resolved to slot ids),
+  // falling back to every earlier slot in the same phase. `final_exam` pulls
+  // from every learning/review slot across the whole plan.
+  const renderSlot = (s: SlotForGeneration): string => {
+    const hint = s.topicHint?.trim() ?? '';
+    return hint.length > 0 && hint !== s.title.trim() ? `${s.title} — ${hint}` : s.title;
+  };
   let reviewOf: string[] | undefined;
   if (slot.kind === 'final_exam') {
-    const allTitles: string[] = [];
+    const all: string[] = [];
     for (const p of plan.phases) {
       for (const s of p.slots) {
-        if (s.kind === 'learning' || s.kind === 'review') {
-          allTitles.push(s.title);
-        }
+        if (s.kind === 'learning' || s.kind === 'review') all.push(renderSlot(s));
       }
     }
-    reviewOf = allTitles.length > 0 ? allTitles : undefined;
-  } else if (slot.kind !== 'learning' && slot.phaseSiblingTitles.length > 0) {
-    reviewOf = slot.phaseSiblingTitles;
+    reviewOf = all.length > 0 ? all : undefined;
+  } else if (slot.kind !== 'learning') {
+    const byId = new Map(phase.slots.map((s) => [s.id, s]));
+    let covered: SlotForGeneration[];
+    if (slot.coversSlotIds.length > 0) {
+      covered = slot.coversSlotIds
+        .map((id) => byId.get(id))
+        .filter((s): s is SlotForGeneration => Boolean(s));
+    } else {
+      // No explicit `covers`: every earlier slot in the section (preserves the
+      // old "all siblings" behavior, minus slots that come after this one).
+      covered = phase.slots.filter((s) => s.id !== slot.id && s.sortOrder < slot.sortOrder);
+    }
+    const rendered = covered.map(renderSlot);
+    reviewOf = rendered.length > 0 ? rendered : undefined;
   }
   return {
     pathTitle: plan.title,
@@ -637,6 +658,8 @@ function makeSlotContentContext(
     slotTitle: slot.title,
     slotKind: slot.kind,
     slotTopicHint: slot.topicHint,
+    slotObjective: slot.objective ?? undefined,
+    learnerBrief: plan.learnerBrief ?? undefined,
     reviewOf,
     subjects: plan.subjects,
     subjectWeights: plan.subjectWeights,

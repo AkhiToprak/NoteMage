@@ -51,12 +51,16 @@ export async function GET(request: NextRequest) {
 // POST — create a path (Stage A inline + Stage B fire-and-forget).
 // ─────────────────────────────────────────────────────────────────────
 
-/** Compute the path's end date from `targetDays` (1 day = today). */
-function endDateFromTargetDays(targetDays: number): { start: Date; end: Date } {
+// Paths are self-paced: the start/end dates stamped below are internal
+// bookkeeping only — nothing in the path UI shows or gates on them. We use a
+// fixed span so the non-null StudyPlan / StudyPhase date columns stay valid.
+const DEFAULT_PATH_SPAN_DAYS = 30;
+
+function defaultPathSpan(): { start: Date; end: Date } {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
-  end.setDate(end.getDate() + Math.max(1, targetDays) - 1);
+  end.setDate(end.getDate() + DEFAULT_PATH_SPAN_DAYS - 1);
   return { start, end };
 }
 
@@ -65,7 +69,6 @@ interface CreatePathBody {
   brief?: string;
   contextNotebookIds?: string[];
   primaryNotebookId?: string | null;
-  targetDays?: number;
   materialIds?: string[];
   ultra?: boolean;
   /** Per-path Gemini override. Forces every stage through Gemini 2.5
@@ -130,11 +133,6 @@ export async function POST(request: NextRequest) {
         `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`
       );
     }
-
-    const targetDays =
-      typeof body.targetDays === 'number' && body.targetDays > 0
-        ? Math.floor(body.targetDays)
-        : 14;
 
     const contextNotebookIds = Array.isArray(body.contextNotebookIds)
       ? body.contextNotebookIds.filter((s): s is string => typeof s === 'string')
@@ -220,7 +218,6 @@ export async function POST(request: NextRequest) {
         userId,
         title,
         brief: body.brief,
-        targetDays,
         corpus: corpus || undefined,
         subjects: classification.subjects,
         subjectWeights: classification.weights,
@@ -233,7 +230,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Persist plan + phases + empty slots in one transaction ───────
-    const { start, end } = endDateFromTargetDays(targetDays);
+    const { start, end } = defaultPathSpan();
     const planTitle = structure.title?.trim() || title;
     const planDescription = structure.description?.trim() || null;
 
@@ -246,6 +243,7 @@ export async function POST(request: NextRequest) {
           materialIds,
           title: planTitle,
           description: planDescription,
+          learnerBrief: body.brief?.trim().slice(0, 4000) || null,
           startDate: start,
           endDate: end,
           source: 'ai',
@@ -263,14 +261,14 @@ export async function POST(request: NextRequest) {
         // Spread the phase dates evenly across the target days.
         const phaseLengthDays = Math.max(
           1,
-          Math.floor(targetDays / Math.max(1, structure.phases.length)),
+          Math.floor(DEFAULT_PATH_SPAN_DAYS / Math.max(1, structure.phases.length)),
         );
         const phaseStart = new Date(start);
         phaseStart.setDate(phaseStart.getDate() + i * phaseLengthDays);
         const phaseEnd = new Date(phaseStart);
         phaseEnd.setDate(phaseEnd.getDate() + phaseLengthDays - 1);
 
-        await tx.studyPhase.create({
+        const studyPhase = await tx.studyPhase.create({
           data: {
             planId: plan.id,
             title: phase.title,
@@ -279,16 +277,32 @@ export async function POST(request: NextRequest) {
             startDate: phaseStart,
             endDate: phaseEnd,
             status: i === 0 ? 'active' : 'upcoming',
-            slots: {
-              create: phase.slots.map((slot, j) => ({
-                title: slot.title,
-                description: slot.topicHint,
-                kind: slot.kind,
-                sortOrder: j,
-              })),
-            },
           },
         });
+
+        // Create slots in order so each checkpoint's `covers` (section-local
+        // indices Stage A emitted) can be resolved to the ids of the earlier
+        // slots it tests. Indices are clamped to slots that precede this one.
+        const phaseSlotIds: string[] = [];
+        for (let j = 0; j < phase.slots.length; j++) {
+          const slot = phase.slots[j];
+          const coversSlotIds = (slot.covers ?? [])
+            .filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < j)
+            .map((idx) => phaseSlotIds[idx])
+            .filter((id): id is string => Boolean(id));
+          const created = await tx.checkpointSlot.create({
+            data: {
+              phaseId: studyPhase.id,
+              title: slot.title,
+              description: slot.topicHint,
+              objective: slot.objective ?? null,
+              kind: slot.kind,
+              sortOrder: j,
+              coversSlotIds,
+            },
+          });
+          phaseSlotIds.push(created.id);
+        }
       }
 
       // Append the path-wide Final Exam as its own synthetic phase so it

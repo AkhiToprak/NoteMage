@@ -542,6 +542,19 @@ export function normalizePathStructure(raw: unknown): PathStructureToolInput {
         asNonEmptyString(slotRaw.name) ??
         asNonEmptyString(slotRaw.label);
       if (!slotTitle) continue;
+      // `covers` (review/assessment) may arrive as numbers or numeric
+      // strings; keep only non-negative integers. The persist step further
+      // clamps them to slots that actually precede this one.
+      const covers: number[] = [];
+      for (const c of toUnknownArray(slotRaw.covers)) {
+        const n =
+          typeof c === 'number'
+            ? c
+            : typeof c === 'string'
+              ? Number.parseInt(c, 10)
+              : NaN;
+        if (Number.isInteger(n) && n >= 0) covers.push(n);
+      }
       slots.push({
         title: slotTitle,
         kind: normalizeSlotKind(slotRaw.kind),
@@ -550,6 +563,11 @@ export function normalizePathStructure(raw: unknown): PathStructureToolInput {
           asNonEmptyString(slotRaw.topic_hint) ??
           asNonEmptyString(slotRaw.description) ??
           slotTitle,
+        objective:
+          asNonEmptyString(slotRaw.objective) ??
+          asNonEmptyString(slotRaw.learningObjective) ??
+          undefined,
+        covers: covers.length > 0 ? covers : undefined,
       });
     }
     if (slots.length === 0) continue;

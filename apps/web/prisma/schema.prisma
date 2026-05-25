@@ -727,6 +727,12 @@ model StudyPlan {
   notebookId  String?
   title       String
   description String?  @db.Text
+  // The learner's own goals / intent message for this path (the "Study goals"
+  // brief from setup, or the manual tab's description + section hints). Stage A
+  // already used it to shape the structure; persisted so Stage B reads it back
+  // and the requested tone / emphasis / focus / difficulty steer the actual
+  // theory, flashcards, and quizzes — not just the curriculum skeleton.
+  learnerBrief String? @db.Text
   startDate   DateTime
   endDate     DateTime
   source      String   @default("manual") // "manual" | "ai"
@@ -817,10 +823,22 @@ model CheckpointSlot {
   phaseId             String
   title               String
   description         String?  @db.Text
+  // Stage A's measurable learning objective for this slot — the concrete,
+  // testable thing the learner can do after it ("conjugate regular -ar verbs
+  // in the present tense"). `description` (the topicHint) says what to TEACH;
+  // `objective` says what the learner can DO, and the slot's quiz targets it.
+  // Optional: legacy/Gemini rows without it fall back to the topicHint.
+  objective           String?  @db.Text
   // "learning" | "review" | "assessment". Generator picks kind from phase
   // position; the last slot of each phase is always "assessment".
   kind                String   @default("learning")
   sortOrder           Int      @default(0)
+  // For review/assessment slots: the specific earlier slots in the same phase
+  // this checkpoint consolidates/tests. Stage A emits section-local indices,
+  // resolved to slot ids at persist time. Empty for learning slots (and for
+  // the final exam, which pulls path-wide via the orchestrator). Drives the
+  // richer review pool fed to Stage B content prompts.
+  coversSlotIds       String[] @default([])
   // Slot-level prerequisite override. When non-empty, every listed slot id
   // must be completed before this one unlocks (in addition to the default
   // sequential gate). Phase 10.6 wires up the real logic.
