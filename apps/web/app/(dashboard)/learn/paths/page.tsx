@@ -10,6 +10,11 @@ import {
   isSubjectId,
   type SubjectId,
 } from '@/lib/path-subjects';
+import {
+  PATH_LANGUAGES,
+  pathLanguageName,
+  type PathLanguageCode,
+} from '@/lib/path-languages';
 import { PublishStatusChip } from '@/components/path-publish/PublishStatusChip';
 import PublishDialog from '@/components/path-publish/PublishDialog';
 import type { SharedPathModerationStatus } from '@notemage/shared';
@@ -45,6 +50,10 @@ type PathPlanListItem = PathPlan & {
   generationStatus?: string;
   subjects?: string[];
   publication?: PathPublicationSummary | null;
+  /** Current content language (BCP-47). Defaults to 'en' when absent. */
+  language?: string;
+  /** 'translate' while an in-place translation is running; else absent. */
+  generationMode?: string | null;
 };
 
 function primarySubjectOf(plan: PathPlanListItem): SubjectId | null {
@@ -110,6 +119,14 @@ export default function LearnPage() {
   // Path-publishing P2 — the plan currently being walked through the
   // PublishDialog. null = closed; non-null = modal open for this plan.
   const [publishTarget, setPublishTarget] = useState<PathPlanListItem | null>(null);
+  // Reset-progress confirmation target + in-flight state.
+  const [resetTarget, setResetTarget] = useState<PathPlanListItem | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  // Translate-in-place target + in-flight state.
+  const [translateTarget, setTranslateTarget] = useState<PathPlanListItem | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
 
   // Distinct subjects present across the user's paths. Drives the filter
   // strip — hidden when only one subject (or zero) is in play.
@@ -223,6 +240,71 @@ export default function LearnPage() {
     setPublishTarget(null);
     void refresh();
   }, [refresh]);
+
+  const handleConfirmReset = useCallback(async () => {
+    if (!resetTarget) return;
+    setResetting(true);
+    setResetError(null);
+    try {
+      const res = await fetch(
+        `/api/learn/paths/${encodeURIComponent(resetTarget.id)}/reset`,
+        { method: 'POST' },
+      );
+      const json = await res.json();
+      if (json?.success) {
+        setResetTarget(null);
+        await refresh();
+      } else {
+        setResetError(json?.error ?? 'Could not reset the path.');
+      }
+    } catch {
+      setResetError('Network error. Try again.');
+    }
+    setResetting(false);
+  }, [resetTarget, refresh]);
+
+  const handleCancelReset = useCallback(() => {
+    if (resetting) return;
+    setResetTarget(null);
+    setResetError(null);
+  }, [resetting]);
+
+  const handleConfirmTranslate = useCallback(
+    async (language: PathLanguageCode) => {
+      if (!translateTarget) return;
+      setTranslating(true);
+      setTranslateError(null);
+      try {
+        const res = await fetch(
+          `/api/learn/paths/${encodeURIComponent(translateTarget.id)}/translate`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ language }),
+          },
+        );
+        const json = await res.json();
+        if (json?.success) {
+          // The card flips to the "Translating…" state; the poll loop picks
+          // up completion and swaps in the translated path.
+          setTranslateTarget(null);
+          await refresh();
+        } else {
+          setTranslateError(json?.error ?? 'Could not start translation.');
+        }
+      } catch {
+        setTranslateError('Network error. Try again.');
+      }
+      setTranslating(false);
+    },
+    [translateTarget, refresh],
+  );
+
+  const handleCancelTranslate = useCallback(() => {
+    if (translating) return;
+    setTranslateTarget(null);
+    setTranslateError(null);
+  }, [translating]);
 
   useEffect(() => {
     if (!plans) return;
@@ -462,6 +544,8 @@ export default function LearnPage() {
                 plan={plan}
                 onRequestDelete={setDeleteTarget}
                 onRequestPublish={setPublishTarget}
+                onRequestReset={setResetTarget}
+                onRequestTranslate={setTranslateTarget}
               />
             ),
           )}
@@ -487,6 +571,26 @@ export default function LearnPage() {
           defaultDescription={publishTarget.description}
           onClose={() => setPublishTarget(null)}
           onPublished={handlePublishComplete}
+        />
+      ) : null}
+
+      {resetTarget ? (
+        <ResetPathDialog
+          plan={resetTarget}
+          resetting={resetting}
+          error={resetError}
+          onCancel={handleCancelReset}
+          onConfirm={handleConfirmReset}
+        />
+      ) : null}
+
+      {translateTarget ? (
+        <TranslatePathDialog
+          plan={translateTarget}
+          translating={translating}
+          error={translateError}
+          onCancel={handleCancelTranslate}
+          onConfirm={handleConfirmTranslate}
         />
       ) : null}
 
@@ -519,10 +623,14 @@ function PathCard({
   plan,
   onRequestDelete,
   onRequestPublish,
+  onRequestReset,
+  onRequestTranslate,
 }: {
   plan: PathPlanListItem;
   onRequestDelete: (plan: PathPlanListItem) => void;
   onRequestPublish: (plan: PathPlanListItem) => void;
+  onRequestReset: (plan: PathPlanListItem) => void;
+  onRequestTranslate: (plan: PathPlanListItem) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const allSlots = plan.phases.flatMap((p) => p.slots);
@@ -532,6 +640,8 @@ function PathCard({
   const primarySubject = primarySubjectOf(plan);
   const publication = plan.publication ?? null;
   const canPublish = plan.generationStatus === 'ready' && !publication;
+  // Translate / reset only make sense once the path is fully generated.
+  const isReady = plan.generationStatus === 'ready';
 
   // Close the options menu on any outside click. The kebab's own click
   // stops propagation, so opening the menu never trips this listener.
@@ -645,6 +755,42 @@ function PathCard({
               </span>
               View publication status
             </Link>
+          ) : null}
+          {isReady ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+                onRequestTranslate(plan);
+              }}
+              style={menuItemStyle('var(--on-surface)')}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                translate
+              </span>
+              Translate
+            </button>
+          ) : null}
+          {isReady ? (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen(false);
+                onRequestReset(plan);
+              }}
+              style={menuItemStyle('var(--on-surface)')}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                restart_alt
+              </span>
+              Reset progress
+            </button>
           ) : null}
           <button
             type="button"
@@ -836,7 +982,9 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
             lineHeight: 1.4,
           }}
         >
-          Generating your path…
+          {plan.generationMode === 'translate'
+            ? 'Translating your path…'
+            : 'Generating your path…'}
         </p>
       </div>
     </section>
@@ -1095,6 +1243,329 @@ function FilterEmptyState({ onClear }: { onClear: () => void }) {
 // plus every activity it generated — and, since path-generated quiz /
 // flashcard sets carry the path's notebookId, those also disappear from
 // the linked notebook. The copy says so explicitly.
+function ResetPathDialog({
+  plan,
+  resetting,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  plan: PathPlanListItem;
+  resetting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Reset path progress"
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
+        padding: '20px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '440px',
+          maxWidth: '95vw',
+          background: 'var(--surface-container)',
+          color: 'var(--on-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--outline-variant)',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span
+            aria-hidden
+            className="material-symbols-outlined"
+            style={{
+              fontSize: '22px',
+              width: '40px',
+              height: '40px',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--surface-container-highest)',
+              color: 'var(--primary)',
+            }}
+          >
+            restart_alt
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: '18px',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Reset this path?
+            </h2>
+            <p
+              style={{
+                margin: '6px 0 0',
+                fontSize: '13px',
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.5,
+              }}
+            >
+              Your progress on{' '}
+              <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> — completion,
+              stars, best scores, and flashcard review schedule — will be cleared so you can start
+              over. The theory, flashcards, and quizzes themselves are kept. This can&apos;t be
+              undone.
+            </p>
+          </div>
+        </div>
+
+        {error ? (
+          <p role="alert" style={{ margin: 0, fontSize: '13px', color: 'var(--error)' }}>
+            {error}
+          </p>
+        ) : null}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={resetting}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--outline-variant)',
+              background: 'var(--surface-container-high)',
+              color: 'var(--on-surface)',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: resetting ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={resetting}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'var(--primary)',
+              color: 'var(--on-primary)',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: resetting ? 'not-allowed' : 'pointer',
+              opacity: resetting ? 0.7 : 1,
+            }}
+          >
+            {resetting ? 'Resetting…' : 'Reset progress'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TranslatePathDialog({
+  plan,
+  translating,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  plan: PathPlanListItem;
+  translating: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: (language: PathLanguageCode) => void;
+}) {
+  const current = (plan.language ?? 'en') as string;
+  const options = PATH_LANGUAGES.filter((l) => l.code !== current);
+  const [language, setLanguage] = useState<PathLanguageCode>(
+    () => (options[0]?.code ?? 'en') as PathLanguageCode,
+  );
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Translate path"
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
+        padding: '20px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '460px',
+          maxWidth: '95vw',
+          background: 'var(--surface-container)',
+          color: 'var(--on-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--outline-variant)',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span
+            aria-hidden
+            className="material-symbols-outlined"
+            style={{
+              fontSize: '22px',
+              width: '40px',
+              height: '40px',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--surface-container-highest)',
+              color: 'var(--primary)',
+            }}
+          >
+            translate
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: '18px',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Translate this path
+            </h2>
+            <p
+              style={{
+                margin: '6px 0 0',
+                fontSize: '13px',
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.5,
+              }}
+            >
+              All of <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> — theory,
+              flashcards, and quizzes — is translated in place. Your progress is kept. Currently in{' '}
+              {pathLanguageName(current as PathLanguageCode)}.
+            </p>
+          </div>
+        </div>
+
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--on-surface-variant)' }}>
+            Translate to
+          </span>
+          <select
+            aria-label="Target language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as PathLanguageCode)}
+            disabled={translating}
+            style={{
+              padding: '10px 12px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--outline-variant)',
+              background: 'var(--surface-container-high)',
+              color: 'var(--on-surface)',
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              cursor: translating ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {options.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.endonym} — {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {error ? (
+          <p role="alert" style={{ margin: 0, fontSize: '13px', color: 'var(--error)' }}>
+            {error}
+          </p>
+        ) : null}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={translating}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--outline-variant)',
+              background: 'var(--surface-container-high)',
+              color: 'var(--on-surface)',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: translating ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(language)}
+            disabled={translating}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'var(--primary)',
+              color: 'var(--on-primary)',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: translating ? 'not-allowed' : 'pointer',
+              opacity: translating ? 0.7 : 1,
+            }}
+          >
+            {translating ? 'Starting…' : 'Translate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DeletePathDialog({
   plan,
   deleting,

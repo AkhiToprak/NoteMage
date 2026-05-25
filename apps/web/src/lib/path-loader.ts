@@ -138,8 +138,17 @@ export interface SerializedPath {
   startDate: Date;
   endDate: Date;
   source: string;
+  /** Content language the path is currently in (BCP-47 lowercase). */
+  language: string;
   generationStatus: string;
   generationError: string | null;
+  /**
+   * What the background run (if any) is doing — `"translate"` while an
+   * in-place translation is in flight, otherwise null. Lets the card show a
+   * "Translating…" state instead of "Generating…" so a translation isn't
+   * mistaken for a content regeneration.
+   */
+  generationMode: string | null;
   /** Classifier-detected subject buckets, sorted by weight. Empty for legacy rows. */
   subjects: string[];
   /** Per-subject weights aligned with `subjects`. Empty for legacy rows. */
@@ -174,6 +183,15 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
         createdAt: sp.createdAt.toISOString(),
       }
     : null;
+  // Surface the background run's mode (if any) so the UI can distinguish a
+  // translation from a generation. Stored on generationProgress.mode by the
+  // translator; absent for ordinary generation.
+  const gp = plan.generationProgress;
+  const generationMode =
+    gp && typeof gp === 'object' && !Array.isArray(gp) &&
+    typeof (gp as Record<string, unknown>).mode === 'string'
+      ? ((gp as Record<string, unknown>).mode as string)
+      : null;
   return {
     id: plan.id,
     title: plan.title,
@@ -186,8 +204,10 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
     startDate: plan.startDate,
     endDate: plan.endDate,
     source: plan.source,
+    language: plan.language,
     generationStatus: plan.generationStatus,
     generationError: plan.generationError ?? null,
+    generationMode,
     subjects: plan.subjects,
     subjectWeights: plan.subjectWeights,
     publication,
