@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { AdminConsoleStyles } from './_components/ui';
 
 /**
  * Admin shell (P6). Server-rendered RBAC happens at every /api/admin/*
@@ -35,6 +36,30 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Tickets',
     icon: 'inbox',
     matchPrefix: (p) => p === '/admin/tickets' || p.startsWith('/admin/tickets/'),
+  },
+  {
+    href: '/admin/paths',
+    label: 'Paths',
+    icon: 'route',
+    matchPrefix: (p) => p === '/admin/paths' || p.startsWith('/admin/paths/'),
+  },
+  {
+    href: '/admin/users',
+    label: 'Users',
+    icon: 'group',
+    matchPrefix: (p) => p === '/admin/users' || p.startsWith('/admin/users/'),
+  },
+  {
+    href: '/admin/waitlist',
+    label: 'Waitlist',
+    icon: 'list_alt',
+    matchPrefix: (p) => p === '/admin/waitlist' || p.startsWith('/admin/waitlist/'),
+  },
+  {
+    href: '/admin/stats',
+    label: 'Stats',
+    icon: 'query_stats',
+    matchPrefix: (p) => p === '/admin/stats' || p.startsWith('/admin/stats/'),
   },
 ];
 
@@ -82,6 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         flexDirection: 'column',
       }}
     >
+      <AdminConsoleStyles />
       <header
         style={{
           background: 'var(--surface-container-low)',

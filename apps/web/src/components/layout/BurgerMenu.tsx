@@ -76,6 +76,13 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   const [hoveredLogout, setHoveredLogout] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Admin-only entry to the /admin console. `role` rides on the JWT, so this
+  // surfaces only for users whose User.role === 'admin'.
+  const navItems: NavItem[] =
+    user?.role === 'admin'
+      ? [...NAV_ITEMS, { href: '/admin', label: 'Admin', icon: 'admin_panel_settings' }]
+      : NAV_ITEMS;
+
   // Lock body scroll when open
   useEffect(() => {
     if (open) {
@@ -195,7 +202,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
             gap: 2,
           }}
         >
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const isHovered = hoveredItem === item.href;
             return (

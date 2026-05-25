@@ -182,22 +182,28 @@ export default function AdminDashboardPage() {
           badgeKind={openTicketCount && openTicketCount > 0 ? 'warning' : 'neutral'}
         />
         <NavCard
-          href="/api/admin/stats"
-          icon="monitoring"
-          title="Stats (JSON)"
-          description="Raw platform metrics — the underlying endpoint, surfaced for spot checks."
+          href="/admin/paths"
+          icon="route"
+          title="Community paths"
+          description="Every published path across all moderation states — report counts, author trust, force-unpublish."
         />
         <NavCard
-          href="/api/admin/waitlist"
-          icon="mark_email_unread"
-          title="Waitlist (JSON)"
-          description="Subscribers awaiting launch. UI table lands in a later phase."
-        />
-        <NavCard
-          href="/api/admin/users"
+          href="/admin/users"
           icon="group"
-          title="Users (JSON)"
-          description="User directory. Ban / role-change actions stay on the existing API for now."
+          title="Users"
+          description="Account directory. Search, ban, delete, and grant cosmetics — all logged to the audit trail."
+        />
+        <NavCard
+          href="/admin/waitlist"
+          icon="list_alt"
+          title="Waitlist"
+          description="Pre-launch subscribers, plus the one-shot launch announcement blast."
+        />
+        <NavCard
+          href="/admin/stats"
+          icon="query_stats"
+          title="Platform stats"
+          description="Headcount, tier split, and the rolling 7-day AI-token spend."
         />
       </section>
     </div>
@@ -369,13 +375,13 @@ function NavCard({
 
   if (href.startsWith('/admin')) {
     return (
-      <Link href={href} style={cardStyle}>
+      <Link href={href} className="adm-cardlink" style={cardStyle}>
         {body}
       </Link>
     );
   }
   return (
-    <a href={href} style={cardStyle}>
+    <a href={href} className="adm-cardlink" style={cardStyle}>
       {body}
     </a>
   );
