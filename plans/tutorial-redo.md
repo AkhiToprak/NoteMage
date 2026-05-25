@@ -11,7 +11,8 @@ whole surface. **Spotlight sequence:**
 
 Some steps **navigate to a dedicated page and spotlight its contents** rather
 than just poking the header: `dashboard` (stats row), `profile` (routes to
-`/profile`, spotlights the Appearance/customization card), `notebooks` (routes
+`/profile`, spotlights the **whole** profile column — header, about, appearance,
+socials, activity, trophies — with a corner-docked tooltip), `notebooks` (routes
 to `/notebooks`), `cowork` (routes to `/groups` — the Co-Work hub, the social
 capstone of the tour). The header tools (`nav-menu`, `search`, `timer`) stay on
 `/dashboard`.
@@ -25,8 +26,8 @@ by `getTourSteps(isPhone)` in `steps.ts`, and must stay in lockstep with the
 `useBreakpoint` in `TutorialProvider` and is exposed on `TutorialContext`.
 
 New anchors (`data-tutorial`): `dashboard` (stats row on `/dashboard`), `search`,
-`timer` (global header `HomeHeader.tsx`), `profile` (Appearance card on the
-`/profile` page — **not** the header avatar), `notebooks` (Import-PDFs button on
+`timer` (global header `HomeHeader.tsx`), `profile` (the whole `/profile` page
+container — **not** the header avatar, **not** just one card), `notebooks` (Import-PDFs button on
 `/notebooks`), `learn-community` (header block on `/learn/community`), `cowork`
 (the "Co-Work" header on `/groups`). New step
 ids added to `VALID_STEPS` (API), `ACTIVE_RESUMABLE_STEPS` + `start()`

@@ -85,13 +85,15 @@ export function getStepConfig(
       };
     case 'profile':
       return {
-        title: 'Make it yours',
-        body: 'This is your profile. Add your bio and socials — and unlock titles, name styles, avatar frames, and backgrounds here as you earn achievements.',
+        title: 'Your public profile',
+        body: "This is your whole profile — bio, appearance, activity, and trophies in one place. Make it yours; it's what others see.",
         targetKey: 'profile',
         route: '/profile',
         next: isPhone ? 'learn-tabs' : 'notebooks',
         renderBackdrop: true,
-        tooltipPlacement: 'auto',
+        // Whole-page spotlight: dock the tooltip in the corner so it doesn't
+        // sit on top of the profile it's pointing at.
+        tooltipPlacement: 'fixed-bottom-left',
       };
     case 'notebooks':
       return {
