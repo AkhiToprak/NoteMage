@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { TutorialContext, type TutorialContextValue } from './TutorialContext';
 import { TutorialOverlay } from './TutorialOverlay';
 import { getStepConfig } from './steps';
@@ -19,8 +20,13 @@ const LEGACY_STORAGE_KEY = 'notemage-tutorial';
 const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'welcome',
   'nav-menu',
+  'search',
+  'timer',
+  'profile',
+  'notebooks',
   'learn-tabs',
   'learn-paths',
+  'learn-community',
   'learn-chats',
   'complete',
 ];
@@ -113,6 +119,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const serverState = session?.user?.tutorialState;
   const userId = session?.user?.id ?? null;
   const isPro = session?.user?.tier === 'PRO';
+  const { isPhone } = useBreakpoint();
 
   const [step, setStep] = useState<TutorialStep>('idle');
   const [hydrated, setHydrated] = useState(false);
@@ -200,10 +207,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // spotlight. The pathname guard makes this a no-op once we've arrived.
   useEffect(() => {
     if (!hydrated) return;
-    const route = getStepConfig(step, isPro)?.route;
+    const route = getStepConfig(step, isPro, isPhone)?.route;
     if (!route || pathname === route) return;
     router.push(route);
-  }, [step, isPro, hydrated, pathname, router]);
+  }, [step, isPro, isPhone, hydrated, pathname, router]);
 
   const skip = useCallback(() => {
     const dismissedAt = new Date().toISOString();
@@ -287,6 +294,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       step,
       hydrated,
       isPro,
+      isPhone,
       targetVersion,
       result,
       start,
@@ -302,6 +310,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       step,
       hydrated,
       isPro,
+      isPhone,
       targetVersion,
       result,
       start,

@@ -1467,7 +1467,7 @@ export default function SettingsPage() {
                   Welcome tour
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
-                  Re-take the 60-second tour that walks you through your first notebook and chat.
+                  Re-take the guided tour through your tools, notebooks, and the Learn hub.
                 </p>
               </div>
             </div>

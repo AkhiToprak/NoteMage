@@ -8,7 +8,7 @@ import { TutorialTooltip } from './TutorialTooltip';
 import { WelcomeModal } from './WelcomeModal';
 import { CompletionModal } from './CompletionModal';
 import { SkipConfirmDialog } from './SkipConfirmDialog';
-import { getStepConfig, TOUR_STEPS } from './steps';
+import { getStepConfig, getTourSteps } from './steps';
 
 const SPOTLIGHT_PAD = 8;
 const SPOTLIGHT_RADIUS = 12;
@@ -18,7 +18,7 @@ const TARGET_GIVE_UP_MS = 2500;
 const TARGET_POLL_MS = 120;
 
 export function TutorialOverlay() {
-  const { step, hydrated, isPro, targetVersion, getTarget, skip, advance } = useTutorial();
+  const { step, hydrated, isPro, isPhone, targetVersion, getTarget, skip, advance } = useTutorial();
   const pathname = usePathname();
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [viewport, setViewport] = useState({
@@ -30,7 +30,7 @@ export function TutorialOverlay() {
   const [targetMissing, setTargetMissing] = useState(false);
 
   // Tooltip steps have a config; idle/welcome/complete/legacy return undefined.
-  const config = useMemo(() => getStepConfig(step, isPro), [step, isPro]);
+  const config = useMemo(() => getStepConfig(step, isPro, isPhone), [step, isPro, isPhone]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- gate portal rendering until after first client paint to avoid SSR mismatch
@@ -158,7 +158,8 @@ export function TutorialOverlay() {
 
   const floating = Boolean(config.targetKey) && !rect; // anchor missing → float
   const placement = floating ? 'fixed-bottom-left' : config.tooltipPlacement;
-  const stepIndex = TOUR_STEPS.indexOf(step);
+  const tourSteps = getTourSteps(isPhone);
+  const stepIndex = tourSteps.indexOf(step);
 
   return createPortal(
     <>
@@ -178,7 +179,7 @@ export function TutorialOverlay() {
         nextLabel={config.nextLabel ?? 'Next'}
         upsell={config.upsell}
         stepIndex={stepIndex}
-        stepCount={TOUR_STEPS.length}
+        stepCount={tourSteps.length}
         onNext={() => advance(config.next ?? 'complete')}
         onSkip={skip}
       />

@@ -129,7 +129,7 @@ export function WelcomeModal() {
             transitionDelay: enterDelay(3),
           }}
         >
-          A 60-second tour of your study setup — your notebooks and the Learn hub. Skip anytime.
+          A quick tour of NoteMage — your study tools, your notebooks, and the Learn hub. Skip anytime.
         </p>
         <div
           style={{

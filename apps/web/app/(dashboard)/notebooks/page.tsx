@@ -730,6 +730,7 @@ function NotebooksPageContent() {
           {/* Import PDFs button */}
           <button
             onClick={() => setShowImportModal(true)}
+            data-tutorial="notebooks"
             style={{
               display: 'flex',
               alignItems: 'center',

@@ -1,10 +1,17 @@
 export type TutorialStep =
   | 'idle'
   | 'welcome'
-  // New /learn-hub orientation tour (active route-stepping).
+  // App-orientation tour (active route-stepping). Header tools first
+  // (all on /dashboard), then the source material + Learn-hub surfaces.
   | 'nav-menu'
+  | 'search'
+  | 'timer'
+  | 'profile'
+  // Desktop-only — skipped on phone (see getTourSteps / profile.next).
+  | 'notebooks'
   | 'learn-tabs'
   | 'learn-paths'
+  | 'learn-community'
   | 'learn-chats'
   // Legacy action-driven steps — kept inert so the notebooks-page wiring that
   // references them still type-checks. The new tour never enters these (see
@@ -17,8 +24,13 @@ export type TutorialStep =
 
 export type TutorialTargetKey =
   | 'nav-menu'
+  | 'search'
+  | 'timer'
+  | 'profile'
+  | 'notebooks'
   | 'learn-tabs'
   | 'learn-generate-path'
+  | 'learn-community'
   | 'learn-new-chat'
   // Legacy anchors (still registered by the notebooks/dashboard pages).
   | 'dashboard-cta'

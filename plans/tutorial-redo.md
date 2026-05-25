@@ -2,6 +2,27 @@
 
 Status: **Implemented — Phases A, B, C shipped** (2026-05-24)
 
+## Expansion (2026-05-25) — full-app tour, device-aware
+
+The tour was too short (only menu → tabs → paths → chats). It now walks the
+whole surface. **Spotlight sequence:**
+
+`welcome → nav-menu → search → timer → profile → notebooks* → learn-tabs → learn-paths → learn-community → learn-chats → complete`
+
+\* `notebooks` is **desktop-only** — dropped on phones (authoring isn't the phone
+job). The sequence is built by `getTourSteps(isPhone)` in `steps.ts`, and must
+stay in lockstep with the `next` chain in `getStepConfig(step, isPro, isPhone)`
+(the `profile` step branches its `next` on `isPhone`). `isPhone` comes from
+`useBreakpoint` in `TutorialProvider` and is exposed on `TutorialContext`.
+
+New anchors (`data-tutorial`): `search`, `timer`, `profile` (all in
+`HomeHeader.tsx` — the global header), `notebooks` (Import-PDFs button on
+`/notebooks`), `learn-community` (header block on `/learn/community`). New step
+ids added to `VALID_STEPS` (API), `ACTIVE_RESUMABLE_STEPS` (provider), and the
+`TutorialStep`/`TutorialTargetKey` unions. `TOUR_STEPS` (const) → `getTourSteps`
+(fn). Completed users are still **not** re-triggered — re-test via Settings →
+Welcome tour → Re-take.
+
 ## Implementation notes (deviations from the draft)
 
 - **Nav anchor.** The app has no persistent sidebar (`Sidebar.tsx` is dead code); the real nav is a **burger drawer** opened from `HomeHeader`. So the two planned sidebar steps (`nav-notebooks`, `nav-learn`) were collapsed into a single **`nav-menu`** step that spotlights the always-visible burger button. `learn-tabs` targets `/learn/paths` (the tab strip is hidden on the `/learn` index).
