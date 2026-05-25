@@ -70,6 +70,19 @@ export const POPULAR_PATH_LANGUAGE_CODES: readonly PathLanguageCode[] = [
   'tr',
 ];
 
+/**
+ * Human-readable name for a path language, used to tell the generator which
+ * language to write content in — e.g. `"de"` → `"German (Deutsch)"`. Falls
+ * back to English for an unknown code.
+ */
+export function pathLanguageName(code: PathLanguageCode): string {
+  const entry = PATH_LANGUAGES.find((l) => l.code === code);
+  if (!entry) return 'English';
+  return entry.endonym && entry.endonym !== entry.label
+    ? `${entry.label} (${entry.endonym})`
+    : entry.label;
+}
+
 const CODES = new Set<string>(PATH_LANGUAGES.map((l) => l.code));
 
 /** Type guard — true only for a supported, exact lowercase code. */

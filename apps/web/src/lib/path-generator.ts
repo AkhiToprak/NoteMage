@@ -71,7 +71,8 @@ import {
   coerceSubjectIds,
   type SubjectId,
 } from './path-subjects';
-import { expectedActivityKinds } from './path-slot-activities';
+import { expectedActivityKinds, type PathActivityKind } from './path-slot-activities';
+import { normalizePathLanguage, type PathLanguageCode } from './path-languages';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
@@ -99,6 +100,8 @@ export interface GeneratePathStructureOpts {
   /** Per-path Gemini override — when true, Stage A (and Stage B via the
    *  persisted plan flag) routes through Gemini regardless of env vars. */
   gemini?: boolean;
+  /** Author-selected content language (BCP-47). Defaults to English. */
+  language?: PathLanguageCode;
 }
 
 export type GeneratedPathStructure = PathStructureToolInput;
@@ -278,31 +281,101 @@ function splitParagraphs(text: string): TipTapNode[] {
     });
 }
 
+// The theory section's structural headings ("Key points" / "Examples" /
+// "Summary") are added by us, not the model — so they must be localized to
+// the path's content language or a German path ends up with English headings
+// above German prose. One entry per supported PATH_LANGUAGES code.
+type TheorySectionLabels = { keyPoints: string; examples: string; summary: string };
+
+const THEORY_SECTION_LABELS: Record<PathLanguageCode, TheorySectionLabels> = {
+  en: { keyPoints: 'Key points', examples: 'Examples', summary: 'Summary' },
+  de: { keyPoints: 'Kernpunkte', examples: 'Beispiele', summary: 'Zusammenfassung' },
+  fr: { keyPoints: 'Points clés', examples: 'Exemples', summary: 'Résumé' },
+  es: { keyPoints: 'Puntos clave', examples: 'Ejemplos', summary: 'Resumen' },
+  it: { keyPoints: 'Punti chiave', examples: 'Esempi', summary: 'Riepilogo' },
+  tr: { keyPoints: 'Önemli noktalar', examples: 'Örnekler', summary: 'Özet' },
+  pt: { keyPoints: 'Pontos-chave', examples: 'Exemplos', summary: 'Resumo' },
+  nl: { keyPoints: 'Kernpunten', examples: 'Voorbeelden', summary: 'Samenvatting' },
+  pl: { keyPoints: 'Kluczowe punkty', examples: 'Przykłady', summary: 'Podsumowanie' },
+  ru: { keyPoints: 'Ключевые моменты', examples: 'Примеры', summary: 'Итоги' },
+  uk: { keyPoints: 'Ключові моменти', examples: 'Приклади', summary: 'Підсумок' },
+  sv: { keyPoints: 'Viktiga punkter', examples: 'Exempel', summary: 'Sammanfattning' },
+  da: { keyPoints: 'Nøglepunkter', examples: 'Eksempler', summary: 'Opsummering' },
+  no: { keyPoints: 'Nøkkelpunkter', examples: 'Eksempler', summary: 'Oppsummering' },
+  fi: { keyPoints: 'Keskeiset kohdat', examples: 'Esimerkit', summary: 'Yhteenveto' },
+  cs: { keyPoints: 'Klíčové body', examples: 'Příklady', summary: 'Shrnutí' },
+  sk: { keyPoints: 'Kľúčové body', examples: 'Príklady', summary: 'Zhrnutie' },
+  ro: { keyPoints: 'Puncte cheie', examples: 'Exemple', summary: 'Rezumat' },
+  hu: { keyPoints: 'Kulcspontok', examples: 'Példák', summary: 'Összefoglalás' },
+  el: { keyPoints: 'Βασικά σημεία', examples: 'Παραδείγματα', summary: 'Περίληψη' },
+  bg: { keyPoints: 'Ключови точки', examples: 'Примери', summary: 'Обобщение' },
+  hr: { keyPoints: 'Ključne točke', examples: 'Primjeri', summary: 'Sažetak' },
+  sr: { keyPoints: 'Кључне тачке', examples: 'Примери', summary: 'Резиме' },
+  sl: { keyPoints: 'Ključne točke', examples: 'Primeri', summary: 'Povzetek' },
+  ca: { keyPoints: 'Punts clau', examples: 'Exemples', summary: 'Resum' },
+  ar: { keyPoints: 'النقاط الرئيسية', examples: 'أمثلة', summary: 'ملخص' },
+  he: { keyPoints: 'נקודות מפתח', examples: 'דוגמאות', summary: 'סיכום' },
+  fa: { keyPoints: 'نکات کلیدی', examples: 'مثال‌ها', summary: 'خلاصه' },
+  hi: { keyPoints: 'मुख्य बिंदु', examples: 'उदाहरण', summary: 'सारांश' },
+  bn: { keyPoints: 'মূল বিষয়সমূহ', examples: 'উদাহরণ', summary: 'সারসংক্ষেপ' },
+  id: { keyPoints: 'Poin utama', examples: 'Contoh', summary: 'Ringkasan' },
+  ms: { keyPoints: 'Perkara utama', examples: 'Contoh', summary: 'Ringkasan' },
+  vi: { keyPoints: 'Điểm chính', examples: 'Ví dụ', summary: 'Tóm tắt' },
+  th: { keyPoints: 'ประเด็นสำคัญ', examples: 'ตัวอย่าง', summary: 'สรุป' },
+  ja: { keyPoints: '要点', examples: '例', summary: 'まとめ' },
+  ko: { keyPoints: '핵심 요점', examples: '예시', summary: '요약' },
+  zh: { keyPoints: '要点', examples: '示例', summary: '小结' },
+};
+
 /**
  * Convert the Stage B `create_theory_section` tool output into a TipTap
  * document JSON. The drawer in Phase 10.6 will render this with a
- * read-only TipTap viewer that reuses PageEditor's extension set.
+ * read-only TipTap viewer that reuses PageEditor's extension set. The
+ * structural headings are localized to `language` so they match the
+ * generated prose.
  */
-export function theoryInputToTipTap(input: TheorySectionToolInput): TipTapDoc {
+export function theoryInputToTipTap(
+  input: TheorySectionToolInput,
+  language: PathLanguageCode = 'en',
+): TipTapDoc {
+  const labels = THEORY_SECTION_LABELS[language] ?? THEORY_SECTION_LABELS.en;
   const content: TipTapNode[] = [];
   content.push(heading(2, input.title));
   content.push(...splitParagraphs(input.introduction));
   if (input.keyPoints.length > 0) {
-    content.push(heading(3, 'Key points'));
+    content.push(heading(3, labels.keyPoints));
     content.push(bulletList(input.keyPoints));
   }
   if (input.examples.length > 0) {
-    content.push(heading(3, 'Examples'));
+    content.push(heading(3, labels.examples));
     for (const ex of input.examples) {
       content.push(heading(4, ex.label));
       content.push(...splitParagraphs(ex.explanation));
     }
   }
   if (input.summary && input.summary.trim().length > 0) {
-    content.push(heading(3, 'Summary'));
+    content.push(heading(3, labels.summary));
     content.push(...splitParagraphs(input.summary));
   }
   return { type: 'doc', content };
+}
+
+/**
+ * Flatten a theory section into plain text so a learning slot's flashcard
+ * generator can build cards from exactly what the learner just read — which
+ * keeps the card count honest (no padding from the bare topic hint).
+ */
+function theoryPlainText(input: TheorySectionToolInput): string {
+  const parts: string[] = [];
+  if (input.introduction.trim()) parts.push(input.introduction.trim());
+  if (input.keyPoints.length > 0) {
+    parts.push(input.keyPoints.map((p) => `- ${p}`).join('\n'));
+  }
+  if (input.examples.length > 0) {
+    parts.push(input.examples.map((ex) => `${ex.label}: ${ex.explanation}`).join('\n'));
+  }
+  if (input.summary && input.summary.trim()) parts.push(input.summary.trim());
+  return parts.join('\n\n');
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -324,6 +397,7 @@ export async function generatePathStructure(
     hasSourceMaterials: Boolean(opts.corpus && opts.corpus.trim().length > 0),
     subjects: opts.subjects,
     subjectWeights: opts.subjectWeights,
+    language: opts.language ?? 'en',
   };
   const instructions = buildPathStructurePrompt(ctx);
   const meter = emptyMeter();
@@ -434,6 +508,9 @@ interface PlanForGeneration {
   /** Per-path Gemini override — when true, every Stage B call routes
    *  through Gemini regardless of env vars (wins over `ultra` too). */
   gemini: boolean;
+  /** Author-selected content language (BCP-47). Drives the per-prompt
+   *  "write in this language" directive and the localized theory headings. */
+  language: PathLanguageCode;
   /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
   corpus: string | null;
   /** Token usage accumulated across this run's Stage B calls. */
@@ -495,6 +572,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     subjectWeights: resolvedWeights,
     ultra: plan.ultra,
     gemini: plan.gemini,
+    language: normalizePathLanguage(plan.language),
     corpus,
     usage: emptyMeter(),
     phases: plan.phases.map((p) => {
@@ -531,6 +609,7 @@ function makeSlotContentContext(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
+  theoryText?: string,
 ): SlotContentContext {
   // `review` and `assessment` slots take the other slot titles in their
   // phase as the "review of" pool. `learning` slots stand on their own.
@@ -562,6 +641,8 @@ function makeSlotContentContext(
     subjects: plan.subjects,
     subjectWeights: plan.subjectWeights,
     hasSourceMaterials: Boolean(plan.corpus && plan.corpus.trim().length > 0),
+    language: plan.language,
+    theoryText,
   };
 }
 
@@ -574,7 +655,7 @@ async function generateTheoryActivity(
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
   nextSortOrder: number,
-): Promise<void> {
+): Promise<string> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const instructions = buildTheoryPrompt(ctx);
 
@@ -646,7 +727,7 @@ async function generateTheoryActivity(
     throw new Error(`Theory generation failed: ${lastError}`);
   }
 
-  const body = theoryInputToTipTap(resolved);
+  const body = theoryInputToTipTap(resolved, plan.language);
   await db.$transaction(async (tx) => {
     const theory = await tx.theoryContent.create({
       data: {
@@ -664,6 +745,7 @@ async function generateTheoryActivity(
       },
     });
   });
+  return theoryPlainText(resolved);
 }
 
 async function generateFlashcardsActivity(
@@ -671,8 +753,9 @@ async function generateFlashcardsActivity(
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
   nextSortOrder: number,
+  theoryText?: string,
 ): Promise<void> {
-  const ctx = makeSlotContentContext(plan, phase, slot);
+  const ctx = makeSlotContentContext(plan, phase, slot, theoryText);
   const instructions = buildFlashcardsPrompt(ctx);
 
   // The model intermittently returns an empty / unusable `flashcards` array
@@ -690,7 +773,7 @@ async function generateFlashcardsActivity(
             '',
             '--- RETRY NOTICE ---',
             'Your previous response had an empty or unusable `flashcards` array.',
-            '`flashcards` MUST be a non-empty JSON array of { question, answer } objects (8–12 cards).',
+            '`flashcards` MUST be a non-empty JSON array of { question, answer } objects.',
           ].join('\n');
     try {
       const raw = await forcedStructuredCall<unknown>({
@@ -699,7 +782,7 @@ async function generateFlashcardsActivity(
         instructions: attemptInstructions,
         anthropicTool: FLASHCARDS_FOR_SLOT_TOOL,
         geminiSchema: FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI,
-        userMessage: `Generate 8–12 flashcards for slot "${slot.title}". The flashcards array must not be empty.`,
+        userMessage: `Generate flashcards for slot "${slot.title}" — only as many as the material supports. The flashcards array must not be empty.`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
       });
@@ -1057,29 +1140,54 @@ export async function generatePath(planId: string): Promise<void> {
       // Continue numbering after any pre-existing activities so the slot's
       // sortOrder stays monotonically increasing across runs.
       const sortOrderBase = slot.existingActivityKinds.size;
+      const sortOrderByKind = new Map<PathActivityKind, number>(
+        missingKinds.map((kind, i) => [kind, sortOrderBase + i]),
+      );
 
-      // Per-slot the missing activities are independent — fire them in
-      // parallel with allSettled so one failure doesn't take down the
-      // others.
-      const tasks = missingKinds.map((kind, i) => {
-        const sortOrder = sortOrderBase + i;
-        if (kind === 'theory') return generateTheoryActivity(plan, phase, slot, sortOrder);
-        if (kind === 'flashcards')
-          return generateFlashcardsActivity(plan, phase, slot, sortOrder);
-        return generateQuizActivity(plan, phase, slot, sortOrder);
-      });
-      const results = await Promise.allSettled(tasks);
+      const recordFailure = (kind: PathActivityKind, reason: unknown) => {
+        const message = reason instanceof Error ? reason.message : String(reason);
+        failedSlotIds.push(slot.id);
+        logTelemetry(plan.userId, 'path.generation.activity_failed', {
+          planId,
+          slotId: slot.id,
+          activityKind: kind,
+          message,
+        });
+      };
+
+      // Theory first, so a learning slot's flashcards are built from the exact
+      // text the learner just read instead of the bare topic hint — that keeps
+      // the card count honest and stops the model padding with repeats. Theory
+      // and flashcards only co-occur on `learning` slots; review/assessment
+      // slots have no theory, so this adds no extra latency there.
+      let theoryText: string | undefined;
+      if (missingKinds.includes('theory')) {
+        try {
+          theoryText = await generateTheoryActivity(
+            plan,
+            phase,
+            slot,
+            sortOrderByKind.get('theory')!,
+          );
+        } catch (err) {
+          recordFailure('theory', err);
+        }
+      }
+
+      // The remaining activities are independent — fire them in parallel with
+      // allSettled so one failure doesn't take down the others.
+      const parallelKinds = missingKinds.filter((kind) => kind !== 'theory');
+      const results = await Promise.allSettled(
+        parallelKinds.map((kind) => {
+          const sortOrder = sortOrderByKind.get(kind)!;
+          if (kind === 'flashcards')
+            return generateFlashcardsActivity(plan, phase, slot, sortOrder, theoryText);
+          return generateQuizActivity(plan, phase, slot, sortOrder);
+        }),
+      );
       results.forEach((res, i) => {
         if (res.status === 'rejected') {
-          const message =
-            res.reason instanceof Error ? res.reason.message : String(res.reason);
-          failedSlotIds.push(slot.id);
-          logTelemetry(plan.userId, 'path.generation.activity_failed', {
-            planId,
-            slotId: slot.id,
-            activityKind: missingKinds[i],
-            message,
-          });
+          recordFailure(parallelKinds[i], res.reason);
         }
       });
 

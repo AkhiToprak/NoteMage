@@ -8,12 +8,34 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import type { PathSlotKind } from './ai-tools';
+import { pathLanguageName, type PathLanguageCode } from './path-languages';
 import {
   subjectGuidanceFragment,
   subjectQuizGuidanceFragment,
   subjectTheoryToneFragment,
   type SubjectId,
 } from './path-subjects';
+
+/**
+ * Leading instruction that forces the model to write every human-readable
+ * value in the path's content language. Returns `null` for English (the
+ * default) so English paths keep their exact original prompt — only
+ * non-English paths get the extra directive. Scoped to VALUES only: the JSON
+ * keys must stay English camelCase or the structured-output parsers reject
+ * the result.
+ */
+function languageDirective(language: PathLanguageCode | undefined): string | null {
+  const code = language ?? 'en';
+  if (code === 'en') return null;
+  const name = pathLanguageName(code);
+  return (
+    `WRITE EVERYTHING IN ${name.toUpperCase()}. Every human-readable value you output — ` +
+    'titles, descriptions, prose, bullet points, examples, questions, answer options, hints, ' +
+    `and explanations — MUST be written in ${name}, never in English. Keep the JSON KEYS exactly ` +
+    'as specified (English, camelCase) and leave code, math, and proper nouns that are normally ' +
+    'left untranslated as-is.'
+  );
+}
 
 export interface PathStructureContext {
   /** Path title the user requested. May be refined by the AI. */
@@ -31,6 +53,8 @@ export interface PathStructureContext {
   subjects: SubjectId[];
   /** Per-subject weights aligned with `subjects`. Sums to ≤ 1.0. */
   subjectWeights: number[];
+  /** Content language the path is generated in. Defaults to English. */
+  language?: PathLanguageCode;
 }
 
 export interface SlotContentContext {
@@ -54,6 +78,15 @@ export interface SlotContentContext {
   subjects: SubjectId[];
   /** Per-subject weights aligned with `subjects`. Sums to ≤ 1.0. */
   subjectWeights: number[];
+  /** Content language the slot is generated in. Defaults to English. */
+  language?: PathLanguageCode;
+  /**
+   * For `flashcards` on a `learning` slot: the plain text of the theory the
+   * learner just read in the same slot. When present, cards are built from
+   * THIS instead of the topic hint, so they cover exactly what was taught
+   * (and only as many cards as the material supports).
+   */
+  theoryText?: string;
 }
 
 /**
@@ -140,6 +173,8 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
   if (subjectFragment.length > 0) {
     lines.push(subjectFragment);
   }
+  const dir = languageDirective(ctx.language);
+  if (dir) lines.unshift(dir, '');
   return lines.join('\n');
 }
 
@@ -182,11 +217,14 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
   if (subjectFragment.length > 0) {
     lines.push(subjectFragment);
   }
+  const dir = languageDirective(ctx.language);
+  if (dir) lines.unshift(dir, '');
   return lines.join('\n');
 }
 
 /**
- * Stage B — flashcards prompt. 8–12 cards focused on the slot topic.
+ * Stage B — flashcards prompt. Only as many cards as the slot material
+ * genuinely supports — no forced minimum, no padding.
  */
 export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
   const lines: string[] = [
@@ -195,9 +233,10 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
     '',
     'JSON shape (keys MUST match EXACTLY — camelCase, no snake_case):',
     '{ "title": string, "flashcards": [ { "question": string, "answer": string } ] }',
-    'Card keys are LITERALLY `question` and `answer` — NEVER `front`/`back`, NEVER `prompt`/`response`, NEVER `q`/`a`. `title` MUST be a non-empty string. `flashcards` MUST be a non-empty JSON array of `{question, answer}` objects (8–12 cards). Never stringified, never keyed by index, never wrapped in a tool envelope.',
+    'Card keys are LITERALLY `question` and `answer` — NEVER `front`/`back`, NEVER `prompt`/`response`, NEVER `q`/`a`. `title` MUST be a non-empty string. `flashcards` MUST be a non-empty JSON array of `{question, answer}` objects (make only as many as the material supports). Never stringified, never keyed by index, never wrapped in a tool envelope.',
     '',
-    'Aim for 8–12 cards. Vary the angles: definitions, recall prompts, comparisons, and 1–2 "explain why" cards.',
+    'Make ONLY as many cards as the material genuinely supports — usually 3–6, sometimes as few as 2. NEVER pad to reach a number and NEVER repeat the same idea across cards; a tight set of 3 good cards beats 10 padded ones.',
+    'Vary the angles: definitions, recall prompts, comparisons, and 1–2 "explain why" cards.',
     'Keep each card a plain question → answer pair. Do NOT write blanks ("___") or fake quiz phrasing on the front — flashcards are flat Q→A; interactive question types live in review/assessment slot quizzes, not here.',
     'Keep each answer focused — 1–3 sentences or a short list. Stay strictly within the slot\'s topic hint.',
     ...(ctx.hasSourceMaterials
@@ -211,6 +250,13 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   ];
+  if (ctx.theoryText && ctx.theoryText.trim().length > 0) {
+    lines.push(
+      '',
+      'THEORY THE LEARNER JUST READ — build every card from THIS and nothing else. Make one card per distinct idea actually covered below; if only 2–3 ideas are here, make only 2–3 cards. Do NOT introduce facts that are not in this theory and do NOT repeat an idea to inflate the count:',
+      ctx.theoryText.trim(),
+    );
+  }
   if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
     lines.push(
       '',
@@ -222,6 +268,8 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
   if (subjectFragment.length > 0) {
     lines.push(subjectFragment);
   }
+  const dir = languageDirective(ctx.language);
+  if (dir) lines.unshift(dir, '');
   return lines.join('\n');
 }
 
@@ -310,5 +358,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   );
+  const dir = languageDirective(ctx.language);
+  if (dir) lines.unshift(dir, '');
   return lines.join('\n');
 }

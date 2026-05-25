@@ -792,7 +792,7 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
 export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   name: 'create_flashcards_for_slot',
   description: [
-    'Create 8–12 flashcards covering one checkpoint slot\'s topic.',
+    'Create only as many flashcards as the slot\'s material genuinely supports — usually 3–6, sometimes as few as 2. NEVER pad to reach a number and NEVER repeat the same idea across cards.',
     'Each card is a tight question/answer pair. Vary the angles: definitions, recall prompts, comparisons, and one or two "explain why" cards.',
     'Do NOT write fill-in-the-blank style cards (no "___" on the front) and do NOT phrase cards as fake quiz questions — flashcards are flat Q→A only. Interactive question types belong to `create_quiz_for_slot`, not here.',
     'Stay strictly within the slot\'s topicHint — do NOT drift into adjacent topics.',
@@ -821,8 +821,8 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
           },
           required: ['question', 'answer'],
         },
-        minItems: 6,
-        maxItems: 16,
+        minItems: 2,
+        maxItems: 10,
       },
     },
     required: ['title', 'flashcards'],

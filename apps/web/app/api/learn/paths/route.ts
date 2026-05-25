@@ -225,6 +225,7 @@ export async function POST(request: NextRequest) {
         subjects: classification.subjects,
         subjectWeights: classification.weights,
         gemini,
+        language,
       });
     } catch (error) {
       console.error('[learn/paths POST] Stage A failed', error);
