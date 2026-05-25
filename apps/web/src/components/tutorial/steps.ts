@@ -1,8 +1,11 @@
 import type { StepConfig, TutorialStep } from './types';
 
 // The first-run tour orients a new user to the whole app, not just one corner:
-// the always-on header tools (menu, search, timer, profile), then the source
-// material (notebooks) and the /learn hub where studying happens. It's
+// the dashboard, the always-on header tools (menu, search, timer), then the
+// surfaces they'll live in — profile, notebooks, the /learn hub, and Co-Work
+// (study groups + live sessions). Some steps
+// navigate to a dedicated page and spotlight its contents (profile -> /profile,
+// notebooks -> /notebooks) rather than just poking at the header. It's
 // tier-aware — FREE users see locked Pro capabilities framed as upsell rather
 // than dead ends (see the `upsell` flag + the completion recap) — and
 // device-aware: the desktop `notebooks` step is dropped on phones, where
@@ -16,9 +19,9 @@ import type { StepConfig, TutorialStep } from './types';
  * desktop-only: phones study paths/cards, they don't import source PDFs.
  */
 export function getTourSteps(isPhone: boolean): TutorialStep[] {
-  const steps: TutorialStep[] = ['nav-menu', 'search', 'timer', 'profile'];
+  const steps: TutorialStep[] = ['dashboard', 'nav-menu', 'search', 'timer', 'profile'];
   if (!isPhone) steps.push('notebooks');
-  steps.push('learn-tabs', 'learn-paths', 'learn-community', 'learn-chats');
+  steps.push('learn-tabs', 'learn-paths', 'learn-community', 'learn-chats', 'cowork');
   return steps;
 }
 
@@ -40,6 +43,16 @@ export function getStepConfig(
   isPhone: boolean
 ): StepConfig | undefined {
   switch (step) {
+    case 'dashboard':
+      return {
+        title: 'This is your dashboard',
+        body: 'Your home base — track your streak and study goals, jump back into recent notebooks, and see what to study next.',
+        targetKey: 'dashboard',
+        route: '/dashboard',
+        next: 'nav-menu',
+        renderBackdrop: true,
+        tooltipPlacement: 'auto',
+      };
     case 'nav-menu':
       return {
         title: 'Find your way around',
@@ -73,9 +86,9 @@ export function getStepConfig(
     case 'profile':
       return {
         title: 'Make it yours',
-        body: 'Your profile and settings live behind your avatar — including customization like avatar frames you unlock as you study.',
+        body: 'This is your profile. Add your bio and socials — and unlock titles, name styles, avatar frames, and backgrounds here as you earn achievements.',
         targetKey: 'profile',
-        route: '/dashboard',
+        route: '/profile',
         next: isPhone ? 'learn-tabs' : 'notebooks',
         renderBackdrop: true,
         tooltipPlacement: 'auto',
@@ -141,6 +154,16 @@ export function getStepConfig(
           : 'Chat with the Mage across your notebooks — ask questions and get explanations. Free includes 50 messages to start.',
         targetKey: 'learn-new-chat',
         route: '/learn/chats',
+        next: 'cowork',
+        renderBackdrop: true,
+        tooltipPlacement: 'auto',
+      };
+    case 'cowork':
+      return {
+        title: 'Study together',
+        body: "This is Co-Work — join study groups and classes, message classmates, and run live sessions on a notebook together in real time. You don't have to study alone.",
+        targetKey: 'cowork',
+        route: '/groups',
         nextLabel: 'Finish',
         renderBackdrop: true,
         tooltipPlacement: 'auto',

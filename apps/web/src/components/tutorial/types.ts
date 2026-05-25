@@ -1,8 +1,10 @@
 export type TutorialStep =
   | 'idle'
   | 'welcome'
-  // App-orientation tour (active route-stepping). Header tools first
-  // (all on /dashboard), then the source material + Learn-hub surfaces.
+  // App-orientation tour (active route-stepping): the dashboard, the always-on
+  // header tools, then the surfaces the user lives in (profile, notebooks, the
+  // /learn hub). Some steps navigate to a dedicated page (profile, notebooks).
+  | 'dashboard'
   | 'nav-menu'
   | 'search'
   | 'timer'
@@ -13,6 +15,7 @@ export type TutorialStep =
   | 'learn-paths'
   | 'learn-community'
   | 'learn-chats'
+  | 'cowork'
   // Legacy action-driven steps — kept inert so the notebooks-page wiring that
   // references them still type-checks. The new tour never enters these (see
   // steps.ts / TutorialProvider.start).
@@ -23,6 +26,7 @@ export type TutorialStep =
   | 'complete';
 
 export type TutorialTargetKey =
+  | 'dashboard'
   | 'nav-menu'
   | 'search'
   | 'timer'
@@ -32,6 +36,7 @@ export type TutorialTargetKey =
   | 'learn-generate-path'
   | 'learn-community'
   | 'learn-new-chat'
+  | 'cowork'
   // Legacy anchors (still registered by the notebooks/dashboard pages).
   | 'dashboard-cta'
   | 'notebook-form'

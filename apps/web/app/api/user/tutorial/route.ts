@@ -13,6 +13,7 @@ const VALID_STEPS = new Set([
   'idle',
   'welcome',
   // App-orientation tour.
+  'dashboard',
   'nav-menu',
   'search',
   'timer',
@@ -22,6 +23,7 @@ const VALID_STEPS = new Set([
   'learn-paths',
   'learn-community',
   'learn-chats',
+  'cowork',
   // Legacy steps — kept valid so any in-flight state still PATCHes cleanly.
   'step-1-dashboard',
   'step-2-notebook-form',

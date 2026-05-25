@@ -1115,6 +1115,7 @@ export default function ProfilePage() {
           the header row stays a clickable region that expands/collapses
           the panel. Seeded on mount from /api/user/profile. */}
       <div
+        data-tutorial="profile"
         style={{
           background: 'var(--surface-container-low)',
           borderRadius: isPhone ? '20px' : '24px',

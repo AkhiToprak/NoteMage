@@ -256,7 +256,6 @@ export default function HomeHeader() {
                 onMouseEnter={() => setHoveredAvatar(true)}
                 onMouseLeave={() => setHoveredAvatar(false)}
                 aria-label="Open account menu"
-                data-tutorial="profile"
                 style={{
                   // No fixed dimensions: let the UserAvatar size itself so an
                   // equipped frame's halo doesn't get clipped. The hover ring

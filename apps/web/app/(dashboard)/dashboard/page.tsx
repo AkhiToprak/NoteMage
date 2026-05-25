@@ -409,6 +409,7 @@ export default function DashboardPage() {
       {/* Stats Row — carousel on phone, grid on tablet/desktop */}
       {isPhone && <style>{`.stat-carousel::-webkit-scrollbar { display: none; }`}</style>}
       <section
+        data-tutorial="dashboard"
         ref={isPhone ? carouselRef : undefined}
         className={isPhone ? 'stat-carousel' : undefined}
         onScroll={isPhone ? handleCarouselScroll : undefined}

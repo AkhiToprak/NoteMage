@@ -259,7 +259,7 @@ export default function GroupsPage() {
             gap: isPhone ? 12 : 0,
           }}
         >
-          <div>
+          <div data-tutorial="cowork">
             <h1
               style={{
                 fontSize: isPhone ? 22 : 28,

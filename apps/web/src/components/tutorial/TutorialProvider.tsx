@@ -19,6 +19,7 @@ const LEGACY_STORAGE_KEY = 'notemage-tutorial';
 
 const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'welcome',
+  'dashboard',
   'nav-menu',
   'search',
   'timer',
@@ -28,6 +29,7 @@ const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'learn-paths',
   'learn-community',
   'learn-chats',
+  'cowork',
   'complete',
 ];
 
@@ -196,9 +198,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   const start = useCallback(() => {
-    setStep('nav-menu');
-    persist({ ...persistedRef.current, step: 'nav-menu' });
-    void patchServer({ step: 'nav-menu' });
+    setStep('dashboard');
+    persist({ ...persistedRef.current, step: 'dashboard' });
+    void patchServer({ step: 'dashboard' });
   }, [persist]);
 
   // Active route-stepping: each tour step declares the route it's shown on.
