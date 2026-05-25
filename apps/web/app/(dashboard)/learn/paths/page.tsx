@@ -13,6 +13,7 @@ import {
 import {
   PATH_LANGUAGES,
   pathLanguageName,
+  isPathLanguage,
   type PathLanguageCode,
 } from '@/lib/path-languages';
 import { PublishStatusChip } from '@/components/path-publish/PublishStatusChip';
@@ -1402,10 +1403,13 @@ function TranslatePathDialog({
   onConfirm: (language: PathLanguageCode) => void;
 }) {
   const current = (plan.language ?? 'en') as string;
-  const options = PATH_LANGUAGES.filter((l) => l.code !== current);
-  const [language, setLanguage] = useState<PathLanguageCode>(
-    () => (options[0]?.code ?? 'en') as PathLanguageCode,
+  // Show every language, including the path's current one. Picking the current
+  // language re-translates in place to fix any text still left in another
+  // language (e.g. a German path that generated with English fragments).
+  const [language, setLanguage] = useState<PathLanguageCode>(() =>
+    isPathLanguage(current) ? current : 'en',
   );
+  const isReclean = language === current;
 
   return (
     <div
@@ -1481,8 +1485,9 @@ function TranslatePathDialog({
               }}
             >
               All of <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> — theory,
-              flashcards, and quizzes — is translated in place. Your progress is kept. Currently in{' '}
-              {pathLanguageName(current as PathLanguageCode)}.
+              flashcards, and quizzes — is translated in place and your progress is kept. It&apos;s
+              currently in {pathLanguageName(current as PathLanguageCode)}; pick that same language to
+              re-check it and fix anything still in another language.
             </p>
           </div>
         </div>
@@ -1508,9 +1513,10 @@ function TranslatePathDialog({
               cursor: translating ? 'not-allowed' : 'pointer',
             }}
           >
-            {options.map((l) => (
+            {PATH_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.endonym} — {l.label}
+                {l.code === current ? ' (current)' : ''}
               </option>
             ))}
           </select>
@@ -1558,7 +1564,7 @@ function TranslatePathDialog({
               opacity: translating ? 0.7 : 1,
             }}
           >
-            {translating ? 'Starting…' : 'Translate'}
+            {translating ? 'Starting…' : isReclean ? 'Re-translate' : 'Translate'}
           </button>
         </div>
       </div>

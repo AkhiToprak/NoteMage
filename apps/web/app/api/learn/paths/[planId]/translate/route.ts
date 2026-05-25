@@ -64,10 +64,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       return badRequestResponse('This path is still being worked on. Try again in a moment.');
     }
 
-    // No-op when the path is already in the requested language.
-    if (plan.language === language) {
-      return successResponse({ planId, language, status: 'ready', alreadyInLanguage: true });
-    }
+    // Note: we deliberately allow `language === plan.language`. Re-translating
+    // a path into its own language is a "fix mixed content" pass — it cleans up
+    // any text that generated in another language (e.g. English fragments in a
+    // German path) while leaving already-correct strings untouched.
 
     // Flip into the working state with a translate-mode progress stub so the
     // list card flips to "Translating…" immediately, before the orchestrator

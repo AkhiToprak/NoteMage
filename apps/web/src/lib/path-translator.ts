@@ -121,6 +121,16 @@ function buildBatchPayload(
   out.push(`source language: ${source}`);
   out.push(`target language: ${target}`);
   out.push('');
+  if (source === target) {
+    // Re-clean pass: the content is nominally already in `target` but may hold
+    // fragments left in another language. Override the rubric's "don't echo the
+    // source language" rule for this case so correct strings pass through.
+    out.push('');
+    out.push(
+      `NOTE: these strings are nominally already in ${target}, but some may still contain text in another language (often English). Return EVERY string fully in ${target}; if a string is already entirely in ${target}, return it unchanged.`,
+    );
+  }
+  out.push('');
   out.push('# SOURCE STRINGS');
   out.push('');
   for (const it of items) {
@@ -550,14 +560,9 @@ export async function translatePath(
     const source = normalizePathLanguage(plan.language);
     const totalSlots = plan.phases.reduce((n, p) => n + p.slots.length, 0);
 
-    // Already in the target language → nothing to do.
-    if (source === targetLanguage) {
-      await db.studyPlan.update({
-        where: { id: planId },
-        data: { generationStatus: 'ready', generationError: null, generationProgress: Prisma.DbNull },
-      });
-      return;
-    }
+    // `source === targetLanguage` is allowed: it runs a "fix mixed content"
+    // pass that normalizes any stray non-target text (the payload tells the
+    // model some strings may already be correct — see buildBatchPayload).
 
     let completedSlots = 0;
     await writeProgress(planId, {
