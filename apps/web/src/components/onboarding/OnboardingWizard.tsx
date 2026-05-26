@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import OnboardingScreen from './OnboardingScreen';
 import AccountStep from './AccountStep';
 import OAuthBirthDateStep from './OAuthBirthDateStep';
+import OAuthProviderRow from '@/components/auth/OAuthProviderRow';
 import TierSelectionStep from './TierSelectionStep';
 import FirstNameStep from './FirstNameStep';
 import LastNameStep from './LastNameStep';
@@ -129,6 +130,7 @@ export default function OnboardingWizard({
   freeAiPathsDisabled?: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const [step, setStep] = useState<StepId>('account');
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
@@ -158,6 +160,32 @@ export default function OnboardingWizard({
   }
   const authPath = decidedPathRef.current;
   const isOauthPath = authPath === 'oauth';
+
+  // Surface NextAuth errors redirected back here by a failed OAuth round-trip
+  // started from the register page. The signIn callback's "account_exists"
+  // branch goes to /auth/login (not here), so the cases we care about here
+  // are the generic NextAuth errors that can fire on a first-time OAuth from
+  // /auth/register itself. Stamp the message onto the screen-1 step error so
+  // it renders inside OnboardingScreen's existing error banner slot.
+  const oauthErrorAppliedRef = useRef(false);
+  useEffect(() => {
+    if (oauthErrorAppliedRef.current) return;
+    const err = searchParams?.get('error');
+    if (!err) return;
+    oauthErrorAppliedRef.current = true;
+    let msg: string | null = null;
+    if (err === 'OAuthSignin' || err === 'OAuthCallback' || err === 'Callback') {
+      msg = 'Something went wrong during sign-in. Please try again.';
+    } else if (err === 'AccessDenied') {
+      msg = 'Sign-in was denied. If you think this is a mistake, contact support.';
+    } else if (err === 'OAuthAccountExists') {
+      // The signIn callback redirects collisions to /auth/login, so this
+      // branch is only hit if a future code path routes here. Show the same
+      // copy the login banner uses for consistency.
+      msg = 'An account already exists for this email. Please sign in with your password, then link Google or Apple from settings.';
+    }
+    if (msg) setStepErrors((prev) => ({ ...prev, account: msg }));
+  }, [searchParams]);
 
   // OAuth users: pre-fill name + avatar from the OAuth profile, exactly once.
   const prefilledRef = useRef(false);
@@ -509,6 +537,20 @@ export default function OnboardingWizard({
             onNext={handleAccountNext}
             loading={loading}
             error={stepErrors.account || ''}
+          />
+          {/*
+            OAuth alternative — credentials path only. Sends the user through
+            NextAuth's Google/Apple flow with callbackUrl=/auth/register so the
+            post-OAuth landing remounts the wizard, decidedPathRef resolves to
+            'oauth', and OAuthBirthDateStep renders for the DOB gate.
+            Deliberately not rendered on the OAuth DOB step, the verify step,
+            or any later step — by then a session exists and these buttons
+            would be misleading.
+          */}
+          <OAuthProviderRow
+            callbackUrl="/auth/register"
+            disabled={loading}
+            onError={(msg) => setStepError('account', msg)}
           />
         </OnboardingScreen>
       );
