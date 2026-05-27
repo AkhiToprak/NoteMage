@@ -1,9 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
+
+// useSyncExternalStore plumbing for the native-shell flag — separate server
+// and client snapshots make this SSR-safe (false on the server, real value on
+// the client) without the setState-in-effect anti-pattern. The native-shell
+// result doesn't change after mount, so the subscribe is a no-op.
+const subscribeNoop = () => () => {};
+const getNativeShellClient = () => isInsideNativeShell();
+const getNativeShellServer = () => false;
 
 interface OAuthProviderRowProps {
   /**
@@ -42,6 +50,16 @@ export default function OAuthProviderRow({
 }: OAuthProviderRowProps) {
   const router = useRouter();
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
+  // Apple Sign In is only surfaced inside the iOS WebView shell — the web
+  // redirect handshake needs a working Services ID + domain verification +
+  // JWT, which we're not running today. The iOS native bridge below works
+  // independently of all that, so iOS users still see the button (and the
+  // App Store requires it once the iOS app offers Google).
+  const showApple = useSyncExternalStore(
+    subscribeNoop,
+    getNativeShellClient,
+    getNativeShellServer
+  );
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider);
@@ -175,55 +193,57 @@ export default function OAuthProviderRow({
           {oauthLoading === 'google' ? 'Redirecting…' : 'Continue with Google'}
         </button>
 
-        <button
-          type="button"
-          onClick={() => handleOAuth('apple')}
-          disabled={isBusy}
-          style={{
-            width: '100%',
-            padding: '13px 16px',
-            background: '#000000',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '14px',
-            color: '#ffffff',
-            fontSize: '15px',
-            fontWeight: 700,
-            cursor: isBusy ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            opacity: disabled || (oauthLoading && oauthLoading !== 'apple') ? 0.5 : 1,
-            transition:
-              'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-          }}
-          onMouseEnter={(e) => {
-            if (!isBusy) {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.01)';
-              (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                '0 8px 24px rgba(0,0,0,0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-          }}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
+        {showApple && (
+          <button
+            type="button"
+            onClick={() => handleOAuth('apple')}
+            disabled={isBusy}
+            style={{
+              width: '100%',
+              padding: '13px 16px',
+              background: '#000000',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '14px',
+              color: '#ffffff',
+              fontSize: '15px',
+              fontWeight: 700,
+              cursor: isBusy ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              opacity: disabled || (oauthLoading && oauthLoading !== 'apple') ? 0.5 : 1,
+              transition:
+                'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isBusy) {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.01)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                  '0 8px 24px rgba(0,0,0,0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
+            }}
           >
-            <path
-              fill="currentColor"
-              d="M17.05 12.536c-.028-2.812 2.295-4.162 2.4-4.228-1.308-1.912-3.342-2.173-4.063-2.202-1.731-.175-3.38 1.018-4.258 1.018-.88 0-2.23-.993-3.668-.966-1.889.027-3.631 1.099-4.603 2.791-1.962 3.4-.501 8.424 1.411 11.184.934 1.35 2.05 2.867 3.513 2.812 1.411-.056 1.944-.912 3.651-.912s2.187.912 3.68.884c1.52-.027 2.486-1.377 3.421-2.73 1.078-1.571 1.523-3.098 1.551-3.175-.034-.017-2.978-1.144-3.035-4.476zm-2.788-8.21c.78-.944 1.308-2.257 1.163-3.562-1.128.045-2.49.75-3.299 1.694-.72.834-1.362 2.175-1.189 3.452 1.262.098 2.545-.64 3.325-1.584z"
-            />
-          </svg>
-          {oauthLoading === 'apple' ? 'Redirecting…' : 'Continue with Apple'}
-        </button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill="currentColor"
+                d="M17.05 12.536c-.028-2.812 2.295-4.162 2.4-4.228-1.308-1.912-3.342-2.173-4.063-2.202-1.731-.175-3.38 1.018-4.258 1.018-.88 0-2.23-.993-3.668-.966-1.889.027-3.631 1.099-4.603 2.791-1.962 3.4-.501 8.424 1.411 11.184.934 1.35 2.05 2.867 3.513 2.812 1.411-.056 1.944-.912 3.651-.912s2.187.912 3.68.884c1.52-.027 2.486-1.377 3.421-2.73 1.078-1.571 1.523-3.098 1.551-3.175-.034-.017-2.978-1.144-3.035-4.476zm-2.788-8.21c.78-.944 1.308-2.257 1.163-3.562-1.128.045-2.49.75-3.299 1.694-.72.834-1.362 2.175-1.189 3.452 1.262.098 2.545-.64 3.325-1.584z"
+              />
+            </svg>
+            {oauthLoading === 'apple' ? 'Redirecting…' : 'Continue with Apple'}
+          </button>
+        )}
       </div>
     </div>
   );
