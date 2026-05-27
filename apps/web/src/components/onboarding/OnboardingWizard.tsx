@@ -13,6 +13,8 @@ import LastNameStep from './LastNameStep';
 import UsernameStep from './UsernameStep';
 import ContextStep from './ContextStep';
 import FieldOfStudyStep from './FieldOfStudyStep';
+import SchoolStep from './SchoolStep';
+import FindClassmatesStep, { type ClassmatePeer } from './FindClassmatesStep';
 import AvatarStep from './AvatarStep';
 import StudyGoalsStep, { EMPTY_GOAL_VALUES, type GoalValues } from './StudyGoalsStep';
 import ScholarNameStep, { MAGE_NAME_REGEX } from './ScholarNameStep';
@@ -34,6 +36,8 @@ type StepId =
   | 'username'
   | 'context'
   | 'fieldOfStudy'
+  | 'school'
+  | 'findClassmates'
   | 'avatar'
   | 'mageName'
   | 'goals'
@@ -48,6 +52,8 @@ const STEP_ORDER: readonly StepId[] = [
   'username',
   'context',
   'fieldOfStudy',
+  'school',
+  'findClassmates',
   'avatar',
   'mageName',
   'goals',
@@ -66,6 +72,12 @@ const BACK_TARGETS: Partial<Record<StepId, StepId>> = {
   username: 'lastName',
   context: 'username',
   fieldOfStudy: 'context',
+  school: 'fieldOfStudy',
+  // findClassmates only appears when peers exist, so back lands on school;
+  // avatar deliberately stays absent from BACK_TARGETS — it has never been
+  // back-navigable and adding it now would have to branch on whether the
+  // user passed through findClassmates.
+  findClassmates: 'school',
   mageName: 'avatar',
   goals: 'mageName',
   import: 'goals',
@@ -82,6 +94,7 @@ interface FormData {
   username: string;
   context: string;
   fieldOfStudy: string;
+  school: string;
   avatarUrl: string | null;
   scholarName: string;
   goals: GoalValues;
@@ -117,6 +130,7 @@ const INITIAL_FORM: FormData = {
   username: '',
   context: '',
   fieldOfStudy: '',
+  school: '',
   avatarUrl: null,
   scholarName: '',
   goals: { ...EMPTY_GOAL_VALUES },
@@ -137,6 +151,10 @@ export default function OnboardingWizard({
   const [loading, setLoading] = useState(false);
   const [stepErrors, setStepErrors] = useState<Partial<Record<StepId, string>>>({});
   const [avatarBusy, setAvatarBusy] = useState(false);
+  // Peers prefetched when the user submits the school step — handed to
+  // FindClassmatesStep as a prop so it renders instantly with no flash of
+  // empty/loading state. Empty array means the wizard skipped that screen.
+  const [schoolPeers, setSchoolPeers] = useState<ClassmatePeer[]>([]);
   // Mirrors the import finale's internal sub-step so the shell chevron can
   // be context-aware (see screen 11 below).
   const [importPhase, setImportPhase] = useState<ImportPhase>('source');
@@ -363,6 +381,49 @@ export default function OnboardingWizard({
     setStep('context');
   };
 
+  // ── School + classmates: continue from school looks up peers; if any exist
+  // we land on findClassmates, otherwise skip straight to avatar. Skipping
+  // school (empty value) also skips the classmate finder — there's nothing
+  // to find. Failures fall through to avatar so a flaky network can't trap
+  // the user in onboarding.
+  const handleSchoolContinue = async () => {
+    clearStepError('school');
+    const trimmed = formData.school.trim();
+    if (!trimmed) {
+      setFormData((prev) => ({ ...prev, school: '' }));
+      setSchoolPeers([]);
+      setStep('avatar');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/schools/peers?school=${encodeURIComponent(trimmed)}`);
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        const peers: ClassmatePeer[] = json?.data?.users ?? [];
+        setSchoolPeers(peers);
+        if (peers.length > 0) {
+          setStep('findClassmates');
+          return;
+        }
+      }
+      setSchoolPeers([]);
+      setStep('avatar');
+    } catch {
+      setSchoolPeers([]);
+      setStep('avatar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSchoolSkip = () => {
+    setFormData((prev) => ({ ...prev, school: '' }));
+    setSchoolPeers([]);
+    clearStepError('school');
+    setStep('avatar');
+  };
+
   // ── Screen 8: Avatar ─────────────────────────────────────────────────────
   const handleAvatarNext = () => {
     setStep('mageName');
@@ -420,6 +481,7 @@ export default function OnboardingWizard({
           name: fullName || null,
           lineOfWork: formData.context || null,
           fieldOfStudy: formData.fieldOfStudy.trim() || null,
+          school: formData.school.trim() || null,
         }),
       });
       // Refresh the JWT token so middleware sees onboardingComplete: true
@@ -709,18 +771,68 @@ export default function OnboardingWizard({
           heading="What are you studying?"
           subheading="This helps NoteMage tailor your study material."
           primaryLabel="Continue"
-          onPrimary={() => setStep('avatar')}
+          onPrimary={() => setStep('school')}
           primaryDisabled={!formData.fieldOfStudy.trim()}
           secondaryLabel="Skip for now"
           onSecondary={() => {
             setFormData((prev) => ({ ...prev, fieldOfStudy: '' }));
-            setStep('avatar');
+            setStep('school');
           }}
         >
           <FieldOfStudyStep
             value={formData.fieldOfStudy}
             onChange={(value) => setFormData((prev) => ({ ...prev, fieldOfStudy: value }))}
           />
+        </OnboardingScreen>
+      );
+    }
+
+    // ── Screen 7: School — autocomplete over existing schools ────────────────
+    if (step === 'school') {
+      return (
+        <OnboardingScreen
+          screenKey="school"
+          progress={progress}
+          onBack={handleBack}
+          mascotPose="thinking"
+          mascotIdle="sway"
+          heading="Where do you go to school?"
+          subheading="We'll suggest other mages from the same place."
+          error={stepErrors.school || ''}
+          primaryLabel={loading ? 'Looking…' : 'Continue'}
+          onPrimary={handleSchoolContinue}
+          primaryDisabled={loading}
+          primaryLoading={loading}
+          secondaryLabel="Skip for now"
+          onSecondary={handleSchoolSkip}
+          secondaryDisabled={loading}
+        >
+          <SchoolStep
+            value={formData.school}
+            onChange={(value) => setFormData((prev) => ({ ...prev, school: value }))}
+          />
+        </OnboardingScreen>
+      );
+    }
+
+    // ── Screen 7b: Find classmates — conditional, only when peers exist ──────
+    // handleSchoolContinue is the only path here; if peers turned out empty
+    // the wizard skipped this screen entirely.
+    if (step === 'findClassmates') {
+      return (
+        <OnboardingScreen
+          screenKey="findClassmates"
+          progress={progress}
+          onBack={handleBack}
+          mascotPose="wave"
+          mascotIdle="float"
+          heading="Mages from your school"
+          primaryLabel="Done"
+          onPrimary={() => setStep('avatar')}
+          secondaryLabel="Skip for now"
+          onSecondary={() => setStep('avatar')}
+        >
+          <FindClassmatesStep peers={schoolPeers} school={formData.school.trim()} />
         </OnboardingScreen>
       );
     }

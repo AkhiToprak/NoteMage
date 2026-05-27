@@ -31,12 +31,14 @@ export async function PUT(request: NextRequest) {
       name,
       lineOfWork,
       fieldOfStudy,
+      school,
     } = body as {
       goals?: unknown;
       scholarName?: string | null;
       name?: string | null;
       lineOfWork?: string | null;
       fieldOfStudy?: string | null;
+      school?: string | null;
     };
 
     if (scholarName !== undefined && scholarName !== null) {
@@ -77,6 +79,15 @@ export async function PUT(request: NextRequest) {
         return badRequestResponse('fieldOfStudy must be at most 100 characters');
       }
       data.fieldOfStudy = fieldOfStudy.trim() || null;
+    }
+
+    // School powers the onboarding "find classmates" peer suggestions — see
+    // /api/schools/peers — and shows up on the public profile bento card.
+    if (school !== undefined && school !== null) {
+      if (typeof school !== 'string' || school.length > 100) {
+        return badRequestResponse('school must be at most 100 characters');
+      }
+      data.school = school.trim() || null;
     }
 
     await db.user.update({
