@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import ActivityHeatmap from '@/components/features/ActivityHeatmap';
 import StreakDisplay from '@/components/features/StreakDisplay';
-import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
 import DashboardAchievements from '@/components/features/DashboardAchievements';
 import DashboardGreeting from '@/components/features/DashboardGreeting';
@@ -125,6 +124,8 @@ export default function DashboardPage() {
   const [streakValue, setStreakValue] = useState<string>('—');
   const [streakIsActive, setStreakIsActive] = useState(false);
   const [freezesLeft, setFreezeesLeft] = useState(0);
+  const [friendsCount, setFriendsCount] = useState<number | null>(null);
+  const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
@@ -167,6 +168,22 @@ export default function DashboardPage() {
           setStreakIsActive(d.isActiveToday);
           setFreezeesLeft(d.freezesLeft);
         }
+      })
+      .catch(() => {});
+
+    fetch('/api/friends?status=accepted')
+      .then((r) => r.json())
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (typeof d?.count === 'number') setFriendsCount(d.count);
+      })
+      .catch(() => {});
+
+    fetch('/api/friends?status=pending&direction=incoming')
+      .then((r) => r.json())
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (typeof d?.count === 'number') setPendingFriendRequests(d.count);
       })
       .catch(() => {});
 
@@ -333,13 +350,30 @@ export default function DashboardPage() {
 
   const statCards: StatCard[] = [
     {
-      label: 'Notebooks',
-      value: notebookCount !== null ? String(notebookCount) : '—',
-      icon: 'auto_stories',
-      iconColor: '#ae89ff',
-      iconBg: 'rgba(174,137,255,0.1)',
-      arrowColor: 'rgba(174,137,255,0.4)',
-      href: '/notebooks',
+      label: 'Friends',
+      value: friendsCount !== null ? String(friendsCount) : '—',
+      icon: 'group',
+      iconColor: '#b9c3ff',
+      iconBg: 'rgba(185,195,255,0.12)',
+      arrowColor: 'rgba(185,195,255,0.4)',
+      href: '/profile',
+      badge:
+        pendingFriendRequests > 0 ? (
+          <div
+            style={{
+              padding: '2px 8px',
+              background: 'rgba(185,195,255,0.15)',
+              borderRadius: '8px',
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#b9c3ff',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
+          >
+            {pendingFriendRequests} new
+          </div>
+        ) : undefined,
     },
     {
       label: 'Day Streak',
@@ -780,12 +814,12 @@ export default function DashboardPage() {
         <DashboardAchievements />
       </section>
 
-      {/* Upcoming Exams */}
+      {/* Upcoming Exams — compact card */}
       <section
         style={{
           background: 'var(--surface-container-low)',
           borderRadius: '20px',
-          padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '24px' }),
+          padding: responsiveValue(bp, { phone: '14px', tablet: '14px', desktop: '16px' }),
         }}
       >
         <div
@@ -793,19 +827,19 @@ export default function DashboardPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '20px',
+            marginBottom: exams.length === 0 ? '4px' : '10px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '22px', color: '#ae89ff' }}
+              style={{ fontSize: '20px', color: '#ae89ff' }}
             >
               event
             </span>
             <h2
               style={{
-                fontSize: responsiveValue(bp, { phone: '18px', tablet: '17px', desktop: '18px' }),
+                fontSize: '15px',
                 fontWeight: 700,
                 color: 'var(--on-surface)',
                 margin: 0,
@@ -813,19 +847,34 @@ export default function DashboardPage() {
             >
               Upcoming Exams
             </h2>
+            {exams.length > 0 && (
+              <span
+                style={{
+                  padding: '1px 8px',
+                  background: 'rgba(174,137,255,0.12)',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#ae89ff',
+                }}
+              >
+                {exams.length}
+              </span>
+            )}
           </div>
           <button
             onClick={() => setShowExamForm(true)}
+            aria-label="Add exam"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
+              gap: '4px',
+              padding: '6px 12px',
               background: 'rgba(174,137,255,0.12)',
               border: '1px solid rgba(174,137,255,0.2)',
-              borderRadius: '10px',
+              borderRadius: '8px',
               color: '#ae89ff',
-              fontSize: '13px',
+              fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -841,44 +890,185 @@ export default function DashboardPage() {
               (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
               add
             </span>
-            Add Exam
+            Add
           </button>
         </div>
 
         {exams.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--on-surface-variant)' }}>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '40px', display: 'block', marginBottom: '12px', opacity: 0.35 }}
-            >
-              event_note
-            </span>
-            <p style={{ fontSize: '14px', margin: '0 0 4px', color: 'var(--on-surface-variant)' }}>
-              No upcoming exams.
-            </p>
-            <p style={{ fontSize: '13px', margin: 0, color: 'var(--outline)' }}>
-              Add one to start planning your study schedule!
-            </p>
-          </div>
+          <p style={{ fontSize: '13px', margin: 0, color: 'var(--on-surface-variant)' }}>
+            No exams yet — add one to start planning.
+          </p>
         ) : (
-          <div
-            className="responsive-grid-3"
-            style={{
-              display: 'grid',
-              gap: '16px',
-            }}
-          >
-            {exams.slice(0, 3).map((exam) => (
-              <ExamCountdown
-                key={exam.id}
-                exam={exam}
-                onGeneratePlan={generatingPlanId === exam.id ? undefined : handleGeneratePlan}
-                onDelete={handleDeleteExam}
-              />
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {[...exams]
+              .sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime())
+              .slice(0, 3)
+              .map((exam) => {
+                const daysUntil = Math.ceil(
+                  (new Date(exam.examDate).getTime() - Date.now()) / 86400000
+                );
+                const urgency =
+                  daysUntil < 7
+                    ? { bg: 'rgba(253,111,133,0.15)', fg: '#fd6f85' }
+                    : daysUntil < 14
+                      ? { bg: 'rgba(240,208,76,0.15)', fg: '#f0d04c' }
+                      : { bg: 'rgba(185,195,255,0.12)', fg: '#b9c3ff' };
+                const hasPlan = !!exam.studyPlan;
+                const isGenerating = generatingPlanId === exam.id;
+                return (
+                  <div
+                    key={exam.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '8px 10px',
+                      borderRadius: '12px',
+                      background: 'rgba(255,255,255,0.02)',
+                      transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        'rgba(255,255,255,0.04)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        'rgba(255,255,255,0.02)';
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: urgency.fg,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: 'var(--on-surface)',
+                          margin: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {exam.title}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--outline)',
+                          margin: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {exam.notebookName}
+                      </p>
+                    </div>
+                    <span
+                      style={{
+                        padding: '3px 10px',
+                        background: urgency.bg,
+                        color: urgency.fg,
+                        borderRadius: '999px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {daysUntil <= 0 ? 'today' : `${daysUntil}d`}
+                    </span>
+                    {!hasPlan && (
+                      <button
+                        onClick={() => handleGeneratePlan(exam.id)}
+                        disabled={isGenerating}
+                        aria-label="Generate study plan"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '4px 8px',
+                          background: 'transparent',
+                          border: '1px solid rgba(174,137,255,0.25)',
+                          borderRadius: '8px',
+                          color: '#ae89ff',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: isGenerating ? 'wait' : 'pointer',
+                          fontFamily: 'inherit',
+                          opacity: isGenerating ? 0.5 : 1,
+                          transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isGenerating) {
+                            (e.currentTarget as HTMLButtonElement).style.background =
+                              'rgba(174,137,255,0.12)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                        }}
+                      >
+                        {isGenerating ? '…' : 'Plan'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteExam(exam.id)}
+                      aria-label="Delete exam"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '24px',
+                        height: '24px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: 'var(--outline)',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        opacity: 0.5,
+                        transition:
+                          'opacity 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                        (e.currentTarget as HTMLButtonElement).style.color = '#fd6f85';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.opacity = '0.5';
+                        (e.currentTarget as HTMLButtonElement).style.color = 'var(--outline)';
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                        close
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            {exams.length > 3 && (
+              <p
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--outline)',
+                  margin: '4px 4px 0',
+                }}
+              >
+                +{exams.length - 3} more upcoming
+              </p>
+            )}
           </div>
         )}
       </section>
