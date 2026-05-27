@@ -40,14 +40,24 @@ export function useUpgrade(onSuccess?: () => void) {
         userId,
         email: session?.user?.email ?? undefined,
         onCompleted: async (subscriptionId) => {
-          try {
-            await fetch('/api/billing/lemonsqueezy/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ subscriptionId }),
-            });
-          } catch {
-            // Webhook will reconcile even if this fallback fails.
+          // The webhook is authoritative — /sync just shortens the latency. We
+          // attempt it best-effort when LS handed us a subscription id, but the
+          // wizard MUST advance either way: a paid order should never leave the
+          // user stuck on the upgrade screen.
+          if (subscriptionId) {
+            try {
+              const res = await fetch('/api/billing/lemonsqueezy/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscriptionId }),
+              });
+              if (!res.ok) {
+                // fetch only throws on network errors — HTTP 4xx/5xx land here.
+                console.error('[useUpgrade] /sync returned', res.status);
+              }
+            } catch (e) {
+              console.error('[useUpgrade] /sync threw', e);
+            }
           }
           await update();
           if (onSuccessRef.current) onSuccessRef.current();

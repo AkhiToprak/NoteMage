@@ -20,7 +20,7 @@ declare global {
 
 const LEMON_JS = 'https://app.lemonsqueezy.com/js/lemon.js';
 let lemonReady: Promise<void> | null = null;
-let onCompletedCb: ((subscriptionId: string) => void) | null = null;
+let onCompletedCb: ((subscriptionId: string | null) => void) | null = null;
 
 function loadLemon(): Promise<void> {
   if (lemonReady) return lemonReady;
@@ -36,13 +36,23 @@ function loadLemon(): Promise<void> {
       window.LemonSqueezy?.Setup({
         eventHandler: (event) => {
           // Checkout.Success carries the order payload; pull the subscription id
-          // for the /sync fallback.
+          // for the /sync fallback. LS sometimes hands the order back before the
+          // subscription record is created (first_subscription_id is null for a
+          // few hundred ms), so we ALWAYS invoke the callback — the webhook is
+          // the authoritative provisioner; /sync is just an optimization. If we
+          // gated on subId here, the wizard would silently hang on a paid order.
           if (event.event === 'Checkout.Success' && onCompletedCb) {
             const data = event.data as
               | { order?: { data?: { attributes?: { first_subscription_id?: string | number } } } }
               | undefined;
-            const subId = data?.order?.data?.attributes?.first_subscription_id;
-            if (subId != null) onCompletedCb(String(subId));
+            const rawSubId = data?.order?.data?.attributes?.first_subscription_id;
+            const subId = rawSubId != null ? String(rawSubId) : null;
+            if (subId == null) {
+              console.warn(
+                '[Lemon Squeezy] Checkout.Success fired without first_subscription_id; relying on webhook.'
+              );
+            }
+            onCompletedCb(subId);
           }
         },
       });
@@ -59,8 +69,13 @@ export interface OpenProCheckoutOptions {
   userId: string;
   /** Pre-fills the checkout email when known. */
   email?: string;
-  /** Fires on Checkout.Success with the LS subscription id (for the /sync fallback). */
-  onCompleted?: (subscriptionId: string) => void;
+  /**
+   * Fires on Checkout.Success after payment is taken. The LS subscription id is
+   * passed when available (so callers can hit /sync for an immediate provision);
+   * `null` means the order arrived before the subscription record was created,
+   * and the caller should rely on the webhook for fulfillment.
+   */
+  onCompleted?: (subscriptionId: string | null) => void;
 }
 
 /**
