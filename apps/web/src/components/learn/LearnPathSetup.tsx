@@ -136,6 +136,31 @@ export default function LearnPathSetup({
     };
   }, []);
 
+  // Pull this month's Ultra-path usage so the toggle can show "X of N
+  // remaining" instead of the static "3 monthly Ultra paths" line. Only
+  // worth fetching for users who actually have access; Free users see
+  // the upgrade copy and admins are effectively unlimited.
+  useEffect(() => {
+    if (!canUseUltra) return;
+    let cancelled = false;
+    fetch('/api/user/usage')
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled || !j?.success) return;
+        const features = j.data?.features as
+          | Array<{ featureType: string; used: number; limit: number }>
+          | undefined;
+        const entry = features?.find((f) => f.featureType === 'ultra_path');
+        if (entry) setUltraUsage({ used: entry.used, limit: entry.limit });
+      })
+      .catch(() => {
+        // Soft-fail — the toggle still renders, just with the generic copy.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canUseUltra]);
+
   const [tab, setTab] = useState<TabType>('ai');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,8 +180,13 @@ export default function LearnPathSetup({
   // AI fields
   const [aiGoals, setAiGoals] = useState('');
   const [ultra, setUltra] = useState(false);
-  const [gemini, setGemini] = useState(false);
   const [language, setLanguage] = useState<PathLanguageCode>(DEFAULT_PATH_LANGUAGE);
+  // Monthly Ultra-path quota for the current user, surfaced in the
+  // UltraToggle help text. Skipped for Free users (toggle is greyed out
+  // anyway) and for admins (effectively unlimited).
+  const [ultraUsage, setUltraUsage] = useState<{ used: number; limit: number } | null>(
+    null,
+  );
   // Cross-notebook AI mode requires the user to nominate a single notebook
   // scope. The selected items get filtered down to that notebook before
   // posting; without exactly one notebook represented the AI submit blocks.
@@ -446,7 +476,6 @@ export default function LearnPathSetup({
           contextNotebookIds: [targetNotebookId],
           materialIds: scopedItems.map((i) => i.id),
           ultra: canUseUltra && ultra,
-          gemini,
           language,
         }),
       });
@@ -468,7 +497,6 @@ export default function LearnPathSetup({
     aiNotebookId,
     aiGoals,
     ultra,
-    gemini,
     language,
     canUseUltra,
     selectedIds,
@@ -942,8 +970,8 @@ export default function LearnPathSetup({
               ultra={ultra}
               onUltraChange={setUltra}
               canUseUltra={canUseUltra}
-              gemini={gemini}
-              onGeminiChange={setGemini}
+              ultraUsage={ultraUsage}
+              isAdmin={session?.user?.role === 'admin'}
               selectedCount={selectedCount}
               allSelected={allSelected}
               mageName={mageName}
@@ -1599,8 +1627,8 @@ function AiTab({
   ultra,
   onUltraChange,
   canUseUltra,
-  gemini,
-  onGeminiChange,
+  ultraUsage,
+  isAdmin,
   selectedCount,
   allSelected,
   mageName,
@@ -1614,8 +1642,8 @@ function AiTab({
   ultra: boolean;
   onUltraChange: (v: boolean) => void;
   canUseUltra: boolean;
-  gemini: boolean;
-  onGeminiChange: (v: boolean) => void;
+  ultraUsage: { used: number; limit: number } | null;
+  isAdmin: boolean;
   selectedCount: number;
   allSelected: boolean;
   mageName: string;
@@ -1693,8 +1721,13 @@ function AiTab({
         />
       </Field>
 
-      <UltraToggle ultra={ultra} onUltraChange={onUltraChange} canUseUltra={canUseUltra} />
-      <GeminiToggle gemini={gemini} onGeminiChange={onGeminiChange} />
+      <UltraToggle
+        ultra={ultra}
+        onUltraChange={onUltraChange}
+        canUseUltra={canUseUltra}
+        ultraUsage={ultraUsage}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
@@ -2334,12 +2367,35 @@ function UltraToggle({
   ultra,
   onUltraChange,
   canUseUltra,
+  ultraUsage,
+  isAdmin,
 }: {
   ultra: boolean;
   onUltraChange: (v: boolean) => void;
   canUseUltra: boolean;
+  ultraUsage: { used: number; limit: number } | null;
+  isAdmin: boolean;
 }) {
   const checked = canUseUltra && ultra;
+  // Derive the body line. Free users see the upgrade pitch. Admins are
+  // effectively unlimited (the server short-circuits the quota check for
+  // role=admin), so we say so plainly. PRO users see a live remaining
+  // count once /api/user/usage resolves; until then we keep the static
+  // copy so the toggle doesn't flash.
+  let helpText: string;
+  if (!canUseUltra) {
+    helpText =
+      'Sharper AI-generated quizzes, powered by the premium model. Upgrade to Pro to unlock Ultra paths.';
+  } else if (isAdmin) {
+    helpText =
+      'Generate quizzes with the premium model for sharper questions. Unlimited (admin).';
+  } else if (ultraUsage && ultraUsage.limit > 0) {
+    const remaining = Math.max(0, ultraUsage.limit - ultraUsage.used);
+    helpText = `Generate quizzes with the premium model for sharper questions. ${remaining} of ${ultraUsage.limit} Ultra paths left this month.`;
+  } else {
+    helpText =
+      'Generate quizzes with the premium model for sharper questions. Uses one of your monthly Ultra paths.';
+  }
   return (
     <label
       style={{
@@ -2409,90 +2465,7 @@ function UltraToggle({
             lineHeight: 1.5,
           }}
         >
-          {canUseUltra
-            ? 'Generate quizzes with the premium model for sharper questions. Uses one of your 3 monthly Ultra paths.'
-            : 'Sharper AI-generated quizzes, powered by the premium model. Upgrade to Pro to unlock Ultra paths.'}
-        </span>
-      </div>
-    </label>
-  );
-}
-
-function GeminiToggle({
-  gemini,
-  onGeminiChange,
-}: {
-  gemini: boolean;
-  onGeminiChange: (v: boolean) => void;
-}) {
-  return (
-    <label
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '10px',
-        padding: '12px 14px',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--surface-container-low)',
-        border: `1px solid ${gemini ? 'var(--primary)' : 'var(--outline-variant)'}`,
-        cursor: 'pointer',
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={gemini}
-        onChange={(e) => onGeminiChange(e.target.checked)}
-        style={{
-          accentColor: 'var(--primary)',
-          marginTop: '2px',
-          cursor: 'pointer',
-        }}
-      />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: 'var(--on-surface)',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '16px', color: 'var(--primary)' }}
-            aria-hidden
-          >
-            science
-          </span>
-          Use Gemini (test)
-          <span
-            style={{
-              padding: '1px 7px',
-              borderRadius: 'var(--radius-full)',
-              background: 'rgba(174, 137, 255, 0.14)',
-              border: '1px solid rgba(174, 137, 255, 0.32)',
-              color: 'var(--primary)',
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-            }}
-          >
-            Beta
-          </span>
-        </span>
-        <span
-          style={{
-            fontSize: '12px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
-          }}
-        >
-          Route this path&apos;s generation through Gemini 2.5 Flash for a cost/quality
-          comparison against the default Anthropic model. Overrides the Ultra
-          quiz upgrade for this run.
+          {helpText}
         </span>
       </div>
     </label>
