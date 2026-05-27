@@ -9,7 +9,7 @@ import RecentTrophies from '@/components/features/RecentTrophies';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { CosmeticsPanel, type CosmeticsSelection } from '@/components/cosmetics/CosmeticsPanel';
 import { ProfileHero } from '@/components/profile/ProfileHero';
-import { ProfileAnchorStat } from '@/components/profile/ProfileAnchorStat';
+import { ProfileStatsStrip } from '@/components/profile/ProfileStatsStrip';
 import { AboutLadder } from '@/components/profile/AboutLadder';
 import { Switch } from '@/components/ui/Switch';
 
@@ -454,10 +454,10 @@ export default function ProfilePage() {
         }
       />
 
-      {/* 2. Anchor stat — own profile, achievements always visible to
-          self even when hideAchievements is on (the toggle hides them
-          from *others*, not the owner). */}
-      <ProfileAnchorStat userId={profile.id} />
+      {/* 2. Stats strip — 3-cell horizontal row: trophies · minutes ·
+          friends. Self-view always shows trophies (the hideAchievements
+          toggle hides them from *others*, not the owner). */}
+      <ProfileStatsStrip userId={profile.id} friendsCount={friendsCount} />
 
       {/* 3. Activity heatmap */}
       <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />

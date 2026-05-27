@@ -9,7 +9,7 @@ import SocialsCard from '@/components/features/SocialsCard';
 import RecentTrophies from '@/components/features/RecentTrophies';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { ProfileHero } from '@/components/profile/ProfileHero';
-import { ProfileAnchorStat } from '@/components/profile/ProfileAnchorStat';
+import { ProfileStatsStrip } from '@/components/profile/ProfileStatsStrip';
 import { AboutLadder } from '@/components/profile/AboutLadder';
 
 interface PublicProfileData {
@@ -129,10 +129,15 @@ export default function PublicProfilePage() {
         />
       ) : (
         <>
-          {/* 2. Anchor stat — the page's typographic peak. Skipped when
-              the owner has hidden achievements (the data isn't available
-              and an anchor reading "—" is dishonest). */}
-          {showAchievements && <ProfileAnchorStat userId={profile.id} />}
+          {/* 2. Stats strip — 3-cell horizontal row: trophies · minutes
+              · friends. Replaces the v1 orphan-anchor design that read
+              as a layout bug on real viewports. Trophies cell is
+              suppressed when the owner has hidden achievements. */}
+          <ProfileStatsStrip
+            userId={profile.id}
+            friendsCount={profile.friendsCount ?? 0}
+            hideTrophies={!showAchievements}
+          />
 
           {/* 3. Activity heatmap — elevated card. */}
           <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />
