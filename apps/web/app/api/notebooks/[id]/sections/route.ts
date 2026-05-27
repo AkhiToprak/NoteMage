@@ -32,11 +32,16 @@ export async function GET(request: NextRequest, { params }: Params) {
           select: { id: true, title: true, pageType: true, updatedAt: true, sortOrder: true },
           orderBy: { sortOrder: 'asc' },
         },
+        // Defensive: path-generated sets never set sectionId today, but if
+        // a future flow ever attaches one to a section, this filter keeps
+        // the section tree clear of path-owned bundles.
         flashcardSets: {
+          where: { sourcePathId: null },
           select: { id: true, title: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
         },
         quizSets: {
+          where: { sourcePathId: null },
           select: { id: true, title: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
         },

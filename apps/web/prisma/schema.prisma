@@ -438,6 +438,14 @@ model FlashcardSet {
   title      String
   source     String   @default("ai") // "ai" | "manual" | "import" | "quizlet" | "anki"
   sectionId  String? // optional: link to a notebook section for publishing
+  // Detach path-generated sets from notebook surfaces. Notebook list
+  // endpoints (`/api/notebooks/[id]/flashcard-sets`, `/inventory`) filter
+  // `sourcePathId: null` so a path's generated bundles only show up in
+  // the path itself; the FK to StudyPlan is the back-reference the future
+  // "Save to notebook" promote action will clear. Path-generated rows
+  // still set `notebookId` because FlashcardViewer URL-templates it into
+  // every fetch and cannot run without one.
+  sourcePathId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -445,6 +453,7 @@ model FlashcardSet {
   notebook   Notebook?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   chat       NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section    Section?      @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sourcePath StudyPlan?    @relation("PathFlashcardSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
   flashcards Flashcard[]
   // Phase 10 — back-relation for the unique FK on CheckpointActivity. Null
   // for any set not owned by a checkpoint activity.
@@ -454,6 +463,7 @@ model FlashcardSet {
   @@index([notebookId])
   @@index([chatId])
   @@index([sectionId])
+  @@index([sourcePathId])
   @@map("flashcard_sets")
 }
 
@@ -509,6 +519,9 @@ model QuizSet {
   messageId  String? // assistant message that created this set
   title      String
   sectionId  String? // optional: link to a notebook section
+  // See FlashcardSet.sourcePathId — same rationale (filter from notebook
+  // surfaces, keep `notebookId` for QuizViewer routing).
+  sourcePathId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -516,6 +529,7 @@ model QuizSet {
   notebook  Notebook?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   chat      NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section   Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sourcePath StudyPlan?    @relation("PathQuizSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
   questions QuizQuestion[]
   attempts  QuizAttempt[]
   // Phase 10 — back-relation for the unique FK on CheckpointActivity.
@@ -525,6 +539,7 @@ model QuizSet {
   @@index([notebookId])
   @@index([chatId])
   @@index([sectionId])
+  @@index([sourcePathId])
   @@map("quiz_sets")
 }
 
@@ -783,6 +798,11 @@ model StudyPlan {
   sharedPaths         SharedPath[]
   examId              String?      @unique
   exam                Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
+  // Back-references for FlashcardSet/QuizSet.sourcePathId — used by
+  // future "Save to notebook" promote action; SetNull there so deleting
+  // the path leaves the bundle behind for the notebook to claim.
+  flashcardSets       FlashcardSet[] @relation("PathFlashcardSets")
+  quizSets            QuizSet[]      @relation("PathQuizSets")
 
   @@index([userId])
   @@index([notebookId])

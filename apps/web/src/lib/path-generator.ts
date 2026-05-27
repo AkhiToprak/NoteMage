@@ -922,6 +922,9 @@ async function generateFlashcardsActivity(
       data: {
         userId: plan.userId,
         notebookId: plan.primaryNotebookId,
+        // Stamp the source path so notebook list endpoints can filter it
+        // out — the deck lives inside the path, not as a notebook item.
+        sourcePathId: plan.id,
         title: input.title || slot.title,
         source: 'ai',
         flashcards: {
@@ -1116,6 +1119,9 @@ async function generateQuizActivity(
       data: {
         userId: plan.userId,
         notebookId: plan.primaryNotebookId,
+        // See flashcard set above — keeps the quiz off the notebook's
+        // flat lists while preserving the viewer's notebookId routing.
+        sourcePathId: plan.id,
         title: finalTitle,
         questions: {
           create: finalQuestions.map((q, i) => {

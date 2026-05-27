@@ -21,8 +21,15 @@ import TimerWidget from '@/components/layout/TimerWidget';
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function UnifiedSidebar() {
-  const { notebookId, notebook, sections, refreshSections, setSidebarCollapsed } =
-    useNotebookWorkspace();
+  const {
+    notebookId,
+    notebook,
+    sections,
+    studyPlans,
+    refreshSections,
+    refreshStudyPlans,
+    setSidebarCollapsed,
+  } = useNotebookWorkspace();
   const mascotContext = useMascotContextPose();
 
   const [isCreatingSection, setIsCreatingSection] = useState(false);
@@ -427,53 +434,114 @@ export default function UnifiedSidebar() {
               }}
             />
 
-            {/* ── Create Learning Path button — yellow accent ──────── */}
-            <button
-              onClick={() => setShowPathSetup(true)}
-              title="Generate a guided learning path from this notebook"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                margin: '0 6px 4px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'transparent',
-                color: 'rgba(255,222,89,0.75)',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                textAlign: 'left',
-                width: 'calc(100% - 12px)',
-                transition: 'background 0.15s ease, color 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,222,89,0.10)';
-                (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.75)';
-              }}
-            >
+            {/* ── PATHS group — generated paths + create CTA ─────────
+                Paths live in /learn but each path knows the notebooks
+                whose materials seeded it. We list every plan where this
+                notebook is the primary OR appears in contextNotebookIds
+                so they're discoverable from the notebook that spawned
+                them. Path-generated bundles stay hidden from the sets
+                lists above (filtered via sourcePathId). */}
+            <div style={{ padding: '4px 0 0' }}>
               <div
                 style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '5px',
-                  background: 'rgba(255,222,89,0.18)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  justifyContent: 'space-between',
+                  padding: '0 14px 6px',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#ffde59' }} aria-hidden>school</span>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--ink-50)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Paths
+                </span>
+                <button
+                  onClick={() => setShowPathSetup(true)}
+                  title="Generate a guided learning path from this notebook"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    color: 'rgba(255,222,89,0.55)',
+                    padding: 0,
+                    transition: 'color 0.12s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.55)';
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>add</span>
+                </button>
               </div>
-              Create learning path
-            </button>
+
+              {studyPlans.map((plan) => (
+                <PathRow key={plan.id} plan={plan} />
+              ))}
+
+              {studyPlans.length === 0 && (
+                <button
+                  onClick={() => setShowPathSetup(true)}
+                  title="Generate a guided learning path from this notebook"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 14px',
+                    margin: '0 6px 4px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'rgba(255,222,89,0.75)',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    textAlign: 'left',
+                    width: 'calc(100% - 12px)',
+                    transition: 'background 0.15s ease, color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,222,89,0.10)';
+                    (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.75)';
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '5px',
+                      background: 'rgba(255,222,89,0.18)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#ffde59' }} aria-hidden>school</span>
+                  </div>
+                  Create learning path
+                </button>
+              )}
+            </div>
 
             {/* ── Import Notebook button ──────────────────────────── */}
             <button
@@ -597,15 +665,97 @@ export default function UnifiedSidebar() {
 
       {/* Learn-path setup modal — same component as /learn/paths, but
           scoped to this notebook so the inventory is pre-filtered and
-          the AI tab anchors on the notebook id by default. */}
+          the AI tab anchors on the notebook id by default. Refresh the
+          Paths group on close so a freshly-generated plan appears. */}
       {showPathSetup && (
         <LearnPathSetup
           defaultNotebookId={notebookId}
           defaultNotebookName={notebook?.name}
-          onClose={() => setShowPathSetup(false)}
+          onClose={() => {
+            setShowPathSetup(false);
+            refreshStudyPlans();
+          }}
         />
       )}
     </aside>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PathRow — A learn path generated from (or seeded by) this notebook
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function PathRow({
+  plan,
+}: {
+  plan: { id: string; title: string; source: string; _count: { phases: number } };
+}) {
+  const [hovered, setHovered] = useState(false);
+  const phaseCount = plan._count.phases;
+
+  return (
+    <Link
+      href={`/learn/paths/${plan.id}`}
+      style={{ textDecoration: 'none', display: 'block' }}
+    >
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '7px',
+          paddingLeft: '14px',
+          paddingRight: '8px',
+          paddingTop: '6px',
+          paddingBottom: '6px',
+          background: hovered ? 'rgba(255,222,89,0.08)' : 'transparent',
+          borderLeft: hovered ? '3px solid rgba(255,222,89,0.55)' : '3px solid transparent',
+          transition: 'background 0.12s ease, border-color 0.12s ease',
+          cursor: 'pointer',
+        }}
+      >
+        <span
+          className="material-symbols-outlined"
+          style={{
+            fontSize: 13,
+            color: hovered ? '#ffde59' : 'rgba(255,222,89,0.55)',
+            flexShrink: 0,
+            transition: 'color 0.12s ease',
+          }}
+          aria-hidden
+        >
+          school
+        </span>
+        <span
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: hovered ? '#f0edff' : 'var(--ink-70)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {plan.title}
+        </span>
+        {phaseCount > 0 && (
+          <span
+            style={{
+              fontFamily: 'inherit',
+              fontSize: '11px',
+              color: 'var(--ink-40)',
+              flexShrink: 0,
+            }}
+          >
+            {phaseCount}
+          </span>
+        )}
+      </div>
+    </Link>
   );
 }
 

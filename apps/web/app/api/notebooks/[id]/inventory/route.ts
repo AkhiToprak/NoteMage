@@ -44,12 +44,15 @@ export async function GET(
         },
         orderBy: { sortOrder: 'asc' },
       }),
+      // Picker for new path creation — excluding path-generated bundles
+      // so a path doesn't list its own previously-generated decks back
+      // to the learner as candidate source material.
       db.flashcardSet.findMany({
-        where: { notebookId },
+        where: { notebookId, sourcePathId: null },
         select: { id: true, title: true },
       }),
       db.quizSet.findMany({
-        where: { notebookId },
+        where: { notebookId, sourcePathId: null },
         select: { id: true, title: true },
       }),
       db.document.findMany({
