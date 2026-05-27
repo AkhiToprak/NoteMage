@@ -10,6 +10,7 @@ import DashboardAchievements from '@/components/features/DashboardAchievements';
 import DashboardGreeting from '@/components/features/DashboardGreeting';
 import PathHeroCard from '@/components/features/PathHeroCard';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { usePresence } from '@/hooks/usePresence';
 import { responsiveValue } from '@/lib/responsive';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
 import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
@@ -76,6 +77,14 @@ interface NotebookOption {
   name: string;
 }
 
+interface FriendItem {
+  id: string;
+  username: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  lastSeenAt: string | null;
+}
+
 interface StatCard {
   label: string;
   value: string;
@@ -124,8 +133,9 @@ export default function DashboardPage() {
   const [streakValue, setStreakValue] = useState<string>('—');
   const [streakIsActive, setStreakIsActive] = useState(false);
   const [freezesLeft, setFreezeesLeft] = useState(0);
-  const [friendsCount, setFriendsCount] = useState<number | null>(null);
+  const [friends, setFriends] = useState<FriendItem[] | null>(null);
   const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
+  const { onlineFriendIds } = usePresence();
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
@@ -175,7 +185,7 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((res) => {
         const d = res?.data ?? res;
-        if (typeof d?.count === 'number') setFriendsCount(d.count);
+        if (Array.isArray(d?.friends)) setFriends(d.friends);
       })
       .catch(() => {});
 
@@ -351,7 +361,7 @@ export default function DashboardPage() {
   const statCards: StatCard[] = [
     {
       label: 'Friends',
-      value: friendsCount !== null ? String(friendsCount) : '—',
+      value: friends !== null ? String(friends.length) : '—',
       icon: 'group',
       iconColor: '#b9c3ff',
       iconBg: 'rgba(185,195,255,0.12)',
@@ -469,6 +479,17 @@ export default function DashboardPage() {
           ({ label, value, icon, iconFilled, iconColor, iconBg, badge, arrowColor, href }) => {
             const isTodo = label === 'Todos';
             const pendingTodos = todos.filter((t) => !t.completed);
+            const isFriends = label === 'Friends';
+            const sortedFriends = isFriends && friends
+              ? [...friends].sort((a, b) => {
+                  const aOnline = onlineFriendIds.has(a.id) ? 1 : 0;
+                  const bOnline = onlineFriendIds.has(b.id) ? 1 : 0;
+                  if (aOnline !== bOnline) return bOnline - aOnline;
+                  const aSeen = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+                  const bSeen = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
+                  return bSeen - aSeen;
+                })
+              : [];
 
             const cardContent = (
               <div
@@ -752,6 +773,156 @@ export default function DashboardPage() {
                           add
                         </span>
                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Friends mini-list (only on Friends card) */}
+                {isFriends && (
+                  <div
+                    style={{
+                      marginTop: '16px',
+                      borderTop: '1px solid rgba(185,195,255,0.16)',
+                      paddingTop: '12px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        maxHeight: '160px',
+                        overflowY: 'auto',
+                        scrollbarWidth: 'none',
+                      }}
+                    >
+                      {friends !== null && sortedFriends.length === 0 && (
+                        <p
+                          style={{
+                            fontSize: '12px',
+                            color: 'var(--outline-variant)',
+                            margin: 0,
+                            textAlign: 'center',
+                            padding: '8px 0',
+                          }}
+                        >
+                          No friends yet — add some on your profile
+                        </p>
+                      )}
+                      {sortedFriends.slice(0, 4).map((friend) => {
+                        const isOnline = onlineFriendIds.has(friend.id);
+                        const displayName = friend.name || friend.username || 'Friend';
+                        const initials = displayName
+                          .split(' ')
+                          .map((p) => p[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase();
+                        const lastSeenMs = friend.lastSeenAt
+                          ? new Date(friend.lastSeenAt).getTime()
+                          : 0;
+                        const diffMin = lastSeenMs
+                          ? Math.floor((Date.now() - lastSeenMs) / 60000)
+                          : -1;
+                        const status = isOnline
+                          ? 'Studying now'
+                          : diffMin < 0
+                            ? 'Not active yet'
+                            : diffMin < 1
+                              ? 'Just now'
+                              : diffMin < 60
+                                ? `Last seen ${diffMin}m ago`
+                                : diffMin < 1440
+                                  ? `Last seen ${Math.floor(diffMin / 60)}h ago`
+                                  : `Last seen ${Math.floor(diffMin / 1440)}d ago`;
+                        return (
+                          <Link
+                            key={friend.id}
+                            href={friend.username ? `/profile/${friend.username}` : '/profile'}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '6px 4px',
+                              borderRadius: '8px',
+                              textDecoration: 'none',
+                              color: 'inherit',
+                              transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                            }}
+                            onMouseEnter={(e) => {
+                              (e.currentTarget as HTMLAnchorElement).style.background =
+                                'rgba(255,255,255,0.04)';
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: 'relative',
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                background: friend.avatarUrl
+                                  ? `url(${friend.avatarUrl}) center/cover`
+                                  : 'rgba(185,195,255,0.18)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: '#b9c3ff',
+                                flexShrink: 0,
+                              }}
+                              aria-hidden
+                            >
+                              {!friend.avatarUrl && initials}
+                              {isOnline && (
+                                <span
+                                  style={{
+                                    position: 'absolute',
+                                    right: '-1px',
+                                    bottom: '-1px',
+                                    width: '9px',
+                                    height: '9px',
+                                    borderRadius: '50%',
+                                    background: '#4ade80',
+                                    border: '2px solid var(--surface-container-low)',
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p
+                                style={{
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  color: 'var(--on-surface)',
+                                  margin: 0,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {displayName}
+                              </p>
+                              <p
+                                style={{
+                                  fontSize: '10px',
+                                  color: isOnline ? '#4ade80' : 'var(--outline)',
+                                  margin: 0,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {status}
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

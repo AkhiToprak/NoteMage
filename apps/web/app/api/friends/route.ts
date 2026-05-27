@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userSelect = { id: true, username: true, name: true, avatarUrl: true };
+    const acceptedSelect = { ...userSelect, lastSeenAt: true };
 
     if (status === 'accepted') {
       const friendships = await db.friendship.findMany({
@@ -30,8 +31,8 @@ export async function GET(request: NextRequest) {
           OR: [{ requesterId: userId }, { addresseeId: userId }],
         },
         include: {
-          requester: { select: userSelect },
-          addressee: { select: userSelect },
+          requester: { select: acceptedSelect },
+          addressee: { select: acceptedSelect },
         },
         orderBy: { updatedAt: 'desc' },
         take: 100,
