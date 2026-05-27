@@ -13,7 +13,7 @@ declare global {
     createLemonSqueezy?: () => void;
     LemonSqueezy?: {
       Setup: (opts: { eventHandler: (event: { event: string; data?: unknown }) => void }) => void;
-      Url: { Open: (url: string) => void };
+      Url: { Open: (url: string) => void; Close?: () => void };
     };
   }
 }
@@ -53,6 +53,15 @@ function loadLemon(): Promise<void> {
               );
             }
             onCompletedCb(subId);
+            // Dismiss the LS success screen so the user doesn't have to hit the
+            // ✕ to return, and never sees the "View order" CTA that would whisk
+            // them off-domain mid-onboarding. The caller's onCompleted has
+            // already kicked off the post-payment work asynchronously.
+            try {
+              window.LemonSqueezy?.Url.Close?.();
+            } catch {
+              // No-op: older lemon.js builds may not expose Close.
+            }
           }
         },
       });

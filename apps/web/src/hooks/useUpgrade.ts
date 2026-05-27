@@ -44,24 +44,34 @@ export function useUpgrade(onSuccess?: () => void) {
           // attempt it best-effort when LS handed us a subscription id, but the
           // wizard MUST advance either way: a paid order should never leave the
           // user stuck on the upgrade screen.
-          if (subscriptionId) {
-            try {
-              const res = await fetch('/api/billing/lemonsqueezy/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscriptionId }),
-              });
-              if (!res.ok) {
-                // fetch only throws on network errors — HTTP 4xx/5xx land here.
-                console.error('[useUpgrade] /sync returned', res.status);
+          //
+          // Re-arm `upgrading` for the post-payment window: the outer finally
+          // already flipped it off when openProCheckout resolved (overlay open).
+          // We've just auto-closed the overlay, so the wizard's primary button
+          // is briefly clickable again — keep it disabled until we advance.
+          setUpgrading(true);
+          try {
+            if (subscriptionId) {
+              try {
+                const res = await fetch('/api/billing/lemonsqueezy/sync', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ subscriptionId }),
+                });
+                if (!res.ok) {
+                  // fetch only throws on network errors — HTTP 4xx/5xx land here.
+                  console.error('[useUpgrade] /sync returned', res.status);
+                }
+              } catch (e) {
+                console.error('[useUpgrade] /sync threw', e);
               }
-            } catch (e) {
-              console.error('[useUpgrade] /sync threw', e);
             }
+            await update();
+            if (onSuccessRef.current) onSuccessRef.current();
+            else router.refresh();
+          } finally {
+            setUpgrading(false);
           }
-          await update();
-          if (onSuccessRef.current) onSuccessRef.current();
-          else router.refresh();
         },
       });
     } finally {
