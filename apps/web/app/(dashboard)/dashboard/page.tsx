@@ -824,17 +824,23 @@ export default function DashboardPage() {
                         const diffMin = lastSeenMs
                           ? Math.floor((Date.now() - lastSeenMs) / 60000)
                           : -1;
+                        // Threshold: anything older than 7 days (or null) reads
+                        // "Offline" — until study-heartbeat had a chance to bump
+                        // lastSeenAt across the user base, the historical data
+                        // is stale (only set by cowork sessions before today).
                         const status = isOnline
                           ? 'Studying now'
                           : diffMin < 0
-                            ? 'Not active yet'
+                            ? 'Offline'
                             : diffMin < 1
                               ? 'Just now'
                               : diffMin < 60
                                 ? `Last seen ${diffMin}m ago`
                                 : diffMin < 1440
                                   ? `Last seen ${Math.floor(diffMin / 60)}h ago`
-                                  : `Last seen ${Math.floor(diffMin / 1440)}d ago`;
+                                  : diffMin < 10_080
+                                    ? `Last seen ${Math.floor(diffMin / 1440)}d ago`
+                                    : 'Offline';
                         return (
                           <Link
                             key={friend.id}
