@@ -7,7 +7,7 @@ import { ACHIEVEMENTS } from '@/lib/achievements';
 import { Mascot } from '@/components/mascot';
 
 // Lazy-load the full grid — most viewers never expand it, so this keeps
-// the initial trophy-board card lean.
+// the initial trophy-rail card lean.
 const TrophyShelf = dynamic(() => import('./TrophyShelf'), { ssr: false });
 
 interface UnlockedAchievement {
@@ -27,301 +27,328 @@ interface AchievementsResponse {
 
 interface RecentTrophiesProps {
   userId: string;
+  /**
+   * When true the empty state renders the friendly Mascot. The public
+   * profile view passes false so a visitor doesn't get the onboarding
+   * mascot pose meant for the owner.
+   */
+  ownerView?: boolean;
 }
 
 const PREVIEW_COUNT = 4;
 
 function formatEarnedDate(iso: string): string {
-  return new Date(iso)
-    .toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-    .toUpperCase();
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
 }
 
 /**
- * Trophy Board card on the public profile. Renders the 4 most recently
- * unlocked achievements as a list (icon + name + description + earned date)
- * and toggles to embed the full TrophyShelf inline when "View All" is
- * clicked. The viewer never has to leave the profile page to browse the
- * full set.
+ * Trophy rail on the profile pages. Collapsed view is a 4-up horizontal
+ * tile row of the most recent unlocks — each tile carries the medal,
+ * the achievement name, and the earned-date as small meta. Expand
+ * inlines the full TrophyShelf (handles its own data fetch + tabs).
+ *
+ * The Hallmark rework moved the "trophy count" headline out to
+ * ProfileAnchorStat so this card is now content-only — no eyebrow, no
+ * footer-count, no UPPERCASE labels.
  */
-export default function RecentTrophies({ userId }: RecentTrophiesProps) {
+export default function RecentTrophies({ userId, ownerView = true }: RecentTrophiesProps) {
   const { isPhone } = useBreakpoint();
   const [data, setData] = useState<AchievementsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     fetch(`/api/user/achievements?userId=${encodeURIComponent(userId)}`)
       .then((r) => r.json())
       .then((res) => {
+        if (cancelled) return;
         const d = res?.data ?? res;
         setData(d);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const recent = (data?.unlocked ?? []).slice(0, PREVIEW_COUNT);
   const unlockedCount = data?.unlockedCount ?? data?.unlocked?.length ?? 0;
   const totalCount = data?.total ?? ACHIEVEMENTS.length;
 
-  // When expanded, drop the wrapper card so the TrophyShelf's own card
-  // doesn't visually nest inside ours. We keep the header row (so the
-  // "Hide" button stays reachable) but render it without padding/background.
-  const wrapperStyle: React.CSSProperties = expanded
-    ? {
-        background: 'transparent',
-        padding: 0,
-        borderRadius: 0,
-      }
-    : {
-        background: 'var(--surface-container-low)',
-        padding: isPhone ? '22px 20px' : '28px 32px',
-        borderRadius: isPhone ? 20 : 24,
-      };
-
   return (
-    <div
+    <section
       style={{
-        position: 'relative',
-        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
-        ...wrapperStyle,
+        gap: '14px',
       }}
     >
-      {/* Header */}
+      {/* Heading row — sentence-case h2 + inline "all trophies" toggle.
+          Pulls the count inline so the row carries the same info the old
+          footer-count line used to, without the templated UPPERCASE. */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'baseline',
           justifyContent: 'space-between',
           gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: '22px',
-              color: '#ae89ff',
-              fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
-            }}
-          >
-            emoji_events
-          </span>
-          <h3
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--outline)',
-              margin: 0,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-            }}
-          >
-            Trophy Board
-          </h3>
-        </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
+        <h2
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            background: 'transparent',
-            border: 'none',
-            color: '#ae89ff',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            padding: '6px 4px',
-            borderRadius: '8px',
-            transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'translateX(2px)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'translateX(0)';
+            margin: 0,
+            fontFamily: 'var(--font-display)',
+            fontSize: '20px',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            color: 'var(--on-surface)',
           }}
         >
-          {expanded ? 'Hide' : `View All ${totalCount} Achievements`}
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-            {expanded ? 'expand_less' : 'chevron_right'}
-          </span>
-        </button>
+          Trophies{' '}
+          {!loading && (
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: 500,
+                color: 'var(--on-surface-variant)',
+                marginLeft: '6px',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {unlockedCount} of {totalCount}
+            </span>
+          )}
+        </h2>
+        {!loading && recent.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="hl-trophy-toggle"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--brand-purple-strong)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              padding: '4px 0',
+              outline: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {expanded ? 'Hide all' : 'All trophies'}
+            <span
+              className="material-symbols-outlined"
+              aria-hidden
+              style={{
+                fontSize: '18px',
+                transition: 'transform var(--dur-fast) var(--ease-spring)',
+                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              }}
+            >
+              chevron_right
+            </span>
+            <style>{`
+              .hl-trophy-toggle:hover { text-decoration: underline; text-underline-offset: 3px; }
+              .hl-trophy-toggle:focus-visible {
+                outline: 2px solid var(--color-focus);
+                outline-offset: 4px;
+                border-radius: 4px;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .hl-trophy-toggle span { transition: none !important; }
+              }
+            `}</style>
+          </button>
+        )}
       </div>
 
       {/* Body */}
       {expanded ? (
         <TrophyShelf userId={userId} />
       ) : loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: isPhone ? '64px' : '72px',
-                borderRadius: '14px',
-                background: 'rgba(174,137,255,0.05)',
-                animation: 'recent-trophy-pulse 1.5s ease-in-out infinite',
-                animationDelay: `${i * 0.12}s`,
-              }}
-            />
-          ))}
-          <style>{`
-            @keyframes recent-trophy-pulse {
-              0%, 100% { opacity: 0.35; }
-              50% { opacity: 0.65; }
-            }
-          `}</style>
-        </div>
+        <TrophyRailSkeleton isPhone={isPhone} />
       ) : recent.length === 0 ? (
-        <div
-          style={{
-            padding: '24px 12px',
-            textAlign: 'center',
-            color: 'var(--outline)',
-            fontSize: '13px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '10px',
-          }}
-        >
-          <Mascot pose="sleeping" size="md" idle="sway" />
-          No achievements unlocked yet.
-        </div>
+        <EmptyState ownerView={ownerView} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {recent.map((a, idx) => (
-            <TrophyRow
-              key={a.badge}
-              achievement={a}
-              isPhone={isPhone}
-              isLast={idx === recent.length - 1}
-            />
-          ))}
-        </div>
+        <TrophyRail items={recent} isPhone={isPhone} />
       )}
+    </section>
+  );
+}
 
-      {/* Footer count line — only when collapsed and we have data */}
-      {!expanded && !loading && recent.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            fontSize: '11px',
-            color: 'var(--outline)',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-            paddingTop: '4px',
-            borderTop: '1px solid rgba(170,168,200,0.16)',
-          }}
-        >
-          <span>
-            <span style={{ color: '#ae89ff', fontWeight: 700 }}>{unlockedCount}</span>
-            <span style={{ margin: '0 4px', opacity: 0.6 }}>/</span>
-            <span>{totalCount} unlocked</span>
-          </span>
-        </div>
-      )}
+// ───────────────────────────────────────────────────────────────────────────
+// Subcomponents
+// ───────────────────────────────────────────────────────────────────────────
+
+interface TrophyRailProps {
+  items: UnlockedAchievement[];
+  isPhone: boolean;
+}
+
+function TrophyRail({ items, isPhone }: TrophyRailProps) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        // 4 tiles on desktop (matches PREVIEW_COUNT). On phone we let the
+        // tiles wrap to 2 per row — keeps each tile readable rather than
+        // shrinking to a thumbnail.
+        gridTemplateColumns: isPhone ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+        gap: '12px',
+      }}
+    >
+      {items.map((a) => (
+        <TrophyTile key={a.badge} achievement={a} />
+      ))}
     </div>
   );
 }
 
-interface TrophyRowProps {
-  achievement: UnlockedAchievement;
-  isPhone: boolean;
-  isLast: boolean;
-}
-
-function TrophyRow({ achievement, isPhone, isLast }: TrophyRowProps) {
+function TrophyTile({ achievement }: { achievement: UnlockedAchievement }) {
   return (
-    <div
+    <article
       style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: isPhone ? '14px' : '16px',
-        padding: isPhone ? '14px 0' : '16px 0',
-        borderBottom: isLast ? 'none' : '1px solid rgba(170,168,200,0.16)',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '10px',
+        padding: '16px',
+        background: 'var(--surface-container-low)',
+        borderRadius: 'var(--radius-lg)',
+        // Hairline frame so empty space inside the tile reads as a card
+        // rather than a void.
+        border: '1px solid var(--rule-hairline)',
+        minHeight: '0',
       }}
     >
-      {/* Medal tile */}
       <div
         style={{
-          flexShrink: 0,
-          width: isPhone ? 48 : 56,
-          height: isPhone ? 48 : 56,
-          borderRadius: 16,
-          background: 'rgba(174,137,255,0.18)',
-          border: '1px solid rgba(174,137,255,0.28)',
+          width: 44,
+          height: 44,
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--brand-purple-wash)',
+          border: '1px solid var(--brand-purple-edge)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#ae89ff',
-          boxShadow: '0 8px 24px rgba(174,137,255,0.10)',
+          color: 'var(--brand-purple-strong)',
+          flexShrink: 0,
         }}
       >
         <span
           className="material-symbols-outlined"
+          aria-hidden
           style={{
-            fontSize: isPhone ? 26 : 30,
-            fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+            fontSize: 24,
+            fontVariationSettings: "'FILL' 1, 'wght' 400",
           }}
         >
           {achievement.icon}
         </span>
       </div>
-
-      {/* Text column */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ minWidth: 0, width: '100%' }}>
         <div
           style={{
-            fontSize: isPhone ? '14px' : '15px',
+            fontSize: '13px',
             fontWeight: 700,
             color: 'var(--on-surface)',
-            marginBottom: '3px',
-            lineHeight: 1.25,
+            lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            marginBottom: '4px',
+            overflowWrap: 'anywhere',
           }}
+          title={achievement.name}
         >
           {achievement.name}
         </div>
         <div
           style={{
-            fontSize: '12px',
+            fontSize: '11px',
             color: 'var(--on-surface-variant)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            marginBottom: '6px',
-            lineHeight: 1.4,
-          }}
-          title={achievement.description}
-        >
-          {achievement.description}
-        </div>
-        <div
-          style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            color: 'var(--outline)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
+            fontWeight: 500,
           }}
         >
-          Earned {formatEarnedDate(achievement.unlockedAt)}
+          {formatEarnedDate(achievement.unlockedAt)}
         </div>
       </div>
+    </article>
+  );
+}
+
+function TrophyRailSkeleton({ isPhone }: { isPhone: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: isPhone ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+        gap: '12px',
+      }}
+    >
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          aria-hidden
+          className="hl-trophy-skeleton"
+          style={{
+            height: '116px',
+            borderRadius: 'var(--radius-lg)',
+            background: 'var(--brand-purple-wash)',
+            border: '1px solid var(--rule-hairline)',
+            animationDelay: `${i * 0.12}s`,
+          }}
+        />
+      ))}
+      <style>{`
+        .hl-trophy-skeleton {
+          animation: hl-trophy-pulse 1.5s var(--ease-spring) infinite;
+        }
+        @keyframes hl-trophy-pulse {
+          0%, 100% { opacity: 0.55; }
+          50% { opacity: 0.95; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hl-trophy-skeleton { animation: none !important; opacity: 0.75; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function EmptyState({ ownerView }: { ownerView: boolean }) {
+  return (
+    <div
+      style={{
+        padding: '24px',
+        textAlign: 'center',
+        color: 'var(--on-surface-variant)',
+        fontSize: '13px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px',
+        background: 'var(--surface-container-low)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--rule-hairline)',
+      }}
+    >
+      {ownerView && <Mascot pose="sleeping" size="md" idle="sway" />}
+      {ownerView ? 'No trophies yet. Keep studying!' : 'No trophies unlocked yet.'}
     </div>
   );
 }

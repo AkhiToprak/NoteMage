@@ -205,6 +205,37 @@
   /* Admin-only Minecraft-flavoured font. Silkscreen is the closest public
      Google Fonts match to Minecraft's chunky block glyphs. */
   --font-minecraft: var(--font-minecraft), 'Silkscreen', 'Press Start 2P', 'Courier New', monospace;
+
+  /* ── Hallmark profile rework primitives ──────────────────────────────
+     Named tokens for the brand-purple tints, motion vocabulary, and
+     heatmap quantization steps that the profile surfaces used to inline
+     as raw rgba / hex. Light-theme overrides for the few values that
+     don't read on white live in the [data-theme='light'] block below. */
+  --brand-purple-rgb: 174 137 255;
+  --brand-purple-wash: rgb(var(--brand-purple-rgb) / 0.10);
+  --brand-purple-edge: rgb(var(--brand-purple-rgb) / 0.28);
+  --brand-purple-hover: rgb(var(--brand-purple-rgb) / 0.20);
+  --brand-purple-strong: rgb(var(--brand-purple-rgb) / 1.00);
+  --brand-purple-ink: #2a0066;
+  --success-ink: #082b13;
+  --rule-hairline: rgb(var(--brand-purple-rgb) / 0.16);
+  --dur-fast: 180ms;
+  --dur-normal: 240ms;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Activity heatmap quantization. Both themes use brand-purple alpha
+     ramps so the data widget reads on either surface tier. */
+  --heatmap-step-0: rgb(var(--brand-purple-rgb) / 0.08);
+  --heatmap-step-1: rgb(var(--brand-purple-rgb) / 0.30);
+  --heatmap-step-2: rgb(var(--brand-purple-rgb) / 0.65);
+  --heatmap-step-3: rgb(var(--brand-purple-rgb) / 1.00);
+
+  /* Modal scrim + Switch knob primitives. Theme-agnostic on purpose:
+     the scrim is always pure black at fixed alpha (sits behind every
+     modal), the switch knob is always white over either an on or off
+     pill (tactile depth cue, not a theme surface). */
+  --scrim-modal: rgba(0, 0, 0, 0.62);
+  --switch-knob: #ffffff;
+  --switch-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* ─── Light theme overrides (data-theme="light") ──────────────────────── */
@@ -301,6 +332,11 @@
   --md-link: #5e3aa8;
   --md-code: #4a2a8e;
   --md-pre: #0f0f1e;
+
+  /* Hallmark profile primitives — only the hairline rule needs to flip:
+     16% violet on near-white is invisible. Everything else (brand purple,
+     motion easings, heatmap alpha ramps) reads in both themes. */
+  --rule-hairline: rgb(15 15 30 / 0.12);
 }
 
 /* Light mode: every tokenized surface card gets a visible deep outline so the

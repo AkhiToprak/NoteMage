@@ -8,10 +8,9 @@ import ActivityHeatmap from '@/components/features/ActivityHeatmap';
 import SocialsCard from '@/components/features/SocialsCard';
 import RecentTrophies from '@/components/features/RecentTrophies';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { UserName } from '@/components/user/UserName';
-import { UserAvatar } from '@/components/user/UserAvatar';
-import { ProfileBackground } from '@/components/cosmetics/ProfileBackground';
-import { COSMETICS } from '@/lib/cosmetics/catalog';
+import { ProfileHero } from '@/components/profile/ProfileHero';
+import { ProfileAnchorStat } from '@/components/profile/ProfileAnchorStat';
+import { AboutLadder } from '@/components/profile/AboutLadder';
 
 interface PublicProfileData {
   id: string;
@@ -39,22 +38,6 @@ interface PublicProfileData {
   customBackgroundUrl?: string | null;
   unlockedCosmeticIds?: string[];
 }
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-const DETAIL_ITEMS: { key: keyof PublicProfileData; label: string; icon: string }[] = [
-  { key: 'bio', label: 'Description', icon: 'description' },
-  { key: 'age', label: 'Age', icon: 'person' },
-  { key: 'location', label: 'Location', icon: 'location_on' },
-  { key: 'school', label: 'School', icon: 'school' },
-  { key: 'lineOfWork', label: 'Line of Work', icon: 'work' },
-];
 
 export default function PublicProfilePage() {
   const { data: session } = useSession();
@@ -94,77 +77,21 @@ export default function PublicProfilePage() {
       .finally(() => setLoading(false));
   }, [username]);
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '400px',
-        }}
-      >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: '48px', color: '#ae89ff', animation: 'spin 1s linear infinite' }}
-        >
-          progress_activity
-        </span>
-      </div>
-    );
-  }
-
-  if (notFound) {
-    return (
-      <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--on-surface-variant)' }}>
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: '64px', display: 'block', marginBottom: '16px', opacity: 0.4 }}
-        >
-          person_off
-        </span>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 8px' }}>
-          User Not Found
-        </h2>
-        <p style={{ fontSize: '14px', margin: '0 0 24px' }}>
-          No user with the username &quot;{username}&quot; exists.
-        </p>
-        <Link
-          href="/dashboard"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 24px',
-            background: 'rgba(174,137,255,0.15)',
-            color: '#ae89ff',
-            borderRadius: '12px',
-            border: '1px solid rgba(174,137,255,0.25)',
-            fontSize: '14px',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-            home
-          </span>
-          Go Home
-        </Link>
-      </div>
-    );
-  }
-
+  if (loading) return <LoadingState />;
+  if (notFound) return <NotFoundState username={username} />;
   if (!profile) return null;
 
   const isPrivate = profile.profilePrivate && !isOwnProfile && friendshipStatus !== 'accepted';
-  const hasDetails = DETAIL_ITEMS.some((item) => profile[item.key] != null);
   const showAchievements = !profile.hideAchievements && !isPrivate;
-  const headerRadius = isPhone ? 20 : 24;
-  const hasFrame = Boolean(
-    profile.equippedFrameId &&
-    COSMETICS[profile.equippedFrameId]?.type === 'frame' &&
-    (COSMETICS[profile.equippedFrameId] as { component?: string })?.component !== 'none'
-  );
+
+  // About ladder rows — bio has moved into the hero, so the ladder
+  // carries only the factual fields. Skipping rows with null values
+  // keeps the card honest at a glance (no "—" placeholders).
+  const aboutRows: { key: string; label: string; value: React.ReactNode }[] = [];
+  if (profile.age != null) aboutRows.push({ key: 'age', label: 'Age', value: profile.age });
+  if (profile.location) aboutRows.push({ key: 'location', label: 'Location', value: profile.location });
+  if (profile.school) aboutRows.push({ key: 'school', label: 'School', value: profile.school });
+  if (profile.lineOfWork) aboutRows.push({ key: 'work', label: 'Work', value: profile.lineOfWork });
 
   return (
     <div
@@ -174,239 +101,300 @@ export default function PublicProfilePage() {
         padding: isPhone ? '0 16px' : undefined,
         display: 'flex',
         flexDirection: 'column',
-        gap: isPhone ? '24px' : '32px',
+        gap: isPhone ? '20px' : '28px',
       }}
     >
-      {/* Profile Header */}
-      <div
-        style={{
-          position: 'relative',
-          overflow: 'hidden',
-          background: 'var(--surface-container-low)',
-          borderRadius: headerRadius,
-          padding: isPhone ? '28px 20px' : '40px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <ProfileBackground
-          backgroundId={profile.equippedBackgroundId}
-          customBackgroundUrl={profile.customBackgroundUrl}
-          radius={headerRadius}
-        />
-        {/* Avatar */}
-        <div style={{ marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-          <UserAvatar
-            user={profile}
-            size={isPhone ? 80 : 96}
-            radius="50%"
-            style={hasFrame ? undefined : { border: '3px solid rgba(174,137,255,0.3)' }}
-          />
-        </div>
+      {/* 1. Hero strip — left-biased identity + bio + meta chips. */}
+      <ProfileHero
+        user={profile}
+        action={
+          isOwnProfile ? (
+            <EditProfileLink isPhone={isPhone} />
+          ) : undefined
+        }
+      />
 
-        {/* Name & Username */}
-        <UserName
-          user={profile}
-          as="div"
-          showTitle
-          style={{
-            fontSize: isPhone ? 20 : 24,
-            fontWeight: 700,
-            color: 'var(--on-surface)',
-            marginBottom: 4,
-            justifyContent: 'center',
-          }}
-        />
-        <p style={{ fontSize: isPhone ? '13px' : '14px', color: 'var(--on-surface-variant)', margin: '0 0 12px' }}>
-          @{profile.username}
-        </p>
-
-        {/* Member Since */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: 'var(--on-surface-variant)',
-            fontSize: '13px',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-            calendar_month
-          </span>
-          Member since {formatDate(profile.createdAt)}
-        </div>
-
-        {/* Edit Profile (only if own profile) */}
-        {isOwnProfile && (
-          <Link
-            href="/profile"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginTop: '20px',
-              padding: '10px 24px',
-              background: 'rgba(174,137,255,0.15)',
-              color: '#ae89ff',
-              borderRadius: '12px',
-              border: '1px solid rgba(174,137,255,0.25)',
-              fontSize: '14px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition:
-                'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(174,137,255,0.25)';
-              (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.03)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(174,137,255,0.15)';
-              (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              edit
-            </span>
-            Edit Profile
-          </Link>
-        )}
-      </div>
-
-      {/* Private Profile: Socials card stays visible above the lock notice
-          so the friend-request action remains reachable. */}
-      {isPrivate && (
-        <SocialsCard
+      {/* Private path: show the lock + Add-friend action and stop. */}
+      {isPrivate ? (
+        <PrivateNotice
           friendsCount={profile.friendsCount ?? 0}
-          instagramHandle={null}
-          linkedinUrl={null}
           friendshipStatus={friendshipStatus}
           friendshipId={friendshipId}
           username={profile.username}
-          isOwnProfile={isOwnProfile}
           isAuthenticated={Boolean(session?.user)}
           onFriendshipChange={({ status, id }) => {
             setFriendshipStatus(status);
             setFriendshipId(id);
           }}
         />
-      )}
+      ) : (
+        <>
+          {/* 2. Anchor stat — the page's typographic peak. Skipped when
+              the owner has hidden achievements (the data isn't available
+              and an anchor reading "—" is dishonest). */}
+          {showAchievements && <ProfileAnchorStat userId={profile.id} />}
 
-      {/* Private Profile Notice */}
-      {isPrivate && (
-        <div
-          style={{
-            background: 'var(--surface-container-low)',
-            borderRadius: isPhone ? '20px' : '24px',
-            padding: isPhone ? '28px 20px' : '40px',
-            textAlign: 'center',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
+          {/* 3. Activity heatmap — elevated card. */}
+          <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />
+
+          {/* 4. Trophy rail — only when achievements are visible. */}
+          {showAchievements && <RecentTrophies userId={profile.id} ownerView={isOwnProfile} />}
+
+          {/* 5. Asymmetric bottom row — About left, Social right. Stacks
+              on phone. The right column gets the smaller minmax so a
+              long school name doesn't push Social off-screen. */}
+          <div
             style={{
-              fontSize: '48px',
-              color: 'var(--outline)',
-              display: 'block',
-              marginBottom: '12px',
-              opacity: 0.5,
+              display: 'grid',
+              gridTemplateColumns: isPhone ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
+              gap: isPhone ? '20px' : '24px',
+              alignItems: 'stretch',
             }}
           >
-            lock
-          </span>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 8px' }}>
-            This profile is private
-          </h3>
-          <p style={{ fontSize: '13px', color: 'var(--outline)', margin: 0 }}>
-            Only friends can see the full profile.
-          </p>
-        </div>
-      )}
-
-      {/* Profile Details (only if not private and has details) */}
-      {!isPrivate && hasDetails && (
-        <div
-          style={{
-            background: 'var(--surface-container-low)',
-            borderRadius: isPhone ? '20px' : '24px',
-            padding: isPhone ? '20px' : '28px 32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}
-        >
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>About</h3>
-          {DETAIL_ITEMS.map((item) => {
-            const value = profile[item.key];
-            if (value == null) return null;
-            return (
-              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '20px', color: '#ae89ff', flexShrink: 0 }}
-                >
-                  {item.icon}
-                </span>
-                <div>
-                  <p
-                    style={{
-                      fontSize: '11px',
-                      color: 'var(--outline)',
-                      margin: '0 0 2px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.label}
-                  </p>
-                  <p style={{ fontSize: '14px', color: 'var(--on-surface)', margin: 0 }}>{String(value)}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Bento: Socials + Activity side by side. The activity column uses
-          minmax(0, 1fr) so the heatmap (which is wider than ~440px) doesn't
-          blow out the 720px parent — instead its internal overflowX:auto
-          kicks in and the heatmap scrolls horizontally inside its own card. */}
-      {!isPrivate && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: isPhone ? '1fr' : 'minmax(220px, 260px) minmax(0, 1fr)',
-            gap: '24px',
-            alignItems: 'stretch',
-          }}
-        >
-          <SocialsCard
-            friendsCount={profile.friendsCount ?? 0}
-            instagramHandle={profile.instagramHandle ?? null}
-            linkedinUrl={profile.linkedinUrl ?? null}
-            friendshipStatus={friendshipStatus}
-            friendshipId={friendshipId}
-            username={profile.username}
-            isOwnProfile={isOwnProfile}
-            isAuthenticated={Boolean(session?.user)}
-            onFriendshipChange={({ status, id }) => {
-              setFriendshipStatus(status);
-              setFriendshipId(id);
-            }}
-          />
-          <div style={{ minWidth: 0 }}>
-            <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />
+            {aboutRows.length > 0 ? (
+              <AboutLadder rows={aboutRows} />
+            ) : (
+              // When the viewer has no factual rows to show, the row
+              // collapses to a single Social column instead of an empty
+              // left-half. Keeps the bottom rhythm intact.
+              <div />
+            )}
+            <SocialsCard
+              friendsCount={profile.friendsCount ?? 0}
+              instagramHandle={profile.instagramHandle ?? null}
+              linkedinUrl={profile.linkedinUrl ?? null}
+              friendshipStatus={friendshipStatus}
+              friendshipId={friendshipId}
+              username={profile.username}
+              isOwnProfile={isOwnProfile}
+              isAuthenticated={Boolean(session?.user)}
+              onFriendshipChange={({ status, id }) => {
+                setFriendshipStatus(status);
+                setFriendshipId(id);
+              }}
+            />
           </div>
-        </div>
+        </>
       )}
-
-      {/* Trophy Board (recent + expandable to full shelf) */}
-      {showAchievements && <RecentTrophies userId={profile.id} />}
     </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// State views
+// ───────────────────────────────────────────────────────────────────────────
+
+function LoadingState() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '400px',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        aria-label="Loading profile"
+        style={{
+          fontSize: '40px',
+          color: 'var(--brand-purple-strong)',
+          animation: 'spin 1s linear infinite',
+        }}
+      >
+        progress_activity
+      </span>
+    </div>
+  );
+}
+
+function NotFoundState({ username }: { username: string }) {
+  return (
+    <div
+      style={{
+        textAlign: 'center',
+        padding: '64px 24px',
+        color: 'var(--on-surface-variant)',
+        maxWidth: '420px',
+        margin: '0 auto',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        style={{
+          fontSize: '56px',
+          display: 'block',
+          marginBottom: '16px',
+          opacity: 0.4,
+        }}
+      >
+        person_off
+      </span>
+      <h1
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '24px',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          color: 'var(--on-surface)',
+          margin: '0 0 8px',
+        }}
+      >
+        User not found
+      </h1>
+      <p style={{ fontSize: '14px', margin: '0 0 24px' }}>
+        No account with the username &ldquo;{username}&rdquo; exists.
+      </p>
+      <Link
+        href="/dashboard"
+        className="hl-link-btn"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 24px',
+          background: 'var(--brand-purple-wash)',
+          color: 'var(--brand-purple-strong)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--brand-purple-edge)',
+          fontSize: '14px',
+          fontWeight: 600,
+          textDecoration: 'none',
+          whiteSpace: 'nowrap',
+          transition:
+            'transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring)',
+          outline: 'none',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+          home
+        </span>
+        Go home
+      </Link>
+      <style>{`
+        .hl-link-btn:hover { background: var(--brand-purple-hover); transform: scale(1.02); }
+        .hl-link-btn:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hl-link-btn { transition: none !important; }
+          .hl-link-btn:hover { transform: none; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+interface PrivateNoticeProps {
+  friendsCount: number;
+  friendshipStatus: string | null;
+  friendshipId: string | null;
+  username: string;
+  isAuthenticated: boolean;
+  onFriendshipChange: (next: { status: string; id: string | null }) => void;
+}
+
+function PrivateNotice({
+  friendsCount,
+  friendshipStatus,
+  friendshipId,
+  username,
+  isAuthenticated,
+  onFriendshipChange,
+}: PrivateNoticeProps) {
+  return (
+    <div
+      style={{
+        background: 'var(--surface-container-low)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '36px 28px',
+        textAlign: 'center',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        aria-hidden
+        style={{
+          fontSize: '40px',
+          color: 'var(--on-surface-variant)',
+          display: 'block',
+          marginBottom: '12px',
+          opacity: 0.7,
+        }}
+      >
+        lock
+      </span>
+      <h2
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '20px',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          margin: '0 0 6px',
+        }}
+      >
+        Private profile
+      </h2>
+      <p
+        style={{
+          fontSize: '14px',
+          color: 'var(--on-surface-variant)',
+          margin: '0 0 24px',
+          maxWidth: '36ch',
+          marginInline: 'auto',
+        }}
+      >
+        Only friends can see the full profile. Send a request to unlock it.
+      </p>
+      <div style={{ maxWidth: '280px', marginInline: 'auto' }}>
+        <SocialsCard
+          friendsCount={friendsCount}
+          instagramHandle={null}
+          linkedinUrl={null}
+          friendshipStatus={friendshipStatus}
+          friendshipId={friendshipId}
+          username={username}
+          isOwnProfile={false}
+          isAuthenticated={isAuthenticated}
+          onFriendshipChange={onFriendshipChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+function EditProfileLink({ isPhone }: { isPhone: boolean }) {
+  return (
+    <Link
+      href="/profile"
+      className="hl-link-btn"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '10px 20px',
+        background: 'var(--brand-purple-wash)',
+        color: 'var(--brand-purple-strong)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--brand-purple-edge)',
+        fontSize: '14px',
+        fontWeight: 600,
+        textDecoration: 'none',
+        whiteSpace: 'nowrap',
+        width: isPhone ? '100%' : 'auto',
+        transition:
+          'transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring)',
+        outline: 'none',
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+        edit
+      </span>
+      Edit profile
+    </Link>
   );
 }

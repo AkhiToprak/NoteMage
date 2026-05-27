@@ -17,13 +17,15 @@ interface SocialsCardProps {
 }
 
 /**
- * Socials bento card on the public profile. Shows friends count, optional
- * Instagram/LinkedIn link tiles, and the friend-request action (lifted out
- * of the page header so the header can stay focused on identity).
+ * Social card on the public + self-edit profiles. Used to be a stacked
+ * eyebrow + 52px friend count + tile row + action. The 52px display has
+ * moved to ProfileAnchorStat (trophies are the page's typographic peak
+ * now), so this card carries a more modest friend count + social link
+ * tiles + the friend-request action.
  *
- * Mutation logic mirrors the previous in-page handler verbatim — the parent
- * still owns `friendshipStatus`/`friendshipId` and receives updates via the
- * `onFriendshipChange` callback so other UI stays in sync.
+ * Mutation logic mirrors the previous in-page handler — the parent
+ * still owns `friendshipStatus`/`friendshipId` and receives updates via
+ * the `onFriendshipChange` callback so other UI stays in sync.
  */
 export default function SocialsCard({
   friendsCount,
@@ -85,86 +87,54 @@ export default function SocialsCard({
   return (
     <div
       style={{
-        position: 'relative',
-        overflow: 'hidden',
         background: 'var(--surface-container-low)',
-        borderRadius: isPhone ? 20 : 24,
-        padding: isPhone ? '22px 20px' : '24px',
+        borderRadius: 'var(--radius-lg)',
+        padding: isPhone ? '20px' : '24px 28px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
+        gap: '18px',
         height: '100%',
         boxSizing: 'border-box',
       }}
     >
-      {/* Soft accent gradient — matches the layered surface treatment used
-          in the rest of the profile cards. */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(174,137,255,0.10)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Header label */}
+      {/* Heading — sentence-case h2 matching the AboutLadder voice. No
+          eyebrow. */}
       <div
         style={{
-          position: 'relative',
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: '12px',
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#ae89ff' }}>
-          group
-        </span>
+        <h2
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-display)',
+            fontSize: '18px',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            color: 'var(--on-surface)',
+          }}
+        >
+          Social
+        </h2>
         <span
           style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            color: 'var(--outline)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
+            fontSize: '13px',
+            color: 'var(--on-surface-variant)',
+            fontWeight: 500,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
-          Social Identity
+          <strong style={{ color: 'var(--on-surface)', fontWeight: 700 }}>{friendsCount}</strong>{' '}
+          {friendsCount === 1 ? 'friend' : 'friends'}
         </span>
       </div>
 
-      {/* Friends count */}
-      <div style={{ position: 'relative' }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: isPhone ? '44px' : '52px',
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            lineHeight: 1,
-            letterSpacing: '-0.02em',
-            margin: 0,
-          }}
-        >
-          {friendsCount}
-        </div>
-        <div
-          style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            color: 'var(--outline)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            marginTop: '8px',
-          }}
-        >
-          {friendsCount === 1 ? 'Friend' : 'Friends'}
-        </div>
-      </div>
-
-      {/* Social link tiles */}
-      <div style={{ position: 'relative', display: 'flex', gap: '10px' }}>
+      {/* Social link tiles. Both render even when empty — disabled state
+          keeps the layout stable. */}
+      <div style={{ display: 'flex', gap: '10px' }}>
         <SocialTile
           href={igHref}
           brand="instagram"
@@ -179,9 +149,10 @@ export default function SocialsCard({
         />
       </div>
 
-      {/* Friend request button */}
+      {/* Friend request button — only on viewers who aren't the profile
+          owner. Pushed to the bottom of the flex column. */}
       {showFriendButton && (
-        <div style={{ position: 'relative', marginTop: 'auto' }}>
+        <div style={{ marginTop: 'auto' }}>
           <FriendActionButton
             status={friendshipStatus!}
             sending={sendingRequest}
@@ -189,9 +160,10 @@ export default function SocialsCard({
           />
           {friendError && (
             <p
+              role="alert"
               style={{
                 fontSize: '12px',
-                color: '#fd6f85',
+                color: 'var(--error)',
                 margin: '8px 0 0',
                 textAlign: 'center',
               }}
@@ -249,25 +221,6 @@ function BrandIcon({ brand }: { brand: 'instagram' | 'linkedin' }) {
 }
 
 function SocialTile({ href, brand, label, enabled }: SocialTileProps) {
-  const baseStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '44px',
-    height: '44px',
-    borderRadius: '14px',
-    background: enabled ? 'rgba(174,137,255,0.12)' : 'rgba(136,136,168,0.08)',
-    border: enabled ? '1px solid rgba(174,137,255,0.28)' : '1px solid rgba(136,136,168,0.18)',
-    color: enabled ? '#ae89ff' : '#6a6a8c',
-    textDecoration: 'none',
-    cursor: enabled ? 'pointer' : 'default',
-    pointerEvents: enabled ? 'auto' : 'none',
-    opacity: enabled ? 1 : 0.55,
-    transition:
-      'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
-    flexShrink: 0,
-  };
-
   return (
     <a
       href={href}
@@ -276,20 +229,45 @@ function SocialTile({ href, brand, label, enabled }: SocialTileProps) {
       aria-label={label}
       aria-disabled={!enabled}
       title={label}
-      style={baseStyle}
-      onMouseEnter={(e) => {
-        if (!enabled) return;
-        const el = e.currentTarget as HTMLAnchorElement;
-        el.style.transform = 'scale(1.06)';
-        el.style.background = 'rgba(174,137,255,0.2)';
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLAnchorElement;
-        el.style.transform = 'scale(1)';
-        el.style.background = enabled ? 'rgba(174,137,255,0.12)' : 'rgba(136,136,168,0.08)';
+      className="hl-social-tile"
+      data-enabled={enabled ? 'true' : 'false'}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '44px',
+        height: '44px',
+        borderRadius: 'var(--radius-md)',
+        background: enabled ? 'var(--brand-purple-wash)' : 'transparent',
+        border: enabled
+          ? '1px solid var(--brand-purple-edge)'
+          : '1px solid var(--outline-variant)',
+        color: enabled ? 'var(--brand-purple-strong)' : 'var(--outline)',
+        textDecoration: 'none',
+        cursor: enabled ? 'pointer' : 'default',
+        pointerEvents: enabled ? 'auto' : 'none',
+        opacity: enabled ? 1 : 0.55,
+        transition:
+          'transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring)',
+        flexShrink: 0,
+        outline: 'none',
       }}
     >
       <BrandIcon brand={brand} />
+      <style>{`
+        .hl-social-tile[data-enabled='true']:hover {
+          background: var(--brand-purple-hover);
+          transform: scale(1.04);
+        }
+        .hl-social-tile:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hl-social-tile { transition: none !important; }
+          .hl-social-tile[data-enabled='true']:hover { transform: none; }
+        }
+      `}</style>
     </a>
   );
 }
@@ -309,12 +287,13 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
     width: '100%',
     minHeight: '44px',
     padding: '12px 16px',
-    borderRadius: '14px',
+    borderRadius: 'var(--radius-md)',
     fontSize: '13px',
     fontWeight: 700,
     fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
     transition:
-      'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
+      'transform var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring)',
   };
 
   switch (status) {
@@ -324,26 +303,23 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
           type="button"
           onClick={onClick}
           disabled={sending}
+          className="hl-friend-btn"
+          data-variant="primary"
           style={{
             ...baseStyle,
-            background: '#ae89ff',
-            color: '#2a0066',
+            background: 'var(--brand-purple-strong)',
+            color: 'var(--brand-purple-ink)',
             border: 'none',
             cursor: sending ? 'wait' : 'pointer',
             opacity: sending ? 0.7 : 1,
-            boxShadow: '0 8px 24px rgba(174,137,255,0.25)',
-          }}
-          onMouseEnter={(e) => {
-            if (!sending) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+            outline: 'none',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
             person_add
           </span>
-          {sending ? 'Sending…' : 'Send Friend Request'}
+          {sending ? 'Sending…' : 'Add friend'}
+          <ButtonStyles />
         </button>
       );
 
@@ -352,15 +328,15 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
         <div
           style={{
             ...baseStyle,
-            background: 'rgba(136,136,168,0.12)',
+            background: 'var(--surface-container)',
             color: 'var(--on-surface-variant)',
-            border: '1px solid rgba(136,136,168,0.22)',
+            border: '1px solid var(--outline-variant)',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
             schedule
           </span>
-          Request Pending
+          Request pending
         </div>
       );
 
@@ -370,26 +346,23 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
           type="button"
           onClick={onClick}
           disabled={sending}
+          className="hl-friend-btn"
+          data-variant="success"
           style={{
             ...baseStyle,
-            background: '#4ade80',
-            color: '#082b13',
+            background: 'var(--success)',
+            color: 'var(--success-ink)',
             border: 'none',
             cursor: sending ? 'wait' : 'pointer',
             opacity: sending ? 0.7 : 1,
-            boxShadow: '0 8px 24px rgba(74,222,128,0.22)',
-          }}
-          onMouseEnter={(e) => {
-            if (!sending) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+            outline: 'none',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
             how_to_reg
           </span>
-          {sending ? 'Accepting…' : 'Accept Friend Request'}
+          {sending ? 'Accepting…' : 'Accept request'}
+          <ButtonStyles />
         </button>
       );
 
@@ -398,9 +371,9 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
         <div
           style={{
             ...baseStyle,
-            background: 'rgba(78,251,165,0.10)',
-            color: '#4efba5',
-            border: '1px solid rgba(78,251,165,0.22)',
+            background: 'var(--brand-purple-wash)',
+            color: 'var(--brand-purple-strong)',
+            border: '1px solid var(--brand-purple-edge)',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -413,4 +386,23 @@ function FriendActionButton({ status, sending, onClick }: FriendActionButtonProp
     default:
       return null;
   }
+}
+
+// Hover/focus rules emitted once per Friend button render. Inlining the
+// <style> here keeps the styling co-located with the JSX without
+// needing a global CSS file — same pattern as Switch and SocialTile.
+function ButtonStyles() {
+  return (
+    <style>{`
+      .hl-friend-btn:hover:not(:disabled) { transform: scale(1.02); }
+      .hl-friend-btn:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hl-friend-btn { transition: none !important; }
+        .hl-friend-btn:hover { transform: none !important; }
+      }
+    `}</style>
+  );
 }

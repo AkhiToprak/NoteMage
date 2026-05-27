@@ -38,11 +38,16 @@ const MONTH_NAMES = [
 //   1–19       → light
 //   20–59      → mid
 //   60+        → full
+//
+// The four step colors are brand-purple alpha ramps tokenised in
+// globals.css under --heatmap-step-{0..3}. Both themes render legibly
+// because each step composites against the card surface (dark or light)
+// via alpha, not a fixed value.
 function getColor(minutes: number): string {
-  if (minutes === 0) return '#1b1a33';
-  if (minutes < 20) return '#2a1a62';
-  if (minutes < 60) return '#7a43b8';
-  return '#c29bff';
+  if (minutes === 0) return 'var(--heatmap-step-0)';
+  if (minutes < 20) return 'var(--heatmap-step-1)';
+  if (minutes < 60) return 'var(--heatmap-step-2)';
+  return 'var(--heatmap-step-3)';
 }
 
 function formatDate(dateStr: string): string {
@@ -50,7 +55,7 @@ function formatDate(dateStr: string): string {
   // so format them in UTC as well — otherwise a CEST user hovers "Apr 11"
   // and sees "Apr 10" in the tooltip.
   const d = new Date(dateStr + 'T00:00:00Z');
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -208,9 +213,9 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
   return (
     <div
       style={{
-        background: 'var(--surface-container-low)',
-        borderRadius: '24px',
-        padding: isPhone ? '18px' : '24px',
+        background: 'var(--surface-container)',
+        borderRadius: 'var(--radius-xl)',
+        padding: isPhone ? '20px' : '24px 28px',
       }}
     >
       <div
@@ -219,12 +224,23 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '20px',
+          gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
         <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}>
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '18px',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--on-surface)',
+              margin: '0 0 4px',
+            }}
+          >
             Activity
-          </h3>
+          </h2>
           <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
             Minutes in the app over the last {subtitle ?? (isPhone ? '6 months' : 'year')}
           </p>
@@ -365,12 +381,12 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                 background: 'var(--surface-container-highest)',
                 color: 'var(--on-surface)',
                 padding: '6px 10px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-sm)',
                 fontSize: '12px',
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 pointerEvents: 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                boxShadow: '0 4px 16px var(--bento-rest-shadow)',
                 zIndex: 10,
               }}
             >
