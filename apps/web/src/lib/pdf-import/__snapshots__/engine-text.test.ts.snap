@@ -1,0 +1,481 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`textLayerEngine — integration against fixture PDFs > produces a stable DocModel for clean-text.pdf 1`] = `
+[
+  {
+    "level": 1,
+    "runs": [
+      {
+        "text": "An Introduction to Cellular Respiration",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "level": 2,
+    "runs": [
+      {
+        "text": "Overview",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "Cellular respiration is the set of metabolic reactions that cells use to convert the chemical energy held in nutrients into adenosine triphosphate, the molecule that powers most cellular work. The process releases waste products and is, in broad terms, the reverse of photosynthesis. Although the reactions are usually summarised by a single equation, respiration is better understood as three connected stages, each taking place in a different part of the cell and each contributing a share of the total energy yield.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "level": 2,
+    "runs": [
+      {
+        "text": "The Three Stages",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "level": 3,
+    "runs": [
+      {
+        "text": "Glycolysis",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "Glycolysis takes place in the cytoplasm and splits a six-carbon glucose molecule into two molecules of pyruvate. It produces a small net gain of energy and does not itself require oxygen.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "level": 3,
+    "runs": [
+      {
+        "text": "The Citric Acid Cycle",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "In the mitochondrial matrix the citric acid cycle oxidises the products of glycolysis, releasing carbon dioxide and transferring high-energy electrons to carrier molecules for the final stage.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "level": 1,
+    "runs": [
+      {
+        "text": "Key Terms",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "ATP — the universal energy currency of the cell. Pyruvate — the three-carbon product of glycolysis. Electron transport chain — the membrane proteins that drive the final stage. Aerobic — describing a process that depends on oxygen.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "level": 1,
+    "runs": [
+      {
+        "text": "Summary",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "Respiration extracts energy from nutrients in stages so that it can be captured efficiently rather than lost as heat. The following sequence is worth committing to memory.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "items": [
+      {
+        "runs": [
+          {
+            "text": "Glucose is split during glycolysis in the cytoplasm.",
+          },
+        ],
+      },
+      {
+        "runs": [
+          {
+            "text": "Pyruvate is oxidised by the citric acid cycle in the matrix.",
+          },
+        ],
+      },
+      {
+        "runs": [
+          {
+            "text": "Electron carriers feed the transport chain to make most of the ATP.",
+          },
+        ],
+      },
+    ],
+    "type": "orderedList",
+  },
+]
+`;
+
+exports[`textLayerEngine — integration against fixture PDFs > produces a stable DocModel for table-heavy.pdf 1`] = `
+[
+  {
+    "level": 1,
+    "runs": [
+      {
+        "text": "Comparison Tables",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "The tables below summarise material covered earlier. Each column lines up so the figures can be compared down the page.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "level": 2,
+    "runs": [
+      {
+        "text": "Properties of the Inner Planets",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "headerRow": false,
+    "rows": [
+      [
+        [
+          {
+            "text": "Planet",
+          },
+        ],
+        [
+          {
+            "text": "Radius",
+          },
+        ],
+        [
+          {
+            "text": "Moons",
+          },
+        ],
+        [
+          {
+            "text": "Day length",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "Mercury",
+          },
+        ],
+        [
+          {
+            "text": "2440 km",
+          },
+        ],
+        [
+          {
+            "text": "0",
+          },
+        ],
+        [
+          {
+            "text": "1408 h",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "Venus",
+          },
+        ],
+        [
+          {
+            "text": "6052 km",
+          },
+        ],
+        [
+          {
+            "text": "0",
+          },
+        ],
+        [
+          {
+            "text": "5832 h",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "Earth",
+          },
+        ],
+        [
+          {
+            "text": "6371 km",
+          },
+        ],
+        [
+          {
+            "text": "1",
+          },
+        ],
+        [
+          {
+            "text": "24 h",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "Mars",
+          },
+        ],
+        [
+          {
+            "text": "3390 km",
+          },
+        ],
+        [
+          {
+            "text": "2",
+          },
+        ],
+        [
+          {
+            "text": "25 h",
+          },
+        ],
+      ],
+    ],
+    "type": "table",
+  },
+  {
+    "runs": [
+      {
+        "text": "Reaction Rates by Temperature",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "headerRow": false,
+    "rows": [
+      [
+        [
+          {
+            "text": "Temperature",
+          },
+        ],
+        [
+          {
+            "text": "Rate",
+          },
+        ],
+        [
+          {
+            "text": "Notes",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "10 C",
+          },
+        ],
+        [
+          {
+            "text": "Slow",
+          },
+        ],
+        [
+          {
+            "text": "Few collisions",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "25 C",
+          },
+        ],
+        [
+          {
+            "text": "Moderate",
+          },
+        ],
+        [
+          {
+            "text": "Room standard",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "40 C",
+          },
+        ],
+        [
+          {
+            "text": "Fast",
+          },
+        ],
+        [
+          {
+            "text": "More collisions",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "60 C",
+          },
+        ],
+        [
+          {
+            "text": "Very fast",
+          },
+        ],
+        [
+          {
+            "text": "High energy",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "80 C",
+          },
+        ],
+        [
+          {
+            "text": "Rapid",
+          },
+        ],
+        [
+          {
+            "text": "Near boiling",
+          },
+        ],
+      ],
+    ],
+    "type": "table",
+  },
+]
+`;
+
+exports[`textLayerEngine — preserved block types > classifies a heading + paragraphs + bullet list + table into preserved blocks 1`] = `
+[
+  {
+    "level": 1,
+    "runs": [
+      {
+        "text": "Photosynthesis",
+      },
+    ],
+    "type": "heading",
+  },
+  {
+    "runs": [
+      {
+        "text": "Plants convert light into chemical energy across many words. A second body line continues that opening paragraph here.",
+      },
+    ],
+    "type": "paragraph",
+  },
+  {
+    "items": [
+      {
+        "runs": [
+          {
+            "text": "First fact about chlorophyll",
+          },
+        ],
+      },
+      {
+        "runs": [
+          {
+            "text": "Second fact about ATP synthesis",
+          },
+        ],
+      },
+    ],
+    "type": "bulletList",
+  },
+  {
+    "headerRow": false,
+    "rows": [
+      [
+        [
+          {
+            "text": "Stage",
+          },
+        ],
+        [
+          {
+            "text": "Output",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "Light",
+          },
+        ],
+        [
+          {
+            "text": "ATP",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "text": "Dark",
+          },
+        ],
+        [
+          {
+            "text": "Sugar",
+          },
+        ],
+      ],
+    ],
+    "type": "table",
+  },
+]
+`;

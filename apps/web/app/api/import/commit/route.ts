@@ -12,7 +12,7 @@ import {
 import { validateStoragePath } from '@/lib/storage';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkUsageLimit } from '@/lib/usage-limits';
-import { engineForTier } from '@/lib/pdf-import/run-job';
+import { engineForJob, engineForTier, type ImportJobMode } from '@/lib/pdf-import/run-job';
 import {
   runImportOrchestration,
   type OrchestratorFile,
@@ -47,6 +47,11 @@ export async function POST(request: NextRequest) {
     const folderIdRaw = (body as { folderId?: unknown }).folderId;
     const folderId =
       typeof folderIdRaw === 'string' && folderIdRaw.length > 0 ? folderIdRaw : null;
+    const rawMode = (body as { mode?: unknown }).mode;
+    if (rawMode !== undefined && rawMode !== 'fast' && rawMode !== 'rich') {
+      return badRequestResponse('mode must be "rich" or "fast"');
+    }
+    const mode: ImportJobMode = rawMode === 'fast' ? 'fast' : 'rich';
 
     if (!Array.isArray(rawGroups) || rawGroups.length === 0) {
       return badRequestResponse('No notebooks to create.');
@@ -123,13 +128,17 @@ export async function POST(request: NextRequest) {
       select: { tier: true },
     });
 
-    const engine = engineForTier(user.tier);
-    if (!engine.isConfigured()) {
+    // Vision engine is the unconditional fallback (scanned pages, text-engine
+    // sentinel throws). Refuse the commit if it isn't configured, even in
+    // fast mode — otherwise we'd silently degrade those pages.
+    const visionEngine = engineForTier(user.tier);
+    if (!visionEngine.isConfigured()) {
       console.error('[multi-import] structure engine not configured — refusing commit');
       return serviceUnavailableResponse(
         'PDF import is temporarily unavailable. Please try again later.',
       );
     }
+    const selectedEngine = engineForJob(user.tier, mode);
 
     // Validate the chosen folder belongs to the caller before any creation.
     if (folderId) {
@@ -157,8 +166,9 @@ export async function POST(request: NextRequest) {
       userId,
       folderId,
       groups,
-      engineName: engine.name,
+      engineName: selectedEngine.name,
       pageBudget,
+      mode,
     });
 
     return createdResponse(result);

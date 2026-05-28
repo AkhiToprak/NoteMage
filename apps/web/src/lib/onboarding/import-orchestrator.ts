@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { runPdfImportJob } from '@/lib/pdf-import/run-job';
+import { runPdfImportJob, type ImportJobMode } from '@/lib/pdf-import/run-job';
 
 // The server-side commit stage of the multi-PDF import flow: turn the
 // user-confirmed grouping into real notebooks, then fan out one detached
@@ -32,6 +32,12 @@ export interface OrchestratorInput {
   engineName: string;
   /** Remaining `pdf_import` page budget; Infinity for an unlimited tier. */
   pageBudget: number;
+  /**
+   * "rich" (default, vision engine) | "fast" (text-layer engine, P5 of the
+   * cost-reduction plan). Applied to every job this run; per-PDF mode
+   * selection is not part of this contract.
+   */
+  mode?: ImportJobMode;
 }
 
 export interface OrchestratorResult {
@@ -53,6 +59,7 @@ export async function runImportOrchestration(
   input: OrchestratorInput,
 ): Promise<OrchestratorResult> {
   const { userId, folderId, groups, engineName } = input;
+  const mode: ImportJobMode = input.mode === 'fast' ? 'fast' : 'rich';
   let budget = input.pageBudget;
 
   const notebookIds: string[] = [];
@@ -91,6 +98,7 @@ export async function runImportOrchestration(
           userId,
           fileName: file.fileName,
           engine: engineName,
+          mode,
           pageCap,
           status: 'queued',
           pdfPath: file.pdfPath,

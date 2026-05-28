@@ -15,7 +15,12 @@ import {
 import { validateStoragePath } from '@/lib/storage';
 import { checkUsageLimit } from '@/lib/usage-limits';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
-import { engineForTier, runPdfImportJob } from '@/lib/pdf-import/run-job';
+import {
+  engineForJob,
+  engineForTier,
+  runPdfImportJob,
+  type ImportJobMode,
+} from '@/lib/pdf-import/run-job';
 
 // P5 — the entry point for the structured PDF import pipeline.
 //
@@ -37,6 +42,8 @@ interface PdfImportBody {
   fileName?: unknown;
   pdfPath?: unknown;
   pageImagePaths?: unknown;
+  /** "rich" (default, vision engine) | "fast" (text-layer engine, P5 opt-in). */
+  mode?: unknown;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -105,17 +112,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    // Resolve the structure engine up front. An unconfigured engine (no
-    // API key) would make every page fall back to text-only extraction —
-    // no figures, no rich structure. Refuse here so the user gets an
-    // honest error instead of a silently degraded import, and so no
-    // import budget is spent on it.
+    // Resolve the vision engine up front. Even in fast mode the worker may
+    // need it for scanned pages and for any text-engine sentinel throw, so
+    // an unconfigured vision engine is a hard refusal in both modes — the
+    // alternative is a silently degraded import that bills the user.
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
       select: { tier: true },
     });
-    const engine = engineForTier(user.tier);
-    if (!engine.isConfigured()) {
+    const visionEngine = engineForTier(user.tier);
+    if (!visionEngine.isConfigured()) {
       console.error('[pdf-import] structure engine is not configured — refusing import');
       return serviceUnavailableResponse(
         'PDF import is temporarily unavailable. Please try again later.',
@@ -123,6 +129,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const body = (await request.json().catch(() => ({}))) as PdfImportBody;
+
+    if (body.mode !== undefined && body.mode !== 'fast' && body.mode !== 'rich') {
+      return badRequestResponse('mode must be "rich" or "fast"');
+    }
+    const mode: ImportJobMode = body.mode === 'fast' ? 'fast' : 'rich';
+    // The engine identity recorded on the row reflects the user's choice —
+    // "text-layer" for fast mode, the tier's vision engine for rich. The
+    // worker may still promote individual pages, but the audit trail
+    // captures intent.
+    const selectedEngine = engineForJob(user.tier, mode);
 
     const sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';
     if (!sectionId) return badRequestResponse('sectionId is required');
@@ -171,15 +187,17 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
     const pageCap = Math.min(totalPages, remaining);
 
-    // `engine.name` + the budget-derived `pageCap` are recorded on the row
-    // so the worker is self-contained and the choice is auditable later.
+    // `selectedEngine.name` + `mode` + the budget-derived `pageCap` are
+    // recorded on the row so the worker is self-contained and the choice
+    // is auditable later.
     const job = await db.importJob.create({
       data: {
         notebookId,
         sectionId,
         userId,
         fileName,
-        engine: engine.name,
+        engine: selectedEngine.name,
+        mode,
         pageCap,
         status: 'queued',
         pdfPath,

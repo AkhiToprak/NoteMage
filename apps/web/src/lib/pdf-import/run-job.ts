@@ -19,11 +19,28 @@ import { incrementUsage } from '@/lib/usage-limits';
 import type { TierKey } from '@/lib/tiers';
 import { assembleTiptap } from './assemble';
 import type { DocModelBlock } from './doc-model';
-import type { PdfStructureEngine } from './engine';
+import type { DescribePageInput, PdfStructureEngine } from './engine';
 import { geminiEngine } from './engine-gemini';
+import { textLayerEngine } from './engine-text';
 import { cropFigure } from './figure-crop';
 import { extractGroundTruth, type GroundTruth, type GroundTruthPage } from './ground-truth';
 import { groundTruthToBlocks } from './heuristic-fallback';
+
+/** `ImportJob.mode` enum — keep aligned with the schema column. */
+export type ImportJobMode = 'rich' | 'fast';
+
+/**
+ * Per-page text-layer check used by fast mode: a `GroundTruthPage` that
+ * carries no visible cell text on any line can't be classified by the
+ * text-layer engine, so the worker routes it to the vision engine even
+ * when fast mode was selected. Document-level `hasTextLayer` is the
+ * outer gate; this is the per-page refinement for mixed PDFs.
+ */
+function pageHasUsableTextLayer(page: GroundTruthPage): boolean {
+  return page.lines.some((line) =>
+    line.cells.some((cell) => cell.text.trim().length > 0),
+  );
+}
 
 /** Page-content mirror cap — the page-content route hard-rejects over 500KB. */
 const TEXT_CONTENT_LIMIT = 500_000;
@@ -38,12 +55,24 @@ const ENGINE_BY_TIER: Record<TierKey, PdfStructureEngine> = {
 };
 
 /**
- * The structure engine for a tier. Gemini serves every tier — single-engine
- * is the settled decision (no Claude). The per-tier indirection is kept as
- * the one swap point, should a tier ever need a different engine.
+ * The vision structure engine for a tier — the "rich" mode engine and the
+ * unconditional fallback for fast mode's scanned pages. Gemini serves every
+ * tier (single-engine is the settled decision); the per-tier indirection is
+ * kept as the one swap point, should a tier ever need a different engine.
  */
 export function engineForTier(tier: TierKey): PdfStructureEngine {
   return ENGINE_BY_TIER[tier] ?? geminiEngine;
+}
+
+/**
+ * The engine identity recorded on `ImportJob.engine` at submission time.
+ * Rich mode commits to the tier's vision engine; fast mode commits to the
+ * text-layer engine — the worker may still promote individual pages to
+ * the vision engine on a per-page basis (scanned page, or text-engine
+ * throw), but the row records what the user asked for.
+ */
+export function engineForJob(tier: TierKey, mode: ImportJobMode): PdfStructureEngine {
+  return mode === 'fast' ? textLayerEngine : engineForTier(tier);
 }
 
 /** Progress snapshot written to `ImportJob.progress` and relayed over SSE. */
@@ -176,7 +205,11 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     }
 
     const pageCount = Math.min(ground.pageCount, job.pageCap, pageImagePaths.length);
-    const engine = engineForTier(job.user.tier);
+    const visionEngine = engineForTier(job.user.tier);
+    // Fast mode is opt-in (P5). The row's `mode` column gates the per-page
+    // branch below; scanned pages and pages whose text-layer classifier
+    // produces nothing get promoted to the vision engine silently.
+    const jobMode: ImportJobMode = job.mode === 'fast' ? 'fast' : 'rich';
 
     await writeProgress(jobId, {
       phase: 'structuring',
@@ -216,22 +249,55 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           ];
         }
       } else {
-        try {
-          blocks = await engine.describePage({
-            pageImageBase64: pngBuffer.toString('base64'),
-            mimeType: 'image/png',
-            groundTruthText: pageLinesToText(gtPage),
-            isScanned: !ground.hasTextLayer,
-            pageNumber: gtPage.pageNumber,
-          });
-        } catch (err) {
-          console.error(
-            `[pdf-import] job ${jobId} page ${i + 1}: engine fell back to heuristic`,
-            err,
-          );
-          blocks = groundTruthToBlocks(gtPage);
-          fallbackPages += 1;
+        // Per-page engine selection. Fast mode tries the text-layer engine
+        // when both the document and this specific page carry text; a
+        // scanned page inside a mostly-digital PDF, or fast-mode altogether,
+        // routes straight to the vision engine. The text engine's three
+        // sentinel throws (scanned, missing geometry, zero classified
+        // blocks) trigger an in-loop promotion to the vision engine —
+        // the "cheap insurance" against a corrupted text layer producing
+        // empty paragraphs.
+        const tryTextEngine =
+          jobMode === 'fast' && ground.hasTextLayer && pageHasUsableTextLayer(gtPage);
+
+        const describeInput: DescribePageInput = {
+          pageImageBase64: pngBuffer.toString('base64'),
+          mimeType: 'image/png',
+          groundTruthText: pageLinesToText(gtPage),
+          isScanned: !ground.hasTextLayer,
+          pageNumber: gtPage.pageNumber,
+          groundTruthPage: gtPage,
+        };
+
+        let resolvedBlocks: DocModelBlock[] | null = null;
+        if (tryTextEngine) {
+          try {
+            resolvedBlocks = await textLayerEngine.describePage(describeInput);
+          } catch (err) {
+            // Sentinel from the text engine — promote this one page to the
+            // vision engine without bumping `fallbackPages` (gemini IS an
+            // engine, not the deterministic heuristic).
+            console.error(
+              `[pdf-import] job ${jobId} page ${i + 1}: fast-mode promoted to vision`,
+              err,
+            );
+          }
         }
+
+        if (resolvedBlocks === null) {
+          try {
+            resolvedBlocks = await visionEngine.describePage(describeInput);
+          } catch (err) {
+            console.error(
+              `[pdf-import] job ${jobId} page ${i + 1}: engine fell back to heuristic`,
+              err,
+            );
+            resolvedBlocks = groundTruthToBlocks(gtPage);
+            fallbackPages += 1;
+          }
+        }
+
+        blocks = resolvedBlocks;
 
         // Engine failed and the heuristic produced nothing (a no-text-layer
         // page) — keep the page as a full-page image so it is never dropped.
@@ -242,6 +308,9 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         }
 
         // Crop every figure the engine boxed while the page PNG is in hand.
+        // Fast-mode pages that stayed on the text engine emit no `image`
+        // blocks — figures are intentionally dropped in fast mode — so this
+        // loop is a no-op for them.
         for (const block of blocks) {
           if (block.type !== 'image') continue;
           try {

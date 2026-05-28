@@ -317,7 +317,8 @@ model ImportJob {
   sectionId      String
   userId         String
   fileName       String
-  engine         String   // engine that ran, e.g. "gemini-flash-lite"
+  engine         String   // engine selected at submission, e.g. "gemini-flash-lite" / "text-layer"
+  mode           String   @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
   pageCap        Int
   status         String   @default("queued") // queued|processing|ready|failed
   progress       Json?    // { phase, totalPages, processedPages, message }

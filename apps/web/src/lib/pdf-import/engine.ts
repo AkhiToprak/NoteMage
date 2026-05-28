@@ -1,4 +1,5 @@
 import type { DocModelBlock } from './doc-model';
+import type { GroundTruthPage } from './ground-truth';
 
 /**
  * One PDF page handed to a structure engine: a rendered image plus the
@@ -21,6 +22,13 @@ export interface DescribePageInput {
    * concatenates the per-page block arrays into one document.
    */
   pageNumber: number;
+  /**
+   * Full geometric ground truth for this page — line geometry, font sizes,
+   * column x-positions. Required by structure engines that classify from
+   * the text layer alone (no LLM, no rendered image). Vision-backed engines
+   * like Gemini ignore this field.
+   */
+  groundTruthPage?: GroundTruthPage;
 }
 
 /**
