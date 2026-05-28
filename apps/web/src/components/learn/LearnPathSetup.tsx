@@ -972,9 +972,6 @@ export default function LearnPathSetup({
               canUseUltra={canUseUltra}
               ultraUsage={ultraUsage}
               isAdmin={session?.user?.role === 'admin'}
-              selectedCount={selectedCount}
-              allSelected={allSelected}
-              mageName={mageName}
               isCrossNotebookMode={isCrossNotebookMode}
               aiNotebookOptions={aiNotebookOptions}
               aiNotebookId={aiNotebookId}
@@ -1629,9 +1626,6 @@ function AiTab({
   canUseUltra,
   ultraUsage,
   isAdmin,
-  selectedCount,
-  allSelected,
-  mageName,
   isCrossNotebookMode,
   aiNotebookOptions,
   aiNotebookId,
@@ -1644,9 +1638,6 @@ function AiTab({
   canUseUltra: boolean;
   ultraUsage: { used: number; limit: number } | null;
   isAdmin: boolean;
-  selectedCount: number;
-  allSelected: boolean;
-  mageName: string;
   isCrossNotebookMode: boolean;
   aiNotebookOptions: Array<{
     id: string;
@@ -1659,27 +1650,6 @@ function AiTab({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <p
-        style={{
-          margin: 0,
-          fontSize: '13px',
-          color: 'var(--on-surface-variant)',
-          lineHeight: 1.5,
-        }}
-      >
-        {mageName} will build a guided path from{' '}
-        <strong style={{ color: 'var(--on-surface)' }}>
-          {allSelected
-            ? isCrossNotebookMode
-              ? 'every note in every notebook'
-              : 'every note in this notebook'
-            : selectedCount === 0
-              ? '— pick at least one note above'
-              : `the ${selectedCount} note${selectedCount === 1 ? '' : 's'} you selected`}
-        </strong>
-        , with phased lessons and checkpoint quizzes.
-      </p>
-
       {isCrossNotebookMode && aiNotebookOptions.length > 0 ? (
         <Field label="Generate AI plan for notebook">
           <select

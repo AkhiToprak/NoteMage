@@ -63,8 +63,7 @@ export default function ImportSourceStep({
           Import your study material
         </h2>
         <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'var(--on-surface-variant)' }}>
-          Add your PDFs — lecture slides, textbooks, notes. NoteMage detects the subjects and sorts
-          them into notebooks for you.
+          Add your PDFs — NoteMage sorts them into notebooks.
         </p>
       </header>
 
@@ -265,10 +264,6 @@ export default function ImportSourceStep({
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '13.5px', fontWeight: 700 }}>
             Fast mode — text only, no images or diagrams (free)
-          </span>
-          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.45 }}>
-            Skips the vision step. Headings, lists, and tables are kept; figures and callouts are
-            flattened to text.
           </span>
         </span>
         {/* Switch track + thumb — animated via transform, no gradients. */}

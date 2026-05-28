@@ -846,7 +846,6 @@ export default function OnboardingWizard({
           mascotPose="default"
           mascotIdle="bounce"
           heading="Choose your avatar"
-          subheading="This is how other mages will see you."
           primaryLabel="Continue"
           onPrimary={handleAvatarNext}
           primaryDisabled={loading || avatarBusy}
@@ -874,7 +873,6 @@ export default function OnboardingWizard({
           mascotPose="default"
           mascotIdle="bounce"
           heading="Name your Mage"
-          subheading="Give your AI study assistant a name."
           error={stepErrors.mageName || ''}
           primaryLabel="Continue"
           onPrimary={handleMageNameNext}

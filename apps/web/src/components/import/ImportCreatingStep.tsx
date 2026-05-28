@@ -97,14 +97,14 @@ export default function ImportCreatingStep({
         >
           {done ? 'Your notebooks are ready' : 'Creating your notebooks'}
         </h2>
-        <p
-          aria-live="polite"
-          style={{ margin: 0, fontSize: '13.5px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}
-        >
-          {done
-            ? 'Your study material has been imported and organized.'
-            : 'Hang tight — NoteMage is building each notebook from your PDFs.'}
-        </p>
+        {!done && (
+          <p
+            aria-live="polite"
+            style={{ margin: 0, fontSize: '13.5px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}
+          >
+            Hang tight — NoteMage is building each notebook from your PDFs.
+          </p>
+        )}
       </div>
 
       {total > 0 && (

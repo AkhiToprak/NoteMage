@@ -26,9 +26,9 @@ export function getTourSteps(isPhone: boolean): TutorialStep[] {
 }
 
 const HUB_BODY_PRO =
-  'Paths, Flashcards, Quizzes, and Chats — switch any time. Each one is built from your notebooks.';
+  'Paths, Flashcards, Quizzes, and Chats — all built from your notebooks.';
 const HUB_BODY_FREE =
-  'Flashcards, Quizzes, and Chats — switch any time. Each one is built from your notebooks.';
+  'Flashcards, Quizzes, and Chats — all built from your notebooks.';
 
 /**
  * Resolve the config for a tour step. Returns `undefined` for `idle`,
@@ -46,7 +46,7 @@ export function getStepConfig(
     case 'dashboard':
       return {
         title: 'This is your dashboard',
-        body: 'Your home base — track your streak and study goals, jump back into recent notebooks, and see what to study next.',
+        body: 'Track your streak and goals, jump back into recent notebooks, and see what to study next.',
         targetKey: 'dashboard',
         route: '/dashboard',
         next: 'nav-menu',
@@ -56,7 +56,7 @@ export function getStepConfig(
     case 'nav-menu':
       return {
         title: 'Find your way around',
-        body: 'Your notebooks, the Learn hub, and settings all live in this menu — tap it any time to get around.',
+        body: 'Notebooks, the Learn hub, and settings all live in here.',
         targetKey: 'nav-menu',
         route: '/dashboard',
         next: 'search',
@@ -66,7 +66,7 @@ export function getStepConfig(
     case 'search':
       return {
         title: 'Search everything',
-        body: 'Find a notebook, a page inside it, or another learner — start typing and matches appear as you go.',
+        body: 'Find a notebook, a page, or another learner — matches appear as you type.',
         targetKey: 'search',
         route: '/dashboard',
         next: 'timer',
@@ -76,7 +76,7 @@ export function getStepConfig(
     case 'timer':
       return {
         title: 'Time your study',
-        body: 'A built-in countdown, Pomodoro, and stopwatch. Start a session and it keeps running while you work.',
+        body: 'Countdown, Pomodoro, and stopwatch — it keeps running while you work.',
         targetKey: 'timer',
         route: '/dashboard',
         next: 'profile',
@@ -86,7 +86,7 @@ export function getStepConfig(
     case 'profile':
       return {
         title: 'Your public profile',
-        body: "This is your whole profile — bio, appearance, activity, and trophies in one place. Make it yours; it's what others see.",
+        body: "Bio, appearance, activity, and trophies — it's what others see.",
         targetKey: 'profile',
         route: '/profile',
         next: isPhone ? 'learn-tabs' : 'notebooks',
@@ -98,7 +98,7 @@ export function getStepConfig(
     case 'notebooks':
       return {
         title: 'Your source material',
-        body: 'Imported PDFs live here as notebooks. Everything you study — paths, flashcards, quizzes — is generated from them.',
+        body: 'Imported PDFs live here. Your paths, flashcards, and quizzes are all generated from them.',
         targetKey: 'notebooks',
         route: '/notebooks',
         next: 'learn-tabs',
@@ -128,7 +128,7 @@ export function getStepConfig(
           }
         : {
             title: 'Study paths',
-            body: 'Auto-generated study paths are a Pro feature. On Free you learn from Community paths instead — coming up next.',
+            body: 'Building your own paths is Pro. On Free, study Community paths instead — coming up next.',
             targetKey: 'learn-generate-path',
             route: '/learn/paths',
             next: 'learn-community',
@@ -140,8 +140,8 @@ export function getStepConfig(
       return {
         title: 'Explore community paths',
         body: isPro
-          ? 'Browse study paths the community has shared. Clone any to study it, or use it as a starting point for your own.'
-          : 'Browse study paths other learners have shared, and clone any to study it as your own — no Pro needed.',
+          ? 'Browse paths the community has shared — clone any to study or build on.'
+          : 'Browse paths other learners have shared — clone any to study, no Pro needed.',
         targetKey: 'learn-community',
         route: '/learn/community',
         next: 'learn-chats',
@@ -152,8 +152,8 @@ export function getStepConfig(
       return {
         title: 'Ask the Mage',
         body: isPro
-          ? 'Chat with the Mage across all your notebooks — ask questions and get explanations, as much as you want.'
-          : 'Chat with the Mage across your notebooks — ask questions and get explanations. Free includes 50 messages to start.',
+          ? 'Ask the Mage anything across all your notebooks.'
+          : 'Ask the Mage across your notebooks. Free includes 50 messages to start.',
         targetKey: 'learn-new-chat',
         route: '/learn/chats',
         next: 'cowork',

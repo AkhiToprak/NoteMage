@@ -231,7 +231,7 @@ export default function CommunityLibraryPage() {
               lineHeight: 1.5,
             }}
           >
-            Discover paths shared by the community. Clone one to study it as your own.
+            Clone any path to study it as your own.
           </p>
         </div>
         <Link

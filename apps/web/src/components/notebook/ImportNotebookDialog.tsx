@@ -1200,39 +1200,7 @@ function PdfTab({
           <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
             Import PDF
           </p>
-          <p
-            style={{
-              fontSize: '11.5px',
-              color: 'var(--ink-40)',
-              margin: '2px 0 0',
-            }}
-          >
-            Converted to a structured, editable page
-          </p>
         </div>
-      </div>
-
-      <div
-        style={{
-          padding: '14px 16px',
-          borderRadius: '10px',
-          background: 'rgba(140,82,255,0.06)',
-          border: '1px solid rgba(174,137,255,0.20)',
-          marginBottom: '14px',
-        }}
-      >
-        <p
-          style={{
-            fontSize: '12.5px',
-            color: 'var(--ink-50)',
-            margin: 0,
-            lineHeight: 1.5,
-          }}
-        >
-          Your PDF is turned into a single editable page — headings, lists, tables, callouts, and
-          figures are extracted as real, editable content rather than flat images. A new page is
-          added to your notebook.
-        </p>
       </div>
 
       {/*
@@ -1280,15 +1248,6 @@ function PdfTab({
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
             Fast mode — text only, no images or diagrams (free)
-          </span>
-          <span
-            style={{
-              fontSize: '11.5px',
-              color: 'var(--ink-50)',
-              lineHeight: 1.45,
-            }}
-          >
-            Headings, lists, and tables are kept; figures and callouts are flattened to text.
           </span>
         </span>
         <span

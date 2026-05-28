@@ -280,8 +280,7 @@ export default function CheckpointDrawer({
                     lineHeight: 1.45,
                   }}
                 >
-                  This checkpoint&apos;s content didn&apos;t fully generate. Use Regenerate
-                  on the path to fill it in — anything ready is still below.
+                  Didn&apos;t fully generate. Regenerate the path to fill it in.
                 </p>
               </div>
             </div>

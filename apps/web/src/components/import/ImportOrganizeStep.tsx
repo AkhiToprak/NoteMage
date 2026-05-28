@@ -65,8 +65,7 @@ export default function ImportOrganizeStep({
           Organize your notebooks
         </h2>
         <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'var(--on-surface-variant)' }}>
-          Here&apos;s how NoteMage grouped your material. Rename, recolor, or move PDFs between
-          notebooks — then create them.
+          Rename, recolor, or move PDFs between notebooks, then create them.
         </p>
       </header>
 
