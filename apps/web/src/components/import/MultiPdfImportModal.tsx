@@ -38,6 +38,8 @@ export default function MultiPdfImportModal({ folderId, onClose }: MultiPdfImpor
         onAddFiles={mi.addFiles}
         onRemoveFile={mi.removeFile}
         onContinue={mi.prepare}
+        mode={mi.mode}
+        onModeChange={mi.setMode}
       />
     );
   } else if (mi.phase === 'preparing') {

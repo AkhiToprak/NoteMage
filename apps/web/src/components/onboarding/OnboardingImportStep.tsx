@@ -48,6 +48,8 @@ export default function OnboardingImportStep({
         onRemoveFile={mi.removeFile}
         onContinue={mi.prepare}
         onSkip={onSkip}
+        mode={mi.mode}
+        onModeChange={mi.setMode}
       />
     );
   } else if (mi.phase === 'preparing') {

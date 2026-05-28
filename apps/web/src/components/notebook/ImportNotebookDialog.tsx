@@ -1048,6 +1048,8 @@ function PdfTab({
   const [modalGeneration, setModalGeneration] = useState(0);
   const [pendingFileName, setPendingFileName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  // P6 — fast/rich engine selection. Per-import scope; default 'rich'.
+  const [mode, setMode] = useState<'rich' | 'fast'>('rich');
 
   const busy = phase !== 'idle';
 
@@ -1126,7 +1128,13 @@ function PdfTab({
         const res = await fetch(`/api/notebooks/${notebookId}/pdf-import`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sectionId, fileName: file.name, pdfPath, pageImagePaths }),
+          body: JSON.stringify({
+            sectionId,
+            fileName: file.name,
+            pdfPath,
+            pageImagePaths,
+            mode,
+          }),
         });
         const json = (await res.json().catch(() => null)) as
           | { success?: boolean; error?: string; data?: { jobId?: string } }
@@ -1145,7 +1153,7 @@ function PdfTab({
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     },
-    [notebookId, upload, ensureSectionId],
+    [notebookId, upload, ensureSectionId, mode],
   );
 
   const buttonLabel =
@@ -1226,6 +1234,90 @@ function PdfTab({
           added to your notebook.
         </p>
       </div>
+
+      {/*
+        P6 — fast-mode toggle. Default off; turning it on routes digital pages
+        through the text-layer engine for $0/page (figures + callouts drop;
+        headings, lists, tables preserved). Scanned pages fall back to the
+        vision engine server-side. Disabled once a job is in-flight to keep
+        the user's choice locked for the active import.
+      */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={mode === 'fast'}
+        onClick={() => setMode(mode === 'fast' ? 'rich' : 'fast')}
+        disabled={busy || !!jobId}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          width: '100%',
+          padding: '10px 12px',
+          marginBottom: '10px',
+          borderRadius: '10px',
+          border: `1px solid ${mode === 'fast' ? 'rgba(174,137,255,0.5)' : 'rgba(174,137,255,0.20)'}`,
+          background: mode === 'fast' ? 'rgba(174,137,255,0.12)' : 'rgba(140,82,255,0.06)',
+          color: 'var(--on-surface)',
+          textAlign: 'left',
+          fontFamily: 'inherit',
+          cursor: busy || !!jobId ? 'not-allowed' : 'pointer',
+          opacity: busy || !!jobId ? 0.6 : 1,
+          transition: 'border-color 0.2s ease, background 0.2s ease',
+        }}
+      >
+        <span
+          className="material-symbols-outlined"
+          aria-hidden="true"
+          style={{
+            fontSize: '18px',
+            color: mode === 'fast' ? '#c4a9ff' : 'rgba(196,169,255,0.6)',
+            flexShrink: 0,
+          }}
+        >
+          bolt
+        </span>
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
+            Fast mode — text only, no images or diagrams (free)
+          </span>
+          <span
+            style={{
+              fontSize: '11.5px',
+              color: 'var(--ink-50)',
+              lineHeight: 1.45,
+            }}
+          >
+            Headings, lists, and tables are kept; figures and callouts are flattened to text.
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'relative',
+            width: '30px',
+            height: '18px',
+            borderRadius: '999px',
+            background: mode === 'fast' ? '#8c52ff' : 'rgba(196,169,255,0.18)',
+            flexShrink: 0,
+            transition: 'background 0.2s ease',
+          }}
+        >
+          <span
+            style={{
+              position: 'absolute',
+              top: '2px',
+              left: '2px',
+              width: '14px',
+              height: '14px',
+              borderRadius: '999px',
+              background: 'var(--on-surface)',
+              transform: mode === 'fast' ? 'translateX(12px)' : 'translateX(0)',
+              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          />
+        </span>
+      </button>
 
       <input
         ref={fileInputRef}

@@ -10,6 +10,14 @@ import { renderPdfToPngs } from '@/lib/pdf-client-render';
 // the surrounding shell and the completion handler differ.
 
 export type ImportPhase = 'source' | 'preparing' | 'organize' | 'creating' | 'done';
+/**
+ * Mirror of `ImportJobMode` from the worker — duplicated here to avoid the
+ * client bundle pulling in the worker module. "rich" routes pages through the
+ * vision engine (default, full structure incl. figures); "fast" routes digital
+ * pages through the text-layer engine for $0/page (P6 of the cost-reduction
+ * plan), with scanned-page fallback handled server-side.
+ */
+export type ImportMode = 'rich' | 'fast';
 
 export interface PickedFile {
   id: string;
@@ -113,6 +121,10 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
   const [status, setStatus] = useState<ImportStatus | null>(null);
   const [result, setResult] = useState<CommitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // P6 — fast/rich engine selection. Per-import scope only; no user-pref
+  // persistence yet. Default 'rich' preserves the pre-P6 behaviour for users
+  // who never touch the toggle.
+  const [mode, setMode] = useState<ImportMode>('rich');
 
   const preparedRef = useRef<PreparedFile[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -398,7 +410,7 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
       const res = await fetch('/api/import/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groups: payloadGroups, folderId }),
+        body: JSON.stringify({ groups: payloadGroups, folderId, mode }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
@@ -426,7 +438,7 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
     } finally {
       busyRef.current = false;
     }
-  }, [groups, folderId, startPolling]);
+  }, [groups, folderId, mode, startPolling]);
 
   const reset = useCallback(() => {
     stopPolling();
@@ -439,6 +451,7 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
     setStatus(null);
     setResult(null);
     setError(null);
+    setMode('rich');
   }, [stopPolling]);
 
   const notebookCount = groups.filter((g) => g.fileIds.length > 0).length;
@@ -464,6 +477,8 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
     result,
     error,
     reset,
+    mode,
+    setMode,
     maxFiles: MAX_FILES,
     palette: PALETTE,
   };

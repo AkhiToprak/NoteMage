@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { PickedFile } from '@/hooks/useMultiImport';
+import type { ImportMode, PickedFile } from '@/hooks/useMultiImport';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 
 // Sub-step A of the multi-PDF import flow — pick the PDFs. PDF upload is
@@ -18,6 +18,9 @@ interface ImportSourceStepProps {
   onContinue: () => void;
   /** Optional skip control — rendered in the onboarding finale only. */
   onSkip?: () => void;
+  /** P6 — engine selection (rich vs fast). Per-import scope. */
+  mode: ImportMode;
+  onModeChange: (mode: ImportMode) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -35,6 +38,8 @@ export default function ImportSourceStep({
   onRemoveFile,
   onContinue,
   onSkip,
+  mode,
+  onModeChange,
 }: ImportSourceStepProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -215,6 +220,86 @@ export default function ImportSourceStep({
           ))}
         </ul>
       )}
+
+      {/*
+        P6 — engine toggle. Default off ("rich" / vision engine). Turning it
+        on routes digital pages through the text-layer engine for $0/page;
+        scanned pages still fall back to the vision engine server-side. Per
+        plans/token-cost-reduction.md the copy is fixed; tier-aware copy is
+        out of scope here.
+      */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={mode === 'fast'}
+        onClick={() => onModeChange(mode === 'fast' ? 'rich' : 'fast')}
+        disabled={busy}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px 14px',
+          borderRadius: 'var(--radius-md)',
+          border: `1px solid ${mode === 'fast' ? 'var(--primary)' : 'var(--outline-variant)'}`,
+          background:
+            mode === 'fast' ? 'rgba(174,137,255,0.08)' : 'var(--surface-container-high)',
+          color: 'var(--on-surface)',
+          textAlign: 'left',
+          fontFamily: 'inherit',
+          cursor: busy ? 'not-allowed' : 'pointer',
+          opacity: busy ? 0.6 : 1,
+          transition: 'border-color 0.2s ease, background 0.2s ease',
+        }}
+      >
+        <span
+          className="material-symbols-outlined"
+          aria-hidden="true"
+          style={{
+            fontSize: '20px',
+            color: mode === 'fast' ? 'var(--primary)' : 'var(--on-surface-variant)',
+            flexShrink: 0,
+          }}
+        >
+          bolt
+        </span>
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontSize: '13.5px', fontWeight: 700 }}>
+            Fast mode — text only, no images or diagrams (free)
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.45 }}>
+            Skips the vision step. Headings, lists, and tables are kept; figures and callouts are
+            flattened to text.
+          </span>
+        </span>
+        {/* Switch track + thumb — animated via transform, no gradients. */}
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'relative',
+            width: '34px',
+            height: '20px',
+            borderRadius: 'var(--radius-full)',
+            background:
+              mode === 'fast' ? 'var(--primary)' : 'var(--surface-container-highest)',
+            flexShrink: 0,
+            transition: 'background 0.2s ease',
+          }}
+        >
+          <span
+            style={{
+              position: 'absolute',
+              top: '2px',
+              left: '2px',
+              width: '16px',
+              height: '16px',
+              borderRadius: 'var(--radius-full)',
+              background: mode === 'fast' ? 'var(--on-primary)' : 'var(--on-surface)',
+              transform: mode === 'fast' ? 'translateX(14px)' : 'translateX(0)',
+              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+            }}
+          />
+        </span>
+      </button>
 
       {error && (
         <p
