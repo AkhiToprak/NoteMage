@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
+import type Anthropic from '@anthropic-ai/sdk';
 import { getToken } from 'next-auth/jwt';
 import { getAuthUserId } from '@/lib/auth';
 import { getMageName } from '@/lib/scholar';
@@ -89,15 +91,37 @@ export async function POST(request: NextRequest, { params }: Params) {
       systemPrompt = `You are ${mageName}, an AI study assistant. The user wants you to create a mind map from the provided page content. Use the create_mindmap tool to create a well-structured mind map using Markdown heading hierarchy.`;
     }
 
+    // P2 — split the system payload so the page corpus is cached.
+    // Order matters: corpus block first (cached), instructions second
+    // (uncached). The instructions differ per `type` (flashcards / quiz
+    // / mindmap), but the corpus is byte-identical when the user
+    // generates a quiz and then a flashcard set from the same page —
+    // the common page-detail toolbar flow. Putting the corpus first
+    // means the cache key is the corpus alone, so the second call
+    // within the 5-minute ephemeral TTL reads it from the cache even
+    // though the instruction block changed. Same pattern as
+    // path-prompts.ts `buildCachedSystem` (corpus-first), not
+    // chat-stream.ts (instructions-first, because chat instructions
+    // are stable across turns).
+    const corpus = page.textContent.slice(0, MAX_CONTEXT_CHARS);
+    const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
+      {
+        type: 'text',
+        text: `[Page: ${page.title}]\n\n${corpus}`,
+        cache_control: { type: 'ephemeral' },
+      },
+      { type: 'text', text: systemPrompt },
+    ];
+
     // Call Anthropic
     const response = await anthropic.messages.create({
       model: AI_MODEL,
       max_tokens: MAX_OUTPUT_TOKENS,
-      system: systemPrompt,
+      system: systemBlocks,
       messages: [
         {
           role: 'user',
-          content: `Generate ${type} from this content:\n\n${page.textContent.slice(0, MAX_CONTEXT_CHARS)}`,
+          content: `Generate ${type} from the page provided above.`,
         },
       ],
       tools: ALL_TOOLS,
@@ -105,6 +129,30 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
     const { text, flashcard, quiz, quizV2, mindmap } = extractToolUses(response.content);
+
+    // P2 — record cache hit/miss so we can verify the savings in
+    // Sentry. On the first call for a page the corpus shows up as
+    // `cacheCreationTokens`; on the follow-up call (same page,
+    // different `type`) within the 5-minute TTL it shows up as
+    // `cacheReadTokens` and `inputTokens` collapses to the small
+    // instruction + user-message footprint.
+    const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0;
+    const cacheCreationTokens = response.usage.cache_creation_input_tokens ?? 0;
+    Sentry.addBreadcrumb({
+      category: 'page-generate',
+      level: 'info',
+      message: 'page generate anthropic usage',
+      data: {
+        notebookId,
+        pageId,
+        type,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        cacheReadTokens,
+        cacheCreationTokens,
+        corpusChars: corpus.length,
+      },
+    });
 
     // Track token usage (chatId is nullable in schema)
     await db.chatMessage.create({

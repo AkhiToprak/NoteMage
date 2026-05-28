@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import type Anthropic from '@anthropic-ai/sdk';
 import {
   badRequestResponse,
   internalErrorResponse,
@@ -230,11 +231,26 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
       'Do NOT recommend videos for every question — only when a video would genuinely add value beyond your text explanation. Generate a specific, educational search query.',
     ];
 
+    // ── Assemble system payload ──
+    // The instruction prefix (mage name + tool-use guidance) is small and
+    // stable across turns for the same user; the context block (joined
+    // page/document text) can be hundreds of KB and is byte-identical
+    // across every turn of the same chat. Marking the context block with
+    // `cache_control: ephemeral` (same pattern as path-generator-routing.ts
+    // line 114) lets Anthropic skip re-billing the corpus on turns 2+.
+    // Cache TTL is ~5 minutes.
+    const systemPrefix = systemParts.join('\n');
+    const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
+      { type: 'text', text: systemPrefix },
+    ];
     if (contextParts.length > 0) {
-      systemParts.push(
-        '\nThe user has provided the following context from their notebook:\n',
-        contextParts.join('\n\n---\n\n')
-      );
+      systemBlocks.push({
+        type: 'text',
+        text:
+          '\nThe user has provided the following context from their notebook:\n\n' +
+          contextParts.join('\n\n---\n\n'),
+        cache_control: { type: 'ephemeral' },
+      });
     }
 
     // ── Usage limit check (scholar_chat) ──
@@ -326,7 +342,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
       {
         model: AI_MODEL,
         max_tokens: MAX_OUTPUT_TOKENS,
-        system: systemParts.join('\n'),
+        system: systemBlocks,
         messages: conversationMessages,
         tools: ALL_TOOLS,
       },
@@ -349,6 +365,25 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
             await incrementUsage(userId, 'scholar_chat');
 
             const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
+
+            // P1 — record cache hit/miss so we can verify the savings in
+            // Sentry. `input_tokens` here is post-cache (user message +
+            // history only when the corpus block hits the cache).
+            const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0;
+            const cacheCreationTokens = response.usage.cache_creation_input_tokens ?? 0;
+            Sentry.addBreadcrumb({
+              category: 'chat-stream',
+              level: 'info',
+              message: 'chat anthropic usage',
+              data: {
+                chatId: chat.id,
+                inputTokens: response.usage.input_tokens,
+                outputTokens: response.usage.output_tokens,
+                cacheReadTokens,
+                cacheCreationTokens,
+                contextChars: contextKeptChars,
+              },
+            });
 
             const {
               text: extractedText,

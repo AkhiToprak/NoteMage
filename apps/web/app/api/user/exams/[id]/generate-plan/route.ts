@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { getToken } from 'next-auth/jwt';
 import { getAuthUserId } from '@/lib/auth';
 import { getMageName } from '@/lib/scholar';
@@ -17,6 +18,7 @@ import { STUDY_PLAN_TOOL, extractToolUses } from '@/lib/ai-tools';
 import type { StudyPlanToolInput } from '@/lib/ai-tools';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
+import { buildCachedSystem } from '@/lib/path-prompts';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -98,8 +100,16 @@ export async function POST(request: NextRequest, { params }: Params) {
       Math.ceil((exam.examDate.getTime() - now.getTime()) / 86400000)
     );
 
-    const systemPrompt = [
-      `You are ${mageName}, an AI study assistant. Create a structured study plan for an upcoming exam, based on the source materials provided below.`,
+    // P3 — same caching pattern as path generation: corpus block first
+    // with `cache_control: ephemeral`, instructions second. The corpus
+    // is byte-identical across reruns for the same notebook, so a
+    // second exam-plan generation within the 5-minute TTL reads the
+    // corpus from cache and only pays for the small instruction +
+    // user-message footprint. `buildCachedSystem` (path-prompts.ts) is
+    // the shared helper path gen already uses — corpus first means the
+    // cache key is the corpus alone, robust to instruction tweaks.
+    const instructions = [
+      `You are ${mageName}, an AI study assistant. Create a structured study plan for an upcoming exam, based on the source materials provided above.`,
       '',
       'Guidelines for the study plan:',
       '- Break the material into topics and distribute them across the available days leading up to the exam.',
@@ -112,15 +122,14 @@ export async function POST(request: NextRequest, { params }: Params) {
       `Exam date: ${exam.examDate.toISOString().split('T')[0]}`,
       `Days until exam: ${daysUntilExam}`,
       `Notebook: "${exam.notebook.name}"`,
-      '',
-      'SOURCE MATERIALS — base every phase on what these actually contain:',
-      corpus,
     ].join('\n');
+
+    const system = buildCachedSystem(corpus, instructions);
 
     const response = await anthropic.messages.create({
       model: AI_MODEL,
       max_tokens: MAX_OUTPUT_TOKENS,
-      system: systemPrompt,
+      system,
       messages: [
         {
           role: 'user',
@@ -138,6 +147,28 @@ export async function POST(request: NextRequest, { params }: Params) {
       userId,
       tokens: totalTokens,
       description: `[exam-plan] Generated study plan for exam "${exam.title}"`,
+    });
+
+    // P3 — record cache hit/miss so we can verify the savings in
+    // Sentry. First call for a notebook lands as `cacheCreationTokens`;
+    // a rerun within the 5-minute TTL lands as `cacheReadTokens` and
+    // `inputTokens` collapses to the small instruction + user-message
+    // footprint.
+    const cacheReadTokens = response.usage.cache_read_input_tokens ?? 0;
+    const cacheCreationTokens = response.usage.cache_creation_input_tokens ?? 0;
+    Sentry.addBreadcrumb({
+      category: 'exam-plan',
+      level: 'info',
+      message: 'exam plan anthropic usage',
+      data: {
+        examId: exam.id,
+        notebookId,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        cacheReadTokens,
+        cacheCreationTokens,
+        corpusChars: corpus.length,
+      },
     });
 
     const { studyPlan: toolUse } = extractToolUses(response.content);
