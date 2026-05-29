@@ -34,7 +34,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth', () => ({ getAuthUserId: mocks.getAuthUserId }));
 vi.mock('@/lib/db', () => ({ db: mocks.dbMock }));
 
-import { GET, MIN_RATING_SAMPLES } from '../../../../app/api/community/paths/route';
+import { GET } from '../../../../app/api/community/paths/route';
+import { MIN_RATING_SAMPLES } from '@/lib/community-paths';
 
 const buildRequest = (search: string = '') =>
   new NextRequest(`http://localhost/api/community/paths${search}`);

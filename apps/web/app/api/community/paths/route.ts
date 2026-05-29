@@ -41,13 +41,8 @@ import {
   unauthorizedResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { MIN_RATING_SAMPLES } from '@/lib/community-paths';
 import type { Prisma } from '@prisma/client';
-
-// AC-Browse-9 — minimum number of independent ratings before a row's
-// ratingAverage is allowed to outrank a popular-but-unrated row. Default
-// chosen to match the P0 spec §4.4 default of 5; centralised here so the
-// integration tests and the route share one source of truth.
-export const MIN_RATING_SAMPLES = 5;
 
 // Allow-listed sort modes. Anything unknown clamps to "popular" — the
 // safe default per AC-Browse-2 ("empty filter = all approved paths"),
