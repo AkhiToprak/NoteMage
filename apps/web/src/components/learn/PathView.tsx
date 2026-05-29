@@ -134,20 +134,9 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
           section banner. Stays in normal flow so it scrolls off
           while the section banner pins. */}
       <header style={{ margin: '0 4px 16px' }}>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '12px',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--on-surface-variant)',
-          }}
-        >
-          {plan.notebookTitle ?? 'Cross-notebook path'}
-        </p>
         <h1
           style={{
-            margin: '4px 0 0',
+            margin: 0,
             fontFamily: 'var(--font-display)',
             fontSize: '24px',
             fontWeight: 800,
