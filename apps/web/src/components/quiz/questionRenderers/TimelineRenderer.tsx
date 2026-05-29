@@ -410,12 +410,16 @@ export default function TimelineRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.7)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation || 'Every event is on the right year.'
-              : question.wrongExplanation ||
-                `Correct order: ${sortedEvents
-                  .map((e) => `${e.year} → ${e.label}`)
-                  .join(' · ')}.`}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation || 'Every event is on the right year.'
+                  : question.wrongExplanation ||
+                    `Correct order: ${sortedEvents
+                      .map((e) => `${e.year} → ${e.label}`)
+                      .join(' · ')}.`
+              }
+            />
           </div>
         </div>
       )}

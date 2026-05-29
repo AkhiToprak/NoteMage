@@ -282,9 +282,13 @@ export default function CodeOutputRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.7)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation || `Expected output: ${canonicalAnswer}.`
-              : question.wrongExplanation || `The expected output is ${canonicalAnswer}.`}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation || `Expected output: ${canonicalAnswer}.`
+                  : question.wrongExplanation || `The expected output is ${canonicalAnswer}.`
+              }
+            />
           </div>
         </div>
       )}

@@ -346,11 +346,15 @@ export default function CodeWriteRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.7)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation ||
-                'Your program produced the expected output for every test case.'
-              : question.wrongExplanation ||
-                'Compare your output against the expected output in each failing case.'}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation ||
+                    'Your program produced the expected output for every test case.'
+                  : question.wrongExplanation ||
+                    'Compare your output against the expected output in each failing case.'
+              }
+            />
           </div>
         </div>
       )}

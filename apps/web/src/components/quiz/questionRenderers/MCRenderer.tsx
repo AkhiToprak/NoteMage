@@ -141,7 +141,7 @@ export default function MCRenderer({
                 )}
               </span>
               <span style={{ fontSize: '16px', color: textColor, flex: 1, lineHeight: 1.5 }}>
-                {option}
+                <MarkdownRenderer content={option} />
               </span>
             </button>
           );
@@ -185,7 +185,7 @@ export default function MCRenderer({
             lineHeight: 1.6,
           }}
         >
-          {question.hint}
+          <MarkdownRenderer content={question.hint} />
         </div>
       )}
 
@@ -221,11 +221,15 @@ export default function MCRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation ||
-                `The answer is ${question.options[question.correctIndex]}.`
-              : question.wrongExplanation ||
-                `The correct answer is ${question.options[question.correctIndex]}.`}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation ||
+                    `The answer is ${question.options[question.correctIndex]}.`
+                  : question.wrongExplanation ||
+                    `The correct answer is ${question.options[question.correctIndex]}.`
+              }
+            />
           </div>
         </div>
       )}
@@ -275,11 +279,15 @@ export default function MCRenderer({
                 )}
               </div>
               <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-                {reviewIdx === question.correctIndex
-                  ? question.correctExplanation ||
-                    `The answer is ${question.options[question.correctIndex]}.`
-                  : question.wrongExplanation ||
-                    `The correct answer is ${question.options[question.correctIndex]}.`}
+                <MarkdownRenderer
+                  content={
+                    reviewIdx === question.correctIndex
+                      ? question.correctExplanation ||
+                        `The answer is ${question.options[question.correctIndex]}.`
+                      : question.wrongExplanation ||
+                        `The correct answer is ${question.options[question.correctIndex]}.`
+                  }
+                />
               </div>
             </>
           ) : (

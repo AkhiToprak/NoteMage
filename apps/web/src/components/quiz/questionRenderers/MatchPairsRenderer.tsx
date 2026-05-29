@@ -490,10 +490,14 @@ function SummaryBanner({
         )}
       </div>
       <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-        {allCorrect
-          ? correctExplanation || 'All terms matched their definitions.'
-          : wrongExplanation ||
-            `Correct pairings: ${pairs.map((p) => `${p.left} ↔ ${p.right}`).join('; ')}.`}
+        <MarkdownRenderer
+          content={
+            allCorrect
+              ? correctExplanation || 'All terms matched their definitions.'
+              : wrongExplanation ||
+                `Correct pairings: ${pairs.map((p) => `${p.left} ↔ ${p.right}`).join('; ')}.`
+          }
+        />
       </div>
     </div>
   );

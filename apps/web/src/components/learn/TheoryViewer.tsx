@@ -1,52 +1,152 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import UnderlineExt from '@tiptap/extension-underline';
-import Typography from '@tiptap/extension-typography';
-import Highlight from '@tiptap/extension-highlight';
-import { InlineMath, BlockMath } from '@/lib/tiptap-math';
+import { useMemo } from 'react';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
-// Phase 10.6 — read-only TipTap viewer for `TheoryContent.body`.
+// Phase 10.6 persisted theory as a TipTap JSON document built by
+// path-generator.ts → theoryInputToTipTap. That converter copies the model's
+// Markdown into TipTap *text* nodes verbatim (it only lifts `$…$`/`$$…$$` math
+// into math nodes), so the headings, bold, inline code, fenced code blocks,
+// blockquotes, and lists the model wrote survived only as literal Markdown
+// characters — and the old read-only TipTap viewer rendered them as plain text.
 //
-// The orchestrator (path-generator.ts → theoryInputToTipTap) emits a
-// minimal subset of TipTap nodes: doc / paragraph / heading (h2-h4) /
-// bulletList / listItem, plus inlineMath / blockMath when the AI used
-// `$...$` / `$$...$$` LaTeX. StarterKit covers the prose nodes; the
-// math extensions render via katex.renderToString at mount time.
-//
-// `editable: false` puts the editor in pure-render mode — no toolbar,
-// no slash-commands, no focus management. The drawer hosts navigation
-// (Mark as read & continue →) outside this component.
+// The stored shape has to stay TipTap JSON (path-translator + moderation walk
+// these nodes), so we fix rendering instead of storage: flatten the doc back
+// to a Markdown string and hand it to the shared MarkdownRenderer — the same
+// renderer chat, flashcards, and quiz questions use. This repairs both newly
+// generated and already-stored theory.
 
 interface TheoryViewerProps {
   body: unknown; // TipTap JSON document
 }
 
-export default function TheoryViewer({ body }: TheoryViewerProps) {
-  const editor = useEditor({
-    immediatelyRender: false,
-    editable: false,
-    extensions: [
-      StarterKit.configure({
-        // Heading is provided by StarterKit; we let it handle h1–h6.
-        codeBlock: false,
-      }),
-      UnderlineExt,
-      Highlight.configure({ multicolor: true }),
-      Typography,
-      InlineMath,
-      BlockMath,
-    ],
-    // Defensive: if the JSON is missing or malformed we fall back to an
-    // empty doc rather than crashing TipTap.
-    content: (body as object) ?? { type: 'doc', content: [{ type: 'paragraph' }] },
-  });
+interface TipTapNode {
+  type?: string;
+  text?: string;
+  attrs?: Record<string, unknown> | null;
+  marks?: Array<{ type?: string } | null> | null;
+  content?: TipTapNode[] | null;
+}
 
-  if (!editor) {
+// Inline marks → Markdown delimiters. A `code` mark short-circuits the others
+// (its text is literal), matching how MarkdownRenderer treats inline code.
+const MARK_DELIMITERS: Record<string, string> = {
+  bold: '**',
+  strong: '**',
+  italic: '*',
+  em: '*',
+  strike: '~~',
+  strikethrough: '~~',
+  s: '~~',
+};
+
+function attrString(node: TipTapNode, key: string): string {
+  const value = node.attrs?.[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function rawText(nodes: TipTapNode[] | null | undefined): string {
+  if (!Array.isArray(nodes)) return '';
+  return nodes
+    .map((n) => (n?.text ? n.text : n?.content ? rawText(n.content) : ''))
+    .join('');
+}
+
+function serializeTextNode(node: TipTapNode): string {
+  const text = node.text ?? '';
+  if (!text) return '';
+  const marks = Array.isArray(node.marks) ? node.marks : [];
+  if (marks.some((m) => m?.type === 'code')) return `\`${text}\``;
+  let out = text;
+  for (const mark of marks) {
+    const delimiter = mark?.type ? MARK_DELIMITERS[mark.type] : undefined;
+    if (delimiter) out = `${delimiter}${out}${delimiter}`;
+  }
+  return out;
+}
+
+function serializeInline(nodes: TipTapNode[] | null | undefined): string {
+  if (!Array.isArray(nodes)) return '';
+  let out = '';
+  for (const node of nodes) {
+    if (!node || typeof node !== 'object') continue;
+    switch (node.type) {
+      case 'text':
+        out += serializeTextNode(node);
+        break;
+      case 'inlineMath':
+        out += `$${attrString(node, 'latex')}$`;
+        break;
+      case 'hardBreak':
+        out += '\n';
+        break;
+      default:
+        out += node.content ? serializeInline(node.content) : (node.text ?? '');
+    }
+  }
+  return out;
+}
+
+// A listItem holds block children (usually a single paragraph). Flatten them
+// onto one Markdown bullet line.
+function listItemText(item: TipTapNode): string {
+  if (!Array.isArray(item.content)) return '';
+  return item.content
+    .map((child) =>
+      child?.type === 'paragraph' ? serializeInline(child.content) : serializeBlock(child),
+    )
+    .join(' ')
+    .trim();
+}
+
+function serializeBlock(node: TipTapNode | null | undefined): string {
+  if (!node || typeof node !== 'object') return '';
+  switch (node.type) {
+    case 'heading': {
+      const rawLevel = node.attrs?.level;
+      const level = typeof rawLevel === 'number' ? Math.min(6, Math.max(1, rawLevel)) : 2;
+      return `${'#'.repeat(level)} ${serializeInline(node.content)}`;
+    }
+    case 'paragraph':
+      return serializeInline(node.content);
+    case 'bulletList':
+      return (node.content ?? []).map((item) => `- ${listItemText(item)}`).join('\n');
+    case 'orderedList':
+      return (node.content ?? []).map((item, i) => `${i + 1}. ${listItemText(item)}`).join('\n');
+    case 'blockquote':
+      return (node.content ?? [])
+        .map((child) => serializeBlock(child))
+        .join('\n\n')
+        .split('\n')
+        .map((line) => `> ${line}`)
+        .join('\n');
+    case 'codeBlock':
+      return `\`\`\`${attrString(node, 'language')}\n${rawText(node.content)}\n\`\`\``;
+    case 'blockMath':
+      return `$$\n${attrString(node, 'latex')}\n$$`;
+    default:
+      return serializeInline(node.content);
+  }
+}
+
+function tiptapDocToMarkdown(body: unknown): string {
+  if (!body || typeof body !== 'object') return '';
+  const doc = body as TipTapNode;
+  const blocks = Array.isArray(doc.content) ? doc.content : [];
+  return blocks
+    .map((block) => serializeBlock(block))
+    .filter((chunk) => chunk.trim().length > 0)
+    .join('\n\n')
+    .trim();
+}
+
+export default function TheoryViewer({ body }: TheoryViewerProps) {
+  const markdown = useMemo(() => tiptapDocToMarkdown(body), [body]);
+
+  if (!markdown) {
     return (
       <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
-        Loading lesson…
+        This lesson has no content yet.
       </p>
     );
   }
@@ -54,70 +154,9 @@ export default function TheoryViewer({ body }: TheoryViewerProps) {
   return (
     <div
       className="learn-theory-viewer"
-      style={{
-        color: 'var(--on-surface)',
-        fontSize: '15px',
-        lineHeight: 1.6,
-      }}
+      style={{ color: 'var(--on-surface)', fontSize: '15px', lineHeight: 1.7 }}
     >
-      <style>{`
-        .learn-theory-viewer h1,
-        .learn-theory-viewer h2,
-        .learn-theory-viewer h3,
-        .learn-theory-viewer h4 {
-          font-family: var(--font-display);
-          color: var(--on-surface);
-          letter-spacing: -0.01em;
-        }
-        .learn-theory-viewer h2 {
-          font-size: 22px;
-          font-weight: 800;
-          margin: 0 0 12px;
-        }
-        .learn-theory-viewer h3 {
-          font-size: 17px;
-          font-weight: 700;
-          margin: 20px 0 8px;
-        }
-        .learn-theory-viewer h4 {
-          font-size: 15px;
-          font-weight: 700;
-          margin: 14px 0 4px;
-        }
-        .learn-theory-viewer p {
-          margin: 0 0 12px;
-          color: var(--on-surface);
-        }
-        .learn-theory-viewer ul {
-          margin: 0 0 14px;
-          padding-left: 22px;
-          color: var(--on-surface);
-        }
-        .learn-theory-viewer li { margin-bottom: 4px; }
-        .learn-theory-viewer ol {
-          margin: 0 0 14px;
-          padding-left: 22px;
-          color: var(--on-surface);
-        }
-        .learn-theory-viewer strong { color: var(--on-surface); }
-        .learn-theory-viewer em { color: var(--on-surface); }
-        .learn-theory-viewer code {
-          background: var(--surface-container-high);
-          color: var(--on-surface);
-          padding: 1px 5px;
-          border-radius: 4px;
-          font-size: 13px;
-        }
-        .learn-theory-viewer blockquote {
-          margin: 0 0 12px;
-          padding: 8px 14px;
-          border-left: 3px solid var(--primary);
-          background: var(--surface-container-low);
-          color: var(--on-surface);
-          border-radius: 0 var(--radius-md) var(--radius-md) 0;
-        }
-      `}</style>
-      <EditorContent editor={editor} />
+      <MarkdownRenderer content={markdown} />
     </div>
   );
 }

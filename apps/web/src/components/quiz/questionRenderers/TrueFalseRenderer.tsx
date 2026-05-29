@@ -224,11 +224,15 @@ export default function TrueFalseRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation ||
-                `The statement is ${correctValue ? 'true' : 'false'}.`
-              : question.wrongExplanation ||
-                `The statement is ${correctValue ? 'true' : 'false'}.`}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation ||
+                    `The statement is ${correctValue ? 'true' : 'false'}.`
+                  : question.wrongExplanation ||
+                    `The statement is ${correctValue ? 'true' : 'false'}.`
+              }
+            />
           </div>
         </div>
       )}
@@ -284,11 +288,15 @@ export default function TrueFalseRenderer({
                 )}
               </div>
               <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-                {reviewValue === correctValue
-                  ? question.correctExplanation ||
-                    `The statement is ${correctValue ? 'true' : 'false'}.`
-                  : question.wrongExplanation ||
-                    `The statement is ${correctValue ? 'true' : 'false'}.`}
+                <MarkdownRenderer
+                  content={
+                    reviewValue === correctValue
+                      ? question.correctExplanation ||
+                        `The statement is ${correctValue ? 'true' : 'false'}.`
+                      : question.wrongExplanation ||
+                        `The statement is ${correctValue ? 'true' : 'false'}.`
+                  }
+                />
               </div>
             </>
           ) : (

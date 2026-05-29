@@ -215,9 +215,13 @@ export default function FillBlankRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation || `Accepted answer: ${canonicalAnswer}.`
-              : question.wrongExplanation || `The correct answer is ${canonicalAnswer}.`}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation || `Accepted answer: ${canonicalAnswer}.`
+                  : question.wrongExplanation || `The correct answer is ${canonicalAnswer}.`
+              }
+            />
           </div>
         </div>
       )}

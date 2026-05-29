@@ -343,9 +343,13 @@ export default function SentenceReorderRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation || 'Every token is in the right place.'
-              : question.wrongExplanation || `Correct order: ${correctOrder.join(' · ')}.`}
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation || 'Every token is in the right place.'
+                  : question.wrongExplanation || `Correct order: ${correctOrder.join(' · ')}.`
+              }
+            />
           </div>
         </div>
       )}

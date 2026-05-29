@@ -433,10 +433,14 @@ export default function WordBankRenderer({
             )}
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-            {allCorrect
-              ? question.correctExplanation || 'Every blank matched the expected word.'
-              : question.wrongExplanation ||
-                `Expected: ${payload.slots.map((s) => s.correctAnswer).join(', ')}.`}
+            <MarkdownRenderer
+              content={
+                allCorrect
+                  ? question.correctExplanation || 'Every blank matched the expected word.'
+                  : question.wrongExplanation ||
+                    `Expected: ${payload.slots.map((s) => s.correctAnswer).join(', ')}.`
+              }
+            />
           </div>
         </div>
       )}

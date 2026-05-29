@@ -283,8 +283,12 @@ export default function EquationRenderer({
                 lineHeight: 1.6,
               }}
             >
-              {question.correctExplanation ||
-                'Equivalent expressions are accepted — the grader evaluates your answer numerically.'}
+              <MarkdownRenderer
+                content={
+                  question.correctExplanation ||
+                  'Equivalent expressions are accepted — the grader evaluates your answer numerically.'
+                }
+              />
             </div>
           )}
         </div>
