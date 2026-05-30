@@ -8,7 +8,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { sendSignupNotification } from '@/lib/email';
-import { validateGoals } from '../study-goals/route';
+import { validateGoals } from '@/lib/study-goals';
 
 export async function PUT(request: NextRequest) {
   try {
