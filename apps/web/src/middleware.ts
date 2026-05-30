@@ -2,12 +2,48 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+// Content-Security-Policy. Shipped in Report-Only first so it CANNOT break the
+// app while the allowlist is tuned — violations only log to the browser console
+// (and Sentry), nothing is blocked. Once a representative session reports zero
+// violations, rename the header below to 'Content-Security-Policy' to enforce.
+//
+// Sources reflect current integrations: Supabase (REST + storage images +
+// realtime websocket), PostHog (reverse-proxied through same-origin /ingest, so
+// 'self' already covers it), Sentry ingest, Google Fonts / Material Symbols, and
+// the Google/Apple OAuth redirect targets. 'unsafe-inline' on script/style is
+// required by Next's inline bootstrap script and this project's inline style
+// objects; tightening to per-request nonces is a deliberate later step.
+// NOTE: if presence uses a custom NEXT_PUBLIC_WS_URL host (not *.supabase.co),
+// add its wss:// origin to connect-src — Report-Only will surface it.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self' https://accounts.google.com https://appleid.apple.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-inline'",
+  "worker-src 'self' blob:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
+].join('; ');
+
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   response.headers.set('X-DNS-Prefetch-Control', 'off');
+  // HSTS is only honored by browsers over HTTPS, so setting it globally is safe.
+  // If the Coolify/Traefik proxy already emits this header, remove this line to
+  // avoid a duplicate (browsers honor the first one regardless).
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains; preload'
+  );
+  // Report-Only for now — see CONTENT_SECURITY_POLICY note above before enforcing.
+  response.headers.set('Content-Security-Policy-Report-Only', CONTENT_SECURITY_POLICY);
   return response;
 }
 
