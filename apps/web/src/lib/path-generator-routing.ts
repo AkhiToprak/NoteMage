@@ -60,8 +60,12 @@ export interface StructuredCallCtx<T> {
   stage: Stage;
   /** Raw corpus text. Null/empty means no source materials are attached. */
   corpus: string | null;
-  /** Stage-specific instructions (output of buildXxxPrompt). */
-  instructions: string;
+  /** Per-path-constant rule text (the `system` half of buildXxxPrompt) — the
+   *  cacheable prefix billed ~once per path. */
+  staticInstructions: string;
+  /** Per-slot/per-phase dynamic text (the `tail` half of buildXxxPrompt) plus
+   *  any retry/corrective notices — left uncached so the prefix stays stable. */
+  dynamicInstructions: string;
   /** Anthropic tool definition for the call. */
   anthropicTool: Anthropic.Messages.Tool;
   /** Gemini `responseSchema` — optional, when omitted only JSON mode is set. */
@@ -111,7 +115,11 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     const isUltraQuiz =
       !ctx.providerOverride && ctx.stage === 'quiz' && ctx.ultra === true;
     const model = isUltraQuiz ? AI_GENERATION_MODEL : AI_GENERATION_MODEL_LITE;
-    const system = buildCachedSystem(ctx.corpus, ctx.instructions);
+    const system = buildCachedSystem(
+      ctx.corpus,
+      ctx.staticInstructions,
+      ctx.dynamicInstructions,
+    );
     return forcedStructuredCallAnthropic<T>({
       system,
       tool: ctx.anthropicTool,
@@ -131,11 +139,19 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   }
 
   // Gemini branch — concatenate the same corpus block text as Anthropic
-  // uses (byte-identical so implicit caching matches across calls).
+  // uses (byte-identical so implicit caching matches across calls). Gemini
+  // has no explicit cache split, but keeping the static prefix ahead of the
+  // dynamic tail still helps its implicit cache.
   const model = GEMINI_PATH_MODEL;
-  const systemInstruction = ctx.corpus && ctx.corpus.trim().length > 0
-    ? `${buildSourceMaterialsBlock(ctx.corpus)}\n\n${ctx.instructions}`
-    : ctx.instructions;
+  const systemInstruction = [
+    ctx.corpus && ctx.corpus.trim().length > 0
+      ? buildSourceMaterialsBlock(ctx.corpus)
+      : null,
+    ctx.staticInstructions,
+    ctx.dynamicInstructions,
+  ]
+    .filter((part): part is string => Boolean(part && part.length > 0))
+    .join('\n\n');
 
   // `responseSchema` deliberately omitted from the SDK call — Gemini's
   // constrained-decoding rejects the path-structure schema as "too many

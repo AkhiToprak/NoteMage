@@ -124,7 +124,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       `Notebook: "${exam.notebook.name}"`,
     ].join('\n');
 
-    const system = buildCachedSystem(corpus, instructions);
+    // Corpus-only caching: instructions carry per-exam values (title, date,
+    // day count) so they go in the uncached tail slot — the corpus stays the
+    // sole cache key, robust to instruction tweaks.
+    const system = buildCachedSystem(corpus, '', instructions);
 
     const response = await anthropic.messages.create({
       model: AI_MODEL,

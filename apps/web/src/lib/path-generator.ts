@@ -396,7 +396,7 @@ export async function generatePathStructure(
     subjectWeights: opts.subjectWeights,
     language: opts.language ?? 'en',
   };
-  const instructions = buildPathStructurePrompt(ctx);
+  const { system, tail } = buildPathStructurePrompt(ctx);
   const meter = emptyMeter();
 
   // The model occasionally returns a phase with no `slots` (or drifted
@@ -406,11 +406,11 @@ export async function generatePathStructure(
   let structure: GeneratedPathStructure | null = null;
   let lastDetail = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !structure; attempt++) {
-    const attemptInstructions =
+    const attemptTail =
       attempt === 1
-        ? instructions
+        ? tail
         : [
-            instructions,
+            tail,
             '',
             '--- RETRY NOTICE ---',
             `Your previous structure was unusable: ${lastDetail}`,
@@ -420,7 +420,8 @@ export async function generatePathStructure(
       const raw = await forcedStructuredCall<unknown>({
         stage: 'structure',
         corpus: opts.corpus ?? null,
-        instructions: attemptInstructions,
+        staticInstructions: system,
+        dynamicInstructions: attemptTail,
         anthropicTool: PATH_STRUCTURE_TOOL,
         geminiSchema: PATH_STRUCTURE_SCHEMA_GEMINI,
         userMessage: `Design the path "${opts.title}". Use the tool now.`,
@@ -760,7 +761,7 @@ async function generateTheoryActivity(
   nextSortOrder: number,
 ): Promise<string> {
   const ctx = makeSlotContentContext(plan, phase, slot);
-  const instructions = buildTheoryPrompt(ctx);
+  const { system, tail } = buildTheoryPrompt(ctx);
 
   // Retry on validation failure or missing examples. examples are optional
   // in the schema, so an example-less section is accepted once the retries
@@ -769,11 +770,11 @@ async function generateTheoryActivity(
   let exampleLess: TheorySection | null = null;
   let lastError = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !input; attempt++) {
-    const attemptInstructions =
+    const attemptTail =
       attempt === 1
-        ? instructions
+        ? tail
         : [
-            instructions,
+            tail,
             '',
             '--- RETRY NOTICE ---',
             lastError,
@@ -783,7 +784,8 @@ async function generateTheoryActivity(
       const raw = await forcedStructuredCall<unknown>({
         stage: 'theory',
         corpus: plan.corpus,
-        instructions: attemptInstructions,
+        staticInstructions: system,
+        dynamicInstructions: attemptTail,
         anthropicTool: THEORY_SECTION_TOOL,
         geminiSchema: THEORY_SECTION_SCHEMA_GEMINI,
         userMessage: `Write the theory section for slot "${slot.title}".`,
@@ -859,7 +861,7 @@ async function generateFlashcardsActivity(
   theoryText?: string,
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot, theoryText);
-  const instructions = buildFlashcardsPrompt(ctx);
+  const { system, tail } = buildFlashcardsPrompt(ctx);
 
   // The model intermittently returns an empty / unusable `flashcards` array
   // under the forced-tool call. Retry up to MAX_ACTIVITY_ATTEMPTS with a
@@ -868,11 +870,11 @@ async function generateFlashcardsActivity(
   let resolved: NormalizedFlashcardsInput | null = null;
   let lastDetail = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !resolved; attempt++) {
-    const attemptInstructions =
+    const attemptTail =
       attempt === 1
-        ? instructions
+        ? tail
         : [
-            instructions,
+            tail,
             '',
             '--- RETRY NOTICE ---',
             'Your previous response had an empty or unusable `flashcards` array.',
@@ -882,7 +884,8 @@ async function generateFlashcardsActivity(
       const raw = await forcedStructuredCall<unknown>({
         stage: 'flashcards',
         corpus: plan.corpus,
-        instructions: attemptInstructions,
+        staticInstructions: system,
+        dynamicInstructions: attemptTail,
         anthropicTool: FLASHCARDS_FOR_SLOT_TOOL,
         geminiSchema: FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI,
         userMessage: `Generate flashcards for slot "${slot.title}" — only as many as the material supports. The flashcards array must not be empty.`,
@@ -951,12 +954,14 @@ async function generateFlashcardsActivity(
 async function callQuizDispatch(
   plan: PlanForGeneration,
   slotTitle: string,
-  attemptInstructions: string,
+  staticInstructions: string,
+  dynamicInstructions: string,
 ): Promise<QuizForSlotToolInput> {
   return forcedStructuredCall<QuizForSlotToolInput>({
     stage: 'quiz',
     corpus: plan.corpus,
-    instructions: attemptInstructions,
+    staticInstructions,
+    dynamicInstructions,
     anthropicTool: QUIZ_FOR_SLOT_TOOL,
     geminiSchema: QUIZ_FOR_SLOT_SCHEMA_GEMINI,
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
@@ -992,7 +997,7 @@ async function generateQuizActivity(
   nextSortOrder: number,
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
-  const instructions = buildQuizPrompt(ctx);
+  const { system, tail } = buildQuizPrompt(ctx);
   // Ultra paths generate quizzes with the premium model; non-ultra quizzes
   // (and every other activity) stay on the fast model. The routing
   // dispatcher reads `plan.ultra` and forces Anthropic+Sonnet on ultra
@@ -1005,18 +1010,18 @@ async function generateQuizActivity(
   let parseResult: ValidatedQuizSet | null = null;
   let lastError = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !parseResult; attempt++) {
-    const attemptInstructions =
+    const attemptTail =
       attempt === 1
-        ? instructions
+        ? tail
         : [
-            instructions,
+            tail,
             '',
             '--- RETRY NOTICE ---',
             `Your previous quiz was unusable: ${lastError}`,
             'Regenerate the entire quiz. The `questions` array MUST be non-empty and every question must match the exact payload shape for its kind.',
           ].join('\n');
     try {
-      const raw = await callQuizDispatch(plan, slot.title, attemptInstructions);
+      const raw = await callQuizDispatch(plan, slot.title, system, attemptTail);
       const result = parseQuizInput(raw, slot.title);
       if (result.ok) {
         parseResult = result.data;
@@ -1070,8 +1075,8 @@ async function generateQuizActivity(
       survivors: questions.length,
       minCount,
     });
-    const corrective = [
-      instructions,
+    const correctiveTail = [
+      tail,
       '',
       '--- RETRY NOTICE ---',
       'Your previous response included questions whose `kind` is outside the allowed list for this subject. Regenerate the entire quiz.',
@@ -1079,7 +1084,7 @@ async function generateQuizActivity(
       'Drop any kind not on this list.',
     ].join('\n');
     try {
-      const retryInput = await callQuizDispatch(plan, slot.title, corrective);
+      const retryInput = await callQuizDispatch(plan, slot.title, system, correctiveTail);
       const retryResult = parseQuizInput(retryInput, slot.title);
       if (retryResult.ok) {
         const retryParsed = retryResult.data;

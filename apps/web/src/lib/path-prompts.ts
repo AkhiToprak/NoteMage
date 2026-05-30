@@ -1,10 +1,12 @@
 // Phase 10.2 — System prompts for the guided path generator.
 //
 // Stage A builds the curriculum skeleton. Stage B fills each slot's
-// activities (theory / flashcards / quiz). Each builder returns a string
-// suitable as the `system` field on an Anthropic messages call. The
-// orchestrator (`path-generator.ts`) forces the relevant tool via
-// `tool_choice` so the AI is constrained to a single structured output.
+// activities (theory / flashcards / quiz). Each builder returns a
+// `{ system, tail }` split: `system` is the per-path-constant rule text
+// (cached via `buildCachedSystem`), `tail` is the per-slot dynamic text the
+// caller may extend with retry notices. The orchestrator (`path-generator.ts`)
+// forces the relevant tool via `tool_choice` so the AI is constrained to a
+// single structured output.
 
 import type Anthropic from '@anthropic-ai/sdk';
 import type { PathSlotKind } from './ai-tools';
@@ -134,36 +136,62 @@ export function buildSourceMaterialsBlock(corpus: string): string {
 }
 
 /**
- * Assemble the `system` payload for a path-generation call. When a material
- * corpus is present it becomes its own leading text block tagged
- * `cache_control: ephemeral`. That block is byte-identical across Stage A and
- * every Stage B call, so Anthropic caches it once and the ~50-call run is
- * billed for the corpus only a handful of times instead of fifty. With no
- * corpus there is nothing to cache — fall back to a plain instruction string.
+ * The output of every path-prompt builder, split into a cacheable prefix and
+ * a per-call tail. `system` is per-path-constant (role, JSON-shape spec, rule
+ * catalogs, voice/math rules, subject fragment, language directive) so it is
+ * billed ~once per path instead of on every one of the ~50 calls. `tail` is
+ * the per-slot/per-phase dynamic text (titles, objective, learner brief,
+ * reviewOf) plus any retry/corrective notices the caller appends.
+ */
+export interface SplitPrompt {
+  system: string;
+  tail: string;
+}
+
+/**
+ * Assemble the `system` payload for a path-generation call as discrete text
+ * blocks: an optional source-materials corpus, the per-path-constant static
+ * instructions, and the per-call dynamic tail. The corpus and static blocks
+ * are tagged `cache_control: ephemeral` so Anthropic caches them across the
+ * ~50-call run (and across an activity's 2–3 retries, since only the tail
+ * changes between attempts); the tail is left uncached. Always returns blocks
+ * — with no corpus it is `[static(cached), tail(uncached)]`, which is what
+ * makes even title-only paths cache their rule catalog. Empty `static` or
+ * `tail` blocks are skipped, so a caller wanting corpus-only caching can pass
+ * an empty `static` and put everything in `tail`.
  */
 export function buildCachedSystem(
   corpus: string | null | undefined,
-  instructions: string,
-): string | Anthropic.Messages.TextBlockParam[] {
-  if (!corpus || corpus.trim().length === 0) {
-    return instructions;
-  }
-  return [
-    {
+  staticInstructions: string,
+  dynamicTail: string,
+): Anthropic.Messages.TextBlockParam[] {
+  const blocks: Anthropic.Messages.TextBlockParam[] = [];
+  if (corpus && corpus.trim().length > 0) {
+    blocks.push({
       type: 'text',
       text: buildSourceMaterialsBlock(corpus),
       cache_control: { type: 'ephemeral' },
-    },
-    { type: 'text', text: instructions },
-  ];
+    });
+  }
+  if (staticInstructions.length > 0) {
+    blocks.push({
+      type: 'text',
+      text: staticInstructions,
+      cache_control: { type: 'ephemeral' },
+    });
+  }
+  if (dynamicTail.length > 0) {
+    blocks.push({ type: 'text', text: dynamicTail });
+  }
+  return blocks;
 }
 
 /**
  * Stage A — system prompt for `create_path_structure`. The AI returns the
  * full phase / slot skeleton in one tool call.
  */
-export function buildPathStructurePrompt(ctx: PathStructureContext): string {
-  const lines: string[] = [
+export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt {
+  const systemLines: string[] = [
     'You are NoteMage, an AI tutor that designs guided learning paths.',
     'Your job is to plan the SHAPE of the path — sections and slots — not the lesson content itself.',
     '',
@@ -194,32 +222,32 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): string {
     '- Section titles should read like "Section N: Topic" or similar — the UI renders them as banners.',
   ];
   if (ctx.hasSourceMaterials) {
-    lines.push(
+    systemLines.push(
       '- A SOURCE MATERIALS section is provided above. Ground the whole path in it: every section and slot must cover a topic the materials actually teach, sequenced to follow how the material builds up, and TOGETHER the slots should cover the material\'s important topics without leaving big gaps. Do not pad with generic subject topics the materials do not cover. Make each `topicHint` and `objective` point at the specific concepts and skills from those materials.',
     );
   }
-  lines.push(
-    '',
-    `Path title (user-provided, you may refine): "${ctx.title}"`,
-  );
-  if (ctx.brief) {
-    lines.push(`Learner brief: ${ctx.brief}`);
-  }
   const subjectFragment = subjectGuidanceFragment(ctx.subjects, ctx.subjectWeights);
   if (subjectFragment.length > 0) {
-    lines.push(subjectFragment);
+    systemLines.push(subjectFragment);
   }
   const dir = languageDirective(ctx.language);
-  if (dir) lines.unshift(dir, '');
-  return lines.join('\n');
+  if (dir) systemLines.unshift(dir, '');
+
+  const tailLines: string[] = [
+    `Path title (user-provided, you may refine): "${ctx.title}"`,
+  ];
+  if (ctx.brief) {
+    tailLines.push(`Learner brief: ${ctx.brief}`);
+  }
+  return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }
 
 /**
  * Stage B — theory section prompt. Returns ~300–500 words of structured
  * theory content for a single slot.
  */
-export function buildTheoryPrompt(ctx: SlotContentContext): string {
-  const lines: string[] = [
+export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
+  const systemLines: string[] = [
     'You are NoteMage, writing the theory section for ONE checkpoint slot inside a guided learning path.',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` wrappers.',
     '',
@@ -236,41 +264,43 @@ export function buildTheoryPrompt(ctx: SlotContentContext): string {
           'Ground this section in the SOURCE MATERIALS above — explain the actual facts, definitions, terminology, and examples found there. Do not write a generic version of the topic; teach what the provided material covers.',
         ]
       : []),
-    '',
+  ];
+  const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
+  if (subjectFragment.length > 0) {
+    systemLines.push(subjectFragment);
+  }
+  const dir = languageDirective(ctx.language);
+  if (dir) systemLines.unshift(dir, '');
+
+  const tailLines: string[] = [
     `Path: "${ctx.pathTitle}" — ${ctx.pathDescription}`,
     `Section: "${ctx.phaseTitle}" — ${ctx.phaseDescription}`,
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   ];
   if (ctx.slotObjective && ctx.slotObjective.trim().length > 0) {
-    lines.push(
+    tailLines.push(
       `Learning objective — orient the whole explanation toward enabling this: ${ctx.slotObjective.trim()}`,
     );
   }
   const briefLine = learnerBriefLine(ctx);
-  if (briefLine) lines.push('', briefLine);
+  if (briefLine) tailLines.push('', briefLine);
   if (ctx.reviewOf && ctx.reviewOf.length > 0) {
-    lines.push(
+    tailLines.push(
       '',
       'This slot reviews earlier slots — keep the explanation focused on connecting / reinforcing them. Each line below shows a slot and what it taught:',
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
-  const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
-  if (subjectFragment.length > 0) {
-    lines.push(subjectFragment);
-  }
-  const dir = languageDirective(ctx.language);
-  if (dir) lines.unshift(dir, '');
-  return lines.join('\n');
+  return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }
 
 /**
  * Stage B — flashcards prompt. Only as many cards as the slot material
  * genuinely supports — no forced minimum, no padding.
  */
-export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
-  const lines: string[] = [
+export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
+  const systemLines: string[] = [
     'You are NoteMage, generating flashcards for ONE checkpoint slot inside a guided learning path.',
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` / `parameters` wrappers — emit the JSON object directly.',
     '',
@@ -287,45 +317,47 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): string {
           'Build these cards from the SOURCE MATERIALS above — turn the actual facts, definitions, and details in that content into cards. Do not invent generic cards the materials do not support.',
         ]
       : []),
-    '',
+  ];
+  const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
+  if (subjectFragment.length > 0) {
+    systemLines.push(subjectFragment);
+  }
+  const dir = languageDirective(ctx.language);
+  if (dir) systemLines.unshift(dir, '');
+
+  const tailLines: string[] = [
     `Path: "${ctx.pathTitle}" — ${ctx.pathDescription}`,
     `Section: "${ctx.phaseTitle}"`,
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   ];
   const briefLine = learnerBriefLine(ctx);
-  if (briefLine) lines.push('', briefLine);
+  if (briefLine) tailLines.push('', briefLine);
   if (ctx.theoryText && ctx.theoryText.trim().length > 0) {
-    lines.push(
+    tailLines.push(
       '',
       'THEORY THE LEARNER JUST READ — build every card from THIS and nothing else. Make one card per distinct idea actually covered below; if only 2–3 ideas are here, make only 2–3 cards. Do NOT introduce facts that are not in this theory and do NOT repeat an idea to inflate the count:',
       ctx.theoryText.trim(),
     );
   }
   if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
-    lines.push(
+    tailLines.push(
       '',
       'This is a REVIEW slot — pull cards from the following earlier slots. Each line shows a slot and what it taught:',
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
-  const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
-  if (subjectFragment.length > 0) {
-    lines.push(subjectFragment);
-  }
-  const dir = languageDirective(ctx.language);
-  if (dir) lines.unshift(dir, '');
-  return lines.join('\n');
+  return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }
 
 /**
  * Stage B — quiz prompt. 5–8 mixed-kind questions, leveraging the v2
  * question kinds, restricted to the subjects' allowed palette.
  */
-export function buildQuizPrompt(ctx: SlotContentContext): string {
+export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
   const isFinalExam = ctx.slotKind === 'final_exam';
   const questionRange = isFinalExam ? '12–20 questions' : '5–8 questions';
-  const lines: string[] = [
+  const systemLines: string[] = [
     isFinalExam
       ? 'You are NoteMage, writing the FINAL EXAM for a guided learning path. This is the capstone — it should feel like a realistic, comprehensive exam that simulates the high-stakes test the learner is preparing for.'
       : 'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a guided learning path.',
@@ -373,54 +405,53 @@ export function buildQuizPrompt(ctx: SlotContentContext): string {
         ]
       : []),
   ];
+  const subjectFragment = subjectQuizGuidanceFragment(ctx.subjects, ctx.subjectWeights);
+  if (subjectFragment.length > 0) {
+    systemLines.push(subjectFragment);
+  }
+  const dir = languageDirective(ctx.language);
+  if (dir) systemLines.unshift(dir, '');
+
+  const tailLines: string[] = [];
   if (ctx.slotKind === 'assessment') {
-    lines.push(
-      '',
+    tailLines.push(
       'This is the SECTION CHECKPOINT (the assessment slot). It should test the whole section, not just the most recent slot.',
     );
     if (ctx.reviewOf && ctx.reviewOf.length > 0) {
-      lines.push(
+      tailLines.push(
         'Cover these earlier slots from the section. Each line shows a slot and what it taught:',
         ...ctx.reviewOf.map((s) => `- ${s}`),
       );
     }
   } else if (ctx.slotKind === 'final_exam') {
-    lines.push(
-      '',
+    tailLines.push(
       'This is the FINAL EXAM — the path-wide capstone. Cover material from every section below, weighted by importance, not by recency.',
     );
     if (ctx.reviewOf && ctx.reviewOf.length > 0) {
-      lines.push(
+      tailLines.push(
         'Topics covered across the path. Each line shows a slot and what it taught:',
         ...ctx.reviewOf.map((s) => `- ${s}`),
       );
     }
   } else if (ctx.slotKind === 'review' && ctx.reviewOf && ctx.reviewOf.length > 0) {
-    lines.push(
-      '',
+    tailLines.push(
       'This is a REVIEW slot — pull questions from these earlier slots. Each line shows a slot and what it taught:',
       ...ctx.reviewOf.map((s) => `- ${s}`),
     );
   }
-  const subjectFragment = subjectQuizGuidanceFragment(ctx.subjects, ctx.subjectWeights);
-  if (subjectFragment.length > 0) {
-    lines.push(subjectFragment);
-  }
-  lines.push(
-    '',
+  if (tailLines.length > 0) tailLines.push('');
+  tailLines.push(
     `Path: "${ctx.pathTitle}" — ${ctx.pathDescription}`,
     `Section: "${ctx.phaseTitle}"`,
     `Slot: "${ctx.slotTitle}"`,
     `Topic hint: ${ctx.slotTopicHint}`,
   );
   if (!isFinalExam && ctx.slotObjective && ctx.slotObjective.trim().length > 0) {
-    lines.push(
+    tailLines.push(
       `Objective to test — write questions that verify the learner can do this: ${ctx.slotObjective.trim()}`,
     );
   }
   const briefLine = learnerBriefLine(ctx);
-  if (briefLine) lines.push('', briefLine);
-  const dir = languageDirective(ctx.language);
-  if (dir) lines.unshift(dir, '');
-  return lines.join('\n');
+  if (briefLine) tailLines.push('', briefLine);
+  return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }
