@@ -9,7 +9,7 @@
 // single structured output.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import type { PathSlotKind } from './ai-tools';
+import { QUIZ_PAYLOAD_CATALOG, type PathSlotKind } from './ai-tools';
 import { pathLanguageName, type PathLanguageCode } from './path-languages';
 import {
   subjectGuidanceFragment,
@@ -387,18 +387,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
       ? 'Span the WHOLE path — pull questions from every section, vary difficulty (about 1/3 recall, 1/3 application, 1/3 synthesis), and end with the hardest items.'
       : 'Stay strictly within the slot\'s topic hint.',
     '',
-    'Payload shapes — the server rejects drift, so match these exactly:',
-    '- mc → {"options":["A","B","C","D"],"correctIndex":0..3}. Plain strings only; no {text,isCorrect} objects.',
-    '- true_false → {"correct": true|false}. The prompt itself is the statement to judge; payload only carries the answer key.',
-    '- fill_blank → {"blank":{"acceptableAnswers":["answer","alt-spelling"]}}. Provide 2–4 acceptable variants. In the `prompt`, mark the blank with a run of plain underscores (e.g. "In 1894, France and ____ formed an alliance"). NEVER use placeholder syntax like "{{BLANK}}", "{BLANK}", or "[BLANK]" — the learner will see it literally.',
-    '- word_bank → {"template":"... {{0}} ... {{1}} ...","slots":[{"correctAnswer":"x"},…],"wordBank":["x","y","distractor"]}. All three keys required. The `prompt` is a SHORT lead-in (e.g. "Complete the statement:") — do NOT paste the template into the prompt; the renderer shows the template separately and you\'ll get "{{0}}" rendered literally. `wordBank` must contain EVERY slot answer including duplicates: if the same word fills two slots, list it twice. Add 2–4 distractor tokens on top of the answer set.',
-    '- match_pairs → {"pairs":[{"left":"X","right":"Y"}]}. Keys are exactly `left` and `right`.',
-    '- translation → {"targetLanguage":"Spanish","blank":{"acceptableAnswers":["el libro rojo"]}}.',
-    '- sentence_reorder → {"correctOrder":["I","want","to","learn"]}. 2–12 tokens.',
-    '- equation → {"expectedExpression":"2*x + 3","variables":["x"],"tolerance":0.001}. Set `variables` when the expression contains them. Render math expressions inside the `prompt` with `$...$` (inline) or `$$...$$` (block) — the renderer parses these as LaTeX.',
-    '- code_output → {"language":"python","code":"print(2 + 2)","blank":{"acceptableAnswers":["4"]}}. `code` may contain newlines. The `prompt` is a short lead-in like "What does this print?" — never paste the code into the prompt; the renderer displays it as a syntax-highlighted block. Provide 2–4 `acceptableAnswers` covering common variants (e.g. trailing newline, quoted vs unquoted output). Languages: python, javascript, typescript, java, cpp, sql, plaintext.',
-    '- code_write → {"language":"python","starterCode":"def reverse_string(s):\\n    # your code here\\n    pass\\n","tests":[{"name":"hello","stdin":"hello","expectedStdout":"olleh\\n"}],"runTimeoutMs":5000}. The learner edits `starterCode` and the server runs the final program once per test case, piping `stdin` (optional) and comparing the program\'s stdout to `expectedStdout` exactly (whitespace-sensitive). 1–6 tests. Always set `starterCode` so the learner has a scaffold — a function signature with a `# your code here` body for Python, an empty `function ...` for JS, etc. The `prompt` describes the task in plain English ("Write a function that returns the reverse of a string."). Languages: python, javascript, typescript, java, cpp, sql, go, rust.',
-    '- timeline → {"events":[{"year":"1914","label":"Outbreak of WWI"}, …]}. 3–8 distinct events with their canonical year. Years are plain strings (e.g. "1914" or "300 BCE"). The `prompt` is a short framing line like "Place each event on the timeline." — do NOT list the events in the prompt.',
+    QUIZ_PAYLOAD_CATALOG,
     ...(ctx.hasSourceMaterials
       ? [
           'Write every question FROM the SOURCE MATERIALS above — test what that content actually states. Ground each prompt, answer, and explanation in the material rather than generic subject knowledge.',

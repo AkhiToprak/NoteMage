@@ -353,6 +353,28 @@ export const QUIZ_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
+// The canonical per-kind quiz payload catalog (Quiz v2). SINGLE SOURCE OF
+// TRUTH shared by the chat quiz tool (`QUIZ_TOOL_V2`, below) and the path
+// quiz system prompt (`buildQuizPrompt` in `path-prompts.ts`) so the two can
+// never silently drift. It describes the exact `payload` shape the server
+// validates per kind (`QuizQuestionV2Schema` in `@notemage/shared`).
+// Pedagogical "which kind to use when" guidance is intentionally NOT here —
+// that lives in each caller's surrounding prose.
+export const QUIZ_PAYLOAD_CATALOG = [
+  'Payload shapes — the server rejects drift, so match these exactly:',
+  '- mc → {"options":["A","B","C","D"],"correctIndex":0..3}. Plain strings only; no {text,isCorrect} objects.',
+  '- true_false → {"correct": true|false}. The prompt itself is the statement to judge; payload only carries the answer key.',
+  '- fill_blank → {"blank":{"acceptableAnswers":["answer","alt-spelling"]}}. Provide 2–4 acceptable variants; `caseSensitive` and `fuzzyThreshold` are optional (default fuzzyThreshold 0.85). In the `prompt`, mark the blank with a run of plain underscores (e.g. "In 1894, France and ____ formed an alliance"). NEVER use placeholder syntax like "{{BLANK}}", "{BLANK}", or "[BLANK]" — the learner will see it literally.',
+  '- word_bank → {"template":"... {{0}} ... {{1}} ...","slots":[{"correctAnswer":"x"},…],"wordBank":["x","y","distractor"]}. All three keys required. The `prompt` is a SHORT lead-in (e.g. "Complete the statement:") — do NOT paste the template into the prompt; the renderer shows the template separately and you\'ll get "{{0}}" rendered literally. `wordBank` must contain EVERY slot answer including duplicates: if the same word fills two slots, list it twice. Add 2–4 distractor tokens on top of the answer set.',
+  '- match_pairs → {"pairs":[{"left":"X","right":"Y"}]}. Keys are exactly `left` and `right`. 2–8 pairs.',
+  '- translation → {"targetLanguage":"Spanish","blank":{"acceptableAnswers":["el libro rojo"]}}. Like fill_blank with a target-language tag; default fuzzyThreshold 0.75 (looser, for accents/diacritics).',
+  '- sentence_reorder → {"correctOrder":["I","want","to","learn"]}. 2–12 tokens.',
+  '- equation → {"expectedExpression":"2*x + 3","variables":["x"],"tolerance":0.001}. Set `variables` when the expression contains them so the grader can test multiple sample points. Render math expressions inside the `prompt` with `$...$` (inline) or `$$...$$` (block) — the renderer parses these as LaTeX.',
+  '- code_output → {"language":"python","code":"print(2 + 2)","blank":{"acceptableAnswers":["4"]}}. `code` may contain newlines. The `prompt` is a short lead-in like "What does this print?" — never paste the code into the prompt; the renderer displays it as a syntax-highlighted block. Provide 2–4 `acceptableAnswers` covering common variants (e.g. trailing newline, quoted vs unquoted output). Languages: python, javascript, typescript, java, cpp, sql, plaintext. Reserve for coding subjects.',
+  '- code_write → {"language":"python","starterCode":"def reverse_string(s):\\n    # your code here\\n    pass\\n","tests":[{"name":"hello","stdin":"hello","expectedStdout":"olleh\\n"}],"runTimeoutMs":5000}. The learner edits `starterCode` and the server runs the final program once per test case, piping `stdin` (optional) and comparing the program\'s stdout to `expectedStdout` exactly (whitespace-sensitive). 1–6 tests. Always set `starterCode` so the learner has a scaffold — a function signature with a `# your code here` body for Python, an empty `function ...` for JS, etc. The `prompt` describes the task in plain English ("Write a function that returns the reverse of a string."). Languages: python, javascript, typescript, java, cpp, sql, go, rust. Reserve for coding subjects.',
+  '- timeline → {"events":[{"year":"1914","label":"Outbreak of WWI"}, …]}. 3–8 distinct events with their canonical year. Years are plain strings (e.g. "1914" or "300 BCE"). The renderer fixes the years on an axis and shuffles the labels — the learner drags each label onto the matching year. The `prompt` is a short framing line like "Place each event on the timeline." — do NOT list the events in the prompt. Reserve for history/humanities subjects.',
+].join('\n');
+
 // QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Each question
 // carries an explicit `kind` discriminator and a kind-specific `payload`.
 // Anthropic tool inputs don't support discriminated unions cleanly, so the
@@ -370,18 +392,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     '4. `word_bank` payloads MUST include all three of `template`, `slots`, and `wordBank` — none are optional.',
     '5. `match_pairs` uses keys `left` and `right` on each pair object. NEVER `term`/`definition` or `key`/`value`.',
     '',
-    'Supported kinds and exact payload shapes:',
-    '- mc: { options: string[4]; correctIndex: 0|1|2|3 }. For factual recall. Example payload: {"options":["Lima","Bogotá","Quito","Caracas"],"correctIndex":0}',
-    '- true_false: { correct: boolean }. The question `prompt` IS the statement to judge; payload only carries the answer key. Example prompt: "The mitochondria produces ATP." with payload {"correct":true}.',
-    '- fill_blank: { blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Typed text answer; provide 2–4 acceptable spellings/variants. Default fuzzyThreshold 0.85. In the `prompt`, mark the blank with a run of plain underscores (e.g. "The powerhouse of the cell is the ____"). NEVER use placeholder syntax like "{{BLANK}}", "{BLANK}", or "[BLANK]" — those render literally. Example: {"blank":{"acceptableAnswers":["mitochondria","mitochondrion"]}}',
-    '- word_bank: { template: string with {{0}}, {{1}} markers; slots: [{ correctAnswer: string }]; wordBank: string[] }. Drag tokens from the bank into the template slots. The top-level `prompt` is a SHORT lead-in only (e.g. "Complete the statement:") — NEVER paste the template into the prompt; "{{0}}" will render literally on screen. `wordBank` MUST contain every slot answer with the right multiplicity: if the same word fills two slots, the bank must list it twice, otherwise the puzzle is unsolvable. Add 2–4 distractor tokens on top of the answers. Example: {"template":"The {{0}} is the powerhouse of the {{1}}.","slots":[{"correctAnswer":"mitochondria"},{"correctAnswer":"cell"}],"wordBank":["mitochondria","cell","nucleus","ribosome"]}',
-    '- match_pairs: { pairs: [{ left: string; right: string }] }. Two columns, render the right side shuffled; the user draws connections. 2–8 pairs. Example: {"pairs":[{"left":"H2O","right":"Water"},{"left":"NaCl","right":"Salt"}]}',
-    '- translation: { targetLanguage: string; blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Like fill_blank but with a target-language tag; default fuzzyThreshold 0.75 (looser, for accents/diacritics).',
-    '- sentence_reorder: { correctOrder: string[] }. Tokens shown shuffled; the user drags them into the correct order. 2–12 tokens. Example: {"correctOrder":["I","want","to","learn","Spanish"]}',
-    '- equation: { expectedExpression: string; tolerance?: number; variables?: string[] }. Math input (e.g. "2*x + 3"). Set variables when the expression contains variables so the grader can test multiple sample points.',
-    '- code_output: { language: "python" | "javascript" | "typescript" | "java" | "cpp" | "sql" | "plaintext"; code: string; blank: { acceptableAnswers: string[]; caseSensitive?: boolean; fuzzyThreshold?: number } }. Show a real, runnable code snippet; the learner types the printed output. `code` may contain newlines. The prompt is a short lead-in like "What does this print?". Reserve for coding subjects.',
-    '- timeline: { events: [{ year: string; label: string }] }. 3–8 historical events with their canonical year. The renderer fixes the years on an axis and shuffles the labels — the learner drags each label onto the matching year. Reserve for history/humanities subjects.',
-    '- code_write: { language: "python" | "javascript" | "typescript" | "java" | "cpp" | "sql" | "go" | "rust"; starterCode: string; tests: [{ name?: string; stdin?: string; expectedStdout: string }]; runTimeoutMs?: number }. The learner writes code in an editor; the server runs it against each `tests[i].stdin` and compares stdout. 1–6 tests. `starterCode` pre-fills the editor with a signature/scaffold. `expectedStdout` must EXACTLY match what a correct program prints (including trailing newlines if any). Reserve for coding subjects.',
+    QUIZ_PAYLOAD_CATALOG,
     '',
     'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math, code_output for coding output prediction, timeline for chronology. Avoid all-MC unless the material is purely factual. Only emit `kind` values from the allowed list the subject-aware prompt gives you — anything outside it will be dropped.',
   ].join('\n'),
