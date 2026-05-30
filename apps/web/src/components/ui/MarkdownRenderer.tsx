@@ -284,39 +284,6 @@ const bubbleComponents: Components = {
   ),
 };
 
-/* Syntax highlighting token colors matching Notemage's purple aesthetic */
-const HLJS_STYLES = `
-  .md-renderer .hljs-keyword,
-  .md-renderer .hljs-selector-tag,
-  .md-renderer .hljs-built_in { color: #c4a0ff; }
-  .md-renderer .hljs-string,
-  .md-renderer .hljs-attr { color: #ffde59; }
-  .md-renderer .hljs-number,
-  .md-renderer .hljs-literal { color: #ff9e64; }
-  .md-renderer .hljs-function,
-  .md-renderer .hljs-title,
-  .md-renderer .hljs-title.function_ { color: #7ec8ff; }
-  .md-renderer .hljs-params { color: #e0daf8; font-style: italic; }
-  .md-renderer .hljs-comment,
-  .md-renderer .hljs-quote { color: #5c5680; font-style: italic; }
-  .md-renderer .hljs-variable,
-  .md-renderer .hljs-template-variable { color: #e0daf8; }
-  .md-renderer .hljs-type,
-  .md-renderer .hljs-class .hljs-title { color: #7ec8ff; }
-  .md-renderer .hljs-tag { color: #c4a0ff; }
-  .md-renderer .hljs-name { color: #c4a0ff; }
-  .md-renderer .hljs-attribute { color: #b9c3ff; }
-  .md-renderer .hljs-symbol,
-  .md-renderer .hljs-bullet { color: #ff9e64; }
-  .md-renderer .hljs-addition { color: #a6e3a1; }
-  .md-renderer .hljs-deletion { color: #ff6b8a; }
-  .md-renderer .hljs-operator { color: #c4a0ff; }
-  .md-renderer .hljs-punctuation { color: #8b85a8; }
-  .md-renderer .hljs-property { color: #b9c3ff; }
-  .md-renderer .hljs-regexp { color: #ff9e64; }
-  .md-renderer .hljs-meta { color: #ae89ff; }
-`;
-
 export default function MarkdownRenderer({ content, variant = 'bubble' }: MarkdownRendererProps) {
   return (
     <div
@@ -327,14 +294,6 @@ export default function MarkdownRenderer({ content, variant = 'bubble' }: Markdo
       }}
       className="md-renderer"
     >
-      <style>{`
-        .md-renderer > *:first-child { margin-top: 0 !important; }
-        .md-renderer > *:last-child { margin-bottom: 0 !important; }
-        .md-renderer ul { list-style-type: disc; }
-        .md-renderer ol { list-style-type: decimal; }
-        .md-renderer li::marker { color: rgba(174,137,255,0.6); }
-        ${HLJS_STYLES}
-      `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}

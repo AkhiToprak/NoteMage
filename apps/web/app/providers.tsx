@@ -10,7 +10,7 @@ import { AnalyticsConsentBanner } from '@/components/analytics/AnalyticsConsentB
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PostHogProvider>
-      <SessionProvider>
+      <SessionProvider refetchOnWindowFocus={false}>
         <PostHogIdentify />
         <ThemeProvider>
           <CelebrationProvider>

@@ -258,7 +258,7 @@ export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
     'Voice: warm, plain, example-driven. Short sentences. No marketing fluff.',
     'Length: aim for ~300–500 words across introduction + keyPoints + examples (+ summary).',
     'Stay strictly within the slot\'s topic hint — do NOT drift into adjacent topics or other slots.',
-    'For math/science topics: wrap every mathematical expression in `$...$` for inline use (e.g. "the formula $E = mc^2$ tells us…") and `$$...$$` for standalone display equations on their own line. The viewer renders these via KaTeX — never write math as plain text like "E = mc^2".',
+    'For math/science topics: wrap genuine mathematical notation in `$...$` (inline, e.g. "the formula $E = mc^2$ tells us…") or `$$...$$` (standalone display equation on its own line). The viewer renders these via KaTeX — never write real math as plain text. For simple chemistry formulae and sub/superscripts, PREFER Unicode (e.g. C₆H₁₂O₆, 6 CO₂ + 6 H₂O → C₆H₁₂O₆ + 6 O₂, E = mc²): it renders directly and avoids escaping pitfalls. Reserve LaTeX for notation Unicode cannot express (fractions, integrals, roots, matrices).',
     ...(ctx.hasSourceMaterials
       ? [
           'Ground this section in the SOURCE MATERIALS above — explain the actual facts, definitions, terminology, and examples found there. Do not write a generic version of the topic; teach what the provided material covers.',

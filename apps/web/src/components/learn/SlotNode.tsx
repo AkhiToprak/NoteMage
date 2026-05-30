@@ -181,6 +181,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
           // The guided path is a stepped sequence, so the
           // first unlocked-and-incomplete slot maps to aria-current=step.
           aria-current={isActive ? 'step' : undefined}
+          disabled={isLocked}
           className="learn-path-node-btn"
           style={{
             width: `${SIZE}px`,

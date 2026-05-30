@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import ActivityHeatmap from '@/components/features/ActivityHeatmap';
@@ -125,6 +126,7 @@ function getActivityStyle(subject?: string | null) {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [notebookCount, setNotebookCount] = useState<number | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [todos, setTodos] = useState<TodoItem[]>([]);
@@ -491,6 +493,19 @@ export default function DashboardPage() {
                 })
               : [];
 
+            const headerTrailing = badge || (
+              <span
+                className="material-symbols-outlined stat-arrow"
+                style={{
+                  color: arrowColor,
+                  fontSize: '22px',
+                  transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                }}
+              >
+                arrow_forward
+              </span>
+            );
+
             const cardContent = (
               <div
                 style={{
@@ -503,6 +518,7 @@ export default function DashboardPage() {
                   transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1)',
                   height: '100%',
                 }}
+                onClick={href ? () => router.push(href) : undefined}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-soft)';
                   const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
@@ -551,17 +567,23 @@ export default function DashboardPage() {
                       {icon}
                     </span>
                   </div>
-                  {badge || (
-                    <span
-                      className="material-symbols-outlined stat-arrow"
+                  {href ? (
+                    <Link
+                      href={href}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Open ${label}`}
                       style={{
-                        color: arrowColor,
-                        fontSize: '22px',
-                        transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        borderRadius: '8px',
                       }}
                     >
-                      arrow_forward
-                    </span>
+                      {headerTrailing}
+                    </Link>
+                  ) : (
+                    headerTrailing
                   )}
                 </div>
 
@@ -945,17 +967,6 @@ export default function DashboardPage() {
                 {child}
               </div>
             );
-
-            if (href) {
-              return wrapper(
-                <Link
-                  href={href}
-                  style={{ textDecoration: 'none', display: 'block', height: '100%' }}
-                >
-                  {cardContent}
-                </Link>
-              );
-            }
 
             return wrapper(cardContent);
           }

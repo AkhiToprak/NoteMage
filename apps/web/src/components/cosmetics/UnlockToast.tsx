@@ -20,7 +20,7 @@ import { ProfileBackground } from './ProfileBackground';
  * surface.
  *
  * Design:
- * - The provider polls `/api/user/cosmetics/pending-unlocks` every 12s and
+ * - The provider polls `/api/user/cosmetics/pending-unlocks` every 30s and
  *   maintains a FIFO queue of pending unlocks. It dedupes by notification id
  *   so repeated polls don't stack duplicates.
  * - Exactly ONE toast is visible at a time. When it auto-dismisses (or the
@@ -64,7 +64,7 @@ export function useUnlocks(): UnlockContextValue {
   return ctx;
 }
 
-const POLL_INTERVAL_MS = 12_000;
+const POLL_INTERVAL_MS = 30_000;
 const AUTO_DISMISS_MS = 7_000;
 const EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 

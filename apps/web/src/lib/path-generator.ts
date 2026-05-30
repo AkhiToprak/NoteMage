@@ -33,6 +33,7 @@ import {
   type QuizForSlotToolInput,
   type PathSlotKind,
 } from './ai-tools';
+import { repairMathLatex } from './math-latex-repair';
 import {
   PATH_STRUCTURE_SCHEMA_GEMINI,
   THEORY_SECTION_SCHEMA_GEMINI,
@@ -206,11 +207,11 @@ interface TipTapDoc {
 }
 
 function inlineMathNode(latex: string): TipTapNode {
-  return { type: 'inlineMath', attrs: { latex } };
+  return { type: 'inlineMath', attrs: { latex: repairMathLatex(latex) } };
 }
 
 function blockMathNode(latex: string): TipTapNode {
-  return { type: 'blockMath', attrs: { latex } };
+  return { type: 'blockMath', attrs: { latex: repairMathLatex(latex) } };
 }
 
 // Match `$...$` runs that don't contain `$` or newlines. Block math

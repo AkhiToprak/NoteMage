@@ -182,6 +182,19 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
     }
   }
 
+  // Drop a crowded leading-month label. Real month starts are always ≥4
+  // columns apart, so the only pair that can collide is the short leading
+  // partial month at the left edge and the first full month right after it
+  // (most visibly "Nov"/"Dec" on the 375px grid). When they fall within a
+  // label-width of each other, drop the earlier (partial) one so the labels
+  // never overlap.
+  const colWidth = CELL_SIZE + CELL_GAP;
+  const MIN_LABEL_GAP_PX = 28;
+  const spacedMonthLabels = monthLabels.filter((m, i) => {
+    const next = monthLabels[i + 1];
+    return !(next && (next.week - m.week) * colWidth < MIN_LABEL_GAP_PX);
+  });
+
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, date: string, count: number) => {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -304,7 +317,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
               }}
             >
               {/* Month labels */}
-              {monthLabels.map((m, i) => (
+              {spacedMonthLabels.map((m, i) => (
                 <div
                   key={`${m.label}-${i}`}
                   style={{

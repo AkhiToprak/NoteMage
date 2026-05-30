@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { hasProAccess } from '@/lib/pro-access';
 import { TutorialContext, type TutorialContextValue } from './TutorialContext';
 import { TutorialOverlay } from './TutorialOverlay';
 import { getStepConfig } from './steps';
@@ -120,7 +121,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const onboardingComplete = session?.user?.onboardingComplete === true;
   const serverState = session?.user?.tutorialState;
   const userId = session?.user?.id ?? null;
-  const isPro = session?.user?.tier === 'PRO';
+  const isPro = hasProAccess(session?.user);
   const { isPhone } = useBreakpoint();
 
   const [step, setStep] = useState<TutorialStep>('idle');
@@ -130,6 +131,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const targetsRef = useRef<Map<TutorialTargetKey, HTMLElement>>(new Map());
   const persistedRef = useRef<TutorialPersistedState>({});
+  // Guards the server-reconcile effect from re-adopting the stale
+  // completedAt/dismissedAt while a restart() (Re-take tour) reset is in
+  // flight — otherwise the tour is stood back down before the reset lands.
+  const restartingRef = useRef(false);
 
   // Hydrate per-user state once we know who the user is. Re-runs on userId
   // change so a fresh signup on the same browser starts from a clean slate.
@@ -150,6 +155,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // local mirror doesn't know yet, adopt it and stand the tour down.
   useEffect(() => {
     if (!hydrated || !serverState) return;
+    // A restart just cleared local terminal state; the session may still
+    // report the old completedAt/dismissedAt until updateSession() lands.
+    // Adopting them now would cancel the restart, so skip while in flight.
+    if (restartingRef.current) return;
     let mutated: TutorialPersistedState | null = null;
 
     if (serverState.completedAt && !persistedRef.current.completedAt) {
@@ -261,14 +270,24 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   const restart = useCallback(() => {
+    restartingRef.current = true;
     setResult(null);
     persistedRef.current = { step: 'welcome' };
     writeStored(userId, persistedRef.current);
     setStep('welcome');
-    void patchServer({ reset: true }).then(() => {
-      void patchServer({ step: 'welcome' });
-      void updateSession();
-    });
+    // Hold the reconcile guard until BOTH the server reset and the session
+    // refresh have landed, so the effect never re-adopts the stale terminal
+    // timestamps. patchServer/updateSession swallow their own errors; the
+    // finally still releases the guard if anything rejects.
+    void (async () => {
+      try {
+        await patchServer({ reset: true });
+        await patchServer({ step: 'welcome' });
+        await updateSession();
+      } finally {
+        restartingRef.current = false;
+      }
+    })();
   }, [updateSession, userId]);
 
   const register = useCallback((key: TutorialTargetKey, el: HTMLElement) => {
