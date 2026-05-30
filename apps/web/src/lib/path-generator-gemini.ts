@@ -7,8 +7,19 @@
 // the caller (`path-generator.ts`) feeds it through the same Zod
 // validators used for the Anthropic side, so the two paths are
 // apples-to-apples downstream.
+//
+// Path generation (the basic tier runs on Gemini, so this is where the
+// path-gen COGS lives) additionally backs the per-path-constant prefix
+// (corpus + stage rules) with an explicit Gemini `CachedContent` resource
+// via the opt-in `cacheablePrefix`/`dynamicTail` split, so the ~50 calls in
+// a run don't re-send it. Caching is strictly best-effort: a sub-threshold
+// prefix, a create failure, or a stale cache transparently falls back to
+// sending the prefix inline, and `GEMINI_PATH_CACHE_DISABLED=1` turns it off
+// entirely. Non-path callers (translation, moderation) pass a flat
+// `systemInstruction` and are unaffected.
 
-import type { Content, Schema } from '@google/genai';
+import type { Content, GenerateContentConfig, Schema } from '@google/genai';
+import { createHash } from 'node:crypto';
 import { getGeminiClient, GEMINI_PATH_MODEL, GEMINI_MAX_OUTPUT_TOKENS } from './gemini';
 
 export interface GeminiUsage {
@@ -16,15 +27,109 @@ export interface GeminiUsage {
   promptTokens: number;
   /** Gemini `usageMetadata.candidatesTokenCount` — total output tokens. */
   candidatesTokens: number;
-  /** Gemini `usageMetadata.cachedContentTokenCount` — only populated when
-   *  an explicit `CachedContent` resource was attached. Implicit cache
-   *  hits do not surface a token count (the discount is applied silently),
-   *  so a low value here does not mean caching is broken. */
+  /** Gemini `usageMetadata.cachedContentTokenCount` — tokens served from an
+   *  explicit `CachedContent` resource. Populated when the prefix cache below
+   *  is in effect; implicit cache hits do not surface a count (the discount is
+   *  applied silently), so a low value does not mean caching is broken. */
   cachedTokens: number;
 }
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ── Explicit context cache for the constant path-prompt prefix ──────────
+//
+// Gemini 2.5 Flash applies a billing discount on an explicit `CachedContent`
+// resource. We create one per distinct (corpus + stage-rules) prefix, keyed
+// by hash, and reuse it across that stage's calls in a run (and, for
+// title-only paths whose prefix is identical across users, across runs). The
+// registry is process-local; a short TTL plus lazy pruning keep both it and
+// Google-side storage small. Everything here is best-effort and never throws
+// — `getOrCreateCachedPrefix` returns null whenever the caller should just
+// send the prefix inline.
+
+const CACHE_TTL_SECONDS = 900; // 15 min — comfortably spans one path run
+const CACHE_MIN_PREFIX_CHARS = 4096; // ~1024 tokens, Gemini 2.5 Flash's min cacheable size
+const CACHE_EXPIRY_BUFFER_MS = 30_000; // stop using an entry 30s before its TTL ends
+const CACHE_FAILURE_COOLDOWN_MS = 120_000; // after a failed create, skip this prefix for 2 min
+
+interface PrefixCacheEntry {
+  /** Resolved cache resource name, or null after a failed/declined create. */
+  name: string | null;
+  /** Epoch ms after which this entry must not be reused. */
+  expiresAt: number;
+  /** In-flight create, so concurrent callers share one round-trip. */
+  pending?: Promise<string | null>;
+}
+
+const prefixCacheRegistry = new Map<string, PrefixCacheEntry>();
+
+function pathCacheDisabled(): boolean {
+  const v = process.env.GEMINI_PATH_CACHE_DISABLED;
+  return v === '1' || v === 'true';
+}
+
+function prefixKey(prefix: string): string {
+  return createHash('sha256').update(prefix).digest('hex');
+}
+
+function prunePrefixCache(now: number): void {
+  for (const [key, entry] of prefixCacheRegistry) {
+    if (!entry.pending && entry.expiresAt <= now) prefixCacheRegistry.delete(key);
+  }
+}
+
+async function createCachedPrefix(model: string, prefix: string): Promise<string | null> {
+  try {
+    const cached = await getGeminiClient().caches.create({
+      model,
+      config: {
+        systemInstruction: prefix,
+        ttl: `${CACHE_TTL_SECONDS}s`,
+        displayName: 'notemage-path-prefix',
+      },
+    });
+    return cached.name ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a live `CachedContent` name for `prefix`, creating one on first use
+ * and reusing it across the run. Returns null — meaning the caller should send
+ * the prefix inline — when caching is disabled, the prefix is below Gemini's
+ * minimum cacheable size, or creation fails. Never throws.
+ */
+async function getOrCreateCachedPrefix(model: string, prefix: string): Promise<string | null> {
+  if (pathCacheDisabled() || prefix.length < CACHE_MIN_PREFIX_CHARS) return null;
+
+  const now = Date.now();
+  prunePrefixCache(now);
+  const key = prefixKey(prefix);
+
+  const existing = prefixCacheRegistry.get(key);
+  if (existing && existing.expiresAt - CACHE_EXPIRY_BUFFER_MS > now) {
+    return existing.pending ? existing.pending : existing.name;
+  }
+
+  const pending = createCachedPrefix(model, prefix);
+  prefixCacheRegistry.set(key, { name: null, expiresAt: now + CACHE_TTL_SECONDS * 1000, pending });
+  const name = await pending;
+  prefixCacheRegistry.set(key, {
+    name,
+    expiresAt: Date.now() + (name ? CACHE_TTL_SECONDS * 1000 : CACHE_FAILURE_COOLDOWN_MS),
+  });
+  return name;
+}
+
+function dropCachedPrefix(prefix: string): void {
+  prefixCacheRegistry.delete(prefixKey(prefix));
+}
+
+function joinNonEmpty(parts: string[]): string {
+  return parts.filter((p) => p.length > 0).join('\n\n');
 }
 
 /**
@@ -36,18 +141,33 @@ async function sleep(ms: number): Promise<void> {
  * in `path-generator.ts` (which adds 3 more attempts with corrective
  * prompts) behaves the same regardless of provider.
  *
- * On a successful attempt, calls `onUsage` with the Gemini usage shape;
- * the caller (`path-generator-routing.ts` dispatcher) normalizes into
- * the unified `NormalizedUsage`.
+ * Two input modes:
+ *   - `cacheablePrefix` (+ `dynamicTail`) — path generation. The constant
+ *     prefix is backed by an explicit `CachedContent` resource when it clears
+ *     the size threshold; otherwise it is sent inline. A failure on a cached
+ *     attempt drops the cache and retries inline, so a bad cache never fails a
+ *     call.
+ *   - `systemInstruction` — flat instruction for non-cached callers
+ *     (translation, moderation); behaviour is unchanged.
  *
- * Throws after exhausting retries. The caller catches and retries
- * again at the activity level.
+ * On a successful attempt, calls `onUsage` with the Gemini usage shape;
+ * the caller normalizes it into the unified `NormalizedUsage`.
+ *
+ * Throws after exhausting retries. The caller catches and retries again
+ * at the activity level.
  */
 export async function forcedStructuredCallGemini<T>(opts: {
-  /** Full system instruction. The corpus block is baked in as the
-   *  leading text so implicit caching (Gemini 2.5 Flash) can match it
-   *  byte-identically across every Stage A + Stage B call in a run. */
-  systemInstruction: string;
+  /** Full system instruction for non-cached callers (translation, moderation). */
+  systemInstruction?: string;
+  /** Opt-in explicit caching (path generation): the per-path-constant prefix
+   *  (corpus + stage rules) to back with a `CachedContent` resource. When set,
+   *  `systemInstruction` is ignored in favour of this + `dynamicTail`. The
+   *  corpus block is the leading text so the prefix is byte-identical across a
+   *  run's calls and the cache (or implicit caching) matches. */
+  cacheablePrefix?: string;
+  /** Per-call dynamic text (slot specifics + retry notices), sent after the
+   *  cached prefix. Only used alongside `cacheablePrefix`. */
+  dynamicTail?: string;
   /** Optional Gemini `responseSchema`. When omitted, only
    *  `responseMimeType: 'application/json'` is set — Zod still enforces
    *  the shape after the call. */
@@ -63,6 +183,8 @@ export async function forcedStructuredCallGemini<T>(opts: {
 }): Promise<T> {
   const {
     systemInstruction,
+    cacheablePrefix,
+    dynamicTail = '',
     responseSchema,
     userMessage = 'Generate now.',
     maxAttempts = 2,
@@ -71,27 +193,47 @@ export async function forcedStructuredCallGemini<T>(opts: {
   } = opts;
 
   const client = getGeminiClient();
-  const contents: Content[] = [{ role: 'user', parts: [{ text: userMessage }] }];
+  const cachingMode = typeof cacheablePrefix === 'string';
+
+  // Best-effort: back the constant prefix with an explicit cache. Null ⇒ send
+  // the prefix inline (also the path for flat-`systemInstruction` callers).
+  let activeCacheName = cachingMode
+    ? await getOrCreateCachedPrefix(model, cacheablePrefix as string)
+    : null;
 
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const usedCache = activeCacheName !== null;
     try {
-      const response = await client.models.generateContent({
-        model,
-        contents,
-        config: {
-          systemInstruction,
-          maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
-          responseMimeType: 'application/json',
-          // Gemini 2.5 Flash enables thinking by default; thinking tokens
-          // are billed at the output rate and can easily double the
-          // per-call cost. For structured path generation the shape is
-          // already enforced by the prompt + Zod post-validation, so the
-          // extra reasoning adds little value — disable it.
-          thinkingConfig: { thinkingBudget: 0 },
-          ...(responseSchema ? { responseSchema: responseSchema as Schema } : {}),
-        },
-      });
+      const config: GenerateContentConfig = {
+        maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
+        responseMimeType: 'application/json',
+        // Gemini 2.5 Flash enables thinking by default; thinking tokens
+        // are billed at the output rate and can easily double the
+        // per-call cost. For structured path generation the shape is
+        // already enforced by the prompt + Zod post-validation, so the
+        // extra reasoning adds little value — disable it.
+        thinkingConfig: { thinkingBudget: 0 },
+        ...(responseSchema ? { responseSchema: responseSchema as Schema } : {}),
+      };
+
+      let contents: Content[];
+      if (usedCache) {
+        // The constant prefix lives in the cached systemInstruction; send only
+        // the dynamic tail + user turn.
+        config.cachedContent = activeCacheName as string;
+        contents = [{ role: 'user', parts: [{ text: joinNonEmpty([dynamicTail, userMessage]) }] }];
+      } else if (cachingMode) {
+        // Cache unavailable — reconstruct the original flat systemInstruction
+        // (corpus + static + dynamic), byte-identical to the pre-cache path.
+        config.systemInstruction = joinNonEmpty([cacheablePrefix as string, dynamicTail]);
+        contents = [{ role: 'user', parts: [{ text: userMessage }] }];
+      } else {
+        config.systemInstruction = systemInstruction ?? '';
+        contents = [{ role: 'user', parts: [{ text: userMessage }] }];
+      }
+
+      const response = await client.models.generateContent({ model, contents, config });
 
       const usage = response.usageMetadata;
       if (usage) {
@@ -120,6 +262,12 @@ export async function forcedStructuredCallGemini<T>(opts: {
       return parsed as T;
     } catch (error) {
       lastError = error;
+      // If this attempt used the cache, the cache may be stale/invalid — drop
+      // it so the next attempt (and the next call) rebuilds or goes inline.
+      if (usedCache) {
+        dropCachedPrefix(cacheablePrefix as string);
+        activeCacheName = null;
+      }
       if (attempt < maxAttempts) {
         const delay = 1000 * Math.pow(2, attempt - 1);
         await sleep(delay);

@@ -138,17 +138,16 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     });
   }
 
-  // Gemini branch — concatenate the same corpus block text as Anthropic
-  // uses (byte-identical so implicit caching matches across calls). Gemini
-  // has no explicit cache split, but keeping the static prefix ahead of the
-  // dynamic tail still helps its implicit cache.
+  // Gemini branch — split the prompt into the per-path-constant prefix
+  // (corpus + stage rules) and the per-call dynamic tail. The wrapper backs
+  // the prefix with an explicit CachedContent resource (basic tier runs on
+  // Gemini, so this is the high-volume cost path) and otherwise falls back to
+  // an inline, byte-identical systemInstruction. The corpus block leads so the
+  // prefix is byte-identical across a run's calls (cache + implicit-cache match).
   const model = GEMINI_PATH_MODEL;
-  const systemInstruction = [
-    ctx.corpus && ctx.corpus.trim().length > 0
-      ? buildSourceMaterialsBlock(ctx.corpus)
-      : null,
+  const cacheablePrefix = [
+    ctx.corpus && ctx.corpus.trim().length > 0 ? buildSourceMaterialsBlock(ctx.corpus) : null,
     ctx.staticInstructions,
-    ctx.dynamicInstructions,
   ]
     .filter((part): part is string => Boolean(part && part.length > 0))
     .join('\n\n');
@@ -163,7 +162,8 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // in `ai-tools-gemini.ts` stay for documentation / future re-enable
   // once Gemini relaxes the constraint.
   return forcedStructuredCallGemini<T>({
-    systemInstruction,
+    cacheablePrefix,
+    dynamicTail: ctx.dynamicInstructions,
     userMessage: ctx.userMessage,
     maxAttempts: ctx.maxAttempts,
     model,
