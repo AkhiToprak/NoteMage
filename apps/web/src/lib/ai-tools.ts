@@ -214,10 +214,9 @@ export interface PathStructureSlot {
   // and the normalizer falls back to the topicHint. Persisted on
   // `CheckpointSlot.objective`.
   objective?: string;
-  // For `review` / `assessment` slots only: section-local 0-based indices of
-  // the EARLIER slots in this phase the checkpoint consolidates/tests. The
-  // persist step resolves these to `CheckpointSlot.coversSlotIds`. Empty /
-  // omitted on learning slots; ignored on the synthetic final exam.
+  // Section-local 0-based indices of the EARLIER slots this checkpoint
+  // consolidates/tests. Computed by `enforceSpacedReviews`; NOT emitted by the
+  // model. The persist step resolves these to `CheckpointSlot.coversSlotIds`.
   covers?: number[];
 }
 
@@ -669,13 +668,13 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
   description: [
     'Design the section / slot skeleton for a guided learning path.',
     'Output the curriculum spine ONLY — title, description, and a list of phases ("sections"), each containing an ordered list of slots ("checkpoints").',
-    'Each slot has: a short title; a "kind" (learning | review | assessment); a "topicHint" (what to TEACH); an "objective" (the concrete, testable thing the learner can DO after it); and, for review/assessment slots, "covers" (indices of earlier slots in the same section it tests).',
+    'Each slot has: a short title; a "kind" (learning | review | assessment); a "topicHint" (what to TEACH); and an "objective" (the concrete, testable thing the learner can DO after it).',
     'Scale to the material: produce as many sections and slots as the source material and available days genuinely support — never pad. Thin material → fewer, tighter slots. A focused 3-section path beats a bloated 6-section one.',
     'No two slots may overlap — each teaches a DISTINCT concept. Order slots so each builds on the ones before it (prerequisites first).',
     'Rules for slot kinds — build in spaced repetition:',
     '- "learning" teaches one new concept; "review" consolidates + quizzes earlier slots (no new theory); "assessment" is the graded gate.',
-    '- Add a "review" slot after roughly every 2 "learning" slots (its "covers" lists those learning slots). NEVER output a section that is only learning slots followed by one assessment.',
-    '- The LAST slot of every phase MUST be "assessment" (the checkpoint quiz that gates the next section; its "covers" lists every prior slot).',
+    '- Add a "review" slot after roughly every 2 "learning" slots. NEVER output a section that is only learning slots followed by one assessment.',
+    '- The LAST slot of every phase MUST be "assessment" (the checkpoint quiz that gates the next section).',
     'Do not generate any actual lesson text, flashcards, or quiz questions here — the orchestrator fills those in per-slot via separate tools.',
   ].join('\n'),
   input_schema: {
@@ -727,12 +726,6 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
                     type: 'string',
                     description:
                       'One line: the concrete, testable thing the learner can DO after this slot, phrased verb-first (e.g. "Conjugate regular -ar verbs in the present tense"). The slot quiz is written to test THIS.',
-                  },
-                  covers: {
-                    type: 'array',
-                    items: { type: 'integer' },
-                    description:
-                      'review/assessment slots ONLY: 0-based indices of the EARLIER slots in THIS section that this checkpoint consolidates and tests (reference only slots before this one). Omit on learning slots; an assessment that tests the whole section should list every prior slot index.',
                   },
                 },
                 required: ['title', 'kind', 'topicHint'],
