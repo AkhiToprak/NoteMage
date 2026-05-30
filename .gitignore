@@ -15,6 +15,9 @@ apps/web/public/uploads/
 # claude worktrees
 .claude/worktrees/
 
+# local-only planning docs (working notes, not product)
+plans/
+
 # local-only skill installs (npx skills add nutlope/hallmark — lives in
 # ~/.claude/skills via symlink; the in-repo copy is dev tooling, not product)
 .agents/
