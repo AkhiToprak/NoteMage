@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
 
     await db.studyGroupMember.updateMany({
-      where: { groupId: id, userId, status: 'accepted' },
+      where: { groupId: { equals: id }, userId: { equals: userId }, status: 'accepted' },
       data: { lastReadAt: new Date() },
     });
 

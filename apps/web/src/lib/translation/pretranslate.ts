@@ -208,7 +208,7 @@ export async function triggerPretranslationOnClone(
   const threshold = getPopularityThreshold();
   const flip = await db.sharedPath.updateMany({
     where: {
-      id: sharedPathId,
+      id: { equals: sharedPathId },
       popularityTriggeredAt: null,
       downloadCount: { gte: threshold },
     },

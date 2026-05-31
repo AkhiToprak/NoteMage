@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     db.user
       .updateMany({
         where: {
-          id: userId,
+          id: { equals: userId },
           OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: twoMinAgo } }],
         },
         data: { lastSeenAt: new Date() },

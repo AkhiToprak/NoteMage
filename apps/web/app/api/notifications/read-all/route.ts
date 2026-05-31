@@ -10,7 +10,7 @@ export async function PUT(request: NextRequest) {
     if (!userId) return unauthorizedResponse();
 
     await db.notification.updateMany({
-      where: { userId, read: false },
+      where: { userId: { equals: userId }, read: false },
       data: { read: true },
     });
 

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Figure out which of the requested slugs the user doesn't already own.
     const existing = await db.userCosmetic.findMany({
-      where: { userId: targetId, cosmeticId: { in: slugsToGrant } },
+      where: { userId: { equals: targetId }, cosmeticId: { in: slugsToGrant } },
       select: { cosmeticId: true },
     });
     const ownedSet = new Set(existing.map((r) => r.cosmeticId));
@@ -174,7 +174,7 @@ export async function DELETE(
 
     await db.$transaction([
       db.userCosmetic.deleteMany({
-        where: { userId: targetId, cosmeticId },
+        where: { userId: { equals: targetId }, cosmeticId: { equals: cosmeticId } },
       }),
       ...(Object.keys(unequipPatch).length > 0
         ? [

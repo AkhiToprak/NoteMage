@@ -201,5 +201,5 @@ export async function isConnected(userId: string): Promise<boolean> {
  * Remove a user's Microsoft connection.
  */
 export async function disconnectMicrosoft(userId: string): Promise<void> {
-  await db.microsoftConnection.deleteMany({ where: { userId } });
+  await db.microsoftConnection.deleteMany({ where: { userId: { equals: userId } } });
 }

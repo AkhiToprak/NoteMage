@@ -35,7 +35,7 @@ export async function issueEmailVerificationCode(userId: string): Promise<string
   const expiresAt = new Date(Date.now() + CODE_TTL_MS);
 
   await db.$transaction([
-    db.emailVerificationCode.deleteMany({ where: { userId } }),
+    db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } }),
     db.emailVerificationCode.create({ data: { userId, codeHash, expiresAt } }),
   ]);
 
@@ -57,13 +57,13 @@ export async function verifyEmailCode(userId: string, code: string): Promise<Ver
   if (!row) return { ok: false, reason: 'no_code' };
 
   if (row.expiresAt.getTime() < Date.now()) {
-    await db.emailVerificationCode.deleteMany({ where: { userId } });
+    await db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } });
     return { ok: false, reason: 'expired' };
   }
 
   if (row.attempts >= MAX_ATTEMPTS) {
     // Spent — make the user request a new code rather than keep guessing.
-    await db.emailVerificationCode.deleteMany({ where: { userId } });
+    await db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } });
     return { ok: false, reason: 'too_many_attempts' };
   }
 
@@ -79,7 +79,7 @@ export async function verifyEmailCode(userId: string, code: string): Promise<Ver
   // Success — verify the account and burn every outstanding code.
   await db.$transaction([
     db.user.update({ where: { id: userId }, data: { emailVerified: new Date() } }),
-    db.emailVerificationCode.deleteMany({ where: { userId } }),
+    db.emailVerificationCode.deleteMany({ where: { userId: { equals: userId } } }),
   ]);
 
   return { ok: true };

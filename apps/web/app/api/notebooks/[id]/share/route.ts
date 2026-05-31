@@ -322,7 +322,7 @@ export async function DELETE(
     } else {
       // Delete all shares for this notebook by this user
       await db.sharedNotebook.deleteMany({
-        where: { notebookId, sharedById: userId },
+        where: { notebookId: { equals: notebookId }, sharedById: { equals: userId } },
       });
     }
 
