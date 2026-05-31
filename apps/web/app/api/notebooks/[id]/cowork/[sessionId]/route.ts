@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
     // End session: delete locks, deactivate participants, mark session inactive
     await db.$transaction(async (tx) => {
-      await tx.pageLock.deleteMany({ where: { sessionId } });
+      await tx.pageLock.deleteMany({ where: { sessionId: { equals: sessionId } } });
 
       await tx.coWorkParticipant.updateMany({
         where: { sessionId: { equals: sessionId }, isActive: true },
