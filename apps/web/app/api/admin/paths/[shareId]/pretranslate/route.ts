@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     // count tells us whether WE won the first trigger; a concurrent
     // clone-trigger or a prior admin trigger collapses to count === 0.
     const flip = await db.sharedPath.updateMany({
-      where: { id: shareId, popularityTriggeredAt: null },
+      where: { id: { equals: shareId }, popularityTriggeredAt: null },
       data: { popularityTriggeredAt: new Date() },
     });
     const firstTrigger = flip.count === 1;

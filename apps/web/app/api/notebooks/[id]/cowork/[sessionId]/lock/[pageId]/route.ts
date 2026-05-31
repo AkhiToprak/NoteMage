@@ -17,7 +17,7 @@ const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 async function cleanExpiredLocks(sessionId: string) {
   await db.pageLock.deleteMany({
-    where: { sessionId, expiresAt: { lt: new Date() } },
+    where: { sessionId: { equals: sessionId }, expiresAt: { lt: new Date() } },
   });
 }
 

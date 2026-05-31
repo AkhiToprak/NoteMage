@@ -136,7 +136,7 @@ export async function approveSharedPath(
   try {
     await db.$transaction(async (tx) => {
       const updated = await tx.sharedPath.updateMany({
-        where: { id: sharedPath.id, moderationStatus: 'flagged_pending_human' },
+        where: { id: { equals: sharedPath.id }, moderationStatus: 'flagged_pending_human' },
         data: {
           moderationStatus: 'approved',
           approvedAt: new Date(),
@@ -302,7 +302,7 @@ export async function rejectSharedPath(
   try {
     await db.$transaction(async (tx) => {
       const updated = await tx.sharedPath.updateMany({
-        where: { id: sharedPath.id, moderationStatus: 'flagged_pending_human' },
+        where: { id: { equals: sharedPath.id }, moderationStatus: 'flagged_pending_human' },
         data: {
           moderationStatus: 'rejected',
           rejectionReason,

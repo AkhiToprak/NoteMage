@@ -109,7 +109,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       await tx.pageLock.deleteMany({ where: { sessionId } });
 
       await tx.coWorkParticipant.updateMany({
-        where: { sessionId, isActive: true },
+        where: { sessionId: { equals: sessionId }, isActive: true },
         data: { isActive: false, leftAt: new Date() },
       });
 

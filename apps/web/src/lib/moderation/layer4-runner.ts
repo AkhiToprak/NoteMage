@@ -123,7 +123,7 @@ export async function runReportAggregation(
   try {
     await db.$transaction(async (tx) => {
       const updated = await tx.sharedPath.updateMany({
-        where: { id: sharedPathId, moderationStatus: 'approved' },
+        where: { id: { equals: sharedPathId }, moderationStatus: 'approved' },
         data: { moderationStatus: 'flagged_pending_human' },
       });
       if (updated.count === 0) {
