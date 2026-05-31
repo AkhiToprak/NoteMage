@@ -88,7 +88,7 @@
     "markmap-common": "^0.18.9",
     "markmap-lib": "^0.18.12",
     "markmap-view": "^0.18.12",
-    "mathjs": "^13.0.0",
+    "mathjs": "^15.2.0",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "pdf-lib": "^1.17.1",
