@@ -3,7 +3,7 @@
 // plus its renderer.
 
 import { get as levenshteinDistance } from 'fast-levenshtein';
-import * as math from 'mathjs';
+import { safeEvaluate, safeParse } from './safe-math';
 import {
   McPayloadSchema,
   type QuestionKind,
@@ -360,8 +360,8 @@ function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResu
       // Multi-point numeric equivalence. Avoids relying on symbolic-simplify
       // identifying every algebraic restatement.
       const samples = [1.7183, 2.5, -0.41, 3.14159];
-      const userNode = math.parse(userExpression);
-      const expectedNode = math.parse(p.expectedExpression);
+      const userNode = safeParse(userExpression);
+      const expectedNode = safeParse(p.expectedExpression);
       const tol = p.tolerance ?? 1e-6;
       for (const seed of samples) {
         const scope = Object.fromEntries(
@@ -377,8 +377,8 @@ function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResu
       return { isCorrect: true };
     }
     // No declared variables → evaluate both as numbers.
-    const userVal = Number(math.evaluate(userExpression));
-    const expectedVal = Number(math.evaluate(p.expectedExpression));
+    const userVal = Number(safeEvaluate(userExpression));
+    const expectedVal = Number(safeEvaluate(p.expectedExpression));
     if (!Number.isFinite(userVal) || !Number.isFinite(expectedVal)) {
       return { isCorrect: false };
     }
