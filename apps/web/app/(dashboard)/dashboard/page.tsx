@@ -70,7 +70,6 @@ interface ExamItem {
   examDate: string;
   notebookId: string;
   notebookName: string;
-  studyPlan?: { id: string };
 }
 
 interface NotebookOption {
@@ -141,7 +140,6 @@ export default function DashboardPage() {
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
-  const [generatingPlanId, setGeneratingPlanId] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const [activeCard, setActiveCard] = useState(0);
   const { isPhone, isTablet, isDesktop, bp } = useBreakpoint();
@@ -234,16 +232,6 @@ export default function DashboardPage() {
       if (res.ok) fetchExams();
     } catch {
       /* silent */
-    }
-  };
-
-  const handleGeneratePlan = async (examId: string) => {
-    setGeneratingPlanId(examId);
-    try {
-      await fetch(`/api/user/exams/${examId}/generate-plan`, { method: 'POST' });
-      fetchExams();
-    } finally {
-      setGeneratingPlanId(null);
     }
   };
 
@@ -1104,8 +1092,6 @@ export default function DashboardPage() {
                     : daysUntil < 14
                       ? { bg: 'rgba(240,208,76,0.15)', fg: '#f0d04c' }
                       : { bg: 'rgba(185,195,255,0.12)', fg: '#b9c3ff' };
-                const hasPlan = !!exam.studyPlan;
-                const isGenerating = generatingPlanId === exam.id;
                 return (
                   <div
                     key={exam.id}
@@ -1136,12 +1122,29 @@ export default function DashboardPage() {
                         flexShrink: 0,
                       }}
                     />
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <Link
+                      href={`/notebooks/${exam.notebookId}`}
+                      style={{
+                        display: 'block',
+                        flex: 1,
+                        minWidth: 0,
+                        textDecoration: 'none',
+                        color: 'var(--on-surface)',
+                        borderRadius: '6px',
+                        transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.color = '#ae89ff';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.color = 'var(--on-surface)';
+                      }}
+                    >
                       <p
                         style={{
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: 'var(--on-surface)',
+                          color: 'inherit',
                           margin: 0,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -1162,7 +1165,7 @@ export default function DashboardPage() {
                       >
                         {exam.notebookName}
                       </p>
-                    </div>
+                    </Link>
                     <span
                       style={{
                         padding: '3px 10px',
@@ -1176,40 +1179,6 @@ export default function DashboardPage() {
                     >
                       {daysUntil <= 0 ? 'today' : `${daysUntil}d`}
                     </span>
-                    {!hasPlan && (
-                      <button
-                        onClick={() => handleGeneratePlan(exam.id)}
-                        disabled={isGenerating}
-                        aria-label="Generate study plan"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '4px 8px',
-                          background: 'transparent',
-                          border: '1px solid rgba(174,137,255,0.25)',
-                          borderRadius: '8px',
-                          color: '#ae89ff',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: isGenerating ? 'wait' : 'pointer',
-                          fontFamily: 'inherit',
-                          opacity: isGenerating ? 0.5 : 1,
-                          transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                          flexShrink: 0,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isGenerating) {
-                            (e.currentTarget as HTMLButtonElement).style.background =
-                              'rgba(174,137,255,0.12)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                        }}
-                      >
-                        {isGenerating ? '…' : 'Plan'}
-                      </button>
-                    )}
                     <button
                       onClick={() => handleDeleteExam(exam.id)}
                       aria-label="Delete exam"

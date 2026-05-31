@@ -25,19 +25,6 @@ export async function GET(request: NextRequest, { params }: Params) {
       where: { id, userId },
       include: {
         notebook: { select: { id: true, name: true } },
-        studyPlan: {
-          include: {
-            phases: {
-              orderBy: { sortOrder: 'asc' },
-              include: {
-                slots: {
-                  orderBy: { sortOrder: 'asc' },
-                  include: { activities: { orderBy: { sortOrder: 'asc' } } },
-                },
-              },
-            },
-          },
-        },
       },
     });
 
@@ -98,7 +85,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
       data,
       include: {
         notebook: { select: { id: true, name: true } },
-        studyPlan: { select: { id: true } },
       },
     });
 

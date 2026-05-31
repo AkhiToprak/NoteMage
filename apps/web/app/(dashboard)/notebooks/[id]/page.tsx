@@ -14,7 +14,6 @@ interface ExamItem {
   examDate: string;
   notebookId: string;
   notebookName: string;
-  studyPlan?: { id: string };
 }
 
 export default function NotebookDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -104,23 +103,6 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
           }
         })
         .catch(() => {});
-    }
-  };
-
-  const handleGeneratePlan = async (examId: string) => {
-    try {
-      await fetch(`/api/user/exams/${examId}/generate-plan`, { method: 'POST' });
-      fetch('/api/user/exams')
-        .then((r) => r.json())
-        .then((res) => {
-          const d = res?.data ?? res;
-          if (Array.isArray(d)) {
-            setNotebookExams(d.filter((e: ExamItem) => e.notebookId === id));
-          }
-        })
-        .catch(() => {});
-    } catch {
-      /* ignore */
     }
   };
 
@@ -268,7 +250,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                   No exams linked to this notebook.
                 </p>
                 <p style={{ fontSize: '12px', margin: 0, color: 'var(--outline)' }}>
-                  Add an exam date to get a personalized study plan.
+                  Add an exam date to track the countdown.
                 </p>
               </div>
             ) : (
@@ -280,7 +262,7 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
                 }}
               >
                 {notebookExams.map((exam) => (
-                  <ExamCountdown key={exam.id} exam={exam} onGeneratePlan={handleGeneratePlan} />
+                  <ExamCountdown key={exam.id} exam={exam} />
                 ))}
               </div>
             )}

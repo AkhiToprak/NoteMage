@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
       orderBy: { examDate: 'asc' },
       include: {
         notebook: { select: { id: true, name: true } },
-        studyPlan: { select: { id: true } },
       },
     });
 
@@ -91,7 +90,6 @@ export async function POST(request: NextRequest) {
       },
       include: {
         notebook: { select: { id: true, name: true } },
-        studyPlan: { select: { id: true } },
       },
     });
 

@@ -797,8 +797,6 @@ model StudyPlan {
   clonedFromSharedPath SharedPath? @relation("PathClones", fields: [clonedFromSharedPathId], references: [id], onDelete: SetNull)
   phases              StudyPhase[]
   sharedPaths         SharedPath[]
-  examId              String?      @unique
-  exam                Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
   // Back-references for FlashcardSet/QuizSet.sourcePathId — used by
   // future "Save to notebook" promote action; SetNull there so deleting
   // the path leaves the bundle behind for the notebook to claim.
@@ -1566,7 +1564,6 @@ model Exam {
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   notebook  Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  studyPlan StudyPlan?
 
   @@index([userId, examDate])
   @@map("exams")
