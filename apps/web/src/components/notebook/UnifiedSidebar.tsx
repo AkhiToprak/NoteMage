@@ -17,6 +17,7 @@ import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import TimerWidget from '@/components/layout/TimerWidget';
+import NotebookExamsModal from '@/components/notebook/NotebookExamsModal';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UnifiedSidebar — OneNote-style sidebar with Files + Chats
@@ -55,6 +56,9 @@ export default function UnifiedSidebar() {
 
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
+
+  // Exams modal (per-notebook, opened from the header)
+  const [showExams, setShowExams] = useState(false);
 
   // Learn path setup modal — opens the same flow as /learn/paths,
   // scoped to this notebook by default (its files appear as the
@@ -191,6 +195,35 @@ export default function UnifiedSidebar() {
             {notebook?.name ?? '...'}
           </span>
           <TimerWidget compact />
+          <button
+            onClick={() => setShowExams(true)}
+            title="Exams"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 5,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--ink-40)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              padding: 0,
+              transition: 'color 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--ink-80)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--ink-40)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              event
+            </span>
+          </button>
           <button
             onClick={() => setSidebarCollapsed(true)}
             title="Collapse sidebar"
@@ -698,6 +731,15 @@ export default function UnifiedSidebar() {
             setShowPathSetup(false);
             refreshStudyPlans();
           }}
+        />
+      )}
+
+      {/* Exams modal — per-notebook, opened from the header event button */}
+      {showExams && (
+        <NotebookExamsModal
+          notebookId={notebookId}
+          notebookName={notebook?.name ?? ''}
+          onClose={() => setShowExams(false)}
         />
       )}
     </aside>
