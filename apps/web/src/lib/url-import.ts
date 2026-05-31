@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import dns from 'dns/promises';
+import { Agent } from 'undici';
 
 export class SSRFError extends Error {
   constructor(message: string) {
@@ -73,11 +74,23 @@ const BLOCKED_HOSTNAMES = new Set([
   'instance-data',
 ]);
 
+export interface ValidatedTarget {
+  /** The validated, normalized URL string. */
+  url: string;
+  /** A resolved IP that passed the private-range check. The connection is
+   *  pinned to this exact address (see createPinnedAgent) so the value we
+   *  validated here is the value we actually connect to. */
+  address: string;
+  /** Address family of `address` (4 or 6). */
+  family: number;
+}
+
 /**
- * Validate a URL for safety against SSRF attacks.
- * Returns the validated URL string, or throws SSRFError.
+ * Validate a URL against SSRF rules AND return the resolved IP it was validated
+ * against, so the caller can pin the connection to that exact address. Throws
+ * SSRFError on any unsafe input.
  */
-export async function validateUrl(url: string): Promise<string> {
+async function validateAndResolve(url: string): Promise<ValidatedTarget> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -104,26 +117,63 @@ export async function validateUrl(url: string): Promise<string> {
   // DNS resolution check — validate EVERY resolved A/AAAA record, not just the
   // first, so a host that answers with one public and one private address can't
   // slip a private target through.
+  let addresses: { address: string; family: number }[];
   try {
-    const addresses = await dns.lookup(hostname, { all: true });
-    if (addresses.length === 0) {
-      throw new SSRFError(`Could not resolve hostname: ${hostname}`);
-    }
-    for (const a of addresses) {
-      if (isPrivateIp(a.address)) {
-        throw new SSRFError('URL resolves to a private/reserved IP address');
-      }
-    }
-  } catch (err) {
-    if (err instanceof SSRFError) throw err;
+    addresses = await dns.lookup(hostname, { all: true });
+  } catch {
     throw new SSRFError(`Could not resolve hostname: ${hostname}`);
   }
+  if (addresses.length === 0) {
+    throw new SSRFError(`Could not resolve hostname: ${hostname}`);
+  }
+  for (const a of addresses) {
+    if (isPrivateIp(a.address)) {
+      throw new SSRFError('URL resolves to a private/reserved IP address');
+    }
+  }
 
-  return parsed.toString();
+  // Pin to the first validated address; all resolved addresses passed the check.
+  return { url: parsed.toString(), address: addresses[0].address, family: addresses[0].family };
+}
+
+/**
+ * Validate a URL for safety against SSRF attacks.
+ * Returns the validated URL string, or throws SSRFError.
+ */
+export async function validateUrl(url: string): Promise<string> {
+  return (await validateAndResolve(url)).url;
 }
 
 // Cap redirect hops; each hop is independently re-validated against SSRF rules.
 const MAX_REDIRECTS = 5;
+
+/**
+ * Build an undici dispatcher that forces the connection (TCP + TLS) to the exact
+ * IP we already validated, instead of letting fetch re-resolve the hostname.
+ * This closes the DNS-rebind / TOCTOU window — a low-TTL attacker domain can no
+ * longer answer "public" during validation and resolve to an internal address
+ * (cloud metadata, 127.0.0.1) at connect time. The hostname is still used for
+ * TLS SNI and the Host header, so HTTPS certificate validation is unaffected.
+ * The per-request agent's idle sockets are reclaimed by undici's keep-alive
+ * timeout, so no explicit teardown is required.
+ */
+function createPinnedAgent(address: string, family: number): Agent {
+  const lookup = (
+    _hostname: string,
+    options: { all?: boolean },
+    callback: (
+      err: NodeJS.ErrnoException | null,
+      addressOrList: string | { address: string; family: number }[],
+      family?: number
+    ) => void
+  ): void => {
+    // Honour both lookup callback shapes: { all: true } → array; else (addr, family).
+    if (options && options.all) callback(null, [{ address, family }]);
+    else callback(null, address, family);
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Agent({ connect: { lookup: lookup as any }, keepAliveTimeout: 1 });
+}
 
 /**
  * Fetch a URL and extract its main text content using cheerio.
@@ -131,13 +181,14 @@ const MAX_REDIRECTS = 5;
 export async function importFromUrl(url: string): Promise<UrlImportResult> {
   // Follow redirects MANUALLY so every hop is re-validated — `redirect: 'follow'`
   // would let a validated public URL 302 to an internal address (cloud metadata,
-  // localhost) without re-checking. (Global fetch here can't pin the resolved IP
-  // — undici isn't importable — so we re-validate + re-resolve on each hop.)
+  // localhost) without re-checking. Each hop is also pinned to the IP it was
+  // validated against, so DNS can't rebind between the check and the connect.
   let currentUrl = url;
   let response: Response | null = null;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const validatedUrl = await validateUrl(currentUrl);
+    const { url: validatedUrl, address, family } = await validateAndResolve(currentUrl);
+    const agent = createPinnedAgent(address, family);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
@@ -150,7 +201,9 @@ export async function importFromUrl(url: string): Promise<UrlImportResult> {
           Accept: 'text/html, application/xhtml+xml, */*',
         },
         redirect: 'manual',
-      });
+        // undici extension on the global fetch; absent from the DOM RequestInit type.
+        dispatcher: agent,
+      } as RequestInit & { dispatcher: Agent });
     } catch (err) {
       clearTimeout(timeout);
       if (err instanceof SSRFError) throw err;
