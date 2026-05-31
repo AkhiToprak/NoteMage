@@ -16,7 +16,7 @@ interface ExportDialogProps {
 }
 
 type ExportFormat = 'pdf' | 'pptx';
-type ExportMode = 'individual' | 'merge' | 'split';
+type ExportMode = 'individual' | 'split';
 
 export default function ExportDialog({ notebookId, sections, onClose }: ExportDialogProps) {
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
@@ -100,10 +100,6 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
         // The plan says to call existing generatePagesPptx — but there's no route for it yet.
         // We'll add it inline below.
         url = `/api/notebooks/${notebookId}/export/pages/pdf`;
-        body = { pageIds };
-        expectedType = 'application/pdf';
-      } else if (mode === 'merge') {
-        url = `/api/notebooks/${notebookId}/export/pdf/merge`;
         body = { pageIds };
         expectedType = 'application/pdf';
       } else if (mode === 'split') {
@@ -347,7 +343,7 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                 PDF Options
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {(['individual', 'merge', 'split'] as ExportMode[]).map((m) => (
+                {(['individual', 'split'] as ExportMode[]).map((m) => (
                   <label
                     key={m}
                     style={{
@@ -371,18 +367,12 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
                     />
                     <div>
                       <div style={{ fontSize: 13, color: 'var(--on-surface)', fontWeight: 500 }}>
-                        {m === 'individual'
-                          ? 'Single PDF'
-                          : m === 'merge'
-                            ? 'Merge into one PDF'
-                            : 'Split into multiple PDFs'}
+                        {m === 'individual' ? 'Single PDF' : 'Split into multiple PDFs'}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--ink-40)' }}>
                         {m === 'individual'
                           ? 'All selected pages in one file'
-                          : m === 'merge'
-                            ? 'Each page generated separately, then merged'
-                            : 'Choose where to split, download as ZIP'}
+                          : 'Choose where to split, download as ZIP'}
                       </div>
                     </div>
                   </label>
