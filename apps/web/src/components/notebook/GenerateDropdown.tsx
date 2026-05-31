@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useAiTask } from './AiTaskContext';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 import CreateChatModal from '@/components/learn/CreateChatModal';
 import LearnPathSetup from '@/components/learn/LearnPathSetup';
+import { getMageName } from '@/lib/scholar';
 
 interface GenerateDropdownProps {
   notebookId: string;
@@ -50,6 +52,8 @@ export default function GenerateDropdown({
   // suppressed for whatever reason; this guard blocks the double-fire.
   const lastFireRef = useRef(0);
   const router = useRouter();
+  const { data: session } = useSession();
+  const mageName = getMageName(session?.user?.scholarName);
   const { startAiTask, finishAiTask } = useAiTask();
   const { notebook, refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
   const notebookName = notebook?.name ?? 'this notebook';
@@ -365,7 +369,7 @@ export default function GenerateDropdown({
               >
                 chat_bubble
               </span>
-              <span>Ask the mage about this page</span>
+              <span>Ask {mageName} about this page</span>
             </button>
             <button
               type="button"
