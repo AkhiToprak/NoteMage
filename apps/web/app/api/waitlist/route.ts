@@ -1,15 +1,22 @@
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import {
   successResponse,
   createdResponse,
   badRequestResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { sendWaitlistConfirmation } from '@/lib/waitlist-email';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 signups per hour per IP (unauthenticated email send + row create)
+    const rl = await rateLimit(rateLimitKey('waitlist', request), 5, 60 * 60 * 1000);
+    if (!rl.success) return tooManyRequestsResponse('Too many requests. Please try again later.', rl.retryAfterMs);
+
     const { email } = await request.json();
 
     if (!email || typeof email !== 'string') {

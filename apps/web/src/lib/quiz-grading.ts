@@ -353,8 +353,17 @@ function readEquationPayload(payload: unknown): EquationParsed | null {
   return { expectedExpression: p.expectedExpression, tolerance, variables };
 }
 
+// Untrusted expressions are bounded in length: even behind the hardened
+// safe-math instance, mathjs can evaluate pathologically expensive inputs
+// (huge factorials/exponents, deep nesting). Cap before parsing so the
+// grading path can't be turned into a CPU/ReDoS sink.
+const MAX_EQUATION_CHARS = 256;
+
 function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResult {
   if (userExpression.trim().length === 0) return { isCorrect: false };
+  if (userExpression.length > MAX_EQUATION_CHARS || p.expectedExpression.length > MAX_EQUATION_CHARS) {
+    return { isCorrect: false };
+  }
   try {
     if (p.variables && p.variables.length > 0) {
       // Multi-point numeric equivalence. Avoids relying on symbolic-simplify
@@ -382,7 +391,9 @@ function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResu
     if (!Number.isFinite(userVal) || !Number.isFinite(expectedVal)) {
       return { isCorrect: false };
     }
-    return { isCorrect: Math.abs(userVal - expectedVal) < (p.tolerance ?? 1e-6) };
+    // `<=` matches the inclusive boundary used by the variables branch above
+    // (which fails only when the gap is strictly > tol).
+    return { isCorrect: Math.abs(userVal - expectedVal) <= (p.tolerance ?? 1e-6) };
   } catch {
     return { isCorrect: false };
   }

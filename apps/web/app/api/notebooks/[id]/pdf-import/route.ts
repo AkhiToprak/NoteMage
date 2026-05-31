@@ -153,7 +153,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!fileName) return badRequestResponse('fileName is required');
 
     const pdfPath = typeof body.pdfPath === 'string' ? body.pdfPath : '';
-    if (!pdfPath || !validateStoragePath(pdfPath, 'temp-imports/')) {
+    // Scope to the caller's temp-import prefix (service-role client bypasses RLS).
+    if (!pdfPath || !validateStoragePath(pdfPath, `temp-imports/${userId}/`)) {
       return badRequestResponse('Invalid or missing pdfPath');
     }
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (pageImagePaths.length !== body.pageImagePaths.length) {
       return badRequestResponse('pageImagePaths must be an array of strings');
     }
-    if (!pageImagePaths.every((p) => validateStoragePath(p, 'temp-imports/'))) {
+    if (!pageImagePaths.every((p) => validateStoragePath(p, `temp-imports/${userId}/`))) {
       return badRequestResponse('Invalid page image path');
     }
 

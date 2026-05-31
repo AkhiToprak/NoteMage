@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       where: { groupId_userId: { groupId: id, userId } },
     });
 
-    if (!membership) {
+    if (!membership || membership.status !== 'accepted') {
       return forbiddenResponse('You are not a member of this group');
     }
 

@@ -149,6 +149,11 @@ function buildBatchPayload(
  * absent from the map, so callers fall back to the source string — a partial
  * translation never loses content.
  */
+// A single translatable string is capped so one pathological node can't blow
+// the model's input budget. Over-cap items are left untranslated — callers fall
+// back to the source string, exactly as they already do for any missing id.
+const MAX_TRANSLATABLE_CHARS = 12_000;
+
 async function translateBatch(
   items: SourceString[],
   source: string,
@@ -158,11 +163,14 @@ async function translateBatch(
   const map = new Map<string, string>();
   if (items.length === 0) return map;
 
+  const translatable = items.filter((it) => it.text.length <= MAX_TRANSLATABLE_CHARS);
+  if (translatable.length === 0) return map;
+
   const { result } = await translationStructuredCall<{
     items?: Array<{ id?: unknown; text?: unknown }>;
   }>({
     rubric: DEEP_TRANSLATION_RUBRIC,
-    payload: buildBatchPayload(items, source, target),
+    payload: buildBatchPayload(translatable, source, target),
     anthropicTool: STRINGS_TOOL,
     geminiSchema: STRINGS_GEMINI_SCHEMA,
     onUsage,

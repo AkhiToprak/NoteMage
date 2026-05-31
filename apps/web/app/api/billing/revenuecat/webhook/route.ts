@@ -99,7 +99,14 @@ async function handleEvent(event: RcEvent) {
   const type = event.type!;
 
   if (ACTIVE_TYPES.has(type)) {
+    // Only grant when the entitlement is actually active right now: require a
+    // future expiry. A null/past expiration_at_ms means the entitlement is not
+    // currently active (e.g. a stale/replayed purchase event), so we must not
+    // grant PRO — and never set an unbounded (periodEnd=null) PRO.
     const periodEnd = event.expiration_at_ms ? new Date(event.expiration_at_ms) : null;
+    if (!periodEnd || periodEnd.getTime() <= Date.now()) {
+      return; // expired / non-active grant → do not provision
+    }
     await db.user.update({
       where: { id: userId },
       data: {

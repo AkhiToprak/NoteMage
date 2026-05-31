@@ -32,6 +32,22 @@ function getMsalClient() {
   return _msalClient;
 }
 
+/**
+ * A client with an isolated, empty in-memory token cache. Use this for token
+ * ACQUISITION so the cache only ever holds the tokens from THIS request. The
+ * shared singleton's cache, in a warm serverless instance, can accumulate
+ * multiple users' refresh tokens — and `Object.values(cache.RefreshToken)[0]`
+ * would then pick an arbitrary (possibly another user's) token, cross-wiring
+ * accounts. We persist tokens in our own DB, so we don't need MSAL's cache to
+ * survive across requests.
+ */
+function freshMsalClient(): msal.ConfidentialClientApplication {
+  if (!AZURE_CLIENT_ID || !AZURE_CLIENT_SECRET) {
+    throw new Error('Microsoft Azure credentials are not configured');
+  }
+  return new msal.ConfidentialClientApplication(msalConfig);
+}
+
 // ── State parameter signing (CSRF prevention) ──
 
 function signState(userId: string): string {
@@ -97,7 +113,10 @@ export async function acquireTokenByCode(
     throw new Error('Invalid or expired state parameter');
   }
 
-  const result = await getMsalClient().acquireTokenByCode({
+  // Isolated cache: this client only holds the tokens from this exchange, so
+  // the RefreshToken read below can't pick up another concurrent user's token.
+  const client = freshMsalClient();
+  const result = await client.acquireTokenByCode({
     code,
     scopes: SCOPES,
     redirectUri: REDIRECT_URI,
@@ -112,8 +131,8 @@ export async function acquireTokenByCode(
     ? new Date(result.expiresOn)
     : new Date(Date.now() + 3600 * 1000);
 
-  // Get the refresh token from the MSAL cache
-  const tokenCache = getMsalClient().getTokenCache().serialize();
+  // Get the refresh token from this client's isolated cache
+  const tokenCache = client.getTokenCache().serialize();
   const cacheData = JSON.parse(tokenCache);
   const refreshTokens = cacheData.RefreshToken || {};
   const refreshTokenEntry = Object.values(refreshTokens)[0] as { secret?: string } | undefined;
@@ -148,7 +167,10 @@ export async function getValidAccessToken(userId: string): Promise<string> {
   }
 
   try {
-    const result = await getMsalClient().acquireTokenByRefreshToken({
+    // Isolated cache (see freshMsalClient): prevents reading another user's
+    // refresh token out of a shared warm-instance cache.
+    const client = freshMsalClient();
+    const result = await client.acquireTokenByRefreshToken({
       refreshToken: connection.refreshToken,
       scopes: SCOPES,
     });
@@ -161,8 +183,8 @@ export async function getValidAccessToken(userId: string): Promise<string> {
       ? new Date(result.expiresOn)
       : new Date(Date.now() + 3600 * 1000);
 
-    // Check for updated refresh token in cache
-    const tokenCache = getMsalClient().getTokenCache().serialize();
+    // Check for updated refresh token in this client's isolated cache
+    const tokenCache = client.getTokenCache().serialize();
     const cacheData = JSON.parse(tokenCache);
     const refreshTokens = cacheData.RefreshToken || {};
     const refreshTokenEntry = Object.values(refreshTokens)[0] as { secret?: string } | undefined;

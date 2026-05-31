@@ -29,6 +29,7 @@ interface SignedUrlRequestBody {
   purpose: Purpose;
   fileName: string;
   contentType: string;
+  fileSize?: number;
   notebookId?: string;
   pageId?: string;
   sectionId?: string;
@@ -37,6 +38,16 @@ interface SignedUrlRequestBody {
   shareId?: string;
   groupId?: string;
 }
+
+/**
+ * Upper bound on a single upload (bytes). The file is PUT directly to
+ * Supabase Storage with the signed token, so the *authoritative* limit is the
+ * bucket's `fileSizeLimit` (set in the Supabase dashboard) — `createSignedUploadUrl`
+ * accepts no per-URL size option in storage-js. This is a defense-in-depth
+ * gate on the client-declared size so we refuse to mint a token for an
+ * obviously oversized upload before it ever starts.
+ */
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -61,10 +72,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body: SignedUrlRequestBody = await request.json();
-    const { purpose, fileName, contentType } = body;
+    const { purpose, fileName, contentType, fileSize } = body;
 
     if (!purpose || !fileName || !contentType) {
       return badRequestResponse('Missing required fields: purpose, fileName, contentType');
+    }
+
+    // Bound the declared size before minting an upload token. The real ceiling
+    // is enforced by the bucket's fileSizeLimit (storage-js has no per-URL
+    // size option); this just rejects oversized requests early.
+    if (typeof fileSize === 'number' && (!Number.isFinite(fileSize) || fileSize > MAX_UPLOAD_BYTES)) {
+      return badRequestResponse('File is too large (max 50 MB)');
     }
 
     const validPurposes: Purpose[] = [

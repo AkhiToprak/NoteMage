@@ -123,8 +123,34 @@ export async function downloadFromStorage(
 /**
  * Validate that a storage path starts with the expected prefix
  * and contains no path traversal sequences.
+ *
+ * The Supabase client uses the service-role key (bypasses RLS), so this
+ * prefix check is the only cross-tenant barrier on storage reads/writes.
+ * We reject traversal, absolute paths, backslashes, and control chars —
+ * both on the raw string and on a single URL-decoded view of it, to defeat
+ * percent-encoded `..`/`/` smuggling (e.g. `%2e%2e`, `%2f`, `%00`).
  */
 export function validateStoragePath(path: string, expectedPrefix: string): boolean {
-  if (!path || path.includes('..') || path.includes('//')) return false;
+  if (!path) return false;
+
+  const candidates = [path];
+  try {
+    const decoded = decodeURIComponent(path);
+    if (decoded !== path) candidates.push(decoded);
+  } catch {
+    // Malformed percent-encoding — treat as hostile.
+    return false;
+  }
+
+  for (const candidate of candidates) {
+    if (candidate.includes('..')) return false;
+    if (candidate.includes('//')) return false;
+    if (candidate.includes('\\')) return false;
+    if (candidate.startsWith('/')) return false;
+    // NUL + other C0/DEL control characters (includes CR, LF, TAB).
+    // eslint-disable-next-line no-control-regex
+    if (/[\x00-\x1f\x7f]/.test(candidate)) return false;
+  }
+
   return path.startsWith(expectedPrefix);
 }

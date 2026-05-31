@@ -4,7 +4,9 @@ import {
   successResponse,
   badRequestResponse,
   unauthorizedResponse,
+  tooManyRequestsResponse,
 } from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { logTelemetry } from '@/lib/telemetry-server';
 
 /**
@@ -19,6 +21,10 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Rate limit: 60 events per minute per user
+    const rl = await rateLimit(rateLimitKey('telemetry', request, userId), 60, 60_000);
+    if (!rl.success) return tooManyRequestsResponse('Too many telemetry events.', rl.retryAfterMs);
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== 'object') {

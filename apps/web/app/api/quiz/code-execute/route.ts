@@ -83,18 +83,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const limit = await rateLimit(
-      rateLimitKey('code-exec', request, userId),
-      RATE_LIMIT_PER_MIN,
-      60_000,
-    );
-    if (!limit.success) {
-      return tooManyRequestsResponse(
-        'Too many code executions. Try again in a moment.',
-        limit.retryAfterMs,
-      );
-    }
-
     const body = (await request.json().catch(() => ({}))) as CodeExecuteBody;
     if (!isExecutableLanguage(body.language)) {
       return badRequestResponse(
@@ -116,6 +104,24 @@ export async function POST(request: NextRequest) {
     const gradeMode = tests !== null && tests.length > 0;
     if (gradeMode && tests.length > MAX_TESTS) {
       return badRequestResponse(`Too many test cases (max ${MAX_TESTS}).`);
+    }
+
+    // Charge the limiter per planned sandbox execution (grade mode runs one
+    // per test), not a flat 1/request — otherwise 30 req/min actually permits
+    // 30 × MAX_TESTS executions/min against the shared Piston backend.
+    const cost = gradeMode ? tests.length : 1;
+    const limit = await rateLimit(
+      rateLimitKey('code-exec', request, userId),
+      RATE_LIMIT_PER_MIN,
+      60_000,
+      false,
+      cost,
+    );
+    if (!limit.success) {
+      return tooManyRequestsResponse(
+        'Too many code executions. Try again in a moment.',
+        limit.retryAfterMs,
+      );
     }
 
     const language = body.language;

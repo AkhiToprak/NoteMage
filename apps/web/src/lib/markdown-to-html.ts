@@ -35,6 +35,7 @@
  */
 
 import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Block-level markdown signals. Any single match is enough to treat the
@@ -114,17 +115,28 @@ export function markdownToHtml(text: string): string {
     async: false,
   }) as string;
 
-  return raw.replace(/<h([1-6])>([\s\S]*?)<\/h\1>/g, (_match, levelStr: string, inner: string) => {
-    const rawLevel = Number(levelStr);
-    const level = rawLevel > 3 ? 3 : rawLevel;
-    // Strip inline tags (<strong>, <em>, <code>, <a>) from the
-    // heading text. Marked has already HTML-escaped `<`, `>`, `&`,
-    // `"`, and `'` in the text itself, so the remaining entities
-    // are safe inside a double-quoted attribute value.
-    const summary = inner.replace(/<[^>]+>/g, '');
-    return (
-      `<div data-toggle-level="${level}" data-toggle-summary="${summary}" ` +
-      `data-collapsed="false"><p></p></div>`
-    );
-  });
+  const rewritten = raw.replace(
+    /<h([1-6])>([\s\S]*?)<\/h\1>/g,
+    (_match, levelStr: string, inner: string) => {
+      const rawLevel = Number(levelStr);
+      const level = rawLevel > 3 ? 3 : rawLevel;
+      // Strip inline tags (<strong>, <em>, <code>, <a>) from the
+      // heading text. Marked has already HTML-escaped `<`, `>`, `&`,
+      // `"`, and `'` in the text itself, so the remaining entities
+      // are safe inside a double-quoted attribute value.
+      const summary = inner.replace(/<[^>]+>/g, '');
+      return (
+        `<div data-toggle-level="${level}" data-toggle-summary="${summary}" ` +
+        `data-collapsed="false"><p></p></div>`
+      );
+    }
+  );
+
+  // Defense-in-depth: `marked` does NOT sanitize, so its output can carry raw
+  // <script>/<img onerror> when the pasted plain text contained HTML. The
+  // current consumer (a detached <div> → ProseMirror parseSlice) makes that
+  // non-exploitable, but sanitizing keeps this helper safe for any future
+  // caller. DOMPurify's defaults preserve data-* attributes and the toggle
+  // <div>/GFM <table> structure the paste pipeline relies on.
+  return DOMPurify.sanitize(rewritten);
 }

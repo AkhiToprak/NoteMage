@@ -62,6 +62,11 @@ async function getPdfjs(): Promise<any> {
 const HEADER_MARGIN_FRACTION = 0.08;
 const FOOTER_MARGIN_FRACTION = 0.05;
 
+// Hard cap on pages processed on the legacy text-extraction path. A crafted
+// PDF can advertise a huge page count and pin CPU here; bound the loop so a
+// single oversized document can't run away (well above any real document).
+const MAX_PAGES = 1000;
+
 function makeTableNode(rows: Cell[][], columnCount: number): TipTapNode {
   const tableRows: TipTapNode[] = rows.map((row, rowIdx) => {
     // Normalize to the target column count (pad with empties).
@@ -227,7 +232,8 @@ export async function extractPdfTipTapNodes(buffer: Buffer): Promise<TipTapNode[
 
   const allNodes: TipTapNode[] = [];
 
-  for (let p = 1; p <= doc.numPages; p++) {
+  const pageCount = Math.min(doc.numPages, MAX_PAGES);
+  for (let p = 1; p <= pageCount; p++) {
     const page = await doc.getPage(p);
     const pageNodes = await processPage(page, pdfTextToTipTapJSON);
     for (const n of pageNodes) allNodes.push(n);
@@ -254,7 +260,8 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
 
   const pages: string[] = [];
 
-  for (let p = 1; p <= doc.numPages; p++) {
+  const pageCount = Math.min(doc.numPages, MAX_PAGES);
+  for (let p = 1; p <= pageCount; p++) {
     const page = await doc.getPage(p);
     const viewport = page.getViewport({ scale: 1 });
     const pageHeight: number = viewport.height;

@@ -143,11 +143,19 @@ function isOnline(userId: string): boolean {
 
 // ─── HTTP server + Socket.IO ───
 const httpServer = createServer((req, res) => {
-  // Debug endpoint — reports env-var state so we can verify the secret
-  // matches between Vercel and DigitalOcean. Safe to expose because we
-  // only reveal the first 4 chars + length, never the full value.
+  // Debug endpoint — reports env-var state + live cowork-room state.
+  // Exposes operational data, so it requires the same internal secret as
+  // /emit. Never reveals any portion of the secret value itself.
   if (req.url === '/debug') {
-    const secret = WS_INTERNAL_SECRET || '';
+    const provided = req.headers['x-ws-internal-secret'];
+    if (!WS_INTERNAL_SECRET || provided !== WS_INTERNAL_SECRET) {
+      console.warn(
+        `[ws-server] /debug rejected: ${!WS_INTERNAL_SECRET ? 'no WS_INTERNAL_SECRET on ws-server' : 'secret mismatch with caller'}`
+      );
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'unauthorized' }));
+      return;
+    }
     // Dump the current cowork-room state so we can see whether any sockets
     // are actually in session rooms. If a real session exists in the DB
     // but coworkRoomsDetail is empty, we know the ws-server has the wrong
@@ -177,8 +185,6 @@ const httpServer = createServer((req, res) => {
         env: {
           NEXTAUTH_SECRET_set: !!NEXTAUTH_SECRET,
           WS_INTERNAL_SECRET_set: !!WS_INTERNAL_SECRET,
-          WS_INTERNAL_SECRET_length: secret.length,
-          WS_INTERNAL_SECRET_first4: secret.slice(0, 4),
           NEXTAUTH_URL: process.env.NEXTAUTH_URL || null,
           DATABASE_URL_set: !!process.env.DATABASE_URL,
         },
@@ -341,15 +347,49 @@ io.on('connection', async (socket: Socket) => {
   // ─── Cowork: join a session room ───
   // Server trusts the userId from the verified presence token (NOT from the
   // client payload) so an authed user can't impersonate another user.
-  // Persistence (DB session check) lives in the Next.js join route — by the
-  // time the client emits this, the REST call has already validated they're
-  // an active participant.
-  socket.on('cowork:join', (payload: { sessionId?: string }) => {
+  // Authorization: we independently verify here that the trusted user is an
+  // active participant (or the session host) before joining the room. The
+  // Next.js join route enforces the same check on the REST side, but the
+  // ws-server must NOT rely on that — a client can emit cowork:join directly
+  // with any sessionId, so without this check any authed user could join an
+  // arbitrary session room and receive its cursor/doc/edit-mode relays.
+  socket.on('cowork:join', async (payload: { sessionId?: string }) => {
     const sessionId = payload?.sessionId;
     if (!sessionId || typeof sessionId !== 'string') {
       console.warn(
         `[ws-server] cowork:join rejected — socket ${socket.id} user ${userId} sent invalid payload:`,
         payload
+      );
+      return;
+    }
+
+    // Authz: trusted user must be an active participant or the session host.
+    let authorized = false;
+    try {
+      const participant = await db.coWorkParticipant.findFirst({
+        where: { sessionId, userId, isActive: true },
+        select: { id: true },
+      });
+      if (participant) {
+        authorized = true;
+      } else {
+        const hosted = await db.coWorkSession.findFirst({
+          where: { id: sessionId, hostId: userId, isActive: true },
+          select: { id: true },
+        });
+        authorized = !!hosted;
+      }
+    } catch (err) {
+      console.error(
+        `[ws-server] cowork:join authz check failed for socket ${socket.id} user ${userId} session ${sessionId}:`,
+        err
+      );
+      return;
+    }
+
+    if (!authorized) {
+      console.warn(
+        `[ws-server] cowork:join rejected — socket ${socket.id} user ${userId} is not an active participant or host of session ${sessionId}`
       );
       return;
     }
@@ -419,6 +459,9 @@ io.on('connection', async (socket: Socket) => {
   socket.on('cowork:edit_mode', (payload: { sessionId?: string; enabled?: boolean }) => {
     const sessionId = payload?.sessionId;
     if (!sessionId || typeof sessionId !== 'string') return;
+    // Only relay if this socket actually joined (and was authorized for) the
+    // session — never trust the sessionId in the relay payload alone.
+    if (!socketCoworkSessions.get(socket.id)?.has(sessionId)) return;
     const enabled = !!payload?.enabled;
     io.to(`session:${sessionId}`).emit('cowork:edit_mode', {
       sessionId,
@@ -438,6 +481,9 @@ io.on('connection', async (socket: Socket) => {
       const sessionId = payload?.sessionId;
       if (!sessionId || typeof sessionId !== 'string') return;
       if (typeof payload.x !== 'number' || typeof payload.y !== 'number') return;
+      // Only relay if this socket actually joined (and was authorized for) the
+      // session — never trust the sessionId in the relay payload alone.
+      if (!socketCoworkSessions.get(socket.id)?.has(sessionId)) return;
       // Only emit to other sockets in the room (not back to sender).
       socket.to(`session:${sessionId}`).emit('cowork:cursor', {
         sessionId,
@@ -468,6 +514,9 @@ io.on('connection', async (socket: Socket) => {
     const sessionId = payload?.sessionId;
     if (!sessionId || typeof sessionId !== 'string') return;
     if (typeof payload.pageId !== 'string') return;
+    // Only relay if this socket actually joined (and was authorized for) the
+    // session — never trust the sessionId in the relay payload alone.
+    if (!socketCoworkSessions.get(socket.id)?.has(sessionId)) return;
     const room = `session:${sessionId}`;
     const roomSockets = io.sockets.adapter.rooms.get(room);
     const others = Math.max(0, (roomSockets?.size ?? 0) - 1);

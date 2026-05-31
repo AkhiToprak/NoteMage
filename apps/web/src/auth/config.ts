@@ -4,6 +4,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getIpFromHeaders } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
@@ -173,21 +174,30 @@ export const authOptions: NextAuthOptions = {
           // skipped so an attacker can't lock them out by spamming the
           // credentials form with a known email.
           if (user && !isOauthOnly) {
-            await db.$executeRaw`UPDATE users SET "failedLoginAttempts" = "failedLoginAttempts" + 1 WHERE id = ${user.id}`;
+            // Atomic increment + lock in a single statement. Incrementing and
+            // reading the count separately races: concurrent attempts can all
+            // read a pre-cap value and sail past MAX_FAILED_ATTEMPTS. Doing it
+            // under one row lock with RETURNING gives each request the true
+            // post-increment count, and the `"lockedAt" IS NULL` guard means
+            // exactly one request stamps the lock as the counter crosses the
+            // cap (acts as an atomic compare-and-set).
+            const rows = await db.$queryRaw<{ failedLoginAttempts: number; lockedAt: Date | null }[]>(
+              Prisma.sql`
+                UPDATE users
+                SET "failedLoginAttempts" = "failedLoginAttempts" + 1,
+                    "lockedAt" = CASE
+                      WHEN "failedLoginAttempts" + 1 >= ${MAX_FAILED_ATTEMPTS} AND "lockedAt" IS NULL
+                        THEN NOW()
+                      ELSE "lockedAt"
+                    END
+                WHERE id = ${user.id}
+                RETURNING "failedLoginAttempts", "lockedAt"
+              `
+            );
 
-            // Re-read to get the new count
-            const freshUser = await db.user.findUnique({
-              where: { id: user.id },
-              select: { failedLoginAttempts: true },
-            });
-
-            if (freshUser && freshUser.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-              const now = new Date();
-              await db.user.update({
-                where: { id: user.id },
-                data: { lockedAt: now },
-              });
-              const unlockAt = new Date(now.getTime() + LOCKOUT_DURATION_MS);
+            const updated = rows[0];
+            if (updated && updated.lockedAt && updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+              const unlockAt = new Date(updated.lockedAt.getTime() + LOCKOUT_DURATION_MS);
               throw new Error(`ACCOUNT_LOCKED:${unlockAt.toISOString()}`);
             }
           }

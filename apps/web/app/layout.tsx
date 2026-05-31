@@ -181,8 +181,6 @@ export default function RootLayout({
             __html: `(function(){try{var p=localStorage.getItem('notemage-theme');var s=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';var t=p==='light'||p==='dark'?p:s;document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`,
           }}
         />
-        {/* Figma capture script - temporary for design export */}
-        <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
       </head>
       <body
         className={[

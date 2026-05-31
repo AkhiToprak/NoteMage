@@ -51,14 +51,20 @@ export async function POST(request: NextRequest) {
     const { storagePath, fileName, fileType } = await request.json();
 
     if (!storagePath) return badRequestResponse('No storagePath provided');
-    if (!validateStoragePath(storagePath, 'documents/')) {
-      return badRequestResponse('Invalid storage path');
-    }
     if (!ALLOWED_MIME_TYPES.includes(fileType)) {
       return badRequestResponse('Unsupported file type. Allowed: PDF, DOCX, TXT, MD');
     }
 
+    // Resolve the caller's Inbox first so we can scope the storage path to it.
+    // The signed-url 'document' purpose emits `documents/<notebookId>/...`, and
+    // the chat creator uploads Inbox files under this very notebook — so a path
+    // outside `documents/<inbox.id>/` belongs to another notebook/tenant and is
+    // rejected (the service-role client bypasses RLS).
     const inbox = await getOrCreateInboxNotebook(userId);
+
+    if (!validateStoragePath(storagePath, `documents/${inbox.id}/`)) {
+      return badRequestResponse('Invalid storage path');
+    }
 
     const buffer = await downloadFromStorage(storagePath);
 

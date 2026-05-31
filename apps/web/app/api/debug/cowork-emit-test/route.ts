@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
-import { unauthorizedResponse } from '@/lib/api-response';
+import { unauthorizedResponse, notFoundResponse } from '@/lib/api-response';
 
 /**
  * GET /api/debug/cowork-emit-test
  *   ?session=<sessionId>   → broadcasts to `session:<sessionId>`
- *   ?room=<room>           → broadcasts to the literal room name
- * Defaults to `session:debug-test` if neither is passed.
+ * Defaults to `session:debug-test` if no session is passed.
  *
  * Hits the ws-server's `/emit` webhook with a synthetic debug:ping
  * event and returns the complete response (status, text body, timing,
@@ -17,15 +16,20 @@ import { unauthorizedResponse } from '@/lib/api-response';
  * running cowork session and the `listeners` field in the ws-server
  * response is 0, then nobody's socket is actually in that room.
  *
- * Auth: any authenticated user.
+ * Disabled in production (returns 404). In non-prod, auth: any
+ * authenticated user.
  */
 export async function GET(request: NextRequest) {
+  // Debug-only diagnostic — never expose it in production.
+  if (process.env.NODE_ENV === 'production') return notFoundResponse();
+
   const userId = await getAuthUserId(request);
   if (!userId) return unauthorizedResponse();
 
+  // Only a derived `session:<id>` room is permitted — never an arbitrary
+  // literal room from client input.
   const sessionIdParam = request.nextUrl.searchParams.get('session');
-  const roomParam = request.nextUrl.searchParams.get('room');
-  const room = sessionIdParam ? `session:${sessionIdParam}` : roomParam || 'session:debug-test';
+  const room = sessionIdParam ? `session:${sessionIdParam}` : 'session:debug-test';
 
   const WS_INTERNAL_URL = process.env.WS_INTERNAL_URL || 'http://localhost:3002';
   const WS_INTERNAL_SECRET = process.env.WS_INTERNAL_SECRET || '';
@@ -39,8 +43,6 @@ export async function GET(request: NextRequest) {
     WS_INTERNAL_URL_normalized: normalizedUrl,
     WS_INTERNAL_URL_had_trailing_slash: WS_INTERNAL_URL !== normalizedUrl,
     WS_INTERNAL_SECRET_set: !!WS_INTERNAL_SECRET,
-    WS_INTERNAL_SECRET_length: WS_INTERNAL_SECRET.length,
-    WS_INTERNAL_SECRET_first4: WS_INTERNAL_SECRET.slice(0, 4),
     NEXT_PUBLIC_WS_URL_set: !!process.env.NEXT_PUBLIC_WS_URL,
     NEXT_PUBLIC_WS_URL_value: process.env.NEXT_PUBLIC_WS_URL || null,
   };

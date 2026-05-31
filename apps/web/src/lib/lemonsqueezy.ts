@@ -149,14 +149,56 @@ export async function getLemonSqueezySubscription(
 ): Promise<LemonSqueezySubscriptionView | null> {
   const res = await fetch(`${LS_API}/subscriptions/${subscriptionId}`, { headers: lsHeaders() });
   if (!res.ok) return null;
-  const json = (await res.json()) as { data?: { id: string; attributes: LsSubscriptionAttributes } };
+  const json = (await res.json()) as {
+    data?: { id: string; attributes: LsSubscriptionAttributes };
+    // LS echoes the checkout custom_data on the subscription object's top-level
+    // `meta`, so a fetched subscription carries the same signed owner binding the
+    // webhook trusts (meta.custom_data.user_id).
+    meta?: { custom_data?: Record<string, unknown> };
+  };
   if (!json.data) return null;
-  return mapSubscription(json.data.id, json.data.attributes);
+  const rawUserId = json.meta?.custom_data?.user_id;
+  const customUserId = typeof rawUserId === 'string' && rawUserId ? rawUserId : null;
+  return mapSubscription(json.data.id, json.data.attributes, customUserId);
+}
+
+/**
+ * Decide whether `callerId` is allowed to provision from a fetched subscription.
+ *
+ * The /sync route takes a client-supplied subscriptionId, so we MUST prove the
+ * subscription belongs to the caller before promoting them to PRO and seizing
+ * the @unique customer/subscription columns. We trust only bindings the webhook
+ * also trusts:
+ *   1. The subscription's signed checkout custom_data.user_id (sub.userId), when
+ *      LS echoed it on the GET — it must equal the caller.
+ *   2. Otherwise, the subscription's customer must already be bound to the caller
+ *      (sub.customerId === caller's existing User.lemonSqueezyCustomerId), which
+ *      can only have been set by a prior trusted (webhook/owned-sync) provision.
+ * Any client-supplied id whose owner cannot be matched to the caller is rejected.
+ */
+async function syncOwnerMatchesCaller(
+  callerId: string,
+  sub: LemonSqueezySubscriptionView
+): Promise<boolean> {
+  if (sub.userId) {
+    // custom_data.user_id is the authoritative owner — require an exact match.
+    return sub.userId === callerId;
+  }
+  // No signed owner on the GET: fall back to an already-established customer bind.
+  if (!sub.customerId) return false;
+  const owner = await db.user.findUnique({
+    where: { lemonSqueezyCustomerId: sub.customerId },
+    select: { id: true },
+  });
+  return owner?.id === callerId;
 }
 
 /**
  * Post-checkout fallback for POST /api/billing/lemonsqueezy/sync when the webhook
- * is slow. Fetches the subscription and provisions (idempotent).
+ * is slow. Fetches the subscription, verifies it belongs to the caller, then
+ * provisions (idempotent). Returns null without provisioning if the resolved
+ * owner does not match `opts.userId` — a caller may only sync their OWN
+ * subscription (the webhook keeps its own signed-custom_data binding).
  */
 export async function syncLemonSqueezyAfterCheckout(opts: {
   userId: string;
@@ -164,6 +206,7 @@ export async function syncLemonSqueezyAfterCheckout(opts: {
 }): Promise<Tier | null> {
   const sub = await getLemonSqueezySubscription(opts.subscriptionId);
   if (!sub) return null;
+  if (!(await syncOwnerMatchesCaller(opts.userId, sub))) return null; // not the caller's subscription
   await provisionFromLemonSqueezySubscription(opts.userId, sub);
   const user = await db.user.findUnique({ where: { id: opts.userId }, select: { tier: true } });
   return user?.tier ?? null;

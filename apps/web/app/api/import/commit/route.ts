@@ -88,7 +88,10 @@ export async function POST(request: NextRequest) {
           fileName?: unknown;
           pageImagePaths?: unknown;
         };
-        if (typeof f.pdfPath !== 'string' || !validateStoragePath(f.pdfPath, 'temp-imports/')) {
+        if (
+          typeof f.pdfPath !== 'string' ||
+          !validateStoragePath(f.pdfPath, `temp-imports/${userId}/`)
+        ) {
           return badRequestResponse('Invalid file path.');
         }
         if (typeof f.fileName !== 'string' || f.fileName.trim().length === 0) {
@@ -103,7 +106,7 @@ export async function POST(request: NextRequest) {
         }
         const pageImagePaths: string[] = [];
         for (const p of f.pageImagePaths) {
-          if (typeof p !== 'string' || !validateStoragePath(p, 'temp-imports/')) {
+          if (typeof p !== 'string' || !validateStoragePath(p, `temp-imports/${userId}/`)) {
             return badRequestResponse('Invalid page image path.');
           }
           pageImagePaths.push(p);

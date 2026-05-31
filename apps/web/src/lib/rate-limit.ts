@@ -25,22 +25,40 @@ function getLimiter(maxRequests: number, windowMs: number): Ratelimit {
 /**
  * Redis-backed rate limiter using Upstash.
  * Returns { success: true } if allowed, or { success: false, retryAfterMs } if blocked.
- * Fails open (allows request) if Redis is unreachable.
+ *
+ * Failure mode on a Redis error is controlled by `failClosed` (default false):
+ *   - false → fail OPEN (allow the request). Used for non-security-critical
+ *     limiters where availability matters more than the cap.
+ *   - true  → fail CLOSED (block the request). Used for security-critical
+ *     limiters (login, register, resend-code) where a dropped cap would let
+ *     an attacker brute-force / spam while Redis is down.
  */
 export async function rateLimit(
   key: string,
   maxRequests: number,
-  windowMs: number
+  windowMs: number,
+  failClosed = false,
+  cost = 1
 ): Promise<{ success: boolean; retryAfterMs?: number }> {
   try {
     const limiter = getLimiter(maxRequests, windowMs);
-    const result = await limiter.limit(key);
+    // `cost` consumes more than one token in a single call — used when one
+    // request triggers multiple backend operations (e.g. a quiz code-grade
+    // runs one sandbox execution per test), so the limiter reflects the real
+    // load instead of charging a flat 1 per request.
+    const result = await limiter.limit(key, cost > 1 ? { rate: cost } : undefined);
 
     if (!result.success) {
       return { success: false, retryAfterMs: result.reset - Date.now() };
     }
     return { success: true };
   } catch (error) {
+    if (failClosed) {
+      // Fail closed: if Redis is down, block the request rather than drop
+      // the cap on a security-critical endpoint.
+      console.error('Rate limiter error (failing closed):', error);
+      return { success: false };
+    }
     // Fail open: if Redis is down, allow the request through.
     // Account-level lockout in Postgres still provides protection.
     console.error('Rate limiter error (failing open):', error);

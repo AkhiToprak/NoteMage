@@ -27,6 +27,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
     if (!notebook) return notFoundResponse('Notebook not found');
 
+    // Verify the set belongs to this (owned) notebook before touching any card.
+    // Without this, setId/flashcardId could target another tenant's cards (IDOR
+    // cross-tenant write of SM-2 schedule). Mirrors the study-session route.
+    const flashcardSet = await db.flashcardSet.findFirst({
+      where: { id: setId, notebookId },
+    });
+    if (!flashcardSet) return notFoundResponse('Flashcard set not found');
+
     const body = await request.json();
     const { flashcardId, quality } = body;
 

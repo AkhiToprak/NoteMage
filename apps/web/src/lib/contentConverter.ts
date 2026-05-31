@@ -28,6 +28,34 @@ export interface TipTapDoc {
 }
 
 /**
+ * Allowlist of URL schemes permitted on imported link marks. Imported DOCX /
+ * OneNote content can carry arbitrary `href` values, including dangerous
+ * schemes (`javascript:`, `data:`, `vbscript:`) that turn into XSS once the
+ * link is rendered. Anything outside this set is dropped.
+ */
+const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
+/**
+ * Return `href` only if it uses an allowed scheme; otherwise return null so
+ * callers can omit the link mark entirely. Protocol-relative (`//host`) and
+ * scheme-less relative hrefs are treated as http(s) and kept. Unparseable
+ * values are dropped.
+ */
+export function safeLinkHref(href: string | null | undefined): string | null {
+  if (!href) return null;
+  const trimmed = href.trim();
+  if (!trimmed) return null;
+  try {
+    // Resolve against a dummy base so relative / protocol-relative hrefs parse;
+    // an absolute href with its own scheme ignores the base.
+    const protocol = new URL(trimmed, 'https://x.invalid').protocol;
+    return SAFE_LINK_PROTOCOLS.has(protocol) ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Extract plain text from a TipTap JSON document.
  * Recursively walks the node tree and collects all text content.
  * Returns null if the document is empty or invalid.
@@ -636,9 +664,13 @@ function tagToMark(tag: string, attrs: string): TipTapMark | null {
       return { type: 'code' };
     case 'a': {
       const hrefMatch = attrs.match(/href\s*=\s*["']([^"']*)["']/i);
+      const href = safeLinkHref(hrefMatch ? decodeEntities(hrefMatch[1]) : null);
+      // Drop the link mark for missing/unsafe hrefs (e.g. javascript:) — the
+      // text still renders, just without a clickable link.
+      if (!href) return null;
       return {
         type: 'link',
-        attrs: { href: hrefMatch ? hrefMatch[1] : '', target: '_blank' },
+        attrs: { href, target: '_blank' },
       };
     }
     case 'sub':

@@ -11,7 +11,7 @@ import {
 } from '@/lib/api-response';
 import { importFromUrl, SSRFError } from '@/lib/url-import';
 import { textToTipTapJSON } from '@/lib/contentConverter';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 type Params = { params: Promise<{ id: string; sectionId: string }> };
 
@@ -20,9 +20,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    // Rate limit: 10 requests per minute per IP
-    const ip = getClientIp(request);
-    const rl = await rateLimit(`url-import:${ip}`, 10, 60_000);
+    // Rate limit: 10 requests per minute, keyed to the authenticated user
+    // (IP alone is spoofable via X-Forwarded-For; this route is auth-gated).
+    const rl = await rateLimit(rateLimitKey('url-import', request, userId), 10, 60_000);
     if (!rl.success) {
       return tooManyRequestsResponse(
         'Too many URL import requests. Please try again later.',

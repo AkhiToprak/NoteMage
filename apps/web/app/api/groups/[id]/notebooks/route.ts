@@ -31,7 +31,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       where: { groupId_userId: { groupId, userId } },
     });
 
-    if (!membership) {
+    if (!membership || membership.status !== 'accepted') {
       return forbiddenResponse('You are not a member of this group');
     }
 
@@ -103,7 +103,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       where: { groupId_userId: { groupId, userId } },
     });
 
-    if (!membership) {
+    if (!membership || membership.status !== 'accepted') {
       return forbiddenResponse('You are not a member of this group');
     }
 

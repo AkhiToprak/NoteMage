@@ -2,7 +2,12 @@ import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
+import {
+  successResponse,
+  unauthorizedResponse,
+  forbiddenResponse,
+  internalErrorResponse,
+} from '@/lib/api-response';
 
 /**
  * GET /api/user/activity-heatmap?days=365&userId=...
@@ -13,18 +18,45 @@ import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/
  *
  * `userId` is optional — when set (and different from the authed user) we
  * read the target user's data so the friend-profile page can render its
- * activity board. The profile page already gates visibility behind
- * `!isPrivate`, mirroring how achievements and cosmetics are gated.
+ * activity board. A session is always required, and cross-user reads are
+ * gated server-side behind the target's `profilePrivate` flag + an accepted
+ * friendship (mirroring profile/peers) so the endpoint can't be used as an
+ * unauthenticated activity oracle.
  */
 export async function GET(request: NextRequest) {
   try {
     const authUserId = await getAuthUserId(request);
+    if (!authUserId) return unauthorizedResponse();
 
     const url = new URL(request.url);
     const targetUserId = url.searchParams.get('userId');
 
-    const userId = targetUserId && targetUserId !== authUserId ? targetUserId : authUserId;
-    if (!userId) return unauthorizedResponse();
+    // Cross-user view: gate behind the target's privacy + an accepted
+    // friendship, mirroring /api/user/profile/[username] and /api/schools/peers.
+    if (targetUserId && targetUserId !== authUserId) {
+      const target = await db.user.findUnique({
+        where: { id: targetUserId },
+        select: { profilePrivate: true },
+      });
+      if (!target) return forbiddenResponse('Not allowed to view this activity');
+
+      if (target.profilePrivate) {
+        const friendship = await db.friendship.findFirst({
+          where: {
+            status: 'accepted',
+            OR: [
+              { requesterId: authUserId, addresseeId: targetUserId },
+              { requesterId: targetUserId, addresseeId: authUserId },
+            ],
+          },
+          select: { id: true },
+        });
+        if (!friendship) return forbiddenResponse('Not allowed to view this activity');
+      }
+    }
+
+    const userId =
+      targetUserId && targetUserId !== authUserId ? targetUserId : authUserId;
 
     const days = Math.min(Number(url.searchParams.get('days')) || 365, 365);
 

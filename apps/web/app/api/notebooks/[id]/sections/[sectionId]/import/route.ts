@@ -41,7 +41,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!storagePath) {
       return badRequestResponse('No storagePath provided');
     }
-    if (!validateStoragePath(storagePath, 'temp-imports/')) {
+    // Scope to the caller's temp-import prefix so a path from another tenant
+    // can't be passed in (the Supabase client bypasses RLS).
+    if (!validateStoragePath(storagePath, `temp-imports/${userId}/`)) {
       return badRequestResponse('Invalid storage path');
     }
 

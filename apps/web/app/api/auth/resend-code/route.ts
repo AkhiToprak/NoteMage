@@ -27,16 +27,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Two layers: a short per-email cooldown (stops mash-resend) and a per-IP
-    // hourly cap (stops abuse as a mail cannon). Both fail open if Redis is
-    // down — registration already enforces a hard per-IP account cap.
-    const cooldown = await rateLimit(`resend-code:email:${email}`, 1, 60 * 1000);
+    // hourly cap (stops abuse as a mail cannon). Both fail CLOSED if Redis is
+    // down so an outage can't turn this into an unmetered mail cannon.
+    const cooldown = await rateLimit(`resend-code:email:${email}`, 1, 60 * 1000, true);
     if (!cooldown.success) {
       return tooManyRequestsResponse(
         'Please wait a moment before requesting another code.',
         cooldown.retryAfterMs
       );
     }
-    const ipCap = await rateLimit(`resend-code:ip:${ip}`, 10, 60 * 60 * 1000);
+    const ipCap = await rateLimit(`resend-code:ip:${ip}`, 10, 60 * 60 * 1000, true);
     if (!ipCap.success) {
       return tooManyRequestsResponse('Too many requests. Please try again later.', ipCap.retryAfterMs);
     }

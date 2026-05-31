@@ -79,8 +79,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Idempotency: LS doesn't send a stable event id, so derive one from the event
-  // name + subscription id + updated_at. Claim it first; a duplicate is a no-op.
-  const eventId = `${eventName}:${subId}:${String(attrs.updated_at ?? '')}`;
+  // name + subscription id + status + updated_at. Including status keeps distinct
+  // state transitions from colliding when a same-second update shares updated_at
+  // with a terminal transition (e.g. cancelled/expired) — otherwise the terminal
+  // event would be masked as a duplicate. Claim it first; a duplicate is a no-op.
+  const eventId = `${eventName}:${subId}:${String(attrs.status ?? '')}:${String(attrs.updated_at ?? '')}`;
   try {
     await db.webhookEvent.create({
       data: { provider: PROVIDER, eventId, eventType: eventName },

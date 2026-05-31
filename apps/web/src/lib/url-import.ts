@@ -101,11 +101,18 @@ export async function validateUrl(url: string): Promise<string> {
     throw new SSRFError('Metadata service addresses are not allowed');
   }
 
-  // DNS resolution check
+  // DNS resolution check — validate EVERY resolved A/AAAA record, not just the
+  // first, so a host that answers with one public and one private address can't
+  // slip a private target through.
   try {
-    const { address } = await dns.lookup(hostname);
-    if (isPrivateIp(address)) {
-      throw new SSRFError('URL resolves to a private/reserved IP address');
+    const addresses = await dns.lookup(hostname, { all: true });
+    if (addresses.length === 0) {
+      throw new SSRFError(`Could not resolve hostname: ${hostname}`);
+    }
+    for (const a of addresses) {
+      if (isPrivateIp(a.address)) {
+        throw new SSRFError('URL resolves to a private/reserved IP address');
+      }
     }
   } catch (err) {
     if (err instanceof SSRFError) throw err;
@@ -115,32 +122,60 @@ export async function validateUrl(url: string): Promise<string> {
   return parsed.toString();
 }
 
+// Cap redirect hops; each hop is independently re-validated against SSRF rules.
+const MAX_REDIRECTS = 5;
+
 /**
  * Fetch a URL and extract its main text content using cheerio.
  */
 export async function importFromUrl(url: string): Promise<UrlImportResult> {
-  const validatedUrl = await validateUrl(url);
+  // Follow redirects MANUALLY so every hop is re-validated — `redirect: 'follow'`
+  // would let a validated public URL 302 to an internal address (cloud metadata,
+  // localhost) without re-checking. (Global fetch here can't pin the resolved IP
+  // — undici isn't importable — so we re-validate + re-resolve on each hop.)
+  let currentUrl = url;
+  let response: Response | null = null;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const validatedUrl = await validateUrl(currentUrl);
 
-  let response: Response;
-  try {
-    response = await fetch(validatedUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Notemage/1.0',
-        Accept: 'text/html, application/xhtml+xml, */*',
-      },
-      redirect: 'follow',
-    });
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err instanceof SSRFError) throw err;
-    const message = err instanceof Error ? err.message : 'Fetch failed';
-    throw new Error(`Failed to fetch URL: ${message}`);
-  } finally {
-    clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    let res: Response;
+    try {
+      res = await fetch(validatedUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Notemage/1.0',
+          Accept: 'text/html, application/xhtml+xml, */*',
+        },
+        redirect: 'manual',
+      });
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err instanceof SSRFError) throw err;
+      const message = err instanceof Error ? err.message : 'Fetch failed';
+      throw new Error(`Failed to fetch URL: ${message}`);
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location');
+      await res.body?.cancel().catch(() => {});
+      if (!location) break; // 3xx without a Location — nothing to follow.
+      // Resolve relative redirects against the current (validated) URL; the
+      // next loop iteration re-runs validateUrl on the resulting absolute URL.
+      currentUrl = new URL(location, validatedUrl).toString();
+      continue;
+    }
+
+    response = res;
+    break;
+  }
+
+  if (!response) {
+    throw new Error('Too many redirects while importing URL');
   }
 
   if (!response.ok) {

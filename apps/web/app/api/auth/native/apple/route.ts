@@ -39,7 +39,7 @@ interface AppleIdTokenClaims {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const ip = getClientIp(req);
-  const rl = await rateLimit(`login:${ip}`, 50, 15 * 60 * 1000);
+  const rl = await rateLimit(`native-apple:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.success) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }

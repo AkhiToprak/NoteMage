@@ -12,9 +12,10 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: 5 registration attempts per IP per hour (in-memory, resets on restart)
+    // Rate limit: 5 registration attempts per IP per hour.
+    // Security-critical: fail closed so a Redis outage can't drop the cap.
     const ip = getClientIp(request);
-    const rl = await rateLimit(`register:${ip}`, 5, 60 * 60 * 1000);
+    const rl = await rateLimit(`register:${ip}`, 5, 60 * 60 * 1000, true);
     if (!rl.success) {
       return NextResponse.json(
         { success: false, error: 'Too many registration attempts. Please try again later.' },

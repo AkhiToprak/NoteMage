@@ -11,8 +11,9 @@
 //   - the NextAuth `signIn` callback (Google / web Apple)
 //   - POST /api/auth/native/apple (iOS shell Apple)
 //
-// If `SIGNUP_BYPASS_TOKEN` is unset, every check returns false — i.e.
-// signups stay paused for everyone, which is the intended default.
+// The expected token is read solely from the `SIGNUP_BYPASS_TOKEN` env var —
+// there is no baked-in fallback. If that var is unset (or empty), every check
+// returns false, i.e. signups stay paused for everyone, the intended default.
 
 import { cookies as nextCookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
@@ -20,12 +21,6 @@ import type { NextRequest } from 'next/server';
 export const SIGNUP_BYPASS_COOKIE = 'signup_bypass';
 export const SIGNUP_BYPASS_QUERY_PARAM = 'key';
 export const SIGNUP_BYPASS_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
-
-// Pre-launch fallback. Accepted alongside the env var because Coolify's
-// runtime env injection wasn't reliably applying edits for this service.
-// Rip this out on launch.
-const FALLBACK_BYPASS_TOKEN =
-  '970311913b9098c1c8b92dc004849c640bce6c6b744d81c823b6e9019bd9ab08';
 
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -47,7 +42,6 @@ function normalizeEnvToken(raw: string | undefined): string {
 
 export function isValidBypassToken(value: string | null | undefined): boolean {
   if (typeof value !== 'string' || value.length === 0) return false;
-  if (constantTimeEqual(value, FALLBACK_BYPASS_TOKEN)) return true;
   const expected = normalizeEnvToken(process.env.SIGNUP_BYPASS_TOKEN);
   if (expected.length === 0) return false;
   return constantTimeEqual(value, expected);
