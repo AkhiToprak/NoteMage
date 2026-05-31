@@ -17,19 +17,17 @@ interface GenerateDropdownProps {
   onEssayCheck?: () => void;
 }
 
-type GenerateType = 'flashcards' | 'quiz' | 'mindmap';
+type GenerateType = 'flashcards' | 'quiz';
 
 const OPTIONS: { type: GenerateType; label: string; icon: string }[] = [
   { type: 'flashcards', label: 'Generate Flashcards', icon: 'menu_book' },
   { type: 'quiz', label: 'Generate Quiz', icon: 'quiz' },
-  { type: 'mindmap', label: 'Generate Mind Map', icon: 'hub' },
 ];
 
 // Labels shown in the global AI status pill while each action is running.
 const AI_TASK_LABELS: Record<GenerateType, string> = {
   flashcards: 'Generating flashcards…',
   quiz: 'Generating quiz…',
-  mindmap: 'Generating mind map…',
 };
 
 export default function GenerateDropdown({
@@ -139,9 +137,6 @@ export default function GenerateDropdown({
           setOpen(false);
           refreshQuizSets();
           router.push(`/learn/quizzes?highlight=${data.quizSet.id}`);
-        } else if (data.type === 'mindmap' && data.mindmap) {
-          setOpen(false);
-          alert(`Mind map "${data.mindmap.title}" generated successfully!`);
         } else if (data.text) {
           setOpen(false);
           alert(data.text);
