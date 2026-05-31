@@ -25,6 +25,11 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/web/package.json apps/web/
+# apps/web/package.json pins the patched SheetJS build as
+# `xlsx: file:vendor/xlsx-0.20.3.tgz`, so the vendored tarball must be present
+# in this layer before install resolves it (the full source is only copied in
+# the builder stage, which runs after this install).
+COPY apps/web/vendor apps/web/vendor
 COPY apps/web/prisma apps/web/prisma
 RUN pnpm install --frozen-lockfile
 
