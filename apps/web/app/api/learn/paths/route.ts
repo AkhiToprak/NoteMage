@@ -336,7 +336,10 @@ export async function POST(request: NextRequest) {
 
     // Stage B fire-and-forget. Errors are surfaced to the client through
     // `StudyPlan.generationStatus = "failed"` + the SSE `error` event.
-    void generatePath(planId).catch((err) => {
+    // `allowRefund` lets Stage B give the reserved credit back if the path
+    // generates nothing at all (only the create flow opts in — regenerate is
+    // already free, so it must never trigger a second refund).
+    void generatePath(planId, { allowRefund: true }).catch((err) => {
       console.error('[learn/paths POST] Stage B failed', err);
     });
 

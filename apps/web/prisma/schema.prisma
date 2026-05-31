@@ -862,6 +862,12 @@ model CheckpointSlot {
   // must be completed before this one unlocks (in addition to the default
   // sequential gate). Phase 10.6 wires up the real logic.
   prerequisiteSlotIds String[] @default([])
+  // Activity kinds Stage B intentionally PRUNED for this slot because the
+  // material was too thin to support them — distinct from a generation
+  // FAILURE, where the expected kind is simply absent. path-gating treats a
+  // pruned kind as satisfied, so a deliberately-tight slot reads as complete
+  // rather than broken. See plans/path-generation-reliability.md.
+  prunedActivityKinds String[] @default([])
   // 0–3 stars, awarded by the slot's assessment activity (Phase 10.6).
   starsEarned         Int      @default(0)
   // Best percentage ever achieved on this slot's assessment. Updated by the

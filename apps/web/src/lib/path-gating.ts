@@ -37,6 +37,10 @@ export interface SlotLite {
   kind: string; // "learning" | "review" | "assessment"
   prerequisiteSlotIds: string[];
   starsEarned: number;
+  // Activity kinds Stage B intentionally pruned (material too thin). Treated
+  // as satisfied by the generation-completeness check, so a pruned kind is
+  // NOT a failure. Optional so callers predating the field behave unchanged.
+  prunedActivityKinds?: string[];
   activities: ActivityLite[];
 }
 
@@ -61,13 +65,19 @@ function sortSlots<S extends SlotLite>(slots: S[]): S[] {
 
 /**
  * A slot is generation-incomplete when it is missing one or more of the
- * activity kinds its `kind` should contain — i.e. AI generation failed for
- * some activity. These slots never block the path and surface a Regenerate
- * affordance instead of trapping the learner.
+ * activity kinds its `kind` should contain AND that kind was not
+ * intentionally pruned — i.e. AI generation genuinely FAILED for some
+ * activity. A kind Stage B pruned (material too thin to support it) counts
+ * as satisfied, so a deliberately-tight slot reads as complete rather than
+ * broken. Truly-incomplete slots never block the path and surface a
+ * Regenerate affordance instead of trapping the learner.
  */
 function isGenerationIncomplete(slot: SlotLite): boolean {
   const present = new Set(slot.activities.map((a) => a.kind));
-  return expectedActivityKinds(slot.kind).some((k) => !present.has(k));
+  const pruned = new Set(slot.prunedActivityKinds ?? []);
+  return expectedActivityKinds(slot.kind).some(
+    (k) => !present.has(k) && !pruned.has(k),
+  );
 }
 
 function isSlotCompleted(slot: SlotLite): boolean {

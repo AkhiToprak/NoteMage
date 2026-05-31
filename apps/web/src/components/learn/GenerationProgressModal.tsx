@@ -36,7 +36,15 @@ import {
 interface SerializedPathPhase {
   id: string;
   title: string;
-  slots?: Array<{ id: string; title: string; activities?: unknown[] }>;
+  slots?: Array<{
+    id: string;
+    title: string;
+    activities?: unknown[];
+    /** True when a checkpoint genuinely failed to generate. Already
+     *  pruned-aware via path-gating — intentionally-pruned activities are
+     *  NOT counted here. */
+    incompleteGeneration?: boolean;
+  }>;
 }
 
 interface SerializedPath {
@@ -75,6 +83,21 @@ function statusToPose(status: PathGenerationStatus): MascotPose {
   if (status === 'ready') return 'graduation';
   if (status === 'failed') return 'thinking';
   return 'holding-wand';
+}
+
+// Count checkpoints that GENUINELY failed to generate. `incompleteGeneration`
+// is already pruned-aware (path-gating) — intentionally-pruned activities are
+// not failures, so a deliberately-tight path reports zero here.
+function countIncompleteSlots(plan: unknown): number {
+  const p = plan as SerializedPath | null;
+  if (!p?.phases) return 0;
+  let n = 0;
+  for (const phase of p.phases) {
+    for (const slot of phase.slots ?? []) {
+      if (slot.incompleteGeneration) n += 1;
+    }
+  }
+  return n;
 }
 
 export default function GenerationProgressModal({
@@ -158,6 +181,11 @@ export default function GenerationProgressModal({
   const isReady = stream.status === 'ready';
   const isFailed = stream.status === 'failed';
   const isWorking = !isReady && !isFailed;
+  // Honest completion: the path finished, but some checkpoints genuinely
+  // failed. Derived from the delivered plan tree, so it's accurate the moment
+  // the `done` event arrives. A clean path reports 0 → the celebratory branch.
+  const incompleteCount = stream.plan ? countIncompleteSlots(stream.plan) : 0;
+  const isPartial = isReady && incompleteCount > 0;
 
   const planTitle = (stream.plan as SerializedPath | null)?.title ?? structure?.title ?? initialTitle;
 
@@ -198,7 +226,7 @@ export default function GenerationProgressModal({
         }}
       >
         <Mascot
-          pose={statusToPose(stream.status)}
+          pose={isPartial ? 'thinking' : statusToPose(stream.status)}
           size="md"
           idle={isWorking ? 'sway' : 'none'}
           oneShot={oneShot}
@@ -217,7 +245,9 @@ export default function GenerationProgressModal({
             }}
           >
             {isReady
-              ? 'Your path is ready!'
+              ? isPartial
+                ? `Path ready, ${incompleteCount} to retry`
+                : 'Your path is ready!'
               : isFailed
                 ? 'Generation hit a snag'
                 : 'Building your path…'}
@@ -231,7 +261,9 @@ export default function GenerationProgressModal({
             }}
           >
             {isReady
-              ? planTitle
+              ? isPartial
+                ? `${incompleteCount} checkpoint${incompleteCount === 1 ? '' : 's'} couldn't generate. The rest is ready — retry the gaps now or later.`
+                : planTitle
               : isFailed
                 ? stream.errorMessage ?? 'Something went wrong. Try again.'
                 : currentSlot && currentActivity
@@ -250,7 +282,7 @@ export default function GenerationProgressModal({
           />
         )}
 
-        {isFailed && retryError && (
+        {(isFailed || isPartial) && retryError && (
           <p
             role="alert"
             style={{
@@ -274,13 +306,25 @@ export default function GenerationProgressModal({
           }}
         >
           {isReady ? (
-            <Link
-              href={`/learn/paths/${encodeURIComponent(planId)}`}
-              style={primaryButtonStyle}
-              onClick={onClose}
-            >
-              Start learning →
-            </Link>
+            <>
+              <Link
+                href={`/learn/paths/${encodeURIComponent(planId)}`}
+                style={primaryButtonStyle}
+                onClick={onClose}
+              >
+                Start learning →
+              </Link>
+              {isPartial ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  disabled={retrying}
+                  style={{ ...secondaryButtonStyle, opacity: retrying ? 0.6 : 1 }}
+                >
+                  {retrying ? 'Retrying…' : `Retry ${incompleteCount}`}
+                </button>
+              ) : null}
+            </>
           ) : isFailed ? (
             <button
               type="button"

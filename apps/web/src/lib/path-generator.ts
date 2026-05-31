@@ -51,6 +51,7 @@ import {
 import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
 import { computeCost, type ModelUsage } from './path-generator-cost';
 import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
+import { refundUsage } from './usage-limits';
 import {
   QuizSetV2Schema,
   TheorySectionSchema,
@@ -72,7 +73,11 @@ import {
   coerceSubjectIds,
   type SubjectId,
 } from './path-subjects';
-import { expectedActivityKinds, type PathActivityKind } from './path-slot-activities';
+import {
+  expectedActivityKinds,
+  isTheoryTooThinForFlashcards,
+  type PathActivityKind,
+} from './path-slot-activities';
 import { normalizePathLanguage, type PathLanguageCode } from './path-languages';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -117,6 +122,15 @@ function truncateError(message: string): string {
 /** How many times Stage B re-attempts one activity's AI call before giving
  *  up. Each retry feeds a corrective notice back into the prompt. */
 const MAX_ACTIVITY_ATTEMPTS = 3;
+
+// Path-level retry sweeps (plans/path-generation-reliability.md, Phase 4). After
+// the first full pass, the orchestrator re-walks any slots whose activities are
+// still missing — on top of each activity's own MAX_ACTIVITY_ATTEMPTS retries —
+// reloading the plan between sweeps so generated/pruned activities are skipped.
+// Ultra is capped at 3/month, so cost is irrelevant: sweep generously. Basic
+// (Haiku, high-volume) gets one extra sweep; its real fix is prompt reliability.
+const PATH_RETRY_SWEEPS_ULTRA = 3;
+const PATH_RETRY_SWEEPS_BASIC = 1;
 
 /** Short, safe preview of a raw AI tool output, for failure diagnostics. */
 function previewToolOutput(raw: unknown): string {
@@ -573,6 +587,13 @@ interface SlotForGeneration {
    * retry path for `POST /api/learn/paths/[planId]/regenerate`.
    */
   existingActivityKinds: Set<'theory' | 'flashcards' | 'quiz'>;
+  /**
+   * Activity kinds Stage B previously PRUNED for this slot (material too thin
+   * to support them). Excluded from `missingKinds` so a retry sweep or
+   * regenerate never re-attempts an intentionally-absent activity. See
+   * plans/path-generation-reliability.md (Phase 3).
+   */
+  prunedActivityKinds: Set<'theory' | 'flashcards' | 'quiz'>;
 }
 
 interface PhaseForGeneration {
@@ -682,6 +703,12 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
               (k): k is 'theory' | 'flashcards' | 'quiz' =>
                 k === 'theory' || k === 'flashcards' || k === 'quiz',
             ),
+        ),
+        prunedActivityKinds: new Set(
+          (Array.isArray(s.prunedActivityKinds) ? s.prunedActivityKinds : []).filter(
+            (k): k is 'theory' | 'flashcards' | 'quiz' =>
+              k === 'theory' || k === 'flashcards' || k === 'quiz',
+          ),
         ),
       })),
     })),
@@ -854,6 +881,34 @@ async function generateTheoryActivity(
   return theoryPlainText(resolved);
 }
 
+/**
+ * Persist that Stage B intentionally PRUNED an activity kind for a slot
+ * (material too thin to support it). Recorded on the slot so path-gating
+ * treats the kind as satisfied — not a failure — and re-runs never re-attempt
+ * it. See plans/path-generation-reliability.md (Phase 3).
+ */
+async function recordPrunedActivity(
+  plan: PlanForGeneration,
+  slot: SlotForGeneration,
+  kind: PathActivityKind,
+  reason: string,
+): Promise<void> {
+  // Gating dedupes via a Set, but guard the push so a re-run can't accumulate
+  // duplicate entries in the column.
+  if (slot.prunedActivityKinds.has(kind)) return;
+  await db.checkpointSlot.update({
+    where: { id: slot.id },
+    data: { prunedActivityKinds: { push: kind } },
+  });
+  slot.prunedActivityKinds.add(kind);
+  logTelemetry(plan.userId, 'path.activity.pruned', {
+    planId: plan.id,
+    slotId: slot.id,
+    activityKind: kind,
+    reason,
+  });
+}
+
 async function generateFlashcardsActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
@@ -917,6 +972,15 @@ async function generateFlashcardsActivity(
     }
   }
   if (!resolved) {
+    // Prune-vs-fail. Thin theory legitimately supports no cards → prune the
+    // activity (the theory lesson still stands) instead of failing the
+    // checkpoint. Rich theory with no cards is a real failure and still throws
+    // (→ retry sweep / honest status). Review slots carry no theory, so the
+    // helper returns false and they fail-and-retry as before.
+    if (isTheoryTooThinForFlashcards(theoryText)) {
+      await recordPrunedActivity(plan, slot, 'flashcards', 'thin_theory');
+      return;
+    }
     throw new Error(`Flashcards generation returned no usable cards (${lastDetail})`);
   }
   const input = resolved;
@@ -991,6 +1055,50 @@ function parseQuizInput(
   return { ok: false, error: parsed.error.message };
 }
 
+/**
+ * Last-resort quiz generation (plans/path-generation-reliability.md, Phase 4).
+ * When the normal attempts can't produce a valid payload, retry with a
+ * deliberately SIMPLER ask — only `mc` + `true_false` (the lowest-drift kinds),
+ * counts kept modest — so the checkpoint yields a valid quiz instead of a hole.
+ * The model/tier is unchanged (ultra stays on Sonnet via `callQuizDispatch`);
+ * only the request is degraded. Returns null if even the simplified ask fails.
+ */
+async function tryDegradedQuiz(
+  plan: PlanForGeneration,
+  slot: SlotForGeneration,
+  system: string,
+  baseTail: string,
+): Promise<ValidatedQuizSet | null> {
+  const count = slot.kind === 'final_exam' ? '8–12 questions' : '3–5 questions';
+  const degradedTail = [
+    baseTail,
+    '',
+    '--- SIMPLIFIED RETRY ---',
+    'The previous attempts produced an unusable quiz. Generate a SIMPLER quiz now so the learner still gets one:',
+    'Use ONLY the `mc` and `true_false` question kinds — no other kinds.',
+    `Produce ${count}. Follow the exact payload shapes from the catalog above and keep every payload minimal.`,
+  ].join('\n');
+  try {
+    const raw = await callQuizDispatch(plan, slot.title, system, degradedTail);
+    const result = parseQuizInput(raw, slot.title);
+    if (result.ok && result.data.questions.length > 0) {
+      logTelemetry(plan.userId, 'path.quiz.degraded', {
+        planId: plan.id,
+        slotId: slot.id,
+        questions: result.data.questions.length,
+      });
+      return result.data;
+    }
+  } catch (error) {
+    logTelemetry(plan.userId, 'path.quiz.degrade_failed', {
+      planId: plan.id,
+      slotId: slot.id,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return null;
+}
+
 async function generateQuizActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
@@ -1047,7 +1155,11 @@ async function generateQuizActivity(
     }
   }
   if (!parseResult) {
-    throw new Error(`Quiz generation failed: ${lastError}`);
+    // Degrade before giving up: a simpler mc/true_false quiz beats a hole.
+    parseResult = await tryDegradedQuiz(plan, slot, system, tail);
+    if (!parseResult) {
+      throw new Error(`Quiz generation failed: ${lastError}`);
+    }
   }
   let parsed: ValidatedQuizSet = parseResult;
 
@@ -1196,49 +1308,31 @@ async function writeProgress(planId: string, snap: ProgressSnapshot): Promise<vo
  * surfaced via `StudyPlan.generationStatus = "failed"` +
  * `generationError`.
  */
-export async function generatePath(planId: string): Promise<void> {
-  const plan = await loadPlanForGeneration(planId);
-  if (!plan) {
-    console.error(`[path-generator] plan ${planId} not found`);
-    return;
-  }
-
-  const total = totalSlotCount(plan);
-  if (total === 0) {
-    await db.studyPlan.update({
-      where: { id: planId },
-      data: {
-        generationStatus: 'ready',
-        generationProgress: {
-          totalSlots: 0,
-          completedSlots: 0,
-          currentSlot: null,
-          currentActivity: null,
-        } as unknown as Prisma.InputJsonValue,
-      },
-    });
-    return;
-  }
-
-  await db.studyPlan.update({
-    where: { id: planId },
-    data: {
-      generationStatus: 'generating',
-      generationError: null,
-    },
-  });
-  logTelemetry(plan.userId, 'path.generation.started', { planId, totalSlots: total });
-
+/**
+ * Run ONE full Stage-B pass over the plan: generate each slot's still-missing
+ * activities (skipping ones already generated or intentionally pruned), and
+ * return the ids of slots that had at least one activity FAIL this pass. Token
+ * usage accumulates into `plan.usage`, so the caller can carry a single meter
+ * across retry sweeps. No status side effects — the caller owns final status.
+ */
+async function runGenerationPass(
+  plan: PlanForGeneration,
+  planId: string,
+  total: number,
+): Promise<string[]> {
   const failedSlotIds: string[] = [];
   let completedSlots = 0;
 
   for (const phase of plan.phases) {
     for (const slot of phase.slots) {
-      // Idempotency: skip activity kinds the slot already has. This lets
-      // `POST /api/learn/paths/[planId]/regenerate` call generatePath again
-      // to retry only the activities that previously failed.
+      // Idempotency: skip kinds the slot already has, plus kinds Stage B
+      // intentionally pruned (complete-by-design). This is also what lets each
+      // retry sweep — and `POST /api/learn/paths/[planId]/regenerate` — only
+      // re-attempt the activities that previously failed.
       const wantedKinds = expectedActivityKinds(slot.kind);
-      const missingKinds = wantedKinds.filter((k) => !slot.existingActivityKinds.has(k));
+      const missingKinds = wantedKinds.filter(
+        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
+      );
 
       if (missingKinds.length === 0) {
         completedSlots += 1;
@@ -1322,9 +1416,94 @@ export async function generatePath(planId: string): Promise<void> {
     }
   }
 
+  return failedSlotIds;
+}
+
+export async function generatePath(
+  planId: string,
+  opts: { allowRefund?: boolean } = {},
+): Promise<void> {
+  let plan = await loadPlanForGeneration(planId);
+  if (!plan) {
+    console.error(`[path-generator] plan ${planId} not found`);
+    return;
+  }
+
+  const total = totalSlotCount(plan);
+  if (total === 0) {
+    await db.studyPlan.update({
+      where: { id: planId },
+      data: {
+        generationStatus: 'ready',
+        generationProgress: {
+          totalSlots: 0,
+          completedSlots: 0,
+          currentSlot: null,
+          currentActivity: null,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return;
+  }
+
+  await db.studyPlan.update({
+    where: { id: planId },
+    data: {
+      generationStatus: 'generating',
+      generationError: null,
+    },
+  });
+  logTelemetry(plan.userId, 'path.generation.started', { planId, totalSlots: total });
+
+  // One token meter shared across every sweep so cost telemetry stays accurate
+  // even though we re-load the plan between sweeps to refresh which activities
+  // still need work.
+  const usage = plan.usage;
+  const extraSweeps = plan.ultra ? PATH_RETRY_SWEEPS_ULTRA : PATH_RETRY_SWEEPS_BASIC;
+
+  let failedSlotIds: string[] = [];
+  for (let sweep = 0; sweep <= extraSweeps; sweep++) {
+    if (sweep > 0) {
+      // Re-load so the existing/pruned activity sets reflect the prior pass,
+      // then carry the accumulated usage forward into the fresh plan object.
+      const fresh = await loadPlanForGeneration(planId);
+      if (!fresh) break;
+      fresh.usage = usage;
+      plan = fresh;
+      logTelemetry(plan.userId, 'path.generation.sweep', {
+        planId,
+        sweep,
+        retryingSlots: new Set(failedSlotIds).size,
+      });
+    }
+    failedSlotIds = await runGenerationPass(plan, planId, total);
+    if (failedSlotIds.length === 0) break;
+  }
+
+  // Reserve-and-settle: if an ULTRA path produced NOTHING after every sweep,
+  // refund the credit it reserved at creation — a worthless empty path must not
+  // cost one of the user's 3 monthly ultra credits. Strict by design (zero
+  // generated activities) so it can't be farmed: a refundable path has no usable
+  // content. `allowRefund` is set only by the create flow, so the free
+  // regenerate path can never re-trigger it (idempotent in practice).
+  if (opts.allowRefund && plan.ultra) {
+    const generatedCount = await db.checkpointActivity.count({
+      where: { slot: { phase: { planId } } },
+    });
+    if (generatedCount === 0) {
+      await refundUsage(plan.userId, 'ultra_path');
+      logTelemetry(plan.userId, 'path.credit.refunded', {
+        planId,
+        feature: 'ultra_path',
+        reason: 'total_generation_failure',
+      });
+    }
+  }
+
   // Stage B always finishes `ready`: incomplete checkpoints never block the
   // path (path-gating treats them as passable) and surface their own
   // Regenerate affordance. `failed` is reserved for catastrophic failure.
+  // (Phase 5 will branch the terminal status on any remaining failures.)
   await db.studyPlan.update({
     where: { id: planId },
     data: { generationStatus: 'ready', generationError: null },
@@ -1335,7 +1514,7 @@ export async function generatePath(planId: string): Promise<void> {
     failedActivities: failedSlotIds.length,
     failedSlots: new Set(failedSlotIds).size,
     ultra: plan.ultra,
-    usage: plan.usage,
-    cost: computeCost(plan.usage.perModel),
+    usage,
+    cost: computeCost(usage.perModel),
   });
 }

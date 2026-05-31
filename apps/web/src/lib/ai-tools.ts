@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import type { QuestionKind } from '@notemage/shared';
 
 // ── Typed interfaces for tool inputs ──
 
@@ -360,7 +361,7 @@ export const QUIZ_TOOL: Anthropic.Messages.Tool = {
 // validates per kind (`QuizQuestionV2Schema` in `@notemage/shared`).
 // Pedagogical "which kind to use when" guidance is intentionally NOT here —
 // that lives in each caller's surrounding prose.
-export const QUIZ_PAYLOAD_CATALOG = [
+const QUIZ_PAYLOAD_CATALOG_LINES = [
   'Payload shapes — the server rejects drift, so match these exactly:',
   '- mc → {"options":["A","B","C","D"],"correctIndex":0..3}. Plain strings only; no {text,isCorrect} objects.',
   '- true_false → {"correct": true|false}. The prompt itself is the statement to judge; payload only carries the answer key.',
@@ -373,7 +374,27 @@ export const QUIZ_PAYLOAD_CATALOG = [
   '- code_output → {"language":"python","code":"print(2 + 2)","blank":{"acceptableAnswers":["4"]}}. `code` may contain newlines. The `prompt` is a short lead-in like "What does this print?" — never paste the code into the prompt; the renderer displays it as a syntax-highlighted block. Provide 2–4 `acceptableAnswers` covering common variants (e.g. trailing newline, quoted vs unquoted output). Languages: python, javascript, typescript, java, cpp, sql, plaintext. Reserve for coding subjects.',
   '- code_write → {"language":"python","starterCode":"def reverse_string(s):\\n    # your code here\\n    pass\\n","tests":[{"name":"hello","stdin":"hello","expectedStdout":"olleh\\n"}],"runTimeoutMs":5000}. The learner edits `starterCode` and the server runs the final program once per test case, piping `stdin` (optional) and comparing the program\'s stdout to `expectedStdout` exactly (whitespace-sensitive). 1–6 tests. Always set `starterCode` so the learner has a scaffold — a function signature with a `# your code here` body for Python, an empty `function ...` for JS, etc. The `prompt` describes the task in plain English ("Write a function that returns the reverse of a string."). Languages: python, javascript, typescript, java, cpp, sql, go, rust. Reserve for coding subjects.',
   '- timeline → {"events":[{"year":"1914","label":"Outbreak of WWI"}, …]}. 3–8 distinct events with their canonical year. Years are plain strings (e.g. "1914" or "300 BCE"). The renderer fixes the years on an axis and shuffles the labels — the learner drags each label onto the matching year. The `prompt` is a short framing line like "Place each event on the timeline." — do NOT list the events in the prompt. Reserve for history/humanities subjects.',
-].join('\n');
+];
+
+// Full catalog (every kind) — byte-identical to before; still used by
+// QUIZ_TOOL_V2 (the chat-driven quiz tool, which isn't subject-constrained).
+export const QUIZ_PAYLOAD_CATALOG = QUIZ_PAYLOAD_CATALOG_LINES.join('\n');
+
+/**
+ * Payload catalog restricted to `kinds` (the header is always kept). Path
+ * generation passes the subject's allowed kinds so the model never sees shapes
+ * for kinds it isn't permitted to use — offering forbidden kinds is what drives
+ * the kind-filter regeneration on weaker models. Empty input → full catalog.
+ * See plans/path-generation-reliability.md (Phase 7).
+ */
+export function quizPayloadCatalogFor(kinds: QuestionKind[]): string {
+  if (kinds.length === 0) return QUIZ_PAYLOAD_CATALOG;
+  const allow = new Set<string>(kinds);
+  return QUIZ_PAYLOAD_CATALOG_LINES.filter((line) => {
+    const m = /^- (\w+) →/.exec(line);
+    return m ? allow.has(m[1]) : true;
+  }).join('\n');
+}
 
 // QUIZ_TOOL_V2 is the kind-aware quiz-generation tool. Each question
 // carries an explicit `kind` discriminator and a kind-specific `payload`.

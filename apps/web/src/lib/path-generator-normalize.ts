@@ -187,11 +187,33 @@ export interface NormalizedFlashcardsInput {
   flashcards: NormalizedFlashcard[];
 }
 
+// A flashcard side may arrive as a plain string or wrapped in an object
+// (`{ text }` / `{ value }` / `{ content }` / `{ label }`) — Haiku
+// intermittently nests the question/answer text under the strict tool
+// schema, which then drops the whole card and surfaces as a spurious
+// "empty flashcards" failure. Pull a usable string out of either shape
+// (mirrors the quiz normalizer's `extractOptionText`); anything else → null.
+function asFlexibleString(v: unknown): string | null {
+  const direct = asNonEmptyString(v);
+  if (direct) return direct;
+  if (isPlainObject(v)) {
+    return (
+      asNonEmptyString(v.text) ??
+      asNonEmptyString(v.value) ??
+      asNonEmptyString(v.content) ??
+      asNonEmptyString(v.label)
+    );
+  }
+  return null;
+}
+
 // Coerce the `create_flashcards_for_slot` tool output to canonical form.
 // The model has been observed to return `flashcards` as an object keyed by
 // index or a JSON-stringified array — both slip past a truthy/`.length`
-// guard and then crash a downstream `.map`. Cards missing a question or
-// answer are dropped; the caller treats an empty result as a failure.
+// guard and then crash a downstream `.map`. Card sides are resolved through
+// `asFlexibleString`, so plain-string AND nested-object values both survive;
+// cards missing a usable question or answer are dropped, and the caller
+// treats an empty result as a failure.
 export function normalizeFlashcardsInput(raw: unknown): NormalizedFlashcardsInput {
   if (!isPlainObject(raw)) {
     return { title: '', flashcards: [] };
@@ -204,17 +226,17 @@ export function normalizeFlashcardsInput(raw: unknown): NormalizedFlashcardsInpu
   for (const item of list) {
     if (!isPlainObject(item)) continue;
     const question =
-      asNonEmptyString(item.question) ??
-      asNonEmptyString(item.front) ??
-      asNonEmptyString(item.prompt) ??
-      asNonEmptyString(item.q) ??
-      asNonEmptyString(item.term);
+      asFlexibleString(item.question) ??
+      asFlexibleString(item.front) ??
+      asFlexibleString(item.prompt) ??
+      asFlexibleString(item.q) ??
+      asFlexibleString(item.term);
     const answer =
-      asNonEmptyString(item.answer) ??
-      asNonEmptyString(item.back) ??
-      asNonEmptyString(item.a) ??
-      asNonEmptyString(item.definition) ??
-      asNonEmptyString(item.response);
+      asFlexibleString(item.answer) ??
+      asFlexibleString(item.back) ??
+      asFlexibleString(item.a) ??
+      asFlexibleString(item.definition) ??
+      asFlexibleString(item.response);
     if (question && answer) {
       flashcards.push({ question, answer });
     }

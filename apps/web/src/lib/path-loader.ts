@@ -96,6 +96,9 @@ export interface SerializedPathSlot {
   completed: boolean;
   /** Missing one or more expected activities — AI generation failed. */
   incompleteGeneration: boolean;
+  /** Activity kinds Stage B intentionally pruned (material too thin). NOT a
+   *  failure — the UI renders these as intentionally absent, not broken. */
+  prunedActivityKinds: string[];
   isActive: boolean;
   activities: SerializedPathActivity[];
 }
@@ -232,6 +235,7 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
         unlocked: s.unlocked,
         completed: s.completed,
         incompleteGeneration: s.incompleteGeneration,
+        prunedActivityKinds: s.prunedActivityKinds,
         isActive: s.isActive,
         activities: s.activities.map((a) => ({
           id: a.id,

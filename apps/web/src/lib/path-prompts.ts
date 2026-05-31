@@ -9,9 +9,11 @@
 // single structured output.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { QUIZ_PAYLOAD_CATALOG, type PathSlotKind } from './ai-tools';
+import type { QuestionKind } from '@notemage/shared';
+import { quizPayloadCatalogFor, type PathSlotKind } from './ai-tools';
 import { pathLanguageName, type PathLanguageCode } from './path-languages';
 import {
+  allowedKindsForSubjects,
   subjectGuidanceFragment,
   subjectQuizGuidanceFragment,
   subjectTheoryToneFragment,
@@ -224,6 +226,7 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt
   if (ctx.hasSourceMaterials) {
     systemLines.push(
       '- A SOURCE MATERIALS section is provided above. Ground the whole path in it: every section and slot must cover a topic the materials actually teach, sequenced to follow how the material builds up, and TOGETHER the slots should cover the material\'s important topics without leaving big gaps. Do not pad with generic subject topics the materials do not cover. Make each `topicHint` and `objective` point at the specific concepts and skills from those materials.',
+      '- Size the path to the material\'s ACTUAL extent. A short or narrow source means a short path — even a single section with a handful of slots is correct. Never inflate to hit a section/slot count when the material does not carry it; a tight path that covers the source beats a padded one with thin, unsupportable slots.',
     );
   }
   const subjectFragment = subjectGuidanceFragment(ctx.subjects, ctx.subjectWeights);
@@ -308,7 +311,7 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
     '{ "title": string, "flashcards": [ { "question": string, "answer": string } ] }',
     'Card keys are LITERALLY `question` and `answer` — NEVER `front`/`back`, NEVER `prompt`/`response`, NEVER `q`/`a`. `title` MUST be a non-empty string. `flashcards` MUST be a non-empty JSON array of `{question, answer}` objects (make only as many as the material supports). Never stringified, never keyed by index, never wrapped in a tool envelope.',
     '',
-    'Make ONLY as many cards as the material genuinely supports — usually 3–6, sometimes as few as 2. NEVER pad to reach a number and NEVER repeat the same idea across cards; a tight set of 3 good cards beats 10 padded ones.',
+    'Make a card for each distinct idea the material teaches — aim for 3–6 when the material supports it, more when it is rich. Do NOT pad with repeats or filler to hit a number and do NOT split one idea across cards; but DO cover every genuinely distinct point. A focused set that covers the material beats both a padded set and a sparse one.',
     'Vary the angles: definitions, recall prompts, comparisons, and 1–2 "explain why" cards.',
     'Keep each card a plain question → answer pair. Do NOT write blanks ("___") or fake quiz phrasing on the front — flashcards are flat Q→A; interactive question types live in review/assessment slot quizzes, not here.',
     'Keep each answer focused — 1–3 sentences or a short list. Stay strictly within the slot\'s topic hint.',
@@ -336,7 +339,7 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
   if (ctx.theoryText && ctx.theoryText.trim().length > 0) {
     tailLines.push(
       '',
-      'THEORY THE LEARNER JUST READ — build every card from THIS and nothing else. Make one card per distinct idea actually covered below; if only 2–3 ideas are here, make only 2–3 cards. Do NOT introduce facts that are not in this theory and do NOT repeat an idea to inflate the count:',
+      'THEORY THE LEARNER JUST READ — build every card from THIS and nothing else. Make a card for each distinct idea taught below and aim to cover them all. Do NOT introduce facts that are not in this theory and do NOT repeat an idea to inflate the count:',
       ctx.theoryText.trim(),
     );
   }
@@ -350,6 +353,24 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
   return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }
 
+// Per-kind one-line menu shown in the quiz prompt. Keyed so buildQuizPrompt can
+// list ONLY the kinds a subject allows — offering forbidden kinds is what makes
+// weaker models emit them and trip the kind-filter regeneration (Phase 7,
+// plans/path-generation-reliability.md).
+const QUIZ_KIND_MENU: Record<QuestionKind, string> = {
+  mc: '- mc — factual recall with 4 plausible options.',
+  true_false: '- true_false — a single declarative claim the learner judges. The prompt IS the statement.',
+  fill_blank: '- fill_blank — short typed answer (single word / short phrase) where Levenshtein fuzzy-match is fine.',
+  word_bank: '- word_bank — drag tokens into a template with {{0}}, {{1}} blanks. Great for grammar, definitions where ordering matters, or partial-sentence builds.',
+  match_pairs: '- match_pairs — terms ↔ definitions, causes ↔ effects, symbols ↔ meanings. 2–8 pairs.',
+  translation: '- translation — language items. Same shape as fill_blank plus targetLanguage.',
+  sentence_reorder: '- sentence_reorder — syntax, chronology, process steps. Tokens shuffled into the correct order.',
+  equation: '- equation — math input; the grader evaluates algebraic equivalence via mathjs.',
+  code_output: '- code_output — show a real code snippet and ask for its printed output. Reserve for coding subjects.',
+  code_write: '- code_write — the learner writes code in an editor; the server runs it against test cases. Reserve for coding subjects.',
+  timeline: '- timeline — 3–8 dated events; the learner drags labels onto a year axis. Reserve for history/humanities.',
+};
+
 /**
  * Stage B — quiz prompt. 5–8 mixed-kind questions, leveraging the v2
  * question kinds, restricted to the subjects' allowed palette.
@@ -357,6 +378,12 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
 export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
   const isFinalExam = ctx.slotKind === 'final_exam';
   const questionRange = isFinalExam ? '12–20 questions' : '5–8 questions';
+  // Show the model ONLY the kinds this subject permits (Phase 7) — falls back
+  // to every kind if the subject yielded none.
+  const allowed = allowedKindsForSubjects(ctx.subjects);
+  const menuKinds: QuestionKind[] =
+    allowed.length > 0 ? allowed : (Object.keys(QUIZ_KIND_MENU) as QuestionKind[]);
+  const minKinds = Math.min(3, menuKinds.length);
   const systemLines: string[] = [
     isFinalExam
       ? 'You are NoteMage, writing the FINAL EXAM for a guided learning path. This is the capstone — it should feel like a realistic, comprehensive exam that simulates the high-stakes test the learner is preparing for.'
@@ -364,30 +391,24 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
     'Output ONLY a single JSON object matching the shape below. No prose, no markdown fences (no ```json), no `tool_code` / `tool_name` / `tool_code_args` / `parameters` / `activity` / `quiz` envelopes — emit the JSON object directly.',
     '',
     'JSON shape (top-level keys MUST match EXACTLY — camelCase, no snake_case):',
-    '{ "title": string, "questions": [ { "kind": <one of the 11 enum values below>, "prompt": string, "hint": string?, "correctExplanation": string?, "wrongExplanation": string?, "payload": <kind-specific NESTED object> } ] }',
+    '{ "title": string, "questions": [ { "kind": <one of the allowed kinds listed below>, "prompt": string, "hint": string?, "correctExplanation": string?, "wrongExplanation": string?, "payload": <kind-specific NESTED object> } ] }',
     '`payload` is a NESTED OBJECT. Every kind-specific key (options, correctIndex, correct, blank, pairs, template, slots, wordBank, expectedExpression, code, events, starterCode, tests, …) MUST live INSIDE the `payload` object — NEVER at the question top level next to `kind`/`prompt`.',
     'CORRECT shape:   `{"kind":"mc","prompt":"…","payload":{"options":["a","b","c","d"],"correctIndex":0}}`',
     'WRONG (rejected): `{"kind":"mc","prompt":"…","options":["a","b","c","d"],"correctIndex":0}`',
     'The list key is `questions` — NEVER `quiz` or `items`. Use `correctExplanation` / `wrongExplanation` — NEVER `correct_explanation` / `wrong_explanation`. Use `correctIndex` — NEVER `correct_index`. Use `acceptableAnswers` — NEVER `acceptable_answers`. ALL keys are camelCase.',
     '',
-    `Generate ${questionRange}. Use AT LEAST 3 different question kinds across the set; an all-MC quiz is never acceptable. Pick the kind that genuinely fits each item:`,
-    '- mc — factual recall with 4 plausible options.',
-    '- true_false — a single declarative claim the learner judges. The prompt IS the statement.',
-    '- fill_blank — short typed answer (single word / short phrase) where Levenshtein fuzzy-match is fine.',
-    '- word_bank — drag tokens into a template with {{0}}, {{1}} blanks. Great for grammar, definitions where ordering matters, or partial-sentence builds.',
-    '- match_pairs — terms ↔ definitions, causes ↔ effects, symbols ↔ meanings. 2–8 pairs.',
-    '- translation — language items. Same shape as fill_blank plus targetLanguage.',
-    '- sentence_reorder — syntax, chronology, process steps. Tokens shuffled into the correct order.',
-    '- equation — math input; the grader evaluates algebraic equivalence via mathjs.',
-    '- code_output — show a real code snippet and ask for its printed output. Reserve for coding subjects.',
-    '- code_write — the learner writes code in an editor; the server runs it against test cases. Reserve for coding subjects.',
-    '- timeline — 3–8 dated events; the learner drags labels onto a year axis. Reserve for history/humanities.',
+    `Generate ${questionRange}. Use AT LEAST ${minKinds} different question kind${
+      minKinds === 1 ? '' : 's'
+    } across the set${
+      menuKinds.length > 1 ? '; an all-MC quiz is never acceptable' : ''
+    }. Pick the kind that genuinely fits each item — use ONLY the kinds listed here:`,
+    ...menuKinds.map((k) => QUIZ_KIND_MENU[k]),
     'Each question must have a clear `correctExplanation` and `wrongExplanation` so learners get useful feedback.',
     isFinalExam
       ? 'Span the WHOLE path — pull questions from every section, vary difficulty (about 1/3 recall, 1/3 application, 1/3 synthesis), and end with the hardest items.'
       : 'Stay strictly within the slot\'s topic hint.',
     '',
-    QUIZ_PAYLOAD_CATALOG,
+    quizPayloadCatalogFor(menuKinds),
     ...(ctx.hasSourceMaterials
       ? [
           'Write every question FROM the SOURCE MATERIALS above — test what that content actually states. Ground each prompt, answer, and explanation in the material rather than generic subject knowledge.',

@@ -71,6 +71,29 @@ export async function incrementUsage(
   });
 }
 
+/**
+ * Refund `amount` (default 1) of a user's CURRENT-month usage for a feature —
+ * the reserve-and-settle counterpart to `incrementUsage`. Used when a paid
+ * action charged up front (e.g. an ultra path) then fails to deliver anything.
+ * Clamped at 0 so a refund can NEVER mint credit, and a no-op when there is no
+ * record (or nothing left) to refund. See plans/path-generation-reliability.md.
+ */
+export async function refundUsage(
+  userId: string,
+  featureType: FeatureType,
+  amount = 1,
+): Promise<void> {
+  const month = getMonthStart();
+  const record = await db.usageRecord.findUnique({
+    where: { userId_featureType_month: { userId, featureType, month } },
+  });
+  if (!record || record.count <= 0) return;
+  await db.usageRecord.update({
+    where: { userId_featureType_month: { userId, featureType, month } },
+    data: { count: Math.max(0, record.count - amount) },
+  });
+}
+
 export async function getUserUsageSummary(userId: string) {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
