@@ -1247,7 +1247,7 @@ function PdfTab({
         </span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
-            Fast mode — text only, no images or diagrams (free)
+            Fast mode (only text)
           </span>
         </span>
         <span
