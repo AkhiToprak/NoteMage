@@ -157,7 +157,8 @@ describe('POST /api/learn/paths — PRO unchanged flow (AC-Switch-2 regression)'
       async (cb: (tx: unknown) => Promise<unknown>) =>
         cb({
           studyPlan: { create: vi.fn().mockResolvedValue({ id: 'plan-new' }) },
-          studyPhase: { create: vi.fn().mockResolvedValue({}) },
+          studyPhase: { create: vi.fn().mockResolvedValue({ id: 'phase-1' }) },
+          checkpointSlot: { create: vi.fn().mockResolvedValue({ id: 'slot-1' }) },
         }),
     );
     mocks.generatePath.mockResolvedValue(undefined);
