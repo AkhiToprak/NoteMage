@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { redis } from '@/lib/redis';
+import { clientIpFromHeaders } from '@/lib/client-ip';
 
 /**
  * Cache Ratelimit instances by (maxRequests, windowMs) to avoid
@@ -67,23 +68,15 @@ export async function rateLimit(
 }
 
 /**
- * Extract client IP from request headers.
- *
- * Security: X-Forwarded-For can be spoofed by clients. We take the
- * *rightmost* IP in the chain (the one added by the last trusted proxy),
- * which is harder to forge than the leftmost (client-supplied) value.
- * For environments without a reverse proxy, falls back to x-real-ip.
+ * Extract the client IP from a request's forwarded headers. The trusted-proxy
+ * precedence (and the TRUSTED_PROXY_HOPS knob) lives in src/lib/client-ip.ts so
+ * it stays identical to the OAuth-cap extractor in src/lib/registration.ts.
  */
 export function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const ips = forwarded
-      .split(',')
-      .map((ip) => ip.trim())
-      .filter(Boolean);
-    return ips[ips.length - 1] || 'unknown';
-  }
-  return request.headers.get('x-real-ip') || 'unknown';
+  return clientIpFromHeaders(
+    request.headers.get('x-forwarded-for'),
+    request.headers.get('x-real-ip')
+  );
 }
 
 /**

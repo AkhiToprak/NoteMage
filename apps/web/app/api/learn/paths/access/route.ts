@@ -8,12 +8,17 @@
 // create CTA routes to the community library instead of opening the
 // generator (AC-Switch-3).
 //
-// Computed from the JWT (tier + role) so there's no DB round-trip: admins
-// and PRO always generate; FREE depends on the flag. The authoritative
-// gate still lives in POST /api/learn/paths — this is UX only.
+// Tier/role are read from the DB, NOT the JWT: a fresh upgrade — especially
+// one fulfilled by a webhook while the user is on another device — updates
+// User.tier immediately, but the caller's 7-day JWT keeps the stale tier
+// until they re-login or call useSession().update(). Gating this probe on the
+// token would route a paying PRO user to the community library instead of the
+// generator. One indexed PK lookup is cheap for a UX probe. The authoritative
+// gate still lives in POST /api/learn/paths (checkUsageLimit, also DB-backed).
 
 import { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getAuthUserId } from '@/lib/auth';
+import { db } from '@/lib/db';
 import {
   successResponse,
   unauthorizedResponse,
@@ -27,10 +32,16 @@ interface PathAccessResponse {
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
-    if (!token?.id) return unauthorizedResponse();
+    const userId = await getAuthUserId(request);
+    if (!userId) return unauthorizedResponse();
 
-    const privileged = token.role === 'admin' || token.tier === 'PRO';
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { tier: true, role: true },
+    });
+    if (!user) return unauthorizedResponse();
+
+    const privileged = user.role === 'admin' || user.tier === 'PRO';
     const canGenerate = privileged || !freeTierAiPathsDisabled();
 
     const payload: PathAccessResponse = { canGenerate };

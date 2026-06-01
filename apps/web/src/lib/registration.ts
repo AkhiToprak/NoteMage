@@ -8,6 +8,7 @@
 
 import { randomBytes } from 'crypto';
 import { db } from '@/lib/db';
+import { clientIpFromHeaders } from '@/lib/client-ip';
 
 /** Must match USERNAME_REGEX in app/api/auth/register/route.ts. */
 const USER_USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
@@ -63,19 +64,11 @@ export async function enforceIpCap(ip: string): Promise<IpCapResult> {
 
 /**
  * Read the client IP from a plain `Headers` object — used from the NextAuth
- * signIn callback via `next/headers`. Mirrors the precedence of
- * getClientIp() in src/lib/rate-limit.ts.
+ * signIn callback via `next/headers`. Shares the trusted-proxy precedence with
+ * getClientIp() via src/lib/client-ip.ts (TRUSTED_PROXY_HOPS).
  */
 export function getIpFromHeaders(headers: Headers): string {
-  const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) {
-    const ips = forwarded
-      .split(',')
-      .map((ip) => ip.trim())
-      .filter(Boolean);
-    return ips[ips.length - 1] || 'unknown';
-  }
-  return headers.get('x-real-ip') || 'unknown';
+  return clientIpFromHeaders(headers.get('x-forwarded-for'), headers.get('x-real-ip'));
 }
 
 /**
