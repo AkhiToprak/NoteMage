@@ -1,6 +1,10 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import { anthropic, AI_CLASSIFIER_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
-import { CLASSIFY_SUBJECTS_TOOL, type ClassifySubjectsToolInput } from './ai-tools';
+import { z } from 'zod';
+import { anthropic, MAX_OUTPUT_TOKENS } from './anthropic';
+import { CLASSIFY_SUBJECTS_TOOL } from './ai-tools';
+import { resolveModel } from './model-routing';
+import { geminiStructured } from './gemini-structured';
+import { logAiUsage } from './ai-usage';
 import {
   coerceSubjectIds,
   normalizeSubjectWeights,
@@ -21,10 +25,18 @@ export interface ClassifySubjectsResult {
   fallback: boolean;
 }
 
-const SYSTEM_PROMPT = [
-  'You classify the subject of a learning path so the generator can pick appropriate question types.',
-  'Call the `classify_path_subjects` tool exactly once. Do not produce any text outside the tool call.',
-  '',
+/** Provider-neutral raw classifier output (Anthropic tool input + Gemini JSON
+ *  share this shape). */
+interface RawClassify {
+  subjects: { id: string; weight: number }[];
+}
+
+const INTRO =
+  'You classify the subject of a learning path so the generator can pick appropriate question types.';
+
+// Bucket list + weighting rules — shared verbatim by both providers so the only
+// difference between them is the "how to emit" line.
+const BUCKETS_AND_RULES = [
   'Pick from EXACTLY these seven buckets — never invent new ones, never alter the spelling:',
   '- coding — programming, software engineering, algorithms, CS theory.',
   '- math — algebra, calculus, statistics, discrete math, geometry.',
@@ -40,6 +52,24 @@ const SYSTEM_PROMPT = [
   '- Multi-subject inputs (engineering = math + science_natural, biochemistry = science_natural + math, history of mathematics = history_humanities + math): RETURN MORE THAN ONE entry with realistic relative weights.',
   '- Use `general` ONLY when the topic genuinely fits nothing else. Never combine `general` with another subject.',
 ].join('\n');
+
+const ANTHROPIC_SYSTEM_PROMPT = [
+  INTRO,
+  'Call the `classify_path_subjects` tool exactly once. Do not produce any text outside the tool call.',
+  '',
+  BUCKETS_AND_RULES,
+].join('\n');
+
+const GEMINI_SYSTEM_PROMPT = [
+  INTRO,
+  'Return ONLY a JSON object of the form { "subjects": [ { "id": string, "weight": number } ] }. No prose, no markdown.',
+  '',
+  BUCKETS_AND_RULES,
+].join('\n');
+
+const geminiClassifySchema = z.object({
+  subjects: z.array(z.object({ id: z.string(), weight: z.number() })).min(1),
+});
 
 function findToolUse(
   content: Anthropic.Messages.ContentBlock[],
@@ -68,41 +98,90 @@ function renderUserPrompt(opts: ClassifySubjectsOpts): string {
         : corpus;
     lines.push('', 'Source material excerpt:', excerpt);
   }
-  lines.push('', 'Classify the subject(s) now using the tool.');
+  lines.push('', 'Classify the subject(s) now.');
   return lines.join('\n');
+}
+
+/** Gemini Flash-Lite branch — JSON mode + Zod validate + corrective retry (G2). */
+async function classifyViaGemini(
+  opts: ClassifySubjectsOpts,
+  model: string
+): Promise<RawClassify> {
+  let usage: { promptTokens: number; candidatesTokens: number; cachedTokens: number } | undefined;
+  const data = await geminiStructured({
+    schema: geminiClassifySchema,
+    system: GEMINI_SYSTEM_PROMPT,
+    userText: renderUserPrompt(opts),
+    model,
+    maxOutputTokens: 256,
+    onUsage: (u) => {
+      usage = u;
+    },
+  });
+  logAiUsage({
+    userId: null,
+    feature: 'path-classify',
+    provider: 'gemini',
+    model,
+    inputTokens: usage?.promptTokens ?? 0,
+    outputTokens: usage?.candidatesTokens ?? 0,
+    cacheReadTokens: usage?.cachedTokens ?? 0,
+  });
+  return data;
+}
+
+/** Anthropic forced-tool branch (legacy default / CLASSIFIER_PROVIDER=anthropic). */
+async function classifyViaAnthropic(
+  opts: ClassifySubjectsOpts,
+  model: string
+): Promise<RawClassify | null> {
+  const response = await anthropic.messages.create({
+    model,
+    max_tokens: Math.min(MAX_OUTPUT_TOKENS, 1024),
+    system: ANTHROPIC_SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: renderUserPrompt(opts) }],
+    tools: [CLASSIFY_SUBJECTS_TOOL],
+    tool_choice: { type: 'tool', name: CLASSIFY_SUBJECTS_TOOL.name },
+  });
+  logAiUsage({
+    userId: null,
+    feature: 'path-classify',
+    provider: 'anthropic',
+    model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+  });
+  const block = findToolUse(response.content, CLASSIFY_SUBJECTS_TOOL.name);
+  if (!block) return null;
+  return block.input as RawClassify;
 }
 
 export async function classifySubjects(
   opts: ClassifySubjectsOpts
 ): Promise<ClassifySubjectsResult> {
+  const fallback: ClassifySubjectsResult = { subjects: ['general'], weights: [1], fallback: true };
   try {
-    const response = await anthropic.messages.create({
-      model: AI_CLASSIFIER_MODEL,
-      max_tokens: Math.min(MAX_OUTPUT_TOKENS, 1024),
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: renderUserPrompt(opts) }],
-      tools: [CLASSIFY_SUBJECTS_TOOL],
-      tool_choice: { type: 'tool', name: CLASSIFY_SUBJECTS_TOOL.name },
-    });
-    const block = findToolUse(response.content, CLASSIFY_SUBJECTS_TOOL.name);
-    if (!block) {
-      return { subjects: ['general'], weights: [1], fallback: true };
-    }
-    const input = block.input as ClassifySubjectsToolInput;
+    // Composition moves classify Haiku → Flash-Lite (CLASSIFIER_MODEL /
+    // CLASSIFIER_PROVIDER override; MODEL_COMPOSITION_LEGACY=1 restores Haiku).
+    const resolved = resolveModel('path-classify');
+    const input =
+      resolved.provider === 'gemini'
+        ? await classifyViaGemini(opts, resolved.model)
+        : await classifyViaAnthropic(opts, resolved.model);
+
     if (!input || !Array.isArray(input.subjects) || input.subjects.length === 0) {
-      return { subjects: ['general'], weights: [1], fallback: true };
+      return fallback;
     }
     const ids = coerceSubjectIds(input.subjects.map((s) => s.id));
     if (ids.length === 0) {
-      return { subjects: ['general'], weights: [1], fallback: true };
+      return fallback;
     }
-    const rawWeights = input.subjects
-      .map((s) => s.weight)
-      .filter((_, i) => i < ids.length);
+    const rawWeights = input.subjects.map((s) => s.weight).filter((_, i) => i < ids.length);
     const { subjects, weights } = normalizeSubjectWeights(ids, rawWeights);
     return { subjects, weights, fallback: false };
   } catch (error) {
     console.error('[path-classifier] classification failed', error);
-    return { subjects: ['general'], weights: [1], fallback: true };
+    return fallback;
   }
 }

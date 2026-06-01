@@ -12,7 +12,8 @@ import { checkUsageLimit, incrementUsage } from './usage-limits';
 import { extractToolUses } from './ai-tools';
 import { resolveChatIntent } from './chat-intent';
 import { CHAT_BASE_INSTRUCTIONS, INTENT_GUIDANCE, INTENT_TOOL } from './chat-guidance';
-import { resolveChatProvider } from './chat-provider';
+import { resolveModel } from './model-routing';
+import { logAiUsage } from './ai-usage';
 import { streamGeminiChatText } from './chat-stream-gemini';
 import type { TierKey } from './tiers';
 import { buildLegacyColumns } from './quiz-grading';
@@ -269,16 +270,21 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
         ? null
         : { ...INTENT_TOOL[intent], cache_control: { type: 'ephemeral', ttl: '1h' } };
 
-    // Free-tier plain chat runs on Gemini Flash-Lite; generation + Pro stay on
-    // Anthropic. Build a flat Gemini system string (corpus leads for implicit
-    // caching) for that path.
-    const useGemini = intent === 'chat' && resolveChatProvider(tier) === 'gemini';
+    // Plain chat (no tool) routes via the resolver: the optimized default is
+    // Flash for BOTH free and Pro (cheaper than Haiku, better than Flash-Lite).
+    // Generation intents always stay on Anthropic. CHAT_GEMINI_DISABLED (in the
+    // resolver) forces Anthropic; CHAT_PLAIN_MODEL pins the model. Build a flat
+    // Gemini system string (corpus leads for implicit caching) for that path.
+    const plainChatModel = intent === 'chat' ? resolveModel('chat-plain', { tier }) : null;
+    const useGemini = plainChatModel?.provider === 'gemini';
     const geminiCorpus =
       contextParts.length > 0
         ? '\nThe user has provided the following context from their notebook:\n\n' +
           contextParts.join('\n\n---\n\n')
         : undefined;
-    const geminiSystem = `${CHAT_BASE_INSTRUCTIONS}\n\nYou are ${mageName}, an AI study assistant embedded in the Notemage notebook app. Your name is ${mageName}. When the user asks your name, respond with "${mageName}".`;
+    // G5 — Gemini tends to open every turn with a "Hi! I'm <name>…" preamble.
+    // The final directive suppresses that so replies start with the answer.
+    const geminiSystem = `${CHAT_BASE_INSTRUCTIONS}\n\nYou are ${mageName}, an AI study assistant embedded in the Notemage notebook app. Your name is ${mageName}. When the user asks your name, respond with "${mageName}".\n\nAnswer the user's message directly. Do not begin with a greeting, and do not introduce yourself or restate your name unless the user explicitly asks who you are.`;
 
     // ── SSE helpers ──
     const encoder = new TextEncoder();
@@ -385,6 +391,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 messages: conversationMessages,
                 signal: abortController.signal,
                 onText: enqueueText,
+                model: plainChatModel!.model,
               });
 
               if (abortController.signal.aborted || request.signal.aborted) {
@@ -412,6 +419,17 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   cacheReadTokens: usage.cachedTokens,
                   contextChars: contextKeptChars,
                 },
+              });
+
+              logAiUsage({
+                userId,
+                feature: 'chat-plain',
+                tier,
+                provider: 'gemini',
+                model: plainChatModel!.model,
+                inputTokens: usage.promptTokens,
+                outputTokens: usage.candidatesTokens,
+                cacheReadTokens: usage.cachedTokens,
               });
 
               const done = await saveAndBuildDone(
@@ -483,6 +501,19 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 cacheCreationTokens,
                 contextChars: contextKeptChars,
               },
+            });
+
+            logAiUsage({
+              userId,
+              feature: intent === 'chat' ? 'chat-plain' : 'chat-generate',
+              tier,
+              provider: 'anthropic',
+              model: AI_MODEL,
+              inputTokens: response.usage.input_tokens,
+              outputTokens: response.usage.output_tokens,
+              cacheReadTokens,
+              cacheWriteTokens: cacheCreationTokens,
+              extra: { intent },
             });
 
             const {

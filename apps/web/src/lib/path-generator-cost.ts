@@ -46,6 +46,9 @@ export const COSTS: Record<string, RateCard> = {
   // but doesn't surface a separate write-cost line — `cacheWrite` stays
   // 0 unless/until we switch to explicit `CachedContent`.
   'gemini-2.5-flash': { input: 0.3, output: 2.5, cacheRead: 0.075, cacheWrite: 0 },
+  // Flash-Lite — the cheapest tier; backs the composition's high-volume
+  // theory/flashcards/classify/title/inline/summary swaps. Same cache caveat.
+  'gemini-2.5-flash-lite': { input: 0.1, output: 0.4, cacheRead: 0.025, cacheWrite: 0 },
 };
 
 function computeModelCost(usage: ModelUsage): number {
@@ -58,6 +61,31 @@ function computeModelCost(usage: ModelUsage): number {
       usage.cacheWriteTokens * rates.cacheWrite) /
     1_000_000
   );
+}
+
+/**
+ * USD cost of a single call given its model id + token counts. Used by the
+ * per-feature usage telemetry (`logAiUsage`) so any AI surface — not just path
+ * generation — reports a comparable cost figure. Unknown models cost 0 (token
+ * counts are still logged so cost can be backfilled).
+ */
+export function costForCall(
+  model: string,
+  tokens: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+  },
+): number {
+  return computeModelCost({
+    model,
+    calls: 1,
+    inputTokens: tokens.inputTokens,
+    outputTokens: tokens.outputTokens,
+    cacheReadTokens: tokens.cacheReadTokens ?? 0,
+    cacheWriteTokens: tokens.cacheWriteTokens ?? 0,
+  });
 }
 
 /**

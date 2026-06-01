@@ -4,7 +4,12 @@
 // (path-generator-gemini.ts) but streams text instead of parsing JSON.
 
 import type { Content, GenerateContentConfig } from '@google/genai';
-import { getGeminiClient, GEMINI_CHAT_MODEL, GEMINI_MAX_OUTPUT_TOKENS } from './gemini';
+import {
+  getGeminiClient,
+  GEMINI_CHAT_MODEL,
+  GEMINI_MAX_OUTPUT_TOKENS,
+  isDegenerateText,
+} from './gemini';
 
 export interface GeminiTextUsage {
   promptTokens: number;
@@ -91,6 +96,11 @@ export async function streamGeminiChatText(
 
   if (fullText.trim().length === 0 && !signal.aborted) {
     throw new Error('Gemini returned an empty response');
+  }
+  // G4 — reject a runaway/looped completion so the caller can fall back rather
+  // than persist garbage. The output-token cap above bounds the cost regardless.
+  if (!signal.aborted && isDegenerateText(fullText)) {
+    throw new Error('Gemini produced degenerate (looped) output');
   }
 
   return { fullText, usage };

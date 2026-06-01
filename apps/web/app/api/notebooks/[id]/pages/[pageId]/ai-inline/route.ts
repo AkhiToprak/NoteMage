@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { anthropic, AI_MODEL } from '@/lib/anthropic';
+import { resolveModel, type ModelFeature } from '@/lib/model-routing';
+import { streamGeminiText } from '@/lib/gemini-text';
+import { logAiUsage } from '@/lib/ai-usage';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
@@ -142,42 +145,35 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
 
-    // ── 7. Stream from Claude ─────────────────────────────────
+    // ── 7. Stream the edit ────────────────────────────────────
+    // Composition routes rewrite/summarize → Flash-Lite, expand → Haiku
+    // (the one action that hallucinated on the cheap model). INLINE_*_MODEL
+    // override; MODEL_COMPOSITION_LEGACY=1 restores Haiku. Gemini failure before
+    // any token is streamed falls back to Anthropic; a mid-stream failure
+    // finalizes the partial (no duplicate restart).
+    const systemPrompt = SYSTEM_PROMPTS[action];
+    const resolved = resolveModel(`inline-${action}` as ModelFeature);
+
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
     request.signal.addEventListener('abort', onAbort);
-
-    const systemPrompt = SYSTEM_PROMPTS[action];
-    const stream = anthropic.messages.stream(
-      {
-        model: AI_MODEL,
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: text,
-          },
-        ],
-      },
-      { signal: abortController.signal }
-    );
 
     return new Response(
       new ReadableStream({
         async start(controller) {
           let fullText = '';
-
-          stream.on('text', (delta) => {
+          const enqueueText = (delta: string) => {
             fullText += delta;
             controller.enqueue(sseEvent('text', { delta }));
-          });
+          };
 
-          try {
-            const response = await stream.finalMessage();
-            const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
-
-            // Token accounting + usage increment AFTER successful completion
+          const finalize = async (
+            inputTokens: number,
+            outputTokens: number,
+            provider: 'anthropic' | 'gemini',
+            model: string
+          ) => {
+            const totalTokens = inputTokens + outputTokens;
             await recordTokenUsage({
               notebookId,
               userId,
@@ -185,15 +181,83 @@ export async function POST(request: NextRequest, { params }: Params) {
               description: `[inline-ai] ${action} on page ${pageId}`,
             });
             await incrementUsage(userId, 'ai_inline_edit');
-
-            controller.enqueue(
-              sseEvent('done', {
-                fullText,
-                totalTokens,
-              })
-            );
+            logAiUsage({
+              userId,
+              feature: `inline-${action}`,
+              provider,
+              model,
+              inputTokens,
+              outputTokens,
+              extra: { action },
+            });
+            controller.enqueue(sseEvent('done', { fullText, totalTokens }));
             controller.close();
+          };
+
+          try {
+            // ── Gemini branch (rewrite/summarize by default) ──
+            if (resolved.provider === 'gemini') {
+              try {
+                const { usage } = await streamGeminiText({
+                  system: systemPrompt,
+                  userText: text,
+                  signal: abortController.signal,
+                  onText: enqueueText,
+                  model: resolved.model,
+                  maxOutputTokens: 2048,
+                });
+                if (abortController.signal.aborted) {
+                  await finalize(0, 0, 'gemini', resolved.model);
+                  return;
+                }
+                await finalize(usage.promptTokens, usage.candidatesTokens, 'gemini', resolved.model);
+                return;
+              } catch (geminiErr) {
+                if (abortController.signal.aborted) {
+                  await finalize(0, 0, 'gemini', resolved.model);
+                  return;
+                }
+                if (fullText.length > 0) {
+                  console.error('[ai-inline] Gemini mid-stream error:', geminiErr);
+                  await finalize(0, 0, 'gemini', resolved.model);
+                  return;
+                }
+                console.error(
+                  '[ai-inline] Gemini failed pre-stream, falling back to Anthropic:',
+                  geminiErr
+                );
+                // fall through to Anthropic
+              }
+            }
+
+            // ── Anthropic branch (expand default, legacy, + Gemini fallback) ──
+            const anthropicModel = resolved.provider === 'anthropic' ? resolved.model : AI_MODEL;
+            const stream = anthropic.messages.stream(
+              {
+                model: anthropicModel,
+                max_tokens: 2048,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: text }],
+              },
+              { signal: abortController.signal }
+            );
+            stream.on('text', enqueueText);
+            const response = await stream.finalMessage();
+            await finalize(
+              response.usage.input_tokens,
+              response.usage.output_tokens,
+              'anthropic',
+              anthropicModel
+            );
           } catch (err) {
+            if (abortController.signal.aborted) {
+              // Finalize whatever streamed so the client keeps the partial edit.
+              await finalize(0, 0, 'anthropic', AI_MODEL).catch(() => {
+                controller.enqueue(sseEvent('error', { error: 'Failed to save partial response' }));
+                controller.close();
+              });
+              return;
+            }
             const message = err instanceof Error ? err.message : 'AI request failed.';
             controller.enqueue(sseEvent('error', { error: message }));
             controller.close();

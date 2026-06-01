@@ -1,5 +1,6 @@
 import type { ZodError } from 'zod';
 import { docModelSchema, type DocModelBlock } from './doc-model';
+import { normalizeDocModelShape } from './normalize';
 
 /** Outcome of parsing one model response into validated DocModel blocks. */
 export interface ParseResult {
@@ -78,7 +79,12 @@ export function parseDocModelBlocks(raw: string): ParseResult {
 
   const wrapped = Array.isArray(parsed) ? { blocks: parsed } : parsed;
 
-  const result = docModelSchema.safeParse(wrapped);
+  // G3 — coerce drifted table-cell shapes to bare run arrays before validating,
+  // so a well-meaning shape ({runs:…}, paragraph-wrapped, bare string) parses
+  // instead of losing the whole table to the heuristic fallback.
+  const normalized = normalizeDocModelShape(wrapped);
+
+  const result = docModelSchema.safeParse(normalized);
   if (!result.success) {
     return { ok: false, error: formatZodError(result.error) };
   }

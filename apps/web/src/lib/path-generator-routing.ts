@@ -1,24 +1,31 @@
 // Provider dispatcher for path-generation calls. Sits in front of the
-// Anthropic and Gemini wrappers and picks one based on per-stage env
-// vars. The activity generators in `path-generator.ts` only see this
-// dispatcher — they pass both the Anthropic tool and the Gemini schema
-// and let routing decide which is called.
+// Anthropic and Gemini wrappers; `resolveModel` (model-routing.ts) decides
+// which provider + model each stage uses. The activity generators in
+// `path-generator.ts` only see this dispatcher — they pass both the Anthropic
+// tool and the Gemini schema and let routing decide which is called.
 //
-// Default routing is Anthropic for every stage, so until the env flips
-// runtime behavior is identical to the pre-integration baseline.
-//
-// `ultra=true` on a quiz call hard-overrides to Anthropic+Sonnet so the
-// existing "ultra path" UX continues to work regardless of `PATH_PROVIDER`.
+// Default routing is the optimized composition (structure: Flash basic /
+// Sonnet ultra; theory + flashcards: Flash-Lite; quiz: Haiku for all tiers).
+// `MODEL_COMPOSITION_LEGACY=1` reverts to the prior PATH_PROVIDER_* routing
+// with the ultra→Sonnet quiz upgrade. `ctx.ultra` and `ctx.providerOverride`
+// (plan.gemini) are forwarded to the resolver.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { AI_GENERATION_MODEL, AI_GENERATION_MODEL_LITE } from './anthropic';
-import { GEMINI_PATH_MODEL } from './gemini';
 import { buildCachedSystem, buildSourceMaterialsBlock } from './path-prompts';
 import { forcedStructuredCallAnthropic } from './path-generator-anthropic';
 import { forcedStructuredCallGemini, type GeminiUsage } from './path-generator-gemini';
+import { resolveModel, type ModelFeature } from './model-routing';
 
 export type Provider = 'anthropic' | 'gemini';
 export type Stage = 'structure' | 'theory' | 'flashcards' | 'quiz';
+
+/** Map a pipeline stage to its routing feature key. */
+const STAGE_FEATURE: Record<Stage, ModelFeature> = {
+  structure: 'path-structure',
+  theory: 'path-theory',
+  flashcards: 'path-flashcards',
+  quiz: 'path-quiz',
+};
 
 export interface NormalizedUsage {
   provider: Provider;
@@ -30,30 +37,9 @@ export interface NormalizedUsage {
   cacheWriteTokens: number;
 }
 
-const STAGE_ENV_KEY: Record<Stage, string> = {
-  structure: 'PATH_PROVIDER_STRUCTURE',
-  theory: 'PATH_PROVIDER_THEORY',
-  flashcards: 'PATH_PROVIDER_FLASHCARDS',
-  quiz: 'PATH_PROVIDER_QUIZ',
-};
-
-function isProvider(value: string | undefined): value is Provider {
-  return value === 'anthropic' || value === 'gemini';
-}
-
-/**
- * Resolve the provider for a given stage. Precedence:
- *   PATH_PROVIDER_<STAGE>  →  PATH_PROVIDER  →  default 'anthropic'.
- * Values that don't match `'anthropic'|'gemini'` are ignored and the
- * resolution falls through.
- */
-export function resolveProvider(stage: Stage): Provider {
-  const stageVal = process.env[STAGE_ENV_KEY[stage]];
-  if (isProvider(stageVal)) return stageVal;
-  const globalVal = process.env.PATH_PROVIDER;
-  if (isProvider(globalVal)) return globalVal;
-  return 'anthropic';
-}
+// Stage→provider/model resolution moved to model-routing.ts (`resolveModel`),
+// which owns both the optimized composition and the LEGACY reproduction of the
+// old PATH_PROVIDER_<STAGE> → PATH_PROVIDER → 'anthropic' precedence.
 
 export interface StructuredCallCtx<T> {
   /** Pipeline stage — drives provider resolution + Anthropic model tier. */
@@ -100,21 +86,19 @@ export interface StructuredCallCtx<T> {
  *   4. default `'anthropic'`.
  */
 export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promise<T> {
-  let provider: Provider;
-  if (ctx.providerOverride) {
-    provider = ctx.providerOverride;
-  } else if (ctx.stage === 'quiz' && ctx.ultra === true) {
-    provider = 'anthropic';
-  } else {
-    provider = resolveProvider(ctx.stage);
-  }
+  // Provider + model both come from the central resolver. Defaults encode the
+  // optimized composition (structure: Flash basic / Sonnet ultra; theory +
+  // flashcards: Flash-Lite; quiz: Haiku all tiers). MODEL_COMPOSITION_LEGACY=1
+  // reverts to the prior routing; PATH_<STAGE>_MODEL pins a single stage; and
+  // `providerOverride` (plan.gemini) still forces a provider for one run.
+  const resolved = resolveModel(STAGE_FEATURE[ctx.stage], {
+    ultra: ctx.ultra,
+    providerOverride: ctx.providerOverride,
+  });
+  const provider = resolved.provider;
+  const model = resolved.model;
 
   if (provider === 'anthropic') {
-    // Only upgrade to Sonnet when the ultra flag asks for it AND no
-    // explicit override pushed us onto Anthropic for some other reason.
-    const isUltraQuiz =
-      !ctx.providerOverride && ctx.stage === 'quiz' && ctx.ultra === true;
-    const model = isUltraQuiz ? AI_GENERATION_MODEL : AI_GENERATION_MODEL_LITE;
     const system = buildCachedSystem(
       ctx.corpus,
       ctx.staticInstructions,
@@ -144,7 +128,6 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // Gemini, so this is the high-volume cost path) and otherwise falls back to
   // an inline, byte-identical systemInstruction. The corpus block leads so the
   // prefix is byte-identical across a run's calls (cache + implicit-cache match).
-  const model = GEMINI_PATH_MODEL;
   const cacheablePrefix = [
     ctx.corpus && ctx.corpus.trim().length > 0 ? buildSourceMaterialsBlock(ctx.corpus) : null,
     ctx.staticInstructions,

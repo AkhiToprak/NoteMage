@@ -1060,7 +1060,7 @@ function parseQuizInput(
  * When the normal attempts can't produce a valid payload, retry with a
  * deliberately SIMPLER ask — only `mc` + `true_false` (the lowest-drift kinds),
  * counts kept modest — so the checkpoint yields a valid quiz instead of a hole.
- * The model/tier is unchanged (ultra stays on Sonnet via `callQuizDispatch`);
+ * The model/tier is unchanged (whatever the resolver picked for the quiz stage);
  * only the request is degraded. Returns null if even the simplified ask fails.
  */
 async function tryDegradedQuiz(
@@ -1107,10 +1107,11 @@ async function generateQuizActivity(
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const { system, tail } = buildQuizPrompt(ctx);
-  // Ultra paths generate quizzes with the premium model; non-ultra quizzes
-  // (and every other activity) stay on the fast model. The routing
-  // dispatcher reads `plan.ultra` and forces Anthropic+Sonnet on ultra
-  // quizzes regardless of `PATH_PROVIDER` — see callQuizDispatch.
+  // Quiz model is resolver-driven (model-routing.ts): the optimized default is
+  // Haiku for ALL tiers (it beat Sonnet/Flash on correctness in the audit), so
+  // the old ultra→Sonnet upgrade is gone. `MODEL_COMPOSITION_LEGACY=1` restores
+  // it, and `PATH_QUIZ_MODEL` pins the quiz model. `plan.ultra` is still passed
+  // through callQuizDispatch (it drives the legacy upgrade + the structure tier).
 
   // Validate the v2 shape — the tool schema accepts a generic payload
   // object, so we Zod-check it (after normalizing common drift shapes)

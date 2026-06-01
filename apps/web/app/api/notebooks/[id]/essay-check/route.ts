@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { anthropic } from '@/lib/anthropic';
+import { anthropic, AI_GENERATION_MODEL_LITE } from '@/lib/anthropic';
+import { resolveModel } from '@/lib/model-routing';
+import { logAiUsage } from '@/lib/ai-usage';
+import { parseJsonLoose } from '@/lib/json-util';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
@@ -83,8 +86,15 @@ You MUST respond with valid JSON only, no other text. Use this exact format:
 
 If there are no issues, return { "issues": [], "overallScore": 100, "summary": "No issues found." }`;
 
+    // Essay grading is Anthropic-only (a precise grader). The composition moves
+    // it Sonnet → Haiku; `ESSAY_MODEL` / `ESSAY_FULL_MODEL` override, and
+    // MODEL_COMPOSITION_LEGACY=1 restores Sonnet. A non-anthropic override is
+    // ignored (this route has no Gemini path).
+    const resolved = resolveModel('essay', { action: checkMode });
+    const model = resolved.provider === 'anthropic' ? resolved.model : AI_GENERATION_MODEL_LITE;
+
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model,
       max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: text }],
@@ -98,18 +108,26 @@ If there are no issues, return { "issues": [], "overallScore": 100, "summary": "
       tokens: totalTokens,
       description: `[essay-check] ${checkMode} check`,
     });
+    logAiUsage({
+      userId,
+      feature: 'essay',
+      provider: 'anthropic',
+      model,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+      extra: { mode: checkMode },
+    });
 
     const responseText = response.content
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('');
 
-    // Parse JSON response
+    // Parse JSON response — G1 tolerant parse (handles fences / surrounding prose)
     let result;
     try {
-      // Try to extract JSON from the response (handle potential markdown code blocks)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);
+      result = parseJsonLoose(responseText);
     } catch {
       result = {
         issues: [],

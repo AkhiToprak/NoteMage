@@ -1,8 +1,9 @@
 import { anthropic } from './anthropic';
 import { db } from './db';
 import { logTelemetry } from './telemetry-server';
-
-const TITLE_MODEL = 'claude-haiku-4-5-20251001';
+import { resolveModel } from './model-routing';
+import { generateGeminiText } from './gemini-text';
+import { logAiUsage } from './ai-usage';
 
 const SYSTEM_PROMPT =
   'Return a 3–5 word title for this conversation in plain text. No quotes, no period. Use Title Case.';
@@ -29,17 +30,51 @@ export async function generateAndPersistTitle(
     });
     if (!current || current.title !== 'New Chat') return null;
 
-    const response = await anthropic.messages.create({
-      model: TITLE_MODEL,
-      max_tokens: 30,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: firstUserMessage }],
-    });
+    // Composition moves titling Haiku → Flash-Lite (TITLE_MODEL overrides;
+    // MODEL_COMPOSITION_LEGACY=1 restores Haiku). Both providers run the same
+    // tiny system prompt; on any failure the outer catch returns null.
+    const resolved = resolveModel('chat-title');
+    let rawTitle: string;
+    if (resolved.provider === 'gemini') {
+      const { text, usage } = await generateGeminiText({
+        system: SYSTEM_PROMPT,
+        userText: firstUserMessage,
+        model: resolved.model,
+        maxOutputTokens: 32,
+        temperature: 0.3,
+      });
+      rawTitle = text;
+      logAiUsage({
+        userId,
+        feature: 'chat-title',
+        provider: 'gemini',
+        model: resolved.model,
+        inputTokens: usage.promptTokens,
+        outputTokens: usage.candidatesTokens,
+        cacheReadTokens: usage.cachedTokens,
+      });
+    } else {
+      const response = await anthropic.messages.create({
+        model: resolved.model,
+        max_tokens: 30,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: firstUserMessage }],
+      });
+      const textBlock = response.content.find((b) => b.type === 'text');
+      if (!textBlock || textBlock.type !== 'text') return null;
+      rawTitle = textBlock.text;
+      logAiUsage({
+        userId,
+        feature: 'chat-title',
+        provider: 'anthropic',
+        model: resolved.model,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+      });
+    }
 
-    const textBlock = response.content.find((b) => b.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') return null;
-
-    const title = sanitizeTitle(textBlock.text);
+    const title = sanitizeTitle(rawTitle);
     if (!title) return null;
 
     const latest = await db.notebookChat.findUnique({
