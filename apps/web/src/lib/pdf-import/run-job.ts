@@ -151,6 +151,26 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     return;
   }
 
+  // PDF jobs always populate these at creation. The shared ImportJob row made
+  // them nullable for OneNote imports, so narrow them here: a PDF job missing
+  // its source data can't be processed, so fail it cleanly rather than crash.
+  if (job.pdfPath === null || job.sectionId === null) {
+    console.error(`[pdf-import] job ${jobId} is missing PDF source fields`);
+    await db.importJob
+      .update({
+        where: { id: jobId },
+        data: {
+          status: 'failed',
+          error: 'This import is missing its PDF data. Please try the import again.',
+          finishedAt: new Date(),
+        },
+      })
+      .catch(() => {});
+    return;
+  }
+  const pdfPath = job.pdfPath;
+  const sectionId = job.sectionId;
+
   const pageImagePaths = Array.isArray(job.pageImagePaths)
     ? job.pageImagePaths.filter((p): p is string => typeof p === 'string')
     : [];
@@ -180,7 +200,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
 
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await downloadFromStorage(job.pdfPath);
+      pdfBuffer = await downloadFromStorage(pdfPath);
     } catch {
       throw new ImportJobError(
         'The uploaded PDF could not be found. Please try the import again.',
@@ -364,12 +384,12 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     // their storage path, and recording `resultPageId` now lets a retry
     // after a mid-run failure delete this half-built page.
     const sortAgg = await db.page.aggregate({
-      where: { sectionId: job.sectionId },
+      where: { sectionId },
       _max: { sortOrder: true },
     });
     const page = await db.page.create({
       data: {
-        sectionId: job.sectionId,
+        sectionId,
         title: deriveTitle(job.fileName),
         pageType: 'text',
         content: EMPTY_DOC as unknown as Prisma.InputJsonValue,
@@ -467,7 +487,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     // Temp uploads are kept on failure so "Try again" can re-run without a
     // re-upload; on success they are no longer needed.
     if (succeeded) {
-      await deleteFile(job.pdfPath).catch(() => {});
+      await deleteFile(pdfPath).catch(() => {});
       for (const path of pageImagePaths) {
         await deleteFile(path).catch(() => {});
       }

@@ -1,17 +1,21 @@
 'use client';
 
-// P5 — EventSource wrapper for the PDF-import SSE stream
-// (`GET /api/notebooks/[id]/pdf-import/[jobId]/progress`). Mirrors
-// `usePathGenerationStream`.
+// P5 — EventSource wrapper for the import SSE stream. Defaults to the
+// PDF-import route (`GET /api/notebooks/[id]/pdf-import/[jobId]/progress`);
+// pass `progressUrl` to point at another job stream — the OneNote modal uses
+// the neutral route `GET /api/import/jobs/[jobId]/progress`, whose `done` event
+// additionally carries `summary`. Mirrors `usePathGenerationStream`.
 //
 // Wire format on the server (see
-// apps/web/app/api/notebooks/[id]/pdf-import/[jobId]/progress/route.ts):
+// apps/web/app/api/notebooks/[id]/pdf-import/[jobId]/progress/route.ts and
+// apps/web/app/api/import/jobs/[jobId]/progress/route.ts):
 //
 //   event: progress
 //   data: { status, progress: { phase, totalPages, processedPages, message } | null }
 //
 //   event: done
-//   data: { pageId, truncated, fallbackPages }
+//   data: { pageId, summary, truncated, fallbackPages }
+//       — PDF jobs set `pageId`; OneNote jobs set `summary`.
 //
 //   event: error
 //   data: { message }
@@ -32,6 +36,20 @@ export interface ImportJobProgress {
   message: string;
 }
 
+/**
+ * OneNote-import result, written to `ImportJob.resultSummary` and delivered on
+ * the `done` event by the neutral progress route
+ * (`/api/import/jobs/[jobId]/progress`). Null for PDF imports, which report a
+ * single `resultPageId` instead.
+ */
+export interface ImportJobSummary {
+  sectionsImported: number;
+  pagesImported: number;
+  errors: string[];
+  firstSectionId: string | null;
+  firstPageId: string | null;
+}
+
 export type ImportJobStatus =
   | 'idle'
   | 'connecting'
@@ -48,8 +66,15 @@ interface ProgressEnvelope {
 export interface UseImportJobStreamResult {
   status: ImportJobStatus;
   progress: ImportJobProgress | null;
-  /** Id of the created notebook page — set once the `done` event arrives. */
+  /** Id of the created notebook page — set once the `done` event arrives.
+   *  Always null for OneNote jobs (which report `summary` instead). */
   resultPageId: string | null;
+  /**
+   * OneNote-import summary — set on `done` for OneNote jobs, null for PDF.
+   * Carries the per-section/page counts, any partial errors, and the first
+   * imported section/page for the "open notebook" CTA.
+   */
+  summary: ImportJobSummary | null;
   /** True when the import was size- or page-cap truncated. */
   truncated: boolean;
   /**
@@ -69,6 +94,7 @@ const IDLE_STATE: UseImportJobStreamResult = {
   status: 'idle',
   progress: null,
   resultPageId: null,
+  summary: null,
   truncated: false,
   fallbackPages: 0,
   errorMessage: null,
@@ -80,6 +106,7 @@ const CONNECTING_STATE: UseImportJobStreamResult = {
   status: 'connecting',
   progress: null,
   resultPageId: null,
+  summary: null,
   truncated: false,
   fallbackPages: 0,
   errorMessage: null,
@@ -90,6 +117,13 @@ export function useImportJobStream(
   notebookId: string | null,
   jobId: string | null,
   enabled: boolean,
+  /**
+   * SSE endpoint to stream from. Defaults to the PDF progress route, so every
+   * existing caller is unchanged. The OneNote modal passes the neutral route
+   * `/api/import/jobs/[jobId]/progress`, whose `done` event also carries
+   * `summary`. Including it in the stream key re-attaches when it changes.
+   */
+  progressUrl?: string | null,
 ): UseImportJobStreamResult {
   // `null` means "active but no SSE event yet" — reported as CONNECTING.
   // All real state arrives through the event-handler callbacks below.
@@ -99,7 +133,7 @@ export function useImportJobStream(
   // Drop a previous job's accumulated state when the target changes. This
   // is a render-phase adjustment, not an effect — see react.dev,
   // "You Might Not Need an Effect → Adjusting state on prop change".
-  const streamKey = `${notebookId ?? ''} ${jobId ?? ''} ${enabled}`;
+  const streamKey = `${notebookId ?? ''} ${jobId ?? ''} ${enabled} ${progressUrl ?? ''}`;
   const [trackedKey, setTrackedKey] = useState(streamKey);
   if (trackedKey !== streamKey) {
     setTrackedKey(streamKey);
@@ -118,9 +152,11 @@ export function useImportJobStream(
       return;
     }
 
-    const url = `/api/notebooks/${encodeURIComponent(notebookId)}/pdf-import/${encodeURIComponent(
-      jobId,
-    )}/progress`;
+    const url =
+      progressUrl ??
+      `/api/notebooks/${encodeURIComponent(notebookId)}/pdf-import/${encodeURIComponent(
+        jobId,
+      )}/progress`;
     const source = new EventSource(url, { withCredentials: true });
     sourceRef.current = source;
 
@@ -145,6 +181,7 @@ export function useImportJobStream(
       try {
         const payload = JSON.parse(ev.data) as {
           pageId?: string | null;
+          summary?: ImportJobSummary | null;
           truncated?: boolean;
           fallbackPages?: number;
         };
@@ -152,6 +189,7 @@ export function useImportJobStream(
           ...(prev ?? CONNECTING_STATE),
           status: 'ready',
           resultPageId: payload.pageId ?? null,
+          summary: payload.summary ?? null,
           truncated: payload.truncated ?? false,
           fallbackPages: payload.fallbackPages ?? 0,
           open: false,
@@ -214,7 +252,7 @@ export function useImportJobStream(
       source.close();
       if (sourceRef.current === source) sourceRef.current = null;
     };
-  }, [notebookId, jobId, enabled]);
+  }, [notebookId, jobId, enabled, progressUrl]);
 
   if (!enabled || !notebookId || !jobId) return IDLE_STATE;
   return state ?? CONNECTING_STATE;

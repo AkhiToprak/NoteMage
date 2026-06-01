@@ -314,18 +314,21 @@ model Notebook {
 model ImportJob {
   id             String   @id @default(cuid())
   notebookId     String
-  sectionId      String
+  sectionId      String?  // PDF target section; null for OneNote (worker creates many sections)
   userId         String
+  sourceFormat   String   @default("pdf") // "pdf" | "onenote"
   fileName       String
-  engine         String   // engine selected at submission, e.g. "gemini-flash-lite" / "text-layer"
+  engine         String   @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"
   mode           String   @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
   pageCap        Int
   status         String   @default("queued") // queued|processing|ready|failed
   progress       Json?    // { phase, totalPages, processedPages, message }
   error          String?  @db.Text
-  pdfPath        String
-  pageImagePaths Json     // string[] temp-imports/ paths
+  pdfPath        String?  // PDF only
+  pageImagePaths Json?    // PDF only: string[] temp-imports/ paths
+  oneNoteSectionIds Json? // OneNote only: string[] of selected section ids
   resultPageId   String?
+  resultSummary  Json?    // OneNote: { sectionsImported, pagesImported, errors[], firstSectionId?, firstPageId? }
   truncated      Boolean  @default(false)
   fallbackPages  Int      @default(0)
   startedAt      DateTime?

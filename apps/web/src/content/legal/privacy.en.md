@@ -46,6 +46,17 @@ When you use AI features, the relevant content — for example, a note or an imp
 
 We send only what is needed to produce the feature you asked for, and we do not sell your content.
 
+## Importing from Microsoft OneNote
+
+If you choose to import notes from Microsoft OneNote, you first connect your Microsoft account through Microsoft's official sign-in (OAuth). This access is **delegated**: it happens only after you explicitly grant consent on Microsoft's screen, it is limited to read-only access to your own OneNote, and you can revoke it at any time.
+
+- **What we access** — once you connect, we read the OneNote notebooks, sections, and pages you select for import, including their text and embedded images, together with basic account identity through Microsoft's User.Read permission. We request read-only access, and only to your own OneNote content — not to other people's or organisation-wide notebooks.
+- **Why** — solely to carry out the import you start: copying the OneNote content you select into your own Notemage notebook.
+- **How it is stored** — the access and refresh tokens that let us reach Microsoft on your behalf are **encrypted at rest** on our servers. The notes and images you import become part of your normal Notemage content.
+- **Retention and deletion** — you can disconnect your Microsoft account at any time, which **deletes the stored Microsoft tokens**. Notes you already imported remain as your own Notemage content, which you can edit or delete like anything else you create. Deleting your account removes both.
+
+Your use of OneNote remains subject to Microsoft's own terms and privacy policy.
+
 ## Who we share data with
 
 We use a small set of trusted providers ("processors", or for payments our Merchant of Record) to run the Service. Each only receives the data needed for its task.
@@ -110,4 +121,4 @@ We may update this Privacy Policy from time to time. If we make material changes
 - **Controller:** Toprak Demirel, Switzerland
 - **Email:** notemage.app@gmail.com (or use our [contact page](/contact))
 
-_Last updated: 23 May 2026._
+_Last updated: 1 June 2026._

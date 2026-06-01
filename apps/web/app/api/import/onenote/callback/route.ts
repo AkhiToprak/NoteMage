@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { acquireTokenByCode } from '@/lib/microsoftAuth';
+import { encryptToken } from '@/lib/microsoftTokenCrypto';
 import { db } from '@/lib/db';
 
 /**
@@ -32,19 +33,20 @@ export async function GET(request: NextRequest) {
   try {
     const result = await acquireTokenByCode(code, state);
 
-    // Upsert the Microsoft connection
+    // Upsert the Microsoft connection. Tokens are encrypted at rest — never
+    // store the plaintext access/refresh tokens returned by acquireTokenByCode.
     await db.microsoftConnection.upsert({
       where: { userId: result.userId },
       create: {
         userId: result.userId,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        accessToken: encryptToken(result.accessToken),
+        refreshToken: encryptToken(result.refreshToken),
         expiresAt: result.expiresAt,
         scope: result.scope,
       },
       update: {
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        accessToken: encryptToken(result.accessToken),
+        refreshToken: encryptToken(result.refreshToken),
         expiresAt: result.expiresAt,
         scope: result.scope,
       },

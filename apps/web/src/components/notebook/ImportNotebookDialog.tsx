@@ -5,6 +5,7 @@ import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
 import { renderPdfToPngs, type RenderedPdfPage } from '@/lib/pdf-client-render';
 import PdfImportProgressModal from './PdfImportProgressModal';
+import OneNoteImportProgressModal from './OneNoteImportProgressModal';
 
 interface ImportNotebookDialogProps {
   notebookId: string;
@@ -25,14 +26,10 @@ interface OneNoteNotebook {
   sections: OneNoteSection[];
 }
 
-type OneNoteState =
-  | 'checking'
-  | 'disconnected'
-  | 'loading'
-  | 'picker'
-  | 'importing'
-  | 'success'
-  | 'error';
+// Phase 5 — the inline `importing`/`success` states are gone; the async job's
+// progress + result now live in OneNoteImportProgressModal, mounted over the
+// picker once a job is queued.
+type OneNoteState = 'checking' | 'disconnected' | 'loading' | 'picker' | 'error';
 
 export default function ImportNotebookDialog({
   notebookId,
@@ -141,7 +138,7 @@ export default function ImportNotebookDialog({
         {/* Tab content */}
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px', minHeight: '300px' }}>
           {activeTab === 'onenote' && (
-            <OneNoteTab notebookId={notebookId} onImported={onImported} />
+            <OneNoteTab notebookId={notebookId} onImported={onImported} onClose={onClose} />
           )}
           {activeTab === 'goodnotes' && (
             <GoodNotesTab notebookId={notebookId} onImported={onImported} />
@@ -160,18 +157,27 @@ export default function ImportNotebookDialog({
 // OneNote Tab
 // ═══════════════════════════════════════════════════════════════════
 
-function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported: () => void }) {
+function OneNoteTab({
+  notebookId,
+  onImported,
+  onClose,
+}: {
+  notebookId: string;
+  onImported: () => void;
+  onClose: () => void;
+}) {
   const [state, setState] = useState<OneNoteState>('checking');
   const [notebooks, setNotebooks] = useState<OneNoteNotebook[]>([]);
   const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set());
   const [selectedSections, setSelectedSections] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
-  const [importProgress, setImportProgress] = useState('');
-  const [importResult, setImportResult] = useState<{
-    sectionsImported: number;
-    pagesImported: number;
-    errors: string[];
-  } | null>(null);
+  // Phase 5 — async trigger flow. Once the POST returns, `jobId` mounts the
+  // progress modal over the picker; `starting` covers the brief queue-and-fire
+  // POST; `startError` surfaces a failure to even queue the job, while the
+  // picker stays put so the section selection survives.
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState('');
 
   const loadNotebooks = useCallback(async () => {
     setState('loading');
@@ -283,14 +289,16 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
     });
   }, []);
 
+  // Queue-and-fire: POST the trigger, capture the jobId, and let
+  // OneNoteImportProgressModal stream the worker over SSE. Doubles as the
+  // modal's "Try again" handler — OneNote has no in-place retry, so a fresh
+  // job re-imports the same selection. A failure here means the job never
+  // queued, so drop any open modal and surface the error back in the picker
+  // (the selection is preserved for an immediate re-try).
   const handleImport = useCallback(async () => {
     if (selectedSections.size === 0) return;
-    setState('importing');
-    setImportProgress(
-      `Importing ${selectedSections.size} section${selectedSections.size !== 1 ? 's' : ''}...`
-    );
-    setError('');
-
+    setStarting(true);
+    setStartError('');
     try {
       const res = await fetch('/api/import/onenote/import', {
         method: 'POST',
@@ -300,17 +308,20 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
           sectionIds: Array.from(selectedSections),
         }),
       });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setImportResult(json.data);
-        setState('success');
-      } else {
-        setError(json.error || 'Import failed');
-        setState('error');
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; error?: string; data?: { jobId?: string } }
+        | null;
+      if (!res.ok || !json?.success || !json.data?.jobId) {
+        throw new Error(json?.error ?? 'We couldn’t start the import. Please try again.');
       }
-    } catch {
-      setError('Import failed');
-      setState('error');
+      setJobId(json.data.jobId);
+    } catch (err) {
+      setJobId(null);
+      setStartError(
+        err instanceof Error ? err.message : 'We couldn’t start the import. Please try again.',
+      );
+    } finally {
+      setStarting(false);
     }
   }, [notebookId, selectedSections]);
 
@@ -405,90 +416,6 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
     return <CenteredMessage text="Loading your OneNote notebooks..." loading />;
   }
 
-  if (state === 'importing') {
-    return <CenteredMessage text={importProgress} loading />;
-  }
-
-  if (state === 'success' && importResult) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '32px 0',
-        }}
-      >
-        <div
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            background: 'rgba(74,222,128,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 24, color: 'rgba(74,222,128,0.8)' }}
-            aria-hidden
-          >
-            check
-          </span>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <p
-            style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              color: 'var(--on-surface)',
-              margin: '0 0 6px',
-            }}
-          >
-            Import Complete
-          </p>
-          <p
-            style={{
-              fontSize: '12.5px',
-              color: 'var(--ink-50)',
-              margin: 0,
-              lineHeight: 1.6,
-            }}
-          >
-            Imported {importResult.sectionsImported} section
-            {importResult.sectionsImported !== 1 ? 's' : ''} with {importResult.pagesImported} page
-            {importResult.pagesImported !== 1 ? 's' : ''}.
-          </p>
-          {importResult.errors.length > 0 && (
-            <p style={{ fontSize: '11px', color: 'rgba(252,165,165,0.7)', marginTop: '8px' }}>
-              {importResult.errors.length} item{importResult.errors.length !== 1 ? 's' : ''} could
-              not be imported.
-            </p>
-          )}
-        </div>
-        <button
-          onClick={onImported}
-          style={{
-            padding: '8px 20px',
-            borderRadius: '8px',
-            border: 'none',
-            background: '#8c52ff',
-            color: 'var(--on-surface)',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          Done
-        </button>
-      </div>
-    );
-  }
-
   if (state === 'error') {
     return (
       <div
@@ -530,6 +457,7 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
   }
 
   // state === 'picker'
+  const canImport = selectedSections.size > 0 && !starting;
   return (
     <div>
       {/* Connected header */}
@@ -688,38 +616,83 @@ function OneNoteTab({ notebookId, onImported }: { notebookId: string; onImported
       {notebooks.length > 0 && (
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
             marginTop: '16px',
             paddingTop: '12px',
             borderTop: '1px solid rgba(174,137,255,0.20)',
           }}
         >
-          <button
-            onClick={handleImport}
-            disabled={selectedSections.size === 0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 18px',
-              borderRadius: '8px',
-              border: 'none',
-              background: selectedSections.size > 0 ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-              color: selectedSections.size > 0 ? 'var(--on-surface)' : 'rgba(196,169,255,0.4)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: selectedSections.size > 0 ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
-              upload
-            </span>
-            Import{selectedSections.size > 0 ? ` (${selectedSections.size})` : ''}
-          </button>
+          {startError && (
+            <p
+              role="alert"
+              style={{
+                fontSize: '12px',
+                color: '#fd6f85',
+                margin: '0 0 10px',
+                textAlign: 'center',
+                lineHeight: 1.5,
+              }}
+            >
+              {startError}
+            </p>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleImport}
+              disabled={!canImport}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                background: canImport ? '#8c52ff' : 'rgba(140,82,255,0.2)',
+                color: canImport ? 'var(--on-surface)' : 'rgba(196,169,255,0.4)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: starting ? 'progress' : canImport ? 'pointer' : 'not-allowed',
+                fontFamily: 'inherit',
+              }}
+            >
+              {starting ? (
+                <>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                    aria-hidden
+                  >
+                    progress_activity
+                  </span>
+                  Starting…
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                    upload
+                  </span>
+                  Import{selectedSections.size > 0 ? ` (${selectedSections.size})` : ''}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Async progress modal — overlays the picker once a job is queued.
+          onRetry re-fires handleImport (fresh job); onClose dismisses the
+          whole import dialog, matching the PDF flow. */}
+      {jobId && (
+        <OneNoteImportProgressModal
+          notebookId={notebookId}
+          jobId={jobId}
+          sectionCount={selectedSections.size}
+          onClose={onClose}
+          onRetry={handleImport}
+          onImported={onImported}
+        />
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import * as msal from '@azure/msal-node';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
+import { encryptToken, decryptToken, TokenCryptoError } from '@/lib/microsoftTokenCrypto';
 
 // ── MSAL Configuration ──
 
@@ -11,7 +12,12 @@ const NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3001';
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || '';
 
 const REDIRECT_URI = `${NEXTAUTH_URL}/api/import/onenote/callback`;
-const SCOPES = ['Notes.Read', 'Notes.Read.All', 'User.Read', 'offline_access'];
+// Least-privilege scopes. The flow only ever reads the signed-in user's own
+// OneNote (the `/me/onenote/...` endpoints), which `Notes.Read` covers — so the
+// broad `Notes.Read.All` (every notebook the user can access, incl. shared/org
+// notebooks) was dropped. `User.Read` = basic account identity for display;
+// `offline_access` = refresh tokens for silent renewal.
+const SCOPES = ['Notes.Read', 'User.Read', 'offline_access'];
 
 const msalConfig: msal.Configuration = {
   auth: {
@@ -156,22 +162,42 @@ export async function getValidAccessToken(userId: string): Promise<string> {
     throw new Error('No Microsoft connection found. Please connect your account first.');
   }
 
+  // Tokens are stored encrypted at rest — decrypt before use. A TokenCryptoError
+  // means the row is corrupt or legacy plaintext: drop it and ask the user to
+  // reconnect, exactly like an expired session. A non-crypto error (e.g. a
+  // missing MS_TOKEN_ENCRYPTION_KEY) is an operator misconfig — let it surface
+  // rather than silently destroying the connection.
+  let accessToken: string;
+  let refreshToken: string;
+  try {
+    accessToken = decryptToken(connection.accessToken);
+    refreshToken = connection.refreshToken ? decryptToken(connection.refreshToken) : '';
+  } catch (err) {
+    if (err instanceof TokenCryptoError) {
+      await db.microsoftConnection.delete({ where: { userId } }).catch(() => {});
+      throw new Error('Microsoft session expired. Please reconnect your account.');
+    }
+    throw err;
+  }
+
   // If token is still valid (with 5-minute buffer), return it
   if (connection.expiresAt > new Date(Date.now() + 5 * 60 * 1000)) {
-    return connection.accessToken;
+    return accessToken;
   }
 
   // Refresh the token
-  if (!connection.refreshToken) {
+  if (!refreshToken) {
     throw new Error('No refresh token available. Please reconnect your Microsoft account.');
   }
 
   try {
     // Isolated cache (see freshMsalClient): prevents reading another user's
-    // refresh token out of a shared warm-instance cache.
+    // refresh token out of a shared warm-instance cache. The refresh token
+    // passed in is the decrypted plaintext (see decrypt block above), not the
+    // at-rest ciphertext stored on `connection`.
     const client = freshMsalClient();
     const result = await client.acquireTokenByRefreshToken({
-      refreshToken: connection.refreshToken,
+      refreshToken,
       scopes: SCOPES,
     });
 
@@ -188,13 +214,13 @@ export async function getValidAccessToken(userId: string): Promise<string> {
     const cacheData = JSON.parse(tokenCache);
     const refreshTokens = cacheData.RefreshToken || {};
     const refreshTokenEntry = Object.values(refreshTokens)[0] as { secret?: string } | undefined;
-    const newRefreshToken = refreshTokenEntry?.secret || connection.refreshToken;
+    const newRefreshToken = refreshTokenEntry?.secret || refreshToken;
 
     await db.microsoftConnection.update({
       where: { userId },
       data: {
-        accessToken: result.accessToken,
-        refreshToken: newRefreshToken,
+        accessToken: encryptToken(result.accessToken),
+        refreshToken: encryptToken(newRefreshToken),
         expiresAt,
         scope: result.scopes.join(' '),
       },
