@@ -74,7 +74,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const chat = await db.notebookChat.findFirst({ where: { id: chatId, userId } });
     if (!chat) return notFoundResponse('Chat not found');
 
-    const { allowed: tokenAllowed, usedTokens, tokenLimit } = await checkTokenBudget(userId);
+    const { allowed: tokenAllowed, usedTokens, tokenLimit, tier } = await checkTokenBudget(userId);
     if (!tokenAllowed) {
       return tooManyRequestsResponse(
         `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`
@@ -110,6 +110,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       mageName,
       usedTokens,
       tokenLimit,
+      tier,
     });
   } catch (error) {
     console.error('[learn/chats/:chatId/messages POST]', error);

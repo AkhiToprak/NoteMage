@@ -14,6 +14,13 @@ import { GoogleGenAI } from '@google/genai';
 export const GEMINI_PATH_MODEL = process.env.GEMINI_PATH_MODEL ?? 'gemini-2.5-flash';
 
 /**
+ * Gemini model id for free-tier plain chat. Flash-Lite is the cheapest tier
+ * (~10x under Haiku) and is plenty for ordinary study Q&A. Generation turns
+ * never use this — they stay on Anthropic. Override with `GEMINI_CHAT_MODEL`.
+ */
+export const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL ?? 'gemini-2.5-flash-lite';
+
+/**
  * Hard cap on output tokens per Gemini path-generation response. Mirrors
  * the Anthropic side's `MAX_OUTPUT_TOKENS = 16_000` so capacity isn't
  * accidentally different between providers.

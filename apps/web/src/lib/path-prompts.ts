@@ -172,14 +172,17 @@ export function buildCachedSystem(
     blocks.push({
       type: 'text',
       text: buildSourceMaterialsBlock(corpus),
-      cache_control: { type: 'ephemeral' },
+      // 1h TTL: a long/ultra path run fires ~50 sequential calls that can
+      // exceed the 5-minute default; when it lapses the (large) corpus is
+      // re-billed mid-run. 1h spans the whole run.
+      cache_control: { type: 'ephemeral', ttl: '1h' },
     });
   }
   if (staticInstructions.length > 0) {
     blocks.push({
       type: 'text',
       text: staticInstructions,
-      cache_control: { type: 'ephemeral' },
+      cache_control: { type: 'ephemeral', ttl: '1h' },
     });
   }
   if (dynamicTail.length > 0) {

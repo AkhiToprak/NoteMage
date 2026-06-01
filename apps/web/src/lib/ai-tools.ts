@@ -969,6 +969,54 @@ export const CLASSIFY_SUBJECTS_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
+// ── Chat intent classifier (chat pre-step) ─────────────────────────────
+//
+// One-shot cheap call that routes a chat turn. The chat surface no longer
+// ships all 7 generation tools on every turn; instead a heuristic + this
+// classifier pick the turn's intent, and only the matching tool (if any)
+// is loaded for the actual call. `chat` means plain Q&A — no tool.
+
+export interface ClassifyChatIntentToolInput {
+  intent:
+    | 'chat'
+    | 'flashcards'
+    | 'quiz'
+    | 'mindmap'
+    | 'study_plan'
+    | 'presentation'
+    | 'videos';
+}
+
+export const CLASSIFY_CHAT_INTENT_TOOL: Anthropic.Messages.Tool = {
+  name: 'classify_chat_intent',
+  description: [
+    'Decide what the user wants in THIS chat turn so the assistant can load only the relevant tool.',
+    'Choose a generation intent ONLY when the user is clearly asking to CREATE that artifact; otherwise choose "chat".',
+    '- chat: explanation, Q&A, discussion, summarising, or anything that is not an explicit request to generate a study artifact.',
+    '- flashcards / quiz / mindmap / study_plan / presentation / videos: the user is asking to make that specific artifact.',
+    'When in doubt, choose "chat".',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      intent: {
+        type: 'string',
+        enum: [
+          'chat',
+          'flashcards',
+          'quiz',
+          'mindmap',
+          'study_plan',
+          'presentation',
+          'videos',
+        ],
+        description: 'The single best intent for this turn.',
+      },
+    },
+    required: ['intent'],
+  },
+};
+
 export const ALL_TOOLS = [
   FLASHCARD_TOOL,
   QUIZ_TOOL,

@@ -9,7 +9,12 @@ import {
 import { db } from './db';
 import { anthropic, AI_MODEL, MAX_OUTPUT_TOKENS, MAX_CONTEXT_CHARS } from './anthropic';
 import { checkUsageLimit, incrementUsage } from './usage-limits';
-import { ALL_TOOLS, extractToolUses } from './ai-tools';
+import { extractToolUses } from './ai-tools';
+import { resolveChatIntent } from './chat-intent';
+import { CHAT_BASE_INSTRUCTIONS, INTENT_GUIDANCE, INTENT_TOOL } from './chat-guidance';
+import { resolveChatProvider } from './chat-provider';
+import { streamGeminiChatText } from './chat-stream-gemini';
+import type { TierKey } from './tiers';
 import { buildLegacyColumns } from './quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
 import { extractText } from './fileProcessing';
@@ -41,6 +46,9 @@ export interface ChatStreamOptions {
   mageName: string;
   usedTokens: number;
   tokenLimit: number;
+  /** User's billing tier — routes free-form chat to Gemini (FREE) vs
+   *  Anthropic (PRO/admin). Generation turns always use Anthropic. */
+  tier: TierKey;
 }
 
 export async function startChatStream(opts: ChatStreamOptions): Promise<Response> {
@@ -53,6 +61,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     mageName,
     usedTokens,
     tokenLimit,
+    tier,
   } = opts;
   const chatId = chat.id;
   const flashcardSetNotebookId = chat.notebookId;
@@ -202,56 +211,8 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
       }
     };
 
-    // ── Build system prompt ──
-    const systemParts = [
-      `You are ${mageName}, an AI study assistant embedded in the Notemage notebook app.`,
-      `Your name is ${mageName}. When the user asks your name, respond with "${mageName}".`,
-      'Help the user study, understand, and review their notes and documents.',
-      'Be concise, clear, and educational. Use markdown formatting when helpful.',
-      '',
-      'You have access to a `create_flashcards` tool. When the user asks you to create, generate, or make flashcards, use this tool. Create high-quality flashcards with clear questions and concise answers. For complex answers, use bullet points or numbered lists.',
-      '',
-      'You also have access to a `create_quiz_v2` tool. When the user asks you to create, generate, or make a quiz, test, or multiple-choice questions, use `create_quiz_v2`. The legacy `create_quiz` tool exists only for backward compatibility — prefer `create_quiz_v2`. Mix question kinds intentionally (mc, fill_blank, word_bank, match_pairs, translation, sentence_reorder, equation) — see the tool description for each payload shape. Use mc for factual recall, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax, match_pairs for term/definition pairs, translation for language learning, sentence_reorder for syntax sequencing, equation for math. Aim for variety across a quiz rather than all-MC. For MC questions: 4 options each, distribute the correct answer evenly across positions 0–3, keep all four options similar in length and level of detail, make distractors plausible. Always provide hints and explanations for both correct and incorrect answers to help students learn.',
-      '',
-      'You also have access to a `create_mindmap` tool. When the user asks you to create, generate, or make a mind map, concept map, or topic overview, use this tool. Structure the content using Markdown headings (# for root, ## for main branches, ### for sub-branches, #### for details). Keep node text concise.',
-      '',
-      'You also have access to a `create_study_plan` tool. When the user asks you to create, generate, or make a study plan, study schedule, or revision plan, use this tool. Create logical phases that distribute materials across a reasonable timeframe. Only use referenceIds from the notebook inventory provided in context.',
-      '',
-      'You also have access to a `create_presentation` tool. When the user asks you to create, generate, or make a presentation, slides, PowerPoint, PPT, or deck, use this tool. Follow these rules:',
-      '- Every content slide MUST have an ACTION TITLE: a complete sentence stating the takeaway, NOT a topic label. Example: "Early interventions reduce dropout rates by 40%" instead of "Results".',
-      '- Use varied slide types: start with a title slide, use section_dividers to organize, two_column for comparisons, and end with a conclusion.',
-      '- Pick a themeColor hex that fits the subject (e.g. blue for science, green for biology, red for history).',
-      '- Add graphicDescription on slides where a visual would help (charts, diagrams, illustrations). Be specific about what the graphic shows.',
-      '- Keep bullets concise: 3-5 per slide, max ~15 words each.',
-      '- Aim for 8-15 slides total. Add speaker notes with extra detail.',
-      '',
-      'You also have access to a `recommend_videos` tool. Use this tool when:',
-      '- The user explicitly asks for a video, tutorial, or visual explanation.',
-      '- You are explaining a complex visual or procedural topic that would benefit from video (e.g. lab techniques, geometric proofs, historical events, programming tutorials). In this case, call the tool autonomously alongside your text explanation.',
-      'Do NOT recommend videos for every question — only when a video would genuinely add value beyond your text explanation. Generate a specific, educational search query.',
-    ];
-
-    // ── Assemble system payload ──
-    // The instruction prefix (mage name + tool-use guidance) is small and
-    // stable across turns for the same user; the context block (joined
-    // page/document text) can be hundreds of KB and is byte-identical
-    // across every turn of the same chat. Marking the context block with
-    // `cache_control: ephemeral` (same pattern as path-generator-routing.ts
-    // line 114) lets Anthropic skip re-billing the corpus on turns 2+.
-    // Cache TTL is ~5 minutes.
-    const systemPrefix = systemParts.join('\n');
-    const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
-      { type: 'text', text: systemPrefix },
-    ];
-    if (contextParts.length > 0) {
-      systemBlocks.push({
-        type: 'text',
-        text:
-          '\nThe user has provided the following context from their notebook:\n\n' +
-          contextParts.join('\n\n---\n\n'),
-        cache_control: { type: 'ephemeral' },
-      });
-    }
+    // System prompt + tools are built dynamically below, AFTER the usage
+    // check, based on the resolved chat intent (chat-intent.ts).
 
     // ── Usage limit check (scholar_chat) ──
     const chatUsage = await checkUsageLimit(userId, 'scholar_chat');
@@ -264,6 +225,60 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
         { status: 429 }
       );
     }
+
+    // ── Resolve intent → build system + tools dynamically ──
+    // Plain chat carries NO tools and a minimal prompt; a generation intent
+    // carries exactly one forced tool + that intent's guidance. This keeps
+    // ~2.5–3k tokens of tool schema + tool prose off the dominant plain-chat
+    // path. (chat-intent.ts / chat-guidance.ts.)
+    const recentTail = conversationMessages
+      .slice(-3, -1)
+      .map((m) => `${m.role}: ${m.content}`)
+      .join('\n');
+    const intentResult = await resolveChatIntent({ userMessage, recentTail });
+    const intent = intentResult.intent;
+
+    const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
+      { type: 'text', text: CHAT_BASE_INSTRUCTIONS },
+    ];
+    if (intent !== 'chat') {
+      systemBlocks.push({ type: 'text', text: INTENT_GUIDANCE[intent] });
+    }
+    if (contextParts.length > 0) {
+      systemBlocks.push({
+        type: 'text',
+        text:
+          '\nThe user has provided the following context from their notebook:\n\n' +
+          contextParts.join('\n\n---\n\n'),
+        // 1h TTL: chat turns can span >5 min; the byte-stable corpus is the
+        // big cacheable block, reused across turns of the same chat.
+        cache_control: { type: 'ephemeral', ttl: '1h' },
+      });
+    }
+    // Identity carries the per-user mage name — keep it AFTER the cached
+    // corpus block so the cached prefix stays user-independent.
+    systemBlocks.push({
+      type: 'text',
+      text: `You are ${mageName}, an AI study assistant embedded in the Notemage notebook app. Your name is ${mageName}. When the user asks your name, respond with "${mageName}".`,
+    });
+
+    // Single forced tool for a generation intent (cloned so we never mutate
+    // the shared export); null for plain chat.
+    const forcedTool: Anthropic.Messages.Tool | null =
+      intent === 'chat'
+        ? null
+        : { ...INTENT_TOOL[intent], cache_control: { type: 'ephemeral', ttl: '1h' } };
+
+    // Free-tier plain chat runs on Gemini Flash-Lite; generation + Pro stay on
+    // Anthropic. Build a flat Gemini system string (corpus leads for implicit
+    // caching) for that path.
+    const useGemini = intent === 'chat' && resolveChatProvider(tier) === 'gemini';
+    const geminiCorpus =
+      contextParts.length > 0
+        ? '\nThe user has provided the following context from their notebook:\n\n' +
+          contextParts.join('\n\n---\n\n')
+        : undefined;
+    const geminiSystem = `${CHAT_BASE_INSTRUCTIONS}\n\nYou are ${mageName}, an AI study assistant embedded in the Notemage notebook app. Your name is ${mageName}. When the user asks your name, respond with "${mageName}".`;
 
     // ── SSE helpers ──
     const encoder = new TextEncoder();
@@ -338,26 +353,107 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     const onAbort = () => abortController.abort();
     request.signal.addEventListener('abort', onAbort);
 
-    const stream = anthropic.messages.stream(
-      {
-        model: AI_MODEL,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        system: systemBlocks,
-        messages: conversationMessages,
-        tools: ALL_TOOLS,
-      },
-      { signal: abortController.signal }
-    );
+    const streamParams: Parameters<typeof anthropic.messages.stream>[0] = {
+      model: AI_MODEL,
+      max_tokens: MAX_OUTPUT_TOKENS,
+      system: systemBlocks,
+      messages: conversationMessages,
+    };
+    if (forcedTool) {
+      streamParams.tools = [forcedTool];
+      streamParams.tool_choice = { type: 'tool', name: forcedTool.name };
+    }
 
     return new Response(
       new ReadableStream({
         async start(controller) {
           let fullText = '';
-
-          stream.on('text', (delta) => {
+          const enqueueText = (delta: string) => {
             fullText += delta;
             controller.enqueue(sseEvent('text', { delta }));
+          };
+
+          // ── Free-tier plain chat → Gemini Flash-Lite ──
+          // On a hard Gemini failure BEFORE any text is streamed, fall back to
+          // the Anthropic path below. On abort or a mid-stream failure,
+          // finalize whatever was streamed as a partial.
+          if (useGemini) {
+            try {
+              const { usage } = await streamGeminiChatText({
+                systemInstruction: geminiSystem,
+                corpus: geminiCorpus,
+                messages: conversationMessages,
+                signal: abortController.signal,
+                onText: enqueueText,
+              });
+
+              if (abortController.signal.aborted || request.signal.aborted) {
+                const done = await saveAndBuildDone(fullText || '[generation stopped]', 0, 0);
+                controller.enqueue(sseEvent('done', done));
+                await fireTitleGenIfNeeded(controller);
+                controller.close();
+                return;
+              }
+
+              await incrementUsage(userId, 'scholar_chat');
+
+              Sentry.addBreadcrumb({
+                category: 'chat-stream',
+                level: 'info',
+                message: 'chat gemini usage',
+                data: {
+                  provider: 'gemini',
+                  intent,
+                  intentVia: intentResult.via,
+                  toolLoaded: 'none',
+                  chatId: chat.id,
+                  inputTokens: usage.promptTokens,
+                  outputTokens: usage.candidatesTokens,
+                  cacheReadTokens: usage.cachedTokens,
+                  contextChars: contextKeptChars,
+                },
+              });
+
+              const done = await saveAndBuildDone(
+                fullText,
+                usage.promptTokens,
+                usage.candidatesTokens
+              );
+              controller.enqueue(sseEvent('done', done));
+              await fireTitleGenIfNeeded(controller);
+              controller.close();
+              return;
+            } catch (geminiErr) {
+              if (abortController.signal.aborted || request.signal.aborted) {
+                const done = await saveAndBuildDone(fullText || '[generation stopped]', 0, 0);
+                controller.enqueue(sseEvent('done', done));
+                await fireTitleGenIfNeeded(controller);
+                controller.close();
+                return;
+              }
+              if (fullText.length > 0) {
+                // Failed mid-stream after emitting text — finalize the partial
+                // rather than restarting on Anthropic (which would duplicate).
+                console.error('[AI Chat] Gemini mid-stream error:', geminiErr);
+                const done = await saveAndBuildDone(fullText, 0, 0);
+                controller.enqueue(sseEvent('done', done));
+                await fireTitleGenIfNeeded(controller);
+                controller.close();
+                return;
+              }
+              // Nothing streamed yet — fall back to Anthropic.
+              console.error(
+                '[AI Chat] Gemini failed pre-stream, falling back to Anthropic:',
+                geminiErr
+              );
+            }
+          }
+
+          const stream = anthropic.messages.stream(streamParams, {
+            signal: abortController.signal,
           });
+
+          stream.on('text', enqueueText);
 
           try {
             const response = await stream.finalMessage();
@@ -376,6 +472,10 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               level: 'info',
               message: 'chat anthropic usage',
               data: {
+                provider: 'anthropic',
+                intent,
+                intentVia: intentResult.via,
+                toolLoaded: forcedTool?.name ?? 'none',
                 chatId: chat.id,
                 inputTokens: response.usage.input_tokens,
                 outputTokens: response.usage.output_tokens,

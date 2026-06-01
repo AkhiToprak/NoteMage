@@ -15,7 +15,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { ALL_TOOLS, extractToolUses } from '@/lib/ai-tools';
+import { FLASHCARD_TOOL, QUIZ_TOOL_V2, MINDMAP_TOOL, extractToolUses } from '@/lib/ai-tools';
 import { buildLegacyColumns } from '@/lib/quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
 import { checkTokenBudget } from '@/lib/token-budget';
@@ -108,10 +108,27 @@ export async function POST(request: NextRequest, { params }: Params) {
       {
         type: 'text',
         text: `[Page: ${page.title}]\n\n${corpus}`,
-        cache_control: { type: 'ephemeral' },
+        // 1h TTL: the page-detail toolbar flow (quiz then flashcards from the
+        // same page) can span more than the 5-minute default if the user
+        // reads in between, which would re-bill the corpus.
+        cache_control: { type: 'ephemeral', ttl: '1h' },
       },
       { type: 'text', text: systemPrompt },
     ];
+
+    // P1.3 — the request already says which artifact `type` to make, so
+    // force the single matching tool instead of shipping all 7 and letting
+    // the model pick. Smaller input, no mis-selection, and the (globally
+    // identical) tool schema is cached across calls. Clone the shared export
+    // before adding cache_control — never mutate the exported object.
+    const forcedTool: Anthropic.Messages.Tool = {
+      ...(type === 'flashcards'
+        ? FLASHCARD_TOOL
+        : type === 'quiz'
+          ? QUIZ_TOOL_V2
+          : MINDMAP_TOOL),
+      cache_control: { type: 'ephemeral', ttl: '1h' },
+    };
 
     // Call Anthropic
     const response = await anthropic.messages.create({
@@ -124,7 +141,8 @@ export async function POST(request: NextRequest, { params }: Params) {
           content: `Generate ${type} from the page provided above.`,
         },
       ],
-      tools: ALL_TOOLS,
+      tools: [forcedTool],
+      tool_choice: { type: 'tool', name: forcedTool.name },
     });
 
     const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
@@ -143,6 +161,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       level: 'info',
       message: 'page generate anthropic usage',
       data: {
+        provider: 'anthropic',
         notebookId,
         pageId,
         type,

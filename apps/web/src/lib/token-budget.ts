@@ -11,15 +11,16 @@ export async function checkTokenBudget(userId: string): Promise<{
   allowed: boolean;
   usedTokens: number;
   tokenLimit: number; // -1 = unlimited (admin)
+  tier: TierKey;
 }> {
   const user = await db.user.findUniqueOrThrow({
     where: { id: userId },
     select: { tier: true, role: true },
   });
 
-  // Admins bypass token limits
+  // Admins bypass token limits and route as Pro (best chat model).
   if (user.role === 'admin') {
-    return { allowed: true, usedTokens: 0, tokenLimit: -1 };
+    return { allowed: true, usedTokens: 0, tokenLimit: -1, tier: 'PRO' };
   }
 
   const tierConfig = TIERS[user.tier as TierKey];
@@ -33,7 +34,7 @@ export async function checkTokenBudget(userId: string): Promise<{
   });
 
   const usedTokens = tokenUsage._sum.tokens ?? 0;
-  return { allowed: usedTokens < tokenLimit, usedTokens, tokenLimit };
+  return { allowed: usedTokens < tokenLimit, usedTokens, tokenLimit, tier: user.tier as TierKey };
 }
 
 /**
