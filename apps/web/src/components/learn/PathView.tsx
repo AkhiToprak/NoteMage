@@ -256,6 +256,7 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
                 return (
                   <div key={slot.id}>
                     <div
+                      data-active-slot={state === 'active' ? 'true' : undefined}
                       style={{
                         display: 'flex',
                         justifyContent: align,

@@ -89,6 +89,18 @@ function PathDetailInner({ planId }: { planId: string }) {
     };
   }, [planId, refreshKey]);
 
+  // Keep the learner on their next checkpoint. Whenever the path column is the
+  // foreground (no slot drawer or activity viewer open) and the plan is loaded
+  // — first entry, the refetch after finishing a section, or simply closing an
+  // overlay — scroll the active slot into view instead of dropping them at the
+  // top to scroll back down. `isActive` marks exactly one slot (the first
+  // doable, not-done slot), so there is a single scroll target.
+  useEffect(() => {
+    if (slotId || activityId || !plan) return;
+    const el = document.querySelector('[data-active-slot="true"]');
+    el?.scrollIntoView({ block: 'center' });
+  }, [plan, slotId, activityId]);
+
   // Resolve the currently-open slot from the URL.
   const openSlot: PathSlot | null = (() => {
     if (!slotId || !plan) return null;
