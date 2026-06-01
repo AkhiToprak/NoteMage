@@ -320,6 +320,7 @@ function PathDetailInner({ planId }: { planId: string }) {
             handleSlotChanged();
             setUrlSlot({ activity: null });
           }}
+          onProgress={handleSlotChanged}
         />
       ) : openSlot ? (
         <CheckpointDrawer

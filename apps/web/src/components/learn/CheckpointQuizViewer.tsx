@@ -53,6 +53,10 @@ interface CheckpointQuizViewerProps {
   activity: PathActivity;
   onClose: () => void;
   onCompleted: () => void;
+  // Refresh path progress WITHOUT closing the viewer. Used when an ungraded
+  // review quiz finishes so the eval screen stays up until the learner closes
+  // it themselves, while the path behind reflects the completion.
+  onProgress: () => void;
 }
 
 export default function CheckpointQuizViewer({
@@ -60,6 +64,7 @@ export default function CheckpointQuizViewer({
   activity,
   onClose,
   onCompleted,
+  onProgress,
 }: CheckpointQuizViewerProps) {
   const [quizSet, setQuizSet] = useState<QuizSetPayload['quizSet'] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -164,12 +169,15 @@ export default function CheckpointQuizViewer({
             body: JSON.stringify({ completed: true }),
           },
         );
-        if (res.ok) onCompleted();
+        // Mark the review activity complete and refresh path progress, but
+        // keep the eval screen open — the learner dismisses it via the close
+        // button instead of having it vanish under them.
+        if (res.ok) onProgress();
       } catch (err) {
         console.error('[CheckpointQuizViewer] completeActivity', err);
       }
     },
-    [isGraded, slot.id, activity.id, onCompleted],
+    [isGraded, slot.id, activity.id, onProgress],
   );
 
   const handleRetake = useCallback(() => {
