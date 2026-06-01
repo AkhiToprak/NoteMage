@@ -47,7 +47,6 @@ export default function TimelineRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<TimelinePayload | null>) {
   const payload = question.payload;
 
@@ -358,7 +357,7 @@ export default function TimelineRenderer({
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
+          {showHint ? 'Hide Hint' : 'Show Hint'}
         </button>
       )}
       {showHint && question.hint && (

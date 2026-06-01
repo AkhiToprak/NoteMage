@@ -62,7 +62,6 @@ export default function WordBankRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<WordBankPayload | null>) {
   const payload = question.payload;
   const slotCount = payload?.slots.length ?? 0;
@@ -379,7 +378,7 @@ export default function WordBankRenderer({
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
+          {showHint ? 'Hide Hint' : 'Show Hint'}
         </button>
       )}
       {showHint && question.hint && (

@@ -34,7 +34,6 @@ export default function CodeOutputRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<CodeOutputPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -230,7 +229,7 @@ export default function CodeOutputRenderer({
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
+          {showHint ? 'Hide Hint' : 'Show Hint'}
         </button>
       )}
       {showHint && question.hint && (

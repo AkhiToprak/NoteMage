@@ -14,7 +14,6 @@ export default function TrueFalseRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<TrueFalsePayload>) {
   const selectedValue = currentAnswer?.kind === 'true_false' ? currentAnswer.value : undefined;
   const reviewValue = reviewAnswer?.kind === 'true_false' ? reviewAnswer.value : undefined;
@@ -166,7 +165,7 @@ export default function TrueFalseRenderer({
           <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
             lightbulb
           </span>
-          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
+          {showHint ? 'Hide Hint' : 'Show Hint'}
         </button>
       )}
       {showHint && question.hint && (

@@ -39,7 +39,6 @@ export default function MatchPairsRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<MatchPairsPayload | null>) {
   const payload = question.payload;
   const pairs = useMemo(() => payload?.pairs ?? [], [payload]);
@@ -347,7 +346,7 @@ export default function MatchPairsRenderer({
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
+          {showHint ? 'Hide Hint' : 'Show Hint'}
         </button>
       )}
       {showHint && question.hint && (

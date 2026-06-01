@@ -6,7 +6,6 @@ import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWork
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
-import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import { grade } from '@/lib/quiz-grading';
 import {
   QuizReactionLayer,
@@ -68,6 +67,11 @@ interface QuizViewerProps {
   // Phase 10 — re-used by the checkpoint drawer (Phase 10.6) for assessment-
   // kind slots; defaults to false for direct quiz-player access.
   isCheckpoint?: boolean;
+  // Hides all notebook-management chrome (edit / export / delete /
+  // add-to-notebook) independent of grading. The learning-path viewer sets
+  // this for every path quiz — including ungraded review slots — so the path
+  // stays focused on answering, not authoring.
+  hideManagementActions?: boolean;
   // Phase 10.6 — fires after the attempt POST returns successfully.
   // The checkpoint drawer uses this to PATCH a learning-slot quiz
   // activity as completed, or POST to /assessment for assessment
@@ -90,10 +94,10 @@ export default function QuizViewer({
   initialQuestions,
   assignedSectionId,
   isCheckpoint = false,
+  hideManagementActions = false,
   onComplete,
 }: QuizViewerProps) {
   const { isPhone, isTablet } = useBreakpoint();
-  const coarsePointer = useCoarsePointer();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
@@ -377,10 +381,9 @@ export default function QuizViewer({
     const handler = (e: KeyboardEvent) => {
       if (editingId) return;
       // Don't hijack keys while the learner is typing into a text-input question
-      // (fill-blank, translation, equation, code). Otherwise "H" never reaches
-      // the field (it toggles the hint and preventDefault eats the keystroke) and
-      // ←/→ move between questions instead of the caret. Hint stays reachable via
-      // its on-screen button.
+      // (fill-blank, translation, equation, code). Otherwise ←/→ would move
+      // between questions instead of the caret, and A/B/C/D would be captured as
+      // MC answers instead of reaching the field.
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -396,10 +399,6 @@ export default function QuizViewer({
       } else if (e.code === 'ArrowRight') {
         e.preventDefault();
         next();
-      } else if (e.code === 'KeyH') {
-        e.preventDefault();
-        setShowHint((v) => !v);
-        return;
       }
       const q = questions[currentIndex];
       const kind: QuestionKind = q?.kind ?? 'mc';
@@ -822,7 +821,7 @@ export default function QuizViewer({
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <ActionButton onClick={reset} label="Retake Quiz" primary />
           <ActionButton onClick={startReview} label="Review Answers" />
-          {!isCheckpoint && (
+          {!isCheckpoint && !hideManagementActions && (
             <>
               <ActionButton onClick={downloadJSON} label="Download JSON" />
               <ActionButton onClick={openSlideEditor} label="Download PPTX" />
@@ -1245,7 +1244,6 @@ export default function QuizViewer({
               onToggleHint={() => setShowHint((v) => !v)}
               onSelectAnswer={selectAnswer}
               isPhone={isPhone}
-              coarsePointer={coarsePointer}
             />
           );
         })()
@@ -1311,9 +1309,9 @@ export default function QuizViewer({
 
       {/* Per-question action bar — all notebook-management UI
           (edit / export / delete / add-to-notebook). Hidden entirely
-          inside the checkpoint context so the path viewer stays focused
-          on answering questions. */}
-      {!isCheckpoint && (
+          inside the learning-path viewer (graded or not) so it stays
+          focused on answering questions. */}
+      {!isCheckpoint && !hideManagementActions && (
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
           {question &&
             editingId !== question.id &&

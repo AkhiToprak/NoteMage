@@ -34,7 +34,6 @@ export default function CodeWriteRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<CodeWritePayload | null>) {
   const payload = question.payload;
 
@@ -250,7 +249,7 @@ export default function CodeWriteRenderer({
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-            {showHint ? 'Hide hint' : coarsePointer ? 'Show hint' : 'Show hint (H)'}
+            {showHint ? 'Hide hint' : 'Show hint'}
           </button>
         )}
       </div>

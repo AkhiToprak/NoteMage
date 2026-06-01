@@ -63,6 +63,4 @@ export interface QuestionProps<TPayload = unknown> {
   onToggleHint: () => void;
   onSelectAnswer: (answer: UserAnswer) => void;
   isPhone: boolean;
-  /** Coarse (touch) pointer — suppresses keyboard-only hint affordances. */
-  coarsePointer: boolean;
 }

@@ -5,8 +5,8 @@ import { useSyncExternalStore } from 'react';
 // Detects a coarse pointer (touch / stylus / in-app WebView) SSR-safely via
 // `useSyncExternalStore` — the lint-blessed alternative to useEffect+setState,
 // mirroring the store pattern in `useBreakpoint`. Used to swap keyboard-only
-// affordances ("Show Hint (H)", "Space to flip") for touch-friendly copy on
-// devices that have no physical keyboard.
+// affordances ("Space to flip") for touch-friendly copy on devices that have
+// no physical keyboard.
 const COARSE_POINTER_QUERY = '(pointer: coarse)';
 
 function subscribe(callback: () => void): () => void {

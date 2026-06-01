@@ -37,7 +37,6 @@ export default function SentenceReorderRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
-  coarsePointer,
 }: QuestionProps<SentenceReorderPayload | null>) {
   const payload = question.payload;
   const correctOrder = useMemo(() => payload?.correctOrder ?? [], [payload]);
@@ -291,7 +290,7 @@ export default function SentenceReorderRenderer({
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : coarsePointer ? 'Show Hint' : 'Show Hint (H)'}
+          {showHint ? 'Hide Hint' : 'Show Hint'}
         </button>
       )}
       {showHint && question.hint && (

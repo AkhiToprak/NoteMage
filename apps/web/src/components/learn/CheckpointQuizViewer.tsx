@@ -324,6 +324,7 @@ export default function CheckpointQuizViewer({
               title={quizSet.title}
               initialQuestions={quizSet.questions as never}
               isCheckpoint={isGraded}
+              hideManagementActions
               onComplete={(result) => void handleQuizComplete(result)}
             />
           ) : (
