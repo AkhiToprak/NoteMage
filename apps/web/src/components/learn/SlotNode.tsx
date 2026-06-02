@@ -224,31 +224,6 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
           )}
 
-          {/* Lock overlay — locked state only. Centered on top of the
-              kind icon to make the locked state immediately legible.
-              The existing aria-label on the button already conveys the
-              locked state to assistive tech; this is purely visual. */}
-          {isLocked ? (
-            <span
-              aria-hidden
-              className="material-symbols-outlined"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '26px',
-                color: 'var(--on-surface-variant)',
-                // Slightly translucent so the kind icon is barely
-                // visible beneath, reinforcing the "blocked" metaphor.
-                opacity: 0.85,
-              }}
-            >
-              lock
-            </span>
-          ) : null}
-
           {/* Completed badge — top-right corner. Graded slots
               (assessment + final_exam) show their letter grade; other
               completed slots show a check icon. `bestGrade` falls back
