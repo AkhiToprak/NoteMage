@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckpointIcon } from '@/components/icons/CheckpointIcons';
+import { CheckpointIcon, LockIcon } from '@/components/icons/CheckpointIcons';
 import type { PathSlot } from '@/components/learn/PathView';
 import { bestGrade } from '@/lib/path-gating';
 
@@ -57,38 +57,38 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
   // `feedback_light_mode_no_light_text`).
   const isAvailable = state === 'available';
 
-  const bg =
-    isCompleted || isActive
-      ? 'var(--primary)'
-      : isLocked
-        ? 'var(--surface-container-low)'
-        : 'var(--surface-container)';
-  const borderColor =
-    isCompleted || isActive
-      ? 'var(--primary)'
-      : isLocked
-        ? 'var(--outline-variant)'
-        : isAvailable
-          ? 'var(--accent-strong)'
-          : 'var(--outline)';
-  const iconColor =
-    isCompleted || isActive
-      ? 'var(--on-primary)'
-      : isLocked
-        ? 'var(--on-surface-variant)'
-        : 'var(--on-surface)';
+  // Locked + available share one solid card surface. Locked used to be
+  // surface-container-low, which sits a hair above the page bg and made
+  // the node read as an empty hole — it's pushed back via opacity below
+  // instead.
+  const bg = isCompleted || isActive
+    ? 'var(--primary)'
+    : 'var(--surface-container)';
+  const borderColor = isCompleted || isActive
+    ? 'var(--primary)'
+    : isLocked
+      ? 'var(--outline-variant)'
+      : isAvailable
+        ? 'var(--accent-strong)'
+        : 'var(--outline)';
+  const iconColor = isCompleted || isActive
+    ? 'var(--on-primary)'
+    : isLocked
+      ? 'var(--on-surface-variant)'
+      : 'var(--on-surface)';
   // Layered drop-shadow — darker primary tint when filled, neutral
   // outline tint when not. Matches the Phase 10.5 spec's flat
-  // `0 4px 0 <darker-of-bg>` look.
-  // Available nodes add a soft accent glow to signal interactivity.
-  const shadow =
-    isCompleted || isActive
-      ? '0 4px 0 var(--primary-container, var(--outline))'
-      : isLocked
-        ? '0 3px 0 var(--outline-variant)'
-        : isAvailable
-          ? '0 3px 0 var(--outline-variant), 0 0 0 4px rgb(var(--accent-strong-rgb) / 0.18), 0 0 18px 4px rgb(var(--accent-strong-rgb) / 0.12)'
-          : '0 3px 0 var(--outline-variant)';
+  // `0 4px 0 <darker-of-bg>` look. Available nodes add a soft accent
+  // glow to signal interactivity; locked nodes use an alpha-black base
+  // (outline-variant is *lighter* than the fill and drew a stray bright
+  // line) so they read as a tactile, dimmed button in both themes.
+  const shadow = isCompleted || isActive
+    ? '0 4px 0 var(--primary-container, var(--outline))'
+    : isLocked
+      ? '0 3px 0 rgba(0, 0, 0, 0.18)'
+      : isAvailable
+        ? '0 3px 0 var(--outline-variant), 0 0 0 4px rgb(var(--accent-strong-rgb) / 0.18), 0 0 18px 4px rgb(var(--accent-strong-rgb) / 0.12)'
+        : '0 3px 0 var(--outline-variant)';
 
   return (
     <div
@@ -205,6 +205,9 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             alignItems: 'center',
             justifyContent: 'center',
             cursor: isLocked ? 'default' : 'pointer',
+            // Fade locked nodes back so they read as "not yet" without
+            // washing out the lock glyph (title keeps full contrast).
+            opacity: isLocked ? 0.8 : 1,
             padding: 0,
             fontFamily: 'inherit',
             position: 'relative',
@@ -212,7 +215,14 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             // transition-all per CLAUDE.md).
           }}
         >
-          <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
+          {/* Locked nodes show a lock — the canonical "come back later"
+              signal — instead of a dimmed kind icon that read as a
+              half-loaded box. The title below still names the checkpoint. */}
+          {isLocked ? (
+            <LockIcon size={32} color={iconColor} />
+          ) : (
+            <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
+          )}
 
           {/* Lock overlay — locked state only. Centered on top of the
               kind icon to make the locked state immediately legible.
