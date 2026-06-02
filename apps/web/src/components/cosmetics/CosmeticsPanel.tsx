@@ -225,28 +225,33 @@ function SwatchShell({
         {children}
       </div>
 
-      {/* Lock overlay */}
+      {/* Lock corner badge */}
       {locked && (
         <div
           style={{
             position: 'absolute',
-            inset: 0,
-            borderRadius: SWATCH_RADIUS,
+            top: 6,
+            right: 6,
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            background: 'rgba(17,17,38,0.72)',
+            backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(17,17,38,0.35)',
-            backdropFilter: 'blur(1px)',
             pointerEvents: 'none',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+            zIndex: 2,
           }}
         >
           <span
             className="material-symbols-outlined"
             style={{
-              fontSize: 22,
+              fontSize: 13,
               color: lockHint ? '#ae89ff' : '#e5e3ff',
               opacity: lockHint ? 1 : 0.85,
-              textShadow: '0 2px 8px rgba(0,0,0,0.45)',
+              textShadow: '0 1px 4px rgba(0,0,0,0.5)',
               transition: `color 0.25s ${EASING}, opacity 0.25s ${EASING}`,
             }}
           >
@@ -1056,7 +1061,10 @@ export function CosmeticsPanel({
               justifyContent: 'center',
             }}
           >
-            <span className="material-symbols-outlined" style={{ color: 'var(--outline-variant)', fontSize: 26 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ color: 'var(--outline-variant)', fontSize: 26 }}
+            >
               block
             </span>
           </div>

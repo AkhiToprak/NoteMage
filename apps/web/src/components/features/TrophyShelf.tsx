@@ -118,8 +118,8 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
           <h2
             style={{
               fontFamily: 'var(--font-brand)',
-              fontSize: '22px',
-              fontWeight: 400,
+              fontSize: 'var(--fs-xl)',
+              fontWeight: 700,
               color: 'var(--on-surface)',
               margin: 0,
             }}
@@ -128,11 +128,12 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
           </h2>
         </div>
         <div
+          className="tabular-nums"
           style={{
             padding: '6px 14px',
             background: 'rgba(174,137,255,0.12)',
             borderRadius: '20px',
-            fontSize: '13px',
+            fontSize: 'var(--fs-sm)',
             fontWeight: 600,
             color: '#ae89ff',
           }}
@@ -150,8 +151,8 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
             gap: '10px',
             padding: '20px 12px',
             textAlign: 'center',
-            color: 'var(--outline)',
-            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--fs-sm)',
           }}
         >
           <Mascot pose="sleeping" size="md" idle="sway" />
@@ -238,10 +239,9 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
           return (
             <div
               key={achievement.badge}
+              className="elev-1 elev-interactive"
               onClick={() => setExpandedBadge(isExpanded ? null : achievement.badge)}
               style={{
-                background: isUnlocked ? '#21213e' : '#22223c',
-                borderRadius: isPhone ? '12px' : '16px',
                 padding: isPhone ? '14px 10px' : '20px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -249,23 +249,15 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                 textAlign: 'center',
                 gap: isPhone ? '8px' : '10px',
                 cursor: 'pointer',
-                border: isUnlocked
-                  ? '1px solid rgba(174,137,255,0.2)'
-                  : '1px solid rgba(58,58,92,0.4)',
-                boxShadow: isUnlocked ? '0 0 20px rgba(174,137,255,0.08)' : 'none',
-                transition:
-                  'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.03)';
                 if (isUnlocked) {
                   e.currentTarget.style.boxShadow = '0 0 28px rgba(174,137,255,0.15)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
                 if (isUnlocked) {
-                  e.currentTarget.style.boxShadow = '0 0 20px rgba(174,137,255,0.08)';
+                  e.currentTarget.style.boxShadow = '';
                 }
               }}
             >
@@ -298,7 +290,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
               {/* Name */}
               <span
                 style={{
-                  fontSize: isPhone ? '12px' : '14px',
+                  fontSize: isPhone ? 'var(--fs-xs)' : 'var(--fs-sm)',
                   fontWeight: 700,
                   color: isUnlocked ? '#e5e3ff' : '#6a6a8c',
                   lineHeight: 1.3,
@@ -309,7 +301,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
 
               {/* Unlock date or progress bar */}
               {isUnlocked && unlockInfo ? (
-                <span style={{ fontSize: '11px', color: 'var(--outline)' }}>
+                <span style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)' }}>
                   {formatDate(unlockInfo.unlockedAt)}
                 </span>
               ) : (
@@ -337,9 +329,10 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                     />
                   </div>
                   <span
+                    className="tabular-nums"
                     style={{
-                      fontSize: '11px',
-                      color: 'var(--outline-variant)',
+                      fontSize: 'var(--fs-2xs)',
+                      color: 'var(--text-secondary)',
                       marginTop: '4px',
                       display: 'block',
                     }}

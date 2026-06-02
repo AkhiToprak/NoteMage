@@ -20,9 +20,9 @@ export default function TrueFalseRenderer({
   const correctValue = question.payload?.correct ?? false;
   const isCorrect = isAnswered && selectedValue === correctValue;
 
-  const options: { value: boolean; label: string; icon: string }[] = [
-    { value: true, label: 'True', icon: 'check' },
-    { value: false, label: 'False', icon: 'close' },
+  const options: { value: boolean; label: string }[] = [
+    { value: true, label: 'True' },
+    { value: false, label: 'False' },
   ];
 
   return (
@@ -56,7 +56,7 @@ export default function TrueFalseRenderer({
           marginBottom: '12px',
         }}
       >
-        {options.map(({ value, label, icon }) => {
+        {options.map(({ value, label }) => {
           const isSelected = selectedValue === value;
           const isCorrectOption = correctValue === value;
           const showResult = isAnswered || mode === 'review';
@@ -123,17 +123,34 @@ export default function TrueFalseRenderer({
                 }}
               >
                 {showResult && isCorrectOption ? (
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 16, color: 'var(--success)' }}
+                    aria-hidden
+                  >
                     check_circle
                   </span>
                 ) : showResult && (isSelected || reviewSelected) ? (
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 16, color: 'var(--error)' }}
+                    aria-hidden
+                  >
                     cancel
                   </span>
                 ) : (
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                    {icon}
-                  </span>
+                  <span
+                    aria-hidden
+                    style={{
+                      display: 'block',
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      border: '2px solid var(--outline)',
+                      background: 'transparent',
+                      flexShrink: 0,
+                    }}
+                  />
                 )}
               </span>
               <span style={{ fontSize: '17px', fontWeight: 600, color: textColor }}>{label}</span>
@@ -272,14 +289,22 @@ export default function TrueFalseRenderer({
               >
                 {reviewValue === correctValue ? (
                   <>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 16 }}
+                      aria-hidden
+                    >
                       check_circle
                     </span>{' '}
                     You answered correctly
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 16 }}
+                      aria-hidden
+                    >
                       cancel
                     </span>{' '}
                     You answered incorrectly

@@ -70,6 +70,10 @@ interface WorkspaceContextValue {
   sectionsLoaded: boolean;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  /** Shared visibility for the export dialog, so any workspace surface (the
+      sidebar footer, the page-actions menu, …) can open the same dialog. */
+  exportDialogOpen: boolean;
+  setExportDialogOpen: (open: boolean) => void;
 }
 
 const NotebookWorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -98,6 +102,7 @@ export function NotebookWorkspaceProvider({
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [chats, setChats] = useState<NotebookChatItem[]>([]);
   const [studyPlans, setStudyPlans] = useState<StudyPlanSummary[]>([]);
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSetSummary[]>([]);
@@ -266,6 +271,8 @@ export function NotebookWorkspaceProvider({
         isMageView: activeChatId !== null,
         sidebarCollapsed,
         setSidebarCollapsed,
+        exportDialogOpen,
+        setExportDialogOpen,
       }}
     >
       <AiTaskProvider>{children}</AiTaskProvider>

@@ -9,6 +9,7 @@ import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 import CreateChatModal from '@/components/learn/CreateChatModal';
 import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import { getMageName } from '@/lib/scholar';
+import { useToast } from '@/components/ui/Toast';
 
 interface GenerateDropdownProps {
   notebookId: string;
@@ -55,6 +56,7 @@ export default function GenerateDropdown({
   const { startAiTask, finishAiTask } = useAiTask();
   const { notebook, refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
   const notebookName = notebook?.name ?? 'this notebook';
+  const { toast } = useToast();
 
   const fireOnce = useCallback((fn: () => void) => {
     if (Date.now() - lastFireRef.current < 600) return;
@@ -123,26 +125,45 @@ export default function GenerateDropdown({
 
         if (!res.ok) {
           const errMsg = json?.error || `Failed to generate ${type}`;
-          alert(errMsg);
+          toast({ title: 'Generation failed', description: errMsg, variant: 'error' });
           return;
         }
 
         const data = json.data;
 
+        // Generate in place: refresh the in-notebook sidebar group so the new
+        // set appears where the user already is, then toast a deep-link to it
+        // — no teleport to the global Learn hub (audit item 14).
         if (data.type === 'flashcards' && data.flashcardSet) {
           setOpen(false);
           refreshFlashcardSets();
-          router.push(`/learn/flashcards?highlight=${data.flashcardSet.id}`);
+          toast({
+            title: 'Flashcards ready',
+            description: `Added to ${notebookName}.`,
+            variant: 'success',
+            action: {
+              label: 'Open flashcards',
+              href: `/notebooks/${notebookId}/flashcards/${data.flashcardSet.id}`,
+            },
+          });
         } else if (data.type === 'quiz' && data.quizSet) {
           setOpen(false);
           refreshQuizSets();
-          router.push(`/learn/quizzes?highlight=${data.quizSet.id}`);
+          toast({
+            title: 'Quiz ready',
+            description: `Added to ${notebookName}.`,
+            variant: 'success',
+            action: {
+              label: 'Open quiz',
+              href: `/notebooks/${notebookId}/quizzes/${data.quizSet.id}`,
+            },
+          });
         } else if (data.text) {
           setOpen(false);
-          alert(data.text);
+          toast({ title: 'Nothing to generate', description: data.text });
         }
       } catch {
-        alert('Network error. Please try again.');
+        toast({ title: 'Network error', description: 'Please try again.', variant: 'error' });
       } finally {
         finishAiTask(taskId);
         setLoading(false);
@@ -153,7 +174,8 @@ export default function GenerateDropdown({
       loading,
       notebookId,
       pageId,
-      router,
+      toast,
+      notebookName,
       startAiTask,
       finishAiTask,
       refreshFlashcardSets,

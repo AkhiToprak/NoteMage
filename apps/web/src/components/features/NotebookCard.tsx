@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { getPresetForSubject } from '@/lib/presets';
 
 export interface NotebookData {
   id: string;
@@ -42,8 +43,7 @@ const DEFAULT_NOTEBOOK_COLOR = '#8c52ff';
  * readable in both light and dark mode instead of being light-on-light.
  */
 function getAccent(color: string | null): AccentTheme {
-  const base =
-    color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_NOTEBOOK_COLOR;
+  const base = color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_NOTEBOOK_COLOR;
   const hex = base.replace('#', '');
   const r = parseInt(hex.slice(0, 2), 16) || 0;
   const g = parseInt(hex.slice(2, 4), 16) || 0;
@@ -83,7 +83,12 @@ export default function NotebookCard({
 }: NotebookCardProps) {
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const theme = getAccent(notebook.color);
+  // Tie the card's accent (spine + badge + title hover) to the notebook's
+  // subject so the color reads as meaning, not decoration (audit item 6). The
+  // subject's preset color wins; fall back to the user-chosen color, then the
+  // default. Notebooks with no subject keep their stored color exactly.
+  const subjectColor = getPresetForSubject(notebook.subject)?.color;
+  const theme = getAccent(subjectColor ?? notebook.color);
   const docCount =
     notebook._count.pages != null && notebook._count.pages > 0
       ? `${notebook._count.pages} page${notebook._count.pages !== 1 ? 's' : ''}`
@@ -107,12 +112,12 @@ export default function NotebookCard({
           style={{
             position: 'relative',
             background: 'var(--surface-container)',
-            borderRadius: '12px',
+            borderRadius: 'var(--radius-lg)',
             overflow: 'hidden',
-            border: `1px solid ${hovered ? theme.hoverBorder : 'rgba(70,69,96,0.1)'}`,
+            border: `1px solid ${hovered ? theme.hoverBorder : 'var(--ink-08)'}`,
             boxShadow: hovered
-              ? `0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px ${theme.hoverBorder}`
-              : '0 8px 24px rgba(0,0,0,0.3)',
+              ? `inset 0 1px 0 var(--ink-08), 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px ${theme.hoverBorder}`
+              : 'inset 0 1px 0 var(--ink-06), 0 8px 24px rgba(0,0,0,0.3)',
             transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
             transition:
               'transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s cubic-bezier(0.22,1,0.36,1), border-color 0.5s cubic-bezier(0.22,1,0.36,1)',
@@ -166,8 +171,7 @@ export default function NotebookCard({
           <div
             className="notebook-pattern"
             style={{
-              paddingLeft: '40px',
-              padding: '24px 24px 24px 40px',
+              padding: 'var(--card-pad) var(--card-pad) var(--card-pad) var(--card-pad-spine)',
               display: 'flex',
               flexDirection: 'column',
               height: '100%',
@@ -190,7 +194,7 @@ export default function NotebookCard({
                     background: theme.badgeBg,
                     border: `1px solid ${theme.badgeBorder}`,
                     borderRadius: '9999px',
-                    fontSize: '10px',
+                    fontSize: 'var(--fs-2xs)',
                     fontWeight: 700,
                     color: theme.badgeText,
                     textTransform: 'uppercase',
@@ -237,12 +241,12 @@ export default function NotebookCard({
             {/* Title */}
             <h3
               style={{
-                fontFamily: '"Epilogue", serif',
-                fontSize: '18px',
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--fs-lg)',
                 fontWeight: 700,
                 color: hovered ? theme.badgeText : 'var(--on-surface)',
                 margin: 0,
-                lineHeight: 1.3,
+                lineHeight: 'var(--lh-snug)',
                 transition: 'color 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
             >
@@ -257,16 +261,23 @@ export default function NotebookCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderTop: '1px solid rgba(70,69,96,0.10)',
+                borderTop: '1px solid var(--ink-08)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--on-surface-variant)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--on-surface-variant)',
+                }}
+              >
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
                   description
                 </span>
-                <span style={{ fontSize: '12px' }}>{docCount}</span>
+                <span style={{ fontSize: 'var(--fs-xs)' }}>{docCount}</span>
               </div>
-              <span style={{ fontSize: '10px', color: 'var(--outline)', fontStyle: 'italic' }}>
+              <span style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)' }}>
                 Updated {formatDate(notebook.updatedAt)}
               </span>
             </div>
@@ -312,7 +323,8 @@ export default function NotebookCard({
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-strong)';
+              (e.currentTarget as HTMLButtonElement).style.background =
+                'var(--card-hover-bg-strong)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

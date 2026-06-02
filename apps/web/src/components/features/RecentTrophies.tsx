@@ -115,12 +115,12 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
           Trophies{' '}
           {!loading && (
             <span
+              className="tabular-nums"
               style={{
-                fontSize: '14px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 500,
-                color: 'var(--on-surface-variant)',
+                color: 'var(--text-secondary)',
                 marginLeft: '6px',
-                fontVariantNumeric: 'tabular-nums',
               }}
             >
               {unlockedCount} of {totalCount}
@@ -139,12 +139,11 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
               background: 'transparent',
               border: 'none',
               color: 'var(--brand-purple-strong)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 600,
               cursor: 'pointer',
               fontFamily: 'inherit',
               padding: '4px 0',
-              outline: 'none',
               whiteSpace: 'nowrap',
             }}
           >
@@ -220,17 +219,13 @@ function TrophyRail({ items, isPhone }: TrophyRailProps) {
 function TrophyTile({ achievement }: { achievement: UnlockedAchievement }) {
   return (
     <article
+      className="elev-1"
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
         gap: '10px',
         padding: '16px',
-        background: 'var(--surface-container-low)',
-        borderRadius: 'var(--radius-lg)',
-        // Hairline frame so empty space inside the tile reads as a card
-        // rather than a void.
-        border: '1px solid var(--rule-hairline)',
         minHeight: '0',
       }}
     >
@@ -279,8 +274,8 @@ function TrophyTile({ achievement }: { achievement: UnlockedAchievement }) {
         </div>
         <div
           style={{
-            fontSize: '11px',
-            color: 'var(--on-surface-variant)',
+            fontSize: 'var(--fs-2xs)',
+            color: 'var(--text-secondary)',
             fontWeight: 500,
           }}
         >
@@ -333,18 +328,16 @@ function TrophyRailSkeleton({ isPhone }: { isPhone: boolean }) {
 function EmptyState({ ownerView }: { ownerView: boolean }) {
   return (
     <div
+      className="elev-1"
       style={{
         padding: '24px',
         textAlign: 'center',
         color: 'var(--on-surface-variant)',
-        fontSize: '13px',
+        fontSize: 'var(--fs-sm)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '10px',
-        background: 'var(--surface-container-low)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--rule-hairline)',
       }}
     >
       {ownerView && <Mascot pose="sleeping" size="md" idle="sway" />}

@@ -1112,6 +1112,15 @@ export default function PageEditor({
           line-height: 1.75;
           caret-color: #a47bff;
         }
+        /* Reading measure (audit item 4) — caps prose line length for
+           comfortable reading. Gated to pages with NO pinned drawings: the
+           DrawingOverlay stores strokes at absolute content-box coordinates,
+           so reflowing text beneath existing strokes would misalign them.
+           Drawing pages therefore stay full-bleed. */
+        [data-reading-measure='on'] .notemage-editor {
+          max-width: var(--reading-measure);
+          margin-inline: auto;
+        }
         /* ── headings ── */
         .notemage-editor h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; margin: 28px 0 10px; line-height: 1.2; }
         .notemage-editor h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 22px 0 8px; line-height: 1.3; }
@@ -1328,6 +1337,10 @@ export default function PageEditor({
       {/* ── Editor canvas (full width, infinite scroll) ── */}
       <div ref={editorContainerRef} style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         <div
+          // Cap the reading measure only when the page carries no pinned
+          // drawings, so capping never reflows text out from under saved
+          // strokes (overlay coordinates are absolute). See the gated CSS rule.
+          data-reading-measure={strokes.length === 0 && texts.length === 0 ? 'on' : 'off'}
           style={{
             padding: isPhone ? '16px 16px 60px' : isTablet ? '20px 28px 80px' : '28px 56px 80px',
             minHeight: '100%',

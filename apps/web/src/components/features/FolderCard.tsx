@@ -91,15 +91,15 @@ export default function FolderCard({
         onClick={() => onClick(folder)}
         style={{
           position: 'relative',
-          background: dragOver ? `${accent}15` : '#12122a',
-          borderRadius: '12px',
+          background: dragOver ? `${accent}15` : 'var(--surface-container)',
+          borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
-          border: `1px solid ${dragOver ? accent : hovered ? hoverBorder : 'rgba(70,69,96,0.1)'}`,
+          border: `1px solid ${dragOver ? accent : hovered ? hoverBorder : 'var(--ink-08)'}`,
           boxShadow: dragOver
             ? `0 0 0 2px ${accent}, 0 20px 40px rgba(0,0,0,0.4)`
             : hovered
-              ? `0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px ${hoverBorder}`
-              : '0 8px 24px rgba(0,0,0,0.3)',
+              ? `inset 0 1px 0 var(--ink-08), 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px ${hoverBorder}`
+              : 'inset 0 1px 0 var(--ink-06), 0 8px 24px rgba(0,0,0,0.3)',
           transform: dragOver ? 'scale(1.03)' : hovered ? 'translateY(-4px)' : 'translateY(0)',
           transition:
             'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1), border-color 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
@@ -123,7 +123,7 @@ export default function FolderCard({
         {/* Content */}
         <div
           style={{
-            padding: '24px 24px 24px 28px',
+            padding: 'var(--card-pad) var(--card-pad) var(--card-pad) calc(8px + var(--card-pad))',
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
@@ -145,7 +145,7 @@ export default function FolderCard({
                 background: accentBg,
                 border: `1px solid ${accent}33`,
                 borderRadius: '9999px',
-                fontSize: '10px',
+                fontSize: 'var(--fs-2xs)',
                 fontWeight: 700,
                 color: accent,
                 textTransform: 'uppercase',
@@ -175,7 +175,7 @@ export default function FolderCard({
                 (e.currentTarget as HTMLButtonElement).style.color = accent;
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#aaa8c8';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface-variant)';
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
@@ -190,7 +190,7 @@ export default function FolderCard({
               className="material-symbols-outlined"
               style={{
                 fontSize: '24px',
-                color: hovered ? accent : '#aaa8c8',
+                color: hovered ? accent : 'var(--on-surface-variant)',
                 transition: 'color 0.3s cubic-bezier(0.22,1,0.36,1)',
                 fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
               }}
@@ -199,12 +199,12 @@ export default function FolderCard({
             </span>
             <h3
               style={{
-                fontFamily: '"Epilogue", serif',
-                fontSize: '18px',
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--fs-lg)',
                 fontWeight: 700,
-                color: hovered ? accent : '#e5e3ff',
+                color: hovered ? accent : 'var(--on-surface)',
                 margin: 0,
-                lineHeight: 1.3,
+                lineHeight: 'var(--lh-snug)',
                 transition: 'color 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
             >
@@ -220,16 +220,23 @@ export default function FolderCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderTop: '1px solid rgba(70,69,96,0.10)',
+              borderTop: '1px solid var(--ink-08)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--on-surface-variant)' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--on-surface-variant)',
+              }}
+            >
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
                 inventory_2
               </span>
-              <span style={{ fontSize: '12px' }}>{countLabel}</span>
+              <span style={{ fontSize: 'var(--fs-xs)' }}>{countLabel}</span>
             </div>
-            <span style={{ fontSize: '10px', color: 'var(--outline)', fontStyle: 'italic' }}>
+            <span style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)' }}>
               Updated {formatDate(folder.updatedAt)}
             </span>
           </div>
@@ -274,7 +281,8 @@ export default function FolderCard({
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-strong)';
+              (e.currentTarget as HTMLButtonElement).style.background =
+                'var(--card-hover-bg-strong)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
@@ -282,7 +290,7 @@ export default function FolderCard({
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '18px', color: '#ae89ff' }}
+              style={{ fontSize: '18px', color: 'var(--md-h4)' }}
             >
               edit
             </span>
@@ -302,7 +310,7 @@ export default function FolderCard({
               padding: '12px 16px',
               background: 'transparent',
               border: 'none',
-              color: '#fd6f85',
+              color: 'var(--error)',
               fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',

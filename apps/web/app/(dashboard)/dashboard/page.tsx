@@ -15,6 +15,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { responsiveValue } from '@/lib/responsive';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
 import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface RecentItem {
   id: string;
@@ -462,6 +463,10 @@ export default function DashboardPage() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '24px',
+                // Size each card to its content so the short stat cards don't
+                // stretch to match the taller Todos card (dead-space fix,
+                // audit item 3b).
+                alignItems: 'start',
               }
         }
       >
@@ -470,16 +475,17 @@ export default function DashboardPage() {
             const isTodo = label === 'Todos';
             const pendingTodos = todos.filter((t) => !t.completed);
             const isFriends = label === 'Friends';
-            const sortedFriends = isFriends && friends
-              ? [...friends].sort((a, b) => {
-                  const aOnline = onlineFriendIds.has(a.id) ? 1 : 0;
-                  const bOnline = onlineFriendIds.has(b.id) ? 1 : 0;
-                  if (aOnline !== bOnline) return bOnline - aOnline;
-                  const aSeen = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
-                  const bSeen = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
-                  return bSeen - aSeen;
-                })
-              : [];
+            const sortedFriends =
+              isFriends && friends
+                ? [...friends].sort((a, b) => {
+                    const aOnline = onlineFriendIds.has(a.id) ? 1 : 0;
+                    const bOnline = onlineFriendIds.has(b.id) ? 1 : 0;
+                    if (aOnline !== bOnline) return bOnline - aOnline;
+                    const aSeen = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+                    const bSeen = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
+                    return bSeen - aSeen;
+                  })
+                : [];
 
             const headerTrailing = badge || (
               <span
@@ -498,8 +504,10 @@ export default function DashboardPage() {
               <div
                 style={{
                   background: 'var(--surface-container-low)',
-                  padding: '24px',
-                  borderRadius: '24px',
+                  padding: 'var(--card-pad)',
+                  borderRadius: 'var(--radius-xl)',
+                  border: '1px solid var(--ink-08)',
+                  boxShadow: 'inset 0 1px 0 var(--ink-06), 0 1px 2px rgba(0,0,0,0.18)',
                   display: 'flex',
                   flexDirection: 'column',
                   cursor: href ? 'pointer' : 'default',
@@ -508,14 +516,16 @@ export default function DashboardPage() {
                 }}
                 onClick={href ? () => router.push(href) : undefined}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-soft)';
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    'var(--card-hover-bg-soft)';
                   const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
                     '.stat-arrow'
                   );
                   if (arrow) arrow.style.transform = 'translateX(4px)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    'var(--surface-container-low)';
                   const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
                     '.stat-arrow'
                   );
@@ -577,9 +587,10 @@ export default function DashboardPage() {
 
                 {/* Value + label */}
                 <h3
+                  className="tabular-nums"
                   style={{
                     fontFamily: 'var(--font-brand)',
-                    fontSize: '30px',
+                    fontSize: 'var(--fs-2xl)',
                     fontWeight: 400,
                     color: 'var(--on-surface)',
                     margin: '0 0 4px',
@@ -588,7 +599,14 @@ export default function DashboardPage() {
                 >
                   {value}
                 </h3>
-                <p style={{ fontSize: '15px', fontWeight: 500, color: 'var(--on-surface-variant)', margin: 0 }}>
+                <p
+                  style={{
+                    fontSize: 'var(--fs-base)',
+                    fontWeight: 500,
+                    color: 'var(--on-surface-variant)',
+                    margin: 0,
+                  }}
+                >
                   {label}
                 </p>
 
@@ -711,7 +729,13 @@ export default function DashboardPage() {
                         </div>
                       ))}
                       {pendingTodos.length > 4 && (
-                        <p style={{ fontSize: '11px', color: 'var(--outline-variant)', margin: '2px 0 0' }}>
+                        <p
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--outline-variant)',
+                            margin: '2px 0 0',
+                          }}
+                        >
                           +{pendingTodos.length - 4} more
                         </p>
                       )}
@@ -871,7 +895,8 @@ export default function DashboardPage() {
                                 'rgba(255,255,255,0.04)';
                             }}
                             onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
+                              (e.currentTarget as HTMLAnchorElement).style.background =
+                                'transparent';
                             }}
                           >
                             <div
@@ -1309,7 +1334,13 @@ export default function DashboardPage() {
             </div>
 
             {recentActivity.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--on-surface-variant)' }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '32px 0',
+                  color: 'var(--on-surface-variant)',
+                }}
+              >
                 <span
                   className="material-symbols-outlined"
                   style={{ fontSize: '48px', display: 'block', marginBottom: '12px', opacity: 0.4 }}
@@ -1344,7 +1375,8 @@ export default function DashboardPage() {
                           cursor: 'pointer',
                         }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-strong)';
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            'var(--card-hover-bg-strong)';
                           const btn = (
                             e.currentTarget as HTMLDivElement
                           ).querySelector<HTMLButtonElement>('.activity-btn');
@@ -1354,7 +1386,8 @@ export default function DashboardPage() {
                           }
                         }}
                         onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
+                          (e.currentTarget as HTMLDivElement).style.background =
+                            'var(--surface-container-low)';
                           const btn = (
                             e.currentTarget as HTMLDivElement
                           ).querySelector<HTMLButtonElement>('.activity-btn');
@@ -1406,7 +1439,13 @@ export default function DashboardPage() {
                             >
                               {item.name}
                             </h4>
-                            <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
+                            <p
+                              style={{
+                                fontSize: '12px',
+                                color: 'var(--on-surface-variant)',
+                                margin: 0,
+                              }}
+                            >
                               {timeAgo(item.updatedAt)} · {item.pageCount}{' '}
                               {item.pageCount === 1 ? 'page' : 'pages'}
                             </p>
@@ -1664,84 +1703,47 @@ export default function DashboardPage() {
       {dashboard !== null && notebookCount === 0 && (
         <section
           style={{
-            border: '2px dashed rgba(70,69,96,0.40)',
+            border: '2px dashed var(--ink-12)',
             borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
-            padding: responsiveValue(bp, { phone: '26px', tablet: '32px', desktop: '48px' }),
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
+            padding: responsiveValue(bp, { phone: '12px', tablet: '16px', desktop: '24px' }),
           }}
         >
-          <div
-            style={{
-              width: '80px',
-              height: '80px',
-              background: 'var(--surface-container-high)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '24px',
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '36px', color: 'var(--on-surface-variant)' }}
-            >
-              library_add
-            </span>
-          </div>
-          <h3
-            style={{
-              fontSize: responsiveValue(bp, { phone: '20px', tablet: '19px', desktop: '20px' }),
-              fontWeight: 700,
-              color: 'var(--on-surface)',
-              margin: '0 0 8px',
-            }}
-          >
-            Feeling Inspired?
-          </h3>
-          <p
-            style={{
-              fontSize: '14px',
-              color: 'var(--on-surface-variant)',
-              margin: '0 0 32px',
-              maxWidth: '380px',
-              lineHeight: '1.7',
-            }}
-          >
-            No notebooks yet. Create your first one to get started on your notemage journey.
-          </p>
-          <Link
-            ref={tutorialCtaRef}
-            href={ctaHref}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 32px',
-              background: '#ae89ff',
-              color: '#2a0066',
-              borderRadius: '12px',
-              fontWeight: 700,
-              fontSize: '15px',
-              textDecoration: 'none',
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.transform = 'scale(1)';
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              add
-            </span>
-            Create Notebook
-          </Link>
+          <EmptyState
+            mascot="holding-pen"
+            title="Feeling Inspired?"
+            description="No notebooks yet. Create your first one to get started on your notemage journey."
+            action={
+              <Link
+                ref={tutorialCtaRef}
+                href={ctaHref}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 32px',
+                  background: 'var(--accent-strong)',
+                  color: 'var(--on-primary-container)',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 700,
+                  fontSize: 'var(--fs-base)',
+                  textDecoration: 'none',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.18)',
+                  transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                  add
+                </span>
+                Create Notebook
+              </Link>
+            }
+          />
         </section>
       )}
     </div>
