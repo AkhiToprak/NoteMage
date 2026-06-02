@@ -9,6 +9,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
+import { ToastProvider } from '@/components/ui/Toast';
 import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
@@ -52,34 +53,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <TutorialProvider>
       <TimerProvider>
         <UnlockProvider>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100dvh',
-              overflow: 'hidden',
-              background: 'var(--background)',
-            }}
-          >
-            {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
-            <main
+          <ToastProvider>
+            <div
               style={{
-                flex: 1,
-                minHeight: 0,
-                overflowX: 'hidden',
-                overflowY: isFullHeight ? 'hidden' : 'auto',
-                padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-                color: 'var(--on-surface)',
-                display: isFullHeight ? 'flex' : undefined,
-                flexDirection: isFullHeight ? 'column' : undefined,
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100dvh',
+                overflow: 'hidden',
+                background: 'var(--background)',
               }}
             >
-              {children}
-            </main>
-            {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
+              {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
+              <main
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowX: 'hidden',
+                  overflowY: isFullHeight ? 'hidden' : 'auto',
+                  padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
+                  color: 'var(--on-surface)',
+                  display: isFullHeight ? 'flex' : undefined,
+                  flexDirection: isFullHeight ? 'column' : undefined,
+                }}
+              >
+                {children}
+              </main>
+              {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
                 workspace, group detail, learn chats) which own the viewport. */}
-            {!isFullHeight && <MobileBottomNav />}
-          </div>
+              {!isFullHeight && <MobileBottomNav />}
+            </div>
+          </ToastProvider>
         </UnlockProvider>
       </TimerProvider>
     </TutorialProvider>

@@ -250,10 +250,10 @@
      as raw rgba / hex. Light-theme overrides for the few values that
      don't read on white live in the [data-theme='light'] block below. */
   --brand-purple-rgb: 174 137 255;
-  --brand-purple-wash: rgb(var(--brand-purple-rgb) / 0.10);
+  --brand-purple-wash: rgb(var(--brand-purple-rgb) / 0.1);
   --brand-purple-edge: rgb(var(--brand-purple-rgb) / 0.28);
-  --brand-purple-hover: rgb(var(--brand-purple-rgb) / 0.20);
-  --brand-purple-strong: rgb(var(--brand-purple-rgb) / 1.00);
+  --brand-purple-hover: rgb(var(--brand-purple-rgb) / 0.2);
+  --brand-purple-strong: rgb(var(--brand-purple-rgb) / 1);
   --brand-purple-ink: #2a0066;
   --success-ink: #082b13;
   --rule-hairline: rgb(var(--brand-purple-rgb) / 0.16);
@@ -263,9 +263,9 @@
   /* Activity heatmap quantization. Both themes use brand-purple alpha
      ramps so the data widget reads on either surface tier. */
   --heatmap-step-0: rgb(var(--brand-purple-rgb) / 0.08);
-  --heatmap-step-1: rgb(var(--brand-purple-rgb) / 0.30);
+  --heatmap-step-1: rgb(var(--brand-purple-rgb) / 0.3);
   --heatmap-step-2: rgb(var(--brand-purple-rgb) / 0.65);
-  --heatmap-step-3: rgb(var(--brand-purple-rgb) / 1.00);
+  --heatmap-step-3: rgb(var(--brand-purple-rgb) / 1);
 
   /* Modal scrim + Switch knob primitives. Theme-agnostic on purpose:
      the scrim is always pure black at fixed alpha (sits behind every
@@ -384,7 +384,7 @@
 /* Light mode: every tokenized surface card gets a visible deep outline so the
    page bg vs. card bg contrast doesn't disappear. Targets <div> only to avoid
    stomping on input/select outlines that components manage themselves. */
-[data-theme='light'] div[style*="var(--surface-container"] {
+[data-theme='light'] div[style*='var(--surface-container'] {
   outline: 1px solid var(--outline);
   outline-offset: -1px;
 }
@@ -395,11 +395,15 @@
   background: var(--surface-container) !important;
   border-width: 2px !important;
   border-color: var(--outline) !important;
-  box-shadow: 0 1px 2px rgba(15, 15, 30, 0.05), 0 4px 12px rgba(15, 15, 30, 0.06) !important;
+  box-shadow:
+    0 1px 2px rgba(15, 15, 30, 0.05),
+    0 4px 12px rgba(15, 15, 30, 0.06) !important;
 }
 [data-theme='light'] .bento-cell:hover {
   border-color: #2a2a40 !important;
-  box-shadow: 0 8px 24px rgba(15, 15, 30, 0.1), 0 4px 12px rgba(15, 15, 30, 0.08) !important;
+  box-shadow:
+    0 8px 24px rgba(15, 15, 30, 0.1),
+    0 4px 12px rgba(15, 15, 30, 0.08) !important;
 }
 
 /* Landing burger button — light theme: visible neutral bg + deep border */
@@ -659,6 +663,17 @@ body {
   transition:
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Spinner — used by the Button primitive's loading state. The global
+   reduced-motion baseline already collapses this animation. */
+@keyframes nm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.nm-spin {
+  animation: nm-spin 0.8s linear infinite;
 }
 
 /* ─── Input base ──────────────────────────────────────────────────────── */
