@@ -74,6 +74,43 @@
   --space-page: 32px;
   --space-section: 128px;
 
+  /* Card padding — one value every app card shares (paddings were eyeballed
+     24/28/40 per component before). The accent-spine offset is an explicit
+     extra (--card-pad-spine), not a fudged base padding. */
+  --card-pad: 24px;
+  --card-pad-sm: 16px;
+  --card-pad-spine: 40px;
+
+  /* ── Type scale (font-size tokens) ──────────────────────────────────────
+     One ramp the app's inline styles consume via `fontSize: 'var(--fs-*)'` so
+     type stops overlapping (there were ~2k ad-hoc px literals with no scale).
+     Named --fs-* (not --text-*) so it can't shadow Tailwind v4's built-in
+     font-size theme keys. 11px is the floor — no UI text below --fs-2xs. */
+  --fs-2xs: 11px; /* micro labels / timestamps (floor) */
+  --fs-xs: 12px; /* small meta, badges */
+  --fs-sm: 13px; /* secondary text, dense labels */
+  --fs-base: 15px; /* body / default UI text */
+  --fs-md: 16px; /* emphasized body */
+  --fs-lg: 18px; /* item / card titles */
+  --fs-xl: 22px; /* section headers (clearly outrank item titles) */
+  --fs-2xl: 28px; /* page H2 / large stat numerals */
+  --fs-3xl: 34px; /* page H1 / hero figures */
+
+  /* Line-height tokens — tight leading for display sizes, relaxed for body. */
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.7;
+
+  /* Secondary text — a readable muted tier between --on-surface-variant
+     (near-full contrast) and --outline (a border color that's too dim for
+     text). Repoint timestamp/meta text here, not to --outline / --ink-40. */
+  --text-secondary: #c9c8db;
+
+  /* Editor reading measure — caps prose line length for comfortable reading;
+     full-bleed editor children opt back out with their own max-width. */
+  --reading-measure: 720px;
+
   /* Z-index scale — named layering tokens so stacking order reads as intent
      instead of magic numbers. Adopt incrementally (legacy inline z-indexes
      migrate in the token-discipline pass); raise a layer by referencing the
@@ -158,6 +195,7 @@
      each tier's alpha independently (alpha curves that look subtle on
      dark surfaces would read as washed-out grey on white). */
   --ink-04: rgb(237 233 255 / 0.04);
+  --ink-06: rgb(237 233 255 / 0.06); /* elevation inset top-highlight */
   --ink-08: rgb(237 233 255 / 0.08);
   --ink-12: rgb(237 233 255 / 0.12);
   --ink-20: rgb(237 233 255 / 0.2);
@@ -268,6 +306,9 @@
      but contrast is punchy on white. */
   --on-surface: #0f0f1e;
   --on-surface-variant: #3a3a52;
+  /* Secondary text (light) — readable medium grey-navy; the dark #c9c8db would
+     be ~1.2:1 on near-white. Sits a touch lighter than primary ink. */
+  --text-secondary: #3f3f57;
   --on-background: #0f0f1e;
   --foreground: #0f0f1e;
   --inverse-surface: #0f0f1e;
@@ -310,6 +351,7 @@
      the same alpha composites to washed-out grey, so each tier's alpha
      here is roughly doubled while preserving relative hierarchy. */
   --ink-04: rgb(15 15 30 / 0.18);
+  --ink-06: rgb(15 15 30 / 0.22); /* elevation inset top-highlight */
   --ink-08: rgb(15 15 30 / 0.26);
   --ink-12: rgb(15 15 30 / 0.35);
   --ink-20: rgb(15 15 30 / 0.45);
@@ -548,6 +590,67 @@ body {
   box-shadow:
     0 32px 64px rgba(174, 137, 255, 0.06),
     0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Elevation system (audit item 1) ────────────────────────────────────
+   A 3-tier surface scale so the page bg, a base card, and a raised /
+   interactive card read as distinct planes. The --ink-* tiers theme-flip, so
+   the hairline border + inset top-highlight stay correct in light mode. Set
+   the background HERE (not inline) so the light-theme auto-outline rule on
+   `div[style*="var(--surface-container"]` (above) doesn't double the border.
+   --elev-0 is the page background itself (no class needed). */
+.elev-1 {
+  background: var(--surface-container);
+  border: 1px solid var(--ink-08);
+  border-radius: var(--radius-lg);
+}
+.elev-2 {
+  background: var(--surface-container-high);
+  border: 1px solid var(--ink-12);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 var(--ink-06),
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+/* Interactive lift — opt-in hover/active for clickable cards. Animates only
+   transform + box-shadow (never `all`), spring easing. */
+.elev-interactive {
+  transition:
+    transform var(--dur-normal) var(--ease-spring),
+    box-shadow var(--dur-normal) var(--ease-spring);
+}
+.elev-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 var(--ink-08),
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 16px 40px rgba(0, 0, 0, 0.3);
+}
+.elev-interactive:active {
+  transform: translateY(0);
+}
+
+/* Light theme: muted-navy halos instead of black; borders/highlights inherit
+   the flipped --ink-* tiers automatically. */
+[data-theme='light'] .elev-2 {
+  box-shadow:
+    inset 0 1px 0 var(--ink-06),
+    0 1px 2px rgba(15, 15, 30, 0.05),
+    0 10px 28px rgba(15, 15, 30, 0.08);
+}
+[data-theme='light'] .elev-interactive:hover {
+  box-shadow:
+    inset 0 1px 0 var(--ink-08),
+    0 2px 4px rgba(15, 15, 30, 0.06),
+    0 16px 40px rgba(15, 15, 30, 0.12);
+}
+
+/* ─── Type helpers ───────────────────────────────────────────────────────
+   tabular-nums keeps stat figures from jittering width as values change. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Transitions (no transition-all) ────────────────────────────────── */
