@@ -13,7 +13,7 @@ interface ImportNotebookDialogProps {
   onClose: () => void;
 }
 
-type TabType = 'onenote' | 'goodnotes' | 'applenotes' | 'pdf';
+type TabType = 'onenote' | 'pdf';
 
 interface OneNoteSection {
   id: string;
@@ -31,12 +31,28 @@ interface OneNoteNotebook {
 // picker once a job is queued.
 type OneNoteState = 'checking' | 'disconnected' | 'loading' | 'picker' | 'error';
 
+// OneNote import is hidden from users for now — pending Microsoft publisher
+// verification, which needs a registered business entity we don't have yet.
+// All backend routes (/api/import/onenote/*), microsoftAuth, the OneNoteTab
+// component below, and OneNoteImportProgressModal stay wired; flip this to true
+// to restore the tab.
+const ONENOTE_IMPORT_ENABLED: boolean = false;
+
+// Import sources in display order. OneNote is prepended only when enabled
+// (hidden by default — see ONENOTE_IMPORT_ENABLED); with it off, PDF is the
+// only source and the tab bar collapses. GoodNotes/Apple Notes were dropped —
+// both were just "export to PDF and upload", which the PDF importer does better.
+const IMPORT_TABS: [TabType, string][] = [
+  ...(ONENOTE_IMPORT_ENABLED ? ([['onenote', 'OneNote']] as [TabType, string][]) : []),
+  ['pdf', 'PDF'],
+];
+
 export default function ImportNotebookDialog({
   notebookId,
   onImported,
   onClose,
 }: ImportNotebookDialogProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('onenote');
+  const [activeTab, setActiveTab] = useState<TabType>(ONENOTE_IMPORT_ENABLED ? 'onenote' : 'pdf');
 
   return (
     <div
@@ -94,56 +110,47 @@ export default function ImportNotebookDialog({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '2px',
-            padding: '10px 20px',
-            borderBottom: '1px solid rgba(174,137,255,0.20)',
-          }}
-        >
-          {(
-            [
-              ['onenote', 'OneNote'],
-              ['goodnotes', 'GoodNotes'],
-              ['applenotes', 'Apple Notes'],
-              ['pdf', 'PDF'],
-            ] as const
-          ).map(([tab, label]) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as TabType)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '12.5px',
-                fontWeight: 500,
-                fontFamily: 'inherit',
-                background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
-                color: activeTab === tab ? '#c4a9ff' : 'rgba(196,169,255,0.5)',
-                transition: 'background 0.12s ease',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Tabs — hidden when PDF is the only enabled source */}
+        {IMPORT_TABS.length > 1 && (
+          <div
+            style={{
+              display: 'flex',
+              gap: '2px',
+              padding: '10px 20px',
+              borderBottom: '1px solid rgba(174,137,255,0.20)',
+            }}
+          >
+            {IMPORT_TABS.map(([tab, label]) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                  fontFamily: 'inherit',
+                  background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
+                  color: activeTab === tab ? '#c4a9ff' : 'rgba(196,169,255,0.5)',
+                  transition: 'background 0.12s ease',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Tab content */}
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px', minHeight: '300px' }}>
           {activeTab === 'onenote' && (
             <OneNoteTab notebookId={notebookId} onImported={onImported} onClose={onClose} />
           )}
-          {activeTab === 'goodnotes' && (
-            <GoodNotesTab notebookId={notebookId} onImported={onImported} />
-          )}
-          {activeTab === 'applenotes' && <AppleNotesTab />}
           {activeTab === 'pdf' && (
             <PdfTab notebookId={notebookId} onImported={onImported} onClose={onClose} />
           )}
@@ -308,9 +315,11 @@ function OneNoteTab({
           sectionIds: Array.from(selectedSections),
         }),
       });
-      const json = (await res.json().catch(() => null)) as
-        | { success?: boolean; error?: string; data?: { jobId?: string } }
-        | null;
+      const json = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        error?: string;
+        data?: { jobId?: string };
+      } | null;
       if (!res.ok || !json?.success || !json.data?.jobId) {
         throw new Error(json?.error ?? 'We couldn’t start the import. Please try again.');
       }
@@ -318,7 +327,7 @@ function OneNoteTab({
     } catch (err) {
       setJobId(null);
       setStartError(
-        err instanceof Error ? err.message : 'We couldn’t start the import. Please try again.',
+        err instanceof Error ? err.message : 'We couldn’t start the import. Please try again.'
       );
     } finally {
       setStarting(false);
@@ -698,302 +707,6 @@ function OneNoteTab({
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// GoodNotes Tab
-// ═══════════════════════════════════════════════════════════════════
-
-function GoodNotesTab({ notebookId, onImported }: { notebookId: string; onImported: () => void }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'success' | 'error'>(
-    'idle'
-  );
-  const [errorMessage, setErrorMessage] = useState('');
-  const { upload } = useDirectUpload();
-
-  const handlePdfUpload = useCallback(
-    async (file: File) => {
-      if (file.type !== 'application/pdf') {
-        setErrorMessage('Please select a PDF file.');
-        setUploadState('error');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        setErrorMessage('File exceeds the 10MB size limit.');
-        setUploadState('error');
-        return;
-      }
-
-      setUploadState('uploading');
-      setErrorMessage('');
-
-      try {
-        // Create a new section for the GoodNotes import
-        const sectionRes = await fetch(`/api/notebooks/${notebookId}/sections`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: file.name.replace(/\.pdf$/i, '') }),
-        });
-        if (!sectionRes.ok) throw new Error('Failed to create section');
-        const sectionJson = await sectionRes.json();
-        const sectionId = sectionJson.data.id;
-
-        // Upload PDF directly to Supabase Storage
-        const { storagePath } = await upload(file, 'section-import', { notebookId, sectionId });
-
-        // Import the PDF into the new section
-        const importRes = await fetch(`/api/notebooks/${notebookId}/sections/${sectionId}/import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ storagePath, fileName: file.name, fileType: file.type }),
-        });
-        if (!importRes.ok) {
-          const body = await importRes.json().catch(() => null);
-          throw new Error(body?.error || `Upload failed (${importRes.status})`);
-        }
-
-        setUploadState('success');
-        setTimeout(() => onImported(), 600);
-      } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : 'Upload failed');
-        setUploadState('error');
-      }
-    },
-    [notebookId, onImported, upload]
-  );
-
-  return (
-    <div style={{ padding: '8px 0' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '16px',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(140,82,255,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: '#c4a9ff' }}
-            aria-hidden
-          >
-            description
-          </span>
-        </div>
-        <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
-            Import from GoodNotes
-          </p>
-          <p
-            style={{
-              fontSize: '11.5px',
-              color: 'var(--ink-40)',
-              margin: '2px 0 0',
-            }}
-          >
-            Via PDF export
-          </p>
-        </div>
-      </div>
-
-      <div
-        style={{
-          padding: '14px 16px',
-          borderRadius: '10px',
-          background: 'rgba(140,82,255,0.06)',
-          border: '1px solid rgba(174,137,255,0.20)',
-          marginBottom: '14px',
-        }}
-      >
-        <p
-          style={{
-            fontSize: '12.5px',
-            color: 'var(--ink-50)',
-            margin: '0 0 4px',
-            lineHeight: 1.5,
-          }}
-        >
-          GoodNotes uses a proprietary format that cannot be directly imported. Export your notes as
-          PDF first, then import the PDF file.
-        </p>
-      </div>
-
-      <InstructionSteps
-        steps={[
-          'Open GoodNotes on your iPad or Mac',
-          'Select the notebook you want to export',
-          'Tap the share icon (⬆) or go to File → Export',
-          'Choose "PDF" as the export format',
-          'Save or AirDrop the PDF to your computer',
-        ]}
-      />
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,application/pdf"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handlePdfUpload(file);
-        }}
-      />
-
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploadState === 'uploading' || uploadState === 'success'}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          width: '100%',
-          marginTop: '16px',
-          padding: '12px',
-          borderRadius: '10px',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: '14px',
-          fontWeight: 600,
-          background: uploadState === 'success' ? 'rgba(74,222,128,0.15)' : 'rgba(140,82,255,0.8)',
-          color: uploadState === 'success' ? '#4ade80' : 'var(--on-surface)',
-          opacity: uploadState === 'uploading' ? 0.6 : 1,
-          transition: 'opacity 0.15s ease',
-        }}
-      >
-        {uploadState === 'uploading' ? (
-          <>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}
-              aria-hidden
-            >
-              progress_activity
-            </span>{' '}
-            Importing PDF...
-          </>
-        ) : uploadState === 'success' ? (
-          <>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-              check
-            </span>{' '}
-            Imported!
-          </>
-        ) : (
-          <>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-              upload
-            </span>{' '}
-            Import PDF from GoodNotes
-          </>
-        )}
-      </button>
-
-      {uploadState === 'error' && errorMessage && (
-        <p style={{ fontSize: '12px', color: '#fd6f85', margin: '8px 0 0', textAlign: 'center' }}>
-          {errorMessage}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Apple Notes Tab
-// ═══════════════════════════════════════════════════════════════════
-
-function AppleNotesTab() {
-  return (
-    <div style={{ padding: '8px 0' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '16px',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(140,82,255,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: '#c4a9ff' }}
-            aria-hidden
-          >
-            description
-          </span>
-        </div>
-        <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
-            Import from Apple Notes
-          </p>
-          <p
-            style={{
-              fontSize: '11.5px',
-              color: 'var(--ink-40)',
-              margin: '2px 0 0',
-            }}
-          >
-            Via PDF export
-          </p>
-        </div>
-      </div>
-
-      <div
-        style={{
-          padding: '14px 16px',
-          borderRadius: '10px',
-          background: 'rgba(140,82,255,0.06)',
-          border: '1px solid rgba(174,137,255,0.20)',
-          marginBottom: '14px',
-        }}
-      >
-        <p
-          style={{
-            fontSize: '12.5px',
-            color: 'var(--ink-50)',
-            margin: '0 0 4px',
-            lineHeight: 1.5,
-          }}
-        >
-          Apple Notes does not provide a public API for web apps. Export your notes as PDF first,
-          then import the PDF file.
-        </p>
-      </div>
-
-      <InstructionSteps
-        steps={[
-          'Open the Notes app on your Mac',
-          'Select the note(s) you want to export',
-          'Go to File → Export as PDF',
-          'Save the PDF file to your computer',
-          'In Notemage, open any section and click the Upload (↑) button to import the PDF as a page',
-        ]}
-      />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // PDF Tab
 // ═══════════════════════════════════════════════════════════════════
 
@@ -1072,7 +785,7 @@ function PdfTab({
           throw new Error(
             isPasswordError(err)
               ? 'This PDF is password-protected. Remove the password and try again.'
-              : 'We couldn’t read this PDF — it may be damaged or in an unsupported format.',
+              : 'We couldn’t read this PDF — it may be damaged or in an unsupported format.'
           );
         }
         if (pages.length === 0) {
@@ -1109,9 +822,11 @@ function PdfTab({
             mode,
           }),
         });
-        const json = (await res.json().catch(() => null)) as
-          | { success?: boolean; error?: string; data?: { jobId?: string } }
-          | null;
+        const json = (await res.json().catch(() => null)) as {
+          success?: boolean;
+          error?: string;
+          data?: { jobId?: string };
+        } | null;
         if (!res.ok || !json?.success || !json.data?.jobId) {
           throw new Error(json?.error ?? 'We couldn’t start the import. Please try again.');
         }
@@ -1126,7 +841,7 @@ function PdfTab({
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     },
-    [notebookId, upload, ensureSectionId, mode],
+    [notebookId, upload, ensureSectionId, mode]
   );
 
   const buttonLabel =
@@ -1176,6 +891,18 @@ function PdfTab({
         </div>
       </div>
 
+      <p
+        style={{
+          fontSize: '12px',
+          color: 'var(--ink-40)',
+          margin: '0 0 14px',
+          lineHeight: 1.5,
+        }}
+      >
+        Coming from GoodNotes, Apple Notes, or OneNote? Export your notes as PDF, then import the
+        file here.
+      </p>
+
       {/*
         P6 — fast-mode toggle. Default off; turning it on routes digital pages
         through the text-layer engine for $0/page (figures + callouts drop;
@@ -1218,10 +945,10 @@ function PdfTab({
         >
           bolt
         </span>
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
-            Fast mode (only text)
-          </span>
+        <span
+          style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}
+        >
+          <span style={{ fontSize: '12.5px', fontWeight: 600 }}>Fast mode (only text)</span>
         </span>
         <span
           aria-hidden="true"
@@ -1357,45 +1084,6 @@ function CenteredMessage({ text, loading }: { text: string; loading?: boolean })
       {loading && (
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       )}
-    </div>
-  );
-}
-
-function InstructionSteps({ steps }: { steps: string[] }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {steps.map((step, i) => (
-        <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-          <div
-            style={{
-              width: '22px',
-              height: '22px',
-              borderRadius: '6px',
-              background: 'rgba(140,82,255,0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#c4a9ff',
-            }}
-          >
-            {i + 1}
-          </div>
-          <p
-            style={{
-              fontSize: '12.5px',
-              color: 'var(--ink-50)',
-              margin: 0,
-              lineHeight: 1.5,
-              paddingTop: '2px',
-            }}
-          >
-            {step}
-          </p>
-        </div>
-      ))}
     </div>
   );
 }
