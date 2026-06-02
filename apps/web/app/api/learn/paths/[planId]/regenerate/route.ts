@@ -69,7 +69,16 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
     });
     if (claimed.count === 0) {
-      return badRequestResponse('Generation is already in progress');
+      // Lost the claim — almost always because a run is already in flight, but
+      // also if the plan was deleted between the lookup and the claim. Re-check
+      // (only on this rare path) so a deleted plan still reports 404, not 400.
+      const stillExists = await db.studyPlan.findFirst({
+        where: { id: planId, userId },
+        select: { id: true },
+      });
+      return stillExists
+        ? badRequestResponse('Generation is already in progress')
+        : notFoundResponse('Path not found');
     }
 
     void generatePath(planId).catch((err) => {

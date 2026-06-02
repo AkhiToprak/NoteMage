@@ -1390,6 +1390,13 @@ async function runGenerationPass(
         });
       };
 
+      // Snapshot the failure count BEFORE this slot's work so we can tell, after,
+      // whether every missing activity succeeded. Only fully-succeeded slots may
+      // advance the counter — otherwise the end-of-pass count would include
+      // failed slots while the next sweep's seed (progressTotal − still-pending)
+      // excludes them, dipping the bar backward at the sweep boundary.
+      const failuresBefore = failedSlotIds.length;
+
       // Theory first, so a learning slot's flashcards are built from the exact
       // text the learner just read instead of the bare topic hint — that keeps
       // the card count honest and stops the model padding with repeats. Theory
@@ -1426,19 +1433,26 @@ async function runGenerationPass(
         }
       });
 
-      completedSlots += 1;
+      // A slot only counts toward progress when every missing activity landed.
+      // (writeProgress still runs on failure so the "writing …" caption clears.)
+      const slotSucceeded = failedSlotIds.length === failuresBefore;
+      if (slotSucceeded) {
+        completedSlots += 1;
+      }
       await writeProgress(planId, {
         totalSlots: progressTotal,
         completedSlots,
         currentSlot: null,
         currentActivity: null,
       });
-      logTelemetry(plan.userId, 'path.generation.slot_completed', {
-        planId,
-        slotId: slot.id,
-        slotIndex: completedSlots,
-        totalSlots: progressTotal,
-      });
+      if (slotSucceeded) {
+        logTelemetry(plan.userId, 'path.generation.slot_completed', {
+          planId,
+          slotId: slot.id,
+          slotIndex: completedSlots,
+          totalSlots: progressTotal,
+        });
+      }
     }
   }
 
