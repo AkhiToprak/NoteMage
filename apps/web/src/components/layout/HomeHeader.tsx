@@ -112,6 +112,7 @@ export default function HomeHeader() {
         >
           {/* Burger button */}
           <button
+            className="tap-target"
             onClick={() => setBurgerOpen(true)}
             onMouseEnter={() => setHoveredBurger(true)}
             onMouseLeave={() => setHoveredBurger(false)}
@@ -123,7 +124,7 @@ export default function HomeHeader() {
               borderRadius: 10,
               border: 'none',
               background: hoveredBurger ? COLORS.elevated : 'transparent',
-              color: hoveredBurger ? COLORS.textPrimary : COLORS.textMuted,
+              color: hoveredBurger ? COLORS.textPrimary : COLORS.textSecondary,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -185,7 +186,7 @@ export default function HomeHeader() {
                 top: '50%',
                 transform: 'translateY(-50%)',
                 fontSize: 20,
-                color: searchFocused ? COLORS.primary : COLORS.textMuted,
+                color: searchFocused ? COLORS.primary : COLORS.textSecondary,
                 transition: `color 0.2s ${EASING}`,
                 pointerEvents: 'none',
               }}
@@ -252,6 +253,7 @@ export default function HomeHeader() {
             {/* User avatar */}
             <div ref={avatarMenuRef} style={{ position: 'relative' }}>
               <button
+                className="tap-target"
                 onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
                 onMouseEnter={() => setHoveredAvatar(true)}
                 onMouseLeave={() => setHoveredAvatar(false)}

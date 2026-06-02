@@ -82,6 +82,8 @@ export default function TimerWidget({ compact }: Props) {
       {/* ── Trigger button ──────────────────────────────────────── */}
       <button
         ref={btnRef}
+        className="tap-target"
+        aria-label="Study timer"
         onClick={() => setOpen(!open)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -105,7 +107,11 @@ export default function TimerWidget({ compact }: Props) {
               : timer.isRunning
                 ? `${accent}0a`
                 : 'transparent',
-          color: timer.isRunning ? accent : hovered || open ? C.textPrimary : C.textMuted,
+          color: timer.isRunning
+            ? accent
+            : hovered || open
+              ? C.textPrimary
+              : 'var(--on-surface-variant)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
