@@ -51,9 +51,8 @@ export default function DashboardAchievements() {
   if (loading) {
     return (
       <div
+        className="elev-1"
         style={{
-          background: 'var(--surface-container-low)',
-          borderRadius: '20px',
           padding: '24px',
         }}
       >
@@ -101,9 +100,8 @@ export default function DashboardAchievements() {
 
   return (
     <div
+      className="elev-1"
       style={{
-        background: 'var(--surface-container-low)',
-        borderRadius: '20px',
         padding: '24px',
       }}
     >
@@ -138,11 +136,12 @@ export default function DashboardAchievements() {
             Achievements
           </h2>
           <div
+            className="tabular-nums"
             style={{
               padding: '4px 12px',
               background: 'rgba(174,137,255,0.12)',
               borderRadius: '20px',
-              fontSize: '12px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: 600,
               color: '#ae89ff',
             }}
@@ -174,12 +173,10 @@ export default function DashboardAchievements() {
         <div style={{ marginBottom: almostThere.length > 0 && !allUnlocked ? '20px' : '0' }}>
           <p
             style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--outline)',
+              fontSize: 'var(--fs-xl)',
+              fontWeight: 700,
+              color: 'var(--on-surface)',
               margin: '0 0 10px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
             }}
           >
             Recently Unlocked
@@ -239,7 +236,13 @@ export default function DashboardAchievements() {
                     >
                       {ach.name}
                     </p>
-                    <p style={{ fontSize: '11px', color: 'var(--outline)', margin: 0 }}>
+                    <p
+                      style={{
+                        fontSize: 'var(--fs-2xs)',
+                        color: 'var(--text-secondary)',
+                        margin: 0,
+                      }}
+                    >
                       {formatDate(ach.unlockedAt)}
                     </p>
                   </div>
@@ -271,7 +274,7 @@ export default function DashboardAchievements() {
           >
             emoji_events
           </span>
-          <p style={{ fontSize: '13px', margin: 0, color: 'var(--outline)' }}>
+          <p style={{ fontSize: 'var(--fs-sm)', margin: 0, color: 'var(--text-secondary)' }}>
             Start studying to earn your first achievement!
           </p>
         </div>
@@ -297,12 +300,10 @@ export default function DashboardAchievements() {
         <div>
           <p
             style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--outline)',
+              fontSize: 'var(--fs-xl)',
+              fontWeight: 700,
+              color: 'var(--on-surface)',
               margin: '0 0 10px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
             }}
           >
             Almost There
@@ -369,9 +370,10 @@ export default function DashboardAchievements() {
                         {ach.name}
                       </p>
                       <span
+                        className="tabular-nums"
                         style={{
-                          fontSize: '11px',
-                          color: 'var(--outline-variant)',
+                          fontSize: 'var(--fs-2xs)',
+                          color: 'var(--text-secondary)',
                           flexShrink: 0,
                           marginLeft: '8px',
                         }}

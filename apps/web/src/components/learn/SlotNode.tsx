@@ -37,8 +37,7 @@ const RING_INNER = RING_SIZE - RING_STROKE;
 // Path lies along the stroke center, so the corner radius shrinks by
 // half the stroke width.
 const RING_CORNER_R = BUTTON_RADIUS + RING_PAD - RING_STROKE / 2;
-const RING_PERIMETER =
-  4 * (RING_INNER - 2 * RING_CORNER_R) + 2 * Math.PI * RING_CORNER_R;
+const RING_PERIMETER = 4 * (RING_INNER - 2 * RING_CORNER_R) + 2 * Math.PI * RING_CORNER_R;
 
 function activityCompletion(slot: PathSlot): { done: number; total: number; ratio: number } {
   const total = slot.activities.length;
@@ -56,29 +55,40 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
   // Background / border / icon color for each state. Always tokenized so
   // dark + light themes both work (per memory:
   // `feedback_light_mode_no_light_text`).
-  const bg = isCompleted || isActive
-    ? 'var(--primary)'
-    : isLocked
-      ? 'var(--surface-container-low)'
-      : 'var(--surface-container)';
-  const borderColor = isCompleted || isActive
-    ? 'var(--primary)'
-    : isLocked
-      ? 'var(--outline-variant)'
-      : 'var(--outline)';
-  const iconColor = isCompleted || isActive
-    ? 'var(--on-primary)'
-    : isLocked
-      ? 'var(--on-surface-variant)'
-      : 'var(--on-surface)';
+  const isAvailable = state === 'available';
+
+  const bg =
+    isCompleted || isActive
+      ? 'var(--primary)'
+      : isLocked
+        ? 'var(--surface-container-low)'
+        : 'var(--surface-container)';
+  const borderColor =
+    isCompleted || isActive
+      ? 'var(--primary)'
+      : isLocked
+        ? 'var(--outline-variant)'
+        : isAvailable
+          ? 'var(--accent-strong)'
+          : 'var(--outline)';
+  const iconColor =
+    isCompleted || isActive
+      ? 'var(--on-primary)'
+      : isLocked
+        ? 'var(--on-surface-variant)'
+        : 'var(--on-surface)';
   // Layered drop-shadow — darker primary tint when filled, neutral
   // outline tint when not. Matches the Phase 10.5 spec's flat
   // `0 4px 0 <darker-of-bg>` look.
-  const shadow = isCompleted || isActive
-    ? '0 4px 0 var(--primary-container, var(--outline))'
-    : isLocked
-      ? '0 3px 0 var(--outline-variant)'
-      : '0 3px 0 var(--outline-variant)';
+  // Available nodes add a soft accent glow to signal interactivity.
+  const shadow =
+    isCompleted || isActive
+      ? '0 4px 0 var(--primary-container, var(--outline))'
+      : isLocked
+        ? '0 3px 0 var(--outline-variant)'
+        : isAvailable
+          ? '0 3px 0 var(--outline-variant), 0 0 0 4px rgb(var(--accent-strong-rgb) / 0.18), 0 0 18px 4px rgb(var(--accent-strong-rgb) / 0.12)'
+          : '0 3px 0 var(--outline-variant)';
 
   return (
     <div
@@ -204,50 +214,77 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
         >
           <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
 
+          {/* Lock overlay — locked state only. Centered on top of the
+              kind icon to make the locked state immediately legible.
+              The existing aria-label on the button already conveys the
+              locked state to assistive tech; this is purely visual. */}
+          {isLocked ? (
+            <span
+              aria-hidden
+              className="material-symbols-outlined"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '26px',
+                color: 'var(--on-surface-variant)',
+                // Slightly translucent so the kind icon is barely
+                // visible beneath, reinforcing the "blocked" metaphor.
+                opacity: 0.85,
+              }}
+            >
+              lock
+            </span>
+          ) : null}
+
           {/* Completed badge — top-right corner. Graded slots
               (assessment + final_exam) show their letter grade; other
               completed slots show a check icon. `bestGrade` falls back
               to a star-derived coarse letter for pre-grading-feature
               rows where `bestPercentage` is null. */}
-          {isCompleted ? (() => {
-            const isGraded = slot.kind === 'assessment' || slot.kind === 'final_exam';
-            const grade = isGraded ? bestGrade(slot.bestPercentage, slot.starsEarned) : null;
-            return (
-              <span
-                aria-label={grade ? `Grade ${grade}` : undefined}
-                aria-hidden={!grade || undefined}
-                style={{
-                  position: 'absolute',
-                  top: '-6px',
-                  right: '-6px',
-                  minWidth: '22px',
-                  height: '22px',
-                  padding: grade ? '0 6px' : 0,
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--tertiary-container)',
-                  color: 'var(--on-tertiary-container)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid var(--surface)',
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {grade ?? (
+          {isCompleted
+            ? (() => {
+                const isGraded = slot.kind === 'assessment' || slot.kind === 'final_exam';
+                const grade = isGraded ? bestGrade(slot.bestPercentage, slot.starsEarned) : null;
+                return (
                   <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: '14px', color: 'var(--on-tertiary-container)' }}
+                    aria-label={grade ? `Grade ${grade}` : undefined}
+                    aria-hidden={!grade || undefined}
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      minWidth: '22px',
+                      height: '22px',
+                      padding: grade ? '0 6px' : 0,
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--tertiary-container)',
+                      color: 'var(--on-tertiary-container)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid var(--surface)',
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      letterSpacing: '-0.01em',
+                    }}
                   >
-                    check
+                    {grade ?? (
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: '14px', color: 'var(--on-tertiary-container)' }}
+                      >
+                        check
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-            );
-          })() : null}
+                );
+              })()
+            : null}
 
           {/* Incomplete-generation badge — top-left corner. Shown when
               one or more of the slot's activities failed to generate. */}
@@ -269,11 +306,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
                 border: '2px solid var(--surface)',
               }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '14px' }}
-                aria-hidden
-              >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden>
                 priority_high
               </span>
             </span>
@@ -353,11 +386,7 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             color: 'var(--on-surface-variant)',
           }}
         >
-          <span
-            className="material-symbols-outlined"
-            aria-hidden
-            style={{ fontSize: '13px' }}
-          >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '13px' }}>
             sync_problem
           </span>
           Incomplete

@@ -94,6 +94,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   /** Shows a spinner and disables interaction. */
   loading?: boolean;
   fullWidth?: boolean;
+  /** Tutorial-system target hook (passed through to the DOM button). */
+  'data-tutorial'?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(

@@ -16,6 +16,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
 import MultiPdfImportModal from '@/components/import/MultiPdfImportModal';
+import { Button } from '@/components/ui/Button';
 
 const ALL_LABEL = 'All Subjects';
 
@@ -683,134 +684,45 @@ function NotebooksPageContent() {
             width: isPhone ? '100%' : undefined,
           }}
         >
-          {/* New Folder button */}
-          <button
+          {/* New Folder & Import PDFs are quiet secondaries — accent is
+              reserved for the single primary action (Add Notebook) per the
+              accent-discipline rule (audit item 5). */}
+          <Button
+            variant="secondary"
+            shape="pill"
+            leadingIcon="create_new_folder"
             onClick={() => {
               setEditingFolder(null);
               setShowFolderForm(true);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 20px',
-              borderRadius: '9999px',
-              border: '1px solid rgba(174,137,255,0.25)',
-              background: 'transparent',
-              color: '#ae89ff',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              flex: isPhone ? '1 1 100%' : undefined,
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            }}
-            onMouseDown={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
+            style={{ flex: isPhone ? '1 1 100%' : undefined }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              create_new_folder
-            </span>
             New Folder
-          </button>
+          </Button>
 
-          {/* Import PDFs button */}
-          <button
-            onClick={() => setShowImportModal(true)}
+          <Button
+            variant="secondary"
+            shape="pill"
+            leadingIcon="upload_file"
             data-tutorial="notebooks"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 20px',
-              borderRadius: '9999px',
-              border: '1px solid rgba(174,137,255,0.25)',
-              background: 'transparent',
-              color: '#ae89ff',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              flex: isPhone ? '1 1 100%' : undefined,
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            }}
-            onMouseDown={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
+            onClick={() => setShowImportModal(true)}
+            style={{ flex: isPhone ? '1 1 100%' : undefined }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              upload_file
-            </span>
             Import PDFs
-          </button>
+          </Button>
 
-          {/* Add Notebook button */}
-          <button
+          <Button
+            variant="primary"
+            shape="pill"
+            leadingIcon="add"
             onClick={() => {
               setEditingNotebook(null);
               setShowForm(true);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 24px',
-              borderRadius: '9999px',
-              border: 'none',
-              background: '#ae89ff',
-              color: '#2a0066',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              flex: isPhone ? '1 1 100%' : undefined,
-              boxShadow: '0 4px 16px rgba(174,137,255,0.25)',
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-            }}
-            onMouseDown={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
+            style={{ flex: isPhone ? '1 1 100%' : undefined }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              add
-            </span>
             Add Notebook
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1158,7 +1070,14 @@ function NotebooksPageContent() {
             >
               Delete &ldquo;{deleteTarget.name}&rdquo;?
             </h3>
-            <p style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: '0 0 28px', lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--on-surface-variant)',
+                margin: '0 0 28px',
+                lineHeight: 1.6,
+              }}
+            >
               This will permanently delete the notebook and all its documents and chat history. This
               action cannot be undone.
             </p>
@@ -1268,7 +1187,14 @@ function NotebooksPageContent() {
             >
               Delete &ldquo;{deleteFolderTarget.name}&rdquo;?
             </h3>
-            <p style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: '0 0 28px', lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--on-surface-variant)',
+                margin: '0 0 28px',
+                lineHeight: 1.6,
+              }}
+            >
               This will delete the folder and all sub-folders. Notebooks inside will be moved to the
               root level. This action cannot be undone.
             </p>

@@ -225,9 +225,8 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
 
   return (
     <div
+      className="elev-1"
       style={{
-        background: 'var(--surface-container)',
-        borderRadius: 'var(--radius-xl)',
         padding: isPhone ? '20px' : '24px 28px',
       }}
     >
@@ -263,7 +262,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '11px',
+            fontSize: 'var(--fs-2xs)',
             color: 'var(--on-surface-variant)',
           }}
         >
@@ -324,7 +323,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                     position: 'absolute',
                     left: `${leftPadding + m.week * (CELL_SIZE + CELL_GAP)}px`,
                     top: 0,
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-2xs)',
                     color: 'var(--on-surface-variant)',
                     fontWeight: 500,
                     whiteSpace: 'nowrap',
@@ -343,7 +342,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                       position: 'absolute',
                       left: 0,
                       top: `${topPadding + i * (CELL_SIZE + CELL_GAP) + 1}px`,
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-2xs)',
                       color: 'var(--on-surface-variant)',
                       fontWeight: 500,
                       width: `${leftPadding - 6}px`,
