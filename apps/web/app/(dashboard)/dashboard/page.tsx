@@ -350,32 +350,6 @@ export default function DashboardPage() {
 
   const statCards: StatCard[] = [
     {
-      label: 'Friends',
-      value: friends !== null ? String(friends.length) : '—',
-      icon: 'group',
-      iconColor: '#b9c3ff',
-      iconBg: 'rgba(185,195,255,0.12)',
-      arrowColor: 'rgba(185,195,255,0.4)',
-      href: '/profile',
-      badge:
-        pendingFriendRequests > 0 ? (
-          <div
-            style={{
-              padding: '2px 8px',
-              background: 'rgba(185,195,255,0.15)',
-              borderRadius: '8px',
-              fontSize: '10px',
-              fontWeight: 700,
-              color: '#b9c3ff',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}
-          >
-            {pendingFriendRequests} new
-          </div>
-        ) : undefined,
-    },
-    {
       label: 'Day Streak',
       value: streakValue,
       icon: 'local_fire_department',
@@ -422,6 +396,32 @@ export default function DashboardPage() {
       iconColor: '#f0d04c',
       iconBg: 'rgba(240,208,76,0.1)',
       arrowColor: 'rgba(240,208,76,0.4)',
+    },
+    {
+      label: 'Friends',
+      value: friends !== null ? String(friends.length) : '—',
+      icon: 'group',
+      iconColor: '#b9c3ff',
+      iconBg: 'rgba(185,195,255,0.12)',
+      arrowColor: 'rgba(185,195,255,0.4)',
+      href: '/profile',
+      badge:
+        pendingFriendRequests > 0 ? (
+          <div
+            style={{
+              padding: '2px 8px',
+              background: 'rgba(185,195,255,0.15)',
+              borderRadius: '8px',
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#b9c3ff',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
+          >
+            {pendingFriendRequests} new
+          </div>
+        ) : undefined,
     },
   ];
 
