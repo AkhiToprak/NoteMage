@@ -65,6 +65,13 @@ function PathDetailInner({ planId }: { planId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [regenerating, setRegenerating] = useState(false);
+  // Regenerate-button feedback: a pending state so the click registers
+  // instantly, and a surfaced error so a rate-limit / "already in progress"
+  // response doesn't read as a dead button.
+  const [regenStarting, setRegenStarting] = useState(false);
+  const [regenError, setRegenError] = useState<string | null>(null);
+  const [regenHover, setRegenHover] = useState(false);
+  const [regenPressed, setRegenPressed] = useState(false);
 
   // Initial + refresh fetch.
   useEffect(() => {
@@ -158,17 +165,29 @@ function PathDetailInner({ planId }: { planId: string }) {
   // idempotent (regenerates only missing activities); the progress
   // modal streams the run and a refetch picks up the filled-in tree.
   const handleRegenerate = useCallback(async () => {
+    if (regenStarting) return;
+    setRegenStarting(true);
+    setRegenError(null);
     try {
       const res = await fetch(
         `/api/learn/paths/${encodeURIComponent(planId)}/regenerate`,
         { method: 'POST' },
       );
       const json = await res.json();
-      if (json?.success) setRegenerating(true);
+      if (json?.success) {
+        setRegenerating(true);
+      } else {
+        // Surface the reason — a 429 (rate limit / monthly token budget) or a
+        // 400 ("already in progress") otherwise leaves the banner up with no
+        // feedback, which reads as an unresponsive button.
+        setRegenError(json?.error ?? 'Could not start regeneration. Please try again.');
+      }
     } catch {
-      /* leave the banner up so the learner can retry */
+      setRegenError('Network error — check your connection and try again.');
+    } finally {
+      setRegenStarting(false);
     }
-  }, [planId]);
+  }, [planId, regenStarting]);
 
   if (error) {
     return (
@@ -211,6 +230,7 @@ function PathDetailInner({ planId }: { planId: string }) {
 
         {incompleteCount > 0 ? (
           <div style={{ maxWidth: '640px', margin: '12px auto 0', padding: '0 16px' }}>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             <div
               style={{
                 display: 'flex',
@@ -249,8 +269,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                     color: 'var(--on-surface)',
                   }}
                 >
-                  {incompleteCount} checkpoint{incompleteCount === 1 ? '' : 's'} didn&apos;t
-                  finish generating
+                  {incompleteCount === 1
+                    ? "1 checkpoint didn't finish generating"
+                    : `${incompleteCount} checkpoints didn't finish generating`}
                 </p>
                 <p
                   style={{
@@ -263,15 +284,40 @@ function PathDetailInner({ planId }: { planId: string }) {
                   They won&apos;t block your progress — regenerate to fill in the missing
                   content.
                 </p>
+                {regenError ? (
+                  <p
+                    role="alert"
+                    style={{
+                      margin: '6px 0 0',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--error)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {regenError}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"
                 onClick={handleRegenerate}
+                disabled={regenStarting}
+                aria-busy={regenStarting}
+                onMouseEnter={() => setRegenHover(true)}
+                onMouseLeave={() => {
+                  setRegenHover(false);
+                  setRegenPressed(false);
+                }}
+                onMouseDown={() => setRegenPressed(true)}
+                onMouseUp={() => setRegenPressed(false)}
                 style={{
                   flexShrink: 0,
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '6px',
+                  minWidth: '128px',
                   padding: '9px 14px',
                   borderRadius: 'var(--radius-md)',
                   background: 'var(--primary)',
@@ -280,18 +326,29 @@ function PathDetailInner({ planId }: { planId: string }) {
                   fontFamily: 'inherit',
                   fontSize: '13px',
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 0 var(--primary-container, var(--outline))',
+                  cursor: regenStarting ? 'default' : 'pointer',
+                  opacity: regenStarting ? 0.7 : regenHover ? 0.92 : 1,
+                  transform:
+                    !regenStarting && regenPressed ? 'translateY(1px)' : 'translateY(0)',
+                  boxShadow:
+                    !regenStarting && regenPressed
+                      ? 'none'
+                      : '0 2px 0 var(--primary-container, var(--outline))',
+                  transition:
+                    'transform 0.12s cubic-bezier(0.22,1,0.36,1), opacity 0.12s cubic-bezier(0.22,1,0.36,1)',
                 }}
               >
                 <span
                   aria-hidden
                   className="material-symbols-outlined"
-                  style={{ fontSize: '16px' }}
+                  style={{
+                    fontSize: '16px',
+                    animation: regenStarting ? 'spin 0.8s linear infinite' : undefined,
+                  }}
                 >
-                  autorenew
+                  {regenStarting ? 'progress_activity' : 'autorenew'}
                 </span>
-                Regenerate
+                {regenStarting ? 'Starting…' : 'Regenerate'}
               </button>
             </div>
           </div>
@@ -346,6 +403,8 @@ function PathDetailInner({ planId }: { planId: string }) {
         <GenerationProgressModal
           planId={planId}
           initialTitle={plan.title}
+          mode="regenerate"
+          targetCount={incompleteCount}
           onRunInBackground={() => {
             setRegenerating(false);
             setRefreshKey((k) => k + 1);
