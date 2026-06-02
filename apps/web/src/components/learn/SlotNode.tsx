@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckpointIcon } from '@/components/icons/CheckpointIcons';
+import { CheckpointIcon, LockIcon } from '@/components/icons/CheckpointIcons';
 import type { PathSlot } from '@/components/learn/PathView';
 import { bestGrade } from '@/lib/path-gating';
 
@@ -56,11 +56,13 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
   // Background / border / icon color for each state. Always tokenized so
   // dark + light themes both work (per memory:
   // `feedback_light_mode_no_light_text`).
+  // Locked + available share one solid card surface. Locked used to be
+  // surface-container-low, which sits a hair above the page bg and made
+  // the node read as an empty hole — it's pushed back via opacity below
+  // instead.
   const bg = isCompleted || isActive
     ? 'var(--primary)'
-    : isLocked
-      ? 'var(--surface-container-low)'
-      : 'var(--surface-container)';
+    : 'var(--surface-container)';
   const borderColor = isCompleted || isActive
     ? 'var(--primary)'
     : isLocked
@@ -77,7 +79,10 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
   const shadow = isCompleted || isActive
     ? '0 4px 0 var(--primary-container, var(--outline))'
     : isLocked
-      ? '0 3px 0 var(--outline-variant)'
+      // A genuinely darker base so the node reads as a tactile button.
+      // outline-variant is *lighter* than the fill, which drew a stray
+      // bright line under locked nodes. Alpha-black works in both themes.
+      ? '0 3px 0 rgba(0, 0, 0, 0.18)'
       : '0 3px 0 var(--outline-variant)';
 
   return (
@@ -195,6 +200,9 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             alignItems: 'center',
             justifyContent: 'center',
             cursor: isLocked ? 'default' : 'pointer',
+            // Fade locked nodes back so they read as "not yet" without
+            // washing out the lock glyph (title keeps full contrast).
+            opacity: isLocked ? 0.8 : 1,
             padding: 0,
             fontFamily: 'inherit',
             position: 'relative',
@@ -202,7 +210,14 @@ export default function SlotNode({ slot, state, mountIndex, onClick }: SlotNodeP
             // transition-all per CLAUDE.md).
           }}
         >
-          <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
+          {/* Locked nodes show a lock — the canonical "come back later"
+              signal — instead of a dimmed kind icon that read as a
+              half-loaded box. The title below still names the checkpoint. */}
+          {isLocked ? (
+            <LockIcon size={32} color={iconColor} />
+          ) : (
+            <CheckpointIcon kind={slot.kind} size={34} color={iconColor} />
+          )}
 
           {/* Completed badge — top-right corner. Graded slots
               (assessment + final_exam) show their letter grade; other
