@@ -927,10 +927,22 @@ function GroupAddButton({
   );
 }
 
+// Shared one-line empty hint for the sidebar groups (chats / flashcards /
+// quizzes). Standardized on --text-secondary so the muted color is consistent
+// across the app's empty states, instead of the dimmer --ink-40 (items 2, 11).
 function GroupEmptyHint({ text }: { text: string }) {
   return (
     <div style={{ padding: '8px 14px 10px', textAlign: 'center' }}>
-      <p style={{ fontSize: '12px', color: 'var(--ink-40)', margin: 0, lineHeight: 1.5 }}>{text}</p>
+      <p
+        style={{
+          fontSize: 'var(--fs-xs)',
+          color: 'var(--text-secondary)',
+          margin: 0,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
+        {text}
+      </p>
     </div>
   );
 }
