@@ -257,10 +257,91 @@ function Sep() {
         width: '1px',
         height: '18px',
         background: 'var(--ink-08)',
-        margin: '0 2px',
+        // Wider gutter than the intra-group button spacing so the clusters
+        // (format / block / insert / mode) read as distinct groups (item 7a).
+        margin: '0 6px',
         flexShrink: 0,
       }}
     />
+  );
+}
+
+/* ── mode segmented control (cursor / pen / text) ──
+   Rendered as a recessed segmented track — distinct from the accent-filled
+   format toggles — so a persistent mode selection reads as a *mode*, not a hot
+   format. The active segment is a quiet raised neutral chip, so the always-on
+   default (cursor) no longer looks "pressed" like an active format (item 7b). */
+const MODE_OPTIONS: { mode: EditorMode; icon: string; label: string }[] = [
+  { mode: 'cursor', icon: 'arrow_selector_tool', label: 'Cursor mode' },
+  { mode: 'pen', icon: 'draw', label: 'Pen mode' },
+  { mode: 'text', icon: 'text_fields', label: 'Text mode' },
+];
+
+function ModeSwitch({
+  mode,
+  onModeChange,
+}: {
+  mode: EditorMode;
+  onModeChange: (mode: EditorMode) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Editor mode"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 2,
+        padding: 2,
+        borderRadius: 8,
+        background: 'var(--ink-04)',
+        flexShrink: 0,
+      }}
+    >
+      {MODE_OPTIONS.map(({ mode: m, icon, label }) => {
+        const active = mode === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={label}
+            title={label}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onModeChange(m);
+            }}
+            style={{
+              width: 28,
+              height: 24,
+              borderRadius: 6,
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: active ? 'var(--surface-container-highest)' : 'transparent',
+              color: active ? 'var(--on-surface)' : 'var(--ink-50)',
+              boxShadow: active
+                ? '0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 var(--ink-08)'
+                : 'none',
+              transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              if (!active) e.currentTarget.style.color = 'var(--ink-80)';
+            }}
+            onMouseLeave={(e) => {
+              if (!active) e.currentTarget.style.color = 'var(--ink-50)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+              {icon}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -326,8 +407,8 @@ function ColorPicker({
         }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
-        {icon}
-      </span>
+          {icon}
+        </span>
       </button>
       {open && (
         <div
@@ -1333,7 +1414,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { refreshSections } = useNotebookWorkspace();
+  const { refreshSections, setExportDialogOpen } = useNotebookWorkspace();
 
   useEffect(() => {
     if (!open) return;
@@ -1397,6 +1478,40 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
             minWidth: 160,
           }}
         >
+          {/* Export — surfaces the same ExportDialog as the sidebar footer,
+              so PDF/PPTX export is discoverable from the page itself (item 16). */}
+          <button
+            onClick={() => {
+              setExportDialogOpen(true);
+              setOpen(false);
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--on-surface)',
+              fontSize: 13,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--ink-08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              ios_share
+            </span>
+            Export
+          </button>
           <button
             onClick={handleDelete}
             style={{
@@ -1668,7 +1783,10 @@ export default function EditorToolbar({
       </div>
 
       {/* Row 2: Block formatting + utilities */}
-      <div className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined} style={responsiveRowStyle}>
+      <div
+        className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined}
+        style={responsiveRowStyle}
+      >
         <ToolbarButton
           icon="format_h1"
           label="Heading 1"
@@ -1731,25 +1849,8 @@ export default function EditorToolbar({
         />
         <GenerateDropdown notebookId={notebookId} pageId={pageId} />
         <Sep />
-        {/* Cursor / Pen / Text mode toggle */}
-        <ToolbarButton
-          icon="arrow_selector_tool"
-          label="Cursor mode"
-          isActive={editorMode === 'cursor'}
-          onClick={() => onModeChange('cursor')}
-        />
-        <ToolbarButton
-          icon="draw"
-          label="Pen mode"
-          isActive={editorMode === 'pen'}
-          onClick={() => onModeChange('pen')}
-        />
-        <ToolbarButton
-          icon="text_fields"
-          label="Text mode"
-          isActive={editorMode === 'text'}
-          onClick={() => onModeChange('text')}
-        />
+        {/* Cursor / Pen / Text mode — a segmented control, not format toggles */}
+        <ModeSwitch mode={editorMode} onModeChange={onModeChange} />
         <Sep />
         <ToolbarButton
           icon="undo"

@@ -32,6 +32,8 @@ export default function UnifiedSidebar() {
     refreshSections,
     refreshStudyPlans,
     setSidebarCollapsed,
+    exportDialogOpen,
+    setExportDialogOpen,
   } = useNotebookWorkspace();
   const mascotContext = useMascotContextPose();
 
@@ -51,8 +53,8 @@ export default function UnifiedSidebar() {
   const [wsSearchFocused, setWsSearchFocused] = useState(false);
   const isSearchActive = wsSearchQuery.length >= 2;
 
-  // Export dialog
-  const [showExportDialog, setShowExportDialog] = useState(false);
+  // Export dialog — visibility lives in the workspace context so the editor
+  // toolbar's page-actions menu can open the same dialog (audit item 16).
 
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -169,7 +171,9 @@ export default function UnifiedSidebar() {
               (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-40)';
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>arrow_back</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              arrow_back
+            </span>
           </Link>
           <div
             style={{
@@ -249,7 +253,9 @@ export default function UnifiedSidebar() {
               e.currentTarget.style.color = 'var(--ink-40)';
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>keyboard_double_arrow_left</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              keyboard_double_arrow_left
+            </span>
           </button>
         </div>
       </div>
@@ -386,7 +392,9 @@ export default function UnifiedSidebar() {
                     (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-20)';
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>add</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+                    add
+                  </span>
                 </button>
               </div>
 
@@ -406,7 +414,13 @@ export default function UnifiedSidebar() {
                     borderLeft: '3px solid rgba(140,82,255,0.4)',
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }} aria-hidden>create_new_folder</span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+                    aria-hidden
+                  >
+                    create_new_folder
+                  </span>
                   <input
                     ref={sectionInputRef}
                     type="text"
@@ -520,7 +534,9 @@ export default function UnifiedSidebar() {
                     (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.55)';
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>add</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+                    add
+                  </span>
                 </button>
               </div>
 
@@ -551,7 +567,8 @@ export default function UnifiedSidebar() {
                     transition: 'background 0.15s ease, color 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,222,89,0.10)';
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      'rgba(255,222,89,0.10)';
                     (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
                   }}
                   onMouseLeave={(e) => {
@@ -571,7 +588,13 @@ export default function UnifiedSidebar() {
                       flexShrink: 0,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#ffde59' }} aria-hidden>school</span>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 11, color: '#ffde59' }}
+                      aria-hidden
+                    >
+                      school
+                    </span>
                   </div>
                   Create learning path
                 </button>
@@ -641,14 +664,20 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#c4a9ff' }} aria-hidden>upload</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 11, color: '#c4a9ff' }}
+                  aria-hidden
+                >
+                  upload
+                </span>
               </div>
               Import
             </button>
 
             {/* ── Export Pages button ──────────────────────────────── */}
             <button
-              onClick={() => setShowExportDialog(true)}
+              onClick={() => setExportDialogOpen(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -688,7 +717,13 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 11, color: '#c4a9ff' }} aria-hidden>download</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 11, color: '#c4a9ff' }}
+                  aria-hidden
+                >
+                  download
+                </span>
               </div>
               Export
             </button>
@@ -710,12 +745,13 @@ export default function UnifiedSidebar() {
         />
       )}
 
-      {/* Export Dialog modal */}
-      {showExportDialog && (
+      {/* Export Dialog modal — opened from here or the editor's page-actions
+          menu (audit item 16); visibility is shared via the workspace context. */}
+      {exportDialogOpen && (
         <ExportDialog
           notebookId={notebookId}
           sections={sections}
-          onClose={() => setShowExportDialog(false)}
+          onClose={() => setExportDialogOpen(false)}
         />
       )}
 
@@ -759,10 +795,7 @@ function PathRow({
   const phaseCount = plan._count.phases;
 
   return (
-    <Link
-      href={`/learn/paths/${plan.id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
-    >
+    <Link href={`/learn/paths/${plan.id}`} style={{ textDecoration: 'none', display: 'block' }}>
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -887,7 +920,9 @@ function GroupAddButton({
         (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.4)';
       }}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>add</span>
+      <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+        add
+      </span>
     </button>
   );
 }
@@ -1001,7 +1036,9 @@ function GroupItemRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+              delete
+            </span>
           </button>
         ) : (
           count != null &&
@@ -1043,7 +1080,10 @@ function ChatTreeSection() {
   return (
     <div style={{ padding: '4px 0 0' }}>
       <SidebarGroupHeader label="Chats">
-        <GroupAddButton title="New chat" onClick={() => router.push(`/notebooks/${notebookId}?new=1`)} />
+        <GroupAddButton
+          title="New chat"
+          onClick={() => router.push(`/notebooks/${notebookId}?new=1`)}
+        />
       </SidebarGroupHeader>
       {chats.length === 0 ? (
         <GroupEmptyHint text="No chats yet." />
@@ -1199,13 +1239,8 @@ function QuizTreeSection() {
 
 function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?: number }) {
   const router = useRouter();
-  const {
-    activeSectionId,
-    setActiveSectionId,
-    notebookId,
-    refreshSections,
-    activePageId,
-  } = useNotebookWorkspace();
+  const { activeSectionId, setActiveSectionId, notebookId, refreshSections, activePageId } =
+    useNotebookWorkspace();
 
   const [expanded, setExpanded] = useState(true);
   const [hovered, setHovered] = useState(false);
@@ -1431,7 +1466,9 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>note_add</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                note_add
+              </span>
             </button>
             {/* Add subsection */}
             <button
@@ -1458,7 +1495,9 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>create_new_folder</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                create_new_folder
+              </span>
             </button>
             {/* Delete section */}
             <button
@@ -1485,7 +1524,9 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                delete
+              </span>
             </button>
           </div>
         )}
@@ -1524,7 +1565,13 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: `3px solid ${color}60`,
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }} aria-hidden>note_add</span>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }}
+                aria-hidden
+              >
+                note_add
+              </span>
               <input
                 ref={pageInputRef}
                 type="text"
@@ -1576,7 +1623,13 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: '3px solid rgba(140,82,255,0.4)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }} aria-hidden>create_new_folder</span>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }}
+                aria-hidden
+              >
+                create_new_folder
+              </span>
               <input
                 ref={childInputRef}
                 type="text"
@@ -1721,7 +1774,9 @@ function PageTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>delete</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+              delete
+            </span>
           </button>
         )}
       </div>

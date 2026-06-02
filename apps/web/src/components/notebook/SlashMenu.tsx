@@ -39,6 +39,28 @@ interface MenuItem {
 }
 
 const ITEMS: MenuItem[] = [
+  // ── AI ────────────────────────────────────────────────────
+  {
+    id: 'ask-ai',
+    label: 'Ask AI',
+    description: 'Rewrite, summarize or expand with AI',
+    icon: 'auto_fix',
+    group: 'AI',
+    keywords: ['ai', 'ask', 'assistant', 'rewrite', 'summarize', 'expand', 'generate'],
+    run: (editor, range) => {
+      // Remove the typed "/…", then select the current block's text so the
+      // inline AI toolbar (Rewrite / Summarize / Expand → preview) appears for
+      // it. Reuses the inline-AI preview flow (audit items 12 + 13). On an
+      // empty block there's nothing to select, so the toolbar simply won't show.
+      editor.chain().focus().deleteRange(range).run();
+      const { $from } = editor.state.selection;
+      const start = $from.start();
+      const end = $from.end();
+      if (end > start) {
+        editor.chain().focus().setTextSelection({ from: start, to: end }).run();
+      }
+    },
+  },
   // ── Basic blocks ──────────────────────────────────────────
   {
     id: 'paragraph',

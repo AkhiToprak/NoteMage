@@ -4,6 +4,7 @@ import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from
 import type { Editor } from '@tiptap/react';
 import { useAiTask } from './AiTaskContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { Button } from '@/components/ui/Button';
 
 /**
  * Floating toolbar that appears whenever the user has a non-trivial text
@@ -63,6 +64,14 @@ export default function InlineAIToolbar({
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [busyAction, setBusyAction] = useState<InlineAction | null>(null);
   const [hidden, setHidden] = useState(false);
+  // Staged AI suggestion awaiting Accept/Discard. While set, the action bar is
+  // replaced by a preview popover and the document is NOT mutated until Accept,
+  // so there's no reliance on undo to back out (audit item 13).
+  const [preview, setPreview] = useState<{
+    action: InlineAction;
+    range: { from: number; to: number };
+    text: string;
+  } | null>(null);
   const { isPhone } = useBreakpoint();
 
   const { startAiTask, finishAiTask } = useAiTask();
@@ -285,16 +294,12 @@ export default function InlineAIToolbar({
           }
         }
 
-        // Apply the result
-        const range = pendingRangeRef.current;
-        if (range && fullText) {
-          editor
-            .chain()
-            .focus()
-            .setTextSelection(range)
-            .deleteSelection()
-            .insertContent(fullText)
-            .run();
+        // Stage the result as a preview instead of mutating the document.
+        // The doc stays untouched until the user clicks Accept (audit item 13);
+        // the captured range is carried into the preview for the apply step.
+        const finalRange = pendingRangeRef.current ?? range;
+        if (finalRange && fullText) {
+          setPreview({ action, range: finalRange, text: fullText });
         }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return;
@@ -324,6 +329,30 @@ export default function InlineAIToolbar({
     interactionEndRef.current = Date.now() + 600;
   }, [editor]);
 
+  // Accept the staged suggestion — only now is the document mutated. The saved
+  // range is re-clamped to the current doc size in case the user edited while
+  // the preview was open, so setTextSelection can't run past the doc end.
+  const applyPreview = useCallback(() => {
+    if (!editor || !preview) return;
+    const docSize = editor.state.doc.content.size;
+    const from = Math.min(preview.range.from, docSize);
+    const to = Math.min(preview.range.to, docSize);
+    editor
+      .chain()
+      .focus()
+      .setTextSelection({ from, to })
+      .deleteSelection()
+      .insertContent(preview.text)
+      .run();
+    setPreview(null);
+    setHidden(true);
+  }, [editor, preview]);
+
+  // Discard the staged suggestion — the document was never touched.
+  const discardPreview = useCallback(() => {
+    setPreview(null);
+  }, []);
+
   const visible = position !== null && !hidden && editor !== null;
 
   // Clamp position to the viewport
@@ -347,6 +376,79 @@ export default function InlineAIToolbar({
     const top = Math.max(8, Math.min(position.top, maxTop));
     return { top, left };
   }, [position, isPhone]);
+
+  // While a suggestion is staged, the preview popover replaces the action bar.
+  if (preview) {
+    const viewportBottom =
+      typeof window !== 'undefined' && window.visualViewport
+        ? window.visualViewport.height + window.visualViewport.offsetTop
+        : typeof window !== 'undefined'
+          ? window.innerHeight
+          : 800;
+    const anchor = clamped ?? {
+      top: viewportBottom * 0.5,
+      left: typeof window !== 'undefined' ? window.innerWidth / 2 : 200,
+    };
+    const top = Math.max(8, Math.min(anchor.top, viewportBottom - 320));
+    return (
+      <div
+        role="dialog"
+        aria-label={`${ACTION_LABELS[preview.action]} suggestion`}
+        style={{
+          position: 'fixed',
+          top,
+          left: anchor.left,
+          transform: 'translateX(-50%)',
+          zIndex: 250,
+          width: 'min(380px, calc(100vw - 24px))',
+          background: 'var(--surface-container-high)',
+          border: '1px solid var(--ink-12)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 14,
+          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--ink-06)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          fontFamily: 'var(--font-sans)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: 16, color: 'var(--accent-strong)' }}
+          >
+            {ACTION_ICONS[preview.action]}
+          </span>
+          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--on-surface)' }}>
+            {ACTION_LABELS[preview.action]} suggestion
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: 'var(--fs-sm)',
+            lineHeight: 'var(--lh-normal)',
+            color: 'var(--on-surface)',
+            whiteSpace: 'pre-wrap',
+            maxHeight: 200,
+            overflowY: 'auto',
+            background: 'var(--ink-04)',
+            borderRadius: 'var(--radius-md)',
+            padding: '10px 12px',
+          }}
+        >
+          {preview.text}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+          <Button variant="ghost" size="sm" onClick={discardPreview}>
+            Discard
+          </Button>
+          <Button variant="primary" size="sm" leadingIcon="check" onClick={applyPreview}>
+            Accept
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!visible || !clamped) return null;
 
