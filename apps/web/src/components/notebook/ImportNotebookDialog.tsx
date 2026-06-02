@@ -52,7 +52,9 @@ export default function ImportNotebookDialog({
   onImported,
   onClose,
 }: ImportNotebookDialogProps) {
-  const [activeTab, setActiveTab] = useState<TabType>(ONENOTE_IMPORT_ENABLED ? 'onenote' : 'pdf');
+  // Default to the first rendered tab so IMPORT_TABS stays the single source of
+  // truth (currently PDF; OneNote when the flag is on).
+  const [activeTab, setActiveTab] = useState<TabType>(IMPORT_TABS[0][0]);
 
   return (
     <div
@@ -120,25 +122,54 @@ export default function ImportNotebookDialog({
               borderBottom: '1px solid rgba(174,137,255,0.20)',
             }}
           >
+            {/* Inline styles can't express pseudo-states; a scoped class gives the
+                tabs their hover / focus-visible / active states and keeps motion on
+                transform+opacity with spring easing (per the project motion rules). */}
+            <style>{`
+              .import-tab {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 7px 14px;
+                border-radius: 8px;
+                border: none;
+                cursor: pointer;
+                font-size: 12.5px;
+                font-weight: 500;
+                font-family: inherit;
+                background: transparent;
+                color: rgba(196, 169, 255, 0.5);
+                transition:
+                  transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+                  opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+              }
+              .import-tab:hover {
+                color: #c4a9ff;
+              }
+              .import-tab:focus-visible {
+                outline: 2px solid #c4a9ff;
+                outline-offset: 2px;
+              }
+              .import-tab:active {
+                transform: scale(0.96);
+              }
+              .import-tab[data-active='true'] {
+                background: rgba(140, 82, 255, 0.2);
+                color: #c4a9ff;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .import-tab {
+                  transition-duration: 0.05s;
+                }
+              }
+            `}</style>
             {IMPORT_TABS.map(([tab, label]) => (
               <button
                 key={tab}
+                type="button"
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '12.5px',
-                  fontWeight: 500,
-                  fontFamily: 'inherit',
-                  background: activeTab === tab ? 'rgba(140,82,255,0.2)' : 'transparent',
-                  color: activeTab === tab ? '#c4a9ff' : 'rgba(196,169,255,0.5)',
-                  transition: 'background 0.12s ease',
-                }}
+                className="import-tab"
+                data-active={activeTab === tab ? 'true' : undefined}
               >
                 {label}
               </button>
@@ -899,8 +930,9 @@ function PdfTab({
           lineHeight: 1.5,
         }}
       >
-        Coming from GoodNotes, Apple Notes, or OneNote? Export your notes as PDF, then import the
-        file here.
+        {ONENOTE_IMPORT_ENABLED
+          ? 'Coming from GoodNotes or Apple Notes? Export your notes as PDF, then import the file here.'
+          : 'Coming from GoodNotes, Apple Notes, or OneNote? Export your notes as PDF, then import the file here.'}
       </p>
 
       {/*
