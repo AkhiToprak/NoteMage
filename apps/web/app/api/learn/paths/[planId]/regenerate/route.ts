@@ -49,27 +49,28 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { planId } = await params;
     const plan = await db.studyPlan.findFirst({
       where: { id: planId, userId },
-      select: { id: true, generationStatus: true },
+      select: { id: true },
     });
     if (!plan) return notFoundResponse('Path not found');
 
-    // Block double-fires while a previous run is still in flight.
-    if (plan.generationStatus === 'generating') {
-      return badRequestResponse('Generation is already in progress');
-    }
-
-    await db.studyPlan.update({
-      where: { id: planId },
+    // Atomically claim the run: the conditional updateMany only matches when the
+    // plan isn't already generating, so two concurrent regenerates (e.g. a
+    // double-click) can't both fire generatePath — exactly one wins. This also
+    // clears the prior run's progress snapshot, otherwise the /generation SSE
+    // replays a stale "N / N" to the modal before the scoped regenerate progress
+    // lands and that flash reads as "regenerating the whole path". The modal
+    // falls back to its targetCount until the first real write.
+    const claimed = await db.studyPlan.updateMany({
+      where: { id: planId, userId, generationStatus: { not: 'generating' } },
       data: {
         generationStatus: 'generating',
         generationError: null,
-        // Clear the prior run's progress snapshot. Otherwise the /generation
-        // SSE replays a stale "N / N" to the modal before the scoped regenerate
-        // progress lands — that flash reads as "regenerating the whole path".
-        // The modal falls back to its targetCount until the first real write.
         generationProgress: Prisma.DbNull,
       },
     });
+    if (claimed.count === 0) {
+      return badRequestResponse('Generation is already in progress');
+    }
 
     void generatePath(planId).catch((err) => {
       console.error('[learn/paths regenerate]', err);

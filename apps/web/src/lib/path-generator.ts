@@ -1340,9 +1340,12 @@ async function runGenerationPass(
   plan: PlanForGeneration,
   planId: string,
   progressTotal: number,
+  completedSlotsBase: number,
 ): Promise<string[]> {
   const failedSlotIds: string[] = [];
-  let completedSlots = 0;
+  // Seed with work finished in earlier sweeps so the scoped progress bar keeps
+  // climbing across retries instead of snapping back to 0 / N each sweep.
+  let completedSlots = completedSlotsBase;
 
   for (const phase of plan.phases) {
     for (const slot of phase.slots) {
@@ -1504,7 +1507,10 @@ export async function generatePath(
         retryingSlots: new Set(failedSlotIds).size,
       });
     }
-    failedSlotIds = await runGenerationPass(plan, planId, progressTotal);
+    // Slots already finished in prior sweeps (progressTotal minus what's still
+    // pending now) seed this sweep's counter, so progress advances monotonically.
+    const completedSlotsBase = progressTotal - pendingSlotCount(plan);
+    failedSlotIds = await runGenerationPass(plan, planId, progressTotal, completedSlotsBase);
     if (failedSlotIds.length === 0) break;
   }
 
