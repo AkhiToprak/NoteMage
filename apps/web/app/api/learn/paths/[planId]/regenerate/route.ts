@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
@@ -62,6 +63,11 @@ export async function POST(request: NextRequest, { params }: Params) {
       data: {
         generationStatus: 'generating',
         generationError: null,
+        // Clear the prior run's progress snapshot. Otherwise the /generation
+        // SSE replays a stale "N / N" to the modal before the scoped regenerate
+        // progress lands — that flash reads as "regenerating the whole path".
+        // The modal falls back to its targetCount until the first real write.
+        generationProgress: Prisma.DbNull,
       },
     });
 

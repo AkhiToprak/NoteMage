@@ -67,6 +67,20 @@ interface GenerationProgressModalProps {
   planId: string;
   /** Plan title the user submitted — used as the modal header until the SSE replies. */
   initialTitle: string;
+  /**
+   * 'create' (default) = a brand-new path is being generated end to end, so the
+   * modal shows the whole path's section-by-section progress. 'regenerate' = we
+   * are only filling in the checkpoints that previously failed; the progress UI
+   * is scoped to those gaps (no whole-path section breakdown) so it doesn't look
+   * like the entire path is being rebuilt.
+   */
+  mode?: 'create' | 'regenerate';
+  /**
+   * In 'regenerate' mode, the number of checkpoints being filled in. Used as the
+   * progress denominator until the SSE reports its own (scoped) total, so the bar
+   * never flashes the full-path count first.
+   */
+  targetCount?: number;
   /** Called when the user picks "Run in background". */
   onRunInBackground: () => void;
   /** Called when the user dismisses the modal entirely (after success/error). */
@@ -103,9 +117,12 @@ function countIncompleteSlots(plan: unknown): number {
 export default function GenerationProgressModal({
   planId,
   initialTitle,
+  mode = 'create',
+  targetCount,
   onRunInBackground,
   onClose,
 }: GenerationProgressModalProps) {
+  const isRegenerate = mode === 'regenerate';
   const stream = usePathGenerationStream(planId, true);
   const [oneShot, setOneShot] = useState<MascotOneShot | null>(null);
   const [structure, setStructure] = useState<PlanStructure | null>(null);
@@ -151,6 +168,7 @@ export default function GenerationProgressModal({
   const completedSlots = stream.progress?.completedSlots ?? 0;
   useEffect(() => {
     if (completedSlots === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fire a one-shot sparkle as each checkpoint completes; completedSlots ticks up from the external SSE stream
     setOneShot('sparkle');
   }, [completedSlots]);
 
@@ -172,7 +190,13 @@ export default function GenerationProgressModal({
     setRetrying(false);
   };
 
-  const total = stream.progress?.totalSlots ?? structure?.totalSlots ?? 0;
+  // In regenerate mode the denominator is the gap count, not the whole path —
+  // prefer the SSE's scoped total, then the caller's targetCount, and never fall
+  // back to the full-path structure total (which would misread as a full rebuild).
+  const total =
+    stream.progress?.totalSlots ??
+    (isRegenerate ? targetCount : structure?.totalSlots) ??
+    0;
   const done = stream.progress?.completedSlots ?? 0;
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   const currentSlot = stream.progress?.currentSlot;
@@ -247,10 +271,14 @@ export default function GenerationProgressModal({
             {isReady
               ? isPartial
                 ? `Path ready, ${incompleteCount} to retry`
-                : 'Your path is ready!'
+                : isRegenerate
+                  ? 'Checkpoints filled in!'
+                  : 'Your path is ready!'
               : isFailed
                 ? 'Generation hit a snag'
-                : 'Building your path…'}
+                : isRegenerate
+                  ? 'Filling in the gaps…'
+                  : 'Building your path…'}
           </h2>
           <p
             style={{
@@ -268,13 +296,26 @@ export default function GenerationProgressModal({
                 ? stream.errorMessage ?? 'Something went wrong. Try again.'
                 : currentSlot && currentActivity
                   ? `Writing ${ACTIVITY_LABEL[currentActivity]} for "${currentSlot.title}"…`
-                  : 'Designing sections and checkpoints…'}
+                  : isRegenerate
+                    ? `Regenerating ${total} checkpoint${total === 1 ? '' : 's'}…`
+                    : 'Designing sections and checkpoints…'}
           </p>
         </div>
 
-        <ProgressBar percent={percent} status={stream.status} total={total} done={done} />
+        <ProgressBar
+          percent={percent}
+          status={stream.status}
+          total={total}
+          done={done}
+          unitLabel={isRegenerate ? 'checkpoint' : 'slot'}
+          emptyLabel={isRegenerate ? 'Starting…' : 'Designing structure…'}
+        />
 
-        {structure && structure.phases.length > 0 && (
+        {/* The whole-path section breakdown only makes sense for a fresh build.
+            A regenerate touches a subset of checkpoints, so the scoped bar above
+            is the honest signal — showing every section here would read as a
+            full rebuild. */}
+        {!isRegenerate && structure && structure.phases.length > 0 && (
           <SectionProgress
             phases={structure.phases}
             currentSlotId={currentSlot?.id ?? null}
@@ -312,7 +353,7 @@ export default function GenerationProgressModal({
                 style={primaryButtonStyle}
                 onClick={onClose}
               >
-                Start learning →
+                {isRegenerate ? 'Back to path' : 'Start learning →'}
               </Link>
               {isPartial ? (
                 <button
@@ -355,11 +396,15 @@ function ProgressBar({
   status,
   total,
   done,
+  unitLabel,
+  emptyLabel,
 }: {
   percent: number;
   status: PathGenerationStatus;
   total: number;
   done: number;
+  unitLabel: string;
+  emptyLabel: string;
 }) {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -394,7 +439,7 @@ function ProgressBar({
           fontVariantNumeric: 'tabular-nums',
         }}
       >
-        {total > 0 ? `${done} / ${total} slots` : 'Designing structure…'}
+        {total > 0 ? `${done} / ${total} ${unitLabel}${total === 1 ? '' : 's'}` : emptyLabel}
       </p>
     </div>
   );

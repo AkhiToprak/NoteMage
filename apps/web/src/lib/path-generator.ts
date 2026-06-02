@@ -719,6 +719,26 @@ function totalSlotCount(plan: PlanForGeneration): number {
   return plan.phases.reduce((n, p) => n + p.slots.length, 0);
 }
 
+// Count slots that still need work this run — i.e. are missing at least one
+// expected activity kind that wasn't intentionally pruned. For a fresh create
+// every slot is pending (== totalSlotCount); for a regenerate only the
+// previously-failed checkpoints are pending. This is the progress denominator
+// so the modal shows "x / N" for the N being (re)generated, not the whole path.
+// Mirrors the missing-kinds test in runGenerationPass and isGenerationIncomplete
+// (path-gating), so it stays in lockstep with the banner's incomplete count.
+function pendingSlotCount(plan: PlanForGeneration): number {
+  let n = 0;
+  for (const phase of plan.phases) {
+    for (const slot of phase.slots) {
+      const missing = expectedActivityKinds(slot.kind).filter(
+        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
+      );
+      if (missing.length > 0) n += 1;
+    }
+  }
+  return n;
+}
+
 function makeSlotContentContext(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
@@ -1319,7 +1339,7 @@ async function writeProgress(planId: string, snap: ProgressSnapshot): Promise<vo
 async function runGenerationPass(
   plan: PlanForGeneration,
   planId: string,
-  total: number,
+  progressTotal: number,
 ): Promise<string[]> {
   const failedSlotIds: string[] = [];
   let completedSlots = 0;
@@ -1335,13 +1355,15 @@ async function runGenerationPass(
         (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
       );
 
+      // Already-complete (or fully-pruned) slots aren't part of this run's
+      // progress — don't count them, so a regenerate of N gaps reports against
+      // those N rather than every slot in the path.
       if (missingKinds.length === 0) {
-        completedSlots += 1;
         continue;
       }
 
       await writeProgress(planId, {
-        totalSlots: total,
+        totalSlots: progressTotal,
         completedSlots,
         currentSlot: { id: slot.id, title: slot.title },
         currentActivity: missingKinds[0],
@@ -1403,7 +1425,7 @@ async function runGenerationPass(
 
       completedSlots += 1;
       await writeProgress(planId, {
-        totalSlots: total,
+        totalSlots: progressTotal,
         completedSlots,
         currentSlot: null,
         currentActivity: null,
@@ -1412,7 +1434,7 @@ async function runGenerationPass(
         planId,
         slotId: slot.id,
         slotIndex: completedSlots,
-        totalSlots: total,
+        totalSlots: progressTotal,
       });
     }
   }
@@ -1462,6 +1484,11 @@ export async function generatePath(
   const usage = plan.usage;
   const extraSweeps = plan.ultra ? PATH_RETRY_SWEEPS_ULTRA : PATH_RETRY_SWEEPS_BASIC;
 
+  // Scope the streamed progress to checkpoints that actually need work this run
+  // (== total on a fresh create; only the failed ones on a regenerate). Held
+  // stable across retry sweeps so the bar doesn't reset its denominator.
+  const progressTotal = pendingSlotCount(plan);
+
   let failedSlotIds: string[] = [];
   for (let sweep = 0; sweep <= extraSweeps; sweep++) {
     if (sweep > 0) {
@@ -1477,7 +1504,7 @@ export async function generatePath(
         retryingSlots: new Set(failedSlotIds).size,
       });
     }
-    failedSlotIds = await runGenerationPass(plan, planId, total);
+    failedSlotIds = await runGenerationPass(plan, planId, progressTotal);
     if (failedSlotIds.length === 0) break;
   }
 
