@@ -52,6 +52,10 @@ interface PublishBody {
   // Admin-only per P0 §4.1; silently ignored for non-admins. Wired in
   // P11 — see the seeded-bypass branch below and the file header.
   seeded?: boolean;
+  // Theory-visuals: author opts in to sharing the images embedded in the
+  // path's lessons. Defaults false (privacy-conservative); the clone flow
+  // reads SharedPath.includeImages to copy-or-strip embedded figures.
+  includeImages?: boolean;
 }
 
 type Params = { params: Promise<{ planId: string }> };
@@ -140,6 +144,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       typeof body.coverImageUrl === 'string' && body.coverImageUrl.trim().length > 0
         ? body.coverImageUrl.trim().slice(0, 500)
         : null;
+    // Theory-visuals: only `true` opts in; anything else (absent / false)
+    // keeps embedded figures private to the author's copy.
+    const includeImages = body.includeImages === true;
 
     const slotCount = plan.phases.reduce((acc, p) => acc + p._count.slots, 0);
 
@@ -167,6 +174,7 @@ export async function POST(request: NextRequest, { params }: Params) {
               subjects: plan.subjects,
               phaseCount: plan._count.phases,
               slotCount,
+              includeImages,
               moderationStatus: 'approved',
               seeded: true,
               approvedAt: now,
@@ -244,6 +252,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           subjects: plan.subjects,
           phaseCount: plan._count.phases,
           slotCount,
+          includeImages,
           moderationStatus: 'pending',
         },
         select: {

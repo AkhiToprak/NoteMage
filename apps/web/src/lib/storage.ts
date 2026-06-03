@@ -36,6 +36,25 @@ export async function saveImage(
   return { filePath: storagePath };
 }
 
+/**
+ * Copy an existing private-bucket object to a new private-bucket path. Used by
+ * path theory generation to SNAPSHOT a source page image into a path-owned
+ * `theory-images/` object — so the embedded figure survives deletion of the
+ * source page and clones can deep-copy it. Returns the new path + byte size.
+ */
+export async function copyImage(
+  srcPath: string,
+  destPath: string
+): Promise<{ filePath: string; fileSize: number }> {
+  const buffer = await readFile(srcPath);
+  const { error } = await supabase.storage
+    .from(BUCKET_PRIVATE)
+    .upload(destPath, buffer, { upsert: false });
+
+  if (error) throw new Error(`Failed to copy image: ${error.message}`);
+  return { filePath: destPath, fileSize: buffer.length };
+}
+
 export async function saveFlashcardImage(
   cardId: string,
   filename: string,

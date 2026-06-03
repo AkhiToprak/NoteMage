@@ -51,13 +51,23 @@ import {
 import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
 import { computeCost, type ModelUsage } from './path-generator-cost';
 import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
+import {
+  loadSourceImages,
+  captionMissing,
+  renderImageCatalog,
+  type SourceImage,
+} from './path-image-catalog';
 import { refundUsage } from './usage-limits';
 import {
   QuizSetV2Schema,
   TheorySectionSchema,
+  PathDiagramSchema,
+  TheoryFigureSchema,
   type QuestionKind,
   type TheorySection,
+  type PathDiagram,
 } from '@notemage/shared';
+import { copyImage } from './storage';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
 import { logTelemetry } from './telemetry-server';
@@ -340,21 +350,54 @@ const THEORY_SECTION_LABELS: Record<PathLanguageCode, TheorySectionLabels> = {
   zh: { keyPoints: '要点', examples: '示例', summary: '小结' },
 };
 
+// The core (text-only) theory fields theoryInputToTipTap + theoryPlainText
+// read. A loose structural subset so a validated `TheorySection` — which also
+// carries loose `figures`/`diagrams` arrays — is assignable here.
+type TheoryCore = Pick<
+  TheorySectionToolInput,
+  'title' | 'introduction' | 'keyPoints' | 'examples' | 'summary'
+>;
+
+// Theory-visuals custom nodes. `pathImage` carries only a `ref` (the
+// TheoryImage.sortOrder) — never an id/URL — so a clone resolves it against
+// the clone's own copied images with zero body rewriting. `pathDiagram` holds
+// the validated diagram object in attrs; the viewer renders it with a React
+// component and the translation/moderation walkers reach into attrs.
+function pathImageNode(ref: number, alt: string): TipTapNode {
+  return { type: 'pathImage', attrs: { ref, alt } };
+}
+
+function pathDiagramNode(diagram: PathDiagram): TipTapNode {
+  return { type: 'pathDiagram', attrs: { diagram } };
+}
+
+interface TheoryVisuals {
+  /** Snapshotted figures, in order; `ref` is the TheoryImage.sortOrder. */
+  figures?: { ref: number; alt: string }[];
+  /** Validated diagrams, in order. */
+  diagrams?: PathDiagram[];
+}
+
 /**
  * Convert the Stage B `create_theory_section` tool output into a TipTap
- * document JSON. The drawer in Phase 10.6 will render this with a
- * read-only TipTap viewer that reuses PageEditor's extension set. The
+ * document JSON, rendered by the read-only viewer (TheoryViewer). The
  * structural headings are localized to `language` so they match the
- * generated prose.
+ * generated prose. Optional `visuals` interleave figures (after the intro)
+ * and diagrams (after the examples) as custom block nodes.
  */
 export function theoryInputToTipTap(
-  input: TheorySectionToolInput,
+  input: TheoryCore,
   language: PathLanguageCode = 'en',
+  visuals?: TheoryVisuals,
 ): TipTapDoc {
   const labels = THEORY_SECTION_LABELS[language] ?? THEORY_SECTION_LABELS.en;
   const content: TipTapNode[] = [];
   content.push(heading(2, input.title));
   content.push(...splitParagraphs(input.introduction));
+  // Figures sit right after the intro — they illustrate the concept being set up.
+  for (const fig of visuals?.figures ?? []) {
+    content.push(pathImageNode(fig.ref, fig.alt));
+  }
   if (input.keyPoints.length > 0) {
     content.push(heading(3, labels.keyPoints));
     content.push(bulletList(input.keyPoints));
@@ -365,6 +408,10 @@ export function theoryInputToTipTap(
       content.push(heading(4, ex.label));
       content.push(...splitParagraphs(ex.explanation));
     }
+  }
+  // Diagrams sit after the examples — they consolidate structure / sequence.
+  for (const diagram of visuals?.diagrams ?? []) {
+    content.push(pathDiagramNode(diagram));
   }
   if (input.summary && input.summary.trim().length > 0) {
     content.push(heading(3, labels.summary));
@@ -378,7 +425,7 @@ export function theoryInputToTipTap(
  * generator can build cards from exactly what the learner just read — which
  * keeps the card count honest (no padding from the bare topic hint).
  */
-function theoryPlainText(input: TheorySectionToolInput): string {
+function theoryPlainText(input: TheoryCore): string {
   const parts: string[] = [];
   if (input.introduction.trim()) parts.push(input.introduction.trim());
   if (input.keyPoints.length > 0) {
@@ -622,6 +669,20 @@ interface PlanForGeneration {
   language: PathLanguageCode;
   /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
   corpus: string | null;
+  /**
+   * Rendered source-image catalog appended to the theory prompt's cached
+   * system block. Non-null only on ultra paths whose materials carried
+   * (captioned) images and `PATH_THEORY_FIGURES_DISABLED` is off. When null,
+   * the theory model is never told figures exist.
+   */
+  imageCatalog: string | null;
+  /**
+   * The images behind `imageCatalog`, keyed for snapshotting at emit time.
+   * Empty when figures are off. `imageRef` (PageImage.id) maps to one entry.
+   */
+  availableImages: SourceImage[];
+  /** Whether structured diagrams are offered/kept (false ⇢ PATH_THEORY_DIAGRAMS_DISABLED). */
+  diagramsEnabled: boolean;
   /** Token usage accumulated across this run's Stage B calls. */
   usage: UsageMeter;
   phases: PhaseForGeneration[];
@@ -671,6 +732,33 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   const corpusEntries = await loadMaterialCorpus(plan.userId, plan.materialIds);
   const corpus = corpusEntries ? renderMaterialCorpus(corpusEntries) : null;
 
+  // Theory visuals. Diagrams are all-tiers (no added AI cost) so they ride a
+  // simple kill-switch. Figures are ultra-only: the vision captioning pass is
+  // the sole added cost, gated to ultra + PATH_THEORY_FIGURES_DISABLED. The
+  // whole catalog build is best-effort — any failure leaves imageCatalog null
+  // and figures are simply never offered, so a path never fails over visuals.
+  const diagramsEnabled = process.env.PATH_THEORY_DIAGRAMS_DISABLED !== '1';
+  const figuresEnabled = plan.ultra && process.env.PATH_THEORY_FIGURES_DISABLED !== '1';
+  let imageCatalog: string | null = null;
+  let availableImages: SourceImage[] = [];
+  if (figuresEnabled) {
+    try {
+      availableImages = await loadSourceImages(plan.userId, plan.materialIds);
+      if (availableImages.length > 0) {
+        await captionMissing(availableImages);
+        const rendered = renderImageCatalog(availableImages);
+        imageCatalog = rendered.length > 0 ? rendered : null;
+      }
+    } catch (error) {
+      logTelemetry(plan.userId, 'path.theory.image_catalog_failed', {
+        planId: plan.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      imageCatalog = null;
+      availableImages = [];
+    }
+  }
+
   return {
     id: plan.id,
     userId: plan.userId,
@@ -684,6 +772,9 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     gemini: plan.gemini,
     language: normalizePathLanguage(plan.language),
     corpus,
+    imageCatalog,
+    availableImages,
+    diagramsEnabled,
     usage: emptyMeter(),
     phases: plan.phases.map((p) => ({
       title: p.title,
@@ -795,12 +886,56 @@ function makeSlotContentContext(
     hasSourceMaterials: Boolean(plan.corpus && plan.corpus.trim().length > 0),
     language: plan.language,
     theoryText,
+    // Only buildTheoryPrompt reads these; flashcards/quiz prompts ignore them.
+    imageCatalog: plan.imageCatalog,
+    diagramsEnabled: plan.diagramsEnabled,
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────
 // Stage B — per-activity AI calls + persistence
 // ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Validate the model's figure references against the path's image catalog and
+ * return the matched source images (model order, deduped, capped at 3). A
+ * hallucinated or duplicate `imageRef` is dropped so it can never reach a
+ * snapshot or an <img> src.
+ */
+export function resolveFigures(
+  rawFigures: unknown,
+  available: SourceImage[],
+): { image: SourceImage; caption: string }[] {
+  if (!Array.isArray(rawFigures) || available.length === 0) return [];
+  const byId = new Map(available.map((img) => [img.id, img]));
+  const seen = new Set<string>();
+  const out: { image: SourceImage; caption: string }[] = [];
+  for (const raw of rawFigures) {
+    const parsed = TheoryFigureSchema.safeParse(raw);
+    if (!parsed.success) continue;
+    const img = byId.get(parsed.data.imageRef);
+    if (!img || seen.has(img.id)) continue;
+    seen.add(img.id);
+    out.push({ image: img, caption: parsed.data.caption });
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
+/**
+ * Validate each diagram with the strict per-kind schema and drop the invalid
+ * ones (never fail the theory over a bad diagram). Capped at 2.
+ */
+export function resolveDiagrams(rawDiagrams: unknown): PathDiagram[] {
+  if (!Array.isArray(rawDiagrams)) return [];
+  const out: PathDiagram[] = [];
+  for (const raw of rawDiagrams) {
+    const parsed = PathDiagramSchema.safeParse(raw);
+    if (parsed.success) out.push(parsed.data);
+    if (out.length >= 2) break;
+  }
+  return out;
+}
 
 async function generateTheoryActivity(
   plan: PlanForGeneration,
@@ -880,7 +1015,50 @@ async function generateTheoryActivity(
     throw new Error(`Theory generation failed: ${lastError}`);
   }
 
-  const body = theoryInputToTipTap(resolved, plan.language);
+  // Theory visuals — validate the model's figures (drop hallucinated refs) and
+  // diagrams (drop per-kind-invalid), then snapshot referenced source images
+  // into path-owned blobs and emit pathImage / pathDiagram nodes.
+  const figures = plan.imageCatalog ? resolveFigures(resolved.figures, plan.availableImages) : [];
+  const diagrams = plan.diagramsEnabled ? resolveDiagrams(resolved.diagrams) : [];
+
+  // Snapshot blobs OUTSIDE the DB transaction — storage I/O must not hold a DB
+  // connection open. A copy failure simply drops that one figure.
+  const snapped: {
+    sourcePageImageId: string;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    caption: string;
+  }[] = [];
+  for (const fig of figures) {
+    try {
+      const dest = `theory-images/${slot.id}/${Date.now()}-${snapped.length}`;
+      const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
+      snapped.push({
+        sourcePageImageId: fig.image.id,
+        fileName: fig.image.fileName,
+        filePath,
+        fileSize,
+        mimeType: fig.image.mimeType,
+        caption: fig.caption,
+      });
+    } catch (error) {
+      logTelemetry(plan.userId, 'path.theory.figure_copy_failed', {
+        planId: plan.id,
+        slotId: slot.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  // pathImage `ref` is the TheoryImage.sortOrder (= index of the snapshot).
+  const figureNodes = snapped.map((s, i) => ({ ref: i, alt: s.caption }));
+  const body = theoryInputToTipTap(resolved, plan.language, {
+    figures: figureNodes,
+    diagrams,
+  });
+
   await db.$transaction(async (tx) => {
     const theory = await tx.theoryContent.create({
       data: {
@@ -888,6 +1066,20 @@ async function generateTheoryActivity(
         body: body as unknown as Prisma.InputJsonValue,
       },
     });
+    if (snapped.length > 0) {
+      await tx.theoryImage.createMany({
+        data: snapped.map((s, i) => ({
+          theoryId: theory.id,
+          sourcePageImageId: s.sourcePageImageId,
+          fileName: s.fileName,
+          filePath: s.filePath,
+          fileSize: s.fileSize,
+          mimeType: s.mimeType,
+          caption: s.caption,
+          sortOrder: i,
+        })),
+      });
+    }
     await tx.checkpointActivity.create({
       data: {
         slotId: slot.id,

@@ -660,13 +660,15 @@ model Page {
 }
 
 model PageImage {
-  id        String   @id @default(cuid())
-  pageId    String
-  fileName  String
-  filePath  String
-  fileSize  Int
-  mimeType  String
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  pageId      String
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  aiCaption   String? // Vision-generated caption, cached so each image is captioned once (path theory visuals)
+  captionedAt DateTime?
+  createdAt   DateTime  @default(now())
 
   // Relations
   page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
@@ -924,8 +926,33 @@ model TheoryContent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   activity  CheckpointActivity?
+  images    TheoryImage[]
 
   @@map("theory_content")
+}
+
+// Path-owned snapshot of a source image embedded into theory (theory-visuals
+// feature). The blob is COPIED at generation time (not referenced) so the
+// theory survives source-page deletion, and the clone flow can deep-copy these
+// rows the same way FlashcardImage is copied. The TipTap `pathImage` node
+// carries only a `ref` (this row's sortOrder within the theory), never an
+// id/URL — so cloning needs no body rewrite.
+model TheoryImage {
+  id                String   @id @default(cuid())
+  theoryId          String
+  sourcePageImageId String? // provenance only; nullable so source deletion can't strand us
+  fileName          String
+  filePath          String
+  fileSize          Int
+  mimeType          String
+  caption           String?
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  theory TheoryContent @relation(fields: [theoryId], references: [id], onDelete: Cascade)
+
+  @@index([theoryId])
+  @@map("theory_images")
 }
 
 // Phase 10 — replaces CheckpointAttempt. Scoped to a slot (was a phase) and
@@ -1711,6 +1738,10 @@ model SharedPath {
   moderationStatus      String    @default("pending")
   rejectionReason       String?   @db.Text // Composed from ModerationAudit.reasonCode at terminal reject
   seeded                Boolean   @default(false) // Admin-curated; bypasses L1/L2/L3
+  // Author's publish-time choice (theory-visuals feature): when true, the
+  // clone flow deep-copies embedded theory images; when false it strips the
+  // pathImage nodes from cloned bodies so cloners get no dead image refs.
+  includeImages         Boolean   @default(false)
   downloadCount         Int       @default(0)
   viewCount             Int       @default(0)
   // Denormalized rating aggregates — updated atomically inside the

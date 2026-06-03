@@ -193,22 +193,121 @@ interface TipTapNode {
   type: string;
   text?: string;
   marks?: Array<{ type?: string }>;
+  attrs?: Record<string, unknown> | null;
   content?: TipTapNode[];
+}
+
+/** A translatable string leaf whose value lives somewhere other than a text
+ *  node's `.text` (e.g. a theory-visuals diagram label or image caption). */
+interface AttrSlot {
+  get: () => string;
+  set: (v: string) => void;
 }
 
 /**
  * Collect every translatable text node in a TipTap doc. Skips math nodes
- * (`inlineMath` / `blockMath` carry their LaTeX in `attrs`, not `text`) and
- * any text node wearing an inline `code` mark.
+ * (`inlineMath` / `blockMath` carry their LaTeX in `attrs`, not `text`), any
+ * text node wearing an inline `code` mark, and the theory-visuals custom
+ * nodes (`pathImage` / `pathDiagram`) — those carry their strings in `attrs`,
+ * surfaced separately by `collectTheoryVisualSlots`.
  */
 function collectTipTapTextNodes(doc: unknown): TipTapNode[] {
   const out: TipTapNode[] = [];
   const visit = (node: TipTapNode | undefined) => {
     if (!node || typeof node !== 'object') return;
+    if (node.type === 'pathImage' || node.type === 'pathDiagram') return;
     if (node.type === 'text' && typeof node.text === 'string') {
       const isCode =
         Array.isArray(node.marks) && node.marks.some((m) => m?.type === 'code');
       if (!isCode) out.push(node);
+      return;
+    }
+    if (Array.isArray(node.content)) node.content.forEach(visit);
+  };
+  const root = doc as TipTapNode | undefined;
+  if (root && Array.isArray(root.content)) root.content.forEach(visit);
+  return out;
+}
+
+// Push a non-empty string property as a get/set slot mutating the object in
+// place (so writing the doc back persists the translation).
+function addStrSlot(obj: Record<string, unknown>, key: string, out: AttrSlot[]): void {
+  const v = obj[key];
+  if (typeof v === 'string' && v.trim().length > 0) {
+    out.push({ get: () => obj[key] as string, set: (val) => { obj[key] = val; } });
+  }
+}
+
+// Push each non-empty string element of an array as a slot.
+function addArrSlots(arr: unknown, out: AttrSlot[]): void {
+  if (!Array.isArray(arr)) return;
+  arr.forEach((el, i) => {
+    if (typeof el === 'string' && el.trim().length > 0) {
+      out.push({ get: () => arr[i] as string, set: (val) => { arr[i] = val; } });
+    }
+  });
+}
+
+// Collect the human-readable label/caption strings inside one diagram object,
+// leaving structural keys (`kind`) and timeline dates untouched.
+function collectDiagramSlots(d: Record<string, unknown>, out: AttrSlot[]): void {
+  addStrSlot(d, 'title', out);
+  switch (d.kind) {
+    case 'timeline':
+      if (Array.isArray(d.events)) {
+        for (const ev of d.events) {
+          if (ev && typeof ev === 'object') addStrSlot(ev as Record<string, unknown>, 'label', out);
+        }
+      }
+      break;
+    case 'steps':
+      if (Array.isArray(d.steps)) {
+        for (const st of d.steps) {
+          if (st && typeof st === 'object') {
+            addStrSlot(st as Record<string, unknown>, 'title', out);
+            addStrSlot(st as Record<string, unknown>, 'detail', out);
+          }
+        }
+      }
+      break;
+    case 'comparison':
+      addArrSlots(d.columns, out);
+      if (Array.isArray(d.rows)) {
+        for (const r of d.rows) {
+          if (r && typeof r === 'object') {
+            addStrSlot(r as Record<string, unknown>, 'label', out);
+            addArrSlots((r as Record<string, unknown>).cells, out);
+          }
+        }
+      }
+      break;
+    case 'cycle':
+      addArrSlots(d.nodes, out);
+      break;
+    default:
+      break;
+  }
+}
+
+/**
+ * Collect translatable string leaves from the theory-visuals custom nodes:
+ * `pathImage` alt captions and `pathDiagram` labels. Returns get/set closures
+ * that mutate the doc in place — the caller batches them alongside the text
+ * nodes and writes the whole doc back after translation.
+ */
+export function collectTheoryVisualSlots(doc: unknown): AttrSlot[] {
+  const out: AttrSlot[] = [];
+  const visit = (node: TipTapNode | undefined) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'pathImage') {
+      if (node.attrs) addStrSlot(node.attrs, 'alt', out);
+      return;
+    }
+    if (node.type === 'pathDiagram') {
+      const diagram = node.attrs?.diagram;
+      if (diagram && typeof diagram === 'object') {
+        collectDiagramSlots(diagram as Record<string, unknown>, out);
+      }
       return;
     }
     if (Array.isArray(node.content)) node.content.forEach(visit);
@@ -376,16 +475,24 @@ async function translateTheoryActivity(
   if (!theory) return;
   const body = theory.body as unknown;
   const textNodes = collectTipTapTextNodes(body);
+  // Theory-visuals: diagram labels + image captions live in `attrs`, invisible
+  // to collectTipTapTextNodes — surface them as get/set slots so they translate
+  // in place too (else a translated path keeps English diagram labels).
+  const visualSlots = collectTheoryVisualSlots(body);
 
   const strings: SourceString[] = [
     { id: 'act', text: activity.title },
     { id: 'tt', text: theory.title },
     ...textNodes.map((n, i) => ({ id: `n${i}`, text: n.text as string })),
+    ...visualSlots.map((s, i) => ({ id: `v${i}`, text: s.get() })),
   ];
   const map = await translateBatch(strings, source, target, onUsage);
 
   textNodes.forEach((n, i) => {
     n.text = map.get(`n${i}`) ?? n.text;
+  });
+  visualSlots.forEach((s, i) => {
+    s.set(map.get(`v${i}`) ?? s.get());
   });
   const theoryTitle = map.get('tt') ?? theory.title;
   const activityTitle = map.get('act') ?? activity.title;

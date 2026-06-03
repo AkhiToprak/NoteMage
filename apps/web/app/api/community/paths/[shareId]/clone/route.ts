@@ -135,6 +135,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         moderationStatus: true,
         language: true,
         subjects: true,
+        includeImages: true,
         title: true,
         description: true,
         plan: {
@@ -163,7 +164,21 @@ export async function POST(request: NextRequest, { params }: Params) {
                         title: true,
                         sortOrder: true,
                         theory: {
-                          select: { title: true, body: true },
+                          select: {
+                            title: true,
+                            body: true,
+                            images: {
+                              orderBy: { sortOrder: 'asc' },
+                              select: {
+                                fileName: true,
+                                filePath: true,
+                                fileSize: true,
+                                mimeType: true,
+                                caption: true,
+                                sortOrder: true,
+                              },
+                            },
+                          },
                         },
                         flashcardSet: {
                           select: {
@@ -308,7 +323,7 @@ export async function POST(request: NextRequest, { params }: Params) {
                     bestPercentage: null,
                     activities: {
                       create: slot.activities.map((activity) =>
-                        buildActivityCreate(activity, userId),
+                        buildActivityCreate(activity, userId, source.includeImages),
                       ),
                     },
                   })),
@@ -381,12 +396,42 @@ export async function POST(request: NextRequest, { params }: Params) {
 // them from the nested create. A defensive `?? undefined` keeps a
 // missing relation from emitting `{ create: undefined }` (Prisma would
 // reject it).
+// Drop `pathImage` nodes from a theory body — used when the publisher chose
+// NOT to include images (SharedPath.includeImages=false): the clone gets no
+// TheoryImage rows, so the embedded image refs would 404; stripping the nodes
+// keeps the cloned theory clean. `pathDiagram` nodes are kept (no external
+// assets). Deep-clones first so the source body object is never mutated.
+function stripPathImageNodes(body: Prisma.JsonValue): Prisma.JsonValue {
+  if (!body || typeof body !== 'object') return body;
+  const clone = JSON.parse(JSON.stringify(body));
+  const visit = (node: { content?: unknown[] } | null | undefined): void => {
+    if (!node || typeof node !== 'object' || !Array.isArray(node.content)) return;
+    node.content = node.content.filter(
+      (c) => !(c && typeof c === 'object' && (c as { type?: string }).type === 'pathImage'),
+    );
+    for (const child of node.content) visit(child as { content?: unknown[] });
+  };
+  visit(clone as { content?: unknown[] });
+  return clone as Prisma.JsonValue;
+}
+
 function buildActivityCreate(
   activity: {
     kind: string;
     title: string;
     sortOrder: number;
-    theory: { title: string; body: Prisma.JsonValue } | null;
+    theory: {
+      title: string;
+      body: Prisma.JsonValue;
+      images: Array<{
+        fileName: string;
+        filePath: string;
+        fileSize: number;
+        mimeType: string;
+        caption: string | null;
+        sortOrder: number;
+      }>;
+    } | null;
     flashcardSet:
       | {
           title: string;
@@ -424,6 +469,7 @@ function buildActivityCreate(
       | null;
   },
   cloneOwnerUserId: string,
+  includeImages: boolean,
 ): Prisma.CheckpointActivityCreateWithoutSlotInput {
   const base: Prisma.CheckpointActivityCreateWithoutSlotInput = {
     kind: activity.kind,
@@ -435,11 +481,31 @@ function buildActivityCreate(
   };
 
   if (activity.theory) {
+    // Theory-visuals: the publisher's includeImages choice decides whether the
+    // embedded figures travel with the clone. When ON we deep-copy TheoryImage
+    // rows by reference (same blob, like FlashcardImage) and keep the body
+    // verbatim — the `pathImage` refs resolve against the clone's own copied
+    // images via the new theoryId + sortOrder, so no body rewrite is needed.
+    // When OFF we strip the pathImage nodes so the cloner sees no dead refs.
+    const copyImages = includeImages && activity.theory.images.length > 0;
     base.theory = {
       create: {
         title: activity.theory.title,
-        // TipTap JSON body — Prisma carries it through as-is.
-        body: activity.theory.body as Prisma.InputJsonValue,
+        body: (includeImages
+          ? activity.theory.body
+          : stripPathImageNodes(activity.theory.body)) as Prisma.InputJsonValue,
+        images: copyImages
+          ? {
+              create: activity.theory.images.map((img) => ({
+                fileName: img.fileName,
+                filePath: img.filePath,
+                fileSize: img.fileSize,
+                mimeType: img.mimeType,
+                caption: img.caption,
+                sortOrder: img.sortOrder,
+              })),
+            }
+          : undefined,
       },
     };
     return base;

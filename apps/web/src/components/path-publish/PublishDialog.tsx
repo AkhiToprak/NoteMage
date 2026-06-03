@@ -44,6 +44,9 @@ export default function PublishDialog({
   const [description, setDescription] = useState(defaultDescription ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Theory-visuals: opt in to sharing images embedded in this path's lessons.
+  // Off by default — the author's own copy always keeps them.
+  const [includeImages, setIncludeImages] = useState(false);
   // Touched flags so error styling only fires after the user has
   // engaged with the field — matches Hallmark's "validate on blur"
   // rule for forms.
@@ -86,6 +89,7 @@ export default function PublishDialog({
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || undefined,
+          includeImages,
         }),
       });
       const json = await res.json();
@@ -269,6 +273,88 @@ export default function PublishDialog({
               }}
             />
           </FieldRow>
+
+          {/* 03 · Images — opt in to sharing images embedded in this path's
+              lessons. Same left-margin numbered head as the fields above; the
+              control is a native checkbox so the label/control pairing stays
+              accessible. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <span
+                aria-hidden
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--on-surface-variant)',
+                  letterSpacing: '0.04em',
+                  minWidth: '24px',
+                }}
+              >
+                03 ·
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-brand)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--on-surface)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  lineHeight: 1,
+                }}
+              >
+                Images
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                    fontSize: '11px',
+                    letterSpacing: '0.06em',
+                    color: 'var(--on-surface-variant)',
+                  }}
+                >
+                  optional
+                </span>
+              </span>
+            </div>
+            <label
+              style={{
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'flex-start',
+                paddingLeft: '34px',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={includeImages}
+                onChange={(e) => setIncludeImages(e.target.checked)}
+                disabled={submitting}
+                className="hallmark-publish-check"
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  marginTop: '1px',
+                  flexShrink: 0,
+                  accentColor: 'var(--primary)',
+                  cursor: 'inherit',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--on-surface-variant)',
+                  lineHeight: 1.5,
+                }}
+              >
+                Include images from your notes that appear in this path&rsquo;s lessons. Off keeps
+                them in your private copy only.
+              </span>
+            </label>
+          </div>
         </div>
 
         {error ? (
@@ -379,6 +465,11 @@ export default function PublishDialog({
         .hallmark-publish-input:focus-visible {
           outline: 2px solid var(--primary);
           outline-offset: 1px;
+        }
+
+        .hallmark-publish-check:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 2px;
         }
 
         .hallmark-publish-ghost {

@@ -117,6 +117,21 @@ export interface SlotContentContext {
    * (and only as many cards as the material supports).
    */
   theoryText?: string;
+  /**
+   * For `theory`: a deterministic catalog of source images the slot MAY embed
+   * (one line per image: `imageRef` + caption + source page). Present only on
+   * ultra paths whose materials carried captioned images. When set,
+   * `buildTheoryPrompt` adds figure guidance + the catalog to the cached
+   * system block; absent → the model is never told figures exist.
+   */
+  imageCatalog?: string | null;
+  /**
+   * For `theory`: whether structured diagrams (timeline/steps/comparison/cycle)
+   * are offered. Defaults to true. The generator sets it false when
+   * `PATH_THEORY_DIAGRAMS_DISABLED` is on so the prose never solicits diagrams
+   * we would only drop.
+   */
+  diagramsEnabled?: boolean;
 }
 
 /**
@@ -271,6 +286,30 @@ export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
         ]
       : []),
   ];
+  // Optional visuals — diagrams (all tiers) and source-image figures (only when
+  // a catalog is supplied). Both keys are optional in the JSON shape so the
+  // model omits them freely; we add the guidance only when each is active.
+  const diagramsEnabled = ctx.diagramsEnabled !== false;
+  if (diagramsEnabled) {
+    systemLines.push(
+      '',
+      'OPTIONAL DIAGRAMS — you may add a `"diagrams"` array (0–2 entries) when a structured graphic genuinely clarifies the topic; omit it otherwise. Each entry is an object with a `"kind"` and ONLY that kind\'s fields:',
+      '- "timeline": { "kind":"timeline", "title"?: string, "events": [ { "date": string, "label": string } ] } — 3–8 dated events in order. Best for history / chronological topics.',
+      '- "steps": { "kind":"steps", "title"?: string, "steps": [ { "title": string, "detail"?: string } ] } — 3–8 ordered steps. Best for a process or how-to.',
+      '- "comparison": { "kind":"comparison", "title"?: string, "columns": [string], "rows": [ { "label": string, "cells": [string] } ] } — `columns` are the 2–4 things compared; each row is one aspect with one cell per column, in column order.',
+      '- "cycle": { "kind":"cycle", "title"?: string, "nodes": [string] } — 3–6 stages in a repeating loop.',
+      'Pick the kind that fits; never include empty or filler diagrams.',
+    );
+  }
+  const catalog = ctx.imageCatalog?.trim();
+  if (catalog) {
+    systemLines.push(
+      '',
+      'OPTIONAL FIGURES — you may add a `"figures"` array (0–3 entries) of the form `{ "imageRef": string, "caption": string }`, embedding images from the SOURCE FIGURES list below. Rules: copy each `imageRef` VERBATIM from that list (never invent one); include a figure ONLY when it genuinely illustrates THIS slot; prefer one strong figure over several weak ones; omit `figures` entirely if none fit.',
+      '',
+      catalog,
+    );
+  }
   const subjectFragment = subjectTheoryToneFragment(ctx.subjects);
   if (subjectFragment.length > 0) {
     systemLines.push(subjectFragment);

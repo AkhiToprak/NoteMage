@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import PathDiagram from '@/components/learn/PathDiagram';
+import { PathDiagramSchema, type PathDiagram as PathDiagramData } from '@notemage/shared';
 
 // Phase 10.6 persisted theory as a TipTap JSON document built by
 // path-generator.ts → theoryInputToTipTap. That converter copies the model's
@@ -11,13 +13,22 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 // characters — and the old read-only TipTap viewer rendered them as plain text.
 //
 // The stored shape has to stay TipTap JSON (path-translator + moderation walk
-// these nodes), so we fix rendering instead of storage: flatten the doc back
-// to a Markdown string and hand it to the shared MarkdownRenderer — the same
-// renderer chat, flashcards, and quiz questions use. This repairs both newly
-// generated and already-stored theory.
+// these nodes), so we fix rendering instead of storage: flatten runs of
+// standard blocks back to a Markdown string and hand them to the shared
+// MarkdownRenderer (the same renderer chat, flashcards, and quiz questions
+// use). The theory-visuals feature adds two custom block nodes — `pathImage`
+// and `pathDiagram` — that can't be expressed as Markdown, so the doc is split
+// into ordered SEGMENTS: standard-block runs render as Markdown, custom nodes
+// render as their own React components, in document order.
 
 interface TheoryViewerProps {
   body: unknown; // TipTap JSON document
+  /**
+   * The TheoryContent.id — required to build `pathImage` src URLs
+   * (`/api/path-images/<theoryId>/<ref>`). Absent on surfaces that don't carry
+   * embedded images; image segments are then skipped rather than broken.
+   */
+  theoryId?: string;
 }
 
 interface TipTapNode {
@@ -129,21 +140,91 @@ function serializeBlock(node: TipTapNode | null | undefined): string {
   }
 }
 
-function tiptapDocToMarkdown(body: unknown): string {
-  if (!body || typeof body !== 'object') return '';
+type Segment =
+  | { type: 'markdown'; text: string }
+  | { type: 'image'; ref: number; alt: string }
+  | { type: 'diagram'; diagram: PathDiagramData };
+
+// Split the doc into ordered segments at custom-node boundaries. Runs of
+// standard blocks coalesce into one Markdown chunk; `pathImage` / `pathDiagram`
+// nodes become their own segments. A malformed custom node is dropped (never
+// crashes the renderer) — diagrams are re-validated with PathDiagramSchema.
+function splitDoc(body: unknown): Segment[] {
+  if (!body || typeof body !== 'object') return [];
   const doc = body as TipTapNode;
   const blocks = Array.isArray(doc.content) ? doc.content : [];
-  return blocks
-    .map((block) => serializeBlock(block))
-    .filter((chunk) => chunk.trim().length > 0)
-    .join('\n\n')
-    .trim();
+  const segments: Segment[] = [];
+  let buffer: TipTapNode[] = [];
+  const flush = () => {
+    if (buffer.length === 0) return;
+    const md = buffer
+      .map((b) => serializeBlock(b))
+      .filter((chunk) => chunk.trim().length > 0)
+      .join('\n\n')
+      .trim();
+    if (md) segments.push({ type: 'markdown', text: md });
+    buffer = [];
+  };
+  for (const block of blocks) {
+    if (block?.type === 'pathImage') {
+      flush();
+      const ref = block.attrs?.ref;
+      const alt = block.attrs?.alt;
+      if (typeof ref === 'number') {
+        segments.push({ type: 'image', ref, alt: typeof alt === 'string' ? alt : '' });
+      }
+    } else if (block?.type === 'pathDiagram') {
+      flush();
+      const parsed = PathDiagramSchema.safeParse(block.attrs?.diagram);
+      if (parsed.success) segments.push({ type: 'diagram', diagram: parsed.data });
+    } else {
+      buffer.push(block);
+    }
+  }
+  flush();
+  return segments;
 }
 
-export default function TheoryViewer({ body }: TheoryViewerProps) {
-  const markdown = useMemo(() => tiptapDocToMarkdown(body), [body]);
+function TheoryFigure({ src, alt }: { src: string; alt: string }) {
+  return (
+    <figure style={{ margin: '1em 0' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        style={{
+          display: 'block',
+          maxWidth: '100%',
+          maxHeight: '380px',
+          margin: '0 auto',
+          borderRadius: 'var(--radius-md)',
+          objectFit: 'contain',
+          border: '1px solid var(--outline-variant)',
+          background: 'var(--surface-container)',
+        }}
+      />
+      {alt ? (
+        <figcaption
+          style={{
+            marginTop: '8px',
+            textAlign: 'center',
+            fontSize: '13px',
+            lineHeight: 1.5,
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          {alt}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
 
-  if (!markdown) {
+export default function TheoryViewer({ body, theoryId }: TheoryViewerProps) {
+  const segments = useMemo(() => splitDoc(body), [body]);
+
+  if (segments.length === 0) {
     return (
       <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
         This lesson has no content yet.
@@ -156,7 +237,22 @@ export default function TheoryViewer({ body }: TheoryViewerProps) {
       className="learn-theory-viewer"
       style={{ color: 'var(--on-surface)', fontSize: '15px', lineHeight: 1.7 }}
     >
-      <MarkdownRenderer content={markdown} />
+      {segments.map((seg, i) => {
+        if (seg.type === 'markdown') {
+          return <MarkdownRenderer key={i} content={seg.text} />;
+        }
+        if (seg.type === 'image') {
+          if (!theoryId) return null;
+          return (
+            <TheoryFigure
+              key={i}
+              src={`/api/path-images/${encodeURIComponent(theoryId)}/${seg.ref}`}
+              alt={seg.alt}
+            />
+          );
+        }
+        return <PathDiagram key={i} diagram={seg.diagram} />;
+      })}
     </div>
   );
 }

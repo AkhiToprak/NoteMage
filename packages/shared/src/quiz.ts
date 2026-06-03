@@ -236,6 +236,56 @@ export const QuizSetV2Schema = z.object({
 });
 export type QuizSetV2 = z.infer<typeof QuizSetV2Schema>;
 
+// Theory visuals (theory-visuals feature). A figure references one image from
+// the per-path source-image catalog by its `imageRef` (a catalog id). The
+// caption is the model's slot-local caption. Validated separately from the
+// catalog so a hallucinated `imageRef` is caught and dropped before any node
+// is emitted.
+export const TheoryFigureSchema = z.object({
+  imageRef: z.string().min(1),
+  caption: z.string().min(1),
+});
+export type TheoryFigure = z.infer<typeof TheoryFigureSchema>;
+
+// Structured diagram emitted alongside theory prose and rendered by a React
+// component (no AI image generation). The Anthropic/Gemini tool schema is kept
+// intentionally loose (one object with `kind` + optional fields, no `anyOf`)
+// because Gemini is unreliable on multi-variant unions; THIS discriminated
+// union is the strict gate — invalid diagrams are dropped, never failed.
+export const PathDiagramSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('timeline'),
+    title: z.string().optional(),
+    events: z
+      .array(z.object({ date: z.string().min(1), label: z.string().min(1) }))
+      .min(2)
+      .max(10),
+  }),
+  z.object({
+    kind: z.literal('steps'),
+    title: z.string().optional(),
+    steps: z
+      .array(z.object({ title: z.string().min(1), detail: z.string().optional() }))
+      .min(2)
+      .max(10),
+  }),
+  z.object({
+    kind: z.literal('comparison'),
+    title: z.string().optional(),
+    columns: z.array(z.string().min(1)).min(2).max(4),
+    rows: z
+      .array(z.object({ label: z.string().min(1), cells: z.array(z.string()).min(1) }))
+      .min(1)
+      .max(8),
+  }),
+  z.object({
+    kind: z.literal('cycle'),
+    title: z.string().optional(),
+    nodes: z.array(z.string().min(1)).min(2).max(8),
+  }),
+]);
+export type PathDiagram = z.infer<typeof PathDiagramSchema>;
+
 // Theory section — validates the Stage B `create_theory_section` tool input
 // before it is converted to a TipTap document. Mirrors `TheorySectionToolInput`
 // in `apps/web/src/lib/ai-tools.ts` and matches the tool's `required` list.
@@ -253,5 +303,12 @@ export const TheorySectionSchema = z.object({
     }),
   ),
   summary: z.string().optional(),
+  // Optional theory visuals. Held LOOSE here on purpose: a single malformed
+  // figure/diagram must NOT fail (and retry) the whole theory section. The
+  // generator validates each entry separately with TheoryFigureSchema /
+  // PathDiagramSchema and drops the invalid ones. Both absent on
+  // legacy/already-generated theory, so old tool outputs validate unchanged.
+  figures: z.array(z.unknown()).optional(),
+  diagrams: z.array(z.unknown()).optional(),
 });
 export type TheorySection = z.infer<typeof TheorySectionSchema>;

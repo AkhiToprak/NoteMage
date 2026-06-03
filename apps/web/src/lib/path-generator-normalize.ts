@@ -100,6 +100,12 @@ interface NormalizedTheoryInput {
   keyPoints: string[];
   examples: NormalizedTheoryExample[];
   summary?: string;
+  // Passed through verbatim (raw arrays) so the generator can validate each
+  // entry with TheoryFigureSchema / PathDiagramSchema and drop invalid ones —
+  // a malformed visual must not fail the whole theory parse. Theory-visuals
+  // feature; absent on legacy output.
+  figures?: unknown[];
+  diagrams?: unknown[];
 }
 
 function normalizeExamples(v: unknown): NormalizedTheoryExample[] {
@@ -170,6 +176,9 @@ export function normalizeTheoryInput(raw: unknown): NormalizedTheoryInput {
     undefined;
   const result: NormalizedTheoryInput = { title, introduction, keyPoints, examples };
   if (summary !== undefined) result.summary = summary;
+  // Visuals pass through as-is; per-entry validation happens in the generator.
+  if (Array.isArray(raw.figures)) result.figures = raw.figures;
+  if (Array.isArray(raw.diagrams)) result.diagrams = raw.diagrams;
   return result;
 }
 

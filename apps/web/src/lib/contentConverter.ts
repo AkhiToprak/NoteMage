@@ -55,6 +55,23 @@ export function safeLinkHref(href: string | null | undefined): string | null {
   }
 }
 
+// Deep-collect every non-empty string value (theory-visuals diagrams store
+// their labels/captions in attrs, not text nodes — moderation must still scan
+// them). Generic so it covers every diagram kind without per-kind branching.
+function collectDeepStrings(value: unknown, out: string[]): void {
+  if (typeof value === 'string') {
+    if (value.trim().length > 0) out.push(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const v of value) collectDeepStrings(v, out);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const v of Object.values(value)) collectDeepStrings(v, out);
+  }
+}
+
 /**
  * Extract plain text from a TipTap JSON document.
  * Recursively walks the node tree and collects all text content.
@@ -86,6 +103,26 @@ export function tiptapJsonToPlainText(doc: unknown): string | null {
       ) {
         parts.push((n.attrs as Record<string, unknown>).summary as string);
         parts.push('\n');
+      }
+
+      // theory-visuals custom nodes carry their human-readable strings in
+      // attrs — surface them so moderation scans image captions + diagram
+      // labels just like ordinary prose.
+      if (n.type === 'pathImage' && n.attrs) {
+        const alt = (n.attrs as Record<string, unknown>).alt;
+        if (typeof alt === 'string' && alt.trim().length > 0) {
+          parts.push(alt);
+          parts.push('\n');
+        }
+      }
+      if (n.type === 'pathDiagram' && n.attrs) {
+        const diagram = (n.attrs as Record<string, unknown>).diagram;
+        if (diagram && typeof diagram === 'object') {
+          const strings: string[] = [];
+          collectDeepStrings(diagram, strings);
+          for (const s of strings) parts.push(s, ' ');
+          parts.push('\n');
+        }
       }
 
       // Recurse into children

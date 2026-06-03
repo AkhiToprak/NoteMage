@@ -237,12 +237,32 @@ export interface PathStructureToolInput {
 // orchestrator converts to a TipTap document JSON before persisting.
 // Keeping the AI surface declarative rather than free-form JSON avoids
 // malformed TipTap docs that the read-only viewer can't render.
+// Loose shape for one generated diagram. Deliberately permissive (all kind-
+// specific fields optional) so Gemini's schemaless JSON mode and the derived
+// Gemini schema both stay reliable; the strict `PathDiagramSchema` (Zod) in
+// `@notemage/shared` enforces the per-kind shape after the call and the
+// generator drops anything that fails.
+export interface TheoryDiagramToolInput {
+  kind: 'timeline' | 'steps' | 'comparison' | 'cycle';
+  title?: string;
+  events?: { date: string; label: string }[];
+  steps?: { title: string; detail?: string }[];
+  columns?: string[];
+  rows?: { label: string; cells: string[] }[];
+  nodes?: string[];
+}
+
 export interface TheorySectionToolInput {
   title: string;
   introduction: string;
   keyPoints: string[];
   examples: { label: string; explanation: string }[];
   summary?: string;
+  // Optional theory visuals. `figures` reference source images by catalog id
+  // (only offered to the model when a source-image catalog accompanies the
+  // prompt); `diagrams` are structured, component-rendered graphics.
+  figures?: { imageRef: string; caption: string }[];
+  diagrams?: TheoryDiagramToolInput[];
 }
 
 // Stage B: flashcards for a slot. Identical shape to FLASHCARD_TOOL — the
@@ -833,6 +853,97 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
       summary: {
         type: 'string',
         description: 'Optional closing paragraph. Skip if the section is already self-contained.',
+      },
+      figures: {
+        type: 'array',
+        maxItems: 3,
+        description:
+          'OPTIONAL. Only when a "Available source figures" list accompanies this prompt: 0–3 figures to embed. Each `imageRef` MUST be copied verbatim from that list — never invent one. Include a figure only when it genuinely illustrates THIS slot. Omit entirely if none fit.',
+        items: {
+          type: 'object',
+          properties: {
+            imageRef: {
+              type: 'string',
+              description: 'An id copied verbatim from the supplied source-figure list.',
+            },
+            caption: {
+              type: 'string',
+              description: 'A short caption tying this figure to the current lesson.',
+            },
+          },
+          required: ['imageRef', 'caption'],
+        },
+      },
+      diagrams: {
+        type: 'array',
+        maxItems: 2,
+        description:
+          'OPTIONAL. 0–2 structured diagrams that materially clarify the topic. Use the right kind: "timeline" for dated/historical sequences, "steps" for a process or how-to, "comparison" for contrasting things, "cycle" for a repeating loop. Fill ONLY the fields for the chosen kind. Omit entirely if no diagram helps.',
+        items: {
+          type: 'object',
+          properties: {
+            kind: {
+              type: 'string',
+              enum: ['timeline', 'steps', 'comparison', 'cycle'],
+              description: 'Which diagram to render.',
+            },
+            title: { type: 'string', description: 'Optional short heading for the diagram.' },
+            events: {
+              type: 'array',
+              description:
+                'kind="timeline" only: 3–8 dated events in chronological order.',
+              items: {
+                type: 'object',
+                properties: {
+                  date: { type: 'string', description: 'Year or date label, e.g. "1789".' },
+                  label: { type: 'string', description: 'What happened (short).' },
+                },
+                required: ['date', 'label'],
+              },
+            },
+            steps: {
+              type: 'array',
+              description: 'kind="steps" only: 3–8 ordered steps.',
+              items: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string', description: 'Short step title.' },
+                  detail: { type: 'string', description: 'Optional one-line elaboration.' },
+                },
+                required: ['title'],
+              },
+            },
+            columns: {
+              type: 'array',
+              description:
+                'kind="comparison" only: the 2–4 things being compared (column headers).',
+              items: { type: 'string' },
+            },
+            rows: {
+              type: 'array',
+              description:
+                'kind="comparison" only: each row is one aspect — a `label` plus one `cells` entry per column, in column order.',
+              items: {
+                type: 'object',
+                properties: {
+                  label: { type: 'string', description: 'The aspect being compared.' },
+                  cells: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'One value per column, in the same order as `columns`.',
+                  },
+                },
+                required: ['label', 'cells'],
+              },
+            },
+            nodes: {
+              type: 'array',
+              description: 'kind="cycle" only: 3–6 stage labels in cyclic order.',
+              items: { type: 'string' },
+            },
+          },
+          required: ['kind'],
+        },
       },
     },
     required: ['title', 'introduction', 'keyPoints', 'examples'],

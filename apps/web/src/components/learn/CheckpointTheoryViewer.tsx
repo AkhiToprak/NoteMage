@@ -254,7 +254,7 @@ export default function CheckpointTheoryViewer({
               Loading theory…
             </p>
           ) : (
-            <TheoryViewer body={theory.body} />
+            <TheoryViewer body={theory.body} theoryId={theory.id} />
           )}
         </div>
       </div>
