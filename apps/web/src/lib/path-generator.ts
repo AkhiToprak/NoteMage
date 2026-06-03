@@ -1459,7 +1459,7 @@ async function runGenerationPass(
   return failedSlotIds;
 }
 
-export async function generatePath(
+async function runPathGeneration(
   planId: string,
   opts: { allowRefund?: boolean } = {},
 ): Promise<void> {
@@ -1565,4 +1565,31 @@ export async function generatePath(
     usage,
     cost: computeCost(usage.perModel),
   });
+}
+
+/**
+ * Public Stage-B entry point. Thin wrapper over {@link runPathGeneration} that
+ * guarantees a catastrophic throw is recorded as `generationStatus: 'failed'`
+ * instead of leaving the row stuck in `generating` forever — regenerate, reset
+ * AND delete all refuse a `generating` row, so a swallowed throw bricks the
+ * path with no in-app recourse. (Mirrors `translatePath`'s contract.) NB: a
+ * killed *process* — e.g. a redeploy mid-run — never reaches this catch; the
+ * stale-`generating` escape hatch in those routes covers that case.
+ */
+export async function generatePath(
+  planId: string,
+  opts: { allowRefund?: boolean } = {},
+): Promise<void> {
+  try {
+    await runPathGeneration(planId, opts);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[path-generator] generation failed', message);
+    await db.studyPlan
+      .update({
+        where: { id: planId },
+        data: { generationStatus: 'failed', generationError: `Generation failed: ${message}` },
+      })
+      .catch((e) => console.error('[path-generator] failed to mark plan failed', e));
+  }
 }

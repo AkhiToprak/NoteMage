@@ -8,7 +8,7 @@ import {
   internalErrorResponse,
   badRequestResponse,
 } from '@/lib/api-response';
-import { loadPathForUser, serializePath } from '@/lib/path-loader';
+import { loadPathForUser, serializePath, staleGenerationCutoff } from '@/lib/path-loader';
 
 // Phase 10.3 — single-plan GET. Returns the full annotated tree
 // (phases → slots → activities + unlock / completion flags). The same
@@ -49,6 +49,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       select: {
         id: true,
         generationStatus: true,
+        updatedAt: true,
         phases: {
           select: {
             slots: {
@@ -64,9 +65,11 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     });
     if (!plan) return notFoundResponse('Path not found');
 
-    // Refuse mid-generation — a delete now would orphan content the
-    // background orchestrator writes after this point.
-    if (plan.generationStatus === 'generating') {
+    // Refuse only while a LIVE orchestrator is mid-run — a delete then would
+    // orphan content the writer creates after this point. A row wedged in
+    // `generating` past the liveness window means that writer died, so the path
+    // is safe to delete (and is otherwise un-deletable / bricked).
+    if (plan.generationStatus === 'generating' && plan.updatedAt >= staleGenerationCutoff()) {
       return badRequestResponse('Wait for generation to finish before deleting');
     }
 

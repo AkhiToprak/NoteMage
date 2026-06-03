@@ -10,6 +10,26 @@ import { db } from './db';
 import { annotatePhases } from './path-gating';
 
 /**
+ * Liveness window for a `generationStatus: 'generating'` path. The generation
+ * and translation orchestrators bump `StudyPlan.updatedAt` on every progress
+ * write (per slot / activity), so a `generating` row with no write for longer
+ * than this has a DEAD orchestrator — e.g. the detached `generatePath` was
+ * killed by a redeploy mid-run. Such a row is safe to reclaim; without this it
+ * sticks in `generating` forever and regenerate/reset/delete all refuse it,
+ * permanently bricking the path with no in-app recourse.
+ */
+export const STALE_GENERATION_MS = 15 * 60 * 1000;
+
+/**
+ * Timestamp boundary for {@link STALE_GENERATION_MS}: a `generating` row whose
+ * `updatedAt` is older than this counts as a dead orchestrator and is
+ * reclaimable. `updatedAt < cutoff` ⇒ stale; `updatedAt >= cutoff` ⇒ live.
+ */
+export function staleGenerationCutoff(): Date {
+  return new Date(Date.now() - STALE_GENERATION_MS);
+}
+
+/**
  * The Prisma include shape every GET endpoint uses. Exported as a typed
  * constant so callers stay aligned even as the tree grows.
  */
