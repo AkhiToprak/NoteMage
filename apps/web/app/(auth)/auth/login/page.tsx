@@ -528,7 +528,7 @@ function LoginForm() {
             style={{
               fontSize: '11px',
               fontWeight: 700,
-              color: 'rgba(115,115,144,0.4)',
+              color: 'var(--outline)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               textDecoration: 'none',
@@ -536,10 +536,10 @@ function LoginForm() {
               transition: 'color 0.15s',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = '#737390';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(115,115,144,0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--outline)';
             }}
           >
             {item.label}
