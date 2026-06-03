@@ -11,6 +11,7 @@ import {
   tooManyRequestsResponse,
 } from '@/lib/api-response';
 import { generatePath } from '@/lib/path-generator';
+import { staleGenerationCutoff } from '@/lib/path-loader';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 
@@ -53,15 +54,28 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!plan) return notFoundResponse('Path not found');
 
-    // Atomically claim the run: the conditional updateMany only matches when the
-    // plan isn't already generating, so two concurrent regenerates (e.g. a
-    // double-click) can't both fire generatePath — exactly one wins. This also
-    // clears the prior run's progress snapshot, otherwise the /generation SSE
-    // replays a stale "N / N" to the modal before the scoped regenerate progress
-    // lands and that flash reads as "regenerating the whole path". The modal
-    // falls back to its targetCount until the first real write.
+    // Atomically claim the run: the conditional updateMany matches only when the
+    // plan isn't actively generating — either it's idle/failed/ready, or it's a
+    // `generating` row whose orchestrator has gone stale (died mid-run, e.g. a
+    // redeploy killed the detached generatePath). So two concurrent regenerates
+    // of a LIVE run (e.g. a double-click) can't both fire generatePath — exactly
+    // one wins — while a dead/stale run stays recoverable instead of bricking the
+    // path forever. This also clears the prior run's progress snapshot, otherwise
+    // the /generation SSE replays a stale "N / N" to the modal before the scoped
+    // regenerate progress lands and that flash reads as "regenerating the whole
+    // path". The modal falls back to its targetCount until the first real write.
     const claimed = await db.studyPlan.updateMany({
-      where: { id: planId, userId, generationStatus: { not: 'generating' } },
+      where: {
+        id: planId,
+        userId,
+        OR: [
+          { generationStatus: { not: 'generating' } },
+          // Reclaim a dead orchestrator: a live run bumps `updatedAt` on every
+          // progress write, so a `generating` row this stale means the process
+          // died mid-run and the path is otherwise stuck "Building…" forever.
+          { generationStatus: 'generating', updatedAt: { lt: staleGenerationCutoff() } },
+        ],
+      },
       data: {
         generationStatus: 'generating',
         generationError: null,

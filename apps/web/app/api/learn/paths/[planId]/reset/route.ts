@@ -8,6 +8,7 @@ import {
   internalErrorResponse,
   badRequestResponse,
 } from '@/lib/api-response';
+import { staleGenerationCutoff } from '@/lib/path-loader';
 
 // Reset a learner's progress on a path WITHOUT touching the generated
 // content. Clears completion, stars, best scores, assessment attempts, and
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       select: {
         id: true,
         generationStatus: true,
+        updatedAt: true,
         phases: {
           select: {
             slots: {
@@ -41,9 +43,11 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (!plan) return notFoundResponse('Path not found');
 
-    // Refuse mid-generation/translation — resetting now would race the
-    // background writer.
-    if (plan.generationStatus === 'generating') {
+    // Refuse only while a LIVE orchestrator is mid-run — resetting then would
+    // race the background writer. A row wedged in `generating` past the liveness
+    // window means that writer died (e.g. a redeploy killed it), so it's safe to
+    // reset and recover an otherwise-bricked path.
+    if (plan.generationStatus === 'generating' && plan.updatedAt >= staleGenerationCutoff()) {
       return badRequestResponse('Wait for the path to finish before resetting');
     }
 
