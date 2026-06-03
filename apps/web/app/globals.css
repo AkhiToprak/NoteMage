@@ -2,7 +2,14 @@
 
 /* ─── Neon Scholar Design System ─────────────────────────────────────── */
 
-:root {
+/* Dark is the default token set. It's bound to BOTH `:root` and an explicit
+   `[data-theme='dark']` selector so a *nested* dark island (e.g. the always-dark
+   auth/login subtree) can re-establish the dark values even when the document
+   root is `[data-theme='light']` — custom properties otherwise just inherit the
+   light values down. Global behaviour is unchanged: on the light root the
+   `[data-theme='light']` block below still wins by source order. */
+:root,
+[data-theme='dark'] {
   /* Primary */
   --primary: #d1bcff;
   --primary-container: #a479f8;

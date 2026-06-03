@@ -336,7 +336,7 @@ export default function MatchPairsRenderer({
             borderRadius: '10px',
             border: '1px solid rgba(251,191,36,0.2)',
             background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -354,10 +354,10 @@ export default function MatchPairsRenderer({
           style={{
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             marginBottom: '12px',
             lineHeight: 1.6,
           }}
@@ -398,25 +398,25 @@ function PairItem({
   side: 'left' | 'right';
 }) {
   let borderColor = 'rgba(140,82,255,0.2)';
-  let bg = 'rgba(255,255,255,0.05)';
-  let textColor = 'rgba(237,233,255,0.85)';
+  let bg = 'var(--surface-container)';
+  let textColor = 'var(--on-surface)';
 
   if (showResult === true) {
     borderColor = 'rgba(74,222,128,0.5)';
     bg = 'rgba(74,222,128,0.08)';
-    textColor = '#4ade80';
+    textColor = 'var(--success)';
   } else if (showResult === false) {
     borderColor = 'rgba(252,165,165,0.5)';
     bg = 'rgba(252,165,165,0.08)';
-    textColor = '#fca5a5';
+    textColor = 'var(--error)';
   } else if (selected) {
     borderColor = 'rgba(174,137,255,0.7)';
     bg = 'rgba(140,82,255,0.18)';
-    textColor = '#ede4ff';
+    textColor = 'var(--on-surface)';
   } else if (connected) {
     borderColor = 'rgba(174,137,255,0.45)';
     bg = 'rgba(140,82,255,0.10)';
-    textColor = '#d6c2ff';
+    textColor = 'var(--on-surface-variant)';
   }
 
   return (
@@ -475,7 +475,7 @@ function SummaryBanner({
           fontSize: '14px',
           fontWeight: 700,
           marginBottom: '6px',
-          color: allCorrect ? '#4ade80' : '#fca5a5',
+          color: allCorrect ? 'var(--success)' : 'var(--error)',
         }}
       >
         {allCorrect ? (
@@ -488,7 +488,7 @@ function SummaryBanner({
           </>
         )}
       </div>
-      <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
+      <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
         <MarkdownRenderer
           content={
             allCorrect

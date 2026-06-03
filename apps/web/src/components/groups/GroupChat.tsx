@@ -9,14 +9,14 @@ import StartCoworkModal from '@/components/cowork/StartCoworkModal';
 import type { CoworkInvitePayload } from '@/lib/cowork-join';
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
   primary: '#ae89ff',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
-  border: '#555578',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -196,8 +196,8 @@ export default function GroupChat({
           style={{
             padding: '16px 24px',
             textAlign: 'center',
-            background: `${COLORS.elevated}e6`,
-            borderTop: `1px solid ${COLORS.border}1a`,
+            background: `color-mix(in srgb, ${COLORS.elevated} 90%, transparent)`,
+            borderTop: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
             color: COLORS.textMuted,
             fontSize: 13,
             fontWeight: 500,

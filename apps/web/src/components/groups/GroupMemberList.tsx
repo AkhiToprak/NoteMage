@@ -3,20 +3,20 @@
 import React, { useState, useCallback } from 'react';
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
   error: '#fd6f85',
   success: '#4ade80',
   yellow: '#ffde59',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -170,14 +170,14 @@ export default function GroupMemberList({
           background: COLORS.cardBg,
           borderRadius: 16,
           overflow: 'hidden',
-          border: `1px solid ${COLORS.border}1a`,
+          border: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
         }}
       >
         {/* List header */}
         <div
           style={{
             padding: '16px 24px',
-            borderBottom: `1px solid ${COLORS.border}1a`,
+            borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -217,11 +217,11 @@ export default function GroupMemberList({
                 justifyContent: 'space-between',
                 padding: '20px 24px',
                 borderBottom:
-                  idx < acceptedMembers.length - 1 ? `1px solid ${COLORS.border}1a` : 'none',
+                  idx < acceptedMembers.length - 1 ? `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)` : 'none',
                 transition: `background 0.15s ${EASING}`,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = `${COLORS.elevated}80`;
+                e.currentTarget.style.background = `color-mix(in srgb, ${COLORS.elevated} 50%, transparent)`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
@@ -314,7 +314,7 @@ export default function GroupMemberList({
                       padding: 8,
                       minWidth: 180,
                       boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                      border: `1px solid ${COLORS.border}33`,
+                      border: `1px solid color-mix(in srgb, ${COLORS.border} 20%, transparent)`,
                     }}
                   >
                     {member.role === 'member' && (
@@ -382,7 +382,7 @@ export default function GroupMemberList({
                   padding: '16px 24px',
                   background: COLORS.cardBg,
                   borderRadius: 12,
-                  border: `1px dashed ${COLORS.border}33`,
+                  border: `1px dashed color-mix(in srgb, ${COLORS.border} 20%, transparent)`,
                 }}
               >
                 {inv.invitee.avatarUrl ? (

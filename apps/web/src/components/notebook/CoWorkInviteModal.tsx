@@ -186,7 +186,7 @@ export default function CoWorkInviteModal({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 22, color: '#ae89ff' }}
+                style={{ fontSize: 22, color: 'var(--accent-strong)' }}
               >
                 group_work
               </span>

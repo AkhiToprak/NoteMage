@@ -150,11 +150,11 @@ export default function PageTypeSelector({ onSelect, onCancel }: PageTypeSelecto
                 width: '48px',
                 height: '48px',
                 borderRadius: '12px',
-                background: 'rgba(255,222,89,0.10)',
+                background: 'rgba(140,82,255,0.10)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#ffde59',
+                color: 'var(--accent-strong)',
               }}
             >
               <CanvasIcon size={24} />

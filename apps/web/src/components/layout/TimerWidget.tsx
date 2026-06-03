@@ -110,7 +110,7 @@ export default function TimerWidget({ compact }: Props) {
           color: timer.isRunning
             ? accent
             : hovered || open
-              ? C.textPrimary
+              ? 'var(--on-surface)'
               : 'var(--on-surface-variant)',
           cursor: 'pointer',
           display: 'flex',

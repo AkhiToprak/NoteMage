@@ -523,15 +523,15 @@ export default function UnifiedSidebar() {
                     border: 'none',
                     background: 'transparent',
                     cursor: 'pointer',
-                    color: 'rgba(255,222,89,0.55)',
+                    color: 'var(--accent-strong)',
                     padding: 0,
                     transition: 'color 0.12s ease',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '0.8';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.55)';
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '1';
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
@@ -557,7 +557,7 @@ export default function UnifiedSidebar() {
                     borderRadius: '8px',
                     border: 'none',
                     background: 'transparent',
-                    color: 'rgba(255,222,89,0.75)',
+                    color: 'var(--accent-strong)',
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -568,12 +568,12 @@ export default function UnifiedSidebar() {
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.background =
-                      'rgba(255,222,89,0.10)';
-                    (e.currentTarget as HTMLButtonElement).style.color = '#ffde59';
+                      'rgba(140,82,255,0.10)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-strong)';
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,222,89,0.75)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-strong)';
                   }}
                 >
                   <div
@@ -581,7 +581,7 @@ export default function UnifiedSidebar() {
                       width: '20px',
                       height: '20px',
                       borderRadius: '5px',
-                      background: 'rgba(255,222,89,0.18)',
+                      background: 'rgba(140,82,255,0.18)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -590,7 +590,7 @@ export default function UnifiedSidebar() {
                   >
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: 11, color: '#ffde59' }}
+                      style={{ fontSize: 11, color: 'var(--accent-strong)' }}
                       aria-hidden
                     >
                       school
@@ -666,7 +666,7 @@ export default function UnifiedSidebar() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 11, color: '#c4a9ff' }}
+                  style={{ fontSize: 11, color: 'var(--accent-strong)' }}
                   aria-hidden
                 >
                   upload
@@ -719,7 +719,7 @@ export default function UnifiedSidebar() {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 11, color: '#c4a9ff' }}
+                  style={{ fontSize: 11, color: 'var(--accent-strong)' }}
                   aria-hidden
                 >
                   download
@@ -807,8 +807,8 @@ function PathRow({
           paddingRight: '8px',
           paddingTop: '6px',
           paddingBottom: '6px',
-          background: hovered ? 'rgba(255,222,89,0.08)' : 'transparent',
-          borderLeft: hovered ? '3px solid rgba(255,222,89,0.55)' : '3px solid transparent',
+          background: hovered ? 'rgba(140,82,255,0.08)' : 'transparent',
+          borderLeft: hovered ? '3px solid var(--accent-strong)' : '3px solid transparent',
           transition: 'background 0.12s ease, border-color 0.12s ease',
           cursor: 'pointer',
         }}
@@ -817,7 +817,7 @@ function PathRow({
           className="material-symbols-outlined"
           style={{
             fontSize: 13,
-            color: hovered ? '#ffde59' : 'rgba(255,222,89,0.55)',
+            color: 'var(--accent-strong)',
             flexShrink: 0,
             transition: 'color 0.12s ease',
           }}

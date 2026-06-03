@@ -292,7 +292,7 @@ export default function CoWorkChat({
               gap: 8,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ae89ff' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent-strong)' }}>
               forum
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--on-surface)' }}>

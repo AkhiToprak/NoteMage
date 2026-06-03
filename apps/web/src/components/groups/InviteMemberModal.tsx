@@ -6,18 +6,18 @@ import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
   success: '#4ade80',
   yellow: '#ffde59',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -148,7 +148,7 @@ export default function InviteMemberModal({ open, onClose, groupId, existingMemb
         }}
       >
         {/* Header */}
-        <div style={{ padding: '24px 24px 16px', borderBottom: `1px solid ${COLORS.border}1a` }}>
+        <div style={{ padding: '24px 24px 16px', borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)` }}>
           <div
             style={{
               display: 'flex',

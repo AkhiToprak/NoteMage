@@ -90,7 +90,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
           style={{
             width: '440px',
             maxWidth: '90vw',
-            background: '#000000',
+            background: 'var(--surface-container)',
             border: '1px solid rgba(174,137,255,0.2)',
             borderRadius: '20px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -151,11 +151,11 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                 transition: 'color 0.15s, background 0.15s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#e5e3ff';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
                 (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#8888a8';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--outline)';
                 (e.currentTarget as HTMLButtonElement).style.background = 'none';
               }}
             >

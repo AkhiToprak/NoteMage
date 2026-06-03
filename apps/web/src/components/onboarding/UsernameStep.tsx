@@ -168,7 +168,7 @@ export default function UsernameStep({
     display: 'block',
     fontSize: '14px',
     fontWeight: 600,
-    color: '#b9c3ff',
+    color: 'var(--on-surface-variant)',
     marginBottom: '8px',
     paddingLeft: '4px',
   };

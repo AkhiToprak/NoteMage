@@ -574,7 +574,7 @@ export default function FlashcardImportDialog({
                   <>
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: 26, color: '#f87171' }}
+                      style={{ fontSize: 26, color: 'var(--error)' }}
                       aria-hidden
                     >
                       error
@@ -585,7 +585,7 @@ export default function FlashcardImportDialog({
                           margin: '0 0 4px 0',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: '#f87171',
+                          color: 'var(--error)',
                         }}
                       >
                         {errorMessage}
@@ -778,7 +778,7 @@ export default function FlashcardImportDialog({
 
               {/* Error */}
               {errorMessage && (
-                <p style={{ margin: 0, fontSize: '12px', color: '#f87171' }}>{errorMessage}</p>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--error)' }}>{errorMessage}</p>
               )}
             </>
           )}

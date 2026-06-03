@@ -106,7 +106,7 @@ export default function FolderForm({ folder, onSubmit, onCancel, isLoading }: Fo
                 padding: '12px 14px',
                 borderRadius: '10px',
                 border: '1px solid rgba(174,137,255,0.15)',
-                background: '#12122a',
+                background: 'var(--surface-container-high)',
                 color: 'var(--on-surface)',
                 fontSize: '15px',
                 fontFamily: 'inherit',

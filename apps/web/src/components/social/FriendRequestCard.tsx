@@ -58,7 +58,7 @@ export default function FriendRequestCard({
         gap: 12,
         padding: '12px 16px',
         borderRadius: 12,
-        background: hovered ? '#35355c' : '#2d2d52',
+        background: hovered ? 'var(--surface-container-highest)' : 'var(--surface-container-high)',
         transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
       }}
     >

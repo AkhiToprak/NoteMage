@@ -14,7 +14,7 @@ interface SubInfo {
 }
 
 const TIER_NAMES: Record<string, string> = { FREE: 'Free', PRO: 'Pro' };
-const TIER_COLORS: Record<string, string> = { FREE: '#aaa8c8', PRO: '#fbbf24' };
+const TIER_COLORS: Record<string, string> = { FREE: 'var(--on-surface-variant)', PRO: '#fbbf24' };
 
 function formatDate(iso: string | null): string {
   if (!iso) return '';
@@ -182,7 +182,7 @@ export default function SubscriptionPanel() {
             Current Plan
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '28px', fontWeight: 800, color: TIER_COLORS[tier] || '#e5e3ff' }}>
+            <span style={{ fontSize: '28px', fontWeight: 800, color: TIER_COLORS[tier] || 'var(--on-surface)' }}>
               {TIER_NAMES[tier] || tier}
             </span>
           </div>

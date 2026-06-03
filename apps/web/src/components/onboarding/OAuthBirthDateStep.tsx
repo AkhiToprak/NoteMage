@@ -62,7 +62,7 @@ export default function OAuthBirthDateStep({
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#b9c3ff', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            style={{ color: 'var(--brand-purple-strong)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
           >
             Terms of Service
           </a>{' '}
@@ -71,7 +71,7 @@ export default function OAuthBirthDateStep({
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#b9c3ff', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            style={{ color: 'var(--brand-purple-strong)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
           >
             Privacy Policy
           </a>

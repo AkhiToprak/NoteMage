@@ -383,7 +383,7 @@ export default function UrlImportDialog({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 16, color: '#f87171', flexShrink: 0 }}
+                style={{ fontSize: 16, color: 'var(--error)', flexShrink: 0 }}
                 aria-hidden
               >
                 error
@@ -392,7 +392,7 @@ export default function UrlImportDialog({
                 style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: '#f87171',
+                  color: 'var(--error)',
                 }}
               >
                 {errorMessage}

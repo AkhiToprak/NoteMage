@@ -3,13 +3,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 const COLORS = {
-  elevated: '#131328',
-  inputBg: '#272746',
+  elevated: 'var(--surface-container)',
+  inputBg: 'var(--surface-container-high)',
   primary: '#ae89ff',
-  textPrimary: '#e5e3ff',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textMuted: 'var(--outline)',
   yellow: '#ffde59',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -87,9 +87,9 @@ export default function GroupChatInput({
     <div
       style={{
         padding: '16px 24px',
-        background: `${COLORS.elevated}e6`,
+        background: `color-mix(in srgb, ${COLORS.elevated} 90%, transparent)`,
         backdropFilter: 'blur(20px)',
-        borderTop: `1px solid ${COLORS.border}1a`,
+        borderTop: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
       }}
     >
       <div

@@ -187,8 +187,8 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                 border: isActive
                   ? '1px solid rgba(174,137,255,0.4)'
                   : '1px solid rgba(170,168,200,0.15)',
-                background: isActive ? 'rgba(174,137,255,0.15)' : 'rgba(33, 33, 62,0.6)',
-                color: isActive ? '#ae89ff' : '#aaa8c8',
+                background: isActive ? 'rgba(174,137,255,0.15)' : 'var(--surface-container-high)',
+                color: isActive ? '#ae89ff' : 'var(--on-surface-variant)',
                 fontSize: isPhone ? '12px' : '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -200,14 +200,14 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
               onMouseEnter={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.background = 'rgba(174,137,255,0.08)';
-                  e.currentTarget.style.color = '#e5e3ff';
+                  e.currentTarget.style.color = 'var(--on-surface)';
                 }
                 e.currentTarget.style.transform = 'scale(1.03)';
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(33, 33, 62,0.6)';
-                  e.currentTarget.style.color = '#aaa8c8';
+                  e.currentTarget.style.background = 'var(--surface-container-high)';
+                  e.currentTarget.style.color = 'var(--on-surface-variant)';
                 }
                 e.currentTarget.style.transform = 'scale(1)';
               }}
@@ -292,7 +292,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                 style={{
                   fontSize: isPhone ? 'var(--fs-xs)' : 'var(--fs-sm)',
                   fontWeight: 700,
-                  color: isUnlocked ? '#e5e3ff' : '#6a6a8c',
+                  color: isUnlocked ? 'var(--on-surface)' : 'var(--outline)',
                   lineHeight: 1.3,
                 }}
               >

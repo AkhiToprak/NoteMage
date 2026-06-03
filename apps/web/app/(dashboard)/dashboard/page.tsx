@@ -357,7 +357,7 @@ export default function DashboardPage() {
       iconFilled: true,
       iconColor: '#fd6f85',
       iconBg: 'rgba(253,111,133,0.1)',
-      arrowColor: 'rgba(253,111,133,0.4)',
+      arrowColor: 'var(--on-surface-variant)',
       badge: streakIsActive ? (
         <div
           style={{
@@ -394,17 +394,17 @@ export default function DashboardPage() {
       label: 'Todos',
       value: String(todos.filter((t) => !t.completed).length),
       icon: 'checklist',
-      iconColor: '#f0d04c',
+      iconColor: 'var(--warning)',
       iconBg: 'rgba(240,208,76,0.1)',
-      arrowColor: 'rgba(240,208,76,0.4)',
+      arrowColor: 'var(--on-surface-variant)',
     },
     {
       label: 'Friends',
       value: friends !== null ? String(friends.length) : '—',
       icon: 'group',
-      iconColor: '#b9c3ff',
+      iconColor: 'var(--accent-strong)',
       iconBg: 'rgba(185,195,255,0.12)',
-      arrowColor: 'rgba(185,195,255,0.4)',
+      arrowColor: 'var(--on-surface-variant)',
       href: '/profile',
       badge:
         pendingFriendRequests > 0 ? (
@@ -415,7 +415,7 @@ export default function DashboardPage() {
               borderRadius: '8px',
               fontSize: '10px',
               fontWeight: 700,
-              color: '#b9c3ff',
+              color: 'var(--primary-container)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -913,7 +913,7 @@ export default function DashboardPage() {
                                 justifyContent: 'center',
                                 fontSize: '11px',
                                 fontWeight: 700,
-                                color: '#b9c3ff',
+                                color: 'var(--accent-strong)',
                                 flexShrink: 0,
                               }}
                               aria-hidden

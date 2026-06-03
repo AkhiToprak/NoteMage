@@ -78,7 +78,7 @@ export default function FolderBreadcrumbs({
           style={{
             background: 'none',
             border: 'none',
-            color: breadcrumbs.length > 0 ? '#ae89ff' : '#e5e3ff',
+            color: breadcrumbs.length > 0 ? '#ae89ff' : 'var(--on-surface)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: breadcrumbs.length > 0 ? 'pointer' : 'default',
@@ -123,7 +123,7 @@ export default function FolderBreadcrumbs({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: isLast ? '#e5e3ff' : '#ae89ff',
+                  color: isLast ? 'var(--on-surface)' : '#ae89ff',
                   fontSize: '14px',
                   fontWeight: isLast ? 700 : 600,
                   cursor: isLast ? 'default' : 'pointer',

@@ -984,7 +984,7 @@ export default function OnboardingWizard({
         @media (prefers-reduced-motion: reduce) {
           [style*="spin 1s"] { animation: obSpinnerPulse 1.2s ease-in-out infinite !important; }
         }
-        .ob-footer-link:hover { color: #e5e3ff; }
+        .ob-footer-link:hover { color: var(--on-surface); }
         .ob-footer-link:focus-visible { outline: 2px solid #ae89ff; outline-offset: 3px; border-radius: 4px; }
       `}</style>
     </div>

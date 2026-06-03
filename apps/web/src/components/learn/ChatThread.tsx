@@ -511,7 +511,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: isPhone ? '8px' : '16px',
-          background: 'rgba(0, 0, 0, 0.6)',
+          background: 'var(--surface-container-low)',
           flexShrink: 0,
         }}
       >
@@ -550,7 +550,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               {chat?.title ?? '…'}
             </h1>
             {totalContext > 0 && (
-              <p style={{ margin: 0, fontSize: '11px', color: 'rgba(185,195,255,0.55)' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--on-surface-variant)' }}>
                 {totalContext} context source{totalContext !== 1 ? 's' : ''} attached
               </p>
             )}
@@ -707,7 +707,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                 style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: 'rgba(185,195,255,0.6)',
+                  color: 'var(--on-surface-variant)',
                   maxWidth: '360px',
                   lineHeight: 1.7,
                 }}

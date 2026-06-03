@@ -151,7 +151,7 @@ export default function EssayChecker({
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: 16, color: '#c4a9ff' }}
+              style={{ fontSize: 16, color: 'var(--accent-strong)' }}
               aria-hidden
             >
               spellcheck
@@ -215,7 +215,7 @@ export default function EssayChecker({
                     borderRadius: '8px',
                     border: '1px solid rgba(140,82,255,0.3)',
                     background: 'transparent',
-                    color: '#c4a9ff',
+                    color: 'var(--accent-strong)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: loading || !text.trim() ? 'not-allowed' : 'pointer',
@@ -293,7 +293,7 @@ export default function EssayChecker({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 28, color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
+                style={{ fontSize: 28, color: 'var(--accent-strong)', animation: 'spin 1s linear infinite' }}
                 aria-hidden
               >
                 progress_activity
@@ -426,12 +426,12 @@ export default function EssayChecker({
                 >
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: 32, color: '#4ade80' }}
+                    style={{ fontSize: 32, color: 'var(--success)' }}
                     aria-hidden
                   >
                     check_circle
                   </span>
-                  <span style={{ fontSize: '14px', color: '#4ade80', fontWeight: 600 }}>
+                  <span style={{ fontSize: '14px', color: 'var(--success)', fontWeight: 600 }}>
                     No issues found!
                   </span>
                 </div>
@@ -542,7 +542,7 @@ export default function EssayChecker({
                     borderRadius: '8px',
                     border: '1px solid rgba(140,82,255,0.3)',
                     background: 'transparent',
-                    color: '#c4a9ff',
+                    color: 'var(--accent-strong)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: 'pointer',

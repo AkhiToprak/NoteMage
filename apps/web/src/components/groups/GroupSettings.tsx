@@ -4,18 +4,18 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
   error: '#fd6f85',
   yellow: '#ffde59',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -413,7 +413,7 @@ export default function GroupSettings({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '16px 0',
-                borderBottom: perm.key !== 'invites' ? `1px solid ${COLORS.border}1a` : 'none',
+                borderBottom: perm.key !== 'invites' ? `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)` : 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -466,7 +466,7 @@ export default function GroupSettings({
           style={{
             marginTop: 48,
             paddingTop: 32,
-            borderTop: `1px solid ${COLORS.border}1a`,
+            borderTop: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
             display: 'flex',
             justifyContent: 'center',
           }}

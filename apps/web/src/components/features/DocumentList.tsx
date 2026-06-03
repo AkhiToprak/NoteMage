@@ -88,7 +88,7 @@ export default function DocumentList({
           gap: '10px',
           padding: '24px 12px',
           textAlign: 'center',
-          color: 'rgba(237,233,255,0.45)',
+          color: 'var(--on-surface-variant)',
           fontSize: '13px',
         }}
       >
@@ -125,7 +125,7 @@ export default function DocumentList({
                 style={{
                   fontFamily: 'inherit',
                   fontSize: '13px',
-                  color: 'rgba(237,233,255,0.75)',
+                  color: 'var(--on-surface)',
                   flex: 1,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -140,7 +140,7 @@ export default function DocumentList({
                 style={{
                   fontFamily: 'inherit',
                   fontSize: '11px',
-                  color: 'rgba(237,233,255,0.25)',
+                  color: 'var(--on-surface-variant)',
                   flexShrink: 0,
                 }}
               >
@@ -150,7 +150,7 @@ export default function DocumentList({
                 style={{
                   fontFamily: 'inherit',
                   fontSize: '11px',
-                  color: 'rgba(237,233,255,0.22)',
+                  color: 'var(--on-surface-variant)',
                   flexShrink: 0,
                 }}
               >
@@ -171,7 +171,7 @@ export default function DocumentList({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'rgba(237,233,255,0.25)',
+                  color: 'var(--on-surface-variant)',
                   transition: 'background 0.12s ease, color 0.12s ease, border-color 0.12s ease',
                   flexShrink: 0,
                 }}
@@ -182,7 +182,7 @@ export default function DocumentList({
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = 'none';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface-variant)';
                   (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent';
                 }}
               >
@@ -203,7 +203,7 @@ export default function DocumentList({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: isDeleting ? 'not-allowed' : 'pointer',
-                  color: 'rgba(237,233,255,0.25)',
+                  color: 'var(--on-surface-variant)',
                   transition: 'background 0.12s ease, color 0.12s ease, border-color 0.12s ease',
                   flexShrink: 0,
                 }}
@@ -218,7 +218,7 @@ export default function DocumentList({
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = 'none';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface-variant)';
                   (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent';
                 }}
                 title="Delete document"
@@ -255,7 +255,7 @@ export default function DocumentList({
             style={{
               width: '520px',
               maxHeight: '600px',
-              background: '#000000',
+              background: 'var(--surface)',
               border: '1px solid rgba(174,137,255,0.45)',
               borderRadius: '16px',
               display: 'flex',

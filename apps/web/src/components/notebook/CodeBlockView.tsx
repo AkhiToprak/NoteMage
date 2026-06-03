@@ -60,7 +60,7 @@ export default function CodeBlockView({ node, updateAttributes, extension }: Nod
             padding: '2px 8px',
             fontSize: '11px',
             fontFamily: 'inherit',
-            color: '#ae89ff',
+            color: 'var(--accent-strong)',
             cursor: 'pointer',
             outline: 'none',
             appearance: 'auto',

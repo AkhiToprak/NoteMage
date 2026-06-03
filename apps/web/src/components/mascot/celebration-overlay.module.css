@@ -165,7 +165,7 @@
   border: none;
   border-radius: var(--radius-md);
   background: var(--primary);
-  color: var(--background);
+  color: var(--on-primary);
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;

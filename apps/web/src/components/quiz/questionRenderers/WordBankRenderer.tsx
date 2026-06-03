@@ -253,14 +253,14 @@ export default function WordBankRenderer({
             padding: isPhone ? '14px 14px' : '16px 18px',
             borderRadius: '14px',
             border: '1px solid rgba(140,82,255,0.22)',
-            background: 'rgba(140,82,255,0.05)',
+            background: 'var(--ink-08)',
             marginBottom: '14px',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             gap: '6px',
             fontSize: '16px',
-            color: '#ede4ff',
+            color: 'var(--on-surface)',
             lineHeight: 1.7,
           }}
         >
@@ -310,7 +310,7 @@ export default function WordBankRenderer({
           {bankIds.length === 0 && (
             <span
               style={{
-                color: 'rgba(237,233,255,0.4)',
+                color: 'var(--on-surface-variant)',
                 fontSize: '12px',
                 fontStyle: 'italic',
                 padding: '8px 4px',
@@ -342,7 +342,7 @@ export default function WordBankRenderer({
               borderRadius: '10px',
               border: 'none',
               background: slotsFilled ? '#8c52ff' : 'rgba(140,82,255,0.18)',
-              color: slotsFilled ? 'var(--on-surface)' : 'rgba(237,233,255,0.4)',
+              color: slotsFilled ? 'var(--on-surface)' : 'var(--on-surface-variant)',
               fontSize: '13px',
               fontWeight: 600,
               cursor: slotsFilled ? 'pointer' : 'not-allowed',
@@ -367,7 +367,7 @@ export default function WordBankRenderer({
             borderRadius: '10px',
             border: '1px solid rgba(251,191,36,0.2)',
             background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -386,10 +386,10 @@ export default function WordBankRenderer({
           style={{
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             marginTop: '10px',
             marginBottom: '12px',
             lineHeight: 1.6,
@@ -418,7 +418,7 @@ export default function WordBankRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: allCorrect ? '#4ade80' : '#fca5a5',
+              color: allCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
             {allCorrect ? (
@@ -431,7 +431,7 @@ export default function WordBankRenderer({
               </>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 allCorrect
@@ -467,23 +467,23 @@ function Slot({
   const { setNodeRef, isOver } = useDroppable({ id: `slot-${slotIndex}` });
   let borderColor = 'rgba(140,82,255,0.45)';
   let bg = 'rgba(140,82,255,0.10)';
-  let textColor = 'rgba(237,233,255,0.5)';
+  let textColor = 'var(--on-surface-variant)';
   let dashed = !tokenText;
 
   if (tokenText) {
     dashed = false;
     borderColor = 'rgba(174,137,255,0.55)';
     bg = 'rgba(140,82,255,0.16)';
-    textColor = '#ede4ff';
+    textColor = 'var(--on-surface)';
   }
   if (showResult === true) {
     borderColor = 'rgba(74,222,128,0.55)';
     bg = 'rgba(74,222,128,0.10)';
-    textColor = '#4ade80';
+    textColor = 'var(--success)';
   } else if (showResult === false) {
     borderColor = 'rgba(252,165,165,0.55)';
     bg = 'rgba(252,165,165,0.10)';
-    textColor = '#fca5a5';
+    textColor = 'var(--error)';
   } else if (isOver) {
     borderColor = 'rgba(196,169,255,0.85)';
     bg = 'rgba(140,82,255,0.22)';
@@ -556,7 +556,7 @@ function BankZone({
         border: `1px ${isOver ? 'solid' : 'dashed'} ${
           isOver ? 'rgba(174,137,255,0.7)' : 'rgba(140,82,255,0.3)'
         }`,
-        background: isOver ? 'rgba(140,82,255,0.10)' : 'rgba(255,255,255,0.04)',
+        background: isOver ? 'rgba(140,82,255,0.10)' : 'var(--ink-08)',
         minHeight: '64px',
         transition: 'background 0.15s, border-color 0.15s',
       }}
@@ -593,7 +593,7 @@ function BankToken({
         borderRadius: '999px',
         border: `1px solid ${tapped ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.4)'}`,
         background: tapped ? 'rgba(140,82,255,0.28)' : 'rgba(140,82,255,0.12)',
-        color: tapped ? '#ede4ff' : '#d6c2ff',
+        color: tapped ? 'var(--on-surface)' : 'var(--on-surface-variant)',
         fontSize: '14px',
         fontWeight: 600,
         cursor: disabled ? 'default' : 'grab',
@@ -619,7 +619,7 @@ function TokenChip({ text, dragging }: { text: string; dragging?: boolean }) {
         borderRadius: '999px',
         border: '1px solid rgba(196,169,255,0.85)',
         background: 'rgba(140,82,255,0.28)',
-        color: '#ede4ff',
+        color: 'var(--on-surface)',
         fontSize: '14px',
         fontWeight: 600,
         fontFamily: 'inherit',

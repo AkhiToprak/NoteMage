@@ -666,7 +666,7 @@ function OneNoteTab({
               role="alert"
               style={{
                 fontSize: '12px',
-                color: '#fd6f85',
+                color: 'var(--error)',
                 margin: '0 0 10px',
                 textAlign: 'center',
                 lineHeight: 1.5,
@@ -1066,7 +1066,7 @@ function PdfTab({
       </button>
 
       {errorMessage && (
-        <p style={{ fontSize: '12px', color: '#fd6f85', margin: '8px 0 0', textAlign: 'center' }}>
+        <p style={{ fontSize: '12px', color: 'var(--error)', margin: '8px 0 0', textAlign: 'center' }}>
           {errorMessage}
         </p>
       )}

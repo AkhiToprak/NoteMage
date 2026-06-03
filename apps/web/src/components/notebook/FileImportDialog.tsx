@@ -334,7 +334,7 @@ export default function FileImportDialog({
             <>
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 28, color: '#f87171' }}
+                style={{ fontSize: 28, color: 'var(--error)' }}
                 aria-hidden
               >
                 error
@@ -345,7 +345,7 @@ export default function FileImportDialog({
                     margin: '0 0 4px 0',
                     fontSize: '14px',
                     fontWeight: 600,
-                    color: '#f87171',
+                    color: 'var(--error)',
                   }}
                 >
                   {errorMessage}

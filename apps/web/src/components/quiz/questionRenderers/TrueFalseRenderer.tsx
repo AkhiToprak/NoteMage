@@ -63,23 +63,23 @@ export default function TrueFalseRenderer({
           const reviewSelected = mode === 'review' && reviewValue === value;
 
           let borderColor = 'rgba(140,82,255,0.15)';
-          let bg = 'rgba(255,255,255,0.07)';
-          let textColor = 'rgba(237,233,255,0.7)';
+          let bg = 'var(--surface-container)';
+          let textColor = 'var(--on-surface-variant)';
 
           if (showResult) {
             if (isCorrectOption) {
               borderColor = 'rgba(74,222,128,0.5)';
               bg = 'rgba(74,222,128,0.08)';
-              textColor = '#4ade80';
+              textColor = 'var(--success)';
             } else if (isSelected || reviewSelected) {
               borderColor = 'rgba(252,165,165,0.5)';
               bg = 'rgba(252,165,165,0.08)';
-              textColor = '#fca5a5';
+              textColor = 'var(--error)';
             }
           } else if (isSelected) {
             borderColor = 'rgba(140,82,255,0.5)';
             bg = 'rgba(140,82,255,0.12)';
-            textColor = '#c4a9ff';
+            textColor = 'var(--accent-strong)';
           }
 
           return (
@@ -170,7 +170,7 @@ export default function TrueFalseRenderer({
             borderRadius: '10px',
             border: '1px solid rgba(251,191,36,0.2)',
             background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -190,10 +190,10 @@ export default function TrueFalseRenderer({
           style={{
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             marginBottom: '12px',
             lineHeight: 1.6,
           }}
@@ -220,7 +220,7 @@ export default function TrueFalseRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: isCorrect ? '#4ade80' : '#fca5a5',
+              color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
             {isCorrect ? (
@@ -239,7 +239,7 @@ export default function TrueFalseRenderer({
               </>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -264,13 +264,13 @@ export default function TrueFalseRenderer({
                 ? reviewValue === correctValue
                   ? 'rgba(74,222,128,0.06)'
                   : 'rgba(252,165,165,0.06)'
-                : 'rgba(255,255,255,0.07)',
+                : 'var(--surface-container)',
             border: `1px solid ${
               reviewValue !== undefined
                 ? reviewValue === correctValue
                   ? 'rgba(74,222,128,0.2)'
                   : 'rgba(252,165,165,0.2)'
-                : 'rgba(255,255,255,0.06)'
+                : 'var(--ink-08)'
             }`,
           }}
         >
@@ -284,7 +284,7 @@ export default function TrueFalseRenderer({
                   fontSize: '14px',
                   fontWeight: 700,
                   marginBottom: '6px',
-                  color: reviewValue === correctValue ? '#4ade80' : '#fca5a5',
+                  color: reviewValue === correctValue ? 'var(--success)' : 'var(--error)',
                 }}
               >
                 {reviewValue === correctValue ? (
@@ -311,7 +311,7 @@ export default function TrueFalseRenderer({
                   </>
                 )}
               </div>
-              <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
                 <MarkdownRenderer
                   content={
                     reviewValue === correctValue
@@ -324,9 +324,9 @@ export default function TrueFalseRenderer({
               </div>
             </>
           ) : (
-            <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.4)' }}>
+            <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
               You skipped this question. The statement is{' '}
-              <strong style={{ color: '#4ade80' }}>{correctValue ? 'true' : 'false'}</strong>.
+              <strong style={{ color: 'var(--success)' }}>{correctValue ? 'true' : 'false'}</strong>.
             </div>
           )}
         </div>

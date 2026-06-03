@@ -108,7 +108,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
               style={{
                 fontFamily: 'inherit',
                 fontSize: '13px',
-                color: 'rgba(237,233,255,0.5)',
+                color: 'var(--on-surface-variant)',
               }}
             >
               Uploading and extracting text…
@@ -133,7 +133,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
                   fontFamily: 'inherit',
                   fontSize: '13px',
                   fontWeight: '600',
-                  color: isDragging ? '#ede9ff' : 'rgba(237,233,255,0.6)',
+                  color: isDragging ? 'var(--on-surface)' : 'var(--on-surface-variant)',
                   margin: '0 0 4px',
                   transition: 'color 0.15s ease',
                 }}
@@ -144,7 +144,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
                 style={{
                   fontFamily: 'inherit',
                   fontSize: '12px',
-                  color: 'rgba(237,233,255,0.3)',
+                  color: 'var(--on-surface-variant)',
                   margin: 0,
                 }}
               >

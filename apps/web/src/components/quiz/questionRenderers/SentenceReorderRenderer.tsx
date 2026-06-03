@@ -187,7 +187,7 @@ export default function SentenceReorderRenderer({
             padding: '4px 12px',
             fontSize: '11px',
             fontWeight: 700,
-            color: '#c4a9ff',
+            color: 'var(--accent-strong)',
             fontFamily: 'inherit',
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
@@ -280,7 +280,7 @@ export default function SentenceReorderRenderer({
             borderRadius: '10px',
             border: '1px solid rgba(251,191,36,0.2)',
             background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -298,10 +298,10 @@ export default function SentenceReorderRenderer({
           style={{
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             marginBottom: '12px',
             lineHeight: 1.6,
           }}
@@ -328,7 +328,7 @@ export default function SentenceReorderRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: isCorrect ? '#4ade80' : '#fca5a5',
+              color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
             {isCorrect ? (
@@ -341,7 +341,7 @@ export default function SentenceReorderRenderer({
               </>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -411,16 +411,16 @@ function ReorderToken({
 
   let borderColor = tapped ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.4)';
   let bg = tapped ? 'rgba(140,82,255,0.28)' : 'rgba(140,82,255,0.12)';
-  let textColor = tapped ? '#ede4ff' : '#d6c2ff';
+  let textColor = tapped ? 'var(--on-surface)' : 'var(--on-surface-variant)';
 
   if (showResult === true) {
     borderColor = 'rgba(74,222,128,0.55)';
     bg = 'rgba(74,222,128,0.12)';
-    textColor = '#4ade80';
+    textColor = 'var(--success)';
   } else if (showResult === false) {
     borderColor = 'rgba(252,165,165,0.55)';
     bg = 'rgba(252,165,165,0.10)';
-    textColor = '#fca5a5';
+    textColor = 'var(--error)';
   }
 
   return (
@@ -462,7 +462,7 @@ function TokenChip({ text }: { text: string }) {
         borderRadius: '999px',
         border: '1px solid rgba(196,169,255,0.85)',
         background: 'rgba(140,82,255,0.28)',
-        color: '#ede4ff',
+        color: 'var(--on-surface)',
         fontSize: '14px',
         fontWeight: 600,
         fontFamily: 'inherit',

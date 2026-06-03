@@ -1140,7 +1140,7 @@ export default function PageEditor({
         /* ── blockquote ── */
         .notemage-editor blockquote { border-left: 3px solid #8c52ff; padding-left: 16px; color: var(--ink-60); margin: 12px 0; }
         /* ── inline code ── */
-        .notemage-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; color: #c4a9ff; }
+        .notemage-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; color: var(--md-code); }
         /* ── code block ── */
         .notemage-editor pre {
           background: rgba(140,82,255,0.06);
@@ -1188,6 +1188,37 @@ export default function PageEditor({
         .notemage-editor .hljs-property { color: #b9c3ff; }
         .notemage-editor .hljs-regexp { color: #ff9e64; }
         .notemage-editor .hljs-meta { color: #ae89ff; }
+        /* ── light-mode syntax overrides (code block sits on a near-white tinted surface) ── */
+        [data-theme='light'] .notemage-editor .code-block-wrapper select option { color: var(--on-surface); }
+        [data-theme='light'] .notemage-editor .hljs-keyword,
+        [data-theme='light'] .notemage-editor .hljs-selector-tag,
+        [data-theme='light'] .notemage-editor .hljs-built_in { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-string,
+        [data-theme='light'] .notemage-editor .hljs-attr { color: #8a5a00; }
+        [data-theme='light'] .notemage-editor .hljs-number,
+        [data-theme='light'] .notemage-editor .hljs-literal { color: #a8431a; }
+        [data-theme='light'] .notemage-editor .hljs-function,
+        [data-theme='light'] .notemage-editor .hljs-title,
+        [data-theme='light'] .notemage-editor .hljs-title.function_ { color: #1f5fa8; }
+        [data-theme='light'] .notemage-editor .hljs-params { color: var(--on-surface); }
+        [data-theme='light'] .notemage-editor .hljs-comment,
+        [data-theme='light'] .notemage-editor .hljs-quote { color: #6b6790; }
+        [data-theme='light'] .notemage-editor .hljs-variable,
+        [data-theme='light'] .notemage-editor .hljs-template-variable { color: var(--on-surface); }
+        [data-theme='light'] .notemage-editor .hljs-type,
+        [data-theme='light'] .notemage-editor .hljs-class .hljs-title { color: #1f5fa8; }
+        [data-theme='light'] .notemage-editor .hljs-tag { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-name { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-attribute { color: #3a4aa0; }
+        [data-theme='light'] .notemage-editor .hljs-symbol,
+        [data-theme='light'] .notemage-editor .hljs-bullet { color: #a8431a; }
+        [data-theme='light'] .notemage-editor .hljs-addition { color: #2f7a3a; }
+        [data-theme='light'] .notemage-editor .hljs-deletion { color: #b3304a; }
+        [data-theme='light'] .notemage-editor .hljs-operator { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-punctuation { color: #56527a; }
+        [data-theme='light'] .notemage-editor .hljs-property { color: #3a4aa0; }
+        [data-theme='light'] .notemage-editor .hljs-regexp { color: #a8431a; }
+        [data-theme='light'] .notemage-editor .hljs-meta { color: #5b3aa8; }
         /* ── callout blocks ── */
         .notemage-editor [data-callout-type] p { margin: 0 0 6px; }
         .notemage-editor [data-callout-type] p:last-child { margin: 0; }
@@ -1209,7 +1240,7 @@ export default function PageEditor({
         /* ── tables ── */
         .notemage-editor table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 14px 0; overflow: hidden; }
         .notemage-editor td, .notemage-editor th { border: 1px solid rgba(174,137,255,0.36); padding: 8px 12px; vertical-align: top; position: relative; }
-        .notemage-editor th { background: rgba(140,82,255,0.10); font-weight: 600; color: #c4b5fd; }
+        .notemage-editor th { background: rgba(140,82,255,0.10); font-weight: 600; color: var(--on-surface); }
         .notemage-editor td { background: rgba(140,82,255,0.03); }
         .notemage-editor .selectedCell:after { content: ''; position: absolute; inset: 0; background: rgba(140,82,255,0.12); pointer-events: none; z-index: 2; }
         .notemage-editor .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: 0; width: 4px; background: rgba(140,82,255,0.4); cursor: col-resize; z-index: 10; }

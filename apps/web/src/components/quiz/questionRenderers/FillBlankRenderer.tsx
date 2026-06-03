@@ -108,8 +108,12 @@ export default function FillBlankRenderer({
               ? isCorrect
                 ? 'rgba(74,222,128,0.06)'
                 : 'rgba(252,165,165,0.06)'
-              : 'rgba(255,255,255,0.06)',
-            color: inputDisabled ? (isCorrect ? '#4ade80' : '#fca5a5') : '#ede4ff',
+              : 'var(--surface-container)',
+            color: inputDisabled
+              ? isCorrect
+                ? 'var(--success)'
+                : 'var(--error)'
+              : 'var(--on-surface)',
             fontSize: '16px',
             fontFamily: 'inherit',
             outline: 'none',
@@ -125,7 +129,7 @@ export default function FillBlankRenderer({
               borderRadius: '10px',
               border: 'none',
               background: draft.trim().length === 0 ? 'rgba(140,82,255,0.18)' : '#8c52ff',
-              color: draft.trim().length === 0 ? 'rgba(237,233,255,0.4)' : 'var(--on-surface)',
+              color: draft.trim().length === 0 ? 'var(--on-surface-variant)' : 'var(--on-surface)',
               fontSize: '13px',
               fontWeight: 600,
               cursor: draft.trim().length === 0 ? 'not-allowed' : 'pointer',
@@ -152,7 +156,7 @@ export default function FillBlankRenderer({
             borderRadius: '10px',
             border: '1px solid rgba(251,191,36,0.2)',
             background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -170,10 +174,10 @@ export default function FillBlankRenderer({
           style={{
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             marginBottom: '12px',
             lineHeight: 1.6,
           }}
@@ -200,7 +204,7 @@ export default function FillBlankRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: isCorrect ? '#4ade80' : '#fca5a5',
+              color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
             {isCorrect ? (
@@ -213,7 +217,7 @@ export default function FillBlankRenderer({
               </>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -231,13 +235,13 @@ export default function FillBlankRenderer({
             padding: '14px 18px',
             borderRadius: '12px',
             marginBottom: '12px',
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--surface-container)',
+            border: '1px solid var(--ink-08)',
           }}
         >
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.4)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
             You skipped this question. The correct answer is{' '}
-            <strong style={{ color: '#4ade80' }}>{canonicalAnswer}</strong>.
+            <strong style={{ color: 'var(--success)' }}>{canonicalAnswer}</strong>.
           </div>
         </div>
       )}

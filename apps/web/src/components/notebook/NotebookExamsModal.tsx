@@ -133,7 +133,7 @@ export default function NotebookExamsModal({
                 style={{
                   padding: '3px 8px',
                   background: 'rgba(174,137,255,0.1)',
-                  color: '#ae89ff',
+                  color: 'var(--accent-strong)',
                   fontSize: '10px',
                   fontWeight: 900,
                   borderRadius: '6px',
@@ -155,7 +155,7 @@ export default function NotebookExamsModal({
                   background: 'rgba(174,137,255,0.12)',
                   border: '1px solid rgba(174,137,255,0.2)',
                   borderRadius: '10px',
-                  color: '#ae89ff',
+                  color: 'var(--accent-strong)',
                   fontSize: '13px',
                   fontWeight: 700,
                   cursor: 'pointer',

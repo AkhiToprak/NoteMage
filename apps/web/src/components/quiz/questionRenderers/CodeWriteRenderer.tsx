@@ -186,7 +186,7 @@ export default function CodeWriteRenderer({
                 borderRadius: '10px',
                 border: '1px solid rgba(140,82,255,0.45)',
                 background: 'transparent',
-                color: '#c4a9ff',
+                color: 'var(--accent-strong)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor:
@@ -241,7 +241,7 @@ export default function CodeWriteRenderer({
               borderRadius: '10px',
               border: '1px solid rgba(251,191,36,0.2)',
               background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-              color: '#fbbf24',
+              color: 'var(--warning)',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -265,10 +265,10 @@ export default function CodeWriteRenderer({
             marginTop: '12px',
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             lineHeight: 1.6,
           }}
         >
@@ -285,7 +285,7 @@ export default function CodeWriteRenderer({
             background: 'rgba(252,165,165,0.08)',
             border: '1px solid rgba(252,165,165,0.25)',
             fontSize: '13px',
-            color: '#fca5a5',
+            color: 'var(--error)',
           }}
         >
           {error}
@@ -297,7 +297,7 @@ export default function CodeWriteRenderer({
           style={{
             marginTop: '8px',
             fontSize: '12px',
-            color: 'rgba(237,233,255,0.5)',
+            color: 'var(--on-surface-variant)',
             lineHeight: 1.5,
           }}
         >
@@ -331,7 +331,7 @@ export default function CodeWriteRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: isCorrect ? '#4ade80' : '#fca5a5',
+              color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
             {isCorrect ? (
@@ -344,7 +344,7 @@ export default function CodeWriteRenderer({
               </>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.7)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -365,7 +365,7 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
   const label = result.name ?? `Test ${index + 1}`;
   const verdict = result.isCorrect;
   const statusColor =
-    verdict === true ? '#4ade80' : verdict === false ? '#fca5a5' : '#c4a9ff';
+    verdict === true ? 'var(--success)' : verdict === false ? 'var(--error)' : 'var(--accent-strong)';
   const bg =
     verdict === true
       ? 'rgba(74,222,128,0.06)'
@@ -387,7 +387,7 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
         padding: '8px 12px',
         fontFamily: '"JetBrains Mono", "Fira Code", monospace',
         fontSize: '12.5px',
-        color: '#ede4ff',
+        color: 'var(--on-surface)',
       }}
     >
       <summary
@@ -410,7 +410,7 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
           <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>play_arrow</span>
         )}
         {label}
-        <span style={{ marginLeft: 'auto', color: 'rgba(237,233,255,0.5)' }}>
+        <span style={{ marginLeft: 'auto', color: 'var(--on-surface-variant)' }}>
           {result.durationMs}ms
         </span>
       </summary>
@@ -425,7 +425,7 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
             color="rgba(74,222,128,0.8)"
           />
         )}
-        <RunBlock title="actual stdout" body={result.stdout || '(empty)'} color="#ede4ff" />
+        <RunBlock title="actual stdout" body={result.stdout || '(empty)'} color="var(--on-surface)" />
         {result.stderr && (
           <RunBlock title="stderr" body={result.stderr} color="rgba(252,165,165,0.8)" />
         )}

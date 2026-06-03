@@ -9,20 +9,20 @@ import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
   error: '#fd6f85',
   success: '#4ade80',
   yellow: '#ffde59',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 interface ChatMessageSender {
@@ -69,7 +69,7 @@ function timeAgo(dateStr: string): string {
 
 function MessageStatusIcon({ status, isOwn }: { status?: string; isOwn: boolean }) {
   if (!isOwn || !status) return null;
-  const color = status === 'read' ? COLORS.primary : `${COLORS.textMuted}99`;
+  const color = status === 'read' ? COLORS.primary : `color-mix(in srgb, ${COLORS.textMuted} 60%, transparent)`;
   if (status === 'sending') {
     return (
       <span
@@ -173,8 +173,8 @@ export default function GroupChatMessage({
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
-            color: `${COLORS.textMuted}99`,
-            background: `${COLORS.elevated}80`,
+            color: `color-mix(in srgb, ${COLORS.textMuted} 60%, transparent)`,
+            background: `color-mix(in srgb, ${COLORS.elevated} 50%, transparent)`,
             padding: '6px 16px',
             borderRadius: 9999,
           }}
@@ -320,7 +320,7 @@ export default function GroupChatMessage({
               style={{
                 fontSize: 10,
                 fontWeight: 500,
-                color: `${COLORS.textMuted}b3`,
+                color: `color-mix(in srgb, ${COLORS.textMuted} 70%, transparent)`,
                 display: 'inline-flex',
                 alignItems: 'center',
               }}
@@ -332,7 +332,7 @@ export default function GroupChatMessage({
           <div
             style={{
               background: COLORS.elevated,
-              border: `1px solid ${COLORS.border}33`,
+              border: `1px solid color-mix(in srgb, ${COLORS.border} 20%, transparent)`,
               padding: 16,
               borderRadius: 16,
               minWidth: 240,
@@ -471,7 +471,7 @@ export default function GroupChatMessage({
             style={{
               fontSize: 10,
               fontWeight: 500,
-              color: `${COLORS.textMuted}b3`,
+              color: `color-mix(in srgb, ${COLORS.textMuted} 70%, transparent)`,
               display: 'inline-flex',
               alignItems: 'center',
             }}

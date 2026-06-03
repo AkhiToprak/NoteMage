@@ -153,7 +153,7 @@ export default function StudyGoalsStep({ goals, mageName, onChange }: StudyGoals
                 margin: '0 0 4px',
                 fontSize: '13px',
                 fontWeight: 600,
-                color: isSelected ? '#e5e3ff' : '#aaa8c8',
+                color: isSelected ? 'var(--on-surface)' : 'var(--on-surface-variant)',
                 lineHeight: '1.4',
                 transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
               }}

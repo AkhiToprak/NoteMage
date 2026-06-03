@@ -113,7 +113,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
     display: 'block',
     fontSize: '13px',
     fontWeight: 600,
-    color: '#b9c3ff',
+    color: 'var(--on-surface-variant)',
     marginBottom: '6px',
     paddingLeft: '4px',
   };
@@ -314,7 +314,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
               href="/terms"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#b9c3ff', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+              style={{ color: 'var(--brand-purple-strong)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
             >
               Terms of Service
             </a>{' '}
@@ -323,7 +323,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
               href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#b9c3ff', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+              style={{ color: 'var(--brand-purple-strong)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
             >
               Privacy Policy
             </a>

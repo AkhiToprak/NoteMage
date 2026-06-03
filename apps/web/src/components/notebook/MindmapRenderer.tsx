@@ -394,7 +394,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
             style={{
               display: 'flex',
               alignItems: 'center',
-              color: '#93a8ff',
+              color: 'var(--accent-strong)',
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
@@ -405,7 +405,7 @@ export default function MindmapRenderer({ title, markdown }: MindmapRendererProp
             style={{
               fontSize: '13px',
               fontWeight: 600,
-              color: '#93a8ff',
+              color: 'var(--accent-strong)',
               fontFamily: 'inherit',
             }}
           >

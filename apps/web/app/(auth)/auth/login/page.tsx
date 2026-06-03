@@ -13,7 +13,14 @@ export default function LoginPage() {
   // Next.js 14 build to succeed — the inner form owns the hook.
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      {/* The auth experience is always-dark (the (auth) layout paints a fixed
+          #0c0a1a frame). Scope a dark token island here so flipping tokens in
+          the login subtree — including the shared OAuthProviderRow /
+          VerifyCodeForm, which ALSO render on the light-flipping onboarding
+          surface — resolve to their dark values and stay legible in light mode. */}
+      <div data-theme="dark" style={{ display: 'contents' }}>
+        <LoginForm />
+      </div>
     </Suspense>
   );
 }
@@ -299,7 +306,7 @@ function LoginForm() {
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: 700,
-                color: '#b9c3ff',
+                color: 'var(--on-surface-variant)',
                 marginBottom: '8px',
                 paddingLeft: '4px',
               }}
@@ -349,7 +356,7 @@ function LoginForm() {
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: 700,
-                color: '#b9c3ff',
+                color: 'var(--on-surface-variant)',
                 marginBottom: '8px',
                 paddingLeft: '4px',
               }}

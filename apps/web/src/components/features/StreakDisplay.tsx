@@ -155,7 +155,7 @@ export default function StreakDisplay({ onStreakLoaded }: StreakDisplayProps) {
             bottom: 'calc(100% + 8px)',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: '#22223a',
+            background: 'var(--surface-container-highest)',
             borderRadius: '12px',
             border: '1px solid rgba(174,137,255,0.40)',
             padding: '12px 16px',

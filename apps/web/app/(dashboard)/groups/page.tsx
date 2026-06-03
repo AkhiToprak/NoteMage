@@ -35,15 +35,15 @@ interface Group {
 }
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
   primary: '#ae89ff',
   deepPurple: '#884efb',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
-  border: '#555578',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -318,7 +318,7 @@ export default function GroupsPage() {
             display: 'flex',
             gap: 8,
             marginBottom: isPhone ? 20 : 32,
-            borderBottom: `1px solid ${COLORS.border}1a`,
+            borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
             paddingBottom: 0,
             overflowX: isPhone ? 'auto' : undefined,
             WebkitOverflowScrolling: isPhone ? 'touch' : undefined,

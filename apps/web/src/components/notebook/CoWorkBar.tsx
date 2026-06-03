@@ -281,7 +281,7 @@ export default function CoWorkBar({
             }}
           />
           <span
-            style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', letterSpacing: '0.05em' }}
+            style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', letterSpacing: '0.05em' }}
           >
             LIVE
           </span>
@@ -432,7 +432,7 @@ export default function CoWorkBar({
             borderRadius: 7,
             border: 'none',
             background: hoveredInvite ? 'rgba(174,137,255,0.15)' : 'rgba(174,137,255,0.08)',
-            color: '#ae89ff',
+            color: 'var(--accent-strong)',
             fontSize: 11,
             fontWeight: 600,
             cursor: 'pointer',

@@ -164,11 +164,11 @@ export default function AchievementToast({
               'color 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#e5e3ff';
-            e.currentTarget.style.background = 'rgba(229,227,255,0.08)';
+            e.currentTarget.style.color = 'var(--on-surface)';
+            e.currentTarget.style.background = 'var(--ink-08)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#6a6a8c';
+            e.currentTarget.style.color = 'var(--outline-variant)';
             e.currentTarget.style.background = 'none';
           }}
         >

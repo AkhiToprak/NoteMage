@@ -282,7 +282,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                     gap: 8,
                     padding: '6px 8px',
                     borderRadius: 8,
-                    background: hoveredFriendId === friend.friendshipId ? '#2d2d52' : 'transparent',
+                    background: hoveredFriendId === friend.friendshipId ? 'var(--surface-container-high)' : 'transparent',
                     transition: TRANSITION,
                     cursor: 'pointer',
                   }}
@@ -338,7 +338,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
       style={{
         background: 'var(--surface-container-low)',
         borderRadius: 12,
-        border: '1px solid #555578',
+        border: '1px solid var(--outline-variant)',
         overflow: 'hidden',
       }}
     >
@@ -412,8 +412,8 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
       {pendingRequests.length > 0 && (
         <div
           style={{
-            borderTop: '1px solid #555578',
-            borderBottom: '1px solid #555578',
+            borderTop: '1px solid var(--outline-variant)',
+            borderBottom: '1px solid var(--outline-variant)',
           }}
         >
           <button
@@ -601,7 +601,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
           <button
             style={{
               background: 'none',
-              border: '1px solid #555578',
+              border: '1px solid var(--outline-variant)',
               borderRadius: 8,
               color: '#ae89ff',
               fontSize: 13,
@@ -665,7 +665,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                 alignItems: 'center',
                 gap: 10,
                 padding: '8px 16px',
-                background: hoveredFriendId === friend.friendshipId ? '#2d2d52' : 'transparent',
+                background: hoveredFriendId === friend.friendshipId ? 'var(--surface-container-high)' : 'transparent',
                 transition: TRANSITION,
                 cursor: 'pointer',
                 position: 'relative',

@@ -96,7 +96,7 @@ export default function EquationRenderer({
             padding: '4px 12px',
             fontSize: '11px',
             fontWeight: 700,
-            color: '#c4a9ff',
+            color: 'var(--accent-strong)',
             fontFamily: 'inherit',
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
@@ -132,8 +132,8 @@ export default function EquationRenderer({
             border: `1px solid ${
               inputDisabled ? 'rgba(140,82,255,0.5)' : 'rgba(140,82,255,0.32)'
             }`,
-            background: 'rgba(255,255,255,0.06)',
-            color: inputDisabled ? '#c4a9ff' : '#ede4ff',
+            background: 'var(--surface-container)',
+            color: inputDisabled ? 'var(--accent-strong)' : 'var(--on-surface)',
             fontSize: '16px',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
             outline: 'none',
@@ -143,7 +143,7 @@ export default function EquationRenderer({
         <span
           style={{
             fontSize: '11px',
-            color: 'rgba(237,233,255,0.45)',
+            color: 'var(--on-surface-variant)',
             fontFamily: 'inherit',
             letterSpacing: '0.02em',
           }}
@@ -161,7 +161,7 @@ export default function EquationRenderer({
               borderRadius: '10px',
               border: 'none',
               background: draft.trim().length === 0 ? 'rgba(140,82,255,0.18)' : '#8c52ff',
-              color: draft.trim().length === 0 ? 'rgba(237,233,255,0.4)' : 'var(--on-surface)',
+              color: draft.trim().length === 0 ? 'var(--on-surface-variant)' : 'var(--on-surface)',
               fontSize: '13px',
               fontWeight: 600,
               cursor: draft.trim().length === 0 ? 'not-allowed' : 'pointer',
@@ -189,7 +189,7 @@ export default function EquationRenderer({
             borderRadius: '10px',
             border: '1px solid rgba(251,191,36,0.2)',
             background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
+            color: 'var(--warning)',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -207,10 +207,10 @@ export default function EquationRenderer({
           style={{
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
+            background: 'var(--ink-08)',
             border: '1px solid rgba(251,191,36,0.15)',
             fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
+            color: 'var(--warning)',
             marginBottom: '12px',
             lineHeight: 1.6,
           }}
@@ -239,7 +239,7 @@ export default function EquationRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: matchedLiteral ? '#4ade80' : '#c4a9ff',
+              color: matchedLiteral ? 'var(--success)' : 'var(--accent-strong)',
             }}
           >
             {matchedLiteral ? (
@@ -255,7 +255,7 @@ export default function EquationRenderer({
           <div
             style={{
               fontSize: '13px',
-              color: 'rgba(237,233,255,0.7)',
+              color: 'var(--on-surface-variant)',
               lineHeight: 1.6,
               fontFamily: 'inherit',
             }}
@@ -264,10 +264,10 @@ export default function EquationRenderer({
             <code
               style={{
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                color: '#c4a9ff',
+                color: 'var(--accent-strong)',
                 padding: '2px 6px',
                 borderRadius: '6px',
-                background: 'rgba(140,82,255,0.08)',
+                background: 'var(--ink-08)',
               }}
             >
               {expectedExpression || '—'}
@@ -278,7 +278,7 @@ export default function EquationRenderer({
               style={{
                 marginTop: '8px',
                 fontSize: '12px',
-                color: 'rgba(237,233,255,0.55)',
+                color: 'var(--on-surface-variant)',
                 lineHeight: 1.6,
               }}
             >
@@ -299,13 +299,13 @@ export default function EquationRenderer({
             padding: '14px 18px',
             borderRadius: '12px',
             marginBottom: '12px',
-            background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--surface-container)',
+            border: '1px solid var(--ink-08)',
           }}
         >
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.4)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
             You skipped this question. Expected:{' '}
-            <strong style={{ color: '#4ade80' }}>{expectedExpression || '—'}</strong>.
+            <strong style={{ color: 'var(--success)' }}>{expectedExpression || '—'}</strong>.
           </div>
         </div>
       )}
