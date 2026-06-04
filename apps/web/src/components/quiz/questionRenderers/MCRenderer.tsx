@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { McPayload } from '@notemage/shared';
 import { shuffleByKey } from './quizShuffle';
+import HintButton from './HintButton';
 import type { QuestionProps } from './types';
 
 // MCRenderer renders a multiple-choice question. Phase 1 reads the answer
@@ -21,6 +22,7 @@ export default function MCRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<McPayload | null>) {
   const selectedIdx = currentAnswer?.kind === 'mc' ? currentAnswer.selectedIdx : undefined;
   const reviewIdx = reviewAnswer?.kind === 'mc' ? reviewAnswer.selectedIdx : undefined;
@@ -147,46 +149,14 @@ export default function MCRenderer({
         })}
       </div>
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          <MarkdownRenderer content={question.hint} />
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {isAnswered && (
         <div

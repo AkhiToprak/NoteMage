@@ -63,4 +63,10 @@ export interface QuestionProps<TPayload = unknown> {
   onToggleHint: () => void;
   onSelectAnswer: (answer: UserAnswer) => void;
   isPhone: boolean;
+  // Coarse (touch / stylus / in-app WebView) pointer. Gates interaction-pattern
+  // swaps — tap-to-pair, tap-to-place, tap-to-flip — which are about pointer
+  // capability, not screen width. Distinct from `isPhone`, which keeps gating
+  // layout/sizing. Computed once in the shell (QuizViewer) via `useCoarsePointer`
+  // so every renderer shares one SSR-safe snapshot instead of each calling the hook.
+  coarsePointer: boolean;
 }

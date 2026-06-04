@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { trackEvent } from '@/lib/telemetry';
 
@@ -64,6 +65,7 @@ export default function CheckpointFlashcardViewer({
   const [submitting, setSubmitting] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const coarsePointer = useCoarsePointer();
 
   useEffect(() => {
     trackEvent('path.activity.opened', {
@@ -397,6 +399,7 @@ export default function CheckpointFlashcardViewer({
         <footer
           style={{
             padding: '14px 20px',
+            paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -421,7 +424,7 @@ export default function CheckpointFlashcardViewer({
             onClick={flip}
             style={{ ...ghostBtnStyle, minWidth: '140px' }}
           >
-            {isFlipped ? 'Show question' : 'Flip card'}
+            {isFlipped ? 'Show question' : coarsePointer ? 'Tap to flip' : 'Flip card'}
           </button>
           {isLast ? (
             <button

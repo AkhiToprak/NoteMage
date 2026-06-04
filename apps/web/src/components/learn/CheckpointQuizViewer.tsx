@@ -299,13 +299,21 @@ export default function CheckpointQuizViewer({
           flex: 1,
           overflow: 'auto',
           minHeight: 0,
+          // Flex column so the 720px wrapper (and the QuizViewer inside it) can
+          // fill this scroll region's height — that's what lets QuizViewer's
+          // pinned bottom bar actually sit at the bottom on short questions.
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <div
           style={{
             maxWidth: '720px',
+            width: '100%',
             margin: '0 auto',
-            padding: 'clamp(16px, 3vh, 24px) 20px clamp(28px, 6vh, 48px)',
+            flex: 1,
+            minHeight: 0,
+            padding: 'clamp(16px, 3vh, 24px) 20px 0',
           }}
         >
           {loadError ? (

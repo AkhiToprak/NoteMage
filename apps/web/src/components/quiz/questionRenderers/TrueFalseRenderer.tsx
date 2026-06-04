@@ -2,6 +2,7 @@
 
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TrueFalsePayload } from '@notemage/shared';
+import HintButton from './HintButton';
 import type { QuestionProps } from './types';
 
 export default function TrueFalseRenderer({
@@ -14,6 +15,7 @@ export default function TrueFalseRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<TrueFalsePayload>) {
   const selectedValue = currentAnswer?.kind === 'true_false' ? currentAnswer.value : undefined;
   const reviewValue = reviewAnswer?.kind === 'true_false' ? reviewAnswer.value : undefined;
@@ -51,7 +53,7 @@ export default function TrueFalseRenderer({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
           gap: '10px',
           marginBottom: '12px',
         }}
@@ -101,6 +103,7 @@ export default function TrueFalseRenderer({
                 fontFamily: 'inherit',
                 transition: 'background 0.15s, border-color 0.15s',
                 width: '100%',
+                minWidth: 0,
               }}
             >
               <span
@@ -153,54 +156,31 @@ export default function TrueFalseRenderer({
                   />
                 )}
               </span>
-              <span style={{ fontSize: '17px', fontWeight: 600, color: textColor }}>{label}</span>
+              <span
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  color: textColor,
+                  minWidth: 0,
+                  overflowWrap: 'anywhere',
+                  textAlign: 'center',
+                }}
+              >
+                {label}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
-            lightbulb
-          </span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {isAnswered && (
         <div

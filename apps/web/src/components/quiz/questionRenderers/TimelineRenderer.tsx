@@ -19,6 +19,8 @@ import {
 } from '@dnd-kit/core';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TimelinePayload } from '@notemage/shared';
+import HintButton from './HintButton';
+import SubmitBar from './SubmitBar';
 import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps } from './types';
 
@@ -47,6 +49,7 @@ export default function TimelineRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<TimelinePayload | null>) {
   const payload = question.payload;
 
@@ -229,7 +232,7 @@ export default function TimelineRenderer({
             textTransform: 'uppercase',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>calendar_month</span> Drag each label onto its year
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>calendar_month</span> {coarsePointer ? 'Tap a label, then tap its year' : 'Drag each label onto its year'}
         </span>
       </div>
 
@@ -266,6 +269,7 @@ export default function TimelineRenderer({
                 label={label}
                 tapped={tappedLabel === label}
                 disabled={mode === 'review' || isAnswered}
+                coarsePointer={coarsePointer}
                 onTap={() => handleLabelTap(label)}
               />
             ))
@@ -299,6 +303,7 @@ export default function TimelineRenderer({
                 placedLabel={placedLabel}
                 disabled={mode === 'review' || isAnswered}
                 showResult={correctAtYear}
+                coarsePointer={coarsePointer}
                 onTap={() => handleSlotTap(slotKey)}
                 onUnplace={() => unplaceSlot(slotKey)}
                 correctLabel={mode === 'review' ? event.label : null}
@@ -314,68 +319,23 @@ export default function TimelineRenderer({
 
       {!isAnswered && mode === 'quiz' && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-          <button
+          <SubmitBar
             onClick={submit}
             disabled={!allPlaced}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              background: allPlaced ? '#8c52ff' : 'rgba(140,82,255,0.18)',
-              color: allPlaced ? 'var(--on-surface)' : 'var(--on-surface-variant)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: allPlaced ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
-              boxShadow: allPlaced ? '0 4px 16px rgba(140,82,255,0.25)' : 'none',
-              transition: 'background 0.15s, box-shadow 0.15s',
-            }}
-          >
-            Submit timeline
-          </button>
+            label="Submit timeline"
+            isPhone={isPhone}
+          />
         </div>
       )}
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {showResults && (
         <div
@@ -430,11 +390,13 @@ function LabelChip({
   label,
   tapped,
   disabled,
+  coarsePointer,
   onTap,
 }: {
   label: string;
   tapped: boolean;
   disabled: boolean;
+  coarsePointer: boolean;
   onTap: () => void;
 }) {
   const draggable = useDraggable({ id: label, disabled });
@@ -449,8 +411,8 @@ function LabelChip({
       onClick={onTap}
       disabled={disabled}
       style={{
-        padding: '6px 14px',
-        minHeight: '34px',
+        padding: coarsePointer ? '10px 16px' : '6px 14px',
+        minHeight: coarsePointer ? '44px' : '34px',
         borderRadius: '999px',
         border: `1px solid ${borderColor}`,
         background: bg,
@@ -498,6 +460,7 @@ function YearSlot({
   placedLabel,
   disabled,
   showResult,
+  coarsePointer,
   onTap,
   onUnplace,
   correctLabel,
@@ -507,6 +470,7 @@ function YearSlot({
   placedLabel: string | undefined;
   disabled: boolean;
   showResult: boolean | null;
+  coarsePointer: boolean;
   onTap: () => void;
   onUnplace: () => void;
   correctLabel: string | null;
@@ -572,7 +536,8 @@ function YearSlot({
           }}
           disabled={disabled}
           style={{
-            padding: '5px 12px',
+            padding: coarsePointer ? '10px 14px' : '5px 12px',
+            minHeight: coarsePointer ? '44px' : undefined,
             borderRadius: '999px',
             border: `1px solid ${labelBorder}`,
             background: labelBg,

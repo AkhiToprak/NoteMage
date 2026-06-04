@@ -4,6 +4,8 @@ import { useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { EquationPayload } from '@notemage/shared';
 import type { QuestionProps } from './types';
+import HintButton from './HintButton';
+import SubmitBar from './SubmitBar';
 
 export default function EquationRenderer({
   question,
@@ -15,6 +17,7 @@ export default function EquationRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<EquationPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -153,71 +156,22 @@ export default function EquationRenderer({
         </span>
 
         {!inputDisabled && (
-          <button
+          <SubmitBar
             onClick={submit}
             disabled={draft.trim().length === 0}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              background: draft.trim().length === 0 ? 'rgba(140,82,255,0.18)' : '#8c52ff',
-              color: draft.trim().length === 0 ? 'var(--on-surface-variant)' : 'var(--on-surface)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: draft.trim().length === 0 ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              alignSelf: 'flex-end',
-              marginTop: '6px',
-              boxShadow:
-                draft.trim().length === 0 ? 'none' : '0 4px 16px rgba(140,82,255,0.25)',
-              transition: 'background 0.15s, box-shadow 0.15s',
-            }}
-          >
-            Submit answer
-          </button>
+            isPhone={isPhone}
+          />
         )}
       </div>
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {submittedExpression !== undefined && (
         <div

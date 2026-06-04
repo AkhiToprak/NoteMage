@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useCoarsePointer } from '@/hooks/useCoarsePointer';
+import PlayerBottomBar from '@/components/quiz/PlayerBottomBar';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
 import { grade } from '@/lib/quiz-grading';
@@ -98,6 +100,8 @@ export default function QuizViewer({
   onComplete,
 }: QuizViewerProps) {
   const { isPhone, isTablet } = useBreakpoint();
+  // Touch-capability signal — gates the per-renderer tap-first interaction swaps.
+  const coarsePointer = useCoarsePointer();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
@@ -1006,6 +1010,12 @@ export default function QuizViewer({
   }
 
   // ── Quiz / Review mode ──
+  const showCheckpointWarn =
+    isCheckpoint && mode === 'quiz' && currentIndex === questions.length - 1 && !allAnswered;
+  // Pin the nav to the bottom on phones where nothing renders after it (path
+  // checkpoints, or management actions hidden) — but not when the checkpoint
+  // warning would otherwise render below it.
+  const pinNav = isPhone && (isCheckpoint || hideManagementActions) && !showCheckpointWarn;
   return (
     <>
       <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
@@ -1016,7 +1026,7 @@ export default function QuizViewer({
         flexDirection: 'column',
         alignItems: 'center',
         height: '100%',
-        padding: '24px 16px',
+        padding: pinNav ? '24px 16px 0' : '24px 16px',
         fontFamily: 'inherit',
         overflow: 'auto',
       }}
@@ -1244,20 +1254,14 @@ export default function QuizViewer({
               onToggleHint={() => setShowHint((v) => !v)}
               onSelectAnswer={selectAnswer}
               isPhone={isPhone}
+              coarsePointer={coarsePointer}
             />
           );
         })()
       )}
 
-      {/* Navigation controls */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '16px',
-        }}
-      >
+      {/* Navigation controls — pinned to the bottom on touch checkpoint surfaces */}
+      <PlayerBottomBar pinned={pinNav}>
         <NavButton onClick={prev} disabled={currentIndex === 0} title="Previous (←)">
           <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>chevron_left</span>
         </NavButton>
@@ -1286,12 +1290,9 @@ export default function QuizViewer({
             <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>chevron_right</span>
           </NavButton>
         )}
-      </div>
+      </PlayerBottomBar>
 
-      {isCheckpoint &&
-        mode === 'quiz' &&
-        currentIndex === questions.length - 1 &&
-        !allAnswered && (
+      {showCheckpointWarn && (
           <p
             role="status"
             style={{

@@ -1038,7 +1038,7 @@ export default function FlashcardViewer({
           position: 'relative',
           width: '100%',
           maxWidth: isPhone ? '100%' : '360px',
-          height: isPhone ? '420px' : '520px',
+          height: isPhone ? 'min(72vh, 560px)' : '520px',
           perspective: '1000px',
           marginBottom: '24px',
           flexShrink: 0,

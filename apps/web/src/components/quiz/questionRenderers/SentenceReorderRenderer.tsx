@@ -19,6 +19,8 @@ import {
 } from '@dnd-kit/core';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { SentenceReorderPayload } from '@notemage/shared';
+import HintButton from './HintButton';
+import SubmitBar from './SubmitBar';
 import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps } from './types';
 
@@ -37,6 +39,7 @@ export default function SentenceReorderRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<SentenceReorderPayload | null>) {
   const payload = question.payload;
   const correctOrder = useMemo(() => payload?.correctOrder ?? [], [payload]);
@@ -193,7 +196,8 @@ export default function SentenceReorderRenderer({
             textTransform: 'uppercase',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>swap_vert</span> Drag to reorder
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>swap_vert</span>{' '}
+          {coarsePointer ? 'Tap two tiles to swap' : 'Drag to reorder'}
         </span>
       </div>
 
@@ -220,7 +224,11 @@ export default function SentenceReorderRenderer({
               : null;
             return (
               <span key={`g-${id}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                <DropZone idx={i} disabled={mode === 'review' || isAnswered} />
+                <DropZone
+                  idx={i}
+                  disabled={mode === 'review' || isAnswered}
+                  coarsePointer={coarsePointer}
+                />
                 <ReorderToken
                   id={id}
                   text={token.text}
@@ -228,11 +236,16 @@ export default function SentenceReorderRenderer({
                   tapped={tappedTokenId === id}
                   onTap={() => handleTokenTap(id)}
                   showResult={correctAtIdx}
+                  coarsePointer={coarsePointer}
                 />
               </span>
             );
           })}
-          <DropZone idx={order.length} disabled={mode === 'review' || isAnswered} />
+          <DropZone
+            idx={order.length}
+            disabled={mode === 'review' || isAnswered}
+            coarsePointer={coarsePointer}
+          />
         </div>
 
         <DragOverlay>
@@ -247,68 +260,25 @@ export default function SentenceReorderRenderer({
       </DndContext>
 
       {!isAnswered && mode === 'quiz' && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-          <button
-            onClick={submit}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#8c52ff',
-              color: 'var(--on-surface)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              boxShadow: '0 4px 16px rgba(140,82,255,0.25)',
-              transition: 'background 0.15s, box-shadow 0.15s',
-            }}
-          >
-            Submit answer
-          </button>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            marginBottom: '12px',
+          }}
+        >
+          <SubmitBar onClick={submit} disabled={false} isPhone={isPhone} />
         </div>
       )}
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {showResults && (
         <div
@@ -356,12 +326,21 @@ export default function SentenceReorderRenderer({
   );
 }
 
-function DropZone({ idx, disabled }: { idx: number; disabled: boolean }) {
+function DropZone({
+  idx,
+  disabled,
+  coarsePointer,
+}: {
+  idx: number;
+  disabled: boolean;
+  coarsePointer: boolean;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: `drop-${idx}`, disabled });
   // Outer span = drop hit area (wide, transparent). Inner span = visual
   // indicator (narrow, tinted only when hovered). Splitting these lets us
   // keep a clean inline rhythm while giving the pointer a real target —
-  // the original 4-pixel zone was effectively un-droppable mid-drag.
+  // the original 4-pixel zone was effectively un-droppable mid-drag. On coarse
+  // pointers the hit area grows to ≥44px to match the enlarged tokens.
   return (
     <span
       ref={setNodeRef}
@@ -370,8 +349,8 @@ function DropZone({ idx, disabled }: { idx: number; disabled: boolean }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '18px',
-        height: '36px',
+        width: coarsePointer ? '20px' : '18px',
+        height: coarsePointer ? '44px' : '36px',
         margin: '0 -1px',
         cursor: disabled ? 'default' : 'pointer',
       }}
@@ -380,7 +359,7 @@ function DropZone({ idx, disabled }: { idx: number; disabled: boolean }) {
         style={{
           display: 'inline-block',
           width: '6px',
-          height: '28px',
+          height: coarsePointer ? '34px' : '28px',
           borderRadius: '4px',
           background: isOver ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.2)',
           transform: isOver ? 'scaleX(1)' : 'scaleX(0.3333)',
@@ -399,6 +378,7 @@ function ReorderToken({
   tapped,
   onTap,
   showResult,
+  coarsePointer,
 }: {
   id: string;
   text: string;
@@ -406,6 +386,7 @@ function ReorderToken({
   tapped: boolean;
   onTap: () => void;
   showResult: boolean | null;
+  coarsePointer: boolean;
 }) {
   const draggable = useDraggable({ id, disabled });
 
@@ -431,8 +412,8 @@ function ReorderToken({
       onClick={onTap}
       disabled={disabled}
       style={{
-        padding: '6px 12px',
-        minHeight: '32px',
+        padding: coarsePointer ? '8px 14px' : '6px 12px',
+        minHeight: coarsePointer ? '44px' : '32px',
         borderRadius: '999px',
         border: `1px solid ${borderColor}`,
         background: bg,

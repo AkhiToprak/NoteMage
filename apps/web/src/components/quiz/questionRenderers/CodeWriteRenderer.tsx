@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import CodeMirrorEditor from '@/components/quiz/CodeMirrorEditor';
+import HintButton from './HintButton';
 import type { CodeWritePayload, ExecutableCodeLanguage } from '@notemage/shared';
 import type { QuestionProps } from './types';
 
@@ -34,6 +35,7 @@ export default function CodeWriteRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<CodeWritePayload | null>) {
   const payload = question.payload;
 
@@ -183,6 +185,7 @@ export default function CodeWriteRenderer({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '10px 16px',
+                minHeight: coarsePointer ? '44px' : undefined,
                 borderRadius: '10px',
                 border: '1px solid rgba(140,82,255,0.45)',
                 background: 'transparent',
@@ -209,10 +212,11 @@ export default function CodeWriteRenderer({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '10px 16px',
+                minHeight: coarsePointer ? '44px' : undefined,
                 borderRadius: '10px',
                 border: 'none',
-                background: '#8c52ff',
-                color: 'var(--on-surface)',
+                background: 'var(--accent-strong)',
+                color: 'var(--on-primary-container)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor:
@@ -230,51 +234,21 @@ export default function CodeWriteRenderer({
             </button>
           </>
         )}
-        {question.hint && !isAnswered && mode === 'quiz' && (
-          <button
-            onClick={onToggleHint}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 14px',
-              borderRadius: '10px',
-              border: '1px solid rgba(251,191,36,0.2)',
-              background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-              color: 'var(--warning)',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-            {showHint ? 'Hide hint' : 'Show hint'}
-          </button>
-        )}
       </div>
+
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       <style>{`
         .cm-spin { animation: cmSpin 0.9s linear infinite; }
         @keyframes cmSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
-
-      {showHint && question.hint && (
-        <div
-          style={{
-            marginTop: '12px',
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
 
       {error && (
         <div

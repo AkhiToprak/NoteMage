@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { MatchPairsPayload } from '@notemage/shared';
+import HintButton from './HintButton';
 import { shuffleByKey } from './quizShuffle';
 import type { QuestionProps, UserAnswer } from './types';
 
@@ -39,6 +40,7 @@ export default function MatchPairsRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<MatchPairsPayload | null>) {
   const payload = question.payload;
   const pairs = useMemo(() => payload?.pairs ?? [], [payload]);
@@ -90,6 +92,8 @@ export default function MatchPairsRenderer({
   const [lines, setLines] = useState<Line[]>([]);
 
   const recomputeLines = useCallback(() => {
+    // Touch pointers render the stacked layout (no SVG lines) — nothing to measure.
+    if (coarsePointer) return;
     const container = containerRef.current;
     if (!container) return;
     const containerRect = container.getBoundingClientRect();
@@ -117,7 +121,7 @@ export default function MatchPairsRenderer({
       });
     }
     setLines(next);
-  }, [connections, shuffledRights]);
+  }, [connections, shuffledRights, coarsePointer]);
 
   // Recompute on any layout or connection change.
   useLayoutEffect(() => {
@@ -207,17 +211,122 @@ export default function MatchPairsRenderer({
         </div>
       </div>
 
-      {/* Pair canvas */}
-      <div
-        ref={containerRef}
-        style={{
-          position: 'relative',
-          display: 'grid',
-          gridTemplateColumns: '1fr 80px 1fr',
-          gap: '10px',
-          marginBottom: '14px',
-        }}
-      >
+      {/* Pair canvas. Coarse pointers get a stacked tap-to-pair layout (no columns,
+          no SVG lines — full-width rows that wrap, so long definitions never clip).
+          Fine pointers keep the two-column + SVG-connector layout unchanged. */}
+      {coarsePointer ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+            marginBottom: '14px',
+          }}
+        >
+          {/* Matched pairs collapse to the top as bound rows */}
+          {connections.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {leftOrder
+                .filter((i) => isLeftConnected(i))
+                .map((i) => {
+                  const conn = connections.find((c) => c.left === i);
+                  const rightLabel = conn?.rightLabel ?? '';
+                  return (
+                    <MatchedRow
+                      key={`matched-${i}`}
+                      term={pairs[i]?.left ?? ''}
+                      definition={rightLabel}
+                      result={showResults ? isConnectionCorrect(i, rightLabel) : null}
+                      canUnlink={mode === 'quiz'}
+                      onUnlink={() => handleLeftClick(i)}
+                    />
+                  );
+                })}
+            </div>
+          )}
+
+          {/* Remaining terms + definitions to pair */}
+          {(() => {
+            const unmatchedLefts = leftOrder.filter((i) => !isLeftConnected(i));
+            if (unmatchedLefts.length === 0) return null;
+            // Consume one slot per connection by SLOT IDENTITY (not label): when two
+            // pairs share an identical definition, only the matched slot is removed so
+            // the duplicate stays tappable (mirrors the fine-pointer branch, which
+            // renders every slot). Filtering by label would hide both and strand the
+            // second term in an unpairable dead-end.
+            const consumedSlots = new Set<number>();
+            for (const c of connections) {
+              const slotIdx = shuffledRights.findIndex(
+                (label, idx) => label === c.rightLabel && !consumedSlots.has(idx)
+              );
+              if (slotIdx >= 0) consumedSlots.add(slotIdx);
+            }
+            const unmatchedRights = shuffledRights
+              .map((label, slotIdx) => ({ label, slotIdx }))
+              .filter(({ slotIdx }) => !consumedSlots.has(slotIdx));
+            const needsTerm = mode === 'quiz' && selectedLeft === null;
+            return (
+              <>
+                {mode === 'quiz' && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--on-surface-variant)',
+                    }}
+                  >
+                    {selectedLeft !== null
+                      ? 'Now tap its definition'
+                      : 'Tap a term, then its definition'}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {unmatchedLefts.map((i) => (
+                    <TapTile
+                      key={`term-${i}`}
+                      label={pairs[i]?.left ?? ''}
+                      selected={selectedLeft === i}
+                      disabled={mode === 'review'}
+                      onClick={() =>
+                        selectedLeft === i ? setSelectedLeft(null) : handleLeftClick(i)
+                      }
+                    />
+                  ))}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    opacity: needsTerm ? 0.55 : 1,
+                    transition: 'opacity 0.15s',
+                  }}
+                >
+                  {unmatchedRights.map(({ label, slotIdx }) => (
+                    <TapTile
+                      key={`def-${slotIdx}`}
+                      label={label}
+                      selected={false}
+                      disabled={mode === 'review' || selectedLeft === null}
+                      onClick={() => handleRightClick(slotIdx)}
+                    />
+                  ))}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          style={{
+            position: 'relative',
+            display: 'grid',
+            gridTemplateColumns: '1fr 80px 1fr',
+            gap: '10px',
+            marginBottom: '14px',
+          }}
+        >
         {/* SVG connection overlay */}
         <svg
           aria-hidden
@@ -308,6 +417,7 @@ export default function MatchPairsRenderer({
           })}
         </div>
       </div>
+      )}
 
       {/* Progress indicator while pairing */}
       {mode === 'quiz' && (
@@ -321,50 +431,18 @@ export default function MatchPairsRenderer({
           }}
         >
           {connections.length} / {pairs.length} paired
-          {selectedLeft !== null && ' — pick a match on the right'}
+          {selectedLeft !== null && ' — pick its match'}
         </div>
       )}
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {showResults && (
         <SummaryBanner
@@ -443,6 +521,157 @@ function PairItem({
     >
       {label}
     </button>
+  );
+}
+
+// Full-width tappable tile for an unmatched term or definition (coarse-pointer layout).
+function TapTile({
+  label,
+  selected,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: '100%',
+        minHeight: '52px',
+        padding: '14px 16px',
+        borderRadius: '12px',
+        border: `1px solid ${selected ? 'rgba(174,137,255,0.7)' : 'rgba(140,82,255,0.2)'}`,
+        background: selected ? 'rgba(140,82,255,0.18)' : 'var(--surface-container)',
+        color: 'var(--on-surface)',
+        fontSize: '15px',
+        fontWeight: 500,
+        lineHeight: 1.45,
+        textAlign: 'left',
+        cursor: disabled ? 'default' : 'pointer',
+        fontFamily: 'inherit',
+        overflowWrap: 'anywhere',
+        transition: 'background 0.15s, border-color 0.15s',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// A bound term↔definition pair in the coarse-pointer layout. In quiz mode it carries
+// an unlink control; in review mode it shows a correctness icon and colour.
+function MatchedRow({
+  term,
+  definition,
+  result,
+  canUnlink,
+  onUnlink,
+}: {
+  term: string;
+  definition: string;
+  result: boolean | null;
+  canUnlink: boolean;
+  onUnlink: () => void;
+}) {
+  let borderColor = 'rgba(174,137,255,0.45)';
+  let bg = 'rgba(140,82,255,0.10)';
+  let accent = 'var(--on-surface-variant)';
+  if (result === true) {
+    borderColor = 'rgba(74,222,128,0.5)';
+    bg = 'rgba(74,222,128,0.08)';
+    accent = 'var(--success)';
+  } else if (result === false) {
+    borderColor = 'rgba(252,165,165,0.5)';
+    bg = 'rgba(252,165,165,0.08)';
+    accent = 'var(--error)';
+  }
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        padding: '12px 12px 12px 14px',
+        borderRadius: '12px',
+        border: `1px solid ${borderColor}`,
+        background: bg,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: '15px',
+            fontWeight: 600,
+            color: 'var(--on-surface)',
+            lineHeight: 1.4,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {term}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '4px',
+            marginTop: '3px',
+            fontSize: '13px',
+            color: accent,
+            lineHeight: 1.45,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 16, flexShrink: 0, marginTop: '1px' }}
+            aria-hidden
+          >
+            subdirectory_arrow_right
+          </span>
+          <span style={{ minWidth: 0 }}>{definition}</span>
+        </div>
+      </div>
+      {canUnlink ? (
+        <button
+          onClick={onUnlink}
+          aria-label="Unlink pair"
+          style={{
+            flexShrink: 0,
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '10px',
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--on-surface-variant)',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'background 0.15s, color 0.15s',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }} aria-hidden>
+            link_off
+          </span>
+        </button>
+      ) : (
+        result !== null && (
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20, flexShrink: 0, color: accent, marginTop: '2px' }}
+            aria-hidden
+          >
+            {result ? 'check_circle' : 'cancel'}
+          </span>
+        )
+      )}
+    </div>
   );
 }
 

@@ -20,7 +20,9 @@ import {
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { WordBankPayload } from '@notemage/shared';
 import { substituteBlankMarker } from './blankPlaceholder';
+import HintButton from './HintButton';
 import { shuffleByKey } from './quizShuffle';
+import SubmitBar from './SubmitBar';
 import type { QuestionProps } from './types';
 
 // Stable per-token ids so duplicate words (e.g. "the" appearing twice) move
@@ -62,6 +64,7 @@ export default function WordBankRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<WordBankPayload | null>) {
   const payload = question.payload;
   const slotCount = payload?.slots.length ?? 0;
@@ -247,6 +250,17 @@ export default function WordBankRenderer({
       </div>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {coarsePointer && !isAnswered && mode === 'quiz' && (
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--on-surface-variant)',
+              marginBottom: '8px',
+            }}
+          >
+            Tap a word, then tap a blank
+          </div>
+        )}
         {/* Template with inline slots */}
         <div
           style={{
@@ -286,6 +300,7 @@ export default function WordBankRenderer({
                 showResult={showResults ? correct : null}
                 disabled={mode === 'review' || isAnswered}
                 tapModeHint={tappedTokenId !== null}
+                coarsePointer={coarsePointer}
               />
             );
           })}
@@ -304,6 +319,7 @@ export default function WordBankRenderer({
                 disabled={mode === 'review' || isAnswered}
                 tapped={tappedTokenId === id}
                 onTap={() => handleTokenTap(id)}
+                coarsePointer={coarsePointer}
               />
             );
           })}
@@ -326,78 +342,26 @@ export default function WordBankRenderer({
             ? (() => {
                 const t = tokenById.get(activeDragId);
                 if (!t) return null;
-                return <TokenChip text={t.text} dragging />;
+                return <TokenChip text={t.text} dragging coarsePointer={coarsePointer} />;
               })()
             : null}
         </DragOverlay>
       </DndContext>
 
       {!isAnswered && mode === 'quiz' && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-          <button
-            onClick={submitAnswer}
-            disabled={!slotsFilled}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              background: slotsFilled ? '#8c52ff' : 'rgba(140,82,255,0.18)',
-              color: slotsFilled ? 'var(--on-surface)' : 'var(--on-surface-variant)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: slotsFilled ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
-              boxShadow: slotsFilled ? '0 4px 16px rgba(140,82,255,0.25)' : 'none',
-              transition: 'background 0.15s, box-shadow 0.15s',
-            }}
-          >
-            Submit answer
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: '12px' }}>
+          <SubmitBar onClick={submitAnswer} disabled={!slotsFilled} isPhone={isPhone} />
         </div>
       )}
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: 'var(--warning)',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginTop: '10px',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>lightbulb</span>
-          {showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'var(--ink-08)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'var(--warning)',
-            marginTop: '10px',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {showResults && payload && (
         <div
@@ -455,6 +419,7 @@ function Slot({
   showResult,
   disabled,
   tapModeHint,
+  coarsePointer,
 }: {
   slotIndex: number;
   tokenText: string | null;
@@ -463,6 +428,7 @@ function Slot({
   showResult: boolean | null;
   disabled: boolean;
   tapModeHint: boolean;
+  coarsePointer: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `slot-${slotIndex}` });
   let borderColor = 'rgba(140,82,255,0.45)';
@@ -503,8 +469,8 @@ function Slot({
         alignItems: 'center',
         justifyContent: 'center',
         minWidth: '56px',
-        minHeight: '32px',
-        padding: '4px 12px',
+        minHeight: coarsePointer ? '44px' : '32px',
+        padding: coarsePointer ? '8px 14px' : '4px 12px',
         borderRadius: '999px',
         border: `${dashed ? '1.5px dashed' : '1px solid'} ${borderColor}`,
         background: bg,
@@ -572,12 +538,14 @@ function BankToken({
   disabled,
   tapped,
   onTap,
+  coarsePointer,
 }: {
   id: string;
   text: string;
   disabled: boolean;
   tapped: boolean;
   onTap: () => void;
+  coarsePointer: boolean;
 }) {
   const draggable = useDraggable({ id, disabled });
   return (
@@ -588,8 +556,8 @@ function BankToken({
       onClick={onTap}
       disabled={disabled}
       style={{
-        padding: '6px 12px',
-        minHeight: '32px',
+        padding: coarsePointer ? '10px 14px' : '6px 12px',
+        minHeight: coarsePointer ? '44px' : '32px',
         borderRadius: '999px',
         border: `1px solid ${tapped ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.4)'}`,
         background: tapped ? 'rgba(140,82,255,0.28)' : 'rgba(140,82,255,0.12)',
@@ -608,12 +576,20 @@ function BankToken({
   );
 }
 
-function TokenChip({ text, dragging }: { text: string; dragging?: boolean }) {
+function TokenChip({
+  text,
+  dragging,
+  coarsePointer,
+}: {
+  text: string;
+  dragging?: boolean;
+  coarsePointer?: boolean;
+}) {
   return (
     <span
       style={{
-        padding: '6px 12px',
-        minHeight: '32px',
+        padding: coarsePointer ? '10px 14px' : '6px 12px',
+        minHeight: coarsePointer ? '44px' : '32px',
         display: 'inline-flex',
         alignItems: 'center',
         borderRadius: '999px',
