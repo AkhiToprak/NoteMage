@@ -271,6 +271,12 @@
   --brand-purple-hover: rgb(var(--brand-purple-rgb) / 0.2);
   --brand-purple-strong: rgb(var(--brand-purple-rgb) / 1);
   --brand-purple-ink: #2a0066;
+  /* Achievement celebration gold (#ffde59) — the trophy/unlock accent used by
+     the AchievementToast border + glow + icon wash. Composed inline via
+     `rgb(var(--achievement-gold-rgb) / a)`, same pattern as the brand-purple
+     and --accent-strong-rgb channels. Decorative low-alpha only; the toast's
+     meaningful ink uses --warning, which theme-flips on its own. */
+  --achievement-gold-rgb: 255 222 89;
   --success-ink: #082b13;
   --rule-hairline: rgb(var(--brand-purple-rgb) / 0.16);
   --dur-fast: 180ms;
