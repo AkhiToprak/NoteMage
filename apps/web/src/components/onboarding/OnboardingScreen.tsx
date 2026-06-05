@@ -124,7 +124,7 @@ export default function OnboardingScreen({
             fontSize: '16px',
             fontWeight: 800,
             letterSpacing: '-0.02em',
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
           }}
         >
           NoteMage

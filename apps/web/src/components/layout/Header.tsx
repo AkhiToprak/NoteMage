@@ -41,7 +41,7 @@ export default function Header() {
           fontFamily: 'var(--font-brand)',
           fontSize: '24px',
           fontWeight: '400',
-          color: '#ae89ff',
+          color: 'var(--md-h4)',
           margin: 0,
         }}
       >

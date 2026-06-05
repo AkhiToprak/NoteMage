@@ -603,7 +603,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
               background: 'none',
               border: '1px solid var(--outline-variant)',
               borderRadius: 8,
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               fontSize: 13,
               fontWeight: 600,
               padding: '6px 14px',

@@ -782,7 +782,7 @@ export function CosmeticsPanel({
           className="material-symbols-outlined"
           style={{
             fontSize: 32,
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
             animation: 'spin 1s linear infinite',
           }}
         >

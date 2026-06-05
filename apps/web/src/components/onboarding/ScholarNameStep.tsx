@@ -56,7 +56,7 @@ export default function ScholarNameStep({ scholarName, onChange }: ScholarNameSt
             </span>
           </div>
           <p style={{ fontSize: '14px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.5 }}>
-            Hey! I&apos;m <span style={{ color: '#ae89ff', fontWeight: 700 }}>{displayName}</span>, your
+            Hey! I&apos;m <span style={{ color: 'var(--md-h4)', fontWeight: 700 }}>{displayName}</span>, your
             personal study assistant.
           </p>
         </div>

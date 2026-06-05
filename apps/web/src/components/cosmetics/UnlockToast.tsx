@@ -333,7 +333,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 14, color: '#ae89ff' }}
+                  style={{ fontSize: 14, color: 'var(--md-h4)' }}
                 >
                   {typeInfo.icon}
                 </span>

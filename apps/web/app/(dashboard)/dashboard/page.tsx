@@ -802,7 +802,7 @@ export default function DashboardPage() {
                       >
                         <span
                           className="material-symbols-outlined"
-                          style={{ fontSize: '18px', color: '#ae89ff' }}
+                          style={{ fontSize: '18px', color: 'var(--md-h4)' }}
                         >
                           add
                         </span>
@@ -1034,7 +1034,7 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '20px', color: '#ae89ff' }}
+              style={{ fontSize: '20px', color: 'var(--md-h4)' }}
             >
               event
             </span>
@@ -1056,7 +1056,7 @@ export default function DashboardPage() {
                   borderRadius: '999px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: '#ae89ff',
+                  color: 'var(--md-h4)',
                 }}
               >
                 {exams.length}
@@ -1074,7 +1074,7 @@ export default function DashboardPage() {
               background: 'rgba(174,137,255,0.12)',
               border: '1px solid rgba(174,137,255,0.2)',
               borderRadius: '8px',
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -1316,7 +1316,7 @@ export default function DashboardPage() {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#ae89ff',
+                  color: 'var(--md-h4)',
                   fontSize: '13px',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -1458,7 +1458,7 @@ export default function DashboardPage() {
                             background: 'var(--surface-container-highest)',
                             borderRadius: '12px',
                             border: 'none',
-                            color: '#ae89ff',
+                            color: 'var(--md-h4)',
                             fontSize: '13px',
                             fontWeight: 700,
                             cursor: 'pointer',

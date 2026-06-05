@@ -146,7 +146,7 @@ export default function AvatarStep({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '28px', color: '#ae89ff', animation: 'spin 1s linear infinite' }}
+                style={{ fontSize: '28px', color: 'var(--md-h4)', animation: 'spin 1s linear infinite' }}
               >
                 progress_activity
               </span>
@@ -167,7 +167,7 @@ export default function AvatarStep({
           onMouseLeave={() => setUploadCardHovered(false)}
           onClick={() => !isUploadBusy && fileInputRef.current?.click()}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#ae89ff' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--md-h4)' }}>
             photo_camera
           </span>
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', textAlign: 'center' }}>
@@ -204,7 +204,7 @@ export default function AvatarStep({
           >
             Soon
           </div>
-          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#ae89ff' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--md-h4)' }}>
             face
           </span>
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', textAlign: 'center' }}>

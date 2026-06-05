@@ -551,7 +551,7 @@ export default function OnboardingWizard({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '24px', color: '#ae89ff', animation: 'spin 1s linear infinite' }}
+                style={{ fontSize: '24px', color: 'var(--md-h4)', animation: 'spin 1s linear infinite' }}
               >
                 progress_activity
               </span>
