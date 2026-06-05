@@ -59,6 +59,12 @@ export interface QuestionProps<TPayload = unknown> {
   isAnswered: boolean;
   currentAnswer: UserAnswer | undefined;
   reviewAnswer: UserAnswer | undefined;
+  // The graded result for the submitted answer (undefined until answered).
+  // Sourced from the QuizViewer answers map, where grade() stored it at submit
+  // time — renderers that can't re-derive correctness client-side (e.g. the
+  // equation kind, where the grader evaluates symbolic equivalence) read this
+  // instead of guessing from a literal string match.
+  gradedCorrect: boolean | undefined;
   showHint: boolean;
   onToggleHint: () => void;
   onSelectAnswer: (answer: UserAnswer) => void;

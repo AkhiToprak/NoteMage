@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
   useDraggable,
@@ -75,7 +76,9 @@ export default function SentenceReorderRenderer({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    // Keyboard drag: tab to a token, Space to lift, arrows to move, Space to drop.
+    useSensor(KeyboardSensor)
   );
 
   // Review mode reads stored answer; live mode uses local order state.
@@ -285,8 +288,8 @@ export default function SentenceReorderRenderer({
           style={{
             padding: '14px 18px',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-            border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
             marginBottom: '12px',
           }}
         >
@@ -395,12 +398,12 @@ function ReorderToken({
   let textColor = tapped ? 'var(--on-surface)' : 'var(--on-surface-variant)';
 
   if (showResult === true) {
-    borderColor = 'rgba(74,222,128,0.55)';
-    bg = 'rgba(74,222,128,0.12)';
+    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.55)';
+    bg = 'rgb(var(--verdict-pass-rgb) / 0.12)';
     textColor = 'var(--success)';
   } else if (showResult === false) {
-    borderColor = 'rgba(252,165,165,0.55)';
-    bg = 'rgba(252,165,165,0.10)';
+    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.55)';
+    bg = 'rgb(var(--verdict-fail-rgb) / 0.10)';
     textColor = 'var(--error)';
   }
 

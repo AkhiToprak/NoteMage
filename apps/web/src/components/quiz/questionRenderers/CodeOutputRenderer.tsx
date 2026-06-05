@@ -170,14 +170,14 @@ export default function CodeOutputRenderer({
             border: `1px solid ${
               inputDisabled
                 ? isCorrect
-                  ? 'rgba(74,222,128,0.5)'
-                  : 'rgba(252,165,165,0.5)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.5)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.5)'
                 : 'rgba(140,82,255,0.32)'
             }`,
             background: inputDisabled
               ? isCorrect
-                ? 'rgba(74,222,128,0.06)'
-                : 'rgba(252,165,165,0.06)'
+                ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
+                : 'rgb(var(--verdict-fail-rgb) / 0.06)'
               : 'var(--surface-container)',
             color: inputDisabled
               ? isCorrect
@@ -186,7 +186,6 @@ export default function CodeOutputRenderer({
               : 'var(--on-surface)',
             fontSize: '14px',
             fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
-            outline: 'none',
             resize: 'vertical',
             whiteSpace: 'pre',
           }}
@@ -216,8 +215,8 @@ export default function CodeOutputRenderer({
           style={{
             padding: '14px 18px',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-            border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
             marginBottom: '12px',
           }}
         >

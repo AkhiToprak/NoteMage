@@ -105,6 +105,8 @@ export default function QuizViewer({
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
+  // Per-set sessionStorage key for the in-progress draft (persisted below).
+  const draftKey = `notemage:quiz-draft:${setId}`;
   const [showHint, setShowHint] = useState(false);
   const [mode, setMode] = useState<QuizMode>('quiz');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -135,6 +137,13 @@ export default function QuizViewer({
   const [quizStartTime] = useState<number>(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  // True when the attempt POST failed (network or server). Surfaces a retry
+  // banner on the results screen so a learner never sees a score that silently
+  // never saved.
+  const [saveError, setSaveError] = useState(false);
+  // Politely announced to screen readers when an answer is graded — the verdict
+  // banner is otherwise silent to assistive tech (no aria-live anywhere else).
+  const [liveAnnouncement, setLiveAnnouncement] = useState('');
 
   // Mascot reaction wiring (Phase 4). Streaks live in refs so the commit
   // helper reads fresh values synchronously and doesn't re-render the player
@@ -246,6 +255,7 @@ export default function QuizViewer({
       if (entry && q) commitFor(currentIndex, entry.isCorrect, q.hint);
       setCurrentIndex((i) => i + 1);
       setShowHint(false);
+      setLiveAnnouncement('');
     }
   }, [currentIndex, questions, answers, commitFor]);
 
@@ -253,6 +263,7 @@ export default function QuizViewer({
     if (currentIndex > 0) {
       setCurrentIndex((i) => i - 1);
       setShowHint(false);
+      setLiveAnnouncement('');
     }
   }, [currentIndex]);
 
@@ -265,7 +276,12 @@ export default function QuizViewer({
     wrongStreakRef.current = 0;
     committedRef.current = new Set();
     reactionLayerRef.current?.dismiss();
-  }, []);
+    try {
+      sessionStorage.removeItem(draftKey);
+    } catch {
+      /* ignore */
+    }
+  }, [draftKey]);
 
   const selectAnswer = useCallback(
     (answer: UserAnswer) => {
@@ -284,6 +300,7 @@ export default function QuizViewer({
         answer
       );
       setAnswers((prev) => new Map(prev).set(currentIndex, { answer, isCorrect }));
+      setLiveAnnouncement(isCorrect ? 'Correct.' : 'Not quite. The answer is shown below.');
       // MC auto-locks — first click *is* the commit. Non-MC kinds commit on
       // next/finish so the streak reflects the user's final answer, not
       // every keystroke.
@@ -292,15 +309,13 @@ export default function QuizViewer({
     [mode, isAnswered, currentIndex, questions, commitFor]
   );
 
-  const finish = useCallback(async () => {
-    // Commit the current question first (no-op for MC; non-MC may be the
-    // very last answered question that hasn't been advanced past yet).
-    const lastEntry = answers.get(currentIndex);
-    const lastQ = questions[currentIndex];
-    if (lastEntry && lastQ) commitFor(currentIndex, lastEntry.isCorrect, lastQ.hint);
-
-    setMode('results');
+  // POST the attempt. Returns true on success; on any failure (network or a
+  // non-success body) sets saveError so the results screen can offer a retry.
+  // Separated from finish() so the retry button can re-run it without
+  // re-entering the results transition.
+  const submitAttempt = useCallback(async (): Promise<boolean> => {
     setSubmitting(true);
+    setSaveError(false);
     try {
       const timeSpent = Math.round((Date.now() - quizStartTime) / 1000);
       const answersPayload = Array.from(answers.entries()).map(([idx, entry]) => ({
@@ -346,30 +361,100 @@ export default function QuizViewer({
           percentage: json.data.percentage,
           timeSpent: json.data.timeSpent ?? null,
         });
+        setSubmitting(false);
+        return true;
       }
+      setSaveError(true);
+      setSubmitting(false);
+      return false;
     } catch {
-      /* silent */
+      setSaveError(true);
+      setSubmitting(false);
+      return false;
     }
-    setSubmitting(false);
   }, [
     answers,
-    currentIndex,
     questions,
     notebookId,
     setId,
     quizStartTime,
     bestScore,
-    commitFor,
     isCheckpoint,
     reactionMode,
     onComplete,
   ]);
+
+  const finish = useCallback(async () => {
+    // Commit the current question first (no-op for MC; non-MC may be the
+    // very last answered question that hasn't been advanced past yet).
+    const lastEntry = answers.get(currentIndex);
+    const lastQ = questions[currentIndex];
+    if (lastEntry && lastQ) commitFor(currentIndex, lastEntry.isCorrect, lastQ.hint);
+
+    setMode('results');
+    try {
+      sessionStorage.removeItem(draftKey);
+    } catch {
+      /* ignore */
+    }
+    await submitAttempt();
+  }, [answers, currentIndex, questions, commitFor, submitAttempt, draftKey]);
 
   const startReview = useCallback(() => {
     setMode('review');
     setCurrentIndex(0);
     setShowHint(false);
   }, []);
+
+  // Rehydrate an in-progress attempt once on mount so a refresh or a discarded
+  // background tab doesn't wipe answers. Guarded by question count so a
+  // regenerated set never restores stale answers.
+  useEffect(() => {
+    if (mode !== 'quiz') return;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        count?: number;
+        currentIndex?: number;
+        answers?: [number, AnswerEntry][];
+      };
+      if (
+        saved.count !== questions.length ||
+        !Array.isArray(saved.answers) ||
+        saved.answers.length === 0
+      ) {
+        return;
+      }
+      const restored = new Map<number, AnswerEntry>(saved.answers);
+      setAnswers(restored);
+      restored.forEach((_v, k) => committedRef.current.add(k));
+      if (typeof saved.currentIndex === 'number') {
+        setCurrentIndex(Math.min(Math.max(saved.currentIndex, 0), questions.length - 1));
+      }
+    } catch {
+      /* ignore malformed or blocked storage */
+    }
+    // Mount-only rehydrate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist the draft as the learner answers.
+  useEffect(() => {
+    if (mode !== 'quiz' || answers.size === 0) return;
+    try {
+      sessionStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          count: questions.length,
+          currentIndex,
+          answers: Array.from(answers.entries()),
+        }),
+      );
+    } catch {
+      /* ignore blocked storage */
+    }
+  }, [answers, currentIndex, mode, draftKey, questions.length]);
 
   // Elapsed time ticker
   useEffect(() => {
@@ -698,6 +783,48 @@ export default function QuizViewer({
           {title}
         </p>
 
+        {saveError && (
+          <div
+            role="alert"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              padding: '12px 16px',
+              margin: '0 0 24px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--error)',
+              background: 'rgba(254,161,176,0.10)',
+              maxWidth: 420,
+            }}
+          >
+            <span style={{ fontSize: 13, color: 'var(--on-surface)', textAlign: 'center' }}>
+              We couldn&apos;t save this attempt. Your score below isn&apos;t recorded yet.
+            </span>
+            <button
+              type="button"
+              onClick={() => void submitAttempt()}
+              disabled={submitting}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: 'var(--accent-strong)',
+                color: 'var(--on-primary-container)',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                opacity: submitting ? 0.6 : 1,
+                fontFamily: 'inherit',
+              }}
+            >
+              {submitting ? 'Saving…' : 'Retry saving'}
+            </button>
+          </div>
+        )}
+
         {/* Score circle */}
         <div
           style={{
@@ -706,11 +833,11 @@ export default function QuizViewer({
             borderRadius: '50%',
             background:
               accuracy >= 70
-                ? 'rgba(74,222,128,0.15)'
+                ? 'rgb(var(--verdict-pass-rgb) / 0.15)'
                 : accuracy >= 40
-                  ? 'rgba(251,191,36,0.15)'
-                  : 'rgba(252,165,165,0.15)',
-            border: `2px solid ${accuracy >= 70 ? 'rgba(74,222,128,0.4)' : accuracy >= 40 ? 'rgba(251,191,36,0.4)' : 'rgba(252,165,165,0.4)'}`,
+                  ? 'rgb(var(--verdict-warn-rgb) / 0.15)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.15)',
+            border: `2px solid ${accuracy >= 70 ? 'rgb(var(--verdict-pass-rgb) / 0.4)' : accuracy >= 40 ? 'rgb(var(--verdict-warn-rgb) / 0.4)' : 'rgb(var(--verdict-fail-rgb) / 0.4)'}`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -937,16 +1064,16 @@ export default function QuizViewer({
                             borderRadius: '10px',
                             background:
                               attempt.percentage >= 70
-                                ? 'rgba(74,222,128,0.1)'
+                                ? 'rgb(var(--verdict-pass-rgb) / 0.1)'
                                 : attempt.percentage >= 40
-                                  ? 'rgba(251,191,36,0.1)'
-                                  : 'rgba(252,165,165,0.1)',
+                                  ? 'rgb(var(--verdict-warn-rgb) / 0.1)'
+                                  : 'rgb(var(--verdict-fail-rgb) / 0.1)',
                             border: `1px solid ${
                               attempt.percentage >= 70
-                                ? 'rgba(74,222,128,0.3)'
+                                ? 'rgb(var(--verdict-pass-rgb) / 0.3)'
                                 : attempt.percentage >= 40
-                                  ? 'rgba(251,191,36,0.3)'
-                                  : 'rgba(252,165,165,0.3)'
+                                  ? 'rgb(var(--verdict-warn-rgb) / 0.3)'
+                                  : 'rgb(var(--verdict-fail-rgb) / 0.3)'
                             }`,
                             display: 'flex',
                             alignItems: 'center',
@@ -1019,6 +1146,23 @@ export default function QuizViewer({
   return (
     <>
       <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clipPath: 'inset(50%)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {liveAnnouncement}
+      </div>
     <div
       ref={containerRef}
       style={{
@@ -1055,11 +1199,11 @@ export default function QuizViewer({
             color: bestScore >= 70 ? 'var(--success)' : bestScore >= 40 ? 'var(--warning)' : 'var(--error)',
             background:
               bestScore >= 70
-                ? 'rgba(74,222,128,0.1)'
+                ? 'rgb(var(--verdict-pass-rgb) / 0.1)'
                 : bestScore >= 40
-                  ? 'rgba(251,191,36,0.1)'
-                  : 'rgba(252,165,165,0.1)',
-            border: `1px solid ${bestScore >= 70 ? 'rgba(74,222,128,0.2)' : bestScore >= 40 ? 'rgba(251,191,36,0.2)' : 'rgba(252,165,165,0.2)'}`,
+                  ? 'rgb(var(--verdict-warn-rgb) / 0.1)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.1)',
+            border: `1px solid ${bestScore >= 70 ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : bestScore >= 40 ? 'rgb(var(--verdict-warn-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
             borderRadius: '9999px',
             padding: '2px 10px',
             marginBottom: '4px',
@@ -1075,8 +1219,8 @@ export default function QuizViewer({
             fontSize: '11px',
             color: 'var(--warning)',
             fontWeight: 600,
-            background: 'rgba(251,191,36,0.1)',
-            border: '1px solid rgba(251,191,36,0.2)',
+            background: 'rgb(var(--verdict-warn-rgb) / 0.1)',
+            border: '1px solid rgb(var(--verdict-warn-rgb) / 0.2)',
             borderRadius: '9999px',
             padding: '2px 10px',
             marginBottom: '4px',
@@ -1142,7 +1286,7 @@ export default function QuizViewer({
                   borderRadius: '50%',
                   flexShrink: 0,
                   border: `2px solid ${editCorrectIndex === i ? 'var(--success)' : 'rgba(140,82,255,0.3)'}`,
-                  background: editCorrectIndex === i ? 'rgba(74,222,128,0.15)' : 'transparent',
+                  background: editCorrectIndex === i ? 'rgb(var(--verdict-pass-rgb) / 0.15)' : 'transparent',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1220,8 +1364,8 @@ export default function QuizViewer({
                   marginBottom: '20px',
                   padding: '16px 20px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(252,165,165,0.3)',
-                  background: 'rgba(252,165,165,0.06)',
+                  border: '1px solid rgb(var(--verdict-fail-rgb) / 0.3)',
+                  background: 'rgb(var(--verdict-fail-rgb) / 0.06)',
                   color: 'var(--error)',
                   fontSize: '13px',
                   lineHeight: 1.6,
@@ -1250,6 +1394,7 @@ export default function QuizViewer({
               isAnswered={isAnswered}
               currentAnswer={currentAnswer}
               reviewAnswer={mode === 'review' ? answers.get(currentIndex)?.answer : undefined}
+              gradedCorrect={currentEntry?.isCorrect}
               showHint={showHint}
               onToggleHint={() => setShowHint((v) => !v)}
               onSelectAnswer={selectAnswer}
@@ -1566,16 +1711,16 @@ export default function QuizViewer({
                           borderRadius: '10px',
                           background:
                             attempt.percentage >= 70
-                              ? 'rgba(74,222,128,0.1)'
+                              ? 'rgb(var(--verdict-pass-rgb) / 0.1)'
                               : attempt.percentage >= 40
-                                ? 'rgba(251,191,36,0.1)'
-                                : 'rgba(252,165,165,0.1)',
+                                ? 'rgb(var(--verdict-warn-rgb) / 0.1)'
+                                : 'rgb(var(--verdict-fail-rgb) / 0.1)',
                           border: `1px solid ${
                             attempt.percentage >= 70
-                              ? 'rgba(74,222,128,0.3)'
+                              ? 'rgb(var(--verdict-pass-rgb) / 0.3)'
                               : attempt.percentage >= 40
-                                ? 'rgba(251,191,36,0.3)'
-                                : 'rgba(252,165,165,0.3)'
+                                ? 'rgb(var(--verdict-warn-rgb) / 0.3)'
+                                : 'rgb(var(--verdict-fail-rgb) / 0.3)'
                           }`,
                           display: 'flex',
                           alignItems: 'center',
@@ -1869,16 +2014,16 @@ function SmallButton({
         gap: '5px',
         padding: '6px 12px',
         borderRadius: '8px',
-        border: `1px solid ${danger ? 'rgba(252,165,165,0.2)' : 'rgba(140,82,255,0.15)'}`,
+        border: `1px solid ${danger ? 'rgb(var(--verdict-fail-rgb) / 0.2)' : 'rgba(140,82,255,0.15)'}`,
         background: hovered
           ? danger
-            ? 'rgba(252,165,165,0.1)'
+            ? 'rgb(var(--verdict-fail-rgb) / 0.1)'
             : 'rgba(140,82,255,0.1)'
           : 'transparent',
         color: danger
           ? hovered
             ? 'var(--error)'
-            : 'rgba(252,165,165,0.6)'
+            : 'rgb(var(--verdict-fail-rgb) / 0.6)'
           : hovered
             ? 'var(--md-h3)'
             : 'var(--ink-40)',

@@ -256,8 +256,8 @@ export default function CodeWriteRenderer({
             marginTop: '12px',
             padding: '12px 16px',
             borderRadius: '10px',
-            background: 'rgba(252,165,165,0.08)',
-            border: '1px solid rgba(252,165,165,0.25)',
+            background: 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: '1px solid rgb(var(--verdict-fail-rgb) / 0.25)',
             fontSize: '13px',
             color: 'var(--error)',
           }}
@@ -293,8 +293,8 @@ export default function CodeWriteRenderer({
             marginTop: '12px',
             padding: '14px 18px',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-            border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
           }}
         >
           <div
@@ -342,15 +342,15 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
     verdict === true ? 'var(--success)' : verdict === false ? 'var(--error)' : 'var(--accent-strong)';
   const bg =
     verdict === true
-      ? 'rgba(74,222,128,0.06)'
+      ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
       : verdict === false
-        ? 'rgba(252,165,165,0.06)'
+        ? 'rgb(var(--verdict-fail-rgb) / 0.06)'
         : 'rgba(140,82,255,0.06)';
   const border =
     verdict === true
-      ? 'rgba(74,222,128,0.22)'
+      ? 'rgb(var(--verdict-pass-rgb) / 0.22)'
       : verdict === false
-        ? 'rgba(252,165,165,0.22)'
+        ? 'rgb(var(--verdict-fail-rgb) / 0.22)'
         : 'rgba(140,82,255,0.22)';
   return (
     <details
@@ -396,12 +396,12 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
           <RunBlock
             title="expected stdout"
             body={result.expectedStdout}
-            color="rgba(74,222,128,0.8)"
+            color="rgb(var(--verdict-pass-rgb) / 0.8)"
           />
         )}
         <RunBlock title="actual stdout" body={result.stdout || '(empty)'} color="var(--on-surface)" />
         {result.stderr && (
-          <RunBlock title="stderr" body={result.stderr} color="rgba(252,165,165,0.8)" />
+          <RunBlock title="stderr" body={result.stderr} color="rgb(var(--verdict-fail-rgb) / 0.8)" />
         )}
       </div>
     </details>

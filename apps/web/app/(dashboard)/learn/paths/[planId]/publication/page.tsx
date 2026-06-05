@@ -770,7 +770,6 @@ function RejectionBlock({ reason }: { reason: string }) {
         padding: '18px 20px',
         background: 'rgba(253,111,133,0.08)',
         border: '1px solid rgba(253,111,133,0.30)',
-        borderLeft: '3px solid var(--error)',
         borderRadius: 'var(--radius-md)',
         display: 'flex',
         gap: '14px',
@@ -1036,7 +1035,6 @@ function ErrorState({ message }: { message: string }) {
         padding: '28px 24px',
         background: 'rgba(253,111,133,0.08)',
         border: '1px solid rgba(253,111,133,0.30)',
-        borderLeft: '3px solid var(--error)',
         borderRadius: 'var(--radius-lg)',
       }}
     >

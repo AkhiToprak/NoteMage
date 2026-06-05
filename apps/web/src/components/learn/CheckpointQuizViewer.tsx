@@ -392,12 +392,16 @@ function AssessmentResultPanel({
       >
         {result.passed
           ? slotKind === 'final_exam'
-            ? 'Final exam cleared — path complete!'
+            ? 'Final exam cleared. Path complete!'
             : 'Checkpoint cleared!'
-          : 'Not quite — 70% needed to pass'}
+          : 'Almost there. 70% to pass.'}
       </h3>
       <div
-        aria-label={`Grade ${letterGrade}, ${result.percentage} percent`}
+        aria-label={
+          result.passed
+            ? `Grade ${letterGrade}, ${result.percentage} percent`
+            : `${result.percentage} percent, 70 percent needed to pass`
+        }
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -405,6 +409,8 @@ function AssessmentResultPanel({
           gap: '4px',
         }}
       >
+        {/* On a fail, lead with the score and what's needed — not a red "F"
+            letter grade. The product avoids punitive report-card framing. */}
         <span
           style={{
             fontFamily: 'var(--font-display)',
@@ -412,10 +418,10 @@ function AssessmentResultPanel({
             fontWeight: 800,
             lineHeight: 1,
             letterSpacing: '-0.04em',
-            color: result.passed ? 'var(--tertiary-container)' : 'var(--error)',
+            color: result.passed ? 'var(--tertiary-container)' : 'var(--on-surface)',
           }}
         >
-          {letterGrade}
+          {result.passed ? letterGrade : `${result.percentage}%`}
         </span>
         <span
           style={{
@@ -425,7 +431,7 @@ function AssessmentResultPanel({
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {result.percentage}%
+          {result.passed ? `${result.percentage}%` : '70% to pass'}
         </span>
       </div>
       <p
@@ -440,7 +446,7 @@ function AssessmentResultPanel({
         {result.passed
           ? slotKind === 'final_exam'
             ? 'Congratulations on finishing the path.'
-            : 'Great work — the next section is unlocked.'
+            : 'Great work. The next section is unlocked.'
           : slotKind === 'final_exam'
             ? 'Review the sections you struggled with, then retake the final exam.'
             : 'Review the earlier theory slots, then retake the assessment to unlock the next section.'}

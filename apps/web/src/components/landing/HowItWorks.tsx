@@ -123,19 +123,6 @@ export default function HowItWorks() {
                 </span>
               </div>
 
-              <div
-                style={{
-                  fontFamily: 'var(--font-brand)',
-                  fontSize: 11,
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: 'var(--primary)',
-                  marginBottom: 10,
-                  fontWeight: 600,
-                }}
-              >
-                Step {s.number}
-              </div>
               <h3
                 style={{
                   fontFamily: 'var(--font-display)',

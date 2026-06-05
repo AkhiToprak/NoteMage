@@ -33,11 +33,21 @@ type Section =
   | 'subscription'
   | 'privacy';
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  checked,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  ariaLabel?: string;
+}) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
       style={{
         position: 'relative',
@@ -121,6 +131,26 @@ export default function SettingsPage() {
         }
       })
       .catch(() => {});
+  }, []);
+
+  // Notification preferences are a device-local choice for now (no server field
+  // yet), persisted so they survive reloads instead of resetting every visit.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('notemage:notification-prefs');
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<Record<string, unknown>>;
+      setNotifications((n) => ({
+        studyReminders:
+          typeof saved.studyReminders === 'boolean' ? saved.studyReminders : n.studyReminders,
+        productUpdates:
+          typeof saved.productUpdates === 'boolean' ? saved.productUpdates : n.productUpdates,
+        weeklyReport:
+          typeof saved.weeklyReport === 'boolean' ? saved.weeklyReport : n.weeklyReport,
+      }));
+    } catch {
+      /* ignore malformed or blocked storage */
+    }
   }, []);
 
   const handleGreetingSave = async () => {
@@ -301,11 +331,28 @@ export default function SettingsPage() {
       return;
     }
     setPwLoading(true);
-    // Stub — wire to API when available
-    await new Promise((r) => setTimeout(r, 800));
-    setPwStatus({ type: 'success', msg: 'Password updated successfully' });
-    setPasswords({ current: '', newPass: '', confirm: '' });
-    setPwLoading(false);
+    setPwStatus(null);
+    try {
+      const res = await fetch('/api/user/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.newPass,
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok) {
+        setPwStatus({ type: 'success', msg: 'Password updated.' });
+        setPasswords({ current: '', newPass: '', confirm: '' });
+      } else {
+        setPwStatus({ type: 'error', msg: json?.error ?? "Couldn't update password. Please try again." });
+      }
+    } catch {
+      setPwStatus({ type: 'error', msg: 'Network error. Please try again.' });
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -619,6 +666,7 @@ export default function SettingsPage() {
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label
+                  htmlFor="settings-email"
                   style={{
                     fontSize: '13px',
                     fontWeight: 700,
@@ -629,6 +677,7 @@ export default function SettingsPage() {
                   Email Address
                 </label>
                 <input
+                  id="settings-email"
                   type="email"
                   value={session?.user?.email ?? ''}
                   readOnly
@@ -636,29 +685,37 @@ export default function SettingsPage() {
                 />
               </div>
               <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Email changes aren't available yet"
                 style={{
                   padding: '16px 24px',
                   background: 'var(--surface-container-highest)',
-                  border: '1px solid rgba(70,69,96,0.3)',
+                  border: '1px solid var(--outline-variant)',
                   borderRadius: '16px',
-                  color: 'var(--on-surface)',
+                  color: 'var(--on-surface-variant)',
                   fontWeight: 700,
                   fontSize: '14px',
-                  cursor: 'pointer',
+                  cursor: 'not-allowed',
+                  opacity: 0.6,
                   fontFamily: 'inherit',
                   whiteSpace: 'nowrap',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-container)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-strong)';
                 }}
               >
                 Change Email
               </button>
             </div>
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--on-surface-variant)',
+                margin: '-20px 0 0',
+                paddingLeft: '4px',
+              }}
+            >
+              Email changes are not available yet.
+            </p>
 
             {/* Change Password */}
             <div style={{ paddingTop: '24px', borderTop: '1px solid rgba(70,69,96,0.20)' }}>
@@ -689,6 +746,7 @@ export default function SettingsPage() {
                 )}
                 <input
                   type="password"
+                  aria-label="Current password"
                   placeholder="Current Password"
                   value={passwords.current}
                   onChange={(e) => setPasswords((p) => ({ ...p, current: e.target.value }))}
@@ -709,6 +767,7 @@ export default function SettingsPage() {
                 >
                   <input
                     type="password"
+                    aria-label="New password"
                     placeholder="New Password"
                     value={passwords.newPass}
                     onChange={(e) => setPasswords((p) => ({ ...p, newPass: e.target.value }))}
@@ -722,6 +781,7 @@ export default function SettingsPage() {
                   />
                   <input
                     type="password"
+                    aria-label="Confirm new password"
                     placeholder="Confirm New Password"
                     value={passwords.confirm}
                     onChange={(e) => setPasswords((p) => ({ ...p, confirm: e.target.value }))}
@@ -1327,6 +1387,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Toggle
+                ariaLabel="Reaction sounds"
                 checked={quizReactionsAudio && quizReactionsMode !== 'off'}
                 onChange={(v) => {
                   if (quizReactionsMode === 'off') return;
@@ -1423,12 +1484,29 @@ export default function SettingsPage() {
                     <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>{desc}</p>
                   </div>
                   <Toggle
+                    ariaLabel={label}
                     checked={notifications[key]}
-                    onChange={(v) => setNotifications((n) => ({ ...n, [key]: v }))}
+                    onChange={(v) =>
+                      setNotifications((n) => {
+                        const next = { ...n, [key]: v };
+                        try {
+                          localStorage.setItem(
+                            'notemage:notification-prefs',
+                            JSON.stringify(next)
+                          );
+                        } catch {
+                          /* ignore blocked storage */
+                        }
+                        return next;
+                      })
+                    }
                   />
                 </div>
               ))}
             </div>
+            <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+              Saved on this device. Email delivery is rolling out soon.
+            </p>
           </section>
 
           {/* Study Goals */}
@@ -1497,7 +1575,20 @@ export default function SettingsPage() {
                   return (
                     <div
                       key={config.key}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
+                      aria-label={`${config.label(mageNameTrimmed)} goal`}
                       onClick={() => toggleStudyGoal(config)}
+                      onKeyDown={(e) => {
+                        // Only the card itself activates on keyboard — let the
+                        // nested number input / preset buttons handle their own keys.
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleStudyGoal(config);
+                        }
+                      }}
                       style={{
                         background: 'var(--surface-container-high)',
                         borderRadius: '20px',
@@ -1724,7 +1815,7 @@ export default function SettingsPage() {
               gap: '8px',
               padding: '10px 20px',
               background: 'transparent',
-              color: 'rgba(253,111,133,0.7)',
+              color: 'var(--error)',
               border: '1px solid rgba(253,111,133,0.2)',
               borderRadius: '12px',
               fontWeight: 600,
@@ -1740,7 +1831,7 @@ export default function SettingsPage() {
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(253,111,133,0.2)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(253,111,133,0.7)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)';
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>

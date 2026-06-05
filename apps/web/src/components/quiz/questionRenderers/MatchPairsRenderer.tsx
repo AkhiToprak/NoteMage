@@ -343,8 +343,8 @@ export default function MatchPairsRenderer({
             const correct = isConnectionCorrect(line.leftIdx, rightLabel);
             const stroke = showResults
               ? correct
-                ? 'rgba(74,222,128,0.85)'
-                : 'rgba(252,165,165,0.85)'
+                ? 'rgb(var(--verdict-pass-rgb) / 0.85)'
+                : 'rgb(var(--verdict-fail-rgb) / 0.85)'
               : 'rgba(196,169,255,0.65)';
             return (
               <line
@@ -480,12 +480,12 @@ function PairItem({
   let textColor = 'var(--on-surface)';
 
   if (showResult === true) {
-    borderColor = 'rgba(74,222,128,0.5)';
-    bg = 'rgba(74,222,128,0.08)';
+    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
+    bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
     textColor = 'var(--success)';
   } else if (showResult === false) {
-    borderColor = 'rgba(252,165,165,0.5)';
-    bg = 'rgba(252,165,165,0.08)';
+    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
+    bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
     textColor = 'var(--error)';
   } else if (selected) {
     borderColor = 'rgba(174,137,255,0.7)';
@@ -582,12 +582,12 @@ function MatchedRow({
   let bg = 'rgba(140,82,255,0.10)';
   let accent = 'var(--on-surface-variant)';
   if (result === true) {
-    borderColor = 'rgba(74,222,128,0.5)';
-    bg = 'rgba(74,222,128,0.08)';
+    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
+    bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
     accent = 'var(--success)';
   } else if (result === false) {
-    borderColor = 'rgba(252,165,165,0.5)';
-    bg = 'rgba(252,165,165,0.08)';
+    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
+    bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
     accent = 'var(--error)';
   }
   return (
@@ -691,8 +691,8 @@ function SummaryBanner({
       style={{
         padding: '14px 18px',
         borderRadius: '12px',
-        background: allCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-        border: `1px solid ${allCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+        background: allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+        border: `1px solid ${allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
         marginBottom: '12px',
       }}
     >

@@ -30,11 +30,17 @@ export default function LandingPage() {
   return (
     <main
       className="nm-landing"
+      // The marketing page renders dark in both themes. Without this the
+      // landing inherits a light-mode visitor's [data-theme='light'] tokens
+      // (near-black --on-surface text) onto its dark backdrop and reads blank.
+      // The dark-island pattern re-establishes dark token values locally.
+      data-theme="dark"
       style={{
         position: 'relative',
         isolation: 'isolate',
         background: '#0c0a1a',
         color: 'var(--on-surface)',
+        colorScheme: 'dark',
         fontFamily: 'var(--font-sans)',
         minHeight: '100vh',
       }}

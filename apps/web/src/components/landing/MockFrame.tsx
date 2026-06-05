@@ -61,6 +61,8 @@ export default function MockFrame({
           <img
             src={image}
             alt={alt}
+            loading="lazy"
+            decoding="async"
             style={{
               width: '100%',
               height: '100%',
