@@ -340,7 +340,9 @@ export default function DashboardAchievements() {
                       className="material-symbols-outlined"
                       style={{
                         fontSize: '20px',
-                        color: 'var(--outline-variant)',
+                        // --outline-variant collapses into --surface-container-highest
+                        // in light mode (both #b8b8c4); --outline keeps contrast in both themes.
+                        color: 'var(--outline)',
                         fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
                       }}
                     >
