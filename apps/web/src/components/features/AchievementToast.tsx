@@ -99,7 +99,7 @@ export default function AchievementToast({
             className="material-symbols-outlined"
             style={{
               fontSize: '24px',
-              color: '#ffde59',
+              color: 'var(--warning)',
               fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
             }}
           >
@@ -113,7 +113,7 @@ export default function AchievementToast({
             style={{
               fontSize: '11px',
               fontWeight: 700,
-              color: '#ffde59',
+              color: 'var(--warning)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '4px',

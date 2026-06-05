@@ -119,7 +119,7 @@ export default function DashboardAchievements() {
             className="material-symbols-outlined"
             style={{
               fontSize: '22px',
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
             }}
           >
@@ -143,7 +143,7 @@ export default function DashboardAchievements() {
               borderRadius: '20px',
               fontSize: 'var(--fs-xs)',
               fontWeight: 600,
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
             }}
           >
             {unlockedCount} / {total}
@@ -152,7 +152,7 @@ export default function DashboardAchievements() {
         <Link
           href="/profile"
           style={{
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
             fontSize: '13px',
             fontWeight: 700,
             textDecoration: 'none',
@@ -215,7 +215,7 @@ export default function DashboardAchievements() {
                       className="material-symbols-outlined"
                       style={{
                         fontSize: '20px',
-                        color: '#ae89ff',
+                        color: 'var(--md-h4)',
                         fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
                       }}
                     >
@@ -396,7 +396,7 @@ export default function DashboardAchievements() {
                           transform: `scaleX(${pct / 100})`,
                           transformOrigin: 'left',
                           borderRadius: '3px',
-                          background: '#ae89ff',
+                          background: 'var(--accent-strong)',
                           transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
                         }}
                       />

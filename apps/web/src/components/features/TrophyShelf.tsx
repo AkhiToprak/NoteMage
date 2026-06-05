@@ -109,7 +109,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
             className="material-symbols-outlined"
             style={{
               fontSize: '28px',
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
             }}
           >
@@ -135,7 +135,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
             borderRadius: '20px',
             fontSize: 'var(--fs-sm)',
             fontWeight: 600,
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
           }}
         >
           {totalUnlocked} / {totalCount} unlocked
@@ -188,7 +188,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                   ? '1px solid rgba(174,137,255,0.4)'
                   : '1px solid rgba(170,168,200,0.15)',
                 background: isActive ? 'rgba(174,137,255,0.15)' : 'var(--surface-container-high)',
-                color: isActive ? '#ae89ff' : 'var(--on-surface-variant)',
+                color: isActive ? 'var(--md-h4)' : 'var(--on-surface-variant)',
                 fontSize: isPhone ? '12px' : '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -267,7 +267,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                   width: isPhone ? '40px' : '48px',
                   height: isPhone ? '40px' : '48px',
                   borderRadius: isPhone ? '10px' : '14px',
-                  background: isUnlocked ? 'rgba(174,137,255,0.15)' : '#3a3a5c',
+                  background: isUnlocked ? 'rgba(174,137,255,0.15)' : 'var(--surface-container-high)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -277,7 +277,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                   className="material-symbols-outlined"
                   style={{
                     fontSize: isPhone ? '20px' : '24px',
-                    color: isUnlocked ? '#ae89ff' : '#6a6a8c',
+                    color: isUnlocked ? 'var(--md-h4)' : 'var(--outline)',
                     fontVariationSettings: isUnlocked
                       ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
                       : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
@@ -323,7 +323,7 @@ export default function TrophyShelf({ userId }: TrophyShelfProps) {
                         })`,
                         transformOrigin: 'left',
                         borderRadius: '3px',
-                        background: '#ae89ff',
+                        background: 'var(--accent-strong)',
                         transition: 'transform 0.4s cubic-bezier(0.22,1,0.36,1)',
                       }}
                     />

@@ -138,7 +138,7 @@ export default function UnifiedSidebar() {
               fontSize: 20,
               fontWeight: 500,
               letterSpacing: '0.02em',
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               lineHeight: 1,
               whiteSpace: 'nowrap',
             }}

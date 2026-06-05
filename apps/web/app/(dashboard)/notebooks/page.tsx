@@ -503,7 +503,7 @@ function NotebooksPageContent() {
                 {activeFilter === ALL_LABEL && (
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: '14px', color: '#ae89ff', marginLeft: 'auto' }}
+                    style={{ fontSize: '14px', color: 'var(--md-h4)', marginLeft: 'auto' }}
                   >
                     check
                   </span>
@@ -561,7 +561,7 @@ function NotebooksPageContent() {
                   {activeFilter === preset.label && (
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: '14px', color: '#ae89ff', marginLeft: 'auto' }}
+                      style={{ fontSize: '14px', color: 'var(--md-h4)', marginLeft: 'auto' }}
                     >
                       check
                     </span>

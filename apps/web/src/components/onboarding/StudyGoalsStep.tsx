@@ -167,7 +167,7 @@ export default function StudyGoalsStep({ goals, mageName, onChange }: StudyGoals
                   margin: '0 0 12px',
                   fontSize: '13px',
                   fontWeight: 700,
-                  color: '#ae89ff',
+                  color: 'var(--md-h4)',
                 }}
               >
                 {target} {config.unit} / {config.cadence}

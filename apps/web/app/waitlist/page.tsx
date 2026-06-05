@@ -40,9 +40,11 @@ export default function WaitlistPage() {
   return (
     <div
       className="waitlist-outer"
+      data-theme="dark"
       style={{
         minHeight: '100vh',
         background: '#0c0a1a',
+        colorScheme: 'dark',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

@@ -609,7 +609,7 @@ export default function CreateChatModal({
                     border: '1px solid rgba(140,82,255,0.3)',
                     fontSize: '10px',
                     fontWeight: 700,
-                    color: '#ae89ff',
+                    color: 'var(--md-h4)',
                     letterSpacing: '0.04em',
                   }}
                 >
@@ -868,13 +868,13 @@ export default function CreateChatModal({
                 {isUploading ? (
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: 18, color: '#ae89ff', animation: 'spin 0.8s linear infinite' }}
+                    style={{ fontSize: 18, color: 'var(--md-h4)', animation: 'spin 0.8s linear infinite' }}
                     aria-hidden
                   >
                     progress_activity
                   </span>
                 ) : (
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ae89ff' }} aria-hidden>upload</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--md-h4)' }} aria-hidden>upload</span>
                 )}
               </div>
               <div style={{ minWidth: 0 }}>

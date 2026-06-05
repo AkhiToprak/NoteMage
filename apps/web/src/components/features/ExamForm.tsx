@@ -122,7 +122,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '20px', color: '#ae89ff' }}
+                  style={{ fontSize: '20px', color: 'var(--md-h4)' }}
                 >
                   event
                 </span>

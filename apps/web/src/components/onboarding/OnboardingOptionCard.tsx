@@ -73,7 +73,7 @@ export default function OnboardingOptionCard({
       {selected && (
         <span
           className="material-symbols-outlined"
-          style={{ fontSize: '22px', color: '#ae89ff', fontVariationSettings: "'FILL' 1" }}
+          style={{ fontSize: '22px', color: 'var(--md-h4)', fontVariationSettings: "'FILL' 1" }}
         >
           check_circle
         </span>

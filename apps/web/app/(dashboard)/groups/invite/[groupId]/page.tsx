@@ -89,7 +89,7 @@ export default function GroupInvitePage() {
       >
         <span
           className="material-symbols-outlined"
-          style={{ fontSize: 48, color: '#ae89ff', animation: 'spin 1s linear infinite' }}
+          style={{ fontSize: 48, color: 'var(--md-h4)', animation: 'spin 1s linear infinite' }}
         >
           progress_activity
         </span>
@@ -121,7 +121,7 @@ export default function GroupInvitePage() {
             gap: 8,
             padding: '10px 24px',
             background: 'rgba(174,137,255,0.15)',
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
             borderRadius: 12,
             border: '1px solid rgba(174,137,255,0.25)',
             fontSize: 14,
