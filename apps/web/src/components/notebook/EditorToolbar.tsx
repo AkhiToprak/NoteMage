@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Editor } from '@tiptap/react';
 import { insertCodeBlock } from '@/lib/tiptap-code-block';
+import { formatBlockSelectionAware } from '@/lib/tiptap-block-format';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 
@@ -1009,7 +1010,9 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                 key={t}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  editor.chain().focus().toggleCallout({ calloutType: t }).run();
+                  formatBlockSelectionAware(editor, 'callout', (c) =>
+                    c.toggleCallout({ calloutType: t })
+                  );
                   setOpen(false);
                 }}
                 style={{
@@ -1792,38 +1795,56 @@ export default function EditorToolbar({
           icon="format_h1"
           label="Heading 1"
           isActive={editor.isActive('toggleHeading', { level: 1 })}
-          onClick={() => editor.chain().focus().toggleToggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'toggleHeading', (c) =>
+              c.toggleToggleHeading({ level: 1 })
+            )
+          }
         />
         <ToolbarButton
           icon="format_h2"
           label="Heading 2"
           isActive={editor.isActive('toggleHeading', { level: 2 })}
-          onClick={() => editor.chain().focus().toggleToggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'toggleHeading', (c) =>
+              c.toggleToggleHeading({ level: 2 })
+            )
+          }
         />
         <ToolbarButton
           icon="format_h3"
           label="Heading 3"
           isActive={editor.isActive('toggleHeading', { level: 3 })}
-          onClick={() => editor.chain().focus().toggleToggleHeading({ level: 3 }).run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'toggleHeading', (c) =>
+              c.toggleToggleHeading({ level: 3 })
+            )
+          }
         />
         <Sep />
         <ToolbarButton
           icon="format_list_bulleted"
           label="Bullet List"
           isActive={editor.isActive('bulletList')}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'bulletList', (c) => c.toggleBulletList())
+          }
         />
         <ToolbarButton
           icon="format_list_numbered"
           label="Ordered List"
           isActive={editor.isActive('orderedList')}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'orderedList', (c) => c.toggleOrderedList())
+          }
         />
         <ToolbarButton
           icon="format_quote"
           label="Blockquote"
           isActive={editor.isActive('blockquote')}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'blockquote', (c) => c.toggleBlockquote())
+          }
         />
         <ToolbarButton
           icon="code"
