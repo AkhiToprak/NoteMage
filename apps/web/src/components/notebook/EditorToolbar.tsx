@@ -1794,31 +1794,25 @@ export default function EditorToolbar({
         <ToolbarButton
           icon="format_h1"
           label="Heading 1"
-          isActive={editor.isActive('toggleHeading', { level: 1 })}
+          isActive={editor.isActive('heading', { level: 1 })}
           onClick={() =>
-            formatBlockSelectionAware(editor, 'toggleHeading', (c) =>
-              c.toggleToggleHeading({ level: 1 })
-            )
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 1 }))
           }
         />
         <ToolbarButton
           icon="format_h2"
           label="Heading 2"
-          isActive={editor.isActive('toggleHeading', { level: 2 })}
+          isActive={editor.isActive('heading', { level: 2 })}
           onClick={() =>
-            formatBlockSelectionAware(editor, 'toggleHeading', (c) =>
-              c.toggleToggleHeading({ level: 2 })
-            )
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 2 }))
           }
         />
         <ToolbarButton
           icon="format_h3"
           label="Heading 3"
-          isActive={editor.isActive('toggleHeading', { level: 3 })}
+          isActive={editor.isActive('heading', { level: 3 })}
           onClick={() =>
-            formatBlockSelectionAware(editor, 'toggleHeading', (c) =>
-              c.toggleToggleHeading({ level: 3 })
-            )
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 3 }))
           }
         />
         <Sep />

@@ -95,16 +95,6 @@ export function tiptapJsonToPlainText(doc: unknown): string | null {
         continue;
       }
 
-      // toggleHeading stores visible text in attrs.summary
-      if (
-        n.type === 'toggleHeading' &&
-        n.attrs &&
-        typeof (n.attrs as Record<string, unknown>).summary === 'string'
-      ) {
-        parts.push((n.attrs as Record<string, unknown>).summary as string);
-        parts.push('\n');
-      }
-
       // theory-visuals custom nodes carry their human-readable strings in
       // attrs — surface them so moderation scans image captions + diagram
       // labels just like ordinary prose.
@@ -267,8 +257,8 @@ function makeBulletList(items: string[]): TipTapNode {
  * Convert plain text extracted from a PDF into TipTap JSON with basic
  * heading, bullet-list, and page-chrome handling. PDFs don't preserve
  * structure, so we reconstruct paragraphs from line groupings, promote
- * visually distinct lines (all-caps, numbered, chapter-style) to toggle
- * headings, and turn runs of "•"-separated fragments into real lists.
+ * visually distinct lines (all-caps, numbered, chapter-style) to headings,
+ * and turn runs of "•"-separated fragments into real lists.
  */
 export function pdfTextToTipTapJSON(text: string): TipTapDoc {
   const normalized = stripPageChrome(text.replace(/\r\n?/g, '\n'));
@@ -315,9 +305,9 @@ export function pdfTextToTipTapJSON(text: string): TipTapDoc {
       const { isHeading, level } = isLikelyHeading(lines[0]);
       if (isHeading) {
         content.push({
-          type: 'toggleHeading',
-          attrs: { level, collapsed: false, summary: lines[0].trim() },
-          content: [{ type: 'paragraph' }],
+          type: 'heading',
+          attrs: { level },
+          content: [{ type: 'text', text: lines[0].trim() }],
         });
         continue;
       }
@@ -330,9 +320,9 @@ export function pdfTextToTipTapJSON(text: string): TipTapDoc {
     let startIndex = 0;
     if (firstCheck.isHeading) {
       content.push({
-        type: 'toggleHeading',
-        attrs: { level: firstCheck.level, collapsed: false, summary: lines[0].trim() },
-        content: [{ type: 'paragraph' }],
+        type: 'heading',
+        attrs: { level: firstCheck.level },
+        content: [{ type: 'text', text: lines[0].trim() }],
       });
       startIndex = 1;
     }
@@ -481,20 +471,14 @@ function extractInner(fullElement: string, tagName: string): string {
  * Convert a block-level HTML element to a TipTap node.
  */
 function blockToNode(tagName: string, inner: string): TipTapNode | null {
-  // Headings → toggle headings
+  // Headings → standard heading nodes (level clamped to 1–3)
   const headingMatch = tagName.match(/^h([1-6])$/);
   if (headingMatch) {
-    const level = Math.min(parseInt(headingMatch[1], 10), 3);
+    const level = Math.min(Math.max(parseInt(headingMatch[1], 10), 1), 3);
     const inlineContent = parseInlineContent(inner);
-    const summaryText = inlineContent
-      .filter((c) => c.type === 'text')
-      .map((c) => (c as { text: string }).text)
-      .join('');
-    return {
-      type: 'toggleHeading',
-      attrs: { level, collapsed: false, summary: summaryText },
-      content: [{ type: 'paragraph' }],
-    };
+    const node: TipTapNode = { type: 'heading', attrs: { level } };
+    if (inlineContent.length > 0) node.content = inlineContent;
+    return node;
   }
 
   switch (tagName) {
@@ -833,9 +817,9 @@ export function xlsxToTipTapTableJSON(sheetsData: SheetData[]): TipTapDoc {
     // Add sheet heading if multiple sheets
     if (sheetsData.length > 1) {
       content.push({
-        type: 'toggleHeading',
-        attrs: { level: 2, collapsed: false, summary: sheet.name },
-        content: [{ type: 'paragraph' }],
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: sheet.name }],
       });
     }
 

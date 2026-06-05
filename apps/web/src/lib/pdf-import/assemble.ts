@@ -44,9 +44,9 @@ function runsToInline(runs: InlineRun[]): TipTapTextNode[] {
     .filter((node): node is TipTapTextNode => node !== null);
 }
 
-/** Flatten runs to a plain string — used for the toggle-heading summary. */
-function runsToPlainText(runs: InlineRun[]): string {
-  return runs.map((run) => run.text).join('');
+/** Clamp a heading level into the 1–3 range the heading node supports. */
+function clampHeadingLevel(level: number): 1 | 2 | 3 {
+  return Math.min(3, Math.max(1, level)) as 1 | 2 | 3;
 }
 
 /**
@@ -83,15 +83,17 @@ function convertBlock(
   imageSrcByRef: Record<string, string>,
 ): TipTapNode | null {
   switch (block.type) {
-    // `heading` is disabled in the editor's StarterKit — collapsible
-    // `toggleHeading` is the only heading node. Its inline marks are not
-    // representable, so the summary is plain text.
-    case 'heading':
-      return {
-        type: 'toggleHeading',
-        attrs: { level: block.level, collapsed: false, summary: runsToPlainText(block.runs) },
-        content: [{ type: 'paragraph' }],
+    // A heading carries its text as inline content; the level is clamped to
+    // the 1–3 range the heading node supports. Inline marks are preserved.
+    case 'heading': {
+      const content = runsToInline(block.runs);
+      const node: TipTapNode = {
+        type: 'heading',
+        attrs: { level: clampHeadingLevel(block.level) },
       };
+      if (content.length > 0) node.content = content;
+      return node;
+    }
 
     case 'paragraph':
       return paragraphNode(block.runs);

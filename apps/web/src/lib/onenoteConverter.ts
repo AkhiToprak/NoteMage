@@ -67,16 +67,16 @@ async function convertElement(
   const tagName = (el as DomElement).tagName?.toLowerCase();
   const $el = $(el);
 
-  // Headings → toggleHeading (matching contentConverter.ts pattern)
+  // Headings → standard heading nodes (level clamped to 1–3)
   const headingMatch = tagName.match(/^h([1-6])$/);
   if (headingMatch) {
-    const level = Math.min(parseInt(headingMatch[1], 10), 3);
-    const summaryText = $el.text().trim();
-    if (!summaryText) return null;
+    const level = Math.min(Math.max(parseInt(headingMatch[1], 10), 1), 3);
+    const headingText = $el.text().trim();
+    if (!headingText) return null;
     return {
-      type: 'toggleHeading',
-      attrs: { level, collapsed: false, summary: summaryText },
-      content: [{ type: 'paragraph' }],
+      type: 'heading',
+      attrs: { level },
+      content: [{ type: 'text', text: headingText }],
     };
   }
 

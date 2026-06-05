@@ -114,9 +114,19 @@ function serializeBlock(node: TipTapNode | null | undefined): string {
   if (!node || typeof node !== 'object') return '';
   switch (node.type) {
     case 'heading': {
+      // Standard StarterKit heading: text lives in inline `content`, level
+      // clamps to 1-3 (the canonical shape after dropping `toggleHeading`).
       const rawLevel = node.attrs?.level;
-      const level = typeof rawLevel === 'number' ? Math.min(6, Math.max(1, rawLevel)) : 2;
+      const level = typeof rawLevel === 'number' ? Math.min(3, Math.max(1, rawLevel)) : 2;
       return `${'#'.repeat(level)} ${serializeInline(node.content)}`;
+    }
+    case 'toggleHeading': {
+      // Legacy, pre-migration node: text was stored in the `summary` attr and
+      // levels were 1-3. Defensive fallback for theory bodies not yet migrated
+      // to the standard `heading` node.
+      const rawLevel = node.attrs?.level;
+      const level = typeof rawLevel === 'number' ? Math.min(3, Math.max(1, rawLevel)) : 2;
+      return `${'#'.repeat(level)} ${attrString(node, 'summary')}`;
     }
     case 'paragraph':
       return serializeInline(node.content);

@@ -25,22 +25,32 @@ function allNodeTypes(doc: TipTapDoc): string[] {
 }
 
 describe('assembleTiptap — block → node mapping', () => {
-  it('maps heading to a toggleHeading carrying the level and plain-text summary', () => {
+  it('maps heading to a heading node carrying the level and inline text', () => {
     const node = assembleOne({ type: 'heading', level: 2, runs: [{ text: 'Photosynthesis' }] });
     expect(node).toEqual({
-      type: 'toggleHeading',
-      attrs: { level: 2, collapsed: false, summary: 'Photosynthesis' },
-      content: [{ type: 'paragraph' }],
+      type: 'heading',
+      attrs: { level: 2 },
+      content: [{ type: 'text', text: 'Photosynthesis' }],
     });
   });
 
-  it('flattens heading inline runs into one summary string', () => {
+  it('preserves heading inline runs and their marks as content', () => {
     const node = assembleOne({
       type: 'heading',
       level: 1,
       runs: [{ text: 'Bold ', bold: true }, { text: 'part' }],
     });
-    expect(node.attrs?.summary).toBe('Bold part');
+    expect(node.content).toEqual([
+      { type: 'text', text: 'Bold ', marks: [{ type: 'bold' }] },
+      { type: 'text', text: 'part' },
+    ]);
+  });
+
+  it('clamps heading levels above 3 down to 3', () => {
+    // Force an out-of-range level past the DocModel type to exercise the clamp.
+    const block = { type: 'heading', level: 6, runs: [{ text: 'Deep' }] } as unknown as DocModelBlock;
+    const node = assembleOne(block);
+    expect(node.attrs?.level).toBe(3);
   });
 
   it('maps paragraph runs to text nodes', () => {
@@ -163,8 +173,8 @@ describe('assembleTiptap — block → node mapping', () => {
   });
 });
 
-describe('assembleTiptap — never emits a disabled heading node', () => {
-  it('emits toggleHeading and never a plain heading node for any level', () => {
+describe('assembleTiptap — emits standard heading nodes', () => {
+  it('emits a heading node and never a toggleHeading for any level', () => {
     const blocks: DocModelBlock[] = [
       { type: 'heading', level: 1, runs: [{ text: 'L1' }] },
       { type: 'heading', level: 2, runs: [{ text: 'L2' }] },
@@ -172,8 +182,8 @@ describe('assembleTiptap — never emits a disabled heading node', () => {
     ];
     const { doc } = assembleTiptap({ blocks });
     const types = allNodeTypes(doc);
-    expect(types).not.toContain('heading');
-    expect(types.filter((t) => t === 'toggleHeading')).toHaveLength(3);
+    expect(types).not.toContain('toggleHeading');
+    expect(types.filter((t) => t === 'heading')).toHaveLength(3);
   });
 });
 

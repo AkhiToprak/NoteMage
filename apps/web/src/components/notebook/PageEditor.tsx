@@ -36,8 +36,7 @@ import { FontSize } from '@/lib/tiptap-font-size';
 import { InlineHeading } from '@/lib/tiptap-inline-heading';
 import { Callout } from '@/lib/tiptap-callout';
 import CalloutView from './CalloutView';
-import { ToggleHeading } from '@/lib/tiptap-toggle-heading';
-import ToggleHeadingView from './ToggleHeadingView';
+import { HeadingEnterBehavior } from '@/lib/tiptap-heading';
 import PageLockIndicator from './PageLockIndicator';
 import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
 import { looksLikeMarkdown, markdownToHtml } from '@/lib/markdown-to-html';
@@ -55,58 +54,66 @@ import { Mascot } from '@/components/mascot';
 /**
  * Prepare saved page content for re-entry into the editor.
  *
- *   1. Migrate any legacy `heading` nodes from older pages into
- *      `toggleHeading` nodes so they keep rendering the same way.
+ * NoteMage used to wrap every heading in a custom collapsible `toggleHeading`
+ * container (the heading text lived in a `summary` attr, the body was an empty
+ * paragraph, and following siblings were the "section"). We've moved to plain
+ * Obsidian-style headings — the standard `heading` node, a simple styled line
+ * whose text is normal inline content. This migration rewrites any stored
+ * `toggleHeading` back into a `heading`:
  *
- *   2. Force every `toggleHeading` to `collapsed: false`. The outline
- *      collapse plugin hides everything under a collapsed heading via
- *      `display: none` — useful for live editing, but when the saved
- *      state carries `collapsed: true` into a fresh page load every-
- *      thing beneath that heading looks like it vanished (the user's
- *      real bug report). Collapse is a UI affordance, not a content
- *      property; it should not persist across reloads.
+ *   - Heading text comes from the `summary` attr (flat model) or, for legacy
+ *     toggles that kept real content inside their body, from the first body
+ *     paragraph (preserving its inline marks).
+ *   - Any further body blocks are lifted out as following siblings so no
+ *     content is lost. The empty schema-placeholder paragraph is dropped.
+ *
+ * Old plain `heading` nodes already match the target shape and pass through
+ * untouched. Runs before `setContent`, so the editor (whose schema no longer
+ * knows `toggleHeading`) never has to parse the dead node type.
  */
-function migrateHeadingsToToggle(doc: any): any {
-  if (!doc || !doc.content) return doc;
+function migrateTogglesToHeading(doc: any): any {
+  if (!doc || !Array.isArray(doc.content)) return doc;
 
-  const walk = (node: any): any => {
-    if (!node || typeof node !== 'object') return node;
+  const isEmptyParagraph = (node: any): boolean =>
+    node?.type === 'paragraph' && (!node.content || node.content.length === 0);
 
-    // Legacy `heading` → `toggleHeading` conversion.
-    if (node.type === 'heading') {
-      const summaryText = (node.content || [])
-        .filter((c: any) => c.type === 'text')
-        .map((c: any) => c.text)
-        .join('');
-      return {
-        type: 'toggleHeading',
-        attrs: {
-          level: node.attrs?.level || 1,
-          collapsed: false,
-          summary: summaryText,
-        },
-        content: [{ type: 'paragraph' }],
-      };
+  // Returns an array: a toggleHeading expands into a heading plus any real
+  // body blocks lifted out as siblings; everything else returns itself.
+  const walk = (node: any): any[] => {
+    if (!node || typeof node !== 'object') return [node];
+
+    if (node.type === 'toggleHeading') {
+      const rawLevel = Number(node.attrs?.level) || 1;
+      const level = rawLevel > 3 ? 3 : rawLevel < 1 ? 1 : rawLevel;
+      const summary = typeof node.attrs?.summary === 'string' ? node.attrs.summary : '';
+
+      // Recurse into the body first so nested toggles/callouts convert too.
+      const body = (node.content || []).flatMap(walk);
+
+      let headingContent: any[] = [];
+      let liftedBody = body;
+      if (summary) {
+        headingContent = [{ type: 'text', text: summary }];
+        if (body.length === 1 && isEmptyParagraph(body[0])) liftedBody = [];
+      } else {
+        const first = body[0];
+        if (first && first.type === 'paragraph') {
+          headingContent = Array.isArray(first.content) ? first.content : [];
+          liftedBody = body.slice(1);
+        }
+      }
+
+      const heading = { type: 'heading', attrs: { level }, content: headingContent };
+      return [heading, ...liftedBody];
     }
 
-    let next = node;
-
-    // Force expanded state on every toggle heading we see.
-    if (node.type === 'toggleHeading' && node.attrs && node.attrs.collapsed) {
-      next = { ...node, attrs: { ...node.attrs, collapsed: false } };
+    if (Array.isArray(node.content)) {
+      return [{ ...node, content: node.content.flatMap(walk) }];
     }
-
-    // Recurse into children so nested toggles inside callouts / toggles
-    // also get reset.
-    if (Array.isArray(next.content)) {
-      const mapped = next.content.map(walk);
-      next = { ...next, content: mapped };
-    }
-
-    return next;
+    return [node];
   };
 
-  return walk(doc);
+  return { ...doc, content: doc.content.flatMap(walk) };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -675,7 +682,8 @@ export default function PageEditor({
       // flash-of-read-only on mount.
       editable: true,
       extensions: [
-        StarterKit.configure({ heading: false, codeBlock: false }),
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
+        HeadingEnterBehavior,
         CodeBlockLowlight.extend({
           addNodeView() {
             return ReactNodeViewRenderer(CodeBlockView);
@@ -691,11 +699,6 @@ export default function PageEditor({
         Callout.extend({
           addNodeView() {
             return ReactNodeViewRenderer(CalloutView);
-          },
-        }),
-        ToggleHeading.extend({
-          addNodeView() {
-            return ReactNodeViewRenderer(ToggleHeadingView);
           },
         }),
         ResizableImage,
@@ -836,7 +839,7 @@ export default function PageEditor({
     if (page.content) {
       // Real content from the server — push it into the editor.
       lastKnownContentWasEmptyRef.current = isEffectivelyEmptyTiptapDoc(page.content);
-      editor.commands.setContent(migrateHeadingsToToggle(page.content), { emitUpdate: false });
+      editor.commands.setContent(migrateTogglesToHeading(page.content), { emitUpdate: false });
     } else {
       // Brand-new / empty page. Leave the editor at its default empty
       // doc. Record that we KNOW the last-seen state was empty so the
@@ -896,7 +899,7 @@ export default function PageEditor({
         const remoteJson = JSON.stringify(json.data.content);
         if (currentJson === remoteJson) return;
 
-        editor.commands.setContent(migrateHeadingsToToggle(json.data.content), {
+        editor.commands.setContent(migrateTogglesToHeading(json.data.content), {
           emitUpdate: false,
         });
         // Update title only. Do NOT call setPage(json.data) — that

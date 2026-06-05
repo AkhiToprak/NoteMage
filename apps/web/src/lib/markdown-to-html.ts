@@ -10,7 +10,7 @@
  *
  * The fix is to run pasted plain text through `marked` to produce HTML, then
  * let the existing HTML-paste pipeline do its job. All of the extensions we
- * care about (`ToggleHeading`, StarterKit list/bold/italic/blockquote/hr,
+ * care about (StarterKit `Heading`/list/bold/italic/blockquote/hr,
  * `CodeBlockLowlight`, `Table`) already have `parseHTML` rules — we just
  * have to give them HTML to chew on.
  *
@@ -27,11 +27,11 @@
  *      characters stuck in the doc forever" is the exact bug we're fixing.
  *      When in doubt, convert.
  *
- * `ToggleHeading.parseHTML` (src/lib/tiptap-toggle-heading.ts:87-99) only
- * matches `<h1>`, `<h2>`, and `<h3>`. Anything deeper that `marked` produces
- * would be silently dropped by TipTap — so we demote `<h4>`/`<h5>`/`<h6>`
- * down to `<h3>` before handing the HTML off. Users keep the hierarchy they
- * can, deeper levels collapse onto the deepest toggle-heading level.
+ * StarterKit's `Heading.parseHTML` only matches `<h1>`, `<h2>`, and `<h3>`
+ * (levels are clamped to 1-3). Anything deeper that `marked` produces would
+ * be silently dropped by TipTap — so we demote `<h4>`/`<h5>`/`<h6>` down to
+ * `<h3>` before handing the HTML off. Users keep the hierarchy they can,
+ * deeper levels collapse onto the deepest heading level.
  */
 
 import { marked } from 'marked';
@@ -87,56 +87,88 @@ export function looksLikeMarkdown(text: string): boolean {
 }
 
 /**
+ * Lines that carry markdown structure — a single newline next to one of these
+ * is significant and must be preserved (lists, tables, code, quotes, headings,
+ * indented code, fence markers, blank lines).
+ */
+const STRUCTURAL_LINE: readonly RegExp[] = [
+  /^\s*#{1,6}\s/, // heading
+  /^\s*[-*+]\s/, // unordered list item
+  /^\s*\d+[.)]\s/, // ordered list item
+  /^\s*>/, // blockquote
+  /^\s*$/, // blank line
+  /^\s*(```|~~~)/, // code fence marker
+  /^(\t| {4,})/, // indented code
+  /^(\s*[-*_]){3,}\s*$/, // horizontal rule
+  /\|/, // table-ish row (contains a pipe)
+];
+
+function isStructuralLine(line: string): boolean {
+  return STRUCTURAL_LINE.some((re) => re.test(line));
+}
+
+/**
+ * Promote soft-wrapped prose into separate paragraphs.
+ *
+ * Note-takers paste text where each line is its own thought, separated by a
+ * single newline. Markdown treats a lone newline as a soft wrap, so `marked`
+ * merges those lines into ONE paragraph — the "everything ends up as one
+ * block" complaint. Here we insert a blank line between two adjacent *plain
+ * prose* lines (turning the soft wrap into a real paragraph break), while
+ * leaving structural markdown — lists, tables, fenced/indented code,
+ * blockquotes, headings — untouched so it still parses correctly.
+ */
+function splitSoftProseLines(text: string): string {
+  const lines = text.split(/\r\n?|\n/);
+  let out = '';
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    out += line;
+    if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+    if (i === lines.length - 1) break;
+    const next = lines[i + 1];
+    const bothPlain =
+      !inFence && line.trim() !== '' && !isStructuralLine(line) && !isStructuralLine(next);
+    out += bothPlain ? '\n\n' : '\n';
+  }
+  return out;
+}
+
+/**
  * Convert markdown source to an HTML string suitable for TipTap's
  * HTML-paste pipeline. Uses `marked` with GFM enabled (tables, strike-
  * through, etc.).
  *
- * Heading handling: `ToggleHeading` defines per-attribute `parseHTML`
- * functions on `level`/`summary`/`collapsed` that only know how to
- * read the `data-toggle-*` attributes on its own round-trip `div`
- * form. Those run AFTER the tag-level `getAttrs` and silently
- * override its return value with defaults when the pasted element is
- * a raw `<h1>`-`<h3>` — every heading would end up as level 1 with
- * an empty summary. So we pre-rewrite each `<h1>`-`<h6>` in marked's
- * output into the canonical `<div data-toggle-level=".." data-toggle-
- * summary="..">` form that the working parse rule expects.
- *
- * The pasted structure stays FLAT — every toggle heading is a sibling
- * of its own content at the document root. Subordinate behaviour
- * (collapsing h1 hides everything until the next h1) comes from the
- * position-based collapse plugin on the ToggleHeading extension. See
- * src/lib/tiptap-toggle-heading.ts. `h4`-`h6` collapse onto level 3
- * because ToggleHeading only defines three levels.
+ * Heading handling: StarterKit's standard `Heading` extension parses
+ * raw `<h1>`/`<h2>`/`<h3>` tags directly (level read from the tag name,
+ * inner inline markup kept as the heading's content), so we leave those
+ * tags untouched. The only fix-up is depth: `marked` can emit
+ * `<h4>`-`<h6>`, which `Heading` doesn't recognise and would silently
+ * drop, so we demote each of those down to `<h3>` while preserving the
+ * inner text. Users keep the hierarchy they can; deeper levels collapse
+ * onto level 3.
  */
 export function markdownToHtml(text: string): string {
-  const raw = marked.parse(text, {
+  const raw = marked.parse(splitSoftProseLines(text), {
     gfm: true,
     breaks: false,
     async: false,
   }) as string;
 
+  // Clamp <h4>-<h6> down to <h3>; keep the inner inline content intact so the
+  // standard Heading extension picks it up as the heading's text. <h1>-<h3>
+  // pass through unchanged.
   const rewritten = raw.replace(
-    /<h([1-6])>([\s\S]*?)<\/h\1>/g,
-    (_match, levelStr: string, inner: string) => {
-      const rawLevel = Number(levelStr);
-      const level = rawLevel > 3 ? 3 : rawLevel;
-      // Strip inline tags (<strong>, <em>, <code>, <a>) from the
-      // heading text. Marked has already HTML-escaped `<`, `>`, `&`,
-      // `"`, and `'` in the text itself, so the remaining entities
-      // are safe inside a double-quoted attribute value.
-      const summary = inner.replace(/<[^>]+>/g, '');
-      return (
-        `<div data-toggle-level="${level}" data-toggle-summary="${summary}" ` +
-        `data-collapsed="false"><p></p></div>`
-      );
-    }
+    /<h([4-6])>([\s\S]*?)<\/h\1>/g,
+    (_match, _levelStr: string, inner: string) => `<h3>${inner}</h3>`
   );
 
   // Defense-in-depth: `marked` does NOT sanitize, so its output can carry raw
   // <script>/<img onerror> when the pasted plain text contained HTML. The
   // current consumer (a detached <div> → ProseMirror parseSlice) makes that
   // non-exploitable, but sanitizing keeps this helper safe for any future
-  // caller. DOMPurify's defaults preserve data-* attributes and the toggle
-  // <div>/GFM <table> structure the paste pipeline relies on.
+  // caller. DOMPurify's defaults preserve the heading tags and GFM <table>
+  // structure the paste pipeline relies on.
   return DOMPurify.sanitize(rewritten);
 }

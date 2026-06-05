@@ -6,16 +6,15 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
     "content": [
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Study Guide: Acids and Bases",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Study Guide: Acids and Bases",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -28,16 +27,15 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "DEFINITION",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "DEFINITION",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -50,16 +48,15 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "WARNING",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "WARNING",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -72,16 +69,15 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "TIP",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "TIP",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -94,29 +90,27 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "More Asides",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "More Asides",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "NOTE",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "NOTE",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -129,16 +123,15 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "EXAMPLE",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "EXAMPLE",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -151,16 +144,15 @@ exports[`golden corpus — deterministic pipeline snapshots > callout-heavy.pdf 
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "KEY POINT",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "KEY POINT",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -220,29 +212,27 @@ exports[`golden corpus — deterministic pipeline snapshots > clean-text.pdf —
     "content": [
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "An Introduction to Cellular Respiration",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "An Introduction to Cellular Respiration",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "Overview",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Overview",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -255,29 +245,27 @@ exports[`golden corpus — deterministic pipeline snapshots > clean-text.pdf —
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "The Three Stages",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "The Three Stages",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 3,
-          "summary": "Glycolysis",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Glycolysis",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -290,16 +278,15 @@ exports[`golden corpus — deterministic pipeline snapshots > clean-text.pdf —
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 3,
-          "summary": "The Citric Acid Cycle",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "The Citric Acid Cycle",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -312,16 +299,15 @@ exports[`golden corpus — deterministic pipeline snapshots > clean-text.pdf —
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Key Terms",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Key Terms",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -334,16 +320,15 @@ exports[`golden corpus — deterministic pipeline snapshots > clean-text.pdf —
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Summary",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Summary",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -454,29 +439,27 @@ exports[`golden corpus — deterministic pipeline snapshots > german.pdf — ext
     "content": [
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Die Photosynthese im Überblick",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Die Photosynthese im Überblick",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "Einführung",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Einführung",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -489,16 +472,15 @@ exports[`golden corpus — deterministic pipeline snapshots > german.pdf — ext
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "Ablauf",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Ablauf",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -543,16 +525,15 @@ exports[`golden corpus — deterministic pipeline snapshots > image-heavy.pdf �
     "content": [
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Illustrated Notes",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Illustrated Notes",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -645,29 +626,27 @@ exports[`golden corpus — deterministic pipeline snapshots > multi-column.pdf �
     "content": [
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Plate Tectonics and the Drifting",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Plate Tectonics and the Drifting",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Continents",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Continents",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -1545,16 +1524,15 @@ exports[`golden corpus — deterministic pipeline snapshots > multi-column.pdf �
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Evidence from the Ocean Floor",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Evidence from the Ocean Floor",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -2456,16 +2434,15 @@ exports[`golden corpus — deterministic pipeline snapshots > table-heavy.pdf �
     "content": [
       {
         "attrs": {
-          "collapsed": false,
           "level": 1,
-          "summary": "Comparison Tables",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Comparison Tables",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [
@@ -2478,16 +2455,15 @@ exports[`golden corpus — deterministic pipeline snapshots > table-heavy.pdf �
       },
       {
         "attrs": {
-          "collapsed": false,
           "level": 2,
-          "summary": "Properties of the Inner Planets",
         },
         "content": [
           {
-            "type": "paragraph",
+            "text": "Properties of the Inner Planets",
+            "type": "text",
           },
         ],
-        "type": "toggleHeading",
+        "type": "heading",
       },
       {
         "content": [

@@ -80,7 +80,7 @@ const ITEMS: MenuItem[] = [
     group: 'Basic',
     keywords: ['heading', 'h1', 'title', 'big', 'large'],
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setToggleHeading({ level: 1 }).run(),
+      editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run(),
   },
   {
     id: 'h2',
@@ -90,7 +90,7 @@ const ITEMS: MenuItem[] = [
     group: 'Basic',
     keywords: ['heading', 'h2', 'subtitle', 'medium'],
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setToggleHeading({ level: 2 }).run(),
+      editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run(),
   },
   {
     id: 'h3',
@@ -100,7 +100,7 @@ const ITEMS: MenuItem[] = [
     group: 'Basic',
     keywords: ['heading', 'h3', 'small'],
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setToggleHeading({ level: 3 }).run(),
+      editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run(),
   },
   {
     id: 'bullet-list',

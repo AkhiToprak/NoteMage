@@ -6,7 +6,7 @@ import { canSplit } from '@tiptap/pm/transform';
 /**
  * Selection-aware block formatting (headings, callouts, quotes, lists).
  *
- * The block-level commands these wrap (`toggleToggleHeading`, `toggleCallout`,
+ * The block-level commands these wrap (`toggleHeading`, `toggleCallout`,
  * `toggleBlockquote`, list toggles) are all built on ProseMirror's `wrapIn` /
  * `setBlockType`, which operate on the WHOLE textblock the selection sits in —
  * a heading or callout can't be "half a paragraph". So on a page that is a
