@@ -263,7 +263,7 @@ export function ProfileHero({ user, action, badges }: ProfileHeroProps) {
                 <span
                   className="material-symbols-outlined"
                   aria-hidden
-                  style={{ fontSize: '14px', color: 'var(--brand-purple-strong)' }}
+                  style={{ fontSize: '14px', color: 'var(--md-h4)' }}
                 >
                   {c.icon}
                 </span>

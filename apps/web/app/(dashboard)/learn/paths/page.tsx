@@ -462,7 +462,7 @@ export default function LearnPage() {
               flexShrink: 0,
               borderRadius: 'var(--radius-full)',
               background: 'var(--surface-container)',
-              color: 'var(--primary)',
+              color: 'var(--md-h4)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -496,14 +496,14 @@ export default function LearnPage() {
               free, instantly — to get the full experience.{' '}
               <Link
                 href="/learn/community?from=create"
-                style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                style={{ color: 'var(--md-h4)', fontWeight: 700, textDecoration: 'none' }}
               >
                 Browse community paths
               </Link>{' '}
               or{' '}
               <Link
                 href="/pricing"
-                style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                style={{ color: 'var(--md-h4)', fontWeight: 700, textDecoration: 'none' }}
               >
                 see what Pro includes
               </Link>
@@ -846,7 +846,7 @@ function PathCard({
             height: '44px',
             borderRadius: 'var(--radius-md)',
             background: 'var(--surface-container-high)',
-            color: 'var(--primary)',
+            color: 'var(--md-h4)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -934,7 +934,7 @@ function PathCard({
         <span>
           {done} / {total} checkpoints
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--primary)', fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--md-h4)', fontWeight: 600 }}>
           Open
           <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
             chevron_right
@@ -1112,7 +1112,7 @@ function SubjectChip({ subject }: { subject: SubjectId }) {
         borderRadius: '999px',
         background: 'rgba(174,137,255,0.12)',
         border: '1px solid rgba(174,137,255,0.32)',
-        color: 'var(--primary)',
+        color: 'var(--md-h4)',
         fontSize: '11px',
         fontWeight: 700,
         letterSpacing: '0.04em',
@@ -1319,7 +1319,7 @@ function ResetPathDialog({
               justifyContent: 'center',
               borderRadius: 'var(--radius-full)',
               background: 'var(--surface-container-highest)',
-              color: 'var(--primary)',
+              color: 'var(--md-h4)',
             }}
           >
             restart_alt
@@ -1473,7 +1473,7 @@ function TranslatePathDialog({
               justifyContent: 'center',
               borderRadius: 'var(--radius-full)',
               background: 'var(--surface-container-highest)',
-              color: 'var(--primary)',
+              color: 'var(--md-h4)',
             }}
           >
             translate

@@ -618,7 +618,7 @@ function LoadingState() {
         aria-label="Loading profile"
         style={{
           fontSize: '40px',
-          color: 'var(--brand-purple-strong)',
+          color: 'var(--md-h4)',
           animation: 'spin 1s linear infinite',
         }}
       >
@@ -689,7 +689,7 @@ function EditProfileButton({ onClick, isPhone }: { onClick: () => void; isPhone:
         gap: '8px',
         padding: '10px 20px',
         background: 'var(--brand-purple-wash)',
-        color: 'var(--brand-purple-strong)',
+        color: 'var(--md-h4)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--brand-purple-edge)',
         fontSize: '14px',
@@ -755,7 +755,7 @@ function EmptyAboutPrompt({ onEdit }: { onEdit: () => void }) {
           gap: '6px',
           padding: '8px 14px',
           background: 'var(--brand-purple-wash)',
-          color: 'var(--brand-purple-strong)',
+          color: 'var(--md-h4)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--brand-purple-edge)',
           fontSize: '13px',
@@ -845,7 +845,7 @@ function EditDrawer({
               background: 'transparent',
               border: '1px solid var(--brand-purple-edge)',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--brand-purple-strong)',
+              color: 'var(--md-h4)',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -870,7 +870,7 @@ function EditDrawer({
               background: 'transparent',
               border: '1px solid var(--brand-purple-edge)',
               borderRadius: 'var(--radius-md)',
-              color: 'var(--brand-purple-strong)',
+              color: 'var(--md-h4)',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -1164,7 +1164,7 @@ function ToggleRow({
         <span
           className="material-symbols-outlined"
           aria-hidden
-          style={{ fontSize: '20px', color: 'var(--brand-purple-strong)', flexShrink: 0 }}
+          style={{ fontSize: '20px', color: 'var(--md-h4)', flexShrink: 0 }}
         >
           {icon}
         </span>
@@ -1269,7 +1269,7 @@ function AppearancePanel({
           <span
             className="material-symbols-outlined"
             aria-hidden
-            style={{ fontSize: '20px', color: 'var(--brand-purple-strong)' }}
+            style={{ fontSize: '20px', color: 'var(--md-h4)' }}
           >
             auto_awesome
           </span>
@@ -1511,7 +1511,7 @@ function UsernameModal({
               gap: '6px',
               padding: '8px 14px',
               background: 'var(--brand-purple-wash)',
-              color: 'var(--brand-purple-strong)',
+              color: 'var(--md-h4)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--brand-purple-edge)',
               fontSize: '13px',
