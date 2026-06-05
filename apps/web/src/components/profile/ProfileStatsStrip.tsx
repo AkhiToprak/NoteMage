@@ -110,7 +110,7 @@ export function ProfileStatsStrip({
     cells.push({
       key: 'trophies',
       value: trophies ? trophies.unlocked : '—',
-      label: trophies ? `of ${trophies.total} trophies` : 'trophies',
+      label: trophies ? `of ${trophies.total} achievements` : 'achievements',
     });
   }
   cells.push({

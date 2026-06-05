@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ACHIEVEMENTS } from '@/lib/achievements';
+import { formatAchievementDate } from '@/lib/achievement-format';
+import { AchievementsError } from './AchievementsError';
 
 interface UnlockedAchievement {
   badge: string;
@@ -29,24 +30,38 @@ interface AchievementsData {
   unlockedCount: number;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 export default function DashboardAchievements() {
   const [data, setData] = useState<AchievementsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/user/achievements')
-      .then((r) => r.json())
-      .then((res) => setData(res?.data ?? res))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((res) => {
+        if (!cancelled) setData(res?.data ?? res);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  const retry = () => {
+    setError(false);
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   if (loading) {
     return (
@@ -81,6 +96,10 @@ export default function DashboardAchievements() {
     );
   }
 
+  if (error && !data) {
+    return <AchievementsError onRetry={retry} compact />;
+  }
+
   if (!data) return null;
 
   const { unlocked, locked, total, unlockedCount } = data;
@@ -105,6 +124,14 @@ export default function DashboardAchievements() {
         padding: '24px',
       }}
     >
+      <style>{`
+        .dash-viewall:hover { text-decoration: underline; text-underline-offset: 3px; }
+        .dash-viewall:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 3px;
+          border-radius: 6px;
+        }
+      `}</style>
       {/* Header */}
       <div
         style={{
@@ -117,6 +144,7 @@ export default function DashboardAchievements() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             className="material-symbols-outlined"
+            aria-hidden
             style={{
               fontSize: '22px',
               color: 'var(--md-h4)',
@@ -127,6 +155,7 @@ export default function DashboardAchievements() {
           </span>
           <h2
             style={{
+              fontFamily: 'var(--font-display)',
               fontSize: '18px',
               fontWeight: 700,
               color: 'var(--on-surface)',
@@ -139,7 +168,7 @@ export default function DashboardAchievements() {
             className="tabular-nums"
             style={{
               padding: '4px 12px',
-              background: 'rgba(174,137,255,0.12)',
+              background: 'var(--brand-purple-wash)',
               borderRadius: '20px',
               fontSize: 'var(--fs-xs)',
               fontWeight: 600,
@@ -151,6 +180,7 @@ export default function DashboardAchievements() {
         </div>
         <Link
           href="/profile"
+          className="dash-viewall"
           style={{
             color: 'var(--md-h4)',
             fontSize: '13px',
@@ -159,10 +189,13 @@ export default function DashboardAchievements() {
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
+            minHeight: 44,
+            padding: '0 4px',
+            marginRight: '-4px',
           }}
         >
           View all
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
             chevron_right
           </span>
         </Link>
@@ -194,7 +227,7 @@ export default function DashboardAchievements() {
                     padding: '10px 14px',
                     background: 'var(--surface-container)',
                     borderRadius: '14px',
-                    border: '1px solid rgba(174,137,255,0.30)',
+                    border: '1px solid var(--brand-purple-edge)',
                     flex: '1 1 0',
                     minWidth: '0',
                   }}
@@ -204,7 +237,7 @@ export default function DashboardAchievements() {
                       width: '36px',
                       height: '36px',
                       borderRadius: '10px',
-                      background: 'rgba(174,137,255,0.15)',
+                      background: 'var(--brand-purple-wash)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -213,6 +246,7 @@ export default function DashboardAchievements() {
                   >
                     <span
                       className="material-symbols-outlined"
+                      aria-hidden
                       style={{
                         fontSize: '20px',
                         color: 'var(--md-h4)',
@@ -243,7 +277,7 @@ export default function DashboardAchievements() {
                         margin: 0,
                       }}
                     >
-                      {formatDate(ach.unlockedAt)}
+                      {formatAchievementDate(ach.unlockedAt)}
                     </p>
                   </div>
                 </div>
@@ -264,6 +298,7 @@ export default function DashboardAchievements() {
         >
           <span
             className="material-symbols-outlined"
+            aria-hidden
             style={{
               fontSize: '36px',
               display: 'block',
@@ -284,13 +319,23 @@ export default function DashboardAchievements() {
       {allUnlocked && (
         <div
           style={{
-            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
             padding: '8px 0 0',
             fontSize: '13px',
-            color: '#4ade80',
+            color: 'var(--on-surface)',
             fontWeight: 600,
           }}
         >
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: '18px', color: 'var(--success)' }}
+          >
+            check_circle
+          </span>
           All achievements unlocked!
         </div>
       )}
@@ -338,6 +383,7 @@ export default function DashboardAchievements() {
                   >
                     <span
                       className="material-symbols-outlined"
+                      aria-hidden
                       style={{
                         fontSize: '20px',
                         // --outline-variant collapses into --surface-container-highest

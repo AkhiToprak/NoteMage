@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { ACHIEVEMENTS } from '@/lib/achievements';
 import { Mascot } from '@/components/mascot';
+import { formatAchievementDate } from '@/lib/achievement-format';
+import { AchievementsError } from './AchievementsError';
 
 // Lazy-load the full grid — most viewers never expand it, so this keeps
 // the initial trophy-rail card lean.
@@ -37,13 +39,6 @@ interface RecentTrophiesProps {
 
 const PREVIEW_COUNT = 4;
 
-function formatEarnedDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
 /**
  * Trophy rail on the profile pages. Collapsed view is a 4-up horizontal
  * tile row of the most recent unlocks — each tile carries the medal,
@@ -58,25 +53,37 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
   const { isPhone } = useBreakpoint();
   const [data, setData] = useState<AchievementsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/user/achievements?userId=${encodeURIComponent(userId)}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
       .then((res) => {
         if (cancelled) return;
-        const d = res?.data ?? res;
-        setData(d);
+        setData(res?.data ?? res);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, reloadKey]);
+
+  const retry = () => {
+    setError(false);
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   const recent = (data?.unlocked ?? []).slice(0, PREVIEW_COUNT);
   const unlockedCount = data?.unlockedCount ?? data?.unlocked?.length ?? 0;
@@ -112,7 +119,7 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
             color: 'var(--on-surface)',
           }}
         >
-          Trophies{' '}
+          Achievements{' '}
           {!loading && (
             <span
               className="tabular-nums"
@@ -147,7 +154,7 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
               whiteSpace: 'nowrap',
             }}
           >
-            {expanded ? 'Hide all' : 'All trophies'}
+            {expanded ? 'Hide all' : 'All achievements'}
             <span
               className="material-symbols-outlined"
               aria-hidden
@@ -179,6 +186,8 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
         <TrophyShelf userId={userId} />
       ) : loading ? (
         <TrophyRailSkeleton isPhone={isPhone} />
+      ) : error ? (
+        <AchievementsError onRetry={retry} />
       ) : recent.length === 0 ? (
         <EmptyState ownerView={ownerView} />
       ) : (
@@ -279,7 +288,7 @@ function TrophyTile({ achievement }: { achievement: UnlockedAchievement }) {
             fontWeight: 500,
           }}
         >
-          {formatEarnedDate(achievement.unlockedAt)}
+          {formatAchievementDate(achievement.unlockedAt)}
         </div>
       </div>
     </article>
@@ -341,7 +350,7 @@ function EmptyState({ ownerView }: { ownerView: boolean }) {
       }}
     >
       {ownerView && <Mascot pose="sleeping" size="md" idle="sway" />}
-      {ownerView ? 'No trophies yet. Keep studying!' : 'No trophies unlocked yet.'}
+      {ownerView ? 'No achievements yet. Keep studying!' : 'No achievements unlocked yet.'}
     </div>
   );
 }

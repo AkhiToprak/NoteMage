@@ -417,7 +417,7 @@ export default function ProfilePage() {
   const heroBadges = (
     <>
       {profile.profilePrivate && <HeroBadge icon="lock" label="Private" />}
-      {profile.hideAchievements && <HeroBadge icon="visibility_off" label="Trophies hidden" />}
+      {profile.hideAchievements && <HeroBadge icon="visibility_off" label="Achievements hidden" />}
     </>
   );
 
@@ -1019,7 +1019,7 @@ function EditDrawer({
         <ToggleRow
           icon="visibility_off"
           title="Hide achievements"
-          description="Others cannot see your trophies"
+          description="Others cannot see your achievements"
           checked={form.hideAchievements}
           onChange={(next) => setForm({ ...form, hideAchievements: next })}
         />

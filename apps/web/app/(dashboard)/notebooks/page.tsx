@@ -327,18 +327,38 @@ function NotebooksPageContent() {
     }
   };
 
+  // Distinct user-set subjects that don't map to one of our presets, so they can
+  // be filtered too — sorted, case-insensitively de-duped (first-seen casing wins).
+  const customSubjects = (() => {
+    const seen = new Map<string, string>();
+    const consider = (subject: string | null | undefined) => {
+      const s = (subject ?? '').trim();
+      if (!s || getPresetForSubject(s)) return;
+      const key = s.toLowerCase();
+      if (!seen.has(key)) seen.set(key, s);
+    };
+    notebooks.forEach((nb) => consider(nb.subject));
+    folders.forEach((folder) => (folder.descendantSubjects ?? []).forEach(consider));
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+  })();
+
+  const isPresetFilter = PRESETS.some((p) => p.label === activeFilter);
+
+  const matchesActiveFilter = (subject: string | null | undefined) =>
+    isPresetFilter
+      ? getPresetForSubject(subject)?.label === activeFilter
+      : (subject ?? '').trim().toLowerCase() === activeFilter.toLowerCase();
+
   const filteredNotebooks =
-    activeFilter === 'All Subjects'
+    activeFilter === ALL_LABEL
       ? notebooks
-      : notebooks.filter((nb) => getPresetForSubject(nb.subject)?.label === activeFilter);
+      : notebooks.filter((nb) => matchesActiveFilter(nb.subject));
 
   const filteredFolders =
-    activeFilter === 'All Subjects'
+    activeFilter === ALL_LABEL
       ? folders
       : folders.filter((folder) =>
-          (folder.descendantSubjects ?? []).some(
-            (s) => getPresetForSubject(s)?.label === activeFilter
-          )
+          (folder.descendantSubjects ?? []).some((s) => matchesActiveFilter(s))
         );
 
   return (
@@ -568,6 +588,84 @@ function NotebooksPageContent() {
                   )}
                 </button>
               ))}
+
+              {customSubjects.length > 0 && (
+                <>
+                  <div
+                    style={{
+                      height: '1px',
+                      background: 'rgba(174,137,255,0.20)',
+                      margin: '4px 6px',
+                    }}
+                  />
+                  <div
+                    style={{
+                      padding: '6px 10px 4px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: '#8888a8',
+                    }}
+                  >
+                    Your subjects
+                  </div>
+                  {customSubjects.map((subject) => (
+                    <button
+                      key={`custom-${subject}`}
+                      onClick={() => {
+                        setActiveFilter(subject);
+                        setFilterOpen(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background:
+                          activeFilter === subject ? 'rgba(174,137,255,0.12)' : 'transparent',
+                        color: activeFilter === subject ? 'var(--on-surface)' : '#aaa8c8',
+                        fontSize: '13px',
+                        fontWeight: activeFilter === subject ? 600 : 400,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeFilter !== subject)
+                          (e.currentTarget as HTMLButtonElement).style.background =
+                            'rgba(174,137,255,0.06)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeFilter !== subject)
+                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: 'var(--primary)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      {subject}
+                      {activeFilter === subject && (
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '14px', color: 'var(--md-h4)', marginLeft: 'auto' }}
+                        >
+                          check
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
