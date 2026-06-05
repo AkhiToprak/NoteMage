@@ -17,6 +17,9 @@ interface Derived {
   // will tap" is the first incomplete slot in the active phase; if its kind
   // is "assessment" we surface the same `Take checkpoint` CTA.
   nextSlotIsAssessment: boolean;
+  // The slot the CTA should open. Deep-linked as `?slot=<id>` on the path
+  // detail page so the CTA lands on the checkpoint, not the learn hub.
+  nextSlotId: string | null;
   percent: number;
   completed: number;
   total: number;
@@ -58,6 +61,7 @@ function deriveHero(plans: PathPlan[]): Derived | null {
     activePhaseIndex,
     nextSlotIsAssessment:
       nextSlot?.kind === 'assessment' || nextSlot?.kind === 'final_exam',
+    nextSlotId: nextSlot?.id ?? null,
     percent,
     completed,
     total,
@@ -240,7 +244,7 @@ export default function PathHeroCard() {
   if (state.kind === 'error') return null;
   if (!derived) return <NoPathCard hasPlans={state.kind === 'ready' && state.plans.length > 0} />;
 
-  const { plan, activePhase, activePhaseIndex, nextSlotIsAssessment, percent, pathDone } =
+  const { plan, activePhase, activePhaseIndex, nextSlotIsAssessment, nextSlotId, percent, pathDone } =
     derived;
 
   const ctaLabel = pathDone
@@ -249,6 +253,12 @@ export default function PathHeroCard() {
       ? 'Take checkpoint'
       : 'Continue';
   const ctaIcon = pathDone ? 'celebration' : nextSlotIsAssessment ? 'school' : 'arrow_forward';
+  // Deep-link to the active path, pre-opening the next slot's checkpoint
+  // drawer. Falls back to the path overview when there's no next slot
+  // (path complete / unexpected empty state).
+  const ctaHref = nextSlotId
+    ? `/learn/paths/${encodeURIComponent(plan.id)}?slot=${encodeURIComponent(nextSlotId)}`
+    : `/learn/paths/${encodeURIComponent(plan.id)}`;
 
   return (
     <div
@@ -365,7 +375,7 @@ export default function PathHeroCard() {
 
       <div>
         <Link
-          href="/learn"
+          href={ctaHref}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
