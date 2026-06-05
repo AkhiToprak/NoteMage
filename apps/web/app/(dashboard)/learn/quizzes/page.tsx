@@ -383,7 +383,7 @@ function SetCard({ set, highlight }: { set: QuizSet; highlight: boolean }) {
             height: '32px',
             borderRadius: 'var(--radius-sm)',
             background: 'var(--surface-container-high)',
-            color: 'var(--primary)',
+            color: 'var(--md-h4)',
             flexShrink: 0,
           }}
         >

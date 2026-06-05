@@ -938,7 +938,7 @@ export function CosmeticsPanel({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="material-symbols-outlined" style={{ color: '#ffde59', fontSize: 22 }}>
+            <span className="material-symbols-outlined" style={{ color: 'var(--warning)', fontSize: 22 }}>
               admin_panel_settings
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -946,7 +946,7 @@ export function CosmeticsPanel({
                 style={{
                   fontSize: 13,
                   fontWeight: 800,
-                  color: '#ffde59',
+                  color: 'var(--warning)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                 }}
@@ -979,7 +979,7 @@ export function CosmeticsPanel({
                 borderRadius: 10,
                 border: 'none',
                 background: 'rgba(255,222,89,0.15)',
-                color: '#ffde59',
+                color: 'var(--warning)',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: adminBgUploading ? 'wait' : 'pointer',

@@ -138,7 +138,7 @@ export default function RecentTrophies({ userId, ownerView = true }: RecentTroph
               gap: '4px',
               background: 'transparent',
               border: 'none',
-              color: 'var(--brand-purple-strong)',
+              color: 'var(--md-h4)',
               fontSize: 'var(--fs-sm)',
               fontWeight: 600,
               cursor: 'pointer',
@@ -239,7 +239,7 @@ function TrophyTile({ achievement }: { achievement: UnlockedAchievement }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--brand-purple-strong)',
+          color: 'var(--md-h4)',
           flexShrink: 0,
         }}
       >

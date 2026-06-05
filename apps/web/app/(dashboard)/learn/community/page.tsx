@@ -897,7 +897,7 @@ function PathCard({ path }: { path: PathListItem }) {
             height: '44px',
             borderRadius: 'var(--radius-md)',
             background: 'var(--surface-container-high)',
-            color: 'var(--primary)',
+            color: 'var(--md-h4)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1198,7 +1198,7 @@ function SwitchoverBanner({ onDismiss }: { onDismiss: () => void }) {
           flexShrink: 0,
           borderRadius: 'var(--radius-full)',
           background: 'var(--surface-container)',
-          color: 'var(--primary)',
+          color: 'var(--md-h4)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1243,7 +1243,7 @@ function SwitchoverBanner({ onDismiss }: { onDismiss: () => void }) {
             marginTop: '8px',
             fontSize: '13px',
             fontWeight: 700,
-            color: 'var(--primary)',
+            color: 'var(--md-h4)',
             textDecoration: 'none',
           }}
         >

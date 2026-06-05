@@ -694,6 +694,30 @@ body {
     opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Learn-hub card hover — a subtle lift + primary ring + elevation so the hub
+   cards react like the notebook cards do. `a.` specificity plus later source
+   order beats the light-mode separation box-shadow on hover. Reduced-motion
+   drops the lift. */
+.learn-hub-card {
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+a.learn-hub-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1px var(--primary),
+    0 12px 28px var(--bento-hover-shadow);
+}
+@media (prefers-reduced-motion: reduce) {
+  .learn-hub-card {
+    transition: none;
+  }
+  a.learn-hub-card:hover {
+    transform: none;
+  }
+}
+
 /* Spinner — used by the Button primitive's loading state. The global
    reduced-motion baseline already collapses this animation. */
 @keyframes nm-spin {

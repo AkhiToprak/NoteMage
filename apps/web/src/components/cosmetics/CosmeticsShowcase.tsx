@@ -318,7 +318,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
             color: 'var(--on-surface)',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#ae89ff' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--md-h4)' }}>
             auto_awesome
           </span>
           <h3

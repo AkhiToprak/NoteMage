@@ -15,19 +15,28 @@ interface LearnTab {
   label: string;
   icon: string;
   /** Telemetry slug for the `learn.tab_view` event. */
-  slug: 'paths' | 'flashcards' | 'quizzes' | 'chats';
+  slug: 'overview' | 'paths' | 'flashcards' | 'quizzes' | 'chats' | 'community';
+  /** Overview matches only the exact /learn index, not every /learn/* route. */
+  exact?: boolean;
 }
 
 const TABS: ReadonlyArray<LearnTab> = [
+  { href: '/learn', label: 'Overview', icon: 'dashboard', slug: 'overview', exact: true },
   { href: '/learn/paths', label: 'Paths', icon: 'school', slug: 'paths' },
   { href: '/learn/flashcards', label: 'Flashcards', icon: 'style', slug: 'flashcards' },
   { href: '/learn/quizzes', label: 'Quizzes', icon: 'quiz', slug: 'quizzes' },
   { href: '/learn/chats', label: 'Chats', icon: 'chat', slug: 'chats' },
+  { href: '/learn/community', label: 'Community', icon: 'public', slug: 'community' },
 ];
+
+function isTabActive(tab: LearnTab, pathname: string): boolean {
+  if (tab.exact) return pathname === tab.href;
+  return pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+}
 
 function resolveActiveTab(pathname: string): LearnTab['slug'] | null {
   for (const tab of TABS) {
-    if (pathname === tab.href || pathname.startsWith(`${tab.href}/`)) return tab.slug;
+    if (isTabActive(tab, pathname)) return tab.slug;
   }
   return null;
 }
@@ -35,12 +44,6 @@ function resolveActiveTab(pathname: string): LearnTab['slug'] | null {
 export default function LearnLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
   const activeSlug = resolveActiveTab(pathname);
-  // The /learn index is now a dashboard with section cards for every
-  // surface — the tab strip would be redundant there. Hide on the
-  // index, show on sub-pages so power users can still jump between
-  // Paths / Flashcards / Quizzes / Chats without bouncing back to the
-  // dashboard.
-  const isLearnIndex = pathname === '/learn';
 
   // Phase 9.6 — fire `learn.tab_view` once per tab transition. Keying the
   // effect on the resolved slug (not the raw pathname) avoids re-firing as
@@ -60,28 +63,25 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
         width: '100%',
       }}
     >
-      {!isLearnIndex ? (
-        <nav
-          aria-label="Learn sections"
-          data-tutorial="learn-tabs"
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'stretch',
-            gap: '4px',
-            padding: '0 16px',
-            background: 'var(--surface-container-low)',
-            borderBottom: '1px solid var(--outline-variant)',
-            overflowX: 'auto',
-            minWidth: 0,
-          }}
-        >
-          {TABS.map((tab) => {
-            const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-            return <TabLink key={tab.href} tab={tab} isActive={isActive} />;
-          })}
-        </nav>
-      ) : null}
+      <nav
+        aria-label="Learn sections"
+        data-tutorial="learn-tabs"
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'stretch',
+          gap: '4px',
+          padding: '0 16px',
+          background: 'var(--surface-container-low)',
+          borderBottom: '1px solid var(--outline-variant)',
+          overflowX: 'auto',
+          minWidth: 0,
+        }}
+      >
+        {TABS.map((tab) => (
+          <TabLink key={tab.href} tab={tab} isActive={isTabActive(tab, pathname)} />
+        ))}
+      </nav>
 
       <div
         style={{
@@ -111,13 +111,13 @@ function TabLink({ tab, isActive }: { tab: LearnTab; isActive: boolean }) {
         padding: '14px 16px',
         marginBottom: '-1px',
         background: isActive ? 'var(--surface-container-high)' : 'transparent',
-        color: isActive ? 'var(--primary)' : 'var(--on-surface-variant)',
+        color: isActive ? 'var(--md-h4)' : 'var(--on-surface-variant)',
         fontSize: '14px',
         fontWeight: isActive ? 700 : 600,
         textDecoration: 'none',
         borderTopLeftRadius: 'var(--radius-md)',
         borderTopRightRadius: 'var(--radius-md)',
-        borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+        borderBottom: isActive ? '2px solid var(--md-h4)' : '2px solid transparent',
         transition: 'background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
         whiteSpace: 'nowrap',
       }}

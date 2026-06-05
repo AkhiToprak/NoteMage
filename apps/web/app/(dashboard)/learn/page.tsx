@@ -3,14 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-// Learn dashboard — single page showing the four learning surfaces
-// (Paths, Notebooks, Flashcards, Quizzes) as preview sections. Each
-// section pulls recent items from its existing list endpoint and
-// links out to the dedicated page for the full view.
-//
-// /dashboard stays as the home; this page is the "dashboard for
-// learning" — the place to land when the user wants to study or pick
-// up where they left off.
+// Learn dashboard (/learn Overview). A resume-and-start surface, NOT a clone of
+// the sub-pages: a "Continue" rail of in-progress paths, quick actions, an
+// in-flight generation banner, and a library-counts row that links into each
+// sub-page. The full lists live on /learn/{paths,flashcards,quizzes} and are
+// reached via the tab strip (learn/layout.tsx) — this page no longer mirrors
+// them, which removes the old preview/"See all" duplication.
 
 interface PathItem {
   id: string;
@@ -51,7 +49,23 @@ type FetchState<T> =
   | { kind: 'ready'; data: T[] }
   | { kind: 'error' };
 
-const PREVIEW_LIMIT = 4;
+const CONTINUE_LIMIT = 3;
+
+function isInFlight(p: PathItem): boolean {
+  return p.generationStatus === 'queued' || p.generationStatus === 'generating';
+}
+
+function pathProgress(path: PathItem): { total: number; done: number; pct: number } {
+  const all = path.phases.flatMap((p) => p.slots.flatMap((s) => s.activities));
+  const total = all.length;
+  const done = all.filter((a) => a.completed).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  return { total, done, pct };
+}
+
+function countOf<T>(state: FetchState<T>): number | null {
+  return state.kind === 'ready' ? state.data.length : null;
+}
 
 export default function LearnDashboardPage() {
   const [paths, setPaths] = useState<FetchState<PathItem>>({ kind: 'loading' });
@@ -63,20 +77,13 @@ export default function LearnDashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const wrap = <T,>(
-      url: string,
-      setter: (s: FetchState<T>) => void,
-      pick?: (json: unknown) => T[],
-    ) => {
+    const wrap = <T,>(url: string, setter: (s: FetchState<T>) => void) => {
       fetch(url)
         .then((r) => r.json())
         .then((json) => {
           if (cancelled) return;
           if (json?.success) {
-            const data = pick
-              ? pick(json)
-              : (json.data ?? []);
-            setter({ kind: 'ready', data: data as T[] });
+            setter({ kind: 'ready', data: (json.data ?? []) as T[] });
           } else {
             setter({ kind: 'error' });
           }
@@ -94,15 +101,10 @@ export default function LearnDashboardPage() {
     };
   }, []);
 
-  // Poll while any path is still generating so the hub resolves "Building…"
-  // on its own — without this the badge stuck forever until a manual reload,
-  // disagreeing with the paths page (which already polls).
+  // Poll while any path is still generating so the banner resolves on its own.
   useEffect(() => {
     if (paths.kind !== 'ready') return;
-    const anyInFlight = paths.data.some(
-      (p) => p.generationStatus === 'queued' || p.generationStatus === 'generating',
-    );
-    if (!anyInFlight) return;
+    if (!paths.data.some(isInFlight)) return;
     let cancelled = false;
     const id = setInterval(() => {
       fetch('/api/learn/paths')
@@ -119,6 +121,15 @@ export default function LearnDashboardPage() {
     };
   }, [paths]);
 
+  const readyPaths = paths.kind === 'ready' ? paths.data : [];
+  const generating = readyPaths.filter(isInFlight);
+  const inProgress = readyPaths
+    .filter((p) => !isInFlight(p))
+    .map((p) => ({ path: p, ...pathProgress(p) }))
+    .filter((x) => x.total > 0 && x.done > 0 && x.done < x.total)
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, CONTINUE_LIMIT);
+
   return (
     <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '24px 16px 48px' }}>
       <header style={{ marginBottom: '28px' }}>
@@ -134,199 +145,143 @@ export default function LearnDashboardPage() {
         >
           Learn
         </h1>
-        <p
-          style={{
-            margin: '6px 0 0',
-            fontSize: '14px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
-          }}
-        >
-          Pick up where you left off. Paths, notebooks, flashcards, and quizzes — all in one place.
+        <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
+          Pick up where you left off, or start something new.
         </p>
       </header>
 
-      <PathsSection state={paths} />
-      <FlashcardsSection state={flashcardSets} />
-      <QuizzesSection state={quizSets} />
-      <NotebooksSection state={notebooks} />
+      {generating.length > 0 && <GeneratingBanner paths={generating} />}
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading title="Continue" />
+        {paths.kind === 'loading' ? (
+          <ContinueSkeleton />
+        ) : inProgress.length > 0 ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
+              gap: '12px',
+            }}
+          >
+            {inProgress.map((x) => (
+              <ContinueCard key={x.path.id} path={x.path} pct={x.pct} done={x.done} total={x.total} />
+            ))}
+          </div>
+        ) : (
+          <ContinueEmpty hasPaths={readyPaths.length > 0} error={paths.kind === 'error'} />
+        )}
+      </section>
+
+      <section style={{ marginBottom: '32px' }}>
+        <SectionHeading title="Start something" />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+          <QuickAction icon="add" label="New path" href="/learn/paths" primary />
+          <QuickAction icon="public" label="Browse community" href="/learn/community" />
+          <QuickAction icon="chat" label="New chat" href="/learn/chats" />
+          <QuickAction icon="menu_book" label="Open notebooks" href="/notebooks" />
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading title="Your library" />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(160px, 100%), 1fr))',
+            gap: '12px',
+          }}
+        >
+          <CountChip icon="school" label="Paths" count={countOf(paths)} href="/learn/paths" />
+          <CountChip icon="style" label="Flashcards" count={countOf(flashcardSets)} href="/learn/flashcards" />
+          <CountChip icon="quiz" label="Quizzes" count={countOf(quizSets)} href="/learn/quizzes" />
+          <CountChip icon="menu_book" label="Notebooks" count={countOf(notebooks)} href="/notebooks" />
+        </div>
+      </section>
     </div>
   );
 }
 
-// ── Sections ───────────────────────────────────────────────────────
+// ── Components ──────────────────────────────────────────────────────
 
-function SectionShell({
-  title,
-  icon,
-  href,
-  count,
-  children,
-}: {
-  title: string;
-  icon: string;
-  href: string;
-  count: number | null;
-  children: React.ReactNode;
-}) {
+function SectionHeading({ title }: { title: string }) {
   return (
-    <section style={{ marginBottom: '28px' }}>
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '12px',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <span
-            aria-hidden
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--surface-container-high)',
-              color: 'var(--primary)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              {icon}
-            </span>
-          </span>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: '20px',
-              fontWeight: 800,
-              color: 'var(--on-surface)',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {title}
-          </h2>
-          {count !== null ? (
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                color: 'var(--on-surface-variant)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {count}
-            </span>
-          ) : null}
-        </div>
-        <Link
-          href={href}
-          style={{
-            fontSize: '13px',
-            fontWeight: 600,
-            color: 'var(--primary)',
-            textDecoration: 'none',
-            flexShrink: 0,
-          }}
-        >
-          View all →
-        </Link>
-      </header>
-      {children}
-    </section>
+    <h2
+      style={{
+        margin: '0 0 12px',
+        fontFamily: 'var(--font-display)',
+        fontSize: '18px',
+        fontWeight: 800,
+        color: 'var(--on-surface)',
+        letterSpacing: '-0.01em',
+      }}
+    >
+      {title}
+    </h2>
   );
 }
 
-function Skeleton({ rows = 2 }: { rows?: number }) {
+function GeneratingBanner({ paths }: { paths: PathItem[] }) {
   return (
     <div
+      role="status"
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
-        gap: '12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        padding: '14px 16px',
+        marginBottom: '24px',
+        borderRadius: 'var(--radius-lg)',
+        background: 'var(--surface-container)',
+        border: '1px solid var(--outline-variant)',
       }}
     >
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            height: '80px',
-            background: 'var(--surface-container-low)',
-            border: '1px solid var(--outline-variant)',
-            borderRadius: 'var(--radius-md)',
-          }}
-        />
+      {paths.map((p) => (
+        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: '18px', color: 'var(--md-h4)', animation: 'nm-spin 1s linear infinite', flexShrink: 0 }}
+          >
+            progress_activity
+          </span>
+          <span
+            style={{
+              fontSize: '13px',
+              color: 'var(--on-surface)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Generating <strong style={{ fontWeight: 700 }}>{p.title}</strong>…
+          </span>
+        </div>
       ))}
     </div>
   );
 }
 
-function EmptyRow({ message }: { message: string }) {
-  return (
-    <div
-      style={{
-        padding: '16px 18px',
-        background: 'var(--surface-container-low)',
-        border: '1px dashed var(--outline-variant)',
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--on-surface-variant)',
-        fontSize: '13px',
-      }}
-    >
-      {message}
-    </div>
-  );
-}
-
-function PathsSection({ state }: { state: FetchState<PathItem> }) {
-  const total = state.kind === 'ready' ? state.data.length : null;
-  return (
-    <SectionShell title="Learning paths" icon="school" href="/learn/paths" count={total}>
-      {state.kind === 'loading' ? (
-        <Skeleton rows={2} />
-      ) : state.kind === 'error' ? (
-        <EmptyRow message="Could not load paths." />
-      ) : state.data.length === 0 ? (
-        <EmptyRow message="No paths yet. Open a notebook and generate one." />
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
-            gap: '12px',
-          }}
-        >
-          {state.data.slice(0, PREVIEW_LIMIT).map((path) => (
-            <PathCard key={path.id} path={path} />
-          ))}
-        </div>
-      )}
-    </SectionShell>
-  );
-}
-
-function PathCard({ path }: { path: PathItem }) {
-  const allActivities = path.phases.flatMap((p) =>
-    p.slots.flatMap((s) => s.activities),
-  );
-  const total = allActivities.length;
-  const done = allActivities.filter((a) => a.completed).length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const inFlight =
-    path.generationStatus === 'queued' || path.generationStatus === 'generating';
+function ContinueCard({
+  path,
+  pct,
+  done,
+  total,
+}: {
+  path: PathItem;
+  pct: number;
+  done: number;
+  total: number;
+}) {
   return (
     <Link
       href={`/learn/paths/${encodeURIComponent(path.id)}`}
+      className="learn-hub-card"
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
-        padding: '14px 16px',
+        padding: '16px',
         background: 'var(--surface-container)',
         border: '1px solid var(--outline-variant)',
         borderRadius: 'var(--radius-lg)',
@@ -334,37 +289,41 @@ function PathCard({ path }: { path: PathItem }) {
         color: 'var(--on-surface)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <span
+          aria-hidden
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--md-h4)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+            school
+          </span>
+        </span>
         <span
           style={{
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: 700,
             color: 'var(--on-surface)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            minWidth: 0,
           }}
         >
           {path.title}
         </span>
-        {inFlight ? (
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--primary)',
-              flexShrink: 0,
-            }}
-          >
-            Building…
-          </span>
-        ) : null}
       </div>
-      <p
+      <span
         style={{
-          margin: 0,
           fontSize: '12px',
           color: 'var(--on-surface-variant)',
           overflow: 'hidden',
@@ -373,7 +332,7 @@ function PathCard({ path }: { path: PathItem }) {
         }}
       >
         {path.notebookTitle ?? 'Cross-notebook'}
-      </p>
+      </span>
       <div
         aria-hidden
         style={{
@@ -384,243 +343,189 @@ function PathCard({ path }: { path: PathItem }) {
           overflow: 'hidden',
         }}
       >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: '100%',
-            background: 'var(--primary)',
-            borderRadius: '999px',
-          }}
-        />
+        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent-strong)', borderRadius: '999px' }} />
       </div>
-      <span
-        style={{
-          fontSize: '11px',
-          color: 'var(--on-surface-variant)',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {pct}% — {done}/{total} steps
-      </span>
-    </Link>
-  );
-}
-
-function NotebooksSection({ state }: { state: FetchState<NotebookItem> }) {
-  const total = state.kind === 'ready' ? state.data.length : null;
-  return (
-    <SectionShell title="Notebooks" icon="menu_book" href="/notebooks" count={total}>
-      {state.kind === 'loading' ? (
-        <Skeleton rows={3} />
-      ) : state.kind === 'error' ? (
-        <EmptyRow message="Could not load notebooks." />
-      ) : state.data.length === 0 ? (
-        <EmptyRow message="No notebooks yet." />
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))',
-            gap: '12px',
-          }}
-        >
-          {state.data.slice(0, PREVIEW_LIMIT).map((nb) => (
-            <NotebookCard key={nb.id} notebook={nb} />
-          ))}
-        </div>
-      )}
-    </SectionShell>
-  );
-}
-
-function NotebookCard({ notebook }: { notebook: NotebookItem }) {
-  const pageCount = notebook._count?.pages ?? 0;
-  const docCount = notebook._count?.documents ?? 0;
-  return (
-    <Link
-      href={`/notebooks/${encodeURIComponent(notebook.id)}`}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        padding: '14px 16px',
-        background: 'var(--surface-container)',
-        border: '1px solid var(--outline-variant)',
-        borderLeft: notebook.color
-          ? `4px solid ${notebook.color}`
-          : '4px solid var(--primary)',
-        borderRadius: 'var(--radius-lg)',
-        textDecoration: 'none',
-        color: 'var(--on-surface)',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {notebook.kind === 'inbox' ? (
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '16px', color: 'var(--primary)' }}
-            aria-hidden
-          >
-            inbox
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)', fontVariantNumeric: 'tabular-nums' }}>
+          {pct}% · {done}/{total} steps
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: 'var(--md-h4)' }}>
+          Resume
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden>
+            arrow_forward
           </span>
-        ) : null}
-        <span
-          style={{
-            fontSize: '14px',
-            fontWeight: 700,
-            color: 'var(--on-surface)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          {notebook.name}
         </span>
       </div>
-      <span
-        style={{
-          fontSize: '11px',
-          color: 'var(--on-surface-variant)',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {pageCount} page{pageCount === 1 ? '' : 's'}
-        {docCount > 0 ? ` · ${docCount} doc${docCount === 1 ? '' : 's'}` : ''}
-      </span>
     </Link>
   );
 }
 
-function FlashcardsSection({ state }: { state: FetchState<FlashcardSetItem> }) {
-  const total = state.kind === 'ready' ? state.data.length : null;
+function ContinueEmpty({ hasPaths, error }: { hasPaths: boolean; error: boolean }) {
+  const message = error
+    ? 'Could not load your paths. Try refreshing.'
+    : hasPaths
+      ? 'Nothing in progress right now. Jump back into a path or start a new one.'
+      : 'No learning paths yet. Generate your first one to start studying.';
   return (
-    <SectionShell title="Flashcards" icon="style" href="/learn/flashcards" count={total}>
-      {state.kind === 'loading' ? (
-        <Skeleton rows={2} />
-      ) : state.kind === 'error' ? (
-        <EmptyRow message="Could not load flashcards." />
-      ) : state.data.length === 0 ? (
-        <EmptyRow message="No flashcard sets yet." />
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
-            gap: '12px',
-          }}
-        >
-          {state.data.slice(0, PREVIEW_LIMIT).map((set) => (
-            <FlashcardSetCard key={set.id} set={set} />
-          ))}
-        </div>
-      )}
-    </SectionShell>
+    <div
+      style={{
+        padding: '24px 20px',
+        textAlign: 'center',
+        borderRadius: 'var(--radius-lg)',
+        background: 'var(--surface-container-low)',
+        border: '1px dashed var(--outline-variant)',
+      }}
+    >
+      <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+        {message}
+      </p>
+      <Link
+        href="/learn/paths"
+        className="learn-hub-card"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 18px',
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--accent-strong)',
+          color: 'var(--on-primary-container)',
+          fontWeight: 700,
+          fontSize: '14px',
+          textDecoration: 'none',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
+          add
+        </span>
+        New path
+      </Link>
+    </div>
   );
 }
 
-function FlashcardSetCard({ set }: { set: FlashcardSetItem }) {
-  // Path-generated sets may have null notebookId; surface that politely.
-  const href = set.notebook?.id
-    ? `/notebooks/${encodeURIComponent(set.notebook.id)}/flashcards/${encodeURIComponent(set.id)}`
-    : '/learn/flashcards';
+function ContinueSkeleton() {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))',
+        gap: '12px',
+      }}
+    >
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          style={{
+            height: '124px',
+            background: 'var(--surface-container-low)',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-lg)',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  href,
+  primary,
+}: {
+  icon: string;
+  label: string;
+  href: string;
+  primary?: boolean;
+}) {
   return (
     <Link
       href={href}
+      className="learn-hub-card"
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        padding: '14px 16px',
-        background: 'var(--surface-container)',
-        border: '1px solid var(--outline-variant)',
-        borderRadius: 'var(--radius-lg)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '12px 16px',
+        borderRadius: 'var(--radius-md)',
         textDecoration: 'none',
-        color: 'var(--on-surface)',
+        fontSize: '14px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        background: primary ? 'var(--accent-strong)' : 'var(--surface-container)',
+        color: primary ? 'var(--on-primary-container)' : 'var(--on-surface)',
+        border: primary ? '1px solid var(--accent-strong)' : '1px solid var(--outline-variant)',
       }}
     >
-      <span
-        style={{
-          fontSize: '14px',
-          fontWeight: 700,
-          color: 'var(--on-surface)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {set.title}
+      <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
+        {icon}
       </span>
-      <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>
-        {set._count.flashcards} card{set._count.flashcards === 1 ? '' : 's'}
-        {set.notebook?.name ? ` · ${set.notebook.name}` : ''}
-      </span>
+      {label}
     </Link>
   );
 }
 
-function QuizzesSection({ state }: { state: FetchState<QuizSetItem> }) {
-  const total = state.kind === 'ready' ? state.data.length : null;
-  return (
-    <SectionShell title="Quizzes" icon="quiz" href="/learn/quizzes" count={total}>
-      {state.kind === 'loading' ? (
-        <Skeleton rows={2} />
-      ) : state.kind === 'error' ? (
-        <EmptyRow message="Could not load quizzes." />
-      ) : state.data.length === 0 ? (
-        <EmptyRow message="No quizzes yet." />
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))',
-            gap: '12px',
-          }}
-        >
-          {state.data.slice(0, PREVIEW_LIMIT).map((set) => (
-            <QuizSetCard key={set.id} set={set} />
-          ))}
-        </div>
-      )}
-    </SectionShell>
-  );
-}
-
-function QuizSetCard({ set }: { set: QuizSetItem }) {
-  const href = set.notebook?.id
-    ? `/notebooks/${encodeURIComponent(set.notebook.id)}/quizzes/${encodeURIComponent(set.id)}`
-    : '/learn/quizzes';
+function CountChip({
+  icon,
+  label,
+  count,
+  href,
+}: {
+  icon: string;
+  label: string;
+  count: number | null;
+  href: string;
+}) {
   return (
     <Link
       href={href}
+      className="learn-hub-card"
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
+        alignItems: 'center',
+        gap: '12px',
         padding: '14px 16px',
+        borderRadius: 'var(--radius-lg)',
         background: 'var(--surface-container)',
         border: '1px solid var(--outline-variant)',
-        borderRadius: 'var(--radius-lg)',
         textDecoration: 'none',
         color: 'var(--on-surface)',
+        minWidth: 0,
       }}
     >
       <span
+        aria-hidden
         style={{
-          fontSize: '14px',
-          fontWeight: 700,
-          color: 'var(--on-surface)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          width: '36px',
+          height: '36px',
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--surface-container-high)',
+          color: 'var(--md-h4)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
         }}
       >
-        {set.title}
+        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+          {icon}
+        </span>
       </span>
-      <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>
-        {set._count.questions} question{set._count.questions === 1 ? '' : 's'}
-        {set.notebook?.name ? ` · ${set.notebook.name}` : ''}
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <span
+          style={{
+            fontSize: '18px',
+            fontWeight: 800,
+            color: 'var(--on-surface)',
+            fontFamily: 'var(--font-display)',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1.1,
+          }}
+        >
+          {count ?? '·'}
+        </span>
+        <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>{label}</span>
       </span>
     </Link>
   );
