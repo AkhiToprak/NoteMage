@@ -8,6 +8,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import TiptapImage from '@tiptap/extension-image';
 import { common, createLowlight } from 'lowlight';
 import { useEffect, useRef, useCallback } from 'react';
+import { insertCodeBlock } from '@/lib/tiptap-code-block';
 
 const lowlight = createLowlight(common);
 
@@ -262,7 +263,7 @@ export default function PublishRichEditor({ content, onChange }: PublishRichEdit
           icon="code"
           label="Code Block"
           active={editor.isActive('codeBlock')}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => insertCodeBlock(editor)}
         />
         <div style={{ width: 1, background: COLORS.borderSubtle, margin: '4px 4px' }} />
         <ToolbarButton

@@ -11,6 +11,7 @@ import {
 } from 'react';
 import type { Editor } from '@tiptap/react';
 import type { SlashCommandState } from '@/lib/tiptap-slash-command';
+import { insertCodeBlock } from '@/lib/tiptap-code-block';
 
 /**
  * Slash menu popup component.
@@ -136,7 +137,12 @@ const ITEMS: MenuItem[] = [
     icon: 'code',
     group: 'Blocks',
     keywords: ['code', 'codeblock', 'snippet', 'pre'],
-    run: (editor, range) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+    run: (editor, range) => {
+      // Strip the typed "/code" first, then drop a fresh code block on the
+      // now-empty line (scope-aware so it never converts the whole page).
+      editor.chain().focus().deleteRange(range).run();
+      insertCodeBlock(editor);
+    },
   },
   {
     id: 'hr',

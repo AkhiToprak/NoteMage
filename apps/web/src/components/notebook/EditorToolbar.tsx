@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Editor } from '@tiptap/react';
+import { insertCodeBlock } from '@/lib/tiptap-code-block';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 
@@ -1828,7 +1829,7 @@ export default function EditorToolbar({
           icon="code"
           label="Code Block"
           isActive={editor.isActive('codeBlock')}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => insertCodeBlock(editor)}
         />
         <CalloutDropdown editor={editor} />
         <TableGridPicker editor={editor} />
