@@ -451,7 +451,6 @@ export default function LearnPage() {
             marginBottom: '24px',
             background: 'var(--surface-container-high)',
             border: '1px solid var(--outline-variant)',
-            borderLeft: '4px solid var(--primary)',
             borderRadius: 'var(--radius-lg)',
           }}
         >
@@ -634,6 +633,8 @@ function PathCard({
   onRequestTranslate: (plan: PathPlanListItem) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const allSlots = plan.phases.flatMap((p) => p.slots);
   const total = allSlots.length;
   const done = allSlots.filter((s) => s.completed).length;
@@ -649,8 +650,20 @@ function PathCard({
   useEffect(() => {
     if (!menuOpen) return;
     const close = () => setMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        menuBtnRef.current?.focus();
+      }
+    };
     document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    // Move focus into the menu so keyboard users land on the first action.
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [menuOpen]);
 
   return (
@@ -675,6 +688,7 @@ function PathCard({
           stopPropagation keeps the opening click off the document
           click-away listener. */}
       <button
+        ref={menuBtnRef}
         type="button"
         aria-label="Path options"
         aria-haspopup="menu"
@@ -707,6 +721,7 @@ function PathCard({
 
       {menuOpen ? (
         <div
+          ref={menuRef}
           role="menu"
           style={{
             position: 'absolute',

@@ -174,6 +174,18 @@ export default function Hero() {
               See features
             </Link>
           </div>
+
+          {/* Reassurance at the highest-traffic CTA, not only at the page-bottom CTA. */}
+          <p
+            style={{
+              margin: '14px 0 0',
+              fontSize: 13,
+              color: 'rgba(237, 233, 255, 0.6)',
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            Free forever · No card · 60 seconds
+          </p>
         </div>
 
         {/* RIGHT — carousel */}

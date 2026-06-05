@@ -586,7 +586,7 @@ export default function FlashcardViewer({
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: pct >= 70 ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.15)',
+                background: pct >= 70 ? 'rgb(var(--verdict-pass-rgb) / 0.15)' : 'rgb(var(--verdict-warn-rgb) / 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -626,8 +626,8 @@ export default function FlashcardViewer({
                 style={{
                   padding: '16px 20px',
                   borderRadius: '12px',
-                  background: 'rgba(74,222,128,0.1)',
-                  border: '1px solid rgba(74,222,128,0.2)',
+                  background: 'rgb(var(--verdict-pass-rgb) / 0.1)',
+                  border: '1px solid rgb(var(--verdict-pass-rgb) / 0.2)',
                 }}
               >
                 <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--success)' }}>
@@ -636,7 +636,7 @@ export default function FlashcardViewer({
                 <div
                   style={{
                     fontSize: '11px',
-                    color: 'rgba(74,222,128,0.7)',
+                    color: 'rgb(var(--verdict-pass-rgb) / 0.7)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -648,8 +648,8 @@ export default function FlashcardViewer({
                 style={{
                   padding: '16px 20px',
                   borderRadius: '12px',
-                  background: 'rgba(252,165,165,0.1)',
-                  border: '1px solid rgba(252,165,165,0.2)',
+                  background: 'rgb(var(--verdict-fail-rgb) / 0.1)',
+                  border: '1px solid rgb(var(--verdict-fail-rgb) / 0.2)',
                 }}
               >
                 <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--error)' }}>
@@ -658,7 +658,7 @@ export default function FlashcardViewer({
                 <div
                   style={{
                     fontSize: '11px',
-                    color: 'rgba(252,165,165,0.7)',
+                    color: 'rgb(var(--verdict-fail-rgb) / 0.7)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -697,8 +697,8 @@ export default function FlashcardViewer({
                   style={{
                     padding: '12px 24px',
                     borderRadius: '12px',
-                    background: 'rgba(252,165,165,0.12)',
-                    border: '1px solid rgba(252,165,165,0.3)',
+                    background: 'rgb(var(--verdict-fail-rgb) / 0.12)',
+                    border: '1px solid rgb(var(--verdict-fail-rgb) / 0.3)',
                     color: 'var(--error)',
                     fontSize: '14px',
                     fontWeight: 600,
@@ -863,17 +863,17 @@ export default function FlashcardViewer({
               padding: isPhone ? '24px 16px' : '32px 24px',
               background:
                 swipingDirection === 'right'
-                  ? 'rgba(74,222,128,0.15)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.15)'
                   : swipingDirection === 'left'
-                    ? 'rgba(252,165,165,0.15)'
+                    ? 'rgb(var(--verdict-fail-rgb) / 0.15)'
                     : studyFlipped
                       ? 'var(--surface-container-high)'
                       : 'var(--surface-container-lowest)',
               border: `1px solid ${
                 swipingDirection === 'right'
-                  ? 'rgba(74,222,128,0.4)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.4)'
                   : swipingDirection === 'left'
-                    ? 'rgba(252,165,165,0.4)'
+                    ? 'rgb(var(--verdict-fail-rgb) / 0.4)'
                     : studyFlipped
                       ? 'rgba(81,112,255,0.3)'
                       : 'rgba(140,82,255,0.2)'
@@ -928,8 +928,8 @@ export default function FlashcardViewer({
               style={{
                 padding: '14px 28px',
                 borderRadius: '12px',
-                background: 'rgba(252,165,165,0.1)',
-                border: '1px solid rgba(252,165,165,0.25)',
+                background: 'rgb(var(--verdict-fail-rgb) / 0.1)',
+                border: '1px solid rgb(var(--verdict-fail-rgb) / 0.25)',
                 color: 'var(--error)',
                 fontSize: '14px',
                 fontWeight: 600,
@@ -954,8 +954,8 @@ export default function FlashcardViewer({
               style={{
                 padding: '14px 28px',
                 borderRadius: '12px',
-                background: 'rgba(74,222,128,0.1)',
-                border: '1px solid rgba(74,222,128,0.25)',
+                background: 'rgb(var(--verdict-pass-rgb) / 0.1)',
+                border: '1px solid rgb(var(--verdict-pass-rgb) / 0.25)',
                 color: 'var(--success)',
                 fontSize: '14px',
                 fontWeight: 600,
@@ -1898,16 +1898,16 @@ function SmallButton({
         gap: '5px',
         padding: '6px 12px',
         borderRadius: '8px',
-        border: `1px solid ${danger ? 'rgba(252,165,165,0.2)' : 'rgba(140,82,255,0.15)'}`,
+        border: `1px solid ${danger ? 'rgb(var(--verdict-fail-rgb) / 0.2)' : 'rgba(140,82,255,0.15)'}`,
         background: hovered
           ? danger
-            ? 'rgba(252,165,165,0.1)'
+            ? 'rgb(var(--verdict-fail-rgb) / 0.1)'
             : 'rgba(140,82,255,0.1)'
           : 'transparent',
         color: danger
           ? hovered
             ? 'var(--error)'
-            : 'rgba(252,165,165,0.6)'
+            : 'rgb(var(--verdict-fail-rgb) / 0.6)'
           : hovered
             ? 'var(--md-h3)'
             : 'var(--ink-40)',
@@ -2050,13 +2050,13 @@ function DropdownItem({
         border: 'none',
         background: hovered
           ? danger
-            ? 'rgba(252,165,165,0.1)'
+            ? 'rgb(var(--verdict-fail-rgb) / 0.1)'
             : 'rgba(140,82,255,0.12)'
           : 'transparent',
         color: danger
           ? hovered
             ? 'var(--error)'
-            : 'rgba(252,165,165,0.6)'
+            : 'rgb(var(--verdict-fail-rgb) / 0.6)'
           : hovered
             ? 'var(--md-h3)'
             : 'var(--ink-50)',

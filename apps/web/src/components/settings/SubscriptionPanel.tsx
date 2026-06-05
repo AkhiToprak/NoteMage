@@ -43,6 +43,7 @@ export default function SubscriptionPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isIos, setIsIos] = useState(false);
   const [iosSheetOpen, setIosSheetOpen] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const refresh = useCallback(() => {
     fetch('/api/user/subscription')
@@ -266,23 +267,72 @@ export default function SubscriptionPanel() {
               </span>
               Manage billing
             </button>
-            {!cancelScheduled && (
+            {!cancelScheduled && !confirmingCancel && (
               <button
                 type="button"
                 className="sub-btn sub-btn-secondary"
                 style={secondaryBtnStyle}
-                onClick={cancelSubscription}
+                onClick={() => setConfirmingCancel(true)}
                 disabled={busy}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                   cancel
                 </span>
-                {busy ? 'Working…' : 'Cancel subscription'}
+                Cancel subscription
               </button>
             )}
           </>
         )}
       </div>
+
+      {/* Two-step cancel confirmation — a paid downgrade shouldn't fire on a single misclick. */}
+      {isPro && !isApple && !cancelScheduled && confirmingCancel && (
+        <div
+          role="group"
+          aria-label="Confirm cancellation"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            padding: 16,
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--outline-variant)',
+            background: 'var(--surface-container-high)',
+          }}
+        >
+          <p style={{ fontSize: 14, color: 'var(--on-surface)', margin: 0, fontWeight: 600 }}>
+            Cancel Pro?
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+            {periodEnd
+              ? `You'll keep Pro until ${periodEnd}, then drop to Free. You can resubscribe anytime.`
+              : `You'll keep Pro until your current period ends, then drop to Free. You can resubscribe anytime.`}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            <button
+              type="button"
+              className="sub-btn sub-btn-secondary"
+              style={secondaryBtnStyle}
+              onClick={() => setConfirmingCancel(false)}
+              disabled={busy}
+            >
+              Keep Pro
+            </button>
+            <button
+              type="button"
+              className="sub-btn sub-btn-secondary"
+              style={{ ...secondaryBtnStyle, color: 'var(--error)', borderColor: 'var(--error)' }}
+              onClick={async () => {
+                await cancelSubscription();
+                setConfirmingCancel(false);
+              }}
+              disabled={busy}
+            >
+              {busy ? 'Cancelling…' : 'Confirm cancel'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {isIos && (
         <IosUpgradeSheet

@@ -1187,7 +1187,6 @@ function SwitchoverBanner({ onDismiss }: { onDismiss: () => void }) {
         marginBottom: '20px',
         background: 'var(--surface-container-high)',
         border: '1px solid var(--outline-variant)',
-        borderLeft: '4px solid var(--primary)',
         borderRadius: 'var(--radius-lg)',
       }}
     >

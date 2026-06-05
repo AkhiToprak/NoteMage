@@ -8,6 +8,7 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
   useDraggable,
@@ -111,7 +112,9 @@ export default function TimelineRenderer({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    // Keyboard drag: tab to a label, Space to lift, arrows to move, Space to drop.
+    useSensor(KeyboardSensor)
   );
 
   const placeLabelOnSlot = (label: string, slotKey: string) => {
@@ -342,8 +345,8 @@ export default function TimelineRenderer({
           style={{
             padding: '14px 18px',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-            border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
             marginBottom: '12px',
           }}
         >
@@ -481,12 +484,12 @@ function YearSlot({
   let labelBg = 'rgba(140,82,255,0.12)';
   let labelColor = 'var(--on-surface)';
   if (showResult === true) {
-    labelBorder = 'rgba(74,222,128,0.55)';
-    labelBg = 'rgba(74,222,128,0.12)';
+    labelBorder = 'rgb(var(--verdict-pass-rgb) / 0.55)';
+    labelBg = 'rgb(var(--verdict-pass-rgb) / 0.12)';
     labelColor = 'var(--success)';
   } else if (showResult === false) {
-    labelBorder = 'rgba(252,165,165,0.55)';
-    labelBg = 'rgba(252,165,165,0.10)';
+    labelBorder = 'rgb(var(--verdict-fail-rgb) / 0.55)';
+    labelBg = 'rgb(var(--verdict-fail-rgb) / 0.10)';
     labelColor = 'var(--error)';
   }
 

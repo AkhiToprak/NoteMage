@@ -5,6 +5,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { useSearchParams } from 'next/navigation';
 import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
 import FlashcardSetManager from '@/components/notebook/FlashcardSetManager';
+import { formatRelativeTime } from '@/lib/relative-time';
 
 // Phase 9.4 — /learn/flashcards. Grouped grid of every flashcard set the
 // user owns, grouped by source notebook. Inbox first, then standard
@@ -612,18 +613,3 @@ function SetCard({
   );
 }
 
-// Inline relative-time formatter — codebase has no shared helper. Uses
-// Intl.RelativeTimeFormat for proper i18n, with manual unit bucketing.
-function formatRelativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return 'recently';
-  const diffMs = then - Date.now();
-  const absSec = Math.abs(diffMs) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
-  if (absSec < 60) return rtf.format(Math.round(diffMs / 1000), 'second');
-  if (absSec < 3600) return rtf.format(Math.round(diffMs / 60000), 'minute');
-  if (absSec < 86400) return rtf.format(Math.round(diffMs / 3600000), 'hour');
-  if (absSec < 2592000) return rtf.format(Math.round(diffMs / 86400000), 'day');
-  if (absSec < 31536000) return rtf.format(Math.round(diffMs / (86400000 * 30)), 'month');
-  return rtf.format(Math.round(diffMs / (86400000 * 365)), 'year');
-}

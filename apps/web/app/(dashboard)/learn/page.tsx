@@ -94,6 +94,31 @@ export default function LearnDashboardPage() {
     };
   }, []);
 
+  // Poll while any path is still generating so the hub resolves "Building…"
+  // on its own — without this the badge stuck forever until a manual reload,
+  // disagreeing with the paths page (which already polls).
+  useEffect(() => {
+    if (paths.kind !== 'ready') return;
+    const anyInFlight = paths.data.some(
+      (p) => p.generationStatus === 'queued' || p.generationStatus === 'generating',
+    );
+    if (!anyInFlight) return;
+    let cancelled = false;
+    const id = setInterval(() => {
+      fetch('/api/learn/paths')
+        .then((r) => r.json())
+        .then((json) => {
+          if (cancelled) return;
+          if (json?.success) setPaths({ kind: 'ready', data: (json.data ?? []) as PathItem[] });
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [paths]);
+
   return (
     <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '24px 16px 48px' }}>
       <header style={{ marginBottom: '28px' }}>

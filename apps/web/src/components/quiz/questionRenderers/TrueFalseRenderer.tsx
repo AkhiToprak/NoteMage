@@ -70,12 +70,12 @@ export default function TrueFalseRenderer({
 
           if (showResult) {
             if (isCorrectOption) {
-              borderColor = 'rgba(74,222,128,0.5)';
-              bg = 'rgba(74,222,128,0.08)';
+              borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
+              bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
               textColor = 'var(--success)';
             } else if (isSelected || reviewSelected) {
-              borderColor = 'rgba(252,165,165,0.5)';
-              bg = 'rgba(252,165,165,0.08)';
+              borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
+              bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
               textColor = 'var(--error)';
             }
           } else if (isSelected) {
@@ -119,9 +119,9 @@ export default function TrueFalseRenderer({
                   color: textColor,
                   background:
                     showResult && isCorrectOption
-                      ? 'rgba(74,222,128,0.15)'
+                      ? 'rgb(var(--verdict-pass-rgb) / 0.15)'
                       : showResult && (isSelected || reviewSelected)
-                        ? 'rgba(252,165,165,0.15)'
+                        ? 'rgb(var(--verdict-fail-rgb) / 0.15)'
                         : 'transparent',
                 }}
               >
@@ -187,8 +187,8 @@ export default function TrueFalseRenderer({
           style={{
             padding: '14px 18px',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-            border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
             marginBottom: '12px',
           }}
         >
@@ -242,14 +242,14 @@ export default function TrueFalseRenderer({
             background:
               reviewValue !== undefined
                 ? reviewValue === correctValue
-                  ? 'rgba(74,222,128,0.06)'
-                  : 'rgba(252,165,165,0.06)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.06)'
                 : 'var(--surface-container)',
             border: `1px solid ${
               reviewValue !== undefined
                 ? reviewValue === correctValue
-                  ? 'rgba(74,222,128,0.2)'
-                  : 'rgba(252,165,165,0.2)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.2)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.2)'
                 : 'var(--ink-08)'
             }`,
           }}

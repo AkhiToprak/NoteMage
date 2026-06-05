@@ -13,6 +13,7 @@ export default function EquationRenderer({
   isAnswered,
   currentAnswer,
   reviewAnswer,
+  gradedCorrect,
   showHint,
   onToggleHint,
   onSelectAnswer,
@@ -53,16 +54,15 @@ export default function EquationRenderer({
   const inputValue = submittedExpression ?? draft;
   const inputDisabled = isAnswered || mode === 'review';
 
-  // We re-check equivalence client-side only for display copy. The real
-  // grade is the server's — but in QuizViewer the same grade() was already
-  // run at submit-time and stored. Mirror the wording by comparing the
-  // submitted string to the expected one (strict match → "Correct"; mismatch
-  // is conservative and just says "Submitted" since symbolic equivalence
-  // requires evaluating mathjs which lives in grade()).
+  // The authoritative verdict is the graded result threaded in from QuizViewer
+  // (grade() already evaluated symbolic equivalence at submit time). Fall back
+  // to a literal string match only if it's somehow missing, so a correct-but-
+  // not-identical answer (e.g. "3+2*x" for "2*x+3") is no longer mislabelled.
   const matchedLiteral =
     submittedExpression !== undefined &&
     expectedExpression.length > 0 &&
     normalize(submittedExpression) === normalize(expectedExpression);
+  const correct = gradedCorrect ?? matchedLiteral;
 
   return (
     <div
@@ -139,7 +139,6 @@ export default function EquationRenderer({
             color: inputDisabled ? 'var(--accent-strong)' : 'var(--on-surface)',
             fontSize: '16px',
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-            outline: 'none',
             letterSpacing: '0.02em',
           }}
         />
@@ -178,10 +177,8 @@ export default function EquationRenderer({
           style={{
             padding: '14px 18px',
             borderRadius: '12px',
-            background: matchedLiteral ? 'rgba(74,222,128,0.06)' : 'rgba(140,82,255,0.06)',
-            border: `1px solid ${
-              matchedLiteral ? 'rgba(74,222,128,0.2)' : 'rgba(140,82,255,0.2)'
-            }`,
+            background: correct ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${correct ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.25)'}`,
             marginBottom: '12px',
           }}
         >
@@ -192,42 +189,62 @@ export default function EquationRenderer({
               gap: '8px',
               fontSize: '14px',
               fontWeight: 700,
-              marginBottom: '6px',
-              color: matchedLiteral ? 'var(--success)' : 'var(--accent-strong)',
+              marginBottom: correct ? 0 : '6px',
+              color: correct ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {matchedLiteral ? (
+            {correct ? (
               <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Exact match
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Correct!
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Submitted — see expected expression below
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
               </>
             )}
           </div>
-          <div
-            style={{
-              fontSize: '13px',
-              color: 'var(--on-surface-variant)',
-              lineHeight: 1.6,
-              fontFamily: 'inherit',
-            }}
-          >
-            Expected:{' '}
-            <code
-              style={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                color: 'var(--accent-strong)',
-                padding: '2px 6px',
-                borderRadius: '6px',
-                background: 'var(--ink-08)',
-              }}
-            >
-              {expectedExpression || '—'}
-            </code>
-          </div>
-          {!matchedLiteral && (
+          {!correct && (
+            <>
+              <div
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--on-surface-variant)',
+                  lineHeight: 1.6,
+                  fontFamily: 'inherit',
+                }}
+              >
+                Expected:{' '}
+                <code
+                  style={{
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                    color: 'var(--accent-strong)',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    background: 'var(--ink-08)',
+                  }}
+                >
+                  {expectedExpression || '—'}
+                </code>
+              </div>
+              <div
+                style={{
+                  marginTop: '8px',
+                  fontSize: '12px',
+                  color: 'var(--on-surface-variant)',
+                  lineHeight: 1.6,
+                }}
+              >
+                <MarkdownRenderer
+                  content={
+                    question.wrongExplanation ||
+                    question.correctExplanation ||
+                    'Equivalent expressions are accepted; the grader evaluates your answer numerically.'
+                  }
+                />
+              </div>
+            </>
+          )}
+          {correct && question.correctExplanation && (
             <div
               style={{
                 marginTop: '8px',
@@ -236,12 +253,7 @@ export default function EquationRenderer({
                 lineHeight: 1.6,
               }}
             >
-              <MarkdownRenderer
-                content={
-                  question.correctExplanation ||
-                  'Equivalent expressions are accepted — the grader evaluates your answer numerically.'
-                }
-              />
+              <MarkdownRenderer content={question.correctExplanation} />
             </div>
           )}
         </div>
