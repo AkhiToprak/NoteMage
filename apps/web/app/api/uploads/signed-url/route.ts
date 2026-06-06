@@ -180,6 +180,19 @@ export async function POST(request: NextRequest) {
         if (!groupId) {
           return badRequestResponse('group-avatar requires groupId');
         }
+        // Only an accepted owner/admin/teacher may mint an avatar-upload token for
+        // the group (mirrors app/api/groups/[id]/avatar). Without this, the public
+        // bucket key is writable by any authenticated user.
+        const membership = await db.studyGroupMember.findUnique({
+          where: { groupId_userId: { groupId, userId } },
+        });
+        if (
+          !membership ||
+          !['owner', 'admin', 'teacher'].includes(membership.role) ||
+          membership.status !== 'accepted'
+        ) {
+          return forbiddenResponse('Only group owners, admins, or teachers can change the avatar');
+        }
         const ext = getExtensionFromContentType(contentType);
         storagePath = `avatars/group-${groupId}-${Date.now()}.${ext}`;
         bucket = BUCKET_PUBLIC;

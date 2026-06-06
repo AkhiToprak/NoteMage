@@ -176,6 +176,7 @@ export async function getLemonSqueezySubscription(
  *      can only have been set by a prior trusted (webhook/owned-sync) provision.
  * Any client-supplied id whose owner cannot be matched to the caller is rejected.
  */
+// AUDIT[NM3-28] MEDIUM: this billing-sync ownership guard (forgery rejection + customer-id fallback) has no automated test. See apps/web/docs/security-audit-2026-06-06.md
 async function syncOwnerMatchesCaller(
   callerId: string,
   sub: LemonSqueezySubscriptionView

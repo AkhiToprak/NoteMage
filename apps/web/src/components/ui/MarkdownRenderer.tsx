@@ -258,6 +258,7 @@ const bubbleComponents: Components = {
   ),
   th: ({ children }) => (
     <th
+      scope="col"
       style={{
         padding: '8px 12px',
         textAlign: 'left',

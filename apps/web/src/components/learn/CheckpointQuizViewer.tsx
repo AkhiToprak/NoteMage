@@ -135,7 +135,7 @@ export default function CheckpointQuizViewer({
   }, [onClose]);
 
   const handleQuizComplete = useCallback(
-    async (result: { score: number; total: number; percentage: number }) => {
+    async (result: { attemptId: string; score: number; total: number; percentage: number }) => {
       if (isGraded) {
         try {
           const res = await fetch(
@@ -143,7 +143,9 @@ export default function CheckpointQuizViewer({
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ score: result.score, total: result.total }),
+              // Send the server-graded attempt id, NOT a client-computed score —
+              // the endpoint re-derives the grade from the attempt the caller owns.
+              body: JSON.stringify({ attemptId: result.attemptId }),
             },
           );
           const json = await res.json();

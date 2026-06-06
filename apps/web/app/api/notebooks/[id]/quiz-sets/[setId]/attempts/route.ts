@@ -122,6 +122,7 @@ export async function POST(
     // submitted code server-side against the question's declared tests and
     // override the verdict. If Piston is unavailable, keep the submitted value
     // so a sandbox outage can't hard-fail every code submission.
+    // AUDIT[NM3-11] MEDIUM: when Piston is unconfigured this silently keeps the client-reported `passed` — no test pins the contract and no CI env ensures Piston is set. See apps/web/docs/security-audit-2026-06-06.md
     if (isPistonConfigured()) {
       for (let i = 0; i < answers.length; i++) {
         const question = questionMap.get(answers[i].questionId);
@@ -232,9 +233,12 @@ export async function GET(
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
+    // Defensive cap: returns the 100 most-recent attempts (not user-facing
+    // pagination), bounding the answers/questions payload.
     const attempts = await db.quizAttempt.findMany({
       where: { quizSetId: setId, userId },
       orderBy: { createdAt: 'desc' },
+      take: 100,
       include: {
         answers: {
           include: {

@@ -54,6 +54,14 @@ jobs:
 
       - run: pnpm --filter web typecheck
 
+      - name: Unit tests (advisory)
+        # Now the suite actually RUNS in CI (it never did before). Advisory
+        # (non-blocking) until the 9 pre-existing failures are fixed (moderation
+        # layer4/5 runners, pretranslate, paths-access, admin pretranslate). Flip
+        # to blocking — drop continue-on-error — once the suite is green.
+        continue-on-error: true
+        run: pnpm --filter web exec vitest run
+
       - name: Format check (advisory)
         # Advisory (non-blocking) until the repo-wide prettier reformat lands
         # (~247 files drift from a printWidth/trailingComma config change). Flip

@@ -106,6 +106,24 @@ function isAuthLogicRoute(pathname: string): boolean {
   return AUTH_LOGIC_PATTERNS.some((p) => p.test(pathname));
 }
 
+// Public /api routes that intentionally serve unauthenticated requests:
+// next-auth + the credential signup/verify flow, the provider billing webhooks
+// (verified by signature, not session), the OAuth callback, currency/geo lookup,
+// the signup username-availability check, and the waitlist. Everything else under
+// /api requires a session token (the defense-in-depth gate in middleware()).
+const PUBLIC_API_ROUTES: RegExp[] = [
+  /^\/api\/auth(\/|$)/,
+  /^\/api\/billing\/[^/]+\/webhook(\/|$)/,
+  /^\/api\/currency(\/|$)/,
+  /^\/api\/import\/onenote\/callback(\/|$)/,
+  /^\/api\/user\/check-username(\/|$)/,
+  /^\/api\/waitlist(\/|$)/,
+];
+
+function isPublicApiRoute(pathname: string): boolean {
+  return PUBLIC_API_ROUTES.some((p) => p.test(pathname));
+}
+
 // The native shells (iOS + Windows/Electron) append a `NotemageShell/<plat>`
 // token to their default Chromium UA string before loading any URL. We use
 // that to gate the marketing experience out of the shell: landing, pricing,
@@ -139,11 +157,27 @@ export async function middleware(request: NextRequest) {
     return handleMaintenance(request, pathname);
   }
 
+  // Defense-in-depth for the API surface: every /api route except an explicit
+  // public allowlist requires a valid session token. Handlers still do their own
+  // object-level (ownership) authorization — this is a uniform FIRST gate so a
+  // route that forgets to authenticate can't ship reachable while anonymous.
+  if (pathname.startsWith('/api/')) {
+    if (!isPublicApiRoute(pathname)) {
+      const apiToken = await getToken({ req: request });
+      if (!apiToken) {
+        return withSecurityHeaders(
+          NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+        );
+      }
+    }
+    return withSecurityHeaders(NextResponse.next());
+  }
+
   // Outside maintenance, only the routes the existing logic was designed for
-  // get the full auth pipeline. Everything else (API routes, .well-known,
-  // /maintenance itself when accessed directly, anything not in the list)
-  // gets security headers and falls through. This preserves pre-maintenance
-  // behavior exactly even though the matcher below is now broad.
+  // get the full auth pipeline. Everything else (.well-known, /maintenance
+  // itself when accessed directly, anything not in the list) gets security
+  // headers and falls through. This preserves pre-maintenance behavior exactly
+  // even though the matcher below is now broad.
   if (!isAuthLogicRoute(pathname)) {
     return withSecurityHeaders(NextResponse.next());
   }

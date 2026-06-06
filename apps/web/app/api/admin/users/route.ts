@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAdminUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logAdminAction } from '@/lib/admin-audit';
 import {
   successResponse,
   unauthorizedResponse,
@@ -56,6 +57,16 @@ export async function GET(request: NextRequest) {
       }),
       db.user.count({ where }),
     ]);
+
+    // PII-access trail: log the bulk read of user emails/names. Fire-and-forget
+    // so a logging failure never blocks the admin response. targetId has no
+    // single subject for a list read, so use the admin's own id as a sentinel.
+    logAdminAction(adminId, 'user.list', adminId, {
+      search: search || null,
+      page,
+      limit,
+      total,
+    }).catch(() => {});
 
     return successResponse({
       users: users.map((u) => ({

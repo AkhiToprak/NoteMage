@@ -22,9 +22,12 @@ export async function GET(request: NextRequest, { params }: Params) {
     const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
     if (!notebook) return notFoundResponse('Notebook not found');
 
+    // Defensive cap: returns the 200 most-recently-updated chats (safety
+    // bound, not user-facing pagination).
     const chats = await db.notebookChat.findMany({
       where: { notebookId },
       orderBy: { updatedAt: 'desc' },
+      take: 200,
       select: {
         id: true,
         title: true,

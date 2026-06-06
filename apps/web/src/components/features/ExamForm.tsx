@@ -189,6 +189,8 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                     if (errors.title) setErrors((p) => ({ ...p, title: undefined }));
                   }}
                   placeholder="e.g. Midterm Exam, Final Quiz"
+                  aria-invalid={!!errors.title}
+                  aria-describedby={errors.title ? 'exam-title-error' : undefined}
                   style={inputStyle(!!errors.title)}
                   onFocus={(e) => {
                     (e.currentTarget as HTMLInputElement).style.borderColor = '#ae89ff';
@@ -200,7 +202,10 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                   }}
                 />
                 {errors.title && (
-                  <p style={{ fontSize: '12px', color: '#f87171', margin: '6px 0 0' }}>
+                  <p
+                    id="exam-title-error"
+                    style={{ fontSize: '12px', color: '#f87171', margin: '6px 0 0' }}
+                  >
                     {errors.title}
                   </p>
                 )}

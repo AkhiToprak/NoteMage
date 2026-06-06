@@ -48,12 +48,12 @@ We send only what is needed to produce the feature you asked for, and we do not 
 
 ## Importing from Microsoft OneNote
 
-If you choose to import notes from Microsoft OneNote, you first connect your Microsoft account through Microsoft's official sign-in (OAuth). This access is **delegated**: it happens only after you explicitly grant consent on Microsoft's screen, it is limited to read-only access to your own OneNote, and you can revoke it at any time.
+If you choose to import notes from Microsoft OneNote, you first connect your Microsoft account through Microsoft's official sign-in (OAuth). This access is **delegated**: it happens only after you explicitly grant consent on Microsoft's screen, it is limited to read-only access to your own OneNote, and you can disconnect it at any time (and revoke Notemage's access entirely from your Microsoft account security settings).
 
 - **What we access** — once you connect, we read the OneNote notebooks, sections, and pages you select for import, including their text and embedded images, together with basic account identity through Microsoft's User.Read permission. We request read-only access, and only to your own OneNote content — not to other people's or organisation-wide notebooks.
 - **Why** — solely to carry out the import you start: copying the OneNote content you select into your own Notemage notebook.
 - **How it is stored** — the access and refresh tokens that let us reach Microsoft on your behalf are **encrypted at rest** on our servers. The notes and images you import become part of your normal Notemage content.
-- **Retention and deletion** — you can disconnect your Microsoft account at any time, which **deletes the stored Microsoft tokens**. Notes you already imported remain as your own Notemage content, which you can edit or delete like anything else you create. Deleting your account removes both.
+- **Retention and deletion** — when you disconnect, we delete the Microsoft access tokens we store; you can also revoke Notemage's access from your Microsoft account security settings. Notes you already imported remain as your own Notemage content, which you can edit or delete like anything else you create. Deleting your account removes both.
 
 Your use of OneNote remains subject to Microsoft's own terms and privacy policy.
 

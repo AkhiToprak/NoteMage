@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
+import { db } from '@/lib/db';
 import {
   successResponse,
   badRequestResponse,
@@ -10,9 +11,13 @@ import {
 import { validateStoragePath, downloadFromStorage } from '@/lib/storage';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkTokenBudget } from '@/lib/token-budget';
+import { logAiUsage } from '@/lib/ai-usage';
 import { extractGroundTruth, type GroundTruth } from '@/lib/pdf-import/ground-truth';
 import { detectSubjects, type SubjectDetectItem } from '@/lib/onboarding/subject-detect';
 import { PRESETS, getPresetForSubject } from '@/lib/presets';
+
+/** Model id the classify call runs on; mirrors subject-detect.ts. */
+const SUBJECT_MODEL = process.env.GEMINI_PDF_MODEL ?? 'gemini-2.5-flash-lite';
 
 // POST /api/import/classify — stage two of the multi-PDF import flow.
 // The client has already uploaded the raw PDFs to temp-imports/; this
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
     for (const entry of rawFiles) {
       const pdfPath = (entry as { pdfPath?: unknown }).pdfPath;
       const fileName = (entry as { fileName?: unknown }).fileName;
-      if (typeof pdfPath !== 'string' || !validateStoragePath(pdfPath, 'temp-imports/')) {
+      if (typeof pdfPath !== 'string' || !validateStoragePath(pdfPath, `temp-imports/${userId}/`)) {
         return badRequestResponse('Invalid file path.');
       }
       if (typeof fileName !== 'string' || fileName.trim().length === 0) {
@@ -103,7 +108,42 @@ export async function POST(request: NextRequest) {
       items.push({ id: String(i), fileName: files[i].fileName, textSample });
     }
 
-    const proposed = await detectSubjects(items);
+    const { groups: proposed, usage } = await detectSubjects(items);
+
+    // Record the paid Gemini classify call against the monthly token meter so
+    // it stops escaping the quota. `recordTokenUsage()` requires a notebookId,
+    // but classify runs *before* any notebook exists — so write the metering
+    // row directly with notebookId: null (the column is nullable and
+    // checkTokenBudget aggregates ChatMessage by userId only, so null-notebook
+    // rows still count). `usage` is zero on every fallback path (no key /
+    // single file / timeout) — skip the write then to avoid empty rows.
+    const totalTokens = usage.promptTokens + usage.candidatesTokens;
+    if (totalTokens > 0) {
+      try {
+        await db.chatMessage.create({
+          data: {
+            notebookId: null,
+            userId,
+            chatId: null,
+            role: 'assistant',
+            content: '[multi-import] subject classification',
+            tokens: totalTokens,
+          },
+        });
+      } catch (err) {
+        // Metering is best-effort — never fail the import over a telemetry write.
+        console.error('[multi-import] classify: failed to record token usage', err);
+      }
+      logAiUsage({
+        userId,
+        feature: 'import-classify',
+        provider: 'gemini',
+        model: SUBJECT_MODEL,
+        inputTokens: usage.promptTokens,
+        outputTokens: usage.candidatesTokens,
+        extra: { fileCount: items.length },
+      });
+    }
 
     // Map the model's id-based groups back to file paths + assign a color:
     // a subject-themed preset color when the subject is recognised, else a

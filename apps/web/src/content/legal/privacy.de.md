@@ -48,12 +48,12 @@ Wir übermitteln nur das, was zur Erbringung der von Ihnen gewünschten Funktion
 
 ## Import aus Microsoft OneNote
 
-Wenn Sie Notizen aus Microsoft OneNote importieren möchten, verbinden Sie zunächst Ihr Microsoft-Konto über die offizielle Anmeldung von Microsoft (OAuth). Dieser Zugriff ist **delegiert**: Er erfolgt erst, nachdem Sie auf dem Bildschirm von Microsoft ausdrücklich eingewilligt haben, beschränkt sich auf Lesezugriff auf Ihre eigenen OneNote-Inhalte und kann von Ihnen jederzeit widerrufen werden.
+Wenn Sie Notizen aus Microsoft OneNote importieren möchten, verbinden Sie zunächst Ihr Microsoft-Konto über die offizielle Anmeldung von Microsoft (OAuth). Dieser Zugriff ist **delegiert**: Er erfolgt erst, nachdem Sie auf dem Bildschirm von Microsoft ausdrücklich eingewilligt haben, beschränkt sich auf Lesezugriff auf Ihre eigenen OneNote-Inhalte und kann von Ihnen jederzeit getrennt werden (den Zugriff von Notemage können Sie zudem vollständig in den Sicherheitseinstellungen Ihres Microsoft-Kontos widerrufen).
 
 - **Worauf wir zugreifen** – sobald Sie die Verbindung hergestellt haben, lesen wir die OneNote-Notizbücher, -Abschnitte und -Seiten, die Sie für den Import auswählen, einschliesslich ihres Textes und eingebetteter Bilder, sowie grundlegende Kontoidentität über die Microsoft-Berechtigung User.Read. Wir fordern ausschliesslich Lesezugriff an, und zwar nur auf Ihre eigenen OneNote-Inhalte – nicht auf fremde oder organisationsweite Notizbücher.
 - **Warum** – ausschliesslich zur Durchführung des von Ihnen gestarteten Imports: das Kopieren der von Ihnen ausgewählten OneNote-Inhalte in Ihr eigenes Notemage-Notizbuch.
 - **Wie wir sie speichern** – die Access- und Refresh-Tokens, mit denen wir in Ihrem Namen auf Microsoft zugreifen, werden auf unseren Servern **verschlüsselt gespeichert** (Verschlüsselung im Ruhezustand). Die importierten Notizen und Bilder werden Teil Ihrer normalen Notemage-Inhalte.
-- **Aufbewahrung und Löschung** – Sie können Ihr Microsoft-Konto jederzeit trennen; dabei werden **die gespeicherten Microsoft-Tokens gelöscht**. Bereits importierte Notizen verbleiben als Ihre eigenen Notemage-Inhalte, die Sie wie alles andere, das Sie erstellen, bearbeiten oder löschen können. Beim Löschen Ihres Kontos werden beide entfernt.
+- **Aufbewahrung und Löschung** – wenn Sie die Verbindung trennen, löschen wir die von uns gespeicherten Microsoft-Access-Tokens; den Zugriff von Notemage können Sie zudem in den Sicherheitseinstellungen Ihres Microsoft-Kontos widerrufen. Bereits importierte Notizen verbleiben als Ihre eigenen Notemage-Inhalte, die Sie wie alles andere, das Sie erstellen, bearbeiten oder löschen können. Beim Löschen Ihres Kontos werden beide entfernt.
 
 Ihre Nutzung von OneNote unterliegt weiterhin den eigenen Bedingungen und der Datenschutzerklärung von Microsoft.
 

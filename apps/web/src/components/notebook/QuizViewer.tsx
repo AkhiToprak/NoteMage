@@ -80,6 +80,7 @@ interface QuizViewerProps {
   // slots (in which case the caller passes `isCheckpoint: true` and
   // does its own star handling on top of this signal).
   onComplete?: (result: {
+    attemptId: string;
     score: number;
     total: number;
     percentage: number;
@@ -356,6 +357,7 @@ export default function QuizViewer({
         // Phase 10.6 — surface the attempt result so the checkpoint
         // drawer can PATCH the activity / POST to /assessment.
         onComplete?.({
+          attemptId: json.data.id,
           score: json.data.score,
           total: json.data.total,
           percentage: json.data.percentage,

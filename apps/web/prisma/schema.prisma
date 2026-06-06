@@ -423,7 +423,7 @@ model ChatMessage {
   chat     NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
-  @@index([userId])
+  @@index([userId, createdAt])
   @@index([chatId])
   @@map("chat_messages")
 }
@@ -811,6 +811,7 @@ model StudyPlan {
   @@index([userId])
   @@index([notebookId])
   @@index([clonedFromSharedPathId])
+  @@index([contextNotebookIds], type: Gin)
   @@map("study_plans")
 }
 
@@ -1646,12 +1647,13 @@ model UsageRecord {
 // ABUSE PREVENTION
 // ============================================================================
 
-/// Tracks every account registration by IP address.
-/// Records persist even when the associated account is deleted.
-/// Used to enforce a max-accounts-per-IP limit (resets after 12 months).
+/// Tracks every account registration by a salted HMAC of the client IP (the raw
+/// address is never stored — see hashIp() in src/lib/registration.ts). Records
+/// persist even when the associated account is deleted. Used to enforce a
+/// max-accounts-per-IP limit (resets after 12 months).
 model IpRegistration {
   id        String   @id @default(cuid())
-  ip        String // Client IP at registration time
+  ip        String // salted HMAC-SHA256 of the client IP (not the raw address)
   createdAt DateTime @default(now())
 
   @@index([ip, createdAt])
@@ -1692,18 +1694,40 @@ model Waitlist {
 
 model AdminAuditLog {
   id        String   @id @default(cuid())
-  adminId   String
+  adminId   String?
   action    String // e.g. "user.ban", "post.delete"
   targetId  String // ID of the affected resource
   details   String?  @db.Text // Optional JSON details
   createdAt DateTime @default(now())
 
-  admin User @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: Cascade)
+  // adminId is nullable + SetNull so deleting an admin TOMBSTONES their actions
+  // (retains the history with a null actor) instead of cascading the rows away —
+  // an actor must not be able to erase their own audit trail by self-deleting.
+  admin User? @relation("AdminAuditLogs", fields: [adminId], references: [id], onDelete: SetNull)
 
   @@index([adminId])
   @@index([action])
   @@index([createdAt])
   @@map("admin_audit_logs")
+}
+
+// Durable authentication / security-event log (NM3-20). Distinct from
+// AdminAuditLog (admin moderation actions) — this captures auth-relevant events
+// (login success/failure, lockout, password change, OAuth link/create) for
+// incident response + GDPR breach investigation. userId is a plain string (no
+// FK) so events survive account deletion for forensics; `type` is a dotted key;
+// `detail` is optional JSON.
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String // e.g. "login.success", "login.failed", "account.locked"
+  ip        String? // salted HMAC of the IP, or null
+  detail    String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("security_events")
 }
 
 // ============================================================================

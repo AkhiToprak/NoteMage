@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceIpCap, generatePlaceholderUsername } from '@/lib/registration';
+import { enforceIpCap, generatePlaceholderUsername, hashIp } from '@/lib/registration';
 import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
 import { issueEmailVerificationCode } from '@/lib/verification';
 import { sendVerificationCode } from '@/lib/verification-email';
@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
         },
       }),
       db.ipRegistration.create({
-        data: { ip },
+        // Store a salted HMAC, never the raw address (column name is legacy).
+        data: { ip: hashIp(ip) },
       }),
     ]);
 

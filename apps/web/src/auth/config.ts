@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getIpFromHeaders } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
+import { logSecurityEvent } from '@/lib/security-events';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -197,10 +198,16 @@ export const authOptions: NextAuthOptions = {
 
             const updated = rows[0];
             if (updated && updated.lockedAt && updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+              logSecurityEvent({
+                userId: user.id,
+                type: 'account.locked',
+                detail: { failedLoginAttempts: updated.failedLoginAttempts },
+              });
               const unlockAt = new Date(updated.lockedAt.getTime() + LOCKOUT_DURATION_MS);
               throw new Error(`ACCOUNT_LOCKED:${unlockAt.toISOString()}`);
             }
           }
+          logSecurityEvent({ userId: user?.id ?? null, type: 'login.failed' });
           return null;
         }
 
@@ -229,6 +236,7 @@ export const authOptions: NextAuthOptions = {
           });
         }
 
+        logSecurityEvent({ userId: user.id, type: 'login.success' });
         return {
           id: user.id,
           email: user.email,

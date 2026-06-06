@@ -27,8 +27,10 @@ import { logTelemetry } from '@/lib/telemetry-server';
 type Params = { params: Promise<{ slotId: string }> };
 
 interface AssessmentBody {
-  score: number;
-  total: number;
+  // The id of the server-graded QuizAttempt the learner just created via the
+  // notebook quiz-attempts route. We re-derive the grade from that row rather
+  // than trust a client-supplied score (which could be forged directly here).
+  attemptId: string;
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
@@ -38,17 +40,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const { slotId } = await params;
     const body = (await request.json().catch(() => ({}))) as AssessmentBody;
-    if (
-      typeof body.score !== 'number' ||
-      typeof body.total !== 'number' ||
-      body.total <= 0 ||
-      body.score < 0 ||
-      body.score > body.total
-    ) {
-      return badRequestResponse('score and total are required and must be valid');
+    if (typeof body.attemptId !== 'string' || body.attemptId.length === 0) {
+      return badRequestResponse('attemptId is required');
     }
-    const percentage = Math.round((body.score / body.total) * 100 * 100) / 100;
-    const stars = starsForPercentage(percentage);
 
     const slot = await db.checkpointSlot.findUnique({
       where: { id: slotId },
@@ -85,14 +79,34 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const quizActivity = slot.activities.find((a) => a.kind === 'quiz');
+    if (!quizActivity?.quizSetId) {
+      return badRequestResponse('Slot has no gradable quiz');
+    }
+
+    // Trust ONLY a server-graded attempt that (a) the caller owns and (b) is for
+    // THIS slot's quiz set. The notebook quiz-attempts route re-grades every
+    // answer server-side (including re-running code_write via Piston), so its
+    // stored score/percentage are authoritative — unlike a client number.
+    const attempt = await db.quizAttempt.findUnique({
+      where: { id: body.attemptId },
+      select: { userId: true, quizSetId: true, score: true, total: true, percentage: true },
+    });
+    if (!attempt || attempt.userId !== userId || attempt.quizSetId !== quizActivity.quizSetId) {
+      return badRequestResponse('Attempt does not match this checkpoint');
+    }
+
+    const score = attempt.score;
+    const total = attempt.total;
+    const percentage = attempt.percentage;
+    const stars = starsForPercentage(percentage);
 
     await db.$transaction(async (tx) => {
       await tx.assessmentAttempt.create({
         data: {
           slotId,
           userId,
-          score: body.score,
-          total: body.total,
+          score,
+          total,
           percentage,
           starsEarned: stars,
         },
@@ -128,8 +142,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     logTelemetry(userId, 'path.assessment.completed', {
       planId: slot.phase.plan.id,
       slotId,
-      score: body.score,
-      total: body.total,
+      score,
+      total,
       percentage,
       starsEarned: stars,
       passed: stars >= 1,

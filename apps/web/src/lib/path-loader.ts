@@ -78,12 +78,16 @@ export async function loadPathForUser(
 }
 
 /**
- * Fetch every path the user owns, ordered by most-recently updated.
+ * Fetch the user's paths (most-recently updated first) with the full
+ * phase/slot/activity tree. Capped at 200 as a defensive bound so a user with
+ * an unbounded path count can't pull an arbitrarily large tree in one request;
+ * the most-recent ordering keeps the relevant rows in range.
  */
 export async function loadPathsForUser(userId: string): Promise<PlanWithTree[]> {
   return db.studyPlan.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },
+    take: 200,
     include: pathInclude,
   });
 }

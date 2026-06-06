@@ -247,6 +247,12 @@ export async function isConnected(userId: string): Promise<boolean> {
 
 /**
  * Remove a user's Microsoft connection.
+ *
+ * This deletes the access/refresh tokens we store locally. Azure AD has no
+ * clean per-app refresh-token revoke API, so it does not revoke the grant at
+ * Microsoft's end — users who want to fully revoke Notemage's access can do so
+ * from their Microsoft account security settings (account.microsoft.com →
+ * Privacy → Apps and services). The privacy policy is worded to match.
  */
 export async function disconnectMicrosoft(userId: string): Promise<void> {
   await db.microsoftConnection.deleteMany({ where: { userId: { equals: userId } } });

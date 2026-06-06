@@ -29,6 +29,22 @@ export interface ProposedGroup {
   fileIds: string[];
 }
 
+/** Gemini token counts for the one classify call (both 0 when no model ran). */
+export interface SubjectDetectUsage {
+  /** `usageMetadata.promptTokenCount` — input tokens. */
+  promptTokens: number;
+  /** `usageMetadata.candidatesTokenCount` — output tokens. */
+  candidatesTokens: number;
+}
+
+export interface SubjectDetectResult {
+  groups: ProposedGroup[];
+  /** Token usage for the model call; zeroed on every fallback path. */
+  usage: SubjectDetectUsage;
+}
+
+const NO_USAGE: SubjectDetectUsage = { promptTokens: 0, candidatesTokens: 0 };
+
 const groupSchema = z.object({
   name: z.string().trim().min(1).max(80),
   subject: z.string().trim().max(60),
@@ -95,14 +111,19 @@ function extractJson(raw: string): unknown {
  * Gemini Flash-Lite call. Never throws; on any failure (no key, timeout,
  * malformed output) it returns one notebook per file. The returned groups
  * always cover every input item exactly once.
+ *
+ * Returns the model call's token usage alongside the groups so the caller can
+ * meter the (paid) classify call against the monthly budget. Every fallback
+ * path — no key, single file, timeout, malformed output — reports zero usage
+ * because no billable model call ran (or its tokens are unrecoverable).
  */
-export async function detectSubjects(items: SubjectDetectItem[]): Promise<ProposedGroup[]> {
-  if (items.length === 0) return [];
+export async function detectSubjects(items: SubjectDetectItem[]): Promise<SubjectDetectResult> {
+  if (items.length === 0) return { groups: [], usage: { ...NO_USAGE } };
   // A single file has nothing to group — skip the model call entirely.
-  if (items.length === 1) return fallbackGroups(items);
+  if (items.length === 1) return { groups: fallbackGroups(items), usage: { ...NO_USAGE } };
 
   const client = getClient();
-  if (!client) return fallbackGroups(items);
+  if (!client) return { groups: fallbackGroups(items), usage: { ...NO_USAGE } };
 
   try {
     const userText = items
@@ -126,13 +147,21 @@ export async function detectSubjects(items: SubjectDetectItem[]): Promise<Propos
       },
     });
 
-    const parsed = responseSchema.safeParse(extractJson(response.text ?? ''));
-    if (!parsed.success) return fallbackGroups(items);
+    const u = response.usageMetadata;
+    const usage: SubjectDetectUsage = {
+      promptTokens: u?.promptTokenCount ?? 0,
+      candidatesTokens: u?.candidatesTokenCount ?? 0,
+    };
 
-    return reconcile(parsed.data.groups, items);
+    const parsed = responseSchema.safeParse(extractJson(response.text ?? ''));
+    // Even when the output is unusable the call was still billed — keep the
+    // token usage so it counts toward the monthly meter.
+    if (!parsed.success) return { groups: fallbackGroups(items), usage };
+
+    return { groups: reconcile(parsed.data.groups, items), usage };
   } catch (err) {
     console.error('[multi-import] subject detection failed — using fallback', err);
-    return fallbackGroups(items);
+    return { groups: fallbackGroups(items), usage: { ...NO_USAGE } };
   }
 }
 

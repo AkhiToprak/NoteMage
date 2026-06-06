@@ -11,7 +11,7 @@
 // differs (Google/Apple JWT claim vs. Apple JWKS verify on the server).
 
 import { db } from '@/lib/db';
-import { enforceIpCap, generatePlaceholderUsername } from '@/lib/registration';
+import { enforceIpCap, generatePlaceholderUsername, hashIp } from '@/lib/registration';
 
 export type OAuthProvider = 'google' | 'apple';
 
@@ -98,7 +98,8 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
       data: { userId: user.id, provider, providerAccountId },
     });
     if (ip && ip !== 'unknown') {
-      await tx.ipRegistration.create({ data: { ip } });
+      // Store a salted HMAC, never the raw address (column name is legacy).
+      await tx.ipRegistration.create({ data: { ip: hashIp(ip) } });
     }
     return user;
   });

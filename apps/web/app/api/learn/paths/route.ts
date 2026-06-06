@@ -14,6 +14,7 @@ import { generatePathStructure, generatePath } from '@/lib/path-generator';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 import { loadPathsForUser, serializePath } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkTokenBudget } from '@/lib/token-budget';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import { classifySubjects } from '@/lib/path-classifier';
@@ -85,6 +86,17 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Bound bursts on this high-COGS AI route. checkUsageLimit/incrementUsage are
+    // non-atomic (the increment lands only after the AI call), so without a limiter
+    // a rapid burst could slip extra generations past the meter and run up COGS.
+    const burst = await rateLimit(rateLimitKey('path-create', request, userId), 5, 60_000);
+    if (!burst.success) {
+      return tooManyRequestsResponse(
+        'Too many path generations in a short window. Please wait a moment and try again.',
+        burst.retryAfterMs,
+      );
+    }
 
     const body = (await request.json().catch(() => ({}))) as CreatePathBody;
     const title = body.title?.trim();

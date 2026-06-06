@@ -32,7 +32,8 @@ export async function GET(request: NextRequest, { params }: Params) {
       where: { notebookId, sourcePathId: null },
       include: {
         _count: { select: { flashcards: true } },
-        flashcards: { orderBy: { sortOrder: 'asc' } },
+        // Defensive cap: real sets stay well under this; bounds the payload.
+        flashcards: { orderBy: { sortOrder: 'asc' }, take: 200 },
       },
       orderBy: { updatedAt: 'desc' },
     });

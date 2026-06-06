@@ -4,6 +4,7 @@ export type AdminAction =
   | 'user.ban'
   | 'user.unban'
   | 'user.delete'
+  | 'user.list'
   | 'post.delete'
   | 'comment.delete'
   | 'community_notebook.delete'

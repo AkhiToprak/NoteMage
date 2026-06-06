@@ -1358,6 +1358,9 @@ function UploadAndDocsList({
       }}
     >
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload a file"
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -1370,6 +1373,12 @@ function UploadAndDocsList({
           if (file) void uploadFile(file);
         }}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
         style={{
           borderRadius: '10px',
           border: `2px dashed ${isDragging ? 'rgba(140,82,255,0.7)' : 'rgba(70,69,96,0.4)'}`,
@@ -1386,6 +1395,7 @@ function UploadAndDocsList({
         <input
           ref={fileInputRef}
           type="file"
+          aria-label="File upload"
           accept=".pdf,.docx,.txt,.md"
           style={{ display: 'none' }}
           onChange={(e) => {
@@ -1753,7 +1763,7 @@ function YouTubeVideoCards({ jsonData }: { jsonData: string }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={video.thumbnailUrl}
-            alt=""
+            alt={video.title ? `Thumbnail for ${video.title}` : 'Video thumbnail'}
             style={{
               width: '120px',
               height: '68px',

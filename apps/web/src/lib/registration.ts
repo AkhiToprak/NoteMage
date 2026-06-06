@@ -6,9 +6,26 @@
  * context where a request object isn't available.
  */
 
-import { randomBytes } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import { db } from '@/lib/db';
 import { clientIpFromHeaders } from '@/lib/client-ip';
+
+/**
+ * Salted, one-way fingerprint of a client IP for the per-IP registration cap.
+ *
+ * We never persist the raw client address: the `IpRegistration.ip` column
+ * stores this HMAC instead (the column name is legacy — it now holds a hash,
+ * not an IP). The cap only needs equality + count, both of which survive a
+ * deterministic keyed hash, so the abuse control is unchanged while the raw
+ * address is no longer retained.
+ *
+ * The key prefers a dedicated `IP_HASH_SECRET`, falling back to
+ * `NEXTAUTH_SECRET` so this never throws if the dedicated secret is unset.
+ */
+export function hashIp(ip: string): string {
+  const secret = process.env.IP_HASH_SECRET || process.env.NEXTAUTH_SECRET || '';
+  return createHmac('sha256', secret).update(ip).digest('hex');
+}
 
 /** Must match USERNAME_REGEX in app/api/auth/register/route.ts. */
 const USER_USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
@@ -45,9 +62,11 @@ export async function enforceIpCap(ip: string): Promise<IpCapResult> {
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
 
+  // The `ip` column stores a salted HMAC, not the raw address — hash the
+  // incoming IP the same way it was hashed on write so the count still matches.
   const ipRegistrationCount = await db.ipRegistration.count({
     where: {
-      ip,
+      ip: hashIp(ip),
       createdAt: { gte: twelveMonthsAgo },
     },
   });

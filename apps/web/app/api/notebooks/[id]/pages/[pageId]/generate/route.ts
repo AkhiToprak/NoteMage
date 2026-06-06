@@ -61,6 +61,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     // Token budget check (per-tier monthly limit)
+    // Note: checkTokenBudget + checkUsageLimit each do their own user read.
+    // Deduping requires changing those shared helpers' signatures (used across
+    // many routes), which is out of scope here — left as-is intentionally.
     const { allowed: tokenAllowed, usedTokens, tokenLimit } = await checkTokenBudget(userId);
     if (!tokenAllowed) {
       return tooManyRequestsResponse(

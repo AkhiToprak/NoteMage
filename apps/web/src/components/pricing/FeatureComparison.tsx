@@ -236,6 +236,7 @@ export default function FeatureComparison({
           <thead>
             <tr>
               <th
+                scope="col"
                 style={{
                   textAlign: 'left',
                   padding: '12px 16px',
@@ -251,6 +252,7 @@ export default function FeatureComparison({
               {(['Free', 'Pro'] as const).map((tier) => (
                 <th
                   key={tier}
+                  scope="col"
                   style={{
                     textAlign: 'center',
                     padding: '12px 16px',

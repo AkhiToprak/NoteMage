@@ -202,6 +202,8 @@ export async function GET(request: NextRequest) {
         pageWhere.section = { notebook: { userId } };
       }
 
+      // ILIKE on pages.textContent is backed by a pg_trgm GIN index
+      // (migration 20260609000001_security_events_and_search_index, NM3-14).
       const pages = await db.page.findMany({
         where: pageWhere,
         select: {

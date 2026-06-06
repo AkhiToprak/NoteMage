@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logSecurityEvent } from '@/lib/security-events';
 import {
   successResponse,
   badRequestResponse,
@@ -63,6 +64,7 @@ export async function PUT(request: NextRequest) {
 
     const hashed = await bcrypt.hash(newPassword, 12);
     await db.user.update({ where: { id: userId }, data: { password: hashed } });
+    logSecurityEvent({ userId, type: 'password.changed' });
 
     return successResponse({ updated: true }, 'Password updated');
   } catch {

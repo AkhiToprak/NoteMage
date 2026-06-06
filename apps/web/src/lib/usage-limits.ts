@@ -102,24 +102,32 @@ export async function getUserUsageSummary(userId: string) {
   const tier = user.tier as TierKey;
   const limits = TIERS[tier].limits;
 
-  const monthRecords = await db.usageRecord.findMany({
-    where: { userId, month: getMonthStart() },
-  });
-
-  return Promise.all(
-    (Object.entries(limits) as [FeatureType, number][]).map(async ([feature, limit]) => {
-      let used: number;
-      if (isLifetimeLimit(tier, feature)) {
-        // Lifetime allowance — sum every month, not just the current one.
-        const agg = await db.usageRecord.aggregate({
-          where: { userId, featureType: feature },
-          _sum: { count: true },
-        });
-        used = agg._sum.count ?? 0;
-      } else {
-        used = monthRecords.find((r) => r.featureType === feature)?.count ?? 0;
-      }
-      return { featureType: feature, used, limit };
+  // Two flat queries cover every feature: the current month's per-feature rows
+  // (for monthly limits) and one grouped lifetime sum across all months (for
+  // lifetime limits). Replaces the previous per-lifetime-feature aggregate.
+  const [monthRecords, lifetimeSums] = await Promise.all([
+    db.usageRecord.findMany({
+      where: { userId, month: getMonthStart() },
     }),
+    db.usageRecord.groupBy({
+      by: ['featureType'],
+      where: { userId },
+      _sum: { count: true },
+    }),
+  ]);
+
+  const lifetimeByFeature = new Map(
+    lifetimeSums.map((g) => [g.featureType, g._sum.count ?? 0]),
   );
+
+  return (Object.entries(limits) as [FeatureType, number][]).map(([feature, limit]) => {
+    let used: number;
+    if (isLifetimeLimit(tier, feature)) {
+      // Lifetime allowance — sum every month, not just the current one.
+      used = lifetimeByFeature.get(feature) ?? 0;
+    } else {
+      used = monthRecords.find((r) => r.featureType === feature)?.count ?? 0;
+    }
+    return { featureType: feature, used, limit };
+  });
 }

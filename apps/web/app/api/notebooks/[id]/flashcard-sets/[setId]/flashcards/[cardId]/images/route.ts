@@ -73,7 +73,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const { storagePath, fileName, side } = await request.json();
 
-    if (!storagePath || !validateStoragePath(storagePath, 'flashcard-images/')) {
+    if (!storagePath || !validateStoragePath(storagePath, `flashcard-images/${cardId}/`)) {
       return badRequestResponse('Invalid or missing storagePath');
     }
 

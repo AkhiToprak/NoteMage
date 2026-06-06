@@ -18,6 +18,9 @@ const NON_META_BADGES = ACHIEVEMENTS.filter((a) => a.badge !== 'all_achievements
 /** All valid badge keys (used to exclude orphaned old records from counts) */
 const VALID_BADGES = ACHIEVEMENTS.map((a) => a.badge);
 
+// These independent counts/lookups already run concurrently via Promise.all;
+// the remaining queries hit distinct tables/shapes, so there is nothing safe to
+// merge without changing results. Caching is out of scope (invalidation risk).
 export async function gatherUserStats(userId: string): Promise<UserStats> {
   const [
     notebookCount,
@@ -205,26 +208,35 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   const hasPathComplete = !!pathComplete;
   const hasCheckpointAce = checkpointAceRow[0]?.ok === true;
 
-  // ── Perfect first try (needs sequential logic) ──────────────────────
-  let hasPerfectFirstTry = false;
-  const perfectAttempts = await db.quizAttempt.findMany({
-    where: { userId, percentage: 100 },
-    select: { quizSetId: true, createdAt: true },
+  // ── Perfect first try ───────────────────────────────────────────────
+  // A "perfect first try" is a 100% attempt with no earlier attempt on the
+  // same quiz set. Instead of an N+1 (one findFirst per perfect attempt), we
+  // fetch every perfect attempt plus the earliest attempt timestamp per set
+  // in two flat queries, then compare in JS: a perfect attempt counts iff its
+  // createdAt equals the earliest createdAt for that set (i.e. nothing strictly
+  // earlier exists — identical to the old `createdAt < pa.createdAt` check,
+  // including the tie case where the earliest attempt is itself perfect).
+  const [perfectAttempts, earliestPerSet] = await Promise.all([
+    db.quizAttempt.findMany({
+      where: { userId, percentage: 100 },
+      select: { quizSetId: true, createdAt: true },
+    }),
+    db.quizAttempt.groupBy({
+      by: ['quizSetId'],
+      where: { userId },
+      _min: { createdAt: true },
+    }),
+  ]);
+  const earliestBySet = new Map(
+    earliestPerSet.map((g) => [g.quizSetId, g._min.createdAt]),
+  );
+  const hasPerfectFirstTry = perfectAttempts.some((pa) => {
+    const earliest = earliestBySet.get(pa.quizSetId);
+    // No earlier attempt exists ⇔ this attempt is at the earliest timestamp.
+    return earliest === null || earliest === undefined
+      ? true
+      : pa.createdAt.getTime() <= earliest.getTime();
   });
-  for (const pa of perfectAttempts) {
-    const earlierAttempt = await db.quizAttempt.findFirst({
-      where: {
-        userId,
-        quizSetId: pa.quizSetId,
-        createdAt: { lt: pa.createdAt },
-      },
-      select: { id: true },
-    });
-    if (!earlierAttempt) {
-      hasPerfectFirstTry = true;
-      break;
-    }
-  }
 
   // ── Daily goal hit ──────────────────────────────────────────────────
   // "locked in" unlocks once the user has any single day with >=

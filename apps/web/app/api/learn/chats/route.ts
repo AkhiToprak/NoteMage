@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
+    // Defensive cap: returns the 200 most-recently-updated chats (safety
+    // bound, not user-facing pagination).
     const chats = await db.notebookChat.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
+      take: 200,
       select: {
         id: true,
         title: true,
