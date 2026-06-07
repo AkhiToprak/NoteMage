@@ -71,6 +71,7 @@ import { copyImage } from './storage';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
 import { logTelemetry } from './telemetry-server';
+import { logAiUsage } from './ai-usage';
 import {
   normalizeFlashcardsInput,
   normalizePathStructure,
@@ -208,6 +209,27 @@ function addNormalizedUsage(meter: UsageMeter, u: NormalizedUsage): void {
   m.cacheWriteTokens += u.cacheWriteTokens;
   meter.perModel[u.model] = m;
   meter.byProvider[u.provider] += 1;
+}
+
+/**
+ * Persist a path-stage's accumulated usage to the admin AI-usage ledger — one
+ * row per model so Haiku vs Sonnet costs stay distinguishable. Emitted once per
+ * stage at completion (not per call) since the meter already aggregates by
+ * model. Best-effort via logAiUsage(); never throws.
+ */
+function reportMeterUsage(meter: UsageMeter, feature: string, userId: string | null): void {
+  for (const m of Object.values(meter.perModel)) {
+    logAiUsage({
+      userId,
+      feature,
+      provider: m.model.startsWith('gemini') ? 'gemini' : 'anthropic',
+      model: m.model,
+      inputTokens: m.inputTokens,
+      outputTokens: m.outputTokens,
+      cacheReadTokens: m.cacheReadTokens,
+      cacheWriteTokens: m.cacheWriteTokens,
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -522,6 +544,7 @@ export async function generatePathStructure(
     usage: meter,
     cost: computeCost(meter.perModel),
   });
+  reportMeterUsage(meter, 'path-structure', opts.userId);
   return structure;
 }
 
@@ -1757,6 +1780,7 @@ async function runPathGeneration(
     usage,
     cost: computeCost(usage.perModel),
   });
+  reportMeterUsage(usage, 'path-generate', plan.userId);
 }
 
 /**

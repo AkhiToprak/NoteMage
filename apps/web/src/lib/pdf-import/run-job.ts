@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { downloadFromStorage, deleteFile, saveImage } from '@/lib/storage';
 import { tiptapJsonToPlainText } from '@/lib/contentConverter';
 import { incrementUsage } from '@/lib/usage-limits';
+import { logAiUsage } from '@/lib/ai-usage';
 import type { TierKey } from '@/lib/tiers';
 import { assembleTiptap } from './assemble';
 import type { DocModelBlock } from './doc-model';
@@ -291,6 +292,21 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           isScanned: !ground.hasTextLayer,
           pageNumber: gtPage.pageNumber,
           groundTruthPage: gtPage,
+          // Land each vision round trip (initial + repair, plus a second
+          // engine on table escalation) in the admin AI-usage ledger. The
+          // text-layer engine makes no model call, so it never fires this.
+          onUsage: (u) =>
+            logAiUsage({
+              userId: job.userId,
+              feature: 'pdf-import',
+              tier: job.user.tier,
+              provider: u.provider,
+              model: u.model,
+              inputTokens: u.inputTokens,
+              outputTokens: u.outputTokens,
+              cacheReadTokens: u.cacheReadTokens,
+              cacheWriteTokens: u.cacheWriteTokens,
+            }),
         };
 
         let resolvedBlocks: DocModelBlock[] | null = null;

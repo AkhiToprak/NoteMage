@@ -1,6 +1,11 @@
 import type { Content, GoogleGenAI } from '@google/genai';
 import type { DocModelBlock } from './doc-model';
-import { type DescribePageInput, type PdfStructureEngine, StructureEngineError } from './engine';
+import {
+  type DescribePageInput,
+  type PdfStructureEngine,
+  type PdfUsageSink,
+  StructureEngineError,
+} from './engine';
 import { getGeminiClient } from '../gemini';
 import { buildPageUserText, buildRepairSuffix, STRUCTURE_SYSTEM_PROMPT } from './prompt';
 import { parseDocModelBlocks } from './validate';
@@ -41,7 +46,7 @@ export interface ModelRequest {
   repair?: { priorAssistant: string; instruction: string };
 }
 
-export type ModelCall = (req: ModelRequest) => Promise<string>;
+export type ModelCall = (req: ModelRequest, onUsage?: PdfUsageSink) => Promise<string>;
 
 /** Resolve the shared Gemini client, translating a missing-key error into
  *  this engine's error type so the import worker's catch-all sees the
@@ -58,7 +63,7 @@ function getClient(): GoogleGenAI {
 }
 
 /** The real Gemini-backed model call. */
-const geminiModelCall: ModelCall = async (req) => {
+const geminiModelCall: ModelCall = async (req, onUsage) => {
   const client = getClient();
 
   const userParts = [
@@ -85,6 +90,19 @@ const geminiModelCall: ModelCall = async (req) => {
         abortSignal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
       },
     });
+    // `promptTokenCount` is the total input (cached subset included), matching
+    // the convention the chat/path Gemini call sites pass to logAiUsage().
+    const u = response.usageMetadata;
+    if (onUsage && u) {
+      onUsage({
+        provider: 'gemini',
+        model: GEMINI_PDF_MODEL,
+        inputTokens: u.promptTokenCount ?? 0,
+        outputTokens: u.candidatesTokenCount ?? 0,
+        cacheReadTokens: u.cachedContentTokenCount ?? 0,
+        cacheWriteTokens: 0,
+      });
+    }
     return response.text ?? '';
   } catch (err) {
     const aborted =
@@ -122,17 +140,20 @@ export function createGeminiEngine(call: ModelCall): PdfStructureEngine {
         mimeType: input.mimeType,
       };
 
-      const firstRaw = await call(base);
+      const firstRaw = await call(base, input.onUsage);
       const first = parseDocModelBlocks(firstRaw);
       if (first.ok && first.blocks) return cleanImageRefs(first.blocks);
 
-      const repairRaw = await call({
-        ...base,
-        repair: {
-          priorAssistant: firstRaw,
-          instruction: buildRepairSuffix(first.error ?? 'unknown validation error'),
+      const repairRaw = await call(
+        {
+          ...base,
+          repair: {
+            priorAssistant: firstRaw,
+            instruction: buildRepairSuffix(first.error ?? 'unknown validation error'),
+          },
         },
-      });
+        input.onUsage,
+      );
       const second = parseDocModelBlocks(repairRaw);
       if (second.ok && second.blocks) return cleanImageRefs(second.blocks);
 

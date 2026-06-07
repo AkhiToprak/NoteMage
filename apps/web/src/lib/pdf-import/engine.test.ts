@@ -68,6 +68,29 @@ describe('createGeminiEngine — parse / repair / throw loop', () => {
     expect(requests).toHaveLength(1);
   });
 
+  it('forwards the page onUsage sink to the model call, once per round trip', async () => {
+    const seen: { provider: string; model: string; inputTokens: number }[] = [];
+    // Reports usage on every invocation; malformed first → one repair retry,
+    // so describePage makes two round trips and both must be reported.
+    let n = 0;
+    const call: ModelCall = async (_req, onUsage) => {
+      n += 1;
+      onUsage?.({
+        provider: 'gemini',
+        model: 'gemini-2.5-flash-lite',
+        inputTokens: 100 * n,
+        outputTokens: 10 * n,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+      });
+      return n === 1 ? MALFORMED_RESPONSE : VALID_RESPONSE;
+    };
+    await createGeminiEngine(call).describePage({ ...PAGE, onUsage: (u) => seen.push(u) });
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toMatchObject({ provider: 'gemini', inputTokens: 100 });
+    expect(seen[1]).toMatchObject({ inputTokens: 200 });
+  });
+
   it('drops image blocks whose ref is not page-namespaced', async () => {
     const response = JSON.stringify({
       blocks: [

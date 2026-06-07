@@ -6,6 +6,7 @@
 
 import { logTelemetry } from './telemetry-server';
 import { costForCall } from './path-generator-cost';
+import { db } from './db';
 import type { ModelProvider } from './model-routing';
 import type { TierKey } from './tiers';
 
@@ -47,4 +48,25 @@ export function logAiUsage(event: AiUsageEvent): void {
     costUsd,
     ...event.extra,
   });
+
+  // Persist a row so the admin console can aggregate token spend + cost across
+  // every AI surface (not just chat's ChatMessage.tokens). Fire-and-forget:
+  // telemetry must never block or throw out of a request/stream path.
+  void db.aiUsageEvent
+    .create({
+      data: {
+        userId: event.userId,
+        feature: event.feature,
+        provider: event.provider,
+        model: event.model,
+        inputTokens: event.inputTokens,
+        outputTokens: event.outputTokens,
+        cacheReadTokens: event.cacheReadTokens ?? 0,
+        cacheWriteTokens: event.cacheWriteTokens ?? 0,
+        costUsd,
+      },
+    })
+    .catch(() => {
+      /* best-effort — usage analytics must not break the call */
+    });
 }

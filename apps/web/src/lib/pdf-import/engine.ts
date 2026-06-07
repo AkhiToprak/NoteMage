@@ -29,7 +29,28 @@ export interface DescribePageInput {
    * like Gemini ignore this field.
    */
   groundTruthPage?: GroundTruthPage;
+  /**
+   * Best-effort token-usage sink, invoked once per model round trip a
+   * vision engine makes for this page (initial call + any repair retry, and
+   * once more if the page escalates to a second engine). The text-layer
+   * engine makes no model call, so it never fires. The import worker wires
+   * this to `logAiUsage('pdf-import', …)` so vision spend lands in the admin
+   * AI-usage ledger; engines that don't surface usage simply never call it.
+   */
+  onUsage?: PdfUsageSink;
 }
+
+/** Token usage from one PDF-structure model round trip. */
+export interface PdfPageUsage {
+  provider: 'anthropic' | 'gemini';
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
+export type PdfUsageSink = (usage: PdfPageUsage) => void;
 
 /**
  * A swappable structure engine: turns one PDF page into a validated

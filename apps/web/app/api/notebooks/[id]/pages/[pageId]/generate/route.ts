@@ -20,6 +20,7 @@ import { buildLegacyColumns } from '@/lib/quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { logAiUsage } from '@/lib/ai-usage';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
 
@@ -174,6 +175,18 @@ export async function POST(request: NextRequest, { params }: Params) {
         cacheCreationTokens,
         corpusChars: corpus.length,
       },
+    });
+
+    logAiUsage({
+      userId,
+      feature: 'page-generate',
+      provider: 'anthropic',
+      model: AI_MODEL,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      cacheReadTokens,
+      cacheWriteTokens: cacheCreationTokens,
+      extra: { type },
     });
 
     // Track token usage (chatId is nullable in schema)

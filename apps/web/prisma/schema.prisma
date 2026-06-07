@@ -1643,6 +1643,31 @@ model UsageRecord {
   @@map("usage_records")
 }
 
+/// One row per AI model call (chat, path generation, page generation, essay,
+/// summarize, inline, classify, …). Written best-effort by logAiUsage() so the
+/// admin console can roll up token spend + USD cost across EVERY AI surface, not
+/// just chat. Unlike UsageRecord (a per-month feature *count* for quotas), this
+/// records actual token counts + computed cost per call. userId is a plain
+/// column (no FK) so rows survive account deletion for historical reporting.
+model AiUsageEvent {
+  id               String   @id @default(cuid())
+  userId           String?
+  feature          String // 'chat-plain', 'chat-generate', 'path-structure', 'path-generate', 'page-generate', 'essay', …
+  provider         String // 'anthropic' | 'gemini'
+  model            String
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  costUsd          Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([feature, createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_usage_events")
+}
+
 // ============================================================================
 // ABUSE PREVENTION
 // ============================================================================
