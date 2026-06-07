@@ -184,6 +184,7 @@ export default function PathLanding() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const carTrackRef = useRef<HTMLDivElement>(null);
   const dotsRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
 
   // Native shells (iOS WebView, Electron) boot into the app, never the marketing
   // landing. Catch deep links / errant navs that drop a native user back at /.
@@ -298,7 +299,10 @@ export default function PathLanding() {
       const p = fill.getPointAtLength(curS);
       tip.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
       tip.style.opacity = curS > 2 && curS < len - 2 ? '1' : '0';
-      for (let i = 0; i < nodeS.length; i++) {
+      // The finish node (last) is lit by the "Start free" CTA observer below,
+      // not the trail tip — otherwise it only lights at the very bottom of the
+      // page. Skip it here so the trail never touches its lit state.
+      for (let i = 0; i < nodeS.length - 1; i++) {
         const lit = curS >= nodeS[i];
         if (lit !== litState[i]) {
           litState[i] = lit;
@@ -353,7 +357,8 @@ export default function PathLanding() {
         nodeWraps = Array.from(track.querySelectorAll<HTMLElement>('.pl-node-wrap'));
         nodeS = pts.map((p) => yToS(p.y));
         litState = nodeWraps.map(() => false);
-        nodeWraps.forEach((w) => w.classList.remove('pl-lit'));
+        // preserve the finish (last) node's lit state — it's owned by the CTA observer
+        nodeWraps.forEach((w, i) => { if (i < nodeWraps.length - 1) w.classList.remove('pl-lit'); });
         targetS = curS = measure();
         render();
       } catch {
@@ -414,6 +419,33 @@ export default function PathLanding() {
       window.removeEventListener('load', onLoad);
       spine.remove();
     };
+  }, []);
+
+  /* ─────────  finish trophy lights when the "Start free" CTA is in view  ─────────
+     The finish node sits above the CTA, but the trail tip only reaches it near
+     the page bottom — so light it the moment the "Start free" button appears. */
+  useEffect(() => {
+    const track = trackRef.current;
+    const cta = ctaRef.current;
+    if (!track || !cta) return;
+    const wraps = track.querySelectorAll<HTMLElement>('.pl-node-wrap');
+    const finish = wraps[wraps.length - 1];
+    if (!finish) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      finish.classList.add('pl-lit');
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          finish.classList.add('pl-lit');
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(cta);
+    return () => io.disconnect();
   }, []);
 
   /* "The magic" → scroll down to the START checkpoint */
@@ -711,7 +743,7 @@ export default function PathLanding() {
           <h2 className="pl-reveal">
             Try it out for <span className="pl-g-gold">FREE</span>
           </h2>
-          <div className="pl-cta-row pl-reveal">
+          <div className="pl-cta-row pl-reveal" ref={ctaRef}>
             <Link className="pl-btn-gold pl-lg" href="/auth/register">
               Start free <span aria-hidden>→</span>
             </Link>
