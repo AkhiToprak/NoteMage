@@ -1,0 +1,547 @@
+/* Hallmark · studied-DNA port of Figma "Path Concept" landing (file vQMFfkwPAZLpCqemVhRRvO)
+ * theme: studied-DNA (source: Figma) · genre: playful · no gradients
+ * motion: scroll-reveal · trail-fill · mascot-float — transform/opacity only, reduced-motion safe
+ * pre-emit critique: P5 H5 E5 S5 R4 V4
+ *
+ * Scoping: `.root` is the only local (hashed) class; every structural selector is a
+ * `pl-`-namespaced :global descended from `.root`, so (a) CSS-Modules pure-mode is
+ * satisfied, (b) rules only apply inside the landing, and (c) the imperative spine /
+ * carousel JS can query and toggle by literal class names. Fonts (--font-display/-brand)
+ * and icons (.material-symbols-outlined) come from the app's global setup.
+ */
+
+.root {
+  /* surfaces */
+  --bg: #0c0a1a;
+  --surface: #1a1a36;          /* hero preview card */
+  --card: #17152f;             /* feature cards */
+  --card-active: #1d1b3a;      /* highlighted "main event" card */
+  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline-strong: rgba(255, 255, 255, 0.12);
+
+  /* purple family */
+  --primary: #d1bcff;          /* light lavender — banner, accents */
+  --node: #b69bff;             /* node fill on the path */
+  --node-shadow: #8e6fd6;      /* tactile 3D shadow under nodes */
+  --node-start: #c3a8ff;
+  --accent: #8c52ff;           /* saturated purple — active border / main-event pill */
+  --accent-soft: #c6a8ff;      /* "The magic" pill */
+  --on-lav: #3f0099;           /* dark glyph/text on lavender */
+  --on-lav-dim: #5a2ea8;
+
+  /* gold */
+  --gold: #ffde59;
+  --gold-shadow: #c9ab2e;
+  --on-gold: #3a2e00;
+
+  /* type */
+  --ink: #efeefc;              /* headings (Figma off-white, not pure #fff) */
+  --body: #bcb9d8;             /* body copy (sampled from Figma) */
+  --eyebrow: #8e7dbc;          /* card eyebrows — muted lavender, not gray */
+  --footer-link: #8d8aa6;
+  --line: #5b577e;             /* unfilled trail */
+
+  /* Map onto the next/font variables that actually resolve at runtime. The app's
+     semantic aliases (--font-display/-sans/-brand) live in Tailwind `@theme inline`
+     and are NOT emitted as usable runtime variables, so we re-derive them here from
+     the next/font custom properties (--font-epilogue/-jakarta/-oswald, set on <body>). */
+  --font-display: var(--font-epilogue), 'Epilogue', serif;
+  --font-body: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-brand: var(--font-oswald), 'Oswald', sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* path geometry (kept in sync with the render data) */
+  --track: 120px;
+  --mascot-w: 168px;
+
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.root *,
+.root *::before,
+.root *::after { box-sizing: border-box; }
+
+.root :global(.pl-sr-only) {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* horizontal clip lives on the inner page wrapper, NOT on .root — keeping it off
+   .root means the fixed nav (a child of .root) is never clipped or re-contained. */
+.root :global(.pl-page) { overflow-x: clip; }
+
+/* icons: the app loads Material Symbols globally; mirror the concept's heavier weight
+   (wght 500) and provide the fill variant locally. */
+.root :global(.material-symbols-outlined) {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+}
+.root :global(.material-symbols-outlined.filled) {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+/* accent words */
+.root :global(.pl-g-gold) { color: var(--gold); }
+.root :global(.pl-g-purple) { color: var(--node); }
+
+/* ─────────────────────────  NAVBAR  ───────────────────────── */
+.root :global(.pl-nav) {
+  position: fixed; top: 18px; left: 0; right: 0; z-index: 50;
+  display: flex; justify-content: center;
+  pointer-events: none;
+}
+.root :global(.pl-nav-pill) {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 8px 8px 22px;
+  background: rgba(26, 24, 48, 0.72);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.root :global(.pl-nav-link) {
+  color: var(--body); text-decoration: none;
+  font-weight: 600; font-size: 15px;
+  padding: 8px 14px; border-radius: var(--radius-full);
+  transition: color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.root :global(.pl-nav-link:hover) { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.root :global(.pl-nav-link:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.root :global(.pl-btn-gold) {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--gold); color: var(--on-gold);
+  font-weight: 800; font-size: 15px;
+  padding: 11px 20px; border: 0; border-radius: var(--radius-full);
+  text-decoration: none; cursor: pointer;
+  font-family: var(--font-body);
+  box-shadow: 0 3px 0 var(--gold-shadow);
+  transition: transform 0.18s var(--spring), box-shadow 0.18s var(--ease);
+}
+.root :global(.pl-btn-gold:hover) { transform: translateY(-1px); box-shadow: 0 5px 0 var(--gold-shadow); }
+.root :global(.pl-btn-gold:active) { transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-shadow); }
+.root :global(.pl-btn-gold:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+
+/* ─────────────────────────  HERO  ───────────────────────── */
+.root :global(.pl-hero) { text-align: center; padding: 124px 20px 8px; }
+.root :global(.pl-hero h1) {
+  font-family: var(--font-display);
+  font-weight: 800; letter-spacing: -0.03em; line-height: 1.04;
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  margin: 0 auto; max-width: 14ch;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.pl-hero-stage) { max-width: 1268px; margin: 36px auto 0; padding: 0 20px; position: relative; }
+.root :global(.pl-hero-card) {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
+  padding: 30px;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5);
+}
+.root :global(.pl-hero-card)::before {
+  content: ""; position: absolute; inset: 8px -10px 8px auto;
+  width: 30px; background: var(--card-active);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
+  z-index: -1; opacity: 0.7;
+}
+
+.root :global(.pl-mini-banner) {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--primary); color: var(--on-lav);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+.root :global(.pl-mb-text) { flex: 1; min-width: 0; }
+.root :global(.pl-mb-eyebrow) {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--on-lav-dim); opacity: 0.85;
+}
+.root :global(.pl-mb-title) {
+  font-family: var(--font-display); font-weight: 800; font-size: 19px;
+  margin: 2px 0 3px; letter-spacing: -0.01em;
+}
+.root :global(.pl-mb-desc) {
+  font-size: 13px; color: var(--on-lav); opacity: 0.8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.root :global(.pl-grade-pill) {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--gold); color: var(--on-gold);
+  font-weight: 800; font-size: 11px; letter-spacing: 0.08em;
+  padding: 6px 11px; border-radius: var(--radius-full);
+}
+.root :global(.pl-mb-icon-btn) {
+  display: grid; place-items: center;
+  width: 38px; height: 38px; border-radius: var(--radius-full);
+  background: rgba(63, 0, 153, 0.12); color: var(--on-lav);
+  flex-shrink: 0;
+}
+.root :global(.pl-mb-icon-btn) :global(.material-symbols-outlined) { font-size: 20px; }
+
+.root :global(.pl-mini-path) { position: relative; padding: 26px 8px 8px; }
+.root :global(.pl-mini-row) { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; }
+.root :global(.pl-mini-slot) { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.root :global(.pl-mini-slot.pl-center) { grid-column: 2; }
+.root :global(.pl-mini-slot.pl-left) { grid-column: 1; }
+.root :global(.pl-mini-slot.pl-right) { grid-column: 3; }
+.root :global(.pl-mini-node) {
+  position: relative; width: 56px; height: 56px; border-radius: 17px;
+  background: var(--node); color: var(--on-lav);
+  display: grid; place-items: center;
+  border: 2px solid var(--node);
+  box-shadow: 0 4px 0 var(--node-shadow);
+}
+.root :global(.pl-mini-node) :global(.material-symbols-outlined) { font-size: 26px; }
+.root :global(.pl-mini-check) {
+  position: absolute; top: -7px; right: -7px;
+  width: 20px; height: 20px; border-radius: var(--radius-full);
+  background: var(--gold); color: var(--on-gold);
+  display: grid; place-items: center; border: 2px solid var(--surface);
+}
+.root :global(.pl-mini-check) :global(.material-symbols-outlined) { font-size: 12px; }
+.root :global(.pl-mini-label) { font-size: 12px; color: var(--body); text-align: center; line-height: 1.25; max-width: 13ch; }
+.root :global(.pl-mini-conn) { width: 100%; height: 64px; display: block; }
+.root :global(.pl-mini-deco) { position: absolute; right: 6%; bottom: 6px; width: 64px; opacity: 0.92; }
+
+/* ─────────────────────────  HERO CAROUSEL  ───────────────────────── */
+.root :global(.pl-carousel) { position: relative; --car-peek: 48px; --car-gap: 16px; }
+.root :global(.pl-car-viewport) { overflow: hidden; border-radius: var(--radius-md); }
+.root :global(.pl-car-track) { display: flex; gap: var(--car-gap); transition: transform 0.6s var(--spring); will-change: transform; }
+.root :global(.pl-car-slide) {
+  flex: 0 0 calc(100% - var(--car-peek) - var(--car-gap)); min-width: 0;
+  opacity: 0.42; transition: opacity 0.6s var(--ease);
+}
+.root :global(.pl-car-slide.pl-is-current) { opacity: 1; }
+.root :global(.pl-car-arrow) {
+  position: absolute; top: 46%; transform: translateY(-50%);
+  width: 40px; height: 40px; display: grid; place-items: center;
+  background: rgba(20, 18, 40, 0.78); color: var(--ink);
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
+  cursor: pointer; z-index: 5; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: transform 0.18s var(--spring), background-color 0.2s var(--ease);
+}
+.root :global(.pl-car-arrow.pl-prev) { left: -8px; }
+.root :global(.pl-car-arrow.pl-next) { right: -8px; }
+.root :global(.pl-car-arrow) :global(.material-symbols-outlined) { font-size: 24px; }
+.root :global(.pl-car-arrow:hover) { background: #2a2750; transform: translateY(-50%) scale(1.07); }
+.root :global(.pl-car-arrow:active) { transform: translateY(-50%) scale(0.93); }
+.root :global(.pl-car-arrow:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.root :global(.pl-car-dots) { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.root :global(.pl-car-dot) {
+  width: 8px; height: 8px; padding: 0; border: 0; cursor: pointer;
+  border-radius: var(--radius-full); background: #45426a;
+  transition: transform 0.25s var(--spring), background-color 0.2s var(--ease);
+}
+.root :global(.pl-car-dot[aria-selected="true"]) { background: var(--node); transform: scaleX(2.6); }
+.root :global(.pl-car-dot:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+
+/* ─────────────────  "The magic" divider pill  ───────────────── */
+.root :global(.pl-magic-wrap) { display: flex; justify-content: center; padding: 124px 20px 116px; }
+.root :global(.pl-magic) {
+  display: inline-flex; align-items: center; gap: 16px;
+  background: var(--accent-soft); color: var(--on-lav);
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 24px; letter-spacing: -0.01em;
+  padding: 22px 52px; border: 0; border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform 0.18s var(--spring);
+}
+.root :global(.pl-magic) :global(.material-symbols-outlined) { font-size: 26px; transition: transform 0.25s var(--spring); }
+.root :global(.pl-magic:hover) { transform: translateY(-2px); }
+.root :global(.pl-magic:hover) :global(.material-symbols-outlined) { transform: translateY(3px); }
+.root :global(.pl-magic:active) { transform: translateY(1px); }
+.root :global(.pl-magic:focus-visible) { outline: 3px solid var(--accent); outline-offset: 4px; }
+
+/* ─────────────────────────  PATH  ───────────────────────── */
+.root :global(.pl-path) { max-width: 1280px; margin: 0 auto; padding: 10px 20px 40px; }
+.root :global(.pl-track) { width: var(--track); margin: 0 auto; position: relative; }
+
+.root :global(.pl-node-wrap) { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 3; }
+.root :global(.pl-node-wrap[data-cp="0"]) { scroll-margin-top: 116px; }
+.root :global(.pl-node-col) { display: flex; flex-direction: column; align-items: center; }
+.root :global(.pl-node-bubble) {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: var(--radius-full); margin-bottom: 8px;
+}
+.root :global(.pl-node-bubble.pl-start) { background: #efeefc; color: #2b2350; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); }
+.root :global(.pl-node-bubble.pl-finish) { background: var(--gold); color: var(--on-gold); box-shadow: 0 2px 0 var(--gold-shadow); text-transform: none; letter-spacing: 0.02em; }
+.root :global(.pl-node-badge) {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  background: var(--gold); color: var(--on-gold);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  padding: 4px 10px; border-radius: var(--radius-full);
+  box-shadow: 0 2px 0 var(--gold-shadow); z-index: 4;
+}
+.root :global(.pl-node) {
+  position: relative; width: 64px; height: 64px; border-radius: 20px;
+  background: #28284a; color: #8b88ad;
+  border: 2px solid #4f4d72;
+  display: grid; place-items: center;
+  box-shadow: 0 5px 0 #131327, 0 9px 16px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.32s var(--ease), border-color 0.32s var(--ease),
+              color 0.32s var(--ease), box-shadow 0.38s var(--ease);
+  cursor: default;
+}
+.root :global(.pl-node) :global(.material-symbols-outlined) { font-size: 30px; }
+
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node) {
+  background: var(--node-start); color: var(--on-lav); border-color: var(--node-start);
+  box-shadow: 0 5px 0 var(--node-shadow), 0 11px 24px rgba(140, 82, 255, 0.38);
+  animation: nodePop 0.46s var(--spring);
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node.pl-start) {
+  box-shadow: 0 5px 0 var(--node-shadow), 0 0 0 6px rgba(140, 82, 255, 0.12), 0 0 28px 9px rgba(140, 82, 255, 0.32);
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node.pl-active) {
+  box-shadow: 0 5px 0 var(--node-shadow), 0 0 30px 9px rgba(140, 82, 255, 0.34);
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node.pl-finish) {
+  background: var(--gold); color: var(--on-gold); border-color: var(--gold);
+  box-shadow: 0 5px 0 var(--gold-shadow), 0 0 32px 10px rgba(255, 222, 89, 0.36);
+}
+@keyframes nodePop { 0% { transform: scale(0.9); } 52% { transform: scale(1.13); } 100% { transform: scale(1); } }
+
+.root :global(.pl-node-grade) {
+  position: absolute; top: -8px; right: -8px;
+  min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--gold); color: var(--on-gold);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  border: 2px solid var(--bg);
+}
+.root :global(.pl-node-stars) {
+  display: flex; gap: 2px; margin-top: -6px; z-index: 4;
+  background: var(--bg); border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-full); padding: 3px 9px;
+}
+.root :global(.pl-node-stars) :global(.material-symbols-outlined) { font-size: 16px; color: var(--gold); }
+.root :global(.pl-node-badge),
+.root :global(.pl-node-grade),
+.root :global(.pl-node-stars) {
+  opacity: 0; transform-origin: center; transition: opacity 0.3s var(--ease) 0.08s;
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node-badge),
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node-grade),
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node-stars) { opacity: 1; }
+
+.root :global(.pl-seg) { position: relative; }
+.root :global(.pl-spine) {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 1; pointer-events: none; overflow: visible;
+}
+.root :global(.pl-spine) :global(.pl-base) { stroke: var(--line); stroke-width: 10; fill: none; stroke-linecap: round; opacity: 0.45; }
+.root :global(.pl-spine) :global(.pl-fill) {
+  stroke: var(--node); stroke-width: 10; fill: none; stroke-linecap: round;
+  filter: drop-shadow(0 1px 4px rgba(140, 82, 255, 0.45));
+}
+.root :global(.pl-spine) :global(.pl-tip) { opacity: 0; transition: opacity 0.2s var(--ease); }
+.root :global(.pl-spine) :global(.pl-tip-ball) {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 14px rgba(209, 188, 255, 0.6));
+}
+.root :global(.pl-spine) :global(.pl-tip-halo) {
+  fill: #ffffff; transform-box: fill-box; transform-origin: center;
+  animation: tipPing 1.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes tipPing {
+  0%   { transform: scale(0.55); opacity: 0.5; }
+  70%  { opacity: 0; }
+  100% { transform: scale(2.9); opacity: 0; }
+}
+
+/* cards & mascots float in the gutters, vertically centred on the segment */
+.root :global(.pl-gutter) { position: absolute; top: 50%; z-index: 2; }
+.root :global(.pl-gutter.pl-left) { right: calc(100% + 34px); }
+.root :global(.pl-gutter.pl-right) { left: calc(100% + 34px); }
+.root :global(.pl-gutter.pl-lone) { width: var(--mascot-w); }
+
+.root :global(.pl-node-wrap) :global(.pl-gutter) { opacity: 0; transition: opacity 0.5s var(--ease), transform 0.55s var(--ease); }
+.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left) { transform: translate(-44px, 12px); }
+.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translate(44px, 12px); }
+.root :global(.pl-node-wrap) :global(.pl-gutter:not(.pl-from-left):not(.pl-from-right)) { transform: translateY(26px); }
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-gutter) { opacity: 1; transform: none; }
+
+.root :global(.pl-card) {
+  /* fluid so the card always fits in its side rail — never clips the viewport
+     edge between the desktop breakpoint and the single-column stack */
+  width: min(440px, calc(50vw - 160px));
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+}
+.root :global(.pl-card.pl-active) {
+  width: min(456px, calc(50vw - 150px));
+  background: var(--card-active);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 4px rgba(140, 82, 255, 0.10), 0 24px 50px rgba(140, 82, 255, 0.12);
+}
+.root :global(.pl-eyebrow) {
+  display: inline-block;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.13em;
+  color: var(--eyebrow); margin-bottom: 10px;
+}
+.root :global(.pl-card.pl-active) :global(.pl-eyebrow) {
+  color: #efe8ff; background: var(--accent);
+  padding: 4px 10px; border-radius: var(--radius-full); letter-spacing: 0.1em;
+}
+.root :global(.pl-card h3) {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 23px; line-height: 1.15; letter-spacing: -0.01em;
+  margin: 0 0 10px;
+}
+.root :global(.pl-card p) { margin: 0 0 10px; font-size: 14.5px; line-height: 1.5; color: var(--body); }
+.root :global(.pl-bullets) { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.root :global(.pl-bullets li) { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; color: var(--body); }
+.root :global(.pl-bullets li) :global(.pl-spark) { color: var(--node); font-size: 13px; line-height: 1.4; flex-shrink: 0; }
+.root :global(.pl-card.pl-active) :global(.pl-bullets li) :global(.pl-spark) { color: var(--gold); }
+
+.root :global(.pl-mascot) { width: var(--mascot-w); filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45)); }
+.root :global(.pl-mascot-grid) { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 26px; width: 340px; }
+.root :global(.pl-mascot-grid img) { width: 126px; filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.4)); }
+
+.root :global(.pl-floaty) { animation: floatY 4.5s var(--ease) infinite; }
+.root :global(.pl-floaty.pl-d1) { animation-delay: 0.4s; }
+.root :global(.pl-floaty.pl-d2) { animation-delay: 0.9s; }
+.root :global(.pl-floaty.pl-d3) { animation-delay: 1.4s; }
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.root :global(.pl-bob) { animation: bobY 1.5s var(--ease) infinite; }
+@keyframes bobY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+/* ─────────────────────────  CTA  ───────────────────────── */
+.root :global(.pl-cta) { text-align: center; padding: 60px 20px 90px; }
+.root :global(.pl-cta h2) {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -0.02em; margin: 0 0 34px;
+}
+.root :global(.pl-cta-row) { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.root :global(.pl-btn-ghost) {
+  display: inline-flex; align-items: center;
+  background: var(--surface); color: var(--ink);
+  font-weight: 700; font-size: 16px; padding: 13px 24px;
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
+  text-decoration: none; cursor: pointer; font-family: var(--font-body);
+  transition: transform 0.18s var(--spring), background-color 0.2s var(--ease);
+}
+.root :global(.pl-btn-ghost:hover) { transform: translateY(-1px); background: #20203f; }
+.root :global(.pl-btn-ghost:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+.root :global(.pl-btn-gold.pl-lg),
+.root :global(.pl-btn-ghost.pl-lg) { font-size: 16px; padding: 14px 26px; }
+
+/* ─────────────────────────  FOOTER  ───────────────────────── */
+.root :global(.pl-footer) { border-top: 1px solid var(--hairline); padding: 40px 20px 56px; max-width: 1280px; margin: 0 auto; }
+.root :global(.pl-footer-top) { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.root :global(.pl-brand) { display: flex; align-items: center; gap: 11px; }
+.root :global(.pl-brand img) { width: 30px; height: 30px; }
+.root :global(.pl-brand span) { font-family: var(--font-brand); font-weight: 700; font-size: 19px; color: var(--node); letter-spacing: 0.01em; }
+.root :global(.pl-footer-orb) {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border-radius: var(--radius-md); background: var(--surface);
+  border: 1px solid var(--hairline); color: var(--body);
+  text-decoration: none;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.root :global(.pl-footer-orb:hover) { background: #20203f; color: var(--ink); }
+.root :global(.pl-footer-orb:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+.root :global(.pl-footer-links) { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 30px; }
+.root :global(.pl-footer-links a) { color: var(--footer-link); text-decoration: none; font-size: 14px; transition: color 0.2s var(--ease); }
+.root :global(.pl-footer-links a:hover) { color: var(--ink); }
+.root :global(.pl-footer-links a:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 6px; }
+.root :global(.pl-footer-copy) { color: var(--footer-link); font-size: 13px; margin-top: 18px; opacity: 0.8; }
+
+/* ─────────────────────────  REVEAL  ───────────────────────── */
+.root :global(.pl-reveal) { opacity: 0; transform: translateY(28px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+.root :global(.pl-reveal.pl-from-left) { transform: translate(-44px, 12px); }
+.root :global(.pl-reveal.pl-from-right) { transform: translate(44px, 12px); }
+.root :global(.pl-reveal.pl-in) { opacity: 1; transform: none; }
+
+/* ─────────────────────────  RESPONSIVE  ─────────────────────────
+   The two-sided gutter layout needs ~1080px+ to seat a card on each side of
+   the track without clipping. Below that everything collapses into ONE centred
+   column so nothing overlaps, clips, or stacks on top of anything else. */
+@media (max-width: 1024px) {
+  .root :global(.pl-path) { padding: 6px 16px 48px; }
+  .root :global(.pl-track) { width: 100%; max-width: 540px; }
+  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 10px 0; }
+
+  /* gutters leave the side rails and flow in-document, centred under the node */
+  .root :global(.pl-node-wrap) :global(.pl-gutter) {
+    position: relative; top: auto; right: auto; left: auto;
+    width: auto; z-index: 2; margin: 16px auto 0;
+  }
+  /* the node renders first (the trail's anchor); its card + mascot read directly
+     below it — so each checkpoint is node → its card → its mascot, in order */
+  .root :global(.pl-node-wrap) :global(.pl-node-col) { order: -1; }
+
+  /* reveal rises straight up — no horizontal slide, so no overflow */
+  .root :global(.pl-node-wrap) :global(.pl-gutter),
+  .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left),
+  .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translateY(20px); }
+  .root :global(.pl-node-wrap.pl-lit) :global(.pl-gutter) { transform: none; }
+
+  .root :global(.pl-card),
+  .root :global(.pl-card.pl-active) { width: 100%; max-width: 460px; margin: 0 auto; }
+  .root :global(.pl-mascot) { width: 132px; margin: 0 auto; }
+  .root :global(.pl-mascot-grid) { width: 100%; max-width: 300px; margin: 4px auto 0; justify-items: center; }
+  .root :global(.pl-mascot-grid img) { width: 116px; }
+
+  .root :global(.pl-node-shift) { transform: none !important; } /* drop the desktop zig-zag nudge */
+  .root :global(.pl-magic) { font-size: 21px; padding: 19px 40px; }
+  .root :global(.pl-hero-card)::before { display: none; }
+}
+
+/* ≤720px — hero / carousel / footer tidy-ups */
+@media (max-width: 720px) {
+  .root :global(.pl-magic) { font-size: 20px; padding: 18px 38px; }
+  .root :global(.pl-carousel) { --car-peek: 26px; --car-gap: 12px; }
+  .root :global(.pl-mini-banner) { flex-wrap: wrap; }
+  .root :global(.pl-mb-desc) { white-space: normal; }
+  .root :global(.pl-footer-top) { flex-direction: column; align-items: flex-start; }
+}
+
+/* ≤560px — drop the decorative mascots (gutters without a card) so the cards
+   own the full column on small phones. Card gutters carry .pl-from-*; mascot
+   gutters don't, so :not() targets exactly the mascots. */
+@media (max-width: 560px) {
+  .root :global(.pl-node-wrap) :global(.pl-gutter:not(.pl-from-left):not(.pl-from-right)) { display: none; }
+}
+
+/* ≤420px — tighten the hero + flatten the carousel mini-path preview */
+@media (max-width: 420px) {
+  .root :global(.pl-hero) { padding-top: 104px; }
+  .root :global(.pl-mini-row) { grid-template-columns: 1fr; gap: 18px; }
+  .root :global(.pl-mini-slot.pl-left),
+  .root :global(.pl-mini-slot.pl-center),
+  .root :global(.pl-mini-slot.pl-right) { grid-column: 1; }
+  .root :global(.pl-mini-conn) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(.pl-reveal) { opacity: 1 !important; transform: none !important; transition: none; }
+  .root :global(.pl-floaty),
+  .root :global(.pl-bob) { animation: none !important; }
+  .root :global(.pl-spine) :global(.pl-fill) { stroke-dashoffset: 0 !important; }
+  .root :global(.pl-spine) :global(.pl-tip) { display: none; }
+  .root :global(.pl-spine) :global(.pl-tip-halo) { animation: none; }
+  .root :global(.pl-node),
+  .root :global(.pl-node-wrap.pl-lit) :global(.pl-node) { transition: none !important; animation: none !important; }
+  .root :global(.pl-car-track) { transition: none !important; }
+}

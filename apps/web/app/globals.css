@@ -273,6 +273,20 @@
      Google Fonts match to Minecraft's chunky block glyphs. */
   --font-minecraft: var(--font-minecraft), 'Silkscreen', 'Press Start 2P', 'Courier New', monospace;
 
+  /* ── Semantic app fonts ───────────────────────────────────────────────
+     Declared directly at :root for the SAME reason as the cosmetic fonts
+     above: the matching entries in the `@theme inline` block below are used
+     only to generate Tailwind utilities — `@theme inline` does NOT emit them
+     as runtime custom properties, so hand-authored CSS and inline
+     `style={{ fontFamily: 'var(--font-display)' }}` would otherwise resolve
+     to EMPTY and fall back to the system stack. Each references the
+     next/font-generated variable from app/layout.tsx with a concrete
+     fallback. Keep in sync with the `@theme inline` block. */
+  --font-display: var(--font-epilogue), 'Epilogue', serif;
+  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-brand: var(--font-oswald), 'Oswald', sans-serif;
+  --font-chat: var(--font-oswald), 'Oswald', sans-serif;
+
   /* ── Hallmark profile rework primitives ──────────────────────────────
      Named tokens for the brand-purple tints, motion vocabulary, and
      heatmap quantization steps that the profile surfaces used to inline

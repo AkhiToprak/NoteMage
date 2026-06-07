@@ -168,7 +168,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" style={{ colorScheme: 'dark' }} suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme="dark"
+      // next/font variable classes live on <html> (not <body>) so the CSS
+      // custom properties they define (--font-epilogue, --font-jakarta, …) exist
+      // at :root. The semantic font tokens (--font-sans/-display/-brand) are
+      // declared at :root in globals.css and reference these — if the next/font
+      // vars were only on <body>, those :root tokens would resolve to EMPTY
+      // (var() of an undefined property) and every surface would fall back to
+      // the system font stack.
+      className={[
+        epilogue.variable,
+        oswald.variable,
+        plusJakartaSans.variable,
+        playfair.variable,
+        jetbrainsMono.variable,
+        cinzel.variable,
+        unifraktur.variable,
+        medievalSharp.variable,
+        imFellSc.variable,
+        abrilFatface.variable,
+        bungeeShade.variable,
+        pacifico.variable,
+        permanentMarker.variable,
+        pressStart.variable,
+        orbitron.variable,
+        silkscreen.variable,
+      ].join(' ')}
+      style={{ colorScheme: 'dark' }}
+      suppressHydrationWarning
+    >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -182,27 +212,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className={[
-          epilogue.variable,
-          oswald.variable,
-          plusJakartaSans.variable,
-          playfair.variable,
-          jetbrainsMono.variable,
-          cinzel.variable,
-          unifraktur.variable,
-          medievalSharp.variable,
-          imFellSc.variable,
-          abrilFatface.variable,
-          bungeeShade.variable,
-          pacifico.variable,
-          permanentMarker.variable,
-          pressStart.variable,
-          orbitron.variable,
-          silkscreen.variable,
-          'antialiased',
-        ].join(' ')}
-      >
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
