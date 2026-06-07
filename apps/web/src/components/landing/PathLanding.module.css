@@ -217,7 +217,6 @@
 .root :global(.pl-mini-check) :global(.material-symbols-outlined) { font-size: 12px; }
 .root :global(.pl-mini-label) { font-size: 12px; color: var(--body); text-align: center; line-height: 1.25; max-width: 13ch; }
 .root :global(.pl-mini-conn) { width: 100%; height: 64px; display: block; }
-.root :global(.pl-mini-deco) { position: absolute; right: 6%; bottom: 6px; width: 64px; opacity: 0.92; }
 
 /* ─────────────────────────  HERO CAROUSEL  ───────────────────────── */
 .root :global(.pl-carousel) { position: relative; --car-peek: 48px; --car-gap: 16px; }
@@ -461,9 +460,8 @@
 /* ─────────────────────────  FOOTER  ───────────────────────── */
 .root :global(.pl-footer) { border-top: 1px solid var(--hairline); padding: 40px 20px 56px; max-width: 1280px; margin: 0 auto; }
 .root :global(.pl-footer-top) { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.root :global(.pl-brand) { display: flex; align-items: center; gap: 11px; }
-.root :global(.pl-brand img) { width: 30px; height: 30px; }
-.root :global(.pl-brand span) { font-family: var(--font-brand); font-weight: 700; font-size: 19px; color: var(--node); letter-spacing: 0.01em; }
+.root :global(.pl-brand) { display: flex; align-items: center; }
+.root :global(.pl-brand img) { height: 28px; width: auto; }
 .root :global(.pl-footer-orb) {
   display: grid; place-items: center; width: 40px; height: 40px;
   border-radius: var(--radius-md); background: var(--surface);

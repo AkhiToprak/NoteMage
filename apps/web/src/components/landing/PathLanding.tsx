@@ -107,7 +107,6 @@ const SLIDES: Slide[] = [
 ];
 const SLOTS = ['left', 'center', 'right'];
 const CONN = ['M 80 6 C 80 40, 240 26, 240 58', 'M 240 6 C 240 40, 400 26, 400 58'];
-const DECO = ['holding-wand', 'peek', 'holding-scroll'];
 
 /* footer links — paths verified against the existing LandingFooter */
 const FOOTER_LINKS = [
@@ -159,7 +158,6 @@ function CarouselSlide({ s, idx, total, clone }: { s: Slide; idx: number; total:
             )}
           </Fragment>
         ))}
-        <img className="pl-mini-deco pl-floaty" src={`/mascot/${DECO[idx % DECO.length]}-v2.png`} alt="" aria-hidden decoding="async" />
       </div>
     </div>
   );
@@ -725,8 +723,7 @@ export default function PathLanding() {
         <footer className="pl-footer">
           <div className="pl-footer-top">
             <div className="pl-brand">
-              <img src="/favicon.png" alt="" width={30} height={30} loading="lazy" decoding="async" />
-              <span>Notemage</span>
+              <img src="/logo_trimmed.png" alt="Notemage" width={75} height={28} loading="lazy" decoding="async" />
             </div>
             <a
               className="pl-footer-orb"
