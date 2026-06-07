@@ -2,21 +2,21 @@ import type { Metadata } from 'next';
 import PathLanding from '@/components/landing/PathLanding';
 
 export const metadata: Metadata = {
-  title: 'NoteMage — Your Path to academic success',
+  title: 'NoteMage: Your Path to academic success',
   description:
-    'Turn your notes and study material into a guided learning path — with a personal AI tutor, flashcards, quizzes, and graded checkpoints. Free to start.',
+    'Turn your notes and study material into a guided learning path, with a personal AI tutor, flashcards, quizzes, and graded checkpoints. Free to start.',
   openGraph: {
-    title: 'NoteMage — Your Path to academic success',
+    title: 'NoteMage: Your Path to academic success',
     description:
-      'Turn your notes and study material into a guided learning path — with a personal AI tutor, flashcards, quizzes, and graded checkpoints.',
+      'Turn your notes and study material into a guided learning path, with a personal AI tutor, flashcards, quizzes, and graded checkpoints.',
     type: 'website',
     siteName: 'NoteMage',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NoteMage — Your Path to academic success',
+    title: 'NoteMage: Your Path to academic success',
     description:
-      'Turn your notes and study material into a guided learning path — with a personal AI tutor, flashcards, quizzes, and graded checkpoints.',
+      'Turn your notes and study material into a guided learning path, with a personal AI tutor, flashcards, quizzes, and graded checkpoints.',
   },
 };
 

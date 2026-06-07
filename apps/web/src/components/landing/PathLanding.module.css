@@ -34,6 +34,18 @@
   --gold-shadow: #c9ab2e;
   --on-gold: #3a2e00;
 
+  /* path nodes (rest/unlit) + control surfaces — tokenised from one-off hex */
+  --node-rest: #28284a;
+  --node-rest-ink: #8b88ad;
+  --node-rest-border: #4f4d72;
+  --node-rest-shadow: #131327;
+  --dot-rest: #45426a;
+  --surface-hover: #20203f;        /* ghost button + footer orb hover */
+  --arrow-hover: #2a2750;          /* carousel arrow hover */
+  --on-bubble: #2b2350;            /* dark glyph on the light START bubble */
+  --accent-deep: #6d39dd;          /* active-card eyebrow pill — 5.4:1 vs --on-accent */
+  --on-accent: #efe8ff;            /* text on accent surfaces */
+
   /* type */
   --ink: #efeefc;              /* headings (Figma off-white, not pure #fff) */
   --body: #bcb9d8;             /* body copy (sampled from Figma) */
@@ -127,7 +139,7 @@
   text-decoration: none; cursor: pointer;
   font-family: var(--font-body);
   box-shadow: 0 3px 0 var(--gold-shadow);
-  transition: transform 0.18s var(--spring), box-shadow 0.18s var(--ease);
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
 .root :global(.pl-btn-gold:hover) { transform: translateY(-1px); box-shadow: 0 5px 0 var(--gold-shadow); }
 .root :global(.pl-btn-gold:active) { transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-shadow); }
@@ -141,7 +153,11 @@
   font-size: clamp(2.6rem, 7vw, 4.6rem);
   margin: 0 auto; max-width: 14ch;
   overflow-wrap: anywhere;
+  /* transform-only entrance: opacity stays 1 so the LCP headline paints on the
+     first frame (no JS gate). Pure CSS, runs at load even with JS disabled. */
+  animation: plHeroRise 0.6s var(--ease) both;
 }
+@keyframes plHeroRise { from { transform: translateY(16px); } to { transform: none; } }
 
 .root :global(.pl-hero-stage) { max-width: 1268px; margin: 36px auto 0; padding: 0 20px; position: relative; }
 .root :global(.pl-hero-card) {
@@ -151,7 +167,9 @@
   border-radius: var(--radius-xl);
   padding: 30px;
   box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5);
+  animation: plFadeRise 0.7s var(--ease) 0.05s both;
 }
+@keyframes plFadeRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
 .root :global(.pl-hero-card)::before {
   content: ""; position: absolute; inset: 8px -10px 8px auto;
   width: 30px; background: var(--card-active);
@@ -169,7 +187,7 @@
 .root :global(.pl-mb-text) { flex: 1; min-width: 0; }
 .root :global(.pl-mb-eyebrow) {
   font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--on-lav-dim); opacity: 0.85;
+  text-transform: uppercase; color: var(--on-lav-dim);
 }
 .root :global(.pl-mb-title) {
   font-family: var(--font-display); font-weight: 800; font-size: 19px;
@@ -221,7 +239,7 @@
 /* ─────────────────────────  HERO CAROUSEL  ───────────────────────── */
 .root :global(.pl-carousel) { position: relative; --car-peek: 48px; --car-gap: 16px; }
 .root :global(.pl-car-viewport) { overflow: hidden; border-radius: var(--radius-md); }
-.root :global(.pl-car-track) { display: flex; gap: var(--car-gap); transition: transform 0.6s var(--spring); will-change: transform; }
+.root :global(.pl-car-track) { display: flex; gap: var(--car-gap); transition: transform 0.6s var(--ease); will-change: transform; }
 .root :global(.pl-car-slide) {
   flex: 0 0 calc(100% - var(--car-peek) - var(--car-gap)); min-width: 0;
   opacity: 0.42; transition: opacity 0.6s var(--ease);
@@ -233,22 +251,41 @@
   background: rgba(20, 18, 40, 0.78); color: var(--ink);
   border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
   cursor: pointer; z-index: 5; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  transition: transform 0.18s var(--spring), background-color 0.2s var(--ease);
+  transition: transform 0.18s var(--ease), background-color 0.2s var(--ease);
 }
 .root :global(.pl-car-arrow.pl-prev) { left: -8px; }
 .root :global(.pl-car-arrow.pl-next) { right: -8px; }
 .root :global(.pl-car-arrow) :global(.material-symbols-outlined) { font-size: 24px; }
-.root :global(.pl-car-arrow:hover) { background: #2a2750; transform: translateY(-50%) scale(1.07); }
+.root :global(.pl-car-arrow:hover) { background: var(--arrow-hover); transform: translateY(-50%) scale(1.07); }
 .root :global(.pl-car-arrow:active) { transform: translateY(-50%) scale(0.93); }
 .root :global(.pl-car-arrow:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
-.root :global(.pl-car-dots) { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.root :global(.pl-car-controls) { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
+.root :global(.pl-car-dots) { display: flex; align-items: center; gap: 6px; }
 .root :global(.pl-car-dot) {
-  width: 8px; height: 8px; padding: 0; border: 0; cursor: pointer;
-  border-radius: var(--radius-full); background: #45426a;
-  transition: transform 0.25s var(--spring), background-color 0.2s var(--ease);
+  /* 24×24 hit target (WCAG 2.5.8) wrapping an 8px visual dot */
+  width: 24px; height: 24px; padding: 0; border: 0; cursor: pointer;
+  background: transparent; display: grid; place-items: center; border-radius: var(--radius-full);
 }
-.root :global(.pl-car-dot[aria-selected="true"]) { background: var(--node); transform: scaleX(2.6); }
-.root :global(.pl-car-dot:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+.root :global(.pl-car-dot)::before {
+  content: ""; width: 8px; height: 8px; border-radius: var(--radius-full);
+  background: var(--dot-rest);
+  transition: transform 0.25s var(--ease), background-color 0.2s var(--ease);
+}
+.root :global(.pl-car-dot[aria-current="true"])::before { background: var(--node); transform: scaleX(2.6); }
+.root :global(.pl-car-dot:hover)::before { background: var(--line); }
+.root :global(.pl-car-dot:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.root :global(.pl-car-playpause) {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; padding: 0; cursor: pointer;
+  background: var(--surface); color: var(--body);
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
+  transition: transform 0.18s var(--ease), background-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.root :global(.pl-car-playpause) :global(.material-symbols-outlined) { font-size: 18px; }
+.root :global(.pl-car-playpause:hover) { background: var(--surface-hover); color: var(--ink); }
+.root :global(.pl-car-playpause:active) { transform: scale(0.94); }
+.root :global(.pl-car-playpause:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
 /* ─────────────────  "The magic" divider pill  ───────────────── */
 .root :global(.pl-magic-wrap) { display: flex; justify-content: center; padding: 124px 20px 116px; }
@@ -259,9 +296,9 @@
   font-size: 24px; letter-spacing: -0.01em;
   padding: 22px 52px; border: 0; border-radius: var(--radius-full);
   cursor: pointer;
-  transition: transform 0.18s var(--spring);
+  transition: transform 0.18s var(--ease);
 }
-.root :global(.pl-magic) :global(.material-symbols-outlined) { font-size: 26px; transition: transform 0.25s var(--spring); }
+.root :global(.pl-magic) :global(.material-symbols-outlined) { font-size: 26px; transition: transform 0.25s var(--ease); }
 .root :global(.pl-magic:hover) { transform: translateY(-2px); }
 .root :global(.pl-magic:hover) :global(.material-symbols-outlined) { transform: translateY(3px); }
 .root :global(.pl-magic:active) { transform: translateY(1px); }
@@ -278,22 +315,14 @@
   font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
   padding: 4px 12px; border-radius: var(--radius-full); margin-bottom: 8px;
 }
-.root :global(.pl-node-bubble.pl-start) { background: #efeefc; color: #2b2350; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); }
+.root :global(.pl-node-bubble.pl-start) { background: var(--ink); color: var(--on-bubble); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); }
 .root :global(.pl-node-bubble.pl-finish) { background: var(--gold); color: var(--on-gold); box-shadow: 0 2px 0 var(--gold-shadow); text-transform: none; letter-spacing: 0.02em; }
-.root :global(.pl-node-badge) {
-  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
-  background: var(--gold); color: var(--on-gold);
-  font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
-  padding: 4px 10px; border-radius: var(--radius-full);
-  box-shadow: 0 2px 0 var(--gold-shadow); z-index: 4;
-}
 .root :global(.pl-node) {
   position: relative; width: 64px; height: 64px; border-radius: 20px;
-  background: #28284a; color: #8b88ad;
-  border: 2px solid #4f4d72;
+  background: var(--node-rest); color: var(--node-rest-ink);
+  border: 2px solid var(--node-rest-border);
   display: grid; place-items: center;
-  box-shadow: 0 5px 0 #131327, 0 9px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 5px 0 var(--node-rest-shadow), 0 9px 16px rgba(0, 0, 0, 0.4);
   transition: background-color 0.32s var(--ease), border-color 0.32s var(--ease),
               color 0.32s var(--ease), box-shadow 0.38s var(--ease);
   cursor: default;
@@ -332,12 +361,10 @@
   border-radius: var(--radius-full); padding: 3px 9px;
 }
 .root :global(.pl-node-stars) :global(.material-symbols-outlined) { font-size: 16px; color: var(--gold); }
-.root :global(.pl-node-badge),
 .root :global(.pl-node-grade),
 .root :global(.pl-node-stars) {
   opacity: 0; transform-origin: center; transition: opacity 0.3s var(--ease) 0.08s;
 }
-.root :global(.pl-node-wrap.pl-lit) :global(.pl-node-badge),
 .root :global(.pl-node-wrap.pl-lit) :global(.pl-node-grade),
 .root :global(.pl-node-wrap.pl-lit) :global(.pl-node-stars) { opacity: 1; }
 
@@ -348,8 +375,10 @@
 }
 .root :global(.pl-spine) :global(.pl-base) { stroke: var(--line); stroke-width: 10; fill: none; stroke-linecap: round; opacity: 0.45; }
 .root :global(.pl-spine) :global(.pl-fill) {
+  /* No drop-shadow: this path's strokeDashoffset is rewritten every scroll
+     frame, and a filtered element re-rasterizes its filter on each change. The
+     bright stroke + the tip-ball glow carry the trail without the per-frame cost. */
   stroke: var(--node); stroke-width: 10; fill: none; stroke-linecap: round;
-  filter: drop-shadow(0 1px 4px rgba(140, 82, 255, 0.45));
 }
 .root :global(.pl-spine) :global(.pl-tip) { opacity: 0; transition: opacity 0.2s var(--ease); }
 .root :global(.pl-spine) :global(.pl-tip-ball) {
@@ -399,7 +428,7 @@
   color: var(--eyebrow); margin-bottom: 10px;
 }
 .root :global(.pl-card.pl-active) :global(.pl-eyebrow) {
-  color: #efe8ff; background: var(--accent);
+  color: var(--on-accent); background: var(--accent-deep);
   padding: 4px 10px; border-radius: var(--radius-full); letter-spacing: 0.1em;
 }
 .root :global(.pl-card h3) {
@@ -439,9 +468,9 @@
   font-weight: 700; font-size: 16px; padding: 13px 24px;
   border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
   text-decoration: none; cursor: pointer; font-family: var(--font-body);
-  transition: transform 0.18s var(--spring), background-color 0.2s var(--ease);
+  transition: transform 0.18s var(--ease), background-color 0.2s var(--ease);
 }
-.root :global(.pl-btn-ghost:hover) { transform: translateY(-1px); background: #20203f; }
+.root :global(.pl-btn-ghost:hover) { transform: translateY(-1px); background: var(--surface-hover); }
 .root :global(.pl-btn-ghost:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
 .root :global(.pl-btn-gold.pl-lg),
 .root :global(.pl-btn-ghost.pl-lg) { font-size: 16px; padding: 14px 26px; }
@@ -459,13 +488,13 @@
   text-decoration: none;
   transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
 }
-.root :global(.pl-footer-orb:hover) { background: #20203f; color: var(--ink); }
+.root :global(.pl-footer-orb:hover) { background: var(--surface-hover); color: var(--ink); }
 .root :global(.pl-footer-orb:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
 .root :global(.pl-footer-links) { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 30px; }
 .root :global(.pl-footer-links a) { color: var(--footer-link); text-decoration: none; font-size: 14px; transition: color 0.2s var(--ease); }
 .root :global(.pl-footer-links a:hover) { color: var(--ink); }
 .root :global(.pl-footer-links a:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 6px; }
-.root :global(.pl-footer-copy) { color: var(--footer-link); font-size: 13px; margin-top: 18px; opacity: 0.8; }
+.root :global(.pl-footer-copy) { color: var(--footer-link); font-size: 13px; margin-top: 18px; }
 
 /* ─────────────────────────  REVEAL  ───────────────────────── */
 .root :global(.pl-reveal) { opacity: 0; transform: translateY(28px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
@@ -544,4 +573,7 @@
   .root :global(.pl-node),
   .root :global(.pl-node-wrap.pl-lit) :global(.pl-node) { transition: none !important; animation: none !important; }
   .root :global(.pl-car-track) { transition: none !important; }
+  .root :global(.pl-hero h1),
+  .root :global(.pl-hero-card) { animation: none !important; }
+  .root :global(.pl-car-playpause) { display: none; }
 }

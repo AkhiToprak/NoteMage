@@ -49,6 +49,10 @@ const oswald = Oswald({
 // will ever equip them.
 const playfair = Playfair_Display({
   variable: '--font-playfair',
+  // Cosmetic-only: not preloaded so the marketing entry (and every other page)
+  // doesn't ship a <link rel=preload as=font> for a face only a handful of
+  // users ever equip. The file still loads on demand when the CSS var resolves.
+  preload: false,
   subsets: ['latin'],
   weight: ['500', '600', '700', '800'],
   display: 'swap',
@@ -56,6 +60,7 @@ const playfair = Playfair_Display({
 
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains',
+  preload: false,
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
@@ -68,6 +73,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 const cinzel = Cinzel({
   variable: '--font-cinzel',
+  preload: false,
   subsets: ['latin'],
   weight: ['500', '700', '900'],
   display: 'swap',
@@ -75,6 +81,7 @@ const cinzel = Cinzel({
 
 const unifraktur = UnifrakturMaguntia({
   variable: '--font-unifraktur',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -82,6 +89,7 @@ const unifraktur = UnifrakturMaguntia({
 
 const medievalSharp = MedievalSharp({
   variable: '--font-medieval',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -89,6 +97,7 @@ const medievalSharp = MedievalSharp({
 
 const imFellSc = IM_Fell_English_SC({
   variable: '--font-imfell',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -96,6 +105,7 @@ const imFellSc = IM_Fell_English_SC({
 
 const abrilFatface = Abril_Fatface({
   variable: '--font-abril',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -103,6 +113,7 @@ const abrilFatface = Abril_Fatface({
 
 const bungeeShade = Bungee_Shade({
   variable: '--font-bungee',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -110,6 +121,7 @@ const bungeeShade = Bungee_Shade({
 
 const pacifico = Pacifico({
   variable: '--font-pacifico',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -117,6 +129,7 @@ const pacifico = Pacifico({
 
 const permanentMarker = Permanent_Marker({
   variable: '--font-marker',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -124,6 +137,7 @@ const permanentMarker = Permanent_Marker({
 
 const pressStart = Press_Start_2P({
   variable: '--font-pressstart',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -131,6 +145,7 @@ const pressStart = Press_Start_2P({
 
 const orbitron = Orbitron({
   variable: '--font-orbitron',
+  preload: false,
   subsets: ['latin'],
   weight: ['500', '700', '900'],
   display: 'swap',
@@ -142,6 +157,7 @@ const orbitron = Orbitron({
 // can ever equip it.
 const silkscreen = Silkscreen({
   variable: '--font-minecraft',
+  preload: false,
   subsets: ['latin'],
   weight: ['400', '700'],
   display: 'swap',

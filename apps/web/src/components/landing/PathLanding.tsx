@@ -38,7 +38,7 @@ const CP: Checkpoint[] = [
     title: <>Take <span className="pl-g-purple">Notes</span></>,
     body: [
       'Either as a Text editor with Inline AI features, or draw on a canvas using your pen.',
-      'You already have Notes on another app? No worries — import them with a single click!',
+      'You already have Notes on another app? No worries, import them with a single click!',
     ],
     bullets: ['Slash menu & markdown shortcuts', 'Easy Import', 'Inline AI rewrite · Pro'],
   },
@@ -95,7 +95,7 @@ const SLIDES: Slide[] = [
   },
   {
     eyebrow: 'Section 2', title: 'Section 2: Data & Types', grade: 'B',
-    desc: 'Numbers, strings, booleans — and how Python keeps your values in memory.',
+    desc: 'Numbers, strings, booleans, and how Python keeps your values in memory.',
     nodes: ['Variables & Assignment', 'Strings & Numbers', 'Lists & Dictionaries'],
   },
   {
@@ -158,7 +158,7 @@ function CarouselSlide({ s, idx, total, clone }: { s: Slide; idx: number; total:
             )}
           </Fragment>
         ))}
-        <img className="pl-mini-deco pl-floaty" src={`/mascot/${DECO[idx % DECO.length]}-v2.png`} alt="" aria-hidden />
+        <img className="pl-mini-deco pl-floaty" src={`/mascot/${DECO[idx % DECO.length]}-v2.png`} alt="" aria-hidden decoding="async" />
       </div>
     </div>
   );
@@ -170,12 +170,12 @@ function Mascot({ cp }: { cp: Checkpoint }) {
     return (
       <div className="pl-mascot-grid" aria-hidden>
         {mascots.map((m, idx) => (
-          <img key={idx} className={`pl-floaty pl-d${idx}`} src={`/mascot/${m}-v2.png`} alt="" />
+          <img key={idx} className={`pl-floaty pl-d${idx}`} src={`/mascot/${m}-v2.png`} alt="" loading="lazy" decoding="async" />
         ))}
       </div>
     );
   }
-  return <img className="pl-mascot pl-floaty" src={`/mascot/${mascots[0]}-v2.png`} alt="" aria-hidden />;
+  return <img className="pl-mascot pl-floaty" src={`/mascot/${mascots[0]}-v2.png`} alt="" aria-hidden loading="lazy" decoding="async" />;
 }
 
 export default function PathLanding() {
@@ -192,36 +192,42 @@ export default function PathLanding() {
     if (isInsideNativeShell()) router.replace('/auth/login');
   }, [router]);
 
-  /* ─────────  reveal-on-scroll for hero / magic / CTA  ───────── */
+  /* ─────────  reveal-on-scroll for magic / CTA  ─────────
+     Enhancement only: the reveal targets default to VISIBLE (a <noscript>
+     fallback below + the `.pl-in`-on-failure paths here guarantee content is
+     never gated on a transition that might not fire — headless render, an
+     observer throw, or JS disabled). The hero is revealed by pure CSS so the
+     LCP element paints immediately, independent of this effect. */
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    const revealAll = () => root.querySelectorAll('.pl-reveal').forEach((el) => el.classList.add('pl-in'));
     const reduce = prefersReducedMotion();
-    if (reduce) {
-      root.querySelectorAll('.pl-reveal').forEach((el) => el.classList.add('pl-in'));
+    if (reduce || typeof IntersectionObserver === 'undefined') {
+      revealAll();
       return;
     }
-    root.querySelectorAll<HTMLElement>('.pl-node-wrap .pl-gutter').forEach((g) => {
-      g.style.transitionDelay = g.querySelector('.pl-card') ? '.08s' : '.2s';
-    });
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (!e.isIntersecting) return;
-          e.target.classList.add('pl-in');
-          io.unobserve(e.target);
-        });
-      },
-      { threshold: 0.18, rootMargin: '0px 0px -8% 0px' },
-    );
-    root.querySelectorAll('.pl-reveal').forEach((el) => io.observe(el));
-    const raf = requestAnimationFrame(() => {
-      root.querySelectorAll('.pl-hero .pl-reveal, .pl-hero-stage .pl-reveal').forEach((el) => el.classList.add('pl-in'));
-    });
-    return () => {
-      io.disconnect();
-      cancelAnimationFrame(raf);
-    };
+    let io: IntersectionObserver;
+    try {
+      root.querySelectorAll<HTMLElement>('.pl-node-wrap .pl-gutter').forEach((g) => {
+        g.style.transitionDelay = g.querySelector('.pl-card') ? '.08s' : '.2s';
+      });
+      io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (!e.isIntersecting) return;
+            e.target.classList.add('pl-in');
+            io.unobserve(e.target);
+          });
+        },
+        { threshold: 0.18, rootMargin: '0px 0px -8% 0px' },
+      );
+      root.querySelectorAll('.pl-reveal').forEach((el) => io.observe(el));
+    } catch {
+      revealAll();
+      return;
+    }
+    return () => io.disconnect();
   }, []);
 
   /* ─────────  ONE continuous trail line, bound to scroll position  ───────── */
@@ -302,43 +308,58 @@ export default function PathLanding() {
       }
     }
 
+    function failSafe() {
+      // If the SVG trail can't be measured (headless render, a layout race, a
+      // getPointAtLength throw), light every checkpoint so the cards/mascots are
+      // never stranded at opacity:0. The decorative trail is lost; content lives.
+      if (!track) return;
+      track.querySelectorAll<HTMLElement>('.pl-node-wrap').forEach((w) => w.classList.add('pl-lit'));
+    }
+
     function build() {
       if (cancelled || !track) return;
-      const nodes = Array.from(track.querySelectorAll<SVGGElement | HTMLElement>('.pl-node'));
-      if (nodes.length < 2) return;
-      const tr = track.getBoundingClientRect();
-      const W = track.offsetWidth;
-      const H = track.offsetHeight;
-      const pts = nodes.map((n) => {
-        const r = n.getBoundingClientRect();
-        return { x: r.left + r.width / 2 - tr.left, y: r.top + r.height / 2 - tr.top };
-      });
-      let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-      for (let i = 1; i < pts.length; i++) {
-        const a = pts[i - 1];
-        const b = pts[i];
-        const dy = b.y - a.y;
-        d += ` C ${a.x.toFixed(1)} ${(a.y + dy * 0.4).toFixed(1)} ${b.x.toFixed(1)} ${(a.y + dy * 0.6).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+      try {
+        const nodes = Array.from(track.querySelectorAll<SVGGElement | HTMLElement>('.pl-node'));
+        if (nodes.length < 2) {
+          failSafe();
+          return;
+        }
+        const tr = track.getBoundingClientRect();
+        const W = track.offsetWidth;
+        const H = track.offsetHeight;
+        const pts = nodes.map((n) => {
+          const r = n.getBoundingClientRect();
+          return { x: r.left + r.width / 2 - tr.left, y: r.top + r.height / 2 - tr.top };
+        });
+        let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+        for (let i = 1; i < pts.length; i++) {
+          const a = pts[i - 1];
+          const b = pts[i];
+          const dy = b.y - a.y;
+          d += ` C ${a.x.toFixed(1)} ${(a.y + dy * 0.4).toFixed(1)} ${b.x.toFixed(1)} ${(a.y + dy * 0.6).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+        }
+        spine.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        spine.setAttribute('width', String(W));
+        spine.setAttribute('height', String(H));
+        base.setAttribute('d', d);
+        fill.setAttribute('d', d);
+        len = fill.getTotalLength();
+        fill.style.strokeDasharray = String(len);
+        lut = [];
+        const N = 260;
+        for (let i = 0; i <= N; i++) {
+          const p = fill.getPointAtLength((len * i) / N);
+          lut.push(p.y, (len * i) / N);
+        }
+        nodeWraps = Array.from(track.querySelectorAll<HTMLElement>('.pl-node-wrap'));
+        nodeS = pts.map((p) => yToS(p.y));
+        litState = nodeWraps.map(() => false);
+        nodeWraps.forEach((w) => w.classList.remove('pl-lit'));
+        targetS = curS = measure();
+        render();
+      } catch {
+        failSafe();
       }
-      spine.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      spine.setAttribute('width', String(W));
-      spine.setAttribute('height', String(H));
-      base.setAttribute('d', d);
-      fill.setAttribute('d', d);
-      len = fill.getTotalLength();
-      fill.style.strokeDasharray = String(len);
-      lut = [];
-      const N = 260;
-      for (let i = 0; i <= N; i++) {
-        const p = fill.getPointAtLength((len * i) / N);
-        lut.push(p.y, (len * i) / N);
-      }
-      nodeWraps = Array.from(track.querySelectorAll<HTMLElement>('.pl-node-wrap'));
-      nodeS = pts.map((p) => yToS(p.y));
-      litState = nodeWraps.map(() => false);
-      nodeWraps.forEach((w) => w.classList.remove('pl-lit'));
-      targetS = curS = measure();
-      render();
     }
 
     function tick() {
@@ -415,13 +436,17 @@ export default function PathLanding() {
     const reduce = prefersReducedMotion();
     let cur = 1; // cells[1] = first real slide
     let timer: ReturnType<typeof setInterval> | null = null;
+    let userPaused = false; // explicit pause via the play/pause control
 
     function paint(animate: boolean) {
       track!.style.transition = animate ? '' : 'none';
       track!.style.transform = `translateX(${-cells[cur].offsetLeft}px)`;
       cells.forEach((c, i) => c.classList.toggle('pl-is-current', i === cur));
       const logical = (((cur - 1) % N) + N) % N;
-      dots.forEach((d, i) => d.setAttribute('aria-selected', i === logical ? 'true' : 'false'));
+      dots.forEach((d, i) => {
+        if (i === logical) d.setAttribute('aria-current', 'true');
+        else d.removeAttribute('aria-current');
+      });
       if (!animate) {
         void track!.offsetWidth; // commit, then re-enable transition
         track!.style.transition = '';
@@ -462,7 +487,7 @@ export default function PathLanding() {
       }
     }
     function start() {
-      if (reduce) return;
+      if (reduce || userPaused) return;
       stop();
       timer = setInterval(() => step(1), 5200);
     }
@@ -489,6 +514,23 @@ export default function PathLanding() {
     };
     prevBtn?.addEventListener('click', onPrev);
     nextBtn?.addEventListener('click', onNext);
+
+    // explicit pause/play — the persistent control touch users need (autoplay
+    // also pauses on hover/focus, but those never fire for a touch reader).
+    const playPauseBtn = root.querySelector<HTMLButtonElement>('.pl-car-playpause');
+    const syncPlayPause = () => {
+      if (!playPauseBtn) return;
+      const icon = playPauseBtn.querySelector('.material-symbols-outlined');
+      if (icon) icon.textContent = userPaused ? 'play_arrow' : 'pause';
+      playPauseBtn.setAttribute('aria-label', userPaused ? 'Play section autoplay' : 'Pause section autoplay');
+    };
+    const onPlayPause = () => {
+      userPaused = !userPaused;
+      if (userPaused) stop();
+      else start();
+      syncPlayPause();
+    };
+    playPauseBtn?.addEventListener('click', onPlayPause);
 
     // swipe / drag
     const vp = root.querySelector<HTMLElement>('.pl-car-viewport');
@@ -529,6 +571,7 @@ export default function PathLanding() {
       dots.forEach((d, i) => d.removeEventListener('click', dotHandlers[i]));
       prevBtn?.removeEventListener('click', onPrev);
       nextBtn?.removeEventListener('click', onNext);
+      playPauseBtn?.removeEventListener('click', onPlayPause);
       vp?.removeEventListener('pointerdown', onPointerDown);
       vp?.removeEventListener('pointerup', onPointerUp);
       root.removeEventListener('mouseenter', stop);
@@ -545,6 +588,12 @@ export default function PathLanding() {
 
   return (
     <div className={styles.root} ref={rootRef}>
+      {/* Enhancement-safety: without JS the reveal/lit classes never toggle, so
+          force every reveal target visible. The CSS-only hero entrance is
+          unaffected; this only defeats the JS-gated opacity:0 start states. */}
+      <noscript>
+        <style>{`.nm-landing .pl-reveal,.nm-landing .pl-node-wrap .pl-gutter{opacity:1!important;transform:none!important}`}</style>
+      </noscript>
       {/* ─────────────  NAV  ───────────── */}
       <nav className="pl-nav" aria-label="Primary">
         <div className="pl-nav-pill">
@@ -559,13 +608,13 @@ export default function PathLanding() {
       <div className="pl-page">
         {/* ─────────────  HERO  ───────────── */}
         <header className="pl-hero">
-          <h1 className="pl-reveal">
+          <h1>
             Your <span className="pl-g-gold">Path</span> to academic success
           </h1>
         </header>
 
         <section className="pl-hero-stage">
-          <div className="pl-hero-card pl-reveal">
+          <div className="pl-hero-card">
             <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="Example learning sections">
               <div className="pl-car-viewport">
                 <div className="pl-car-track" ref={carTrackRef}>
@@ -582,10 +631,15 @@ export default function PathLanding() {
               <button className="pl-car-arrow pl-next" type="button" aria-label="Next section">
                 <span className="material-symbols-outlined" aria-hidden>chevron_right</span>
               </button>
-              <div className="pl-car-dots" ref={dotsRef} role="tablist" aria-label="Choose a section">
-                {SLIDES.map((_, i) => (
-                  <button key={i} className="pl-car-dot" type="button" role="tab" aria-label={`Section ${i + 1}`} data-i={i} />
-                ))}
+              <div className="pl-car-controls">
+                <div className="pl-car-dots" ref={dotsRef} role="group" aria-label="Choose a section">
+                  {SLIDES.map((_, i) => (
+                    <button key={i} className="pl-car-dot" type="button" aria-label={`Go to section ${i + 1}`} data-i={i} />
+                  ))}
+                </div>
+                <button className="pl-car-playpause" type="button" aria-label="Pause section autoplay">
+                  <span className="material-symbols-outlined" aria-hidden>pause</span>
+                </button>
               </div>
             </div>
           </div>
@@ -677,7 +731,7 @@ export default function PathLanding() {
         <footer className="pl-footer">
           <div className="pl-footer-top">
             <div className="pl-brand">
-              <img src="/favicon.png" alt="" />
+              <img src="/favicon.png" alt="" width={30} height={30} loading="lazy" decoding="async" />
               <span>Notemage</span>
             </div>
             <a
