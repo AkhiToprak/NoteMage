@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { resolvePathHostNotebookId } from '@/lib/inbox';
 import {
   successResponse,
   unauthorizedResponse,
@@ -51,21 +52,22 @@ export async function GET(request: NextRequest, { params }: Params) {
       return notFoundResponse('Activity not found');
     }
 
-    // Self-heal for pre-fix data: path-generated FlashcardSet / QuizSet
-    // rows could be created with notebookId=null when the parent plan
-    // was created without a primaryNotebookId. The viewers can't run
-    // without one, so resolve a fallback (parent plan → user's oldest
-    // notebook) and persist it the first time the activity is opened.
-    const resolveFallbackNotebookId = async (): Promise<string | null> => {
+    // Self-heal for content with a null host notebook. Two sources:
+    //   1. Cloned community paths — the clone route copies FlashcardSet /
+    //      QuizSet rows WITHOUT a notebookId (only the generator stamps it).
+    //   2. Pre-fix first-party data — sets created before the generator
+    //      always resolved a primary notebook.
+    // The viewers URL-template `notebookId` into every fetch and can't run
+    // without one, so resolve a host (parent plan → user's oldest notebook →
+    // hidden Inbox) and persist it the first time the activity is opened.
+    // `resolvePathHostNotebookId` never returns null, so a paths-first learner
+    // who cloned a path WITHOUT ever creating a notebook is no longer stuck on
+    // "This quiz isn't linked to a notebook yet."
+    const resolveFallbackNotebookId = async (): Promise<string> => {
       if (activity.slot.phase.plan.notebookId) {
         return activity.slot.phase.plan.notebookId;
       }
-      const owned = await db.notebook.findFirst({
-        where: { userId },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true },
-      });
-      return owned?.id ?? null;
+      return resolvePathHostNotebookId(userId);
     };
 
     if (activity.kind === 'theory' && activity.theory) {
@@ -82,19 +84,22 @@ export async function GET(request: NextRequest, { params }: Params) {
       let notebookId = activity.flashcardSet.notebookId;
       if (!notebookId) {
         const fallback = await resolveFallbackNotebookId();
-        if (fallback) {
-          await db.flashcardSet.update({
-            where: { id: activity.flashcardSet.id },
+        // Stamp `sourcePathId` together with `notebookId`. Linking the bundle
+        // to a real notebook WITHOUT it would leak this cloned set into that
+        // notebook's flashcard list, which filters `sourcePathId: null`. The
+        // set belongs to exactly one activity → slot → phase → plan, so this
+        // plan id is the correct source path.
+        await db.flashcardSet.update({
+          where: { id: activity.flashcardSet.id },
+          data: { notebookId: fallback, sourcePathId: activity.slot.phase.planId },
+        });
+        if (!activity.slot.phase.plan.notebookId) {
+          await db.studyPlan.update({
+            where: { id: activity.slot.phase.planId },
             data: { notebookId: fallback },
           });
-          if (!activity.slot.phase.plan.notebookId) {
-            await db.studyPlan.update({
-              where: { id: activity.slot.phase.planId },
-              data: { notebookId: fallback },
-            });
-          }
-          notebookId = fallback;
         }
+        notebookId = fallback;
       }
       return successResponse({
         kind: 'flashcards' as const,
@@ -110,19 +115,19 @@ export async function GET(request: NextRequest, { params }: Params) {
       let notebookId = activity.quizSet.notebookId;
       if (!notebookId) {
         const fallback = await resolveFallbackNotebookId();
-        if (fallback) {
-          await db.quizSet.update({
-            where: { id: activity.quizSet.id },
+        // See the flashcard branch — stamp `sourcePathId` with the notebook so
+        // the cloned quiz never leaks into the host notebook's quiz list.
+        await db.quizSet.update({
+          where: { id: activity.quizSet.id },
+          data: { notebookId: fallback, sourcePathId: activity.slot.phase.planId },
+        });
+        if (!activity.slot.phase.plan.notebookId) {
+          await db.studyPlan.update({
+            where: { id: activity.slot.phase.planId },
             data: { notebookId: fallback },
           });
-          if (!activity.slot.phase.plan.notebookId) {
-            await db.studyPlan.update({
-              where: { id: activity.slot.phase.planId },
-              data: { notebookId: fallback },
-            });
-          }
-          notebookId = fallback;
         }
+        notebookId = fallback;
       }
       return successResponse({
         kind: 'quiz' as const,
