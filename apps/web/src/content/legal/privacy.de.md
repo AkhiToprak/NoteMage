@@ -106,7 +106,7 @@ Wenn Sie zustimmen, erfasst PostHog, welche Seiten Sie aufrufen und wie Sie mit 
 
 ## Kinder
 
-Notemage richtet sich nicht an Kinder unter dem Alter, das in ihrem Land für die Einwilligung in die Datenverarbeitung erforderlich ist (vielerorts 16 Jahre). Wir erheben wissentlich keine Daten solcher Kinder. Wenn Sie glauben, dass uns ein Kind ohne die erforderliche Einwilligung Daten übermittelt hat, kontaktieren Sie uns, und wir werden sie löschen.
+Notemage richtet sich nicht an Kinder unter dem Alter, das in ihrem Land für die Einwilligung in die Datenverarbeitung erforderlich ist (vielerorts 13 Jahre). Wir erheben wissentlich keine Daten solcher Kinder. Wenn Sie glauben, dass uns ein Kind ohne die erforderliche Einwilligung Daten übermittelt hat, kontaktieren Sie uns, und wir werden sie löschen.
 
 ## Sicherheit
 

@@ -6,7 +6,7 @@ Notemage wird von Toprak Demirel betrieben, einer Einzelperson mit Sitz in der S
 
 ## Wer Notemage nutzen darf
 
-Sie dürfen den Dienst nur nutzen, wenn Sie einen rechtsverbindlichen Vertrag mit dem Anbieter schliessen können und mindestens **16 Jahre** alt sind oder älter, sofern die Gesetze Ihres Landes dies verlangen. Sind Sie jünger als das in Ihrem Land für die Einwilligung in die Verarbeitung personenbezogener Daten erforderliche Alter, dürfen Sie den Dienst nur unter Einbindung eines Elternteils oder Erziehungsberechtigten nutzen.
+Sie dürfen den Dienst nur nutzen, wenn Sie einen rechtsverbindlichen Vertrag mit dem Anbieter schliessen können und mindestens **13 Jahre** alt sind oder älter, sofern die Gesetze Ihres Landes dies verlangen. Sind Sie jünger als das in Ihrem Land für die Einwilligung in die Verarbeitung personenbezogener Daten erforderliche Alter, dürfen Sie den Dienst nur unter Einbindung eines Elternteils oder Erziehungsberechtigten nutzen.
 
 ## Ihr Konto
 

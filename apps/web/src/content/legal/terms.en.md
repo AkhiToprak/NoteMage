@@ -6,7 +6,7 @@ Notemage is operated by Toprak Demirel, an individual based in Switzerland (the 
 
 ## Who can use Notemage
 
-You may use the Service only if you can form a binding contract with the Provider and are at least **16 years old**, or older where the laws of your country require. If you are under the age required to consent to the processing of personal data in your country, you may use the Service only with the involvement of a parent or guardian.
+You may use the Service only if you can form a binding contract with the Provider and are at least **13 years old**, or older where the laws of your country require. If you are under the age required to consent to the processing of personal data in your country, you may use the Service only with the involvement of a parent or guardian.
 
 ## Your account
 

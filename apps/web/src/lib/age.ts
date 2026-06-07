@@ -5,13 +5,13 @@
  */
 
 /**
- * Minimum age to create a NoteMage account. Set to 16 to match the privacy
- * policy's stated digital-consent age (GDPR Art.8 default; Germany/NL/IE and
- * other EU/EEA states require 16). Lower to 13 only together with a verifiable
- * parental-consent flow for 13–15-year-olds in 16-threshold jurisdictions, or
- * make it country-aware — do not silently drop below the disclosed policy.
+ * Minimum age to create a NoteMage account. Set to 13 (the common COPPA-style
+ * floor). In EU/EEA states whose digital-consent age is higher (GDPR Art.8
+ * default is 16; Germany/NL/IE and others require 16), 13–15-year-olds may use
+ * the Service only with parental involvement — the Terms disclose this rather
+ * than the gate enforcing it per-country. Keep this in sync with the Terms.
  */
-export const MIN_AGE = 16;
+export const MIN_AGE = 13;
 
 /** Oldest plausible age — anything beyond this is treated as a typo. */
 const MAX_AGE = 120;

@@ -106,7 +106,7 @@ When you consent, PostHog records which pages you view and how you interact with
 
 ## Children
 
-Notemage is not directed to children under the age required to consent to data processing in their country (16 in many places). We do not knowingly collect data from such children. If you believe a child has provided us data without the necessary consent, contact us and we will delete it.
+Notemage is not directed to children under the age required to consent to data processing in their country (13 in many places). We do not knowingly collect data from such children. If you believe a child has provided us data without the necessary consent, contact us and we will delete it.
 
 ## Security
 
