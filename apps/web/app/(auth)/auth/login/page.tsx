@@ -176,16 +176,6 @@ function LoginForm() {
             overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '1px',
-              background: 'rgba(174,137,255,0.4)',
-            }}
-          />
           <VerifyCodeForm email={email} resendOnMount onVerified={handleVerifiedLogin} />
           <button
             type="button"
@@ -268,18 +258,6 @@ function LoginForm() {
           overflow: 'hidden',
         }}
       >
-        {/* Top accent line */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '1px',
-            background: 'rgba(174,137,255,0.4)',
-          }}
-        />
-
         {error && (
           <div
             style={{

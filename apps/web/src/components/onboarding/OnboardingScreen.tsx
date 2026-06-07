@@ -78,19 +78,6 @@ export default function OnboardingScreen({
         width: '100%',
       }}
     >
-      {/* top accent line */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '1px',
-          background: 'rgba(174,137,255,0.4)',
-          pointerEvents: 'none',
-        }}
-      />
-
       {/* progress row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {onBack && (
