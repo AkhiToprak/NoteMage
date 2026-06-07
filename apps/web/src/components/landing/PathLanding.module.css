@@ -73,6 +73,12 @@
   /* path geometry (kept in sync with the render data) */
   --track: 120px;
   --mascot-w: 168px;
+  /* clearance from the track edge to a gutter card/mascot. Sized to clear the
+     widest node cluster — a card-side node can be nudged toward its card AND
+     carry a grade badge + stars pill that overhang the track; the node's lit
+     glow spreads ~24px on top of that. 52px keeps real separation without
+     letting cards clip the viewport at the 1025px two-column breakpoint. */
+  --gutter-gap: 52px;
 
   font-family: var(--font-body);
   color: var(--ink);
@@ -105,32 +111,9 @@
 .root :global(.pl-g-gold) { color: var(--gold); }
 .root :global(.pl-g-purple) { color: var(--node); }
 
-/* ─────────────────────────  NAVBAR  ───────────────────────── */
-.root :global(.pl-nav) {
-  position: fixed; top: 18px; left: 0; right: 0; z-index: 50;
-  display: flex; justify-content: center;
-  pointer-events: none;
-}
-.root :global(.pl-nav-pill) {
-  pointer-events: auto;
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 8px 8px 22px;
-  background: rgba(26, 24, 48, 0.72);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-full);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-}
-.root :global(.pl-nav-link) {
-  color: var(--body); text-decoration: none;
-  font-weight: 600; font-size: 15px;
-  padding: 8px 14px; border-radius: var(--radius-full);
-  transition: color 0.2s var(--ease), background-color 0.2s var(--ease);
-}
-.root :global(.pl-nav-link:hover) { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
-.root :global(.pl-nav-link:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
-
+/* ─────────────────────────  GOLD BUTTON  ─────────────────────────
+   Shared by the page CTAs. The top nav now lives in the standalone
+   LandingNavbar component (reused across every signed-out page). */
 .root :global(.pl-btn-gold) {
   display: inline-flex; align-items: center; gap: 7px;
   background: var(--gold); color: var(--on-gold);
@@ -397,13 +380,13 @@
 
 /* cards & mascots float in the gutters, vertically centred on the segment */
 .root :global(.pl-gutter) { position: absolute; top: 50%; z-index: 2; }
-.root :global(.pl-gutter.pl-left) { right: calc(100% + 34px); }
-.root :global(.pl-gutter.pl-right) { left: calc(100% + 34px); }
+.root :global(.pl-gutter.pl-left) { right: calc(100% + var(--gutter-gap)); }
+.root :global(.pl-gutter.pl-right) { left: calc(100% + var(--gutter-gap)); }
 .root :global(.pl-gutter.pl-lone) { width: var(--mascot-w); }
 
 .root :global(.pl-node-wrap) :global(.pl-gutter) { opacity: 0; transition: opacity 0.5s var(--ease), transform 0.55s var(--ease); }
-.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left) { transform: translate(-44px, 12px); }
-.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translate(44px, 12px); }
+.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left) { transform: translate(-28px, 12px); }
+.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translate(28px, 12px); }
 .root :global(.pl-node-wrap) :global(.pl-gutter:not(.pl-from-left):not(.pl-from-right)) { transform: translateY(26px); }
 .root :global(.pl-node-wrap.pl-lit) :global(.pl-gutter) { opacity: 1; transform: none; }
 

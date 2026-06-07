@@ -5,6 +5,7 @@ import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isInsideNativeShell } from '@/lib/native-bridge';
+import LandingNavbar from './LandingNavbar';
 import styles from './PathLanding.module.css';
 
 const prefersReducedMotion = () =>
@@ -594,24 +595,17 @@ export default function PathLanding() {
       <noscript>
         <style>{`.nm-landing .pl-reveal,.nm-landing .pl-node-wrap .pl-gutter{opacity:1!important;transform:none!important}`}</style>
       </noscript>
-      {/* ─────────────  NAV  ───────────── */}
-      <nav className="pl-nav" aria-label="Primary">
-        <div className="pl-nav-pill">
-          <Link className="pl-nav-link" href="/docs">Docs</Link>
-          <Link className="pl-nav-link" href="/pricing">Pricing</Link>
-          <Link className="pl-btn-gold" href="/auth/login">
-            Log in <span aria-hidden>→</span>
-          </Link>
-        </div>
-      </nav>
+      {/* ─────────────  NAV  ─────────────
+          Shared marketing pill, identical across every signed-out page. */}
+      <LandingNavbar />
 
       <div className="pl-page">
         {/* ─────────────  HERO  ───────────── */}
-        <header className="pl-hero">
+        <div className="pl-hero">
           <h1>
             Your <span className="pl-g-gold">Path</span> to academic success
           </h1>
-        </header>
+        </div>
 
         <section className="pl-hero-stage">
           <div className="pl-hero-card">
