@@ -38,5 +38,3 @@ Your profile page shows your current streak, longest streak, unlocked achievemen
 ## See also
 
 - [Exams and timers](/docs/exams-and-timers) — exam countdowns and the timer widget pair well with the streak system.
-  </content>
-  </invoke>

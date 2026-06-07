@@ -44,10 +44,11 @@ The dashboard is the hub — everything else lives one click away.
 3. Inside the notebook, create a **section**, then a **page**.
 4. Pages can be either a **text page** (rich editor) or a **canvas page** (Excalidraw drawing surface). Pick whichever fits the material.
 
-Once a page has content on it, the rest of Notemage opens up — you can ask your personal Mage Chat to explain it, generate flashcards from it, build a quiz, draft a presentation, or rough out a study plan.
+Once a page has content on it, the rest of Notemage opens up — you can ask your personal Mage Chat to explain it, generate flashcards from it, build a quiz, or draft a presentation. When you're ready to study it all as a guided course, turn your notebook into a [learning path](/docs/learning-paths).
 
 ## Where to go next
 
 - **The notebook → [Notebooks and pages](/docs/notebooks-and-pages)** — sections, pages, and the structure underneath everything.
+- **Learning paths → [Learning paths](/docs/learning-paths)** — turn your material into a guided, Duolingo-style course.
 - **AI features → [Mage Chat](/docs/mage-chat)** — your in-notebook tutor, and how to give it the right context.
-- **Account → [Plans and limits](/docs/plans-and-limits)** — what's free, what unlocks on Plus and Pro.
+- **Account → [Plans and limits](/docs/plans-and-limits)** — what's free and what Pro unlocks.

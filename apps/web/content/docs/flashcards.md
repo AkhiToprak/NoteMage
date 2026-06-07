@@ -51,7 +51,6 @@ The .pptx export builds a slide for each card in the deck.
 AI-generated flashcard sets count against a monthly cap:
 
 - **Free** — 1 AI-generated flashcard set / month.
-- **Plus** — 4 AI-generated flashcard sets / month.
 - **Pro** — unlimited.
 
 Manually-created and imported decks are unlimited on every plan. See [Plans and limits](/docs/plans-and-limits).

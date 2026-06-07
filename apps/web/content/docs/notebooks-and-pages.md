@@ -9,7 +9,7 @@ Notemage organizes your work into **notebooks → sections → pages**. A notebo
 
 ## Notebooks
 
-A notebook is the top-level container. It owns its sections, pages, documents, flashcard sets, quiz sets, study plans, and chats. You can have as many notebooks as you want, and you can group them into folders from the Notebooks page.
+A notebook is the top-level container. It owns its sections, pages, documents, flashcard sets, quiz sets, and chats. You can have as many notebooks as you want, and you can group them into folders from the Notebooks page.
 
 You can share, or download shared notebooks. Sharing is covered in [Groups and sharing](/docs/groups-and-sharing).
 
@@ -36,7 +36,7 @@ A full Excalidraw surface for drawing, diagramming, sketching equations, mind-ma
 ## Routes you'll use
 
 - **/notebooks** — list of all your notebooks.
-- **/notebooks/[id]** — a notebook home with sections, pages, chats, flashcards, quizzes, and study plans.
+- **/notebooks/[id]** — a notebook home with sections, pages, chats, flashcards, and quizzes.
 - **/notebooks/[id]/pages/[pageId]** — the page editor (text or canvas, picked automatically by `pageType`).
 
 ## Autosave

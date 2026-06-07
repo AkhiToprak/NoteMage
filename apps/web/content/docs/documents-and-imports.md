@@ -24,7 +24,7 @@ Notemage supports importing from Microsoft OneNote via OAuth. Connect your Micro
 
 ## YouTube transcripts
 
-Drop in a YouTube URL and Notemage fetches the transcript and stores it like any other document. From there you can chat about the video, generate flashcards from the transcript, or build a study plan around it.
+Drop in a YouTube URL and Notemage fetches the transcript and stores it like any other document. From there you can chat about the video, generate flashcards from the transcript, or feed it into a [learning path](/docs/learning-paths).
 
 ## URL imports
 
@@ -44,3 +44,4 @@ Use these when you have lecture decks or worksheets you want to read and annotat
 - **[Mage Chat](/docs/mage-chat)** can read any uploaded document as context.
 - **[Flashcards](/docs/flashcards)** and **[Quizzes](/docs/quizzes)** can be AI-generated from a document just like from a page.
 - **[Presentations](/docs/presentations)** can be generated from a document via Mage Chat.
+- **[Learning paths](/docs/learning-paths)** can be built from imported documents — turn a set of lecture slides into a full guided course.

@@ -11,16 +11,29 @@ Notemage is a freemium app with two tiers. The non-AI parts of the app — noteb
 
 |                                          | Free    | Pro            |
 | ---------------------------------------- | ------- | -------------- |
-| **Price**                                | 0 CHF   | 10 CHF / month |
+| **Price**                                | 0 CHF   | CHF 12.99 / month |
 | **Monthly token budget**                 | 100,000 | 1,000,000      |
 | **Mage Chat messages / month**           | 50      | Unlimited      |
 | **AI flashcard sets / month**            | 1       | Unlimited      |
 | **AI quiz sets / month**                 | 2       | Unlimited      |
-| **AI study plans / month**               | 2       | Unlimited      |
+| **AI learning paths / month**            | —       | Unlimited      |
+| **Ultra paths / month**                  | —       | 3              |
 | **AI presentations / month**             | 1       | Unlimited      |
 | **Inline AI (rewrite/summarise/expand)** | —       | Unlimited      |
 
 > **Inline AI is Pro-only.** The Free plan doesn't have access to the selection-toolbar rewrite/summarise/expand feature at all. See [Inline AI](/docs/inline-ai).
+
+> **AI path generation is Pro-only.** On Free you can still browse and clone paths from the [Community library](/docs/community-library) — you just can't generate your own with AI. See [Learning paths](/docs/learning-paths).
+
+## Pro billing
+
+Pro is a single plan you can pay for on whichever cadence suits you. Prices are in **Swiss francs (CHF)** — if you're somewhere else, the pricing page shows an approximate conversion and you're charged in CHF at checkout.
+
+- **Weekly** — CHF 4.50
+- **Monthly** — CHF 12.99
+- **Yearly** — CHF 99 — about CHF 8.25 / month, a **36% saving** over paying monthly.
+
+Cancel anytime from your settings — no lock-in, no cancellation fees.
 
 ## What "tokens" actually means
 
@@ -34,7 +47,7 @@ The Mage Chat per-tier message cap is a separate, simpler limit on top of the to
 
 ## Per-feature caps
 
-The AI generation features (flashcards, quizzes, study plans, presentations) each have their own monthly counter. Hitting the cap on one doesn't affect the others — running out of AI flashcard sets doesn't lock you out of generating quizzes.
+The AI generation features (flashcards, quizzes, learning paths, presentations) each have their own monthly counter. Hitting the cap on one doesn't affect the others — running out of AI flashcard sets doesn't lock you out of generating quizzes.
 
 These caps reset monthly along with the token budget.
 
