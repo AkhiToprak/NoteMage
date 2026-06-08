@@ -18,6 +18,7 @@ import {
 } from '@/lib/path-languages';
 import { PublishStatusChip } from '@/components/path-publish/PublishStatusChip';
 import PublishDialog from '@/components/path-publish/PublishDialog';
+import { UltraBadge } from '@/components/learn/UltraBadge';
 import type { SharedPathModerationStatus } from '@notemage/shared';
 
 // Phase 2 of plans/path-publishing-community-library.md — the list
@@ -50,6 +51,8 @@ const POLL_INTERVAL_MS = 3000;
 type PathPlanListItem = PathPlan & {
   generationStatus?: string;
   subjects?: string[];
+  /** Ultra (Pro-tier) path — drives the gold accent + badge on the card. */
+  ultra?: boolean;
   publication?: PathPublicationSummary | null;
   /** Current content language (BCP-47). Defaults to 'en' when absent. */
   language?: string;
@@ -610,6 +613,12 @@ export default function LearnPage() {
           outline: 3px solid var(--primary);
           outline-offset: 2px;
         }
+        .learn-paths-card--gold:hover {
+          border-color: var(--brand-gold);
+        }
+        .learn-paths-card--gold:focus-visible {
+          outline-color: var(--brand-gold);
+        }
         @media (prefers-reduced-motion: reduce) {
           .learn-paths-card { transition: none; }
           .learn-paths-card:hover { transform: none; }
@@ -639,6 +648,10 @@ function PathCard({
   const total = allSlots.length;
   const done = allSlots.filter((s) => s.completed).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const ultra = plan.ultra === true;
+  // Gold fills/borders use the constant --brand-gold; gold text/icons use
+  // --ultra-ink so they stay readable when the surface flips to light.
+  const ink = ultra ? 'var(--ultra-ink)' : 'var(--md-h4)';
   const primarySubject = primarySubjectOf(plan);
   const publication = plan.publication ?? null;
   const canPublish = plan.generationStatus === 'ready' && !publication;
@@ -669,7 +682,7 @@ function PathCard({
   return (
     <Link
       href={`/learn/paths/${encodeURIComponent(plan.id)}`}
-      className="learn-paths-card"
+      className={ultra ? 'learn-paths-card learn-paths-card--gold' : 'learn-paths-card'}
       style={{
         position: 'relative',
         zIndex: menuOpen ? 5 : undefined,
@@ -678,7 +691,7 @@ function PathCard({
         gap: '12px',
         padding: '16px',
         background: 'var(--surface-container)',
-        border: '1px solid var(--outline-variant)',
+        border: ultra ? '1.5px solid var(--brand-gold)' : '1px solid var(--outline-variant)',
         borderRadius: 'var(--radius-lg)',
         textDecoration: 'none',
         color: 'var(--on-surface)',
@@ -846,7 +859,7 @@ function PathCard({
             height: '44px',
             borderRadius: 'var(--radius-md)',
             background: 'var(--surface-container-high)',
-            color: 'var(--md-h4)',
+            color: ink,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -887,7 +900,7 @@ function PathCard({
         </div>
       </div>
 
-      {primarySubject || publication ? (
+      {ultra || primarySubject || publication ? (
         <div
           style={{
             display: 'flex',
@@ -896,6 +909,7 @@ function PathCard({
             alignItems: 'center',
           }}
         >
+          {ultra ? <UltraBadge /> : null}
           {primarySubject ? <SubjectChip subject={primarySubject} /> : null}
           {publication ? <PublishStatusChip status={publication.moderationStatus} /> : null}
         </div>
@@ -915,7 +929,7 @@ function PathCard({
           style={{
             width: `${pct}%`,
             height: '100%',
-            background: 'var(--primary)',
+            background: ultra ? 'var(--brand-gold)' : 'var(--primary)',
             borderRadius: '999px',
           }}
         />
@@ -934,7 +948,7 @@ function PathCard({
         <span>
           {done} / {total} checkpoints
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--md-h4)', fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: ink, fontWeight: 600 }}>
           Open
           <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
             chevron_right
