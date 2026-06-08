@@ -48,6 +48,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
   const isLearnChats = LEARN_CHATS_RE.test(pathname);
   const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats;
+  // /learn owns its own spacing: the tab strip is full-bleed (flush under the
+  // header, edge to edge) and every /learn page self-pads (centered maxWidth +
+  // its own horizontal padding). Drop the generic <main> padding here — it
+  // otherwise insets the tab strip with a top + side margin.
+  const isLearn = pathname === '/learn' || pathname.startsWith('/learn/');
 
   return (
     <TutorialProvider>
@@ -70,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   minHeight: 0,
                   overflowX: 'hidden',
                   overflowY: isFullHeight ? 'hidden' : 'auto',
-                  padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
+                  padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
                   color: 'var(--on-surface)',
                   display: isFullHeight ? 'flex' : undefined,
                   flexDirection: isFullHeight ? 'column' : undefined,

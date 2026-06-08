@@ -14,6 +14,7 @@ interface PathItem {
   id: string;
   title: string;
   notebookTitle: string | null;
+  ultra?: boolean;
   generationStatus?: string;
   phases: Array<{
     slots: Array<{ activities: Array<{ completed: boolean }> }>;
@@ -131,28 +132,14 @@ export default function LearnDashboardPage() {
     .slice(0, CONTINUE_LIMIT);
 
   return (
-    <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '24px 16px 48px' }}>
-      <header style={{ marginBottom: '28px' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: '32px',
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Learn
-        </h1>
-        <p style={{ margin: '6px 0 0', fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
-          Pick up where you left off, or start something new.
-        </p>
-      </header>
+    <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '32px 16px 48px' }}>
+      {/* No visible page title in the design — keep an h1 for the heading
+          outline / screen readers, but hide it visually. */}
+      <h1 className="sr-only">Learn</h1>
 
       {generating.length > 0 && <GeneratingBanner paths={generating} />}
 
-      <section style={{ marginBottom: '32px' }}>
+      <section style={{ marginBottom: '44px' }}>
         <SectionHeading title="Continue" />
         {paths.kind === 'loading' ? (
           <ContinueSkeleton />
@@ -173,7 +160,7 @@ export default function LearnDashboardPage() {
         )}
       </section>
 
-      <section style={{ marginBottom: '32px' }}>
+      <section style={{ marginBottom: '44px' }}>
         <SectionHeading title="Start something" />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           <QuickAction icon="add" label="New path" href="/learn/paths" primary />
@@ -192,7 +179,7 @@ export default function LearnDashboardPage() {
             gap: '12px',
           }}
         >
-          <CountChip icon="school" label="Paths" count={countOf(paths)} href="/learn/paths" />
+          <CountChip icon="stacks" label="Paths" count={countOf(paths)} href="/learn/paths" />
           <CountChip icon="style" label="Flashcards" count={countOf(flashcardSets)} href="/learn/flashcards" />
           <CountChip icon="quiz" label="Quizzes" count={countOf(quizSets)} href="/learn/quizzes" />
           <CountChip icon="menu_book" label="Notebooks" count={countOf(notebooks)} href="/notebooks" />
@@ -262,6 +249,20 @@ function GeneratingBanner({ paths }: { paths: PathItem[] }) {
   );
 }
 
+// Custom brand glyph for the Ultra badge (a stepped lightning bolt). Inherits
+// the parent's text color via currentColor; the source SVG's no-op 24×24 clip
+// path is dropped. The light step-lines keep their 0.4 opacity.
+function UltraSparkIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden focusable="false">
+      <path d="M9.31994 13.2805H12.4099V20.4805C12.4099 21.5405 13.7299 22.0405 14.4299 21.2405L21.9999 12.6405C22.6599 11.8905 22.1299 10.7205 21.1299 10.7205H18.0399V3.52046C18.0399 2.46046 16.7199 1.96046 16.0199 2.76046L8.44994 11.3605C7.79994 12.1105 8.32994 13.2805 9.31994 13.2805Z" />
+      <path opacity="0.4" d="M8.5 4.75H1.5C1.09 4.75 0.75 4.41 0.75 4C0.75 3.59 1.09 3.25 1.5 3.25H8.5C8.91 3.25 9.25 3.59 9.25 4C9.25 4.41 8.91 4.75 8.5 4.75Z" />
+      <path opacity="0.4" d="M7.5 20.75H1.5C1.09 20.75 0.75 20.41 0.75 20C0.75 19.59 1.09 19.25 1.5 19.25H7.5C7.91 19.25 8.25 19.59 8.25 20C8.25 20.41 7.91 20.75 7.5 20.75Z" />
+      <path opacity="0.4" d="M4.5 12.75H1.5C1.09 12.75 0.75 12.41 0.75 12C0.75 11.59 1.09 11.25 1.5 11.25H4.5C4.91 11.25 5.25 11.59 5.25 12C5.25 12.41 4.91 12.75 4.5 12.75Z" />
+    </svg>
+  );
+}
+
 function ContinueCard({
   path,
   pct,
@@ -273,17 +274,22 @@ function ContinueCard({
   done: number;
   total: number;
 }) {
+  const ultra = path.ultra === true;
+  // Gold fills/borders use the constant --brand-gold; gold text/icons use
+  // --ultra-ink so they stay readable when the surface flips to light.
+  const ink = ultra ? 'var(--ultra-ink)' : 'var(--md-h4)';
+  const fill = ultra ? 'var(--brand-gold)' : 'var(--accent-strong)';
   return (
     <Link
       href={`/learn/paths/${encodeURIComponent(path.id)}`}
-      className="learn-hub-card"
+      className={ultra ? 'learn-hub-card learn-hub-card--gold' : 'learn-hub-card'}
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
         padding: '16px',
         background: 'var(--surface-container)',
-        border: '1px solid var(--outline-variant)',
+        border: ultra ? '1.5px solid var(--brand-gold)' : '1px solid var(--outline-variant)',
         borderRadius: 'var(--radius-lg)',
         textDecoration: 'none',
         color: 'var(--on-surface)',
@@ -297,7 +303,7 @@ function ContinueCard({
             height: '32px',
             borderRadius: 'var(--radius-md)',
             background: 'var(--surface-container-high)',
-            color: 'var(--md-h4)',
+            color: ink,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -305,11 +311,12 @@ function ContinueCard({
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            school
+            {ultra ? 'school' : 'stacks'}
           </span>
         </span>
         <span
           style={{
+            flex: '1 1 auto',
             fontSize: '15px',
             fontWeight: 700,
             color: 'var(--on-surface)',
@@ -321,6 +328,25 @@ function ContinueCard({
         >
           {path.title}
         </span>
+        {ultra && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              flexShrink: 0,
+              color: 'var(--ultra-ink)',
+              fontFamily: 'var(--font-brand)',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Ultra
+            <UltraSparkIcon size={13} />
+          </span>
+        )}
       </div>
       <span
         style={{
@@ -343,13 +369,13 @@ function ContinueCard({
           overflow: 'hidden',
         }}
       >
-        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent-strong)', borderRadius: '999px' }} />
+        <div style={{ width: `${pct}%`, height: '100%', background: fill, borderRadius: '999px' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)', fontVariantNumeric: 'tabular-nums' }}>
           {pct}% · {done}/{total} steps
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: 'var(--md-h4)' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: ink }}>
           Resume
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden>
             arrow_forward
@@ -381,15 +407,15 @@ function ContinueEmpty({ hasPaths, error }: { hasPaths: boolean; error: boolean 
       </p>
       <Link
         href="/learn/paths"
-        className="learn-hub-card"
+        className="learn-hub-card learn-hub-card--gold"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
           padding: '10px 18px',
           borderRadius: 'var(--radius-md)',
-          background: 'var(--accent-strong)',
-          color: 'var(--on-primary-container)',
+          background: 'var(--brand-gold)',
+          color: 'var(--brand-gold-ink)',
           fontWeight: 700,
           fontSize: '14px',
           textDecoration: 'none',
@@ -442,7 +468,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="learn-hub-card"
+      className={primary ? 'learn-hub-card learn-hub-card--gold' : 'learn-hub-card'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -453,9 +479,9 @@ function QuickAction({
         fontSize: '14px',
         fontWeight: 700,
         whiteSpace: 'nowrap',
-        background: primary ? 'var(--accent-strong)' : 'var(--surface-container)',
-        color: primary ? 'var(--on-primary-container)' : 'var(--on-surface)',
-        border: primary ? '1px solid var(--accent-strong)' : '1px solid var(--outline-variant)',
+        background: primary ? 'var(--brand-gold)' : 'var(--surface-container)',
+        color: primary ? 'var(--brand-gold-ink)' : 'var(--on-surface)',
+        border: primary ? '1px solid var(--brand-gold)' : '1px solid var(--outline-variant)',
       }}
     >
       <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>

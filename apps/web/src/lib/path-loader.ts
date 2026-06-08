@@ -165,6 +165,8 @@ export interface SerializedPath {
   startDate: Date;
   endDate: Date;
   source: string;
+  /** Ultra (Pro-tier) path — drives the gold accent + badge on the Learn hub. */
+  ultra: boolean;
   /** Content language the path is currently in (BCP-47 lowercase). */
   language: string;
   generationStatus: string;
@@ -231,6 +233,7 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
     startDate: plan.startDate,
     endDate: plan.endDate,
     source: plan.source,
+    ultra: plan.ultra,
     language: plan.language,
     generationStatus: plan.generationStatus,
     generationError: plan.generationError ?? null,

@@ -64,6 +64,11 @@
   --brand-purple: #ae89ff;
   --brand-gold: #ffde59;
   --brand-gold-ink: #2a2200;
+  /* Readable gold INK for text/icons on theme-flipping app surfaces (the Ultra
+     accent on /learn). Stays bright gold on dark; the [data-theme='light']
+     block flips it to a deep amber so it never reads light-on-light. Use this
+     for gold text/icons; use --brand-gold for gold fills/borders. */
+  --ultra-ink: var(--brand-gold);
 
   /* Quiz question card — a fixed deep navy-violet (NOT theme-flipping): the
      card carries near-white question text in both themes, so it must stay
@@ -377,6 +382,9 @@
      light-on-light). */
   --success: #1f7a54;
   --warning: #8a5a00;
+  /* Ultra gold ink (light) — deep amber so the /learn Ultra accent text/icons
+     keep AA contrast on near-white. Gold FILLS still use --brand-gold. */
+  --ultra-ink: #8a5a00;
 
   /* Light-mode verdict triplets — darker so low-alpha tints read on near-white. */
   --verdict-pass-rgb: 31 122 84;
@@ -740,6 +748,13 @@ a.learn-hub-card:hover {
   transform: translateY(-3px);
   box-shadow:
     0 0 0 1px var(--primary),
+    0 12px 28px var(--bento-hover-shadow);
+}
+/* Gold-accented variant (Ultra path card + the New-path CTA) — same lift, but a
+   gold hover ring so it doesn't clash with the purple default. */
+a.learn-hub-card.learn-hub-card--gold:hover {
+  box-shadow:
+    0 0 0 1px var(--brand-gold),
     0 12px 28px var(--bento-hover-shadow);
 }
 @media (prefers-reduced-motion: reduce) {

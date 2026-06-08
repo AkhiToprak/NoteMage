@@ -22,7 +22,7 @@ interface LearnTab {
 
 const TABS: ReadonlyArray<LearnTab> = [
   { href: '/learn', label: 'Overview', icon: 'dashboard', slug: 'overview', exact: true },
-  { href: '/learn/paths', label: 'Paths', icon: 'school', slug: 'paths' },
+  { href: '/learn/paths', label: 'Paths', icon: 'stacks', slug: 'paths' },
   { href: '/learn/flashcards', label: 'Flashcards', icon: 'style', slug: 'flashcards' },
   { href: '/learn/quizzes', label: 'Quizzes', icon: 'quiz', slug: 'quizzes' },
   { href: '/learn/chats', label: 'Chats', icon: 'chat', slug: 'chats' },
