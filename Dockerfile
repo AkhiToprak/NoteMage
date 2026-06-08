@@ -61,6 +61,12 @@ ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 ENV SENTRY_ORG=$SENTRY_ORG
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
 
+# Give the Turbopack production build extra V8 heap. Without this the build
+# OOM-kills on memory-constrained hosts (Coolify), dying abruptly right at
+# "Creating an optimized production build ..." with no JS error and a generic
+# exit 255 — the SIGKILL terminates the process before it can print a trace.
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
 RUN pnpm --filter web exec next build
 
 # ── Runner ─────────────────────────────────────────────────────────────
