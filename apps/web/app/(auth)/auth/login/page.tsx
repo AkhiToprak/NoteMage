@@ -214,7 +214,11 @@ function LoginForm() {
           marginBottom: '40px',
         }}
       >
-        <div style={{ position: 'relative', marginBottom: '24px' }}>
+        <Link
+          href="/"
+          aria-label="Notemage home"
+          style={{ position: 'relative', display: 'inline-flex' }}
+        >
           <div
             style={{
               position: 'absolute',
@@ -227,24 +231,12 @@ function LoginForm() {
           <Image
             src="/logo_trimmed.png"
             alt="Notemage"
-            width={96}
-            height={96}
+            width={144}
+            height={144}
             style={{ objectFit: 'contain', position: 'relative' }}
             priority
           />
-        </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '48px',
-            fontWeight: 400,
-            color: 'var(--brand-purple)',
-            margin: '0 0 8px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Welcome back
-        </h1>
+        </Link>
       </div>
 
       {/* Card */}
