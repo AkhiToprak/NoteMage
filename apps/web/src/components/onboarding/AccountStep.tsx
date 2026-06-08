@@ -386,6 +386,28 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           )}
         </button>
       </form>
+
+      <p
+        style={{
+          margin: '18px 0 0',
+          textAlign: 'center',
+          fontSize: '13px',
+          color: 'var(--on-surface-variant)',
+        }}
+      >
+        Already have an account?{' '}
+        <a
+          href="/auth/login"
+          style={{
+            color: 'var(--brand-purple-strong)',
+            fontWeight: 600,
+            textDecoration: 'underline',
+            textUnderlineOffset: '2px',
+          }}
+        >
+          Sign in
+        </a>
+      </p>
     </>
   );
 }
