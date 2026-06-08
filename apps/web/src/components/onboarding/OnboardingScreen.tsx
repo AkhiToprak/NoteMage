@@ -90,9 +90,9 @@ export default function OnboardingScreen({
         <OnboardingProgressBar value={progress} />
       </div>
 
-      {/* mascot + wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '14px' }}>
-        {mascotPose && (
+      {/* mascot */}
+      {mascotPose && (
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: '14px' }}>
           <span style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
             <Mascot pose={mascotPose} size="xs" idle={mascotIdle} />
             {mascotBadge && (
@@ -104,19 +104,8 @@ export default function OnboardingScreen({
               </span>
             )}
           </span>
-        )}
-        <span
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '16px',
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-            color: 'var(--md-h4)',
-          }}
-        >
-          NoteMage
-        </span>
-      </div>
+        </div>
+      )}
 
       {/* heading */}
       {heading && (
