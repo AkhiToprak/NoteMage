@@ -490,7 +490,7 @@
 @media (max-width: 1024px) {
   .root :global(.pl-path) { padding: 6px 16px 48px; }
   .root :global(.pl-track) { width: 100%; max-width: 540px; }
-  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 10px 0; }
+  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 32px 0; }
 
   /* gutters leave the side rails and flow in-document, centred under the node */
   .root :global(.pl-node-wrap) :global(.pl-gutter) {
