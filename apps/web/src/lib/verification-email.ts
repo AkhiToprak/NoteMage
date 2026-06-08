@@ -183,3 +183,140 @@ export async function sendVerificationCode(email: string, code: string): Promise
     return false;
   }
 }
+
+/**
+ * Build the password-reset email. Same layout/palette as the verification
+ * email (table-based, inline styles, no gradients) — only the copy differs.
+ * Returns an HTML body and a plain-text fallback.
+ */
+export function renderPasswordResetEmail(code: string): { html: string; text: string } {
+  const appUrl = getAppUrl();
+  const spaced = code.split('').join(' '); // "1 2 3 4 5 6" for the text version
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Reset your NoteMage password</title>
+</head>
+<body style="margin:0; padding:0; background-color:${C.pageBg};">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+    Your NoteMage password-reset code is ${code}. It expires in 15 minutes.
+  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.pageBg}" style="background-color:${C.pageBg};">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px; background-color:${C.cardBg}; border:1px solid ${C.cardBorder}; border-radius:24px; overflow:hidden;">
+          <tr>
+            <td style="height:4px; line-height:4px; font-size:4px; background-color:${C.accent};">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px 40px;">
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center">
+                    <img src="${appUrl}/mascot/wave-v2.png" width="104" height="104" alt="NoteMage mascot waving hello" style="display:block; width:104px; height:auto; border:0; outline:none; text-decoration:none;">
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:10px;">
+                    <span style="font-family:${FONT_STACK}; font-size:20px; font-weight:800; letter-spacing:-0.02em; color:${C.accent};">NoteMage</span>
+                  </td>
+                </tr>
+              </table>
+
+              <h1 style="margin:26px 0 10px; text-align:center; font-family:${FONT_STACK}; font-size:24px; font-weight:800; letter-spacing:-0.02em; color:${C.heading};">
+                Reset your password
+              </h1>
+              <p style="margin:0 0 26px; text-align:center; font-family:${FONT_STACK}; font-size:15px; line-height:1.6; color:${C.body};">
+                Enter this code to set a new password.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:${C.codeBg}; border:1px solid ${C.codeBorder}; border-radius:16px; padding:22px 16px;">
+                    <div style="font-family:'Courier New', Courier, monospace; font-size:38px; font-weight:700; letter-spacing:12px; color:${C.gold}; padding-left:12px;">
+                      ${code}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:16px 0 0; text-align:center; font-family:${FONT_STACK}; font-size:13px; color:${C.muted};">
+                This code expires in 15 minutes.
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:28px 0 0;">
+                    <div style="border-top:1px solid ${C.cardBorder}; line-height:1px; font-size:1px;">&nbsp;</div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0; text-align:center; font-family:${FONT_STACK}; font-size:13px; line-height:1.6; color:${C.muted};">
+                Didn't request this? You can safely ignore this email — your password won't change unless someone enters this code.
+              </p>
+
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+          <tr>
+            <td align="center" style="padding:24px 16px 0; font-family:${FONT_STACK}; font-size:12px; line-height:1.6; color:${C.footer};">
+              © NoteMage · Basel, Switzerland<br>
+              You received this because a password reset was requested for this address.
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    'Reset your NoteMage password',
+    '',
+    'Enter this code to set a new password:',
+    '',
+    `    ${spaced}`,
+    '',
+    'This code expires in 15 minutes.',
+    '',
+    "Didn't request this? You can safely ignore this email — your password won't change unless someone enters this code.",
+    '',
+    '— The NoteMage Team',
+  ].join('\n');
+
+  return { html, text };
+}
+
+/**
+ * Send a 6-digit password-reset code to `email`. Returns true on success.
+ * Never throws — the forgot-password route treats a failed send as non-fatal
+ * (the user can request another code).
+ */
+export async function sendPasswordResetCode(email: string, code: string): Promise<boolean> {
+  const { html, text } = renderPasswordResetEmail(code);
+  try {
+    await getResend().emails.send({
+      from: getFromAddress(),
+      to: email,
+      subject: `${code} is your NoteMage password-reset code`,
+      html,
+      text,
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to send password-reset email:', err);
+    return false;
+  }
+}

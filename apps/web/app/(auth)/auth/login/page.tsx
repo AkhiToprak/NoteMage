@@ -32,6 +32,7 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   // Set when authorize() rejects an unverified credentials account. Swaps the
   // login card for the inline code-entry flow (the password is still in state,
@@ -42,6 +43,14 @@ function LoginForm() {
   // the most important one is OAuthAccountExists, which fires when an
   // OAuth sign-in collides with an existing password account and we
   // refused to silently link it.
+  // Success banner after completing a password reset (redirected from
+  // /auth/forgot-password with ?reset=1).
+  useEffect(() => {
+    if (searchParams.get('reset') === '1') {
+      setNotice('Your password has been reset. Please log in with your new password.');
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const err = searchParams.get('error');
     if (!err) return;
@@ -250,6 +259,21 @@ function LoginForm() {
           overflow: 'hidden',
         }}
       >
+        {notice && !error && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              background: 'rgba(77,255,145,0.12)',
+              color: '#4dff91',
+              fontSize: '14px',
+              marginBottom: '24px',
+            }}
+          >
+            {notice}
+          </div>
+        )}
+
         {error && (
           <div
             style={{
@@ -389,8 +413,8 @@ function LoginForm() {
               </button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <a
-                href="#"
+              <Link
+                href="/auth/forgot-password"
                 style={{
                   fontSize: '13px',
                   fontWeight: 700,
@@ -400,7 +424,7 @@ function LoginForm() {
                 }}
               >
                 Forgot Password?
-              </a>
+              </Link>
             </div>
           </div>
 

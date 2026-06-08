@@ -209,6 +209,9 @@ model User {
   // Email-confirmation codes for the credentials-signup gate (one active
   // row per user; reissued on resend).
   emailVerificationCodes EmailVerificationCode[]
+  // Password-reset codes for the forgot-password flow (one active row per
+  // user; reissued on each request — see src/lib/verification.ts).
+  passwordResetCodes     PasswordResetCode[]
 
   @@map("users")
 }
@@ -1701,6 +1704,23 @@ model EmailVerificationCode {
 
   @@index([userId])
   @@map("email_verification_codes")
+}
+
+// Password-reset codes for the forgot-password flow. Field-for-field a clone of
+// EmailVerificationCode (6 numeric digits, bcrypt-hashed, 15-min TTL, ≤5
+// attempts, one active row per user) but a SEPARATE table so the live signup
+// verification path is never touched. See src/lib/verification.ts.
+model PasswordResetCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String // bcrypt hash of the 6-digit code
+  attempts  Int      @default(0) // wrong-guess counter; row is dead past the cap
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_codes")
 }
 
 // ============================================================================

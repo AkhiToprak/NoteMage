@@ -5,6 +5,7 @@ export type SecurityEventType =
   | 'login.failed'
   | 'account.locked'
   | 'password.changed'
+  | 'password.reset'
   | 'oauth.created'
   | 'oauth.linked';
 

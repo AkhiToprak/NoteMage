@@ -84,3 +84,70 @@ export async function verifyEmailCode(userId: string, code: string): Promise<Ver
 
   return { ok: true };
 }
+
+// ── Password reset ─────────────────────────────────────────────────────────
+// Same 6-digit code mechanics as the email-confirmation flow above, but stored
+// in a separate table so the two never collide. The brute-force defenses are
+// identical: MAX_ATTEMPTS wrong guesses kills the code, a 15-minute expiry, and
+// IP/email rate limiting on the forgot/reset endpoints.
+
+/**
+ * Mint a fresh 6-digit password-reset code for `userId` and return the
+ * plaintext (so the caller can email it — only the hash is persisted). Any
+ * prior reset code for the user is deleted first, so there is exactly one
+ * active code at a time and the attempt counter resets on every request.
+ */
+export async function issuePasswordResetCode(userId: string): Promise<string> {
+  const code = generateCode();
+  const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
+  const expiresAt = new Date(Date.now() + CODE_TTL_MS);
+
+  await db.$transaction([
+    db.passwordResetCode.deleteMany({ where: { userId: { equals: userId } } }),
+    db.passwordResetCode.create({ data: { userId, codeHash, expiresAt } }),
+  ]);
+
+  return code;
+}
+
+/**
+ * Check a submitted password-reset code for `userId`. On success the reset
+ * code rows are cleared (single-use) — but, unlike `verifyEmailCode`, this does
+ * NOT touch the user row: the reset route owns the password write so the whole
+ * change (hash + lockout reset + emailVerified + code burn) lands in one
+ * transaction. Failures are granular for server logging; callers must surface a
+ * single generic message.
+ */
+export async function verifyPasswordResetCode(
+  userId: string,
+  code: string
+): Promise<VerifyCodeResult> {
+  const row = await db.passwordResetCode.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!row) return { ok: false, reason: 'no_code' };
+
+  if (row.expiresAt.getTime() < Date.now()) {
+    await db.passwordResetCode.deleteMany({ where: { userId: { equals: userId } } });
+    return { ok: false, reason: 'expired' };
+  }
+
+  if (row.attempts >= MAX_ATTEMPTS) {
+    // Spent — make the user request a new code rather than keep guessing.
+    await db.passwordResetCode.deleteMany({ where: { userId: { equals: userId } } });
+    return { ok: false, reason: 'too_many_attempts' };
+  }
+
+  const match = await bcrypt.compare(code, row.codeHash);
+  if (!match) {
+    await db.passwordResetCode.update({
+      where: { id: row.id },
+      data: { attempts: { increment: 1 } },
+    });
+    return { ok: false, reason: 'invalid' };
+  }
+
+  return { ok: true };
+}
