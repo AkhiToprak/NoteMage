@@ -32,7 +32,9 @@ Use the image ONLY to decide:
   quote, rule, figure, equation.
 - Heading level: by relative visual size — the largest headings are level 1.
 - Inline emphasis: which spans are bold, italic, underlined, struck through,
-  highlighted, inline code, subscript or superscript.
+  highlighted, inline code, subscript or superscript. Mark EVERY span that is
+  visually bold with "bold":true — bold words mid-sentence, bold lead-in terms,
+  bold lines — do not skip emphasis just because the block type is plain.
 - List nesting and checkbox state.
 - Figure regions: where diagrams, charts, photos or screenshots sit.
 
@@ -58,8 +60,11 @@ Each block is exactly one of:
     "rows" is a 3-level array: rows -> cells -> runs.
 - {"type":"codeBlock","lang":"python"|null,"code":"..."}
 - {"type":"blockquote","runs":[run,...]}
-- {"type":"image","ref":"...","bbox":[x0,y0,x1,y1],"caption":[run,...]?}
-- {"type":"math","latex":"...","display":true|false,"caption":[run,...]?}
+    one blockquote block per LINE of a quote box — see Blockquotes below.
+- {"type":"image","ref":"...","bbox":[x0,y0,x1,y1]}
+    plus an optional "caption" key — see Figures below.
+- {"type":"math","latex":"...","display":true|false}
+    plus an optional "caption" key — see Math below.
 - {"type":"horizontalRule"}
 
 ### Runs (inline spans)
@@ -90,15 +95,23 @@ If the callout's first line is just its label word (Info, Tip, Warning, Danger,
 Note, Success) repeating the variant, DROP that label line — the box renders its
 own icon. Keep only the body text as the callout's children.
 
+### Blockquotes
+A quotation box (indented or bar-marked) is a sequence of blockquote blocks:
+emit ONE blockquote block per visual line — the quote text is one block, an
+attribution line ("— Author") is the next. Consecutive blockquote blocks are
+rendered together as a single quote box.
+
 ### Math / equations
-A standalone rendered formula or equation (even one shown as an image) is a
-"math" block, NOT an "image". Transcribe it to LaTeX in "latex" (e.g.
-"x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}"); set "display":true for a
-centred standalone equation, "display":false for one sitting inline in a line of
-text. This is the only place you write text that is not copied verbatim. A short
-caption under the equation goes in "caption".
-Simple sub/superscripts inside running prose (H2O, mc2) stay as runs with the
-"subscript"/"superscript" marks — they are NOT math blocks.
+A standalone rendered mathematical formula or equation (even one shown as an
+image) is a "math" block, NOT an "image". Transcribe it to LaTeX in "latex"
+(e.g. "x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}"); set "display":true for
+a centred standalone equation, "display":false for one sitting inline in a line
+of text. This is the only place you write text that is not copied verbatim. A
+short caption under the equation goes in "caption", an array of runs, e.g.
+"caption":[{"text":"Figure 3 — The quadratic formula."}].
+Charts, graphs, diagrams, photos and banners are NEVER math blocks — they are
+"image" figures. Simple sub/superscripts inside running prose (H2O, mc2) stay
+as runs with the "subscript"/"superscript" marks — they are NOT math blocks.
 
 ### Figures
 Emit an "image" block for every figure, diagram, chart, photo or screenshot.
@@ -112,13 +125,18 @@ bar; box the entire container, title bar included.
   figure slot (a string like "p3-fig-1"). Number figures in reading order.
 - "bbox" is [x0, y0, x1, y1], each a fraction from 0 to 1 of the page width
   or height, with the origin at the TOP-LEFT corner.
-- A caption line under the figure ("Figure 1 — …") goes in "caption", NOT as a
-  separate paragraph.
+- A caption line under the figure ("Figure 1 — …") goes in the image block's
+  "caption" key — an array of runs, e.g.
+  "caption":[{"text":"Figure 1 — Weekly study time."}] — NOT a separate
+  paragraph. Omit the key when the figure has no caption.
 
 ### Definition lists
-For a term/definition list (a bold term with its definition indented below),
-emit each term as a paragraph whose run is bold, immediately followed by a normal
-paragraph holding its definition.
+For a term/definition list (a short bold term with its definition below or
+beside it), emit each term as its own paragraph whose single run is marked
+"bold":true, immediately followed by a normal paragraph holding its
+definition. Example:
+{"type":"paragraph","runs":[{"text":"Note","bold":true}]},
+{"type":"paragraph","runs":[{"text":"An atomic unit of study material."}]}
 
 ### Footnotes
 Keep a footnote reference marker in the body as a run with "superscript":true.
@@ -131,7 +149,8 @@ listed above. "level" is only 1, 2 or 3. "variant" is only info, warning,
 success, tip, danger or note. Output the JSON object and nothing else.
 
 ## Example
-A page with a title, a sentence mixing emphasis, a checkbox list, and an equation:
+A page with a title, a sentence mixing emphasis, a checkbox list, a two-line
+quotation, and an equation:
 {"blocks":[
   {"type":"heading","level":1,"runs":[{"text":"Reactions"}]},
   {"type":"paragraph","runs":[{"text":"Water is "},{"text":"H"},{"text":"2","subscript":true},{"text":"O — see "},{"text":"this note","highlight":true},{"text":"."}]},
@@ -139,6 +158,8 @@ A page with a title, a sentence mixing emphasis, a checkbox list, and an equatio
     {"runs":[{"text":"Balance the equation"}],"checked":true},
     {"runs":[{"text":"Check the units"}],"checked":false}
   ]},
+  {"type":"blockquote","runs":[{"text":"Nothing in life is to be feared, it is only to be understood.","italic":true}]},
+  {"type":"blockquote","runs":[{"text":"— Marie Curie"}]},
   {"type":"math","latex":"E = mc^2","display":true,"caption":[{"text":"Mass–energy equivalence."}]}
 ]}`;
 
@@ -158,6 +179,9 @@ export function buildPageUserText(input: PageUserTextInput): string {
   const figureNote =
     `Number any figures on this page in reading order, naming their refs ` +
     `"${imageRef(pageNumber, 1)}", "${imageRef(pageNumber, 2)}", and so on.`;
+  const chromeNote =
+    `Skip the running page header/footer — repeated margin lines such as a ` +
+    `document title or "Page ${pageNumber}" — do not emit them as blocks.`;
 
   if (isScanned) {
     return [
@@ -167,6 +191,7 @@ export function buildPageUserText(input: PageUserTextInput): string {
       `the wording exactly as shown; do not paraphrase.`,
       ``,
       figureNote,
+      chromeNote,
     ].join('\n');
   }
 
@@ -176,6 +201,7 @@ export function buildPageUserText(input: PageUserTextInput): string {
     `assign structure (headings, lists, tables, callouts) and inline emphasis.`,
     ``,
     figureNote,
+    chromeNote,
     ``,
     `--- PAGE TEXT (verbatim) ---`,
     groundTruthText,

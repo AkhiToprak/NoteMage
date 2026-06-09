@@ -92,3 +92,157 @@ describe('normalizeDocModelShape', () => {
     expect(normalized[0].headerRow).toBe(false); // single row
   });
 });
+
+describe('normalizeDocModelShape — extended drift rescue', () => {
+  const parseAfter = (blocks: unknown[]) =>
+    docModelSchema.safeParse(normalizeDocModelShape({ blocks }));
+
+  it('coerces a bare-string caption on image and math blocks', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], caption: 'Figure 1 — chart.' },
+      { type: 'math', latex: 'E=mc^2', display: true, caption: 'Equation.' },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.caption).toEqual([{ text: 'Figure 1 — chart.' }]);
+    }
+  });
+
+  it('drops an empty caption rather than failing validation', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], caption: '' },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.caption).toBeUndefined();
+    }
+  });
+
+  it('coerces checked given as a string and items given as strings', () => {
+    const result = parseAfter([
+      {
+        type: 'taskList',
+        items: [{ runs: [{ text: 'a' }], checked: 'true' }, 'bare item'],
+      },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const list = result.data.blocks[0];
+      if (list.type === 'taskList') {
+        expect(list.items[0].checked).toBe(true);
+        expect(list.items[1].runs).toEqual([{ text: 'bare item' }]);
+      }
+    }
+  });
+
+  it('wraps a single nested-children object into an array and recurses', () => {
+    const result = parseAfter([
+      {
+        type: 'bulletList',
+        items: [
+          {
+            runs: [{ text: 'parent' }],
+            children: { type: 'bulletList', items: ['child'] },
+          },
+        ],
+      },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const list = result.data.blocks[0];
+      if (list.type === 'bulletList') {
+        expect(list.items[0].children?.[0]).toEqual({
+          type: 'bulletList',
+          items: [{ runs: [{ text: 'child' }] }],
+        });
+      }
+    }
+  });
+
+  it('strips stray keys from blocks and runs', () => {
+    const result = parseAfter([
+      { type: 'paragraph', runs: [{ type: 'text', text: 'hi', style: 'big' }], align: 'left' },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.blocks[0]).toEqual({ type: 'paragraph', runs: [{ text: 'hi' }] });
+    }
+  });
+
+  it('expands a blockquote drifted into children into per-line blockquotes', () => {
+    const result = parseAfter([
+      {
+        type: 'blockquote',
+        children: [
+          { type: 'paragraph', runs: [{ text: 'Tell me and I forget.', italic: true }] },
+          { type: 'paragraph', runs: [{ text: '— Xenophon' }] },
+        ],
+      },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.blocks).toEqual([
+        { type: 'blockquote', runs: [{ text: 'Tell me and I forget.', italic: true }] },
+        { type: 'blockquote', runs: [{ text: '— Xenophon' }] },
+      ]);
+    }
+  });
+
+  it('maps callout variant synonyms and demotes a heading child to a paragraph', () => {
+    const result = parseAfter([
+      {
+        type: 'callout',
+        variant: 'Error',
+        children: [{ type: 'heading', level: 2, runs: [{ text: 'Danger zone' }] }],
+      },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const callout = result.data.blocks[0];
+      if (callout.type === 'callout') {
+        expect(callout.variant).toBe('danger');
+        expect(callout.children).toEqual([
+          { type: 'paragraph', runs: [{ text: 'Danger zone' }] },
+        ]);
+      }
+    }
+  });
+
+  it('defaults a missing math display flag and strips $ delimiters', () => {
+    const result = parseAfter([{ type: 'math', latex: '$$E=mc^2$$' }]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const math = result.data.blocks[0];
+      if (math.type === 'math') {
+        expect(math.latex).toBe('E=mc^2');
+        expect(math.display).toBe(true);
+      }
+    }
+  });
+
+  it('coerces numeric-string heading levels and clamps the range', () => {
+    const result = parseAfter([
+      { type: 'heading', level: '2', runs: [{ text: 'h' }] },
+      { type: 'heading', level: 5, runs: [{ text: 'deep' }] },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const [a, b] = result.data.blocks;
+      if (a.type === 'heading') expect(a.level).toBe(2);
+      if (b.type === 'heading') expect(b.level).toBe(3);
+    }
+  });
+
+  it('coerces numeric-string bbox values', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: ['0.1', '0.2', '0.8', '0.9'] },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.bbox).toEqual([0.1, 0.2, 0.8, 0.9]);
+    }
+  });
+});

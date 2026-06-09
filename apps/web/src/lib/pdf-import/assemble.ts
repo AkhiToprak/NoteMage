@@ -232,17 +232,36 @@ export function assembleTiptap(
   model: DocModel,
   imageSrcByRef: Record<string, string> = {},
 ): { doc: TipTapDoc; truncated: boolean } {
+  // Convert every block, merging CONSECUTIVE blockquotes into one quote node:
+  // a multi-line quotation (quote + attribution) arrives from the engine as
+  // one blockquote block per visual line, and a single quote box with several
+  // paragraphs is the faithful rendering.
+  const nodes: TipTapNode[] = [];
+  for (const block of model.blocks) {
+    for (const node of convertBlock(block, imageSrcByRef)) {
+      const prev = nodes[nodes.length - 1];
+      if (
+        node.type === 'blockquote' &&
+        prev?.type === 'blockquote' &&
+        Array.isArray(prev.content) &&
+        Array.isArray(node.content)
+      ) {
+        prev.content.push(...node.content);
+        continue;
+      }
+      nodes.push(node);
+    }
+  }
+
   const doc: TipTapDoc = { type: 'doc', content: [] };
   let truncated = false;
 
-  outer: for (const block of model.blocks) {
-    for (const node of convertBlock(block, imageSrcByRef)) {
-      doc.content.push(node);
-      if (Buffer.byteLength(JSON.stringify(doc)) > MAX_DOC_BYTES) {
-        doc.content.pop();
-        truncated = true;
-        break outer;
-      }
+  for (const node of nodes) {
+    doc.content.push(node);
+    if (Buffer.byteLength(JSON.stringify(doc)) > MAX_DOC_BYTES) {
+      doc.content.pop();
+      truncated = true;
+      break;
     }
   }
 

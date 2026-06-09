@@ -1254,6 +1254,9 @@ export default function PageEditor({
         .notemage-editor [data-toggle-level] p:last-child { margin: 0; }
         /* ── mark / highlight ── */
         .notemage-editor mark { border-radius: 3px; padding: 1px 3px; }
+        /* ── links ── */
+        .notemage-editor a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, var(--primary) 55%, transparent); cursor: pointer; }
+        .notemage-editor a:hover { text-decoration-color: var(--primary); }
         /* ── subscript / superscript ── */
         .notemage-editor sub, .notemage-editor sup { font-size: 0.75em; line-height: 0; position: relative; }
         .notemage-editor sub { vertical-align: sub; }

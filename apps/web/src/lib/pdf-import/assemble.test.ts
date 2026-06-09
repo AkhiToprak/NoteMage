@@ -157,6 +157,46 @@ describe('assembleTiptap — block → node mapping', () => {
     });
   });
 
+  it('merges consecutive blockquotes into one quote with a paragraph per line', () => {
+    const { doc } = assembleTiptap({
+      blocks: [
+        { type: 'blockquote', runs: [{ text: 'Tell me and I forget.', italic: true }] },
+        { type: 'blockquote', runs: [{ text: '— Xenophon' }] },
+        { type: 'paragraph', runs: [{ text: 'after' }] },
+      ],
+    });
+    expect(doc.content).toEqual([
+      {
+        type: 'blockquote',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Tell me and I forget.', marks: [{ type: 'italic' }] },
+            ],
+          },
+          { type: 'paragraph', content: [{ type: 'text', text: '— Xenophon' }] },
+        ],
+      },
+      { type: 'paragraph', content: [{ type: 'text', text: 'after' }] },
+    ]);
+  });
+
+  it('does not merge blockquotes separated by another block', () => {
+    const { doc } = assembleTiptap({
+      blocks: [
+        { type: 'blockquote', runs: [{ text: 'one' }] },
+        { type: 'horizontalRule' },
+        { type: 'blockquote', runs: [{ text: 'two' }] },
+      ],
+    });
+    expect(doc.content.map((n) => n.type)).toEqual([
+      'blockquote',
+      'horizontalRule',
+      'blockquote',
+    ]);
+  });
+
   it('maps horizontalRule directly', () => {
     expect(assembleOne({ type: 'horizontalRule' })).toEqual({ type: 'horizontalRule' });
   });

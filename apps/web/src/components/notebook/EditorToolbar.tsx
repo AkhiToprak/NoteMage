@@ -1848,6 +1848,18 @@ export default function EditorToolbar({
           isActive={editor.isActive('codeBlock')}
           onClick={() => insertCodeBlock(editor)}
         />
+        <ToolbarButton
+          icon="functions"
+          label="Equation"
+          isActive={editor.isActive('blockMath')}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertContent({ type: 'blockMath', attrs: { latex: '' } })
+              .run()
+          }
+        />
         <CalloutDropdown editor={editor} />
         <TableGridPicker editor={editor} />
         <TableContextButtons editor={editor} />

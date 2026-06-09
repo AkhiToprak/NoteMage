@@ -82,24 +82,34 @@ describe('parseDocModelBlocks — rejects invalid output', () => {
     expect(parseDocModelBlocks('{"blocks":[{"type":"spaceship"}]}').ok).toBe(false);
   });
 
-  it('rejects a heading level outside 1-3 and reports the path', () => {
+  // The G3 normalizer rescues well-meaning drift rather than rejecting it —
+  // these shapes used to fail validation and now coerce to the nearest
+  // canonical form (losing the page to the heuristic fallback costs far more
+  // than tolerating the drift).
+  it('clamps a heading level outside 1-3 instead of rejecting', () => {
     const result = parseDocModelBlocks('{"blocks":[{"type":"heading","level":5,"runs":[]}]}');
-    expect(result.ok).toBe(false);
-    expect(result.error).toContain('blocks.0');
+    expect(result.ok).toBe(true);
+    const heading = result.blocks?.[0];
+    if (heading?.type === 'heading') expect(heading.level).toBe(3);
   });
 
-  it('rejects an unknown extra key on a block (strict schema)', () => {
+  it('strips an unknown extra key on a block instead of rejecting', () => {
     const result = parseDocModelBlocks(
       '{"blocks":[{"type":"paragraph","runs":[{"text":"x"}],"note":"no"}]}',
     );
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    expect(result.blocks?.[0]).toEqual({ type: 'paragraph', runs: [{ text: 'x' }] });
   });
 
-  it('rejects a callout child outside the allowed subset', () => {
+  it('demotes a callout heading child to a paragraph instead of rejecting', () => {
     const result = parseDocModelBlocks(
-      '{"blocks":[{"type":"callout","variant":"info","children":[{"type":"heading","level":1,"runs":[]}]}]}',
+      '{"blocks":[{"type":"callout","variant":"info","children":[{"type":"heading","level":1,"runs":[{"text":"t"}]}]}]}',
     );
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    const callout = result.blocks?.[0];
+    if (callout?.type === 'callout') {
+      expect(callout.children).toEqual([{ type: 'paragraph', runs: [{ text: 't' }] }]);
+    }
   });
 
   it('produces a non-empty, path-bearing error string for the repair retry', () => {
