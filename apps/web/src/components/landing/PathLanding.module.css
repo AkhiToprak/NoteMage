@@ -224,9 +224,9 @@
 .root :global(.pl-car-video-frame) { display: block; }
 .root :global(.pl-car-video-title) {
   font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  font-size: clamp(1.5rem, 3.4vw, 2.15rem);
   letter-spacing: -0.03em; line-height: 1.05;
-  color: var(--ink); text-align: center;
+  color: var(--gold); text-align: center;
   margin: 0 0 16px; overflow-wrap: anywhere;
 }
 .root :global(.pl-car-video) {

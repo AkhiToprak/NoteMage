@@ -103,21 +103,6 @@ const SLIDES: Slide[] = [
     title: 'Flashcards',
     label: 'See how NoteMage turns your notes into flashcards',
   },
-  {
-    eyebrow: 'Section 1', title: 'Section 1: How Python Works', grade: 'C',
-    desc: 'Understand what Python is, how it runs code, and the mental model behind it…',
-    nodes: ['What is Python?', 'How Python Runs Code', 'Your First Python Program'],
-  },
-  {
-    eyebrow: 'Section 2', title: 'Section 2: Data & Types', grade: 'B',
-    desc: 'Numbers, strings, booleans, and how Python keeps your values in memory.',
-    nodes: ['Variables & Assignment', 'Strings & Numbers', 'Lists & Dictionaries'],
-  },
-  {
-    eyebrow: 'Section 3', title: 'Section 3: Control Flow', grade: 'A',
-    desc: 'Make decisions and repeat work with conditionals, loops, and clean logic.',
-    nodes: ['If / Else Logic', 'Loops & Iteration', 'Writing Functions'],
-  },
 ];
 const SLOTS = ['left', 'center', 'right'];
 const CONN = ['M 80 6 C 80 40, 240 26, 240 58', 'M 240 6 C 240 40, 400 26, 400 58'];
@@ -677,7 +662,7 @@ export default function PathLanding() {
 
         <section className="pl-hero-stage">
           <div className="pl-hero-card">
-            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="NoteMage videos and example learning sections">
+            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="NoteMage feature videos">
               <div className="pl-car-viewport">
                 <div className="pl-car-track" ref={carTrackRef}>
                   <CarouselSlide s={SLIDES[N - 1]} idx={N - 1} total={N} clone />
