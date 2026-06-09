@@ -12,6 +12,7 @@ import { ProfileHero } from '@/components/profile/ProfileHero';
 import { ProfileStatsStrip } from '@/components/profile/ProfileStatsStrip';
 import { AboutLadder } from '@/components/profile/AboutLadder';
 import { Switch } from '@/components/ui/Switch';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 type UsernameStatus = 'idle' | 'typing' | 'checking' | 'available' | 'taken' | 'invalid';
@@ -425,10 +426,10 @@ export default function ProfilePage() {
   // The drawer is the editing surface; the ladder is read-only.
   const aboutRows: { key: string; label: string; value: React.ReactNode }[] = [];
   if (profile.age != null) aboutRows.push({ key: 'age', label: 'Age', value: profile.age });
-  if (profile.location) aboutRows.push({ key: 'location', label: 'Location', value: profile.location });
+  if (profile.location)
+    aboutRows.push({ key: 'location', label: 'Location', value: profile.location });
   if (profile.school) aboutRows.push({ key: 'school', label: 'School', value: profile.school });
-  if (profile.lineOfWork)
-    aboutRows.push({ key: 'work', label: 'Work', value: profile.lineOfWork });
+  if (profile.lineOfWork) aboutRows.push({ key: 'work', label: 'Work', value: profile.lineOfWork });
 
   return (
     <div
@@ -442,16 +443,12 @@ export default function ProfilePage() {
         gap: isPhone ? '20px' : '28px',
       }}
     >
-      {/* 1. Hero strip. Edit button hidden while the drawer is open so
-          there's no "two ways to do the same thing" confusion. */}
+      {/* 1. Hero strip. The Edit button opens the editing mask (modal); the
+          page underneath stays put so there's no scroll-to-edit. */}
       <ProfileHero
         user={profile}
         badges={heroBadges}
-        action={
-          editing ? undefined : (
-            <EditProfileButton onClick={startEditing} isPhone={isPhone} />
-          )
-        }
+        action={<EditProfileButton onClick={startEditing} isPhone={isPhone} />}
       />
 
       {/* 2. Stats strip — 3-cell horizontal row: trophies · minutes ·
@@ -465,50 +462,31 @@ export default function ProfilePage() {
       {/* 4. Trophy rail */}
       <RecentTrophies userId={profile.id} ownerView />
 
-      {/* 5. Bottom row — About (read mode) OR Edit drawer (write mode) +
-          Social. The drawer occupies the same left slot so the row
-          rhythm is preserved while editing. */}
+      {/* 5. Bottom row — About (read mode) + Social. Editing happens in the
+          EditProfileModal overlay, so this row stays put underneath it. */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isPhone || editing ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
+          gridTemplateColumns: isPhone ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
           gap: isPhone ? '20px' : '24px',
           alignItems: 'stretch',
         }}
       >
-        {editing ? (
-          <EditDrawer
-            form={form}
-            setForm={setForm}
-            saving={saving}
-            saveError={saveError}
-            onCancel={() => setEditing(false)}
-            onSave={handleSave}
-            onChangePhoto={() => setAvatarEditorOpen(true)}
-            onChangeUsername={openUsernameModal}
-            isPhone={isPhone}
-          />
-        ) : aboutRows.length > 0 ? (
+        {aboutRows.length > 0 ? (
           <AboutLadder rows={aboutRows} />
         ) : (
           <EmptyAboutPrompt onEdit={startEditing} />
         )}
-        {/* Social card hides in the edit mode on phone (vertical stack
-            would push the form below the fold). On desktop with the
-            edit drawer occupying full width, this branch is reached
-            only when !editing. */}
-        {!editing && (
-          <SocialsCard
-            friendsCount={friendsCount}
-            instagramHandle={profile.instagramHandle ?? null}
-            linkedinUrl={profile.linkedinUrl ?? null}
-            friendshipStatus={null}
-            friendshipId={null}
-            username={profile.username}
-            isOwnProfile
-            isAuthenticated={Boolean(session?.user)}
-          />
-        )}
+        <SocialsCard
+          friendsCount={friendsCount}
+          instagramHandle={profile.instagramHandle ?? null}
+          linkedinUrl={profile.linkedinUrl ?? null}
+          friendshipStatus={null}
+          friendshipId={null}
+          username={profile.username}
+          isOwnProfile
+          isAuthenticated={Boolean(session?.user)}
+        />
       </div>
 
       {/* 6. Appearance panel — collapsible. Lives below the bottom row
@@ -527,6 +505,20 @@ export default function ProfilePage() {
       />
 
       {/* Modals */}
+      {editing && (
+        <EditProfileModal
+          form={form}
+          setForm={setForm}
+          saving={saving}
+          saveError={saveError}
+          onCancel={() => setEditing(false)}
+          onSave={handleSave}
+          onChangePhoto={() => setAvatarEditorOpen(true)}
+          onChangeUsername={openUsernameModal}
+          isPhone={isPhone}
+        />
+      )}
+
       {usernameModalOpen && (
         <UsernameModal
           usernameInput={usernameInput}
@@ -774,10 +766,12 @@ function EmptyAboutPrompt({ onEdit }: { onEdit: () => void }) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Edit drawer (replaces the AboutLadder when editing=true)
+// Edit profile modal — opened from the hero "Edit profile" button. All About
+// fields + privacy toggles live here so editing happens in one focused mask
+// instead of an inline drawer the user has to scroll the page to reach.
 // ───────────────────────────────────────────────────────────────────────────
 
-interface EditDrawerProps {
+interface EditProfileModalProps {
   form: FormState;
   setForm: React.Dispatch<React.SetStateAction<FormState>>;
   saving: boolean;
@@ -789,7 +783,7 @@ interface EditDrawerProps {
   isPhone: boolean;
 }
 
-function EditDrawer({
+function EditProfileModal({
   form,
   setForm,
   saving,
@@ -799,295 +793,385 @@ function EditDrawer({
   onChangePhoto,
   onChangeUsername,
   isPhone,
-}: EditDrawerProps) {
+}: EditProfileModalProps) {
+  // Centered, capped, internally-scrolling dialog (full-bleed sheet on phone).
+  const dims = useModalDimensions(560);
+
+  // Escape closes the mask, mirroring backdrop-click. Disabled mid-save so a
+  // stray keypress can't drop the in-flight request's UI.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !saving) onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [saving, onCancel]);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hl-edit-profile-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !saving) onCancel();
+      }}
       style={{
-        gridColumn: '1 / -1',
-        background: 'var(--surface-container-low)',
-        borderRadius: 'var(--radius-xl)',
-        padding: isPhone ? '20px' : '28px 32px',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
         display: 'flex',
-        flexDirection: 'column',
-        gap: isPhone ? '16px' : '20px',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--scrim-modal)',
+        backdropFilter: 'blur(8px)',
+        padding: isPhone ? 0 : '16px',
       }}
     >
       <div
         style={{
+          ...dims,
+          background: 'var(--surface-container)',
           display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          gap: '12px',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: '0 24px 64px var(--bento-hover-shadow)',
         }}
       >
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: '20px',
-            fontWeight: 700,
-            letterSpacing: '-0.01em',
-            color: 'var(--on-surface)',
-          }}
-        >
-          Edit profile
-        </h2>
-        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-          <button
-            type="button"
-            onClick={onChangePhoto}
-            className="hl-ghost-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 12px',
-              background: 'transparent',
-              border: '1px solid var(--brand-purple-edge)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--md-h4)',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-              photo_camera
-            </span>
-            Photo
-          </button>
-          <button
-            type="button"
-            onClick={onChangeUsername}
-            className="hl-ghost-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 12px',
-              background: 'transparent',
-              border: '1px solid var(--brand-purple-edge)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--md-h4)',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-              alternate_email
-            </span>
-            Handle
-          </button>
-        </div>
-      </div>
-
-      <Field label="Name">
-        <input
-          type="text"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          maxLength={100}
-          placeholder="Your full name"
-          className="hl-input"
-          style={INPUT_STYLE}
-        />
-      </Field>
-
-      <Field
-        label="Bio"
-        helper={`${form.bio.length}/160`}
-      >
-        <textarea
-          value={form.bio}
-          onChange={(e) => setForm({ ...form, bio: e.target.value })}
-          maxLength={160}
-          placeholder="Write a short description about yourself"
-          rows={3}
-          className="hl-textarea"
-          style={{
-            ...INPUT_STYLE,
-            resize: 'vertical',
-            minHeight: '72px',
-            fontFamily: 'inherit',
-          }}
-        />
-      </Field>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr',
-          gap: '14px',
-        }}
-      >
-        <Field label="Age">
-          <input
-            type="number"
-            value={form.age}
-            onChange={(e) => setForm({ ...form, age: e.target.value })}
-            min={1}
-            max={150}
-            placeholder="—"
-            className="hl-input"
-            style={INPUT_STYLE}
-          />
-        </Field>
-        <Field label="Location">
-          <input
-            type="text"
-            value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-            maxLength={100}
-            placeholder="City, Country"
-            className="hl-input"
-            style={INPUT_STYLE}
-          />
-        </Field>
-        <Field label="School">
-          <input
-            type="text"
-            value={form.school}
-            onChange={(e) => setForm({ ...form, school: e.target.value })}
-            maxLength={100}
-            placeholder="Your school or university"
-            className="hl-input"
-            style={INPUT_STYLE}
-          />
-        </Field>
-        <Field label="Line of work">
-          <input
-            type="text"
-            value={form.lineOfWork}
-            onChange={(e) => setForm({ ...form, lineOfWork: e.target.value })}
-            maxLength={100}
-            placeholder="Your profession"
-            className="hl-input"
-            style={INPUT_STYLE}
-          />
-        </Field>
-        <Field label="Instagram">
-          <input
-            type="text"
-            value={form.instagramHandle}
-            onChange={(e) => setForm({ ...form, instagramHandle: e.target.value })}
-            maxLength={30}
-            placeholder="yourhandle"
-            className="hl-input"
-            style={INPUT_STYLE}
-          />
-        </Field>
-        <Field label="LinkedIn">
-          <input
-            type="url"
-            value={form.linkedinUrl}
-            onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })}
-            maxLength={200}
-            placeholder="https://linkedin.com/in/you"
-            className="hl-input"
-            style={INPUT_STYLE}
-          />
-        </Field>
-      </div>
-
-      {/* Privacy block — separated by hairline so the toggles read as
-          their own section without an UPPERCASE eyebrow. */}
-      <div style={{ borderTop: '1px solid var(--rule-hairline)', paddingTop: '18px' }}>
-        <h3
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '14px',
-            fontWeight: 700,
-            color: 'var(--on-surface)',
-            margin: '0 0 12px',
-          }}
-        >
-          Privacy
-        </h3>
-        <ToggleRow
-          icon="lock"
-          title="Private profile"
-          description="Only friends can see your full profile"
-          checked={form.profilePrivate}
-          onChange={(next) => setForm({ ...form, profilePrivate: next })}
-        />
-        <div style={{ height: '10px' }} />
-        <ToggleRow
-          icon="visibility_off"
-          title="Hide achievements"
-          description="Others cannot see your achievements"
-          checked={form.hideAchievements}
-          onChange={(next) => setForm({ ...form, hideAchievements: next })}
-        />
-      </div>
-
-      {saveError && (
+        {/* Sticky header — title + close. Photo/Handle live in the body so the
+            header stays uncluttered on phone. */}
         <div
-          role="alert"
           style={{
-            background: 'var(--error-container)',
-            border: '1px solid var(--error)',
-            color: 'var(--on-error-container)',
-            borderRadius: 'var(--radius-md)',
-            padding: '12px 16px',
-            fontSize: '13px',
-            fontWeight: 600,
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: isPhone ? '18px 20px' : '22px 28px',
+            borderBottom: '1px solid var(--rule-hairline)',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-            error
-          </span>
-          {saveError}
+          <h2
+            id="hl-edit-profile-title"
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--on-surface)',
+            }}
+          >
+            Edit profile
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            aria-label="Close"
+            className="hl-ghost-btn"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
+              close
+            </span>
+          </button>
         </div>
-      )}
 
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          className="hl-ghost-btn"
+        {/* Scrollable body — every field. The dialog caps at the viewport
+            height, so long forms scroll here while header/footer stay fixed. */}
+        <div
           style={{
-            padding: '10px 20px',
-            background: 'transparent',
-            color: 'var(--on-surface-variant)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--outline-variant)',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            padding: isPhone ? '20px' : '24px 28px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isPhone ? '16px' : '20px',
           }}
         >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="hl-action-btn"
+          {/* Photo + Handle quick actions, split evenly across the row. */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={onChangePhoto}
+              className="hl-ghost-btn"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '10px 12px',
+                background: 'transparent',
+                border: '1px solid var(--brand-purple-edge)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--md-h4)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                photo_camera
+              </span>
+              Photo
+            </button>
+            <button
+              type="button"
+              onClick={onChangeUsername}
+              className="hl-ghost-btn"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '10px 12px',
+                background: 'transparent',
+                border: '1px solid var(--brand-purple-edge)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--md-h4)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                alternate_email
+              </span>
+              Handle
+            </button>
+          </div>
+
+          <Field label="Name">
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              maxLength={100}
+              placeholder="Your full name"
+              className="hl-input"
+              style={INPUT_STYLE}
+            />
+          </Field>
+
+          <Field label="Bio" helper={`${form.bio.length}/160`}>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              maxLength={160}
+              placeholder="Write a short description about yourself"
+              rows={3}
+              className="hl-textarea"
+              style={{
+                ...INPUT_STYLE,
+                resize: 'vertical',
+                minHeight: '72px',
+                fontFamily: 'inherit',
+              }}
+            />
+          </Field>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr',
+              gap: '14px',
+            }}
+          >
+            <Field label="Age">
+              <input
+                type="number"
+                value={form.age}
+                onChange={(e) => setForm({ ...form, age: e.target.value })}
+                min={1}
+                max={150}
+                placeholder="—"
+                className="hl-input"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            <Field label="Location">
+              <input
+                type="text"
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                maxLength={100}
+                placeholder="City, Country"
+                className="hl-input"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            <Field label="School">
+              <input
+                type="text"
+                value={form.school}
+                onChange={(e) => setForm({ ...form, school: e.target.value })}
+                maxLength={100}
+                placeholder="Your school or university"
+                className="hl-input"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            <Field label="Line of work">
+              <input
+                type="text"
+                value={form.lineOfWork}
+                onChange={(e) => setForm({ ...form, lineOfWork: e.target.value })}
+                maxLength={100}
+                placeholder="Your profession"
+                className="hl-input"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            <Field label="Instagram">
+              <input
+                type="text"
+                value={form.instagramHandle}
+                onChange={(e) => setForm({ ...form, instagramHandle: e.target.value })}
+                maxLength={30}
+                placeholder="yourhandle"
+                className="hl-input"
+                style={INPUT_STYLE}
+              />
+            </Field>
+            <Field label="LinkedIn">
+              <input
+                type="url"
+                value={form.linkedinUrl}
+                onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })}
+                maxLength={200}
+                placeholder="https://linkedin.com/in/you"
+                className="hl-input"
+                style={INPUT_STYLE}
+              />
+            </Field>
+          </div>
+
+          {/* Privacy block — separated by hairline so the toggles read as
+          their own section without an UPPERCASE eyebrow. */}
+          <div style={{ borderTop: '1px solid var(--rule-hairline)', paddingTop: '18px' }}>
+            <h3
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: '0 0 12px',
+              }}
+            >
+              Privacy
+            </h3>
+            <ToggleRow
+              icon="lock"
+              title="Private profile"
+              description="Only friends can see your full profile"
+              checked={form.profilePrivate}
+              onChange={(next) => setForm({ ...form, profilePrivate: next })}
+            />
+            <div style={{ height: '10px' }} />
+            <ToggleRow
+              icon="visibility_off"
+              title="Hide achievements"
+              description="Others cannot see your achievements"
+              checked={form.hideAchievements}
+              onChange={(next) => setForm({ ...form, hideAchievements: next })}
+            />
+          </div>
+        </div>
+
+        {/* Sticky footer — error + actions stay reachable without scrolling
+            the body. */}
+        <div
           style={{
-            padding: '10px 22px',
-            background: 'var(--brand-purple-strong)',
-            color: 'var(--brand-purple-ink)',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor: saving ? 'wait' : 'pointer',
-            fontFamily: 'inherit',
-            opacity: saving ? 0.7 : 1,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+            padding: isPhone ? '16px 20px' : '18px 28px',
+            borderTop: '1px solid var(--rule-hairline)',
           }}
         >
-          {saving ? 'Saving…' : 'Save changes'}
-        </button>
+          {saveError && (
+            <div
+              role="alert"
+              style={{
+                background: 'var(--error-container)',
+                border: '1px solid var(--error)',
+                color: 'var(--on-error-container)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                error
+              </span>
+              {saveError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={saving}
+              className="hl-ghost-btn"
+              style={{
+                padding: '10px 20px',
+                background: 'transparent',
+                color: 'var(--on-surface-variant)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--outline-variant)',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className="hl-action-btn"
+              style={{
+                padding: '10px 22px',
+                background: 'var(--brand-purple-strong)',
+                color: 'var(--brand-purple-ink)',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: saving ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1345,7 +1429,8 @@ function AppearancePanel({
               className="hl-action-btn"
               style={{
                 padding: '10px 20px',
-                background: !dirty || saving ? 'var(--brand-purple-wash)' : 'var(--brand-purple-strong)',
+                background:
+                  !dirty || saving ? 'var(--brand-purple-wash)' : 'var(--brand-purple-strong)',
                 color: !dirty || saving ? 'var(--on-surface-variant)' : 'var(--brand-purple-ink)',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
@@ -1634,7 +1719,9 @@ function UsernameModal({
               minHeight: '1lh',
             }}
           >
-            {usernameStatus === 'available' || usernameStatus === 'taken' || usernameStatus === 'invalid'
+            {usernameStatus === 'available' ||
+            usernameStatus === 'taken' ||
+            usernameStatus === 'invalid'
               ? usernameMessage
               : '3–20 chars, letters, numbers, underscores'}
           </p>
