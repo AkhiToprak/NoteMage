@@ -356,19 +356,21 @@
 }
 .root :global(.pl-magic:focus-visible) { outline: 3px solid var(--accent); outline-offset: 4px; }
 
-/* click reaction — a short burst of gold + lavender sparkles spawned from JS.
-   Each particle carries its own --dx/--dy/--rot/--sz; transform + opacity only. */
+/* click reaction — a ~1s burst of gold + lavender sparkles down the left/right
+   edges of the viewport. The layer is fixed, so it stays in view while the page
+   smooth-scrolls to the path. Each particle carries its own placement +
+   --rot/--sz/--drift; transform + opacity only, JS-gated for reduced motion. */
+.root :global(.pl-magic-burst) { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 .root :global(.pl-magic-spark) {
-  position: absolute; left: 50%; top: 42%;
-  pointer-events: none; z-index: 5; will-change: transform, opacity;
-  animation: plMagicSpark 0.72s var(--ease) forwards;
+  position: absolute; will-change: transform, opacity;
+  animation: plMagicSpark 1s var(--ease) forwards;
 }
-.root :global(.pl-magic-spark) :global(.material-symbols-outlined) { font-size: var(--sz, 16px); display: block; }
+.root :global(.pl-magic-spark) :global(.material-symbols-outlined) { font-size: var(--sz, 18px); display: block; }
 @keyframes plMagicNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
 @keyframes plMagicSpark {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
-  28%  { opacity: 1; transform: translate(calc(-50% + var(--dx) * 0.55), calc(-50% + var(--dy) * 0.55)) scale(1.1) rotate(calc(var(--rot) * 0.5)); }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.55) rotate(var(--rot)); }
+  0%   { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  22%  { opacity: 1; transform: scale(1.12) rotate(calc(var(--rot) * 0.4)); }
+  100% { opacity: 0; transform: translateY(var(--drift, -24px)) scale(0.55) rotate(var(--rot)); }
 }
 
 /* ─────────────────────────  PATH  ───────────────────────── */

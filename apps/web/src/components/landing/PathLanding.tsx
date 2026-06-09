@@ -206,7 +206,6 @@ export default function PathLanding() {
   const carTrackRef = useRef<HTMLDivElement>(null);
   const dotsRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
-  const magicRef = useRef<HTMLButtonElement>(null);
 
   // Native shells (iOS WebView, Electron) boot into the app, never the marketing
   // landing. Catch deep links / errant navs that drop a native user back at /.
@@ -470,34 +469,41 @@ export default function PathLanding() {
     return () => io.disconnect();
   }, []);
 
-  /* "The magic" → burst a few sparkles, then scroll to the START checkpoint */
+  /* "The magic" → spray sparkles down both screen edges, then scroll to START.
+     The layer is fixed so the burst stays visible through the smooth-scroll. */
   const onMagicClick = () => {
     const reduce = prefersReducedMotion();
-    const btn = magicRef.current;
-    if (btn && !reduce) {
-      const COUNT = 11;
+    const host = rootRef.current;
+    if (host && !reduce) {
+      const layer = document.createElement('div');
+      layer.className = 'pl-magic-burst';
+      layer.setAttribute('aria-hidden', 'true');
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const band = Math.min(vw * 0.22, 260); // side band width — keep the center clear
+      const COUNT = 30;
       for (let i = 0; i < COUNT; i++) {
         const spark = document.createElement('span');
         spark.className = 'pl-magic-spark';
-        spark.setAttribute('aria-hidden', 'true');
         const icon = document.createElement('span');
         icon.className = 'material-symbols-outlined filled';
         icon.textContent = 'auto_awesome';
         spark.appendChild(icon);
-        // even fan-out around the pill, with a slight per-particle jitter from the index
-        const angle = (Math.PI * 2 * i) / COUNT + (i % 2 ? 0.32 : -0.18);
-        const dist = 52 + (i % 3) * 18;
-        spark.style.setProperty('--dx', `${(Math.cos(angle) * dist).toFixed(1)}px`);
-        spark.style.setProperty('--dy', `${(Math.sin(angle) * dist - 10).toFixed(1)}px`);
-        spark.style.setProperty('--rot', `${(i % 2 ? 1 : -1) * (110 + i * 16)}deg`);
-        spark.style.setProperty('--sz', `${13 + (i % 3) * 6}px`);
-        spark.style.color = i % 2 ? 'var(--gold)' : 'var(--primary)';
-        spark.style.animationDelay = `${i * 12}ms`;
-        spark.addEventListener('animationend', () => spark.remove(), { once: true });
-        btn.appendChild(spark);
+        const onLeft = i % 2 === 0;
+        const x = onLeft ? Math.random() * band : vw - Math.random() * band;
+        spark.style.left = `${x.toFixed(0)}px`;
+        spark.style.top = `${(Math.random() * vh).toFixed(0)}px`;
+        spark.style.setProperty('--rot', `${((onLeft ? -1 : 1) * (60 + Math.random() * 170)).toFixed(0)}deg`);
+        spark.style.setProperty('--sz', `${(14 + Math.random() * 18).toFixed(0)}px`);
+        spark.style.setProperty('--drift', `${(-12 - Math.random() * 40).toFixed(0)}px`);
+        spark.style.color = i % 3 === 0 ? 'var(--primary)' : 'var(--gold)';
+        spark.style.animationDelay = `${Math.floor(Math.random() * 160)}ms`;
+        layer.appendChild(spark);
       }
+      host.appendChild(layer);
+      window.setTimeout(() => layer.remove(), 1250); // 1s anim + max stagger, then clean up
     }
-    const startNode = rootRef.current?.querySelector('.pl-node-wrap[data-cp="0"]');
+    const startNode = host?.querySelector('.pl-node-wrap[data-cp="0"]');
     startNode?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   };
 
@@ -756,7 +762,7 @@ export default function PathLanding() {
 
         {/* ─────────────  "The magic"  ───────────── */}
         <div className="pl-magic-wrap">
-          <button className="pl-magic pl-reveal" type="button" onClick={onMagicClick} ref={magicRef}>
+          <button className="pl-magic pl-reveal" type="button" onClick={onMagicClick}>
             <span className="material-symbols-outlined filled pl-magic-star" aria-hidden>auto_awesome</span>
             The magic
             <span className="material-symbols-outlined pl-magic-chev" aria-hidden>expand_more</span>
