@@ -142,6 +142,55 @@
 }
 @keyframes plHeroRise { from { transform: translateY(16px); } to { transform: none; } }
 
+/* golden sparkles — the wrapper hugs the headline so the stars orbit the text
+   rather than the full-width hero. Decorative only (aria-hidden in markup). */
+.root :global(.pl-hero-title) { position: relative; display: inline-block; }
+.root :global(.pl-hspark) {
+  position: absolute;
+  color: var(--gold);
+  line-height: 0;
+  pointer-events: none;
+  /* soft golden glow — a colored shadow, not a gradient */
+  filter: drop-shadow(0 0 9px rgba(255, 222, 89, 0.45));
+  animation: plTwinkle 2.8s ease-in-out infinite alternate both;
+  will-change: transform, opacity;
+}
+.root :global(.pl-hspark) :global(.material-symbols-outlined) { font-size: 24px; display: block; }
+.root :global(.pl-hspark.pl-hspark--lg) :global(.material-symbols-outlined) { font-size: 34px; }
+.root :global(.pl-hspark.pl-hspark--sm) :global(.material-symbols-outlined) { font-size: 16px; }
+
+/* scatter around the title perimeter — % offsets stay proportional as the headline scales */
+.root :global(.pl-hspark-a) { top: -9%;   left: -8%;   animation-delay: 0s; }
+.root :global(.pl-hspark-b) { top: -4%;   right: -7%;  animation-delay: -0.9s; }
+.root :global(.pl-hspark-c) { top: 45%;   left: -11%;  animation-delay: -1.6s; }
+.root :global(.pl-hspark-d) { top: 30%;   right: -9%;  animation-delay: -0.4s; }
+.root :global(.pl-hspark-e) { bottom: 4%; left: -5%;   animation-delay: -2.1s; }
+.root :global(.pl-hspark-f) { bottom: -8%; right: -6%; animation-delay: -1.2s; }
+
+/* closing CTA cluster — scattered around the "Try it out for FREE" heading */
+.root :global(.pl-cta-title) { position: relative; display: inline-block; }
+.root :global(.pl-hspark-g) { top: -62%;  left: -8%;   animation-delay: -0.3s; }
+.root :global(.pl-hspark-h) { top: -78%;  right: -4%;  animation-delay: -1.4s; }
+.root :global(.pl-hspark-i) { top: 38%;   left: -12%;  animation-delay: -0.7s; }
+.root :global(.pl-hspark-j) { top: 30%;   right: -10%; animation-delay: -1.9s; }
+.root :global(.pl-hspark-k) { top: -94%;  left: 44%;   animation-delay: -1.1s; }
+
+@keyframes plTwinkle {
+  from { opacity: 0.35; transform: scale(0.82) rotate(-6deg); }
+  to   { opacity: 1;    transform: scale(1)    rotate(0deg); }
+}
+
+@media (max-width: 600px) {
+  .root :global(.pl-hspark.pl-hspark--lg) :global(.material-symbols-outlined) { font-size: 26px; }
+  .root :global(.pl-hspark-a) { left: -3%; }
+  .root :global(.pl-hspark-c) { left: -5%; }
+  .root :global(.pl-hspark-f) { right: -2%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(.pl-hspark) { animation: none; opacity: 0.8; transform: none; }
+}
+
 .root :global(.pl-hero-stage) { max-width: 1268px; margin: 36px auto 0; padding: 0 20px; position: relative; }
 .root :global(.pl-hero-card) {
   position: relative;

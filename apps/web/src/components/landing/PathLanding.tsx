@@ -660,9 +660,30 @@ export default function PathLanding() {
       <div className="pl-page">
         {/* ─────────────  HERO  ───────────── */}
         <div className="pl-hero">
-          <h1>
-            Your <span className="pl-g-gold">Path</span> to academic success
-          </h1>
+          <div className="pl-hero-title">
+            {/* decorative golden sparkles orbiting the headline (purely ornamental) */}
+            <span className="pl-hspark pl-hspark--lg pl-hspark-a" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark-b" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-c" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-d" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark-e" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark--lg pl-hspark-f" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <h1>
+              Your <span className="pl-g-gold">Path</span> to academic success
+            </h1>
+          </div>
         </div>
 
         <section className="pl-hero-stage">
@@ -778,9 +799,27 @@ export default function PathLanding() {
 
         {/* ─────────────  CTA  ───────────── */}
         <section className="pl-cta">
-          <h2 className="pl-reveal">
-            Try it out for <span className="pl-g-gold">FREE</span>
-          </h2>
+          <div className="pl-cta-title">
+            {/* decorative golden sparkles around the closing CTA (purely ornamental) */}
+            <span className="pl-hspark pl-hspark--lg pl-hspark-g" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark-h" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-i" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-j" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <span className="pl-hspark pl-hspark-k" aria-hidden>
+              <span className="material-symbols-outlined filled">auto_awesome</span>
+            </span>
+            <h2 className="pl-reveal">
+              Try it out for <span className="pl-g-gold">FREE</span>
+            </h2>
+          </div>
           <div className="pl-cta-row pl-reveal" ref={ctaRef}>
             <Link className="pl-btn-gold pl-lg" href="/auth/register">
               Start free <span aria-hidden>→</span>
