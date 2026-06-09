@@ -108,12 +108,28 @@ async function fetchRuntimes(): Promise<PistonRuntime[]> {
   }
 }
 
-function pickVersion(language: string, runtimes: PistonRuntime[]): string | null {
-  for (const r of runtimes) {
-    if (r.language === language) return r.version;
-    if (r.aliases?.includes(language)) return r.version;
+// Descending semver compare for plain `major.minor.patch` strings (Piston
+// versions are always numeric). Non-numeric segments sort as 0.
+function compareVersionsDesc(a: string, b: string): number {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (diff !== 0) return diff;
   }
-  return null;
+  return 0;
+}
+
+function pickVersion(language: string, runtimes: PistonRuntime[]): string | null {
+  // Pin the *latest* installed runtime for the language. The previous version
+  // returned whichever runtime Piston happened to list first, which is not
+  // guaranteed to be the newest when multiple versions are installed.
+  const matches = runtimes.filter(
+    (r) => r.language === language || r.aliases?.includes(language),
+  );
+  if (matches.length === 0) return null;
+  matches.sort((a, b) => compareVersionsDesc(a.version, b.version));
+  return matches[0].version;
 }
 
 export function isPistonConfigured(): boolean {
@@ -159,33 +175,60 @@ export async function executeCode(
     compile_memory_limit: 256_000_000,
   };
 
-  let res: Response;
+  // Piston bounds the sandboxed process via run_timeout/compile_timeout, but
+  // the HTTP request itself is unbounded — a wedged container or network stall
+  // would otherwise hang this route indefinitely (and grade mode issues up to
+  // MAX_TESTS of these back to back). Abort a little past the server-side
+  // budget so a healthy slow run still completes.
+  const controller = new AbortController();
+  const abortMs = body.compile_timeout + body.run_timeout + 5000;
+  const timer = setTimeout(() => controller.abort(), abortMs);
+
+  let data: PistonRawResponse;
   try {
-    res = await fetch(`${base}/api/v2/execute`, {
+    const res = await fetch(`${base}/api/v2/execute`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      return {
+        stdout: '',
+        stderr: `Piston error ${res.status}: ${text || res.statusText}`.slice(0, 1000),
+        exitCode: -1,
+        ok: false,
+      };
+    }
+    data = (await res.json()) as PistonRawResponse;
   } catch (error) {
+    const aborted = error instanceof Error && error.name === 'AbortError';
     return {
       stdout: '',
-      stderr: error instanceof Error ? error.message : 'Network error reaching Piston',
+      stderr: aborted
+        ? 'Code execution timed out reaching the sandbox.'
+        : error instanceof Error
+          ? error.message
+          : 'Network error reaching Piston',
+      exitCode: -1,
+      ok: false,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+
+  // Guard against an unexpected payload shape (e.g. an error body returned with
+  // a 200) so a missing run stage surfaces a clear message instead of throwing.
+  if (!data || typeof data !== 'object' || !data.run) {
+    return {
+      stdout: '',
+      stderr: 'Piston returned an unexpected response (no run stage).',
       exitCode: -1,
       ok: false,
     };
   }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    return {
-      stdout: '',
-      stderr: `Piston error ${res.status}: ${text || res.statusText}`.slice(0, 1000),
-      exitCode: -1,
-      ok: false,
-    };
-  }
-
-  const data = (await res.json()) as PistonRawResponse;
   const compile = data.compile;
   if (compile && compile.code !== 0) {
     return {

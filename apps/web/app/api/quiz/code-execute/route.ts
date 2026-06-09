@@ -72,6 +72,20 @@ function trimBytes(s: string, max: number): string {
   return s.slice(0, max);
 }
 
+// Judge-style output comparison: normalize CRLF, strip trailing whitespace on
+// each line, and drop trailing blank lines. Programs almost always emit a
+// trailing newline (Python `print`, JS `console.log`, Java `println`), while a
+// model-authored `expectedStdout` may or may not include one — comparing raw
+// bytes marks logically-correct submissions wrong over invisible whitespace.
+function normalizeOutput(s: string): string {
+  return s
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+$/, ''))
+    .join('\n')
+    .replace(/\n+$/, '');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
@@ -161,9 +175,8 @@ export async function POST(request: NextRequest) {
       const started = Date.now();
       const result = await executeCode({ language, code, stdin, runTimeoutMs });
       const durationMs = Date.now() - started;
-      const normalizedActual = result.stdout.replace(/\r\n/g, '\n');
-      const normalizedExpected = expected.replace(/\r\n/g, '\n');
-      const isCorrect = result.ok && normalizedActual === normalizedExpected;
+      const isCorrect =
+        result.ok && normalizeOutput(result.stdout) === normalizeOutput(expected);
       if (!isCorrect) allPassed = false;
       runs.push({
         name: t.name,
