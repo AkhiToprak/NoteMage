@@ -246,25 +246,21 @@ describe('normalizeDocModelShape — extended drift rescue', () => {
     }
   });
 
-  it('rescales a percent-scale bbox to fractions', () => {
-    const result = parseAfter([
-      { type: 'image', ref: 'p1-fig-1', bbox: [8, 31, 92, 64] },
-    ]);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      const img = result.data.blocks[0];
-      if (img.type === 'image') expect(img.bbox).toEqual([0.08, 0.31, 0.92, 0.64]);
-    }
-  });
-
-  it('leaves a pixel-scale bbox unclamped for the crop stage to rescale', () => {
-    const result = parseAfter([
-      { type: 'image', ref: 'p1-fig-1', bbox: [100, 100, 600, 500] },
-    ]);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      const img = result.data.blocks[0];
-      if (img.type === 'image') expect(img.bbox).toEqual([100, 100, 600, 500]);
+  it('passes any above-1 bbox through untouched for the crop stage to rescale', () => {
+    // Percent, 0–1000-grid, pixel, and PER-AXIS mixed drift all rescale in
+    // cropFigure, which knows the page dimensions — normalize must not
+    // mangle them (a whole-bbox divide would wreck mixed-axis boxes).
+    for (const bbox of [
+      [8, 31, 92, 64],
+      [100, 100, 600, 500],
+      [0.187, 94, 0.797, 330],
+    ]) {
+      const result = parseAfter([{ type: 'image', ref: 'p1-fig-1', bbox }]);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const img = result.data.blocks[0];
+        if (img.type === 'image') expect(img.bbox).toEqual(bbox);
+      }
     }
   });
 

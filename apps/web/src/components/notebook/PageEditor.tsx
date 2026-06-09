@@ -35,6 +35,8 @@ import type {
   RulerState,
 } from './DrawingOverlay';
 import { ResizableImage } from './ResizableImage';
+import { ImagePlaceholder } from '@/lib/tiptap-image-placeholder';
+import ImagePlaceholderView from './ImagePlaceholderView';
 import { FontSize } from '@/lib/tiptap-font-size';
 import { InlineHeading } from '@/lib/tiptap-inline-heading';
 import { Callout } from '@/lib/tiptap-callout';
@@ -679,6 +681,18 @@ export default function PageEditor({
   const hydratedForPageIdRef = useRef<string | null>(null);
   const lastKnownContentWasEmptyRef = useRef<boolean>(false);
 
+  // Upload context for the imagePlaceholder NodeView. The editor instance
+  // (and its extension options) survives page switches, so the extension is
+  // configured with a getter over this ref rather than captured values.
+  const placeholderUploadCtxRef = useRef({ notebookId, pageId, sectionId: '' });
+  useEffect(() => {
+    placeholderUploadCtxRef.current = {
+      notebookId,
+      pageId,
+      sectionId: page?.sectionId ?? '',
+    };
+  }, [notebookId, pageId, page?.sectionId]);
+
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -709,6 +723,13 @@ export default function PageEditor({
           addNodeView() {
             return ReactNodeViewRenderer(CalloutView);
           },
+        }),
+        ImagePlaceholder.extend({
+          addNodeView() {
+            return ReactNodeViewRenderer(ImagePlaceholderView);
+          },
+        }).configure({
+          getUploadContext: () => placeholderUploadCtxRef.current,
         }),
         // Editable KaTeX nodes. The base nodes (shared with the read-only theory
         // viewer) carry a `latex` attr + a static DOM render; here we swap in an

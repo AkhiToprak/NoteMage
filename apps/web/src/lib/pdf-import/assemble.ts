@@ -178,7 +178,14 @@ function convertBlock(
     case 'image': {
       const src = imageSrcByRef[block.ref];
       const nodes: TipTapNode[] = [];
-      if (src) nodes.push({ type: 'resizableImage', attrs: { src } });
+      if (src) {
+        nodes.push({ type: 'resizableImage', attrs: { src } });
+      } else {
+        // The crop failed or was dropped — leave an actionable placeholder
+        // (the editor NodeView lets the user click / drop / paste the image
+        // in) instead of silently losing the figure's position.
+        nodes.push({ type: 'imagePlaceholder' });
+      }
       if (block.caption) {
         // The caption is verbatim page text — keep it even when the crop
         // itself failed, so a dropped figure never silently loses prose.

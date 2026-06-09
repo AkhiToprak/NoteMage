@@ -48,20 +48,23 @@ export async function cropFigure(
   if (pageW <= 0 || pageH <= 0) return null;
 
   // Scale rescue — the contract is 0–1 fractions, but models drift into
-  // percent (0–100) or pixel coordinates of the very image they were shown.
-  // Clamping those to 0–1 collapses the box to zero area and silently loses
-  // the figure, so detect the scale and divide instead.
-  let values: number[] = [...bbox];
-  if (values.some((v) => v > 1)) {
-    if (values.every((v) => v <= 100)) {
-      values = values.map((v) => v / 100);
-    } else {
-      values = [values[0] / pageW, values[1] / pageH, values[2] / pageW, values[3] / pageH];
-    }
-  }
+  // percent (0–100), Gemini's native 0–1000 detection grid, or pixel
+  // coordinates — and they drift PER AXIS (observed live: fractional x
+  // values alongside 0–1000-grid y values in one bbox). Clamping those to
+  // 0–1 collapses the box to zero area and silently loses the figure, so
+  // classify each axis pair independently and divide instead.
+  const rescalePair = (a: number, b: number, pageDim: number): [number, number] => {
+    const max = Math.max(Math.abs(a), Math.abs(b));
+    if (max <= 1) return [a, b];
+    if (max <= 100) return [a / 100, b / 100];
+    if (max <= 1000) return [a / 1000, b / 1000];
+    return [a / pageDim, b / pageDim];
+  };
+  const [rx0, rx1] = rescalePair(bbox[0], bbox[2], pageW);
+  const [ry0, ry1] = rescalePair(bbox[1], bbox[3], pageH);
 
   // Clamp into 0–1 and order the corners — the model may emit either.
-  let [x0, y0, x1, y1] = values.map(clamp01);
+  let [x0, y0, x1, y1] = [rx0, ry0, rx1, ry1].map(clamp01);
   if (x1 < x0) [x0, x1] = [x1, x0];
   if (y1 < y0) [y0, y1] = [y1, y0];
 

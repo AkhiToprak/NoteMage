@@ -417,13 +417,13 @@ describe('assembleTiptap — size guard', () => {
 });
 
 describe('assembleTiptap — dropped blocks', () => {
-  it('drops an image whose ref is not in the map', () => {
+  it('emits an actionable placeholder when the image ref is not in the map', () => {
     const { doc, truncated } = assembleTiptap({
       blocks: [{ type: 'image', ref: 'missing', bbox: [0, 0, 1, 1] }],
     });
     expect(truncated).toBe(false);
     expect(allNodeTypes(doc)).not.toContain('resizableImage');
-    expect(doc.content).toEqual([{ type: 'paragraph' }]);
+    expect(doc.content).toEqual([{ type: 'imagePlaceholder' }]);
   });
 
   it('keeps surrounding blocks when one image ref is missing', () => {
@@ -434,10 +434,14 @@ describe('assembleTiptap — dropped blocks', () => {
         { type: 'paragraph', runs: [{ text: 'after' }] },
       ],
     });
-    expect(doc.content.map((n) => n.type)).toEqual(['paragraph', 'paragraph']);
+    expect(doc.content.map((n) => n.type)).toEqual([
+      'paragraph',
+      'imagePlaceholder',
+      'paragraph',
+    ]);
   });
 
-  it('keeps the caption when the image crop is missing', () => {
+  it('keeps the caption (after the placeholder) when the image crop is missing', () => {
     const { doc } = assembleTiptap({
       blocks: [
         {
@@ -448,7 +452,7 @@ describe('assembleTiptap — dropped blocks', () => {
         },
       ],
     });
-    expect(allNodeTypes(doc)).not.toContain('resizableImage');
+    expect(doc.content.map((n) => n.type)).toEqual(['imagePlaceholder', 'paragraph']);
     expect(JSON.stringify(doc)).toContain('Figure 1 — chart.');
   });
 
