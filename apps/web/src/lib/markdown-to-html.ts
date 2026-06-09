@@ -36,6 +36,7 @@
 
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+import { CALLOUT_TYPE_BY_MARKER } from './callout-markers';
 
 /**
  * Block-level markdown signals. Any single match is enough to treat the
@@ -47,7 +48,13 @@ const BLOCK_PATTERNS: readonly RegExp[] = [
   /^[-*+]\s/m, // unordered list item
   /^\d+\.\s/m, // ordered list item
   /^>\s/m, // blockquote
-  /^```/m, // fenced code block (opening fence)
+  // Fenced code block. Backticks only and at most 3 spaces of indent (the
+  // CommonMark fence maximum) — a deeper-indented run is indented-code
+  // CONTENT, and tilde runs are too often decorative separators in pasted
+  // notes to be a safe signal on their own (an unclosed ~~~ fence would
+  // swallow all following prose into one code block).
+  /^\s{0,3}```/m,
+  /^\s{0,3}``(?!`)[A-Za-z][\w+#.-]*\s*$/m, // malformed two-backtick fence + language (repairable)
   /^([-*_]\s*){3,}\s*$/m, // horizontal rule ("---", "***", "___")
   /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/m, // GFM table separator row
 ];
@@ -136,28 +143,118 @@ function splitSoftProseLines(text: string): string {
 }
 
 /**
- * Maps GitHub-style admonition markers (`[!TIP]`, `[!WARNING]`, …) onto the
- * four Callout types the editor supports. Keep the value set in sync with
- * `CalloutType` in `src/lib/tiptap-callout.ts`. Unknown markers fall back to
- * `info` so a stray `[!FOO]` still renders as a callout rather than literal
- * text. The vocabulary is deliberately generous — models trained on GitHub
- * reach for NOTE / IMPORTANT / CAUTION, so we accept those aliases too.
+ * A malformed OPENING fence: exactly two backticks followed by a language
+ * token, alone on a line (`` ``python ``). Exactly-two only — a single
+ * backtick + word is far more likely an unclosed inline-code typo than a
+ * fence, and mis-promoting prose into a fence is worse than leaving a
+ * malformed fence alone. Indent capped at the CommonMark fence maximum
+ * (3 spaces) so lines inside indented code blocks are never touched.
  */
-const CALLOUT_TYPE_BY_MARKER: Record<string, 'info' | 'warning' | 'success' | 'tip'> = {
-  note: 'info',
-  info: 'info',
-  tip: 'tip',
-  hint: 'tip',
-  important: 'tip',
-  warning: 'warning',
-  caution: 'warning',
-  danger: 'warning',
-  attention: 'warning',
-  success: 'success',
-  check: 'success',
-  done: 'success',
-  ok: 'success',
-};
+const MALFORMED_OPENER = /^(\s{0,3})``(?!`)([A-Za-z][\w+#.-]*)\s*$/;
+/** A malformed CLOSING fence: one or two backticks alone on a line. */
+const MALFORMED_CLOSER = /^(\s{0,3})`{1,2}(?!`)\s*$/;
+
+/**
+ * Parse a well-formed CommonMark fence line: 3+ backticks or tildes at ≤3
+ * spaces of indent. Returns the fence character, run length, and info string
+ * (the language tag) so callers can apply real fence-MATCHING rules — a
+ * closer must use the same character, be at least as long as the opener, and
+ * carry no info string. A backtick fence whose info string contains a
+ * backtick is not a fence at all (e.g. "```ls -la``` lists files" is an
+ * inline code span, not a fence line).
+ */
+function parseFenceLine(line: string): { char: '`' | '~'; len: number; info: string } | null {
+  const m = line.match(/^\s{0,3}(`{3,}|~{3,})(.*)$/);
+  if (!m) return null;
+  const char = m[1][0] as '`' | '~';
+  const info = m[2].trim();
+  if (char === '`' && info.includes('`')) return null;
+  return { char, len: m[1].length, info };
+}
+
+/**
+ * Repair malformed code fences before parsing.
+ *
+ * Small models occasionally flub fence syntax — emitting `` ``python `` for
+ * the opening fence or a bare `` `` `` as the closer. `marked` doesn't
+ * recognise those, so the intended code block degrades into mangled
+ * paragraphs. Repairs are deliberately conservative and PAIRWISE: a
+ * two-backtick opener is promoted based on the first fence-ish line that
+ * follows it —
+ *
+ *   - a malformed closer → both ends are promoted together;
+ *   - a bare proper fence (no language tag) → only the opener is promoted,
+ *     that line already closes it;
+ *   - a proper fence WITH a language tag is another block's opener → the
+ *     malformed line is left alone rather than hijacking the valid block.
+ *
+ * Inside a properly opened fence, a short backtick closer is promoted only
+ * when no matching proper closer exists later, so backtick runs that are
+ * legitimate code CONTENT inside a closed block are never touched.
+ * Four-plus-backtick fences are valid CommonMark (used to nest ``` inside a
+ * block); the matching rules in parseFenceLine keep them intact.
+ */
+function repairCodeFences(text: string): string {
+  if (!text.includes('`')) return text;
+  const lines = text.split(/\r\n?|\n/);
+  let open: { char: '`' | '~'; len: number } | null = null;
+  let repaired = false;
+
+  const closes = (line: string, fence: { char: string; len: number }): boolean => {
+    const f = parseFenceLine(line);
+    return f !== null && f.char === fence.char && f.len >= fence.len && f.info === '';
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = parseFenceLine(line);
+    if (fence) {
+      if (!open) {
+        open = { char: fence.char, len: fence.len };
+      } else if (closes(line, open)) {
+        open = null;
+      }
+      // A non-matching fence-looking line inside an open fence is content.
+      continue;
+    }
+
+    if (!open) {
+      const o = line.match(MALFORMED_OPENER);
+      if (!o) continue;
+      for (let j = i + 1; j < lines.length; j++) {
+        const f = parseFenceLine(lines[j]);
+        if (f) {
+          if (f.info === '') {
+            lines[i] = `${o[1]}\`\`\`${o[2]}`;
+            open = { char: '`', len: 3 };
+            repaired = true;
+          }
+          break;
+        }
+        const c = lines[j].match(MALFORMED_CLOSER);
+        if (c) {
+          lines[i] = `${o[1]}\`\`\`${o[2]}`;
+          lines[j] = `${c[1]}\`\`\``;
+          i = j; // the pair is settled; continue after the closer
+          repaired = true;
+          break;
+        }
+        if (MALFORMED_OPENER.test(lines[j])) break; // ambiguous — leave both
+      }
+      continue;
+    }
+
+    // Inside an open backtick fence: promote a short closer only when the
+    // fence is otherwise left unclosed.
+    const c = line.match(MALFORMED_CLOSER);
+    if (c && open.char === '`' && !lines.slice(i + 1).some((l) => closes(l, open!))) {
+      lines[i] = `${c[1]}${'`'.repeat(Math.max(3, open.len))}`;
+      open = null;
+      repaired = true;
+    }
+  }
+  return repaired ? lines.join('\n') : text;
+}
 
 /**
  * Rewrite `marked`'s blockquote HTML into Callout nodes when the blockquote
@@ -211,7 +308,7 @@ function admonitionsToCallouts(html: string): string {
  * onto level 3.
  */
 export function markdownToHtml(text: string): string {
-  const raw = marked.parse(splitSoftProseLines(text), {
+  const raw = marked.parse(splitSoftProseLines(repairCodeFences(text)), {
     gfm: true,
     breaks: false,
     async: false,

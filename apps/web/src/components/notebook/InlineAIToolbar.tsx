@@ -6,7 +6,7 @@ import { useAiTask } from './AiTaskContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { Button } from '@/components/ui/Button';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
-import { looksLikeMarkdown, markdownToHtml } from '@/lib/markdown-to-html';
+import { markdownToHtml } from '@/lib/markdown-to-html';
 
 /**
  * Floating toolbar that appears whenever the user has a non-trivial text
@@ -269,14 +269,20 @@ export default function InlineAIToolbar({
           for (const block of events) {
             const lines = block.split('\n');
             let eventName = 'message';
-            let dataStr = '';
+            const dataParts: string[] = [];
             for (const line of lines) {
               if (line.startsWith('event:')) {
                 eventName = line.slice(6).trim();
               } else if (line.startsWith('data:')) {
-                dataStr += line.slice(5).trim();
+                // Per the SSE spec, strip at most ONE leading space — trim()
+                // would eat whitespace that belongs to the payload.
+                dataParts.push(line.slice(5).replace(/^ /, ''));
               }
             }
+            // Per the SSE spec, multiple data: lines in one event join with
+            // a newline. Our server always sends single-line JSON, but don't
+            // silently corrupt payloads if that ever changes.
+            const dataStr = dataParts.join('\n');
             if (!dataStr) continue;
             let payload: { delta?: string; fullText?: string; error?: string };
             try {
@@ -340,15 +346,21 @@ export default function InlineAIToolbar({
     const from = Math.min(preview.range.from, docSize);
     const to = Math.min(preview.range.to, docSize);
 
-    // The model replies in Markdown. Block-structured output (callouts, code
-    // blocks, lists, tables, headings, multi-paragraph prose) is rendered
-    // through the same markdown → HTML → schema pipeline the paste handler
-    // uses (see PageEditor handlePaste), so it lands as real editor nodes
-    // instead of literal "#" / "```" / "> [!TIP]" characters. A short, single
-    // -block plain reply (e.g. a rewritten phrase) is inserted as raw text so
-    // it stays inline — wrapping it in <p> would split the surrounding block.
-    const isBlock = looksLikeMarkdown(preview.text) || /\n\s*\n/.test(preview.text);
-    const content = isBlock ? markdownToHtml(preview.text) : preview.text;
+    // The model replies in Markdown. ALWAYS run it through the same
+    // markdown → HTML → schema pipeline the paste handler uses (see
+    // PageEditor handlePaste) so code blocks, callouts, lists, tables, and
+    // emphasis land as real editor nodes instead of literal "```" / "> [!TIP]"
+    // / "**" characters — markdownToHtml also repairs malformed model fences.
+    // When the whole reply collapses to a single paragraph (a short rewrite),
+    // unwrap it and insert its inline content so the edit merges into the
+    // surrounding block instead of splitting it.
+    const html = markdownToHtml(preview.text).trim();
+    const singleParagraph =
+      /^<p>[\s\S]*<\/p>$/.test(html) && (html.match(/<p[\s>]/g) ?? []).length === 1;
+    const unwrapped = singleParagraph ? html.replace(/^<p>/, '').replace(/<\/p>$/, '') : html;
+    // If sanitization stripped the reply to nothing, fall back to inserting
+    // the original text as a literal text node — never as parseable HTML.
+    const content = unwrapped || { type: 'text' as const, text: preview.text };
 
     editor
       .chain()

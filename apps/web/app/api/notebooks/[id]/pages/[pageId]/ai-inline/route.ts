@@ -47,15 +47,19 @@ type InlineAction = 'rewrite' | 'summarize' | 'expand';
 // fenced code blocks (with a language) for code, lists for enumerations,
 // tables for tabular data, **bold**/*italic* for emphasis, and `## headings`
 // for longer structured passages. Callouts use GitHub admonition syntax on a
-// blockquote — the supported kinds are [!INFO]/[!NOTE], [!TIP], [!WARNING],
-// and [!SUCCESS], e.g.:
+// blockquote — supported kinds: [!INFO], [!NOTE], [!TIP], [!WARNING],
+// [!DANGER], [!SUCCESS] (see src/lib/callout-markers.ts), e.g.:
 //   > [!TIP]
 //   > Keep the chain rule handy here.
+// The fence syntax is pinned with a literal example because the cheap models
+// routed to rewrite/summarize were observed emitting two-backtick fences,
+// which degrade to literal text in the editor.
 const FORMATTING_RULES = [
   'Write in GitHub-Flavored Markdown.',
   'Match the formatting to the content and to the scale of the input: a short passage stays plain prose, while structured material should use the right element.',
   'Use fenced code blocks with a language tag for code, bullet or numbered lists for enumerations, tables for tabular data, and **bold**/*italic* for emphasis.',
-  'For asides use a callout — a blockquote opening with one of [!INFO], [!TIP], [!WARNING], or [!SUCCESS], e.g. "> [!TIP]\\n> ...".',
+  'A code fence is EXACTLY three backticks on its own line: the opening fence is immediately followed by the language tag and every fence must be closed by a matching three-backtick line, e.g. "```python\\nprint(1)\\n```" — never one, two, or four backticks. Single backticks are only for short inline code.',
+  'For asides use a callout — a blockquote opening with one of [!INFO], [!NOTE], [!TIP], [!WARNING], [!DANGER], or [!SUCCESS], e.g. "> [!TIP]\\n> ...".',
   'Do not wrap the entire reply in a code fence, add commentary, or surround it in quotes.',
 ].join(' ');
 

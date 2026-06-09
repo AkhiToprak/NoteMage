@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { Children, cloneElement, isValidElement, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -8,8 +8,135 @@ import rehypeKatex from 'rehype-katex';
 import { all, createLowlight } from 'lowlight';
 import { toHtml } from 'hast-util-to-html';
 import type { Components } from 'react-markdown';
+import {
+  ADMONITION_MARKER_RE,
+  CALLOUT_RENDER_META,
+  CALLOUT_TYPE_BY_MARKER,
+} from '@/lib/callout-markers';
 
 const lowlight = createLowlight(all);
+
+/**
+ * GitHub-style admonition support for blockquotes.
+ *
+ * AI surfaces (chat, inline edit) emit callouts as `> [!TIP]\n> body`. The
+ * editor converts those into real Callout nodes on insert, but everywhere
+ * markdown is DISPLAYED (chat bubbles, the inline-AI preview popover) the
+ * marker used to render as literal "[!TIP]" text inside a quote. Here we
+ * detect the marker in the blockquote's first paragraph, strip it from the
+ * rendered children, and dress the quote like its in-editor Callout twin so
+ * the preview matches what Accept inserts.
+ */
+
+/** Index of the first non-whitespace child in a Children.toArray result. */
+function firstRealIndex(arr: ReturnType<typeof Children.toArray>): number {
+  return arr.findIndex((c) => !(typeof c === 'string' && c.trim() === ''));
+}
+
+/**
+ * The candidate marker text: the first DIRECT string child of the
+ * blockquote's first paragraph. Deliberately does NOT recurse into nested
+ * elements — a quote whose first content is `` `[!TIP]` `` (inline code
+ * ABOUT callout syntax) is a normal quote, exactly as the editor-insert
+ * pipeline treats it (admonitionsToCallouts anchors on `^<p>\s*\[!`).
+ */
+function markerCandidate(children: ReactNode): string {
+  const arr = Children.toArray(children);
+  const idx = firstRealIndex(arr);
+  if (idx === -1) return '';
+  const first = arr[idx];
+  if (typeof first === 'string') return first;
+  if (!isValidElement(first)) return '';
+  const kids = Children.toArray((first.props as { children?: ReactNode }).children);
+  const kidIdx = firstRealIndex(kids);
+  const lead = kidIdx === -1 ? undefined : kids[kidIdx];
+  return typeof lead === 'string' ? lead : '';
+}
+
+/**
+ * Remove the admonition marker from the first paragraph's leading string and
+ * drop that paragraph entirely if nothing but whitespace remains (the
+ * marker-on-its-own-line shape). Paragraphs that still hold non-text content
+ * (e.g. an image right after the marker) are kept.
+ */
+function stripMarker(children: ReactNode): ReactNode {
+  const arr = Children.toArray(children);
+  const idx = firstRealIndex(arr);
+  if (idx === -1) return children;
+  const first = arr[idx];
+
+  if (typeof first === 'string') {
+    arr[idx] = first.replace(ADMONITION_MARKER_RE, '');
+    return arr;
+  }
+  if (!isValidElement(first)) return children;
+
+  const kids = Children.toArray((first.props as { children?: ReactNode }).children);
+  const kidIdx = firstRealIndex(kids);
+  if (kidIdx === -1 || typeof kids[kidIdx] !== 'string') return children;
+  kids[kidIdx] = (kids[kidIdx] as string).replace(ADMONITION_MARKER_RE, '');
+
+  const emptied = kids.every((k) => typeof k === 'string' && k.trim() === '');
+  if (emptied) return arr.filter((_, i) => i !== idx);
+  arr[idx] = cloneElement(first, undefined, kids);
+  return arr;
+}
+
+function AdmonitionAwareBlockquote({
+  children,
+  variant,
+}: {
+  children?: ReactNode;
+  variant: 'bubble' | 'plain';
+}) {
+  const marker = markerCandidate(children).match(ADMONITION_MARKER_RE);
+  if (!marker) {
+    if (variant === 'plain') return <blockquote>{children}</blockquote>;
+    return (
+      <blockquote
+        style={{
+          borderLeft: '3px solid rgba(174,137,255,0.5)',
+          paddingLeft: '1em',
+          margin: '0.6em 0',
+          color: 'var(--ink-60)',
+          fontStyle: 'italic',
+        }}
+      >
+        {children}
+      </blockquote>
+    );
+  }
+
+  // Unknown markers fall back to `info` — same rule as the editor-insert
+  // pipeline in src/lib/markdown-to-html.ts.
+  const type = CALLOUT_TYPE_BY_MARKER[marker[1].toLowerCase()] ?? 'info';
+  const meta = CALLOUT_RENDER_META[type];
+  const content = stripMarker(children);
+
+  return (
+    <div
+      style={{
+        borderLeft: `3px solid ${meta.borderColor}`,
+        background: meta.bgColor,
+        borderRadius: '8px',
+        padding: '10px 14px',
+        margin: '0.6em 0',
+        display: 'flex',
+        gap: '10px',
+        alignItems: 'flex-start',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        aria-label={meta.label}
+        style={{ fontSize: 18, color: meta.borderColor, marginTop: 3, flexShrink: 0 }}
+      >
+        {meta.icon}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>{content}</div>
+    </div>
+  );
+}
 
 /** Highlight code via lowlight → HTML string */
 function highlightCode(code: string, lang: string | null): string {
@@ -204,17 +331,7 @@ const bubbleComponents: Components = {
     </pre>
   ),
   blockquote: ({ children }) => (
-    <blockquote
-      style={{
-        borderLeft: '3px solid rgba(174,137,255,0.5)',
-        paddingLeft: '1em',
-        margin: '0.6em 0',
-        color: 'var(--ink-60)',
-        fontStyle: 'italic',
-      }}
-    >
-      {children}
-    </blockquote>
+    <AdmonitionAwareBlockquote variant="bubble">{children}</AdmonitionAwareBlockquote>
   ),
   hr: () => (
     <hr
@@ -285,6 +402,15 @@ const bubbleComponents: Components = {
   ),
 };
 
+// The plain variant keeps default elements for everything except blockquotes,
+// which still need the admonition treatment so callouts render as callouts in
+// minimal contexts (e.g. the inline-AI preview popover).
+const plainComponents: Components = {
+  blockquote: ({ children }) => (
+    <AdmonitionAwareBlockquote variant="plain">{children}</AdmonitionAwareBlockquote>
+  ),
+};
+
 export default function MarkdownRenderer({ content, variant = 'bubble' }: MarkdownRendererProps) {
   return (
     <div
@@ -298,7 +424,7 @@ export default function MarkdownRenderer({ content, variant = 'bubble' }: Markdo
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
-        components={variant === 'bubble' ? bubbleComponents : undefined}
+        components={variant === 'bubble' ? bubbleComponents : plainComponents}
       >
         {content}
       </ReactMarkdown>
