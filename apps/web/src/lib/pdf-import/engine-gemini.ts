@@ -1,6 +1,7 @@
 import type { Content, GoogleGenAI } from '@google/genai';
 import type { DocModelBlock } from './doc-model';
 import {
+  canonicalizeImageRefs,
   type DescribePageInput,
   type PdfStructureEngine,
   type PdfUsageSink,
@@ -28,9 +29,6 @@ const MAX_OUTPUT_TOKENS = 32768;
 
 /** Engine identity recorded on `ImportJob.engine`. */
 const ENGINE_NAME = 'gemini-flash-lite';
-
-/** A figure ref the import worker can match to a cropped image. */
-const VALID_IMAGE_REF = /^p\d+-fig-\d+$/;
 
 /**
  * One raw model round trip. This is the seam that makes the engine
@@ -114,10 +112,6 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
   }
 };
 
-/** Drop `image` blocks whose ref cannot be matched to a cropped figure. */
-function cleanImageRefs(blocks: DocModelBlock[]): DocModelBlock[] {
-  return blocks.filter((block) => block.type !== 'image' || VALID_IMAGE_REF.test(block.ref));
-}
 
 /**
  * Build a structure engine over a raw model call.
@@ -142,7 +136,7 @@ export function createGeminiEngine(call: ModelCall): PdfStructureEngine {
 
       const firstRaw = await call(base, input.onUsage);
       const first = parseDocModelBlocks(firstRaw);
-      if (first.ok && first.blocks) return cleanImageRefs(first.blocks);
+      if (first.ok && first.blocks) return canonicalizeImageRefs(first.blocks, input.pageNumber);
 
       const repairRaw = await call(
         {
@@ -155,7 +149,7 @@ export function createGeminiEngine(call: ModelCall): PdfStructureEngine {
         input.onUsage,
       );
       const second = parseDocModelBlocks(repairRaw);
-      if (second.ok && second.blocks) return cleanImageRefs(second.blocks);
+      if (second.ok && second.blocks) return canonicalizeImageRefs(second.blocks, input.pageNumber);
 
       throw new StructureEngineError(
         `structure parse failed after one repair retry (page ${input.pageNumber}): ${second.error}`,

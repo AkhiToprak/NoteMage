@@ -245,4 +245,18 @@ describe('normalizeDocModelShape — extended drift rescue', () => {
       if (img.type === 'image') expect(img.bbox).toEqual([0.1, 0.2, 0.8, 0.9]);
     }
   });
+
+  it('reinterprets an [x, y, w, h]-style bbox as corners', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [0.1, 0.4, 0.8, 0.3] },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') {
+        expect(img.bbox[2]).toBeCloseTo(0.9);
+        expect(img.bbox[3]).toBeCloseTo(0.7);
+      }
+    }
+  });
 });

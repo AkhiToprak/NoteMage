@@ -91,17 +91,22 @@ describe('createGeminiEngine — parse / repair / throw loop', () => {
     expect(seen[1]).toMatchObject({ inputTokens: 200 });
   });
 
-  it('drops image blocks whose ref is not page-namespaced', async () => {
+  // Refs only need to be consistent between the block and the crop map the
+  // worker builds from these same blocks — so improvised refs ("bogus",
+  // "fig1") are renumbered into the canonical format, never dropped.
+  it('renumbers image refs canonically instead of dropping improvised ones', async () => {
     const response = JSON.stringify({
       blocks: [
-        { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1] },
-        { type: 'image', ref: 'bogus', bbox: [0, 0, 1, 1] },
+        { type: 'image', ref: 'bogus', bbox: [0, 0, 0.5, 0.5] },
+        { type: 'paragraph', runs: [{ text: 'between' }] },
+        { type: 'image', ref: 'p9-fig-7', bbox: [0.5, 0.5, 1, 1] },
       ],
     });
     const { call } = scriptedCall([response]);
     const blocks = await createGeminiEngine(call).describePage(PAGE);
-    expect(blocks).toHaveLength(1);
+    expect(blocks).toHaveLength(3);
     expect(blocks[0]).toMatchObject({ type: 'image', ref: 'p1-fig-1' });
+    expect(blocks[2]).toMatchObject({ type: 'image', ref: 'p1-fig-2' });
   });
 });
 

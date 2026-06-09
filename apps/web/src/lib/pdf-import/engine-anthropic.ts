@@ -7,6 +7,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { DocModelBlock } from './doc-model';
 import {
+  canonicalizeImageRefs,
   type DescribePageInput,
   type PdfStructureEngine,
   type PdfUsageSink,
@@ -17,9 +18,6 @@ import { buildPageUserText, buildRepairSuffix, STRUCTURE_SYSTEM_PROMPT } from '.
 import { parseDocModelBlocks } from './validate';
 
 const ENGINE_NAME = 'anthropic-sonnet';
-
-/** A figure ref the import worker can match to a cropped image. */
-const VALID_IMAGE_REF = /^p\d+-fig-\d+$/;
 
 /** One raw Claude vision round trip (optionally a repair turn). */
 export type ModelCall = (
@@ -79,11 +77,6 @@ const anthropicVisionCall: ModelCall = async (input, repair, onUsage) => {
   }
 };
 
-/** Drop `image` blocks whose ref cannot be matched to a cropped figure. */
-function cleanImageRefs(blocks: DocModelBlock[]): DocModelBlock[] {
-  return blocks.filter((block) => block.type !== 'image' || VALID_IMAGE_REF.test(block.ref));
-}
-
 /** Build a Sonnet vision engine over a raw model call (seam for tests). */
 export function createAnthropicEngine(call: ModelCall): PdfStructureEngine {
   return {
@@ -92,7 +85,7 @@ export function createAnthropicEngine(call: ModelCall): PdfStructureEngine {
     async describePage(input: DescribePageInput): Promise<DocModelBlock[]> {
       const firstRaw = await call(input, undefined, input.onUsage);
       const first = parseDocModelBlocks(firstRaw);
-      if (first.ok && first.blocks) return cleanImageRefs(first.blocks);
+      if (first.ok && first.blocks) return canonicalizeImageRefs(first.blocks, input.pageNumber);
 
       const repairRaw = await call(
         input,
@@ -103,7 +96,8 @@ export function createAnthropicEngine(call: ModelCall): PdfStructureEngine {
         input.onUsage,
       );
       const second = parseDocModelBlocks(repairRaw);
-      if (second.ok && second.blocks) return cleanImageRefs(second.blocks);
+      if (second.ok && second.blocks)
+        return canonicalizeImageRefs(second.blocks, input.pageNumber);
 
       throw new StructureEngineError(
         `structure parse failed after one repair retry (page ${input.pageNumber}): ${second.error}`,

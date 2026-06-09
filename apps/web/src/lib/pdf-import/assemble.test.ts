@@ -437,6 +437,21 @@ describe('assembleTiptap — dropped blocks', () => {
     expect(doc.content.map((n) => n.type)).toEqual(['paragraph', 'paragraph']);
   });
 
+  it('keeps the caption when the image crop is missing', () => {
+    const { doc } = assembleTiptap({
+      blocks: [
+        {
+          type: 'image',
+          ref: 'missing',
+          bbox: [0, 0, 1, 1],
+          caption: [{ text: 'Figure 1 — chart.' }],
+        },
+      ],
+    });
+    expect(allNodeTypes(doc)).not.toContain('resizableImage');
+    expect(JSON.stringify(doc)).toContain('Figure 1 — chart.');
+  });
+
   it('drops a table that has no rows', () => {
     const { doc } = assembleTiptap({
       blocks: [{ type: 'table', headerRow: false, rows: [] }],

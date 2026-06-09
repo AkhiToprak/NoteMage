@@ -177,9 +177,11 @@ function convertBlock(
     // when present, follows as its own italic paragraph.
     case 'image': {
       const src = imageSrcByRef[block.ref];
-      if (!src) return [];
-      const nodes: TipTapNode[] = [{ type: 'resizableImage', attrs: { src } }];
+      const nodes: TipTapNode[] = [];
+      if (src) nodes.push({ type: 'resizableImage', attrs: { src } });
       if (block.caption) {
+        // The caption is verbatim page text — keep it even when the crop
+        // itself failed, so a dropped figure never silently loses prose.
         const caption = captionParagraph(block.caption);
         if (caption) nodes.push(caption);
       }

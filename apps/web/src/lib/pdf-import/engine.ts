@@ -83,3 +83,23 @@ export class StructureEngineError extends Error {
     this.pageNumber = pageNumber;
   }
 }
+
+/**
+ * Re-key every `image` block to the canonical `p{n}-fig-{i}` ref, numbered
+ * in reading order. The user message asks the model to echo these exact ids,
+ * but small models routinely improvise ("fig1", "image-1") — and the ref's
+ * only real job is to be CONSISTENT between the block and the crop map the
+ * import worker builds from those same blocks. Renumbering keeps every
+ * figure; the old policy of dropping non-matching refs silently lost them.
+ */
+export function canonicalizeImageRefs(
+  blocks: DocModelBlock[],
+  pageNumber: number,
+): DocModelBlock[] {
+  let index = 0;
+  return blocks.map((block) => {
+    if (block.type !== 'image') return block;
+    index += 1;
+    return { ...block, ref: `p${pageNumber}-fig-${index}` };
+  });
+}

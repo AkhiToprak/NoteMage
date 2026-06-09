@@ -229,10 +229,24 @@ function normalizeMathBlock(block: Record<string, unknown>): void {
   normalizeCaption(block);
 }
 
-/** Coerce an image block in place: numeric-string bbox values + caption. */
+/** Coerce an image block in place: numeric-string bbox values, an
+ *  `[x, y, w, h]`-style bbox reinterpreted as corners, + caption. */
 function normalizeImageBlock(block: Record<string, unknown>): void {
   if (Array.isArray(block.bbox)) {
-    block.bbox = block.bbox.slice(0, 4).map((v) => Number(v));
+    const bbox = block.bbox.slice(0, 4).map((v) => Number(v));
+    if (bbox.length === 4 && bbox.every((v) => Number.isFinite(v))) {
+      const [x0, y0] = bbox;
+      let [, , x1, y1] = bbox;
+      // Degenerate when read as corners but plausible as width/height →
+      // the model emitted [x, y, w, h]; convert to [x0, y0, x1, y1].
+      if ((x1 <= x0 || y1 <= y0) && x1 > 0 && y1 > 0 && x0 + x1 <= 1.2 && y0 + y1 <= 1.2) {
+        x1 = x0 + x1;
+        y1 = y0 + y1;
+      }
+      block.bbox = [x0, y0, x1, y1].map((v) => Math.min(1, Math.max(0, v)));
+    } else {
+      block.bbox = bbox;
+    }
   }
   if (typeof block.ref === 'number') block.ref = String(block.ref);
   normalizeCaption(block);
