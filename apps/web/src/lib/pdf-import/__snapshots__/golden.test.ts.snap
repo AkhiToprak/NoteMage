@@ -2428,6 +2428,1770 @@ point when its limit there exists and equals the",
 }
 `;
 
+exports[`golden corpus — deterministic pipeline snapshots > notemage-import-test.pdf — extraction and assembly are stable 1`] = `
+{
+  "doc": {
+    "content": [
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "NoteMage Import Test",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "Document",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "A single-file fixture exercising every common PDF element. Each block is labeled with its type so you can verify the importer one element at a time.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "table of contents:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "1. Text & inline formatting",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "2. Headers & titles",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "3. Code blocks (Python, TypeScript, SQL, Bash)",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "4. Callouts (info, tip, warning, danger, note)",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "5. Lists (bullet, numbered, nested, task)",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "6. Blockquote",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "7. Table",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "8. Images & captions",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "9. Math, sub/superscript",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+          {
+            "content": [
+              {
+                "content": [
+                  {
+                    "text": "10. Links, divider, footnote, definition list",
+                    "type": "text",
+                  },
+                ],
+                "type": "paragraph",
+              },
+            ],
+            "type": "listItem",
+          },
+        ],
+        "type": "bulletList",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "1. Text & inline formatting",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "paragraph: This is a normal body paragraph with justified alignment. NoteMage is an AI-powered study platform that turns uploaded material into structured notes and practice questions. This sentence exists purely to give the parser a realistic block of running prose to handle.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "inline formatting (bold, italic, underline, strikethrough, highlight, inline code): Text can be bold, italic, bold-italic, underlined, struck through, highlighted, and contain inline_code() spans.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "2. Headers & titles",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "heading level 1:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "Heading 1 — Section",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "heading level 2:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 3,
+        },
+        "content": [
+          {
+            "text": "Heading 2 — Subsection",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "heading level 3: Heading 3 — Sub-subsection",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "NoteMage — Import Test Fixture Page 1",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "3. Code blocks",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "codeblock (python): python",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "from functools import lru_cache",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "@lru_cache(maxsize=None) def fib(n: int) -> int: """Return the n-th Fibonacci number.""" if n < 2: return n return fib(n - 1) + fib(n - 2)",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "print([fib(i) for i in range(10)]) # 0 1 1 2 3 5 8 13 21 34",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "codeblock (typescript): typescript",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "type Note = { id: string; title: string; tags: string[] };",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "function group<T extends { tags: string[] }>(items: T[]): Map<string, T[]> { const out = new Map<string, T[]>(); for (const it of items) { for (const tag of it.tags) { const bucket = out.get(tag) ?? []; bucket.push(it); out.set(tag, bucket); } } return out; }",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "codeblock (sql): sql",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "SELECT s.subject, COUNT(*) AS notes, AVG(q.score) AS avg_score FROM notes AS n JOIN subjects AS s ON s.id = n.subject_id LEFT JOIN quizzes AS q ON q.note_id = n.id WHERE n.created_at >= NOW() - INTERVAL '30 days' GROUP BY s.subject",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "HAVING COUNT(*) > 3",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "ORDER BY avg_score DESC;",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "codeblock (bash): bash",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "#!/usr/bin/env bash set -euo pipefail for f in ./uploads/*.pdf; do echo "Importing \${f} ..." && notemage import "$f" --tag exam done",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "NoteMage — Import Test Fixture Page 2",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "4. Callouts / admonitions",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "callout (info):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Info Imports run asynchronously. Large PDFs are processed in the background and notes appear as soon as each page is parsed.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "callout (tip):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Tip Tag your upload during import (e.g. #exam) so generated notes are filed into the right deck automatically.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "callout (warning):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Warning Scanned PDFs without a text layer require OCR first — extraction quality depends on scan resolution.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "callout (danger):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Danger Re-importing the same file overwrites existing notes for that source. This action cannot be undone.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "callout (note):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Note This whole document is a test fixture. None of the content describes a real billing change or policy.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "5. Lists",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "bulleted list:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• Headings and paragraphs",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• Code and inline formatting",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• Tables and images",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "numbered list:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "1 Upload a PDF",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "2 The parser extracts blocks",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "3 Notes and quizzes are generated",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "NoteMage — Import Test Fixture Page 3",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "nested list:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• Frontend",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• Backend stack:",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• – PostgreSQL",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "– Next.js",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "– TypeScript",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 2,
+        },
+        "content": [
+          {
+            "text": "• Deployment",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "task list (checkboxes):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 3,
+        },
+        "content": [
+          {
+            "text": "☑ Parse text layer",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 3,
+        },
+        "content": [
+          {
+            "text": "☑ Detect code blocks",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 3,
+        },
+        "content": [
+          {
+            "text": "☐ Reconstruct tables",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 3,
+        },
+        "content": [
+          {
+            "text": "☐ Map callouts to note styles",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "6. Blockquote",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "blockquote:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 3,
+        },
+        "content": [
+          {
+            "text": "“Tell me and I forget, teach me and I may remember, involve me and I learn.”",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "— attributed to Xenophon",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "7. Table",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "table:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Subject",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Topic",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Status",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Score",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Math",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Quadratic functions",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Done",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "92%",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Informatik",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "DOM & XSS",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "In progress",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "78%",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "French",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "DELF B1 oral",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Done",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "85%",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+          {
+            "content": [
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "History",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Ottoman expansion",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "Not started",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+              {
+                "attrs": {
+                  "colspan": 1,
+                  "colwidth": null,
+                  "rowspan": 1,
+                },
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "—",
+                        "type": "text",
+                      },
+                    ],
+                    "type": "paragraph",
+                  },
+                ],
+                "type": "tableCell",
+              },
+            ],
+            "type": "tableRow",
+          },
+        ],
+        "type": "table",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "8. Images & captions",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "image (raster chart) with caption:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "NoteMage — Import Test Fixture Page 4",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Figure 1 — Weekly study time per subject (bar chart).",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "image (diagram / banner) with caption:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Figure 2 — Upload → Parse → Notes pipeline (vector-style graphic).",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "9. Math, subscript & superscript",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "equation (rendered as image):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Figure 3 — The quadratic formula.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "subscript / superscript (text):",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "2 2 2 2",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "Chemical formula: H O and CO . Exponents: E = mc , and a + b = c . Indexed",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "2 2",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "variable: x for i = 1 … n. i",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "NoteMage — Import Test Fixture Page 5",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "attrs": {
+          "level": 1,
+        },
+        "content": [
+          {
+            "text": "10. Links, divider, footnote, definition list",
+            "type": "text",
+          },
+        ],
+        "type": "heading",
+      },
+      {
+        "content": [
+          {
+            "text": "hyperlink: Visit the project at notemage.app or the repo on GitHub.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "horizontal rule / divider:",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "footnote reference: 1 The importer was benchmarked on a 40-page document and handled it without manual cleanup. 1 Synthetic benchmark; numbers are illustrative only.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "definition list: Note",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "An atomic unit of study material extracted from a source. Deck",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "A collection of notes grouped by subject or tag. Quiz",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "Auto-generated practice questions derived from notes.",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "End of fixture — if every labeled block above survived the import, you're good. ✓",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+      {
+        "content": [
+          {
+            "text": "NoteMage — Import Test Fixture Page 6",
+            "type": "text",
+          },
+        ],
+        "type": "paragraph",
+      },
+    ],
+    "type": "doc",
+  },
+  "groundTruth": {
+    "encrypted": false,
+    "hasTextLayer": true,
+    "pageCount": 6,
+    "pages": [
+      {
+        "lineCount": 32,
+        "pageNumber": 1,
+        "text": "NoteMage Import Test
+Document
+A single-file fixture exercising every common PDF element. Each block is labeled
+with its type so you can verify the importer one element at a time.
+table of contents:
+• 1. Text & inline formatting
+• 2. Headers & titles
+• 3. Code blocks (Python, TypeScript, SQL, Bash)
+• 4. Callouts (info, tip, warning, danger, note)
+• 5. Lists (bullet, numbered, nested, task)
+• 6. Blockquote
+• 7. Table
+• 8. Images & captions
+• 9. Math, sub/superscript
+• 10. Links, divider, footnote, definition list
+1. Text & inline formatting
+paragraph:
+This is a normal body paragraph with justified alignment. NoteMage is an AI-powered
+study platform that turns uploaded material into structured notes and practice
+questions. This sentence exists purely to give the parser a realistic block of running
+prose to handle.
+inline formatting (bold, italic, underline, strikethrough, highlight, inline code):
+Text can be bold, italic, bold-italic, underlined, struck through, highlighted, and contain
+inline_code() spans.
+2. Headers & titles
+heading level 1:
+Heading 1 — Section
+heading level 2:
+Heading 2 — Subsection
+heading level 3:
+Heading 3 — Sub-subsection
+NoteMage — Import Test Fixture Page 1",
+      },
+      {
+        "lineCount": 43,
+        "pageNumber": 2,
+        "text": "3. Code blocks
+codeblock (python):
+python
+from functools import lru_cache
+@lru_cache(maxsize=None)
+def fib(n: int) -> int:
+"""Return the n-th Fibonacci number."""
+if n < 2:
+return n
+return fib(n - 1) + fib(n - 2)
+print([fib(i) for i in range(10)]) # 0 1 1 2 3 5 8 13 21 34
+codeblock (typescript):
+typescript
+type Note = { id: string; title: string; tags: string[] };
+function group<T extends { tags: string[] }>(items: T[]): Map<string, T[]> {
+const out = new Map<string, T[]>();
+for (const it of items) {
+for (const tag of it.tags) {
+const bucket = out.get(tag) ?? [];
+bucket.push(it);
+out.set(tag, bucket);
+}
+}
+return out;
+}
+codeblock (sql):
+sql
+SELECT s.subject, COUNT(*) AS notes, AVG(q.score) AS avg_score
+FROM notes AS n
+JOIN subjects AS s ON s.id = n.subject_id
+LEFT JOIN quizzes AS q ON q.note_id = n.id
+WHERE n.created_at >= NOW() - INTERVAL '30 days'
+GROUP BY s.subject
+HAVING COUNT(*) > 3
+ORDER BY avg_score DESC;
+codeblock (bash):
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+for f in ./uploads/*.pdf; do
+echo "Importing \${f} ..." && notemage import "$f" --tag exam
+done
+NoteMage — Import Test Fixture Page 2",
+      },
+      {
+        "lineCount": 31,
+        "pageNumber": 3,
+        "text": "4. Callouts / admonitions
+callout (info):
+Info
+Imports run asynchronously. Large PDFs are processed in the background and notes appear
+as soon as each page is parsed.
+callout (tip):
+Tip
+Tag your upload during import (e.g. #exam) so generated notes are filed into the right
+deck automatically.
+callout (warning):
+Warning
+Scanned PDFs without a text layer require OCR first — extraction quality depends on scan
+resolution.
+callout (danger):
+Danger
+Re-importing the same file overwrites existing notes for that source. This action cannot be
+undone.
+callout (note):
+Note
+This whole document is a test fixture. None of the content describes a real billing change or
+policy.
+5. Lists
+bulleted list:
+• Headings and paragraphs
+• Code and inline formatting
+• Tables and images
+numbered list:
+1 Upload a PDF
+2 The parser extracts blocks
+3 Notes and quizzes are generated
+NoteMage — Import Test Fixture Page 3",
+      },
+      {
+        "lineCount": 26,
+        "pageNumber": 4,
+        "text": "nested list:
+• Frontend
+• Backend stack:
+• – PostgreSQL
+– Next.js
+– TypeScript
+• Deployment
+task list (checkboxes):
+☑ Parse text layer
+☑ Detect code blocks
+☐ Reconstruct tables
+☐ Map callouts to note styles
+6. Blockquote
+blockquote:
+“Tell me and I forget, teach me and I may remember, involve me and I learn.”
+— attributed to Xenophon
+7. Table
+table:
+Subject Topic Status Score
+Math Quadratic functions Done 92%
+Informatik DOM & XSS In progress 78%
+French DELF B1 oral Done 85%
+History Ottoman expansion Not started —
+8. Images & captions
+image (raster chart) with caption:
+NoteMage — Import Test Fixture Page 4",
+      },
+      {
+        "lineCount": 13,
+        "pageNumber": 5,
+        "text": "Figure 1 — Weekly study time per subject (bar chart).
+image (diagram / banner) with caption:
+Figure 2 — Upload → Parse → Notes pipeline (vector-style graphic).
+9. Math, subscript & superscript
+equation (rendered as image):
+Figure 3 — The quadratic formula.
+subscript / superscript (text):
+2 2 2 2
+Chemical formula: H O and CO . Exponents: E = mc , and a + b = c . Indexed
+2 2
+variable: x for i = 1 … n.
+i
+NoteMage — Import Test Fixture Page 5",
+      },
+      {
+        "lineCount": 19,
+        "pageNumber": 6,
+        "text": "10. Links, divider, footnote, definition list
+hyperlink:
+Visit the project at notemage.app or the repo on GitHub.
+horizontal rule / divider:
+footnote reference:
+1
+The importer was benchmarked on a 40-page document and handled it without manual
+cleanup.
+1
+Synthetic benchmark; numbers are illustrative only.
+definition list:
+Note
+An atomic unit of study material extracted from a source.
+Deck
+A collection of notes grouped by subject or tag.
+Quiz
+Auto-generated practice questions derived from notes.
+End of fixture — if every labeled block above survived the import, you're good. ✓
+NoteMage — Import Test Fixture Page 6",
+      },
+    ],
+  },
+}
+`;
+
 exports[`golden corpus — deterministic pipeline snapshots > table-heavy.pdf — extraction and assembly are stable 1`] = `
 {
   "doc": {

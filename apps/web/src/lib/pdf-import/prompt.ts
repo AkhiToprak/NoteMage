@@ -24,13 +24,22 @@ supplied page text. Never paraphrase, never summarise, never invent, never
 re-order words, never correct spelling or punctuation, never translate. You
 are classifying structure — you are NOT authoring or editing text. When the
 page text is supplied, every "text" value must come from it.
+(The ONE exception is the "latex" field of a math block — see Math below.)
 
 ## What to read from the image
 Use the image ONLY to decide:
-- Block type: heading, paragraph, list, table, callout, code block, quote, rule, figure.
+- Block type: heading, paragraph, list, task list, table, callout, code block,
+  quote, rule, figure, equation.
 - Heading level: by relative visual size — the largest headings are level 1.
-- Inline emphasis: which spans of text are bold, italic, underlined, struck through, or inline code.
+- Inline emphasis: which spans are bold, italic, underlined, struck through,
+  highlighted, inline code, subscript or superscript.
+- List nesting and checkbox state.
 - Figure regions: where diagrams, charts, photos or screenshots sit.
+
+## What to SKIP
+Do NOT emit running page headers and footers — the repeated lines in the top or
+bottom margin of every page (a running title, a document name, a page number
+like "Page 3" or "3 / 8"). They are page chrome, not content.
 
 ## Output format
 Return ONLY a JSON object: {"blocks": [ ...blocks... ]}.
@@ -39,24 +48,59 @@ No prose, no explanation, no markdown code fences. A blank page returns {"blocks
 Each block is exactly one of:
 - {"type":"heading","level":1|2|3,"runs":[run,...]}
 - {"type":"paragraph","runs":[run,...]}
-- {"type":"bulletList","items":[{"runs":[run,...]},...]}
-- {"type":"orderedList","items":[{"runs":[run,...]},...]}
-- {"type":"callout","variant":"info"|"warning"|"success"|"tip","children":[block,...]}
-    callout children may ONLY be paragraph, bulletList or orderedList blocks —
-    never a heading, table, callout, code block, image or rule.
+- {"type":"bulletList","items":[item,...]}
+- {"type":"orderedList","items":[item,...]}
+- {"type":"taskList","items":[item,...]}        (checkbox list)
+- {"type":"callout","variant":"info"|"warning"|"success"|"tip"|"danger"|"note","children":[block,...]}
+    callout children may ONLY be paragraph, bulletList, orderedList or taskList
+    blocks — never a heading, table, callout, code block, image, equation or rule.
 - {"type":"table","headerRow":true|false,"rows":[ [ [run,...], ...cells ], ...rows ]}
     "rows" is a 3-level array: rows -> cells -> runs.
 - {"type":"codeBlock","lang":"python"|null,"code":"..."}
 - {"type":"blockquote","runs":[run,...]}
-- {"type":"image","ref":"...","bbox":[x0,y0,x1,y1]}
+- {"type":"image","ref":"...","bbox":[x0,y0,x1,y1],"caption":[run,...]?}
+- {"type":"math","latex":"...","display":true|false,"caption":[run,...]?}
 - {"type":"horizontalRule"}
 
-A "run" is an inline span: {"text":"...", "bold"?:true, "italic"?:true,
-"underline"?:true, "strike"?:true, "code"?:true, "link"?:"https://..."}.
+### Runs (inline spans)
+A "run" is: {"text":"...", "bold"?:true, "italic"?:true, "underline"?:true,
+"strike"?:true, "code"?:true, "highlight"?:true, "subscript"?:true,
+"superscript"?:true, "link"?:"https://..."}.
 Only include a mark key when it is true. Use multiple runs in one block when
 the emphasis changes mid-line; otherwise use a single run.
+- "highlight": text with a coloured highlighter background.
+- "subscript" / "superscript": characters set below / above the baseline —
+  chemical subscripts (the "2" in H2O, CO2), exponents (the "2" in mc2, a2+b2),
+  index variables (the "i" in xi), and footnote reference markers.
 
-## Figures
+### Lists and nesting
+Every list "item" is {"runs":[run,...], "checked"?:true|false, "children"?:[list,...]}.
+- A sub-list indented under an item goes in that item's "children" array (a
+  bulletList / orderedList / taskList). Nest to match the visual indentation.
+- For a taskList, set "checked" per item from its box: a ticked box
+  is "checked":true; an empty box is "checked":false. Do NOT keep the
+  box glyph in the text — the checkbox is rendered from "checked".
+  Ticked boxes look like ☑ ✓ ✔ [x]; empty boxes look like ☐ □ [ ].
+
+### Callouts / admonitions
+A callout is a coloured box (often with a left border and an icon). Pick the
+"variant" from its colour/label: info (blue), tip (green/teal), warning
+(orange/amber), danger (red), note (purple/neutral), success (green check).
+If the callout's first line is just its label word (Info, Tip, Warning, Danger,
+Note, Success) repeating the variant, DROP that label line — the box renders its
+own icon. Keep only the body text as the callout's children.
+
+### Math / equations
+A standalone rendered formula or equation (even one shown as an image) is a
+"math" block, NOT an "image". Transcribe it to LaTeX in "latex" (e.g.
+"x = \\\\frac{-b \\\\pm \\\\sqrt{b^2 - 4ac}}{2a}"); set "display":true for a
+centred standalone equation, "display":false for one sitting inline in a line of
+text. This is the only place you write text that is not copied verbatim. A short
+caption under the equation goes in "caption".
+Simple sub/superscripts inside running prose (H2O, mc2) stay as runs with the
+"subscript"/"superscript" marks — they are NOT math blocks.
+
+### Figures
 Emit an "image" block for every figure, diagram, chart, photo or screenshot.
 A chart, graph, flow/tree diagram, map or infographic is ONE figure: emit a
 single "image" block for the whole figure region. Do NOT transcribe the text
@@ -68,21 +112,34 @@ bar; box the entire container, title bar included.
   figure slot (a string like "p3-fig-1"). Number figures in reading order.
 - "bbox" is [x0, y0, x1, y1], each a fraction from 0 to 1 of the page width
   or height, with the origin at the TOP-LEFT corner.
+- A caption line under the figure ("Figure 1 — …") goes in "caption", NOT as a
+  separate paragraph.
+
+### Definition lists
+For a term/definition list (a bold term with its definition indented below),
+emit each term as a paragraph whose run is bold, immediately followed by a normal
+paragraph holding its definition.
+
+### Footnotes
+Keep a footnote reference marker in the body as a run with "superscript":true.
+Place the footnote text itself at the end, after a {"type":"horizontalRule"},
+as a paragraph (lead its marker number as a superscript run).
 
 ## Strictness
 The JSON is validated against a strict schema. Do not add keys beyond those
 listed above. "level" is only 1, 2 or 3. "variant" is only info, warning,
-success or tip. Output the JSON object and nothing else.
+success, tip, danger or note. Output the JSON object and nothing else.
 
 ## Example
-A page with a large title, a sentence containing one bold word, and two bullets:
+A page with a title, a sentence mixing emphasis, a checkbox list, and an equation:
 {"blocks":[
-  {"type":"heading","level":1,"runs":[{"text":"Photosynthesis"}]},
-  {"type":"paragraph","runs":[{"text":"Plants convert "},{"text":"light","bold":true},{"text":" into energy."}]},
-  {"type":"bulletList","items":[
-    {"runs":[{"text":"Occurs in chloroplasts"}]},
-    {"runs":[{"text":"Produces glucose"}]}
-  ]}
+  {"type":"heading","level":1,"runs":[{"text":"Reactions"}]},
+  {"type":"paragraph","runs":[{"text":"Water is "},{"text":"H"},{"text":"2","subscript":true},{"text":"O — see "},{"text":"this note","highlight":true},{"text":"."}]},
+  {"type":"taskList","items":[
+    {"runs":[{"text":"Balance the equation"}],"checked":true},
+    {"runs":[{"text":"Check the units"}],"checked":false}
+  ]},
+  {"type":"math","latex":"E = mc^2","display":true,"caption":[{"text":"Mass–energy equivalence."}]}
 ]}`;
 
 export interface PageUserTextInput {

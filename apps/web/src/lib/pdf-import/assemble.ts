@@ -4,7 +4,12 @@ import type {
   TipTapNode,
   TipTapTextNode,
 } from '@/lib/contentConverter';
-import type { DocModel, DocModelBlock, InlineRun } from './doc-model';
+import type {
+  DocModel,
+  DocModelBlock,
+  InlineRun,
+  ListContainerBlock,
+} from './doc-model';
 
 /**
  * Byte ceiling for the assembled document. The page-content route rejects
@@ -31,6 +36,9 @@ function runToTextNode(run: InlineRun): TipTapTextNode | null {
   if (run.underline) marks.push({ type: 'underline' });
   if (run.strike) marks.push({ type: 'strike' });
   if (run.code) marks.push({ type: 'code' });
+  if (run.highlight) marks.push({ type: 'highlight' });
+  if (run.subscript) marks.push({ type: 'subscript' });
+  if (run.superscript) marks.push({ type: 'superscript' });
   if (run.link) marks.push({ type: 'link', attrs: { href: run.link, target: '_blank' } });
 
   const node: TipTapTextNode = { type: 'text', text: run.text };
@@ -58,30 +66,48 @@ function paragraphNode(runs: InlineRun[]): TipTapNode {
   return content.length > 0 ? { type: 'paragraph', content } : { type: 'paragraph' };
 }
 
-/** A bullet/ordered list, or `null` when it has no items (an empty list is invalid). */
-function listNode(
-  type: 'bulletList' | 'orderedList',
-  items: { runs: InlineRun[] }[],
-): TipTapNode | null {
-  if (items.length === 0) return null;
-  return {
-    type,
-    content: items.map((item) => ({
-      type: 'listItem',
-      content: [paragraphNode(item.runs)],
-    })),
-  };
+/**
+ * A figure/equation caption: the runs rendered as a single italic paragraph.
+ * Returns `null` when the caption has no usable text.
+ */
+function captionParagraph(runs: InlineRun[]): TipTapNode | null {
+  const content = runsToInline(runs.map((run) => ({ ...run, italic: true })));
+  return content.length > 0 ? { type: 'paragraph', content } : null;
 }
 
 /**
- * One DocModel block → one TipTap node, or `null` when the block produces
- * nothing renderable (an image whose crop is missing, an empty list or
- * table). A `null` is simply skipped by the caller.
+ * One DocModel list container (bullet/ordered/task) → its TipTap list node,
+ * recursing into each item's nested child lists. Bullet/ordered items become
+ * `listItem`s; task items become `taskItem`s carrying their `checked` state.
+ * Returns `null` for an empty list (ProseMirror rejects a list with no items).
+ */
+function convertListContainer(block: ListContainerBlock): TipTapNode | null {
+  if (block.items.length === 0) return null;
+  const isTask = block.type === 'taskList';
+
+  const content: TipTapNode[] = block.items.map((item) => {
+    const childLists = (item.children ?? [])
+      .map(convertListContainer)
+      .filter((node): node is TipTapNode => node !== null);
+    const itemContent: TipTapNode[] = [paragraphNode(item.runs), ...childLists];
+    return isTask
+      ? { type: 'taskItem', attrs: { checked: item.checked ?? false }, content: itemContent }
+      : { type: 'listItem', content: itemContent };
+  });
+
+  return { type: block.type, content };
+}
+
+/**
+ * One DocModel block → zero or more TipTap nodes. Most blocks map to a single
+ * node; a figure or equation expands to the media node plus an optional caption
+ * paragraph; a block with nothing renderable (an image whose crop is missing,
+ * an empty list or table) maps to no nodes at all.
  */
 function convertBlock(
   block: DocModelBlock,
   imageSrcByRef: Record<string, string>,
-): TipTapNode | null {
+): TipTapNode[] {
   switch (block.type) {
     // A heading carries its text as inline content; the level is clamped to
     // the 1–3 range the heading node supports. Inline marks are preserved.
@@ -92,43 +118,46 @@ function convertBlock(
         attrs: { level: clampHeadingLevel(block.level) },
       };
       if (content.length > 0) node.content = content;
-      return node;
+      return [node];
     }
 
     case 'paragraph':
-      return paragraphNode(block.runs);
+      return [paragraphNode(block.runs)];
 
     case 'callout': {
-      const children = block.children
-        .map((child) => convertBlock(child, imageSrcByRef))
-        .filter((node): node is TipTapNode => node !== null);
-      return {
-        type: 'callout',
-        attrs: { calloutType: block.variant },
-        content: children.length > 0 ? children : [{ type: 'paragraph' }],
-      };
+      const children = block.children.flatMap((child) => convertBlock(child, imageSrcByRef));
+      return [
+        {
+          type: 'callout',
+          attrs: { calloutType: block.variant },
+          content: children.length > 0 ? children : [{ type: 'paragraph' }],
+        },
+      ];
     }
 
     case 'bulletList':
-      return listNode('bulletList', block.items);
-
     case 'orderedList':
-      return listNode('orderedList', block.items);
+    case 'taskList': {
+      const node = convertListContainer(block);
+      return node ? [node] : [];
+    }
 
     case 'table': {
       const rows = block.rows.filter((cells) => cells.length > 0);
-      if (rows.length === 0) return null;
-      return {
-        type: 'table',
-        content: rows.map((cells, rowIndex) => ({
-          type: 'tableRow',
-          content: cells.map((cellRuns) => ({
-            type: block.headerRow && rowIndex === 0 ? 'tableHeader' : 'tableCell',
-            attrs: { colspan: 1, rowspan: 1, colwidth: null },
-            content: [paragraphNode(cellRuns)],
+      if (rows.length === 0) return [];
+      return [
+        {
+          type: 'table',
+          content: rows.map((cells, rowIndex) => ({
+            type: 'tableRow',
+            content: cells.map((cellRuns) => ({
+              type: block.headerRow && rowIndex === 0 ? 'tableHeader' : 'tableCell',
+              attrs: { colspan: 1, rowspan: 1, colwidth: null },
+              content: [paragraphNode(cellRuns)],
+            })),
           })),
-        })),
-      };
+        },
+      ];
     }
 
     case 'codeBlock': {
@@ -136,23 +165,44 @@ function convertBlock(
       if (block.code.length > 0) {
         node.content = [{ type: 'text', text: block.code }];
       }
-      return node;
+      return [node];
     }
 
     case 'blockquote':
-      return { type: 'blockquote', content: [paragraphNode(block.runs)] };
+      return [{ type: 'blockquote', content: [paragraphNode(block.runs)] }];
 
     // Figures are cropped from the rendered page and uploaded by the import
     // worker, which supplies the ref → URL map. A ref with no entry means
-    // the crop was dropped (too small / failed) — skip the image.
+    // the crop was dropped (too small / failed) — skip the image. A caption,
+    // when present, follows as its own italic paragraph.
     case 'image': {
       const src = imageSrcByRef[block.ref];
-      if (!src) return null;
-      return { type: 'resizableImage', attrs: { src } };
+      if (!src) return [];
+      const nodes: TipTapNode[] = [{ type: 'resizableImage', attrs: { src } }];
+      if (block.caption) {
+        const caption = captionParagraph(block.caption);
+        if (caption) nodes.push(caption);
+      }
+      return nodes;
+    }
+
+    // A rendered equation → a KaTeX math node. Display math is a block node;
+    // inline math is wrapped in a paragraph so it sits at block level. An
+    // optional caption follows as its own italic paragraph.
+    case 'math': {
+      const mathNode: TipTapNode = block.display
+        ? { type: 'blockMath', attrs: { latex: block.latex } }
+        : { type: 'paragraph', content: [{ type: 'inlineMath', attrs: { latex: block.latex } }] };
+      const nodes: TipTapNode[] = [mathNode];
+      if (block.caption) {
+        const caption = captionParagraph(block.caption);
+        if (caption) nodes.push(caption);
+      }
+      return nodes;
     }
 
     case 'horizontalRule':
-      return { type: 'horizontalRule' };
+      return [{ type: 'horizontalRule' }];
   }
 }
 
@@ -172,11 +222,11 @@ function truncationCallout(): TipTapNode {
  * seam between any structure engine and the editor.
  *
  * `imageSrcByRef` maps an `image` block's `ref` to the uploaded crop URL;
- * images without an entry are dropped. Blocks are appended one at a time
- * and the running JSON size is checked after each: once it would exceed
- * `MAX_DOC_BYTES` the last block is removed, a truncation callout is
- * appended, and `truncated` is returned `true`. The result always has at
- * least one block, so an empty `DocModel` still yields a valid document.
+ * images without an entry are dropped. Nodes are appended one at a time and
+ * the running JSON size is checked after each: once it would exceed
+ * `MAX_DOC_BYTES` the last node is removed, a truncation callout is appended,
+ * and `truncated` is returned `true`. The result always has at least one
+ * block, so an empty `DocModel` still yields a valid document.
  */
 export function assembleTiptap(
   model: DocModel,
@@ -185,15 +235,14 @@ export function assembleTiptap(
   const doc: TipTapDoc = { type: 'doc', content: [] };
   let truncated = false;
 
-  for (const block of model.blocks) {
-    const node = convertBlock(block, imageSrcByRef);
-    if (node === null) continue;
-
-    doc.content.push(node);
-    if (Buffer.byteLength(JSON.stringify(doc)) > MAX_DOC_BYTES) {
-      doc.content.pop();
-      truncated = true;
-      break;
+  outer: for (const block of model.blocks) {
+    for (const node of convertBlock(block, imageSrcByRef)) {
+      doc.content.push(node);
+      if (Buffer.byteLength(JSON.stringify(doc)) > MAX_DOC_BYTES) {
+        doc.content.pop();
+        truncated = true;
+        break outer;
+      }
     }
   }
 

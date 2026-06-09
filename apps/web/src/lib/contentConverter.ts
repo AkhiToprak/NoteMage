@@ -115,6 +115,17 @@ export function tiptapJsonToPlainText(doc: unknown): string | null {
         }
       }
 
+      // KaTeX math nodes are atoms: the LaTeX source lives in `attrs.latex`,
+      // not a text child. Surface it so equations stay in the plain-text used
+      // for search, AI context and PDF export.
+      if ((n.type === 'inlineMath' || n.type === 'blockMath') && n.attrs) {
+        const latex = (n.attrs as Record<string, unknown>).latex;
+        if (typeof latex === 'string' && latex.trim().length > 0) {
+          parts.push(latex);
+          if (n.type === 'blockMath') parts.push('\n');
+        }
+      }
+
       // Recurse into children
       if (Array.isArray(n.content)) {
         walk(n.content);
@@ -127,6 +138,7 @@ export function tiptapJsonToPlainText(doc: unknown): string | null {
         'toggleHeading',
         'blockquote',
         'listItem',
+        'taskItem',
         'codeBlock',
         'callout',
         'tableRow',

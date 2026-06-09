@@ -4,14 +4,14 @@ import { ReactNodeViewRenderer } from '@tiptap/react';
 /**
  * Callout — a block-level TipTap node for styled callouts/alerts.
  *
- * Types: info, warning, success, tip
+ * Types: info, warning, success, tip, danger, note
  *
  * Usage:
  *   editor.chain().focus().setCallout({ calloutType: 'info' }).run()
  *   editor.chain().focus().toggleCallout({ calloutType: 'warning' }).run()
  */
 
-export type CalloutType = 'info' | 'warning' | 'success' | 'tip';
+export type CalloutType = 'info' | 'warning' | 'success' | 'tip' | 'danger' | 'note';
 
 export interface CalloutOptions {
   HTMLAttributes: Record<string, unknown>;
@@ -55,6 +55,18 @@ export const CALLOUT_STYLES: Record<
     borderColor: 'rgba(140,82,255,0.6)',
     bgColor: 'rgba(140,82,255,0.08)',
     label: 'Tip',
+  },
+  danger: {
+    icon: 'AlertOctagon',
+    borderColor: 'rgba(253,111,133,0.6)',
+    bgColor: 'rgba(253,111,133,0.08)',
+    label: 'Danger',
+  },
+  note: {
+    icon: 'StickyNote',
+    borderColor: 'rgba(174,137,255,0.6)',
+    bgColor: 'rgba(174,137,255,0.08)',
+    label: 'Note',
   },
 };
 

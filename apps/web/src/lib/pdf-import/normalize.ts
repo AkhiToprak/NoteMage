@@ -15,7 +15,16 @@
 
 import type { InlineRun } from './doc-model';
 
-const BOOL_RUN_KEYS = ['bold', 'italic', 'underline', 'strike', 'code'] as const;
+const BOOL_RUN_KEYS = [
+  'bold',
+  'italic',
+  'underline',
+  'strike',
+  'code',
+  'highlight',
+  'subscript',
+  'superscript',
+] as const;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

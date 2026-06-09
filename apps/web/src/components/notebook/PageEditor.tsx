@@ -21,6 +21,9 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import FontFamily from '@tiptap/extension-font-family';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import { TaskList, TaskItem } from '@tiptap/extension-list';
 import EditorToolbar from './EditorToolbar';
 import DrawingOverlay, { hydrateStrokes, hydrateTexts } from './DrawingOverlay';
 import type {
@@ -36,6 +39,8 @@ import { FontSize } from '@/lib/tiptap-font-size';
 import { InlineHeading } from '@/lib/tiptap-inline-heading';
 import { Callout } from '@/lib/tiptap-callout';
 import CalloutView from './CalloutView';
+import { InlineMath, BlockMath } from '@/lib/tiptap-math';
+import MathView from './MathView';
 import { HeadingEnterBehavior } from '@/lib/tiptap-heading';
 import PageLockIndicator from './PageLockIndicator';
 import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
@@ -695,10 +700,29 @@ export default function PageEditor({
         FontSize,
         Color,
         Highlight.configure({ multicolor: true }),
+        Subscript,
+        Superscript,
+        TaskList,
+        TaskItem.configure({ nested: true }),
         InlineHeading,
         Callout.extend({
           addNodeView() {
             return ReactNodeViewRenderer(CalloutView);
+          },
+        }),
+        // Editable KaTeX nodes. The base nodes (shared with the read-only theory
+        // viewer) carry a `latex` attr + a static DOM render; here we swap in an
+        // interactive React NodeView so equations can be edited in the notebook.
+        InlineMath.extend({
+          selectable: true,
+          addNodeView() {
+            return ReactNodeViewRenderer(MathView);
+          },
+        }),
+        BlockMath.extend({
+          selectable: true,
+          addNodeView() {
+            return ReactNodeViewRenderer(MathView);
           },
         }),
         ResizableImage,
@@ -1230,6 +1254,21 @@ export default function PageEditor({
         .notemage-editor [data-toggle-level] p:last-child { margin: 0; }
         /* ── mark / highlight ── */
         .notemage-editor mark { border-radius: 3px; padding: 1px 3px; }
+        /* ── subscript / superscript ── */
+        .notemage-editor sub, .notemage-editor sup { font-size: 0.75em; line-height: 0; position: relative; }
+        .notemage-editor sub { vertical-align: sub; }
+        .notemage-editor sup { vertical-align: super; }
+        /* ── task list (checkboxes) ── */
+        .notemage-editor ul[data-type='taskList'] { list-style: none !important; padding-left: 4px; margin: 8px 0 10px; }
+        .notemage-editor ul[data-type='taskList'] li { display: flex !important; align-items: flex-start; gap: 8px; margin: 4px 0; }
+        .notemage-editor ul[data-type='taskList'] li > label { flex-shrink: 0; margin-top: 5px; user-select: none; }
+        .notemage-editor ul[data-type='taskList'] li > div { flex: 1 1 auto; min-width: 0; }
+        .notemage-editor ul[data-type='taskList'] li > div > p { margin: 0; }
+        .notemage-editor ul[data-type='taskList'] input[type='checkbox'] { accent-color: #8c52ff; width: 15px; height: 15px; cursor: pointer; }
+        .notemage-editor ul[data-type='taskList'] li[data-checked='true'] > div { color: var(--ink-50); text-decoration: line-through; }
+        /* ── math (KaTeX) ── */
+        .notemage-editor [data-math='block'] { display: block; text-align: center; margin: 14px 0; overflow-x: auto; }
+        .notemage-editor [data-math='inline'] { display: inline-block; }
         /* ── float clearfix for wrap-mode images ── */
         .notemage-editor .ProseMirror::after { content: ''; display: table; clear: both; }
         /* ── placeholder ── */

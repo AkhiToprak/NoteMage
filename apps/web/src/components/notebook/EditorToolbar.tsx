@@ -15,6 +15,8 @@ const CALLOUT_ICONS: Record<string, string> = {
   AlertTriangle: 'warning',
   CheckCircle: 'check_circle',
   Lightbulb: 'lightbulb',
+  AlertOctagon: 'dangerous',
+  StickyNote: 'sticky_note_2',
 };
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
 
@@ -933,7 +935,7 @@ function InlineScaleDropdown({
 }
 
 /* ── callout dropdown ── */
-const CALLOUT_TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip'];
+const CALLOUT_TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip', 'danger', 'note'];
 
 function CalloutDropdown({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);

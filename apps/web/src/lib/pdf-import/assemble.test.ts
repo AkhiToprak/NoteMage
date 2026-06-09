@@ -237,6 +237,115 @@ describe('assembleTiptap — inline marks', () => {
       type: 'paragraph',
     });
   });
+
+  it('preserves the highlight, subscript and superscript marks', () => {
+    const node = assembleOne({
+      type: 'paragraph',
+      runs: [
+        { text: 'hi', highlight: true },
+        { text: 'lo', subscript: true },
+        { text: 'up', superscript: true },
+      ],
+    });
+    const marks = (node.content as TipTapTextNode[]).map((t) => t.marks?.[0].type);
+    expect(marks).toEqual(['highlight', 'subscript', 'superscript']);
+  });
+});
+
+describe('assembleTiptap — callout variants', () => {
+  it('passes the danger and note variants through to calloutType', () => {
+    expect(
+      assembleOne({ type: 'callout', variant: 'danger', children: [] }).attrs?.calloutType,
+    ).toBe('danger');
+    expect(
+      assembleOne({ type: 'callout', variant: 'note', children: [] }).attrs?.calloutType,
+    ).toBe('note');
+  });
+});
+
+describe('assembleTiptap — nested and task lists', () => {
+  it('nests a child list inside its parent listItem', () => {
+    const node = assembleOne({
+      type: 'bulletList',
+      items: [
+        {
+          runs: [{ text: 'parent' }],
+          children: [{ type: 'bulletList', items: [{ runs: [{ text: 'child' }] }] }],
+        },
+      ],
+    });
+    const listItem = (node.content as TipTapNode[])[0];
+    expect(listItem.type).toBe('listItem');
+    expect(listItem.content).toEqual([
+      { type: 'paragraph', content: [{ type: 'text', text: 'parent' }] },
+      {
+        type: 'bulletList',
+        content: [
+          { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'child' }] }] },
+        ],
+      },
+    ]);
+  });
+
+  it('maps a taskList to taskItems carrying their checked state', () => {
+    const node = assembleOne({
+      type: 'taskList',
+      items: [
+        { runs: [{ text: 'done' }], checked: true },
+        { runs: [{ text: 'todo' }] },
+      ],
+    });
+    expect(node.type).toBe('taskList');
+    expect(node.content).toEqual([
+      {
+        type: 'taskItem',
+        attrs: { checked: true },
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'done' }] }],
+      },
+      {
+        type: 'taskItem',
+        attrs: { checked: false },
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'todo' }] }],
+      },
+    ]);
+  });
+});
+
+describe('assembleTiptap — math and captions', () => {
+  it('maps display math to a blockMath node', () => {
+    expect(assembleOne({ type: 'math', latex: 'E = mc^2', display: true })).toEqual({
+      type: 'blockMath',
+      attrs: { latex: 'E = mc^2' },
+    });
+  });
+
+  it('wraps inline math in a paragraph so it sits at block level', () => {
+    expect(assembleOne({ type: 'math', latex: 'x_i', display: false })).toEqual({
+      type: 'paragraph',
+      content: [{ type: 'inlineMath', attrs: { latex: 'x_i' } }],
+    });
+  });
+
+  it('emits a math caption as a following italic paragraph', () => {
+    const { doc } = assembleTiptap({
+      blocks: [{ type: 'math', latex: 'a^2', display: true, caption: [{ text: 'Caption.' }] }],
+    });
+    expect(doc.content).toEqual([
+      { type: 'blockMath', attrs: { latex: 'a^2' } },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Caption.', marks: [{ type: 'italic' }] }] },
+    ]);
+  });
+
+  it('emits an image caption as a following italic paragraph', () => {
+    const { doc } = assembleTiptap(
+      { blocks: [{ type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], caption: [{ text: 'Fig 1.' }] }] },
+      { 'p1-fig-1': 'https://cdn.example/crop.png' },
+    );
+    expect(doc.content).toEqual([
+      { type: 'resizableImage', attrs: { src: 'https://cdn.example/crop.png' } },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Fig 1.', marks: [{ type: 'italic' }] }] },
+    ]);
+  });
 });
 
 describe('assembleTiptap — size guard', () => {

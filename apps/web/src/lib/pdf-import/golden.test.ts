@@ -63,6 +63,12 @@ describe('golden corpus — deterministic pipeline snapshots', () => {
     'table-heavy.pdf',
     'image-heavy.pdf',
     'german.pdf',
+    // Every-element fixture (~/Downloads/notemage_import_test.pdf): freezes
+    // ground-truth extraction over a page that exercises the full block
+    // vocabulary. The deterministic path uses the heuristic fallback (no LLM),
+    // so the snapshot captures extraction + assembly stability, not the
+    // structure engine's richer output.
+    'notemage-import-test.pdf',
   ];
 
   for (const name of fixtures) {

@@ -10,9 +10,11 @@ const CALLOUT_ICONS: Record<string, string> = {
   AlertTriangle: 'warning',
   CheckCircle: 'check_circle',
   Lightbulb: 'lightbulb',
+  AlertOctagon: 'dangerous',
+  StickyNote: 'sticky_note_2',
 };
 
-const TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip'];
+const TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip', 'danger', 'note'];
 
 export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
   const calloutType = (node.attrs.calloutType as CalloutType) || 'info';

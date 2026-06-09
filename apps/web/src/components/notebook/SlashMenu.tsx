@@ -120,6 +120,15 @@ const ITEMS: MenuItem[] = [
     keywords: ['number', 'numbered', 'ordered', 'list', 'ol'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
   },
+  {
+    id: 'task-list',
+    label: 'Task list',
+    description: 'Checklist with checkboxes',
+    icon: 'checklist',
+    group: 'Lists',
+    keywords: ['task', 'todo', 'checklist', 'checkbox', 'check'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).toggleTaskList().run(),
+  },
   // ── Blocks ────────────────────────────────────────────────
   {
     id: 'blockquote',
@@ -168,6 +177,21 @@ const ITEMS: MenuItem[] = [
         .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
         .run(),
   },
+  {
+    id: 'equation',
+    label: 'Equation',
+    description: 'LaTeX math block',
+    icon: 'functions',
+    group: 'Blocks',
+    keywords: ['math', 'equation', 'latex', 'formula', 'katex'],
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'blockMath', attrs: { latex: '' } })
+        .run(),
+  },
   // ── Callouts ──────────────────────────────────────────────
   {
     id: 'callout-info',
@@ -202,12 +226,32 @@ const ITEMS: MenuItem[] = [
   {
     id: 'callout-tip',
     label: 'Tip callout',
-    description: 'Purple tip banner',
+    description: 'Green tip banner',
     icon: 'lightbulb',
     group: 'Callouts',
-    keywords: ['callout', 'tip', 'hint', 'purple'],
+    keywords: ['callout', 'tip', 'hint', 'green'],
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setCallout({ calloutType: 'tip' }).run(),
+  },
+  {
+    id: 'callout-danger',
+    label: 'Danger callout',
+    description: 'Red danger banner',
+    icon: 'dangerous',
+    group: 'Callouts',
+    keywords: ['callout', 'danger', 'error', 'critical', 'red'],
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).setCallout({ calloutType: 'danger' }).run(),
+  },
+  {
+    id: 'callout-note',
+    label: 'Note callout',
+    description: 'Purple note banner',
+    icon: 'sticky_note_2',
+    group: 'Callouts',
+    keywords: ['callout', 'note', 'remark', 'purple'],
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).setCallout({ calloutType: 'note' }).run(),
   },
 ];
 

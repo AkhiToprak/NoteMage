@@ -109,6 +109,99 @@ describe('docModelSchema — accepts valid DocModels', () => {
   });
 });
 
+describe('docModelSchema — extended block vocabulary', () => {
+  it('accepts the highlight, subscript and superscript inline marks', () => {
+    expect(
+      parse([
+        {
+          type: 'paragraph',
+          runs: [
+            { text: 'hi', highlight: true },
+            { text: '2', subscript: true },
+            { text: '2', superscript: true },
+          ],
+        },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it('accepts the danger and note callout variants', () => {
+    expect(
+      parse([{ type: 'callout', variant: 'danger', children: [] }]).success,
+    ).toBe(true);
+    expect(
+      parse([{ type: 'callout', variant: 'note', children: [] }]).success,
+    ).toBe(true);
+  });
+
+  it('accepts a task list with checked items', () => {
+    expect(
+      parse([
+        {
+          type: 'taskList',
+          items: [
+            { runs: [{ text: 'done' }], checked: true },
+            { runs: [{ text: 'todo' }], checked: false },
+          ],
+        },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it('accepts a nested list via item children', () => {
+    expect(
+      parse([
+        {
+          type: 'bulletList',
+          items: [
+            {
+              runs: [{ text: 'parent' }],
+              children: [
+                { type: 'bulletList', items: [{ runs: [{ text: 'child' }] }] },
+              ],
+            },
+          ],
+        },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it('accepts a math block in display and inline modes, with a caption', () => {
+    expect(parse([{ type: 'math', latex: 'E = mc^2', display: true }]).success).toBe(true);
+    expect(parse([{ type: 'math', latex: 'x_i', display: false }]).success).toBe(true);
+    expect(
+      parse([
+        { type: 'math', latex: 'a^2 + b^2 = c^2', display: true, caption: [{ text: 'Pythagoras.' }] },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it('accepts an image block with a caption', () => {
+    expect(
+      parse([
+        { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], caption: [{ text: 'Figure 1.' }] },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it('accepts a callout whose children include a task list', () => {
+    expect(
+      parse([
+        {
+          type: 'callout',
+          variant: 'note',
+          children: [{ type: 'taskList', items: [{ runs: [{ text: 't' }], checked: true }] }],
+        },
+      ]).success,
+    ).toBe(true);
+  });
+
+  it('rejects a math block missing latex or display', () => {
+    expect(parse([{ type: 'math', display: true }]).success).toBe(false);
+    expect(parse([{ type: 'math', latex: 'x' }]).success).toBe(false);
+  });
+});
+
 describe('docModelSchema — rejects malformed DocModels', () => {
   it('rejects an unknown block type', () => {
     expect(parse([{ type: 'spaceship', runs: [] }]).success).toBe(false);
@@ -142,7 +235,7 @@ describe('docModelSchema — rejects malformed DocModels', () => {
   });
 
   it('rejects an invalid callout variant', () => {
-    expect(parse([{ type: 'callout', variant: 'danger', children: [] }]).success).toBe(false);
+    expect(parse([{ type: 'callout', variant: 'critical', children: [] }]).success).toBe(false);
   });
 
   it('rejects a callout child outside the allowed subset', () => {
