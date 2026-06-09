@@ -496,17 +496,20 @@ export default function PathLanding() {
     const cells = Array.from(track.children) as HTMLElement[]; // N + 2 (clones at both ends)
     const dots = Array.from(dotsWrap.children) as HTMLElement[];
     const reduce = prefersReducedMotion();
+    const vp = root.querySelector<HTMLElement>('.pl-car-viewport');
     // intro-video slide (cells[1]); the clone peek is a still <img>, so this
     // matches only the one live <video>. Playback is JS-gated so reduced-motion
     // users get a static poster (no autoplay attribute on the element).
     const video = track.querySelector<HTMLVideoElement>('video.pl-car-video');
     let cur = 1; // cells[1] = first real slide
-    let timer: ReturnType<typeof setInterval> | null = null;
-    let userPaused = false; // explicit pause via the play/pause control
 
     function paint(animate: boolean) {
       track!.style.transition = animate ? '' : 'none';
+      if (vp) vp.style.transition = animate ? '' : 'none';
       track!.style.transform = `translateX(${-cells[cur].offsetLeft}px)`;
+      // Viewport hugs the current slide's own height, so the 16:9 video and the
+      // taller section previews each fill the window without letterboxing.
+      if (vp) vp.style.height = `${cells[cur].offsetHeight}px`;
       cells.forEach((c, i) => c.classList.toggle('pl-is-current', i === cur));
       const logical = (((cur - 1) % N) + N) % N;
       dots.forEach((d, i) => {
@@ -514,8 +517,9 @@ export default function PathLanding() {
         else d.removeAttribute('aria-current');
       });
       if (!animate) {
-        void track!.offsetWidth; // commit, then re-enable transition
+        void track!.offsetWidth; // commit, then re-enable transitions
         track!.style.transition = '';
+        if (vp) vp.style.transition = '';
       }
     }
     function step(dir: number) {
@@ -546,65 +550,41 @@ export default function PathLanding() {
     };
     track.addEventListener('transitionend', onTransitionEnd);
 
-    function stop() {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    }
-    function start() {
-      if (reduce || userPaused) return;
-      stop();
-      timer = setInterval(() => step(1), 5200);
-    }
-    const restart = () => start();
-
+    // Manual navigation only — the carousel never advances on its own.
     const dotHandlers = dots.map((d) => {
-      const h = () => {
-        toLogical(Number(d.dataset.i));
-        restart();
-      };
+      const h = () => toLogical(Number(d.dataset.i));
       d.addEventListener('click', h);
       return h;
     });
 
     const prevBtn = root.querySelector<HTMLButtonElement>('.pl-car-arrow.pl-prev');
     const nextBtn = root.querySelector<HTMLButtonElement>('.pl-car-arrow.pl-next');
-    const onPrev = () => {
-      step(-1);
-      restart();
-    };
-    const onNext = () => {
-      step(1);
-      restart();
-    };
+    const onPrev = () => step(-1);
+    const onNext = () => step(1);
     prevBtn?.addEventListener('click', onPrev);
     nextBtn?.addEventListener('click', onNext);
 
-    // explicit pause/play — the persistent control touch users need (autoplay
-    // also pauses on hover/focus, but those never fire for a touch reader).
+    // The play/pause control governs the intro video only — the carousel has no
+    // autoplay to pause. This is the pause affordance WCAG 2.2.2 wants for the
+    // looping clip; CSS hides it under reduced motion (where the video is paused).
     const playPauseBtn = root.querySelector<HTMLButtonElement>('.pl-car-playpause');
     const syncPlayPause = () => {
       if (!playPauseBtn) return;
+      const paused = !video || video.paused;
       const icon = playPauseBtn.querySelector('.material-symbols-outlined');
-      if (icon) icon.textContent = userPaused ? 'play_arrow' : 'pause';
-      playPauseBtn.setAttribute('aria-label', userPaused ? 'Play section autoplay' : 'Pause section autoplay');
+      if (icon) icon.textContent = paused ? 'play_arrow' : 'pause';
+      playPauseBtn.setAttribute('aria-label', paused ? 'Play intro video' : 'Pause intro video');
     };
     const onPlayPause = () => {
-      userPaused = !userPaused;
-      if (userPaused) {
-        stop();
-        video?.pause();
-      } else {
-        start();
-        void video?.play().catch(() => {});
-      }
-      syncPlayPause();
+      if (!video) return;
+      if (video.paused) void video.play().catch(() => {});
+      else video.pause();
     };
     playPauseBtn?.addEventListener('click', onPlayPause);
+    video?.addEventListener('play', syncPlayPause);
+    video?.addEventListener('pause', syncPlayPause);
 
     // swipe / drag
-    const vp = root.querySelector<HTMLElement>('.pl-car-viewport');
     let x0: number | null = null;
     const onPointerDown = (e: PointerEvent) => {
       x0 = e.clientX;
@@ -612,19 +592,11 @@ export default function PathLanding() {
     const onPointerUp = (e: PointerEvent) => {
       if (x0 == null) return;
       const dx = e.clientX - x0;
-      if (Math.abs(dx) > 40) {
-        step(dx < 0 ? 1 : -1);
-        restart();
-      }
+      if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
       x0 = null;
     };
     vp?.addEventListener('pointerdown', onPointerDown);
     vp?.addEventListener('pointerup', onPointerUp);
-
-    root.addEventListener('mouseenter', stop);
-    root.addEventListener('mouseleave', start);
-    root.addEventListener('focusin', stop);
-    root.addEventListener('focusout', start);
 
     paint(false);
     let rt: ReturnType<typeof setTimeout> | undefined;
@@ -634,22 +606,19 @@ export default function PathLanding() {
     };
     window.addEventListener('resize', onResize);
     if (!reduce) void video?.play().catch(() => {});
-    start();
+    syncPlayPause();
 
     return () => {
-      stop();
       clearTimeout(rt);
       track.removeEventListener('transitionend', onTransitionEnd);
       dots.forEach((d, i) => d.removeEventListener('click', dotHandlers[i]));
       prevBtn?.removeEventListener('click', onPrev);
       nextBtn?.removeEventListener('click', onNext);
       playPauseBtn?.removeEventListener('click', onPlayPause);
+      video?.removeEventListener('play', syncPlayPause);
+      video?.removeEventListener('pause', syncPlayPause);
       vp?.removeEventListener('pointerdown', onPointerDown);
       vp?.removeEventListener('pointerup', onPointerUp);
-      root.removeEventListener('mouseenter', stop);
-      root.removeEventListener('mouseleave', start);
-      root.removeEventListener('focusin', stop);
-      root.removeEventListener('focusout', start);
       window.removeEventListener('resize', onResize);
     };
   }, []);

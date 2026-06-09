@@ -153,14 +153,6 @@
   animation: plFadeRise 0.7s var(--ease) 0.05s both;
 }
 @keyframes plFadeRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-.root :global(.pl-hero-card)::before {
-  content: ""; position: absolute; inset: 8px -10px 8px auto;
-  width: 30px; background: var(--card-active);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-xl);
-  z-index: -1; opacity: 0.7;
-}
-
 .root :global(.pl-mini-banner) {
   display: flex; align-items: center; gap: 16px;
   background: var(--primary); color: var(--on-lav);
@@ -220,24 +212,20 @@
 
 /* ─────────────────────────  HERO CAROUSEL  ───────────────────────── */
 .root :global(.pl-carousel) { position: relative; --car-peek: 48px; --car-gap: 16px; }
-.root :global(.pl-car-viewport) { overflow: hidden; border-radius: var(--radius-md); }
-.root :global(.pl-car-track) { display: flex; gap: var(--car-gap); transition: transform 0.6s var(--ease); will-change: transform; }
+.root :global(.pl-car-viewport) { overflow: hidden; border-radius: var(--radius-md); transition: height 0.6s var(--ease); }
+.root :global(.pl-car-track) { display: flex; align-items: flex-start; gap: var(--car-gap); transition: transform 0.6s var(--ease); will-change: transform; }
 .root :global(.pl-car-slide) {
   flex: 0 0 calc(100% - var(--car-peek) - var(--car-gap)); min-width: 0;
   opacity: 0.42; transition: opacity 0.6s var(--ease);
 }
 .root :global(.pl-car-slide.pl-is-current) { opacity: 1; }
-/* intro-video slide — a framed 16:9 card, vertically centred so it sits balanced
-   inside the taller section slides the track stretches every cell to. */
-.root :global(.pl-car-video-frame) {
-  display: flex; align-items: center; justify-content: center;
-  height: 100%; min-height: 0; padding: 4px 0;
-}
+/* intro-video slide — fills the carousel window edge-to-edge; the viewport's
+   height tracks the current slide (set in JS) so the 16:9 clip never letterboxes,
+   and the viewport's rounded clip rounds the corners. */
+.root :global(.pl-car-video-frame) { display: block; }
 .root :global(.pl-car-video) {
   width: 100%; aspect-ratio: 16 / 9; display: block;
   object-fit: cover; background: var(--surface);
-  border: 1px solid var(--hairline-strong); border-radius: var(--radius-md);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34), 0 2px 8px rgba(0, 0, 0, 0.28);
 }
 .root :global(.pl-car-arrow) {
   position: absolute; top: 46%; transform: translateY(-50%);
@@ -527,7 +515,6 @@
 
   .root :global(.pl-node-shift) { transform: none !important; } /* drop the desktop zig-zag nudge */
   .root :global(.pl-magic) { font-size: 21px; padding: 19px 40px; }
-  .root :global(.pl-hero-card)::before { display: none; }
 }
 
 /* ≤720px — hero / carousel / footer tidy-ups */
@@ -565,7 +552,8 @@
   .root :global(.pl-spine) :global(.pl-tip-halo) { animation: none; }
   .root :global(.pl-node),
   .root :global(.pl-node-wrap.pl-lit) :global(.pl-node) { transition: none !important; animation: none !important; }
-  .root :global(.pl-car-track) { transition: none !important; }
+  .root :global(.pl-car-track),
+  .root :global(.pl-car-viewport) { transition: none !important; }
   .root :global(.pl-hero h1),
   .root :global(.pl-hero-card) { animation: none !important; }
   .root :global(.pl-car-playpause) { display: none; }
