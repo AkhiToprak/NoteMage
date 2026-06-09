@@ -31,6 +31,21 @@ interface PageProps {
   params: Promise<{ planId: string }>;
 }
 
+// The detail GET returns the full SerializedPath; PathView only types the
+// subset it renders, so extend locally for the generation-status fields we
+// need to detect — and recover from — a wedged generation.
+type DetailPlan = PathPlan & {
+  generationStatus?: string;
+  updatedAt?: string;
+  /** 'translate' while an in-place translation runs; else absent. */
+  generationMode?: string | null;
+};
+
+// Mirrors STALE_GENERATION_MS in src/lib/path-loader.ts (client-safe copy). A
+// `generating` path with no heartbeat for this long has a dead orchestrator
+// (e.g. a redeploy killed the detached worker) and is safe to stop.
+const STALE_GENERATION_MS = 15 * 60 * 1000;
+
 export default function PathDetailPage({ params }: PageProps) {
   const { planId } = use(params);
   return (
@@ -61,10 +76,16 @@ function PathDetailInner({ planId }: { planId: string }) {
   const slotId = searchParams.get('slot');
   const activityId = searchParams.get('activity');
 
-  const [plan, setPlan] = useState<PathPlan | null>(null);
+  const [plan, setPlan] = useState<DetailPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [regenerating, setRegenerating] = useState(false);
+  // Stop-a-stuck-generation: a two-step inline confirm in the banner, plus
+  // in-flight + error state. Stopping deletes the wedged path and returns to
+  // the list.
+  const [stopConfirm, setStopConfirm] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [stopError, setStopError] = useState<string | null>(null);
   // Regenerate-button feedback: a pending state so the click registers
   // instantly, and a surfaced error so a rate-limit / "already in progress"
   // response doesn't read as a dead button.
@@ -82,7 +103,7 @@ function PathDetailInner({ planId }: { planId: string }) {
         const json = await res.json();
         if (cancelled) return;
         if (json?.success && json.data) {
-          setPlan(json.data as PathPlan);
+          setPlan(json.data as DetailPlan);
           setError(null);
         } else {
           setError(json?.error ?? 'Could not load path');
@@ -95,6 +116,20 @@ function PathDetailInner({ planId }: { planId: string }) {
       cancelled = true;
     };
   }, [planId, refreshKey]);
+
+  // Poll while a healthy generation/translation is in flight so the banner
+  // resolves to the finished path without a manual reload (mirrors the list
+  // page). Stops once the status settles OR the run goes stale (re-fetching a
+  // dead row is pointless — the banner then offers the recovery action).
+  useEffect(() => {
+    if (plan?.generationStatus !== 'generating') return;
+    const stale =
+      !!plan.updatedAt &&
+      Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
+    if (stale) return;
+    const t = setTimeout(() => setRefreshKey((k) => k + 1), 3000);
+    return () => clearTimeout(t);
+  }, [plan?.generationStatus, plan?.updatedAt, refreshKey]);
 
   // Keep the learner on their next checkpoint. Whenever the path column is the
   // foreground (no slot drawer or activity viewer open) and the plan is loaded
@@ -189,6 +224,39 @@ function PathDetailInner({ planId }: { planId: string }) {
     }
   }, [planId, regenStarting]);
 
+  // Resolve a wedged path. A stuck TRANSLATION leaves the path intact, so
+  // restore it in place (POST /cancel → flips back to ready) and re-fetch. A
+  // stuck GENERATION is incomplete, so delete it (DELETE) and return to the list.
+  const handleStopGenerating = useCallback(async () => {
+    if (stopping) return;
+    const isTranslate = plan?.generationMode === 'translate';
+    setStopping(true);
+    setStopError(null);
+    try {
+      const res = await fetch(
+        `/api/learn/paths/${encodeURIComponent(planId)}${isTranslate ? '/cancel' : ''}`,
+        { method: isTranslate ? 'POST' : 'DELETE' },
+      );
+      const json = await res.json();
+      if (json?.success) {
+        if (isTranslate) {
+          setStopConfirm(false);
+          setRefreshKey((k) => k + 1);
+        } else {
+          router.push('/learn/paths');
+        }
+      } else {
+        setStopError(
+          json?.error ?? 'Could not stop this path. If it just started, give it a moment.',
+        );
+      }
+    } catch {
+      setStopError('Network error — check your connection and try again.');
+    } finally {
+      setStopping(false);
+    }
+  }, [planId, router, stopping, plan?.generationMode]);
+
   if (error) {
     return (
       <div style={{ maxWidth: '760px', margin: '32px auto', padding: '0 16px' }}>
@@ -205,6 +273,15 @@ function PathDetailInner({ planId }: { planId: string }) {
     (n, ph) => n + ph.slots.filter((s) => s.incompleteGeneration).length,
     0,
   );
+
+  const generating = plan.generationStatus === 'generating';
+  const stuckGenerating =
+    generating &&
+    !!plan.updatedAt &&
+    Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
+  // A stuck translation is recoverable non-destructively (restore to ready); a
+  // stuck generation is incomplete and gets deleted. Copy + actions branch on it.
+  const isTranslate = plan.generationMode === 'translate';
 
   return (
     <>
@@ -228,7 +305,230 @@ function PathDetailInner({ planId }: { planId: string }) {
           </Link>
         </nav>
 
-        {incompleteCount > 0 ? (
+        {generating ? (
+          <div style={{ maxWidth: '640px', margin: '12px auto 0', padding: '0 16px' }}>
+            <style>{`
+              @keyframes spin { to { transform: rotate(360deg); } }
+              .path-stop-btn { transition: transform 0.12s cubic-bezier(0.22,1,0.36,1); }
+              .path-stop-btn:active { transform: translateY(1px); }
+              .path-stop-btn--ghost:hover { background: var(--surface-container-high); }
+              .path-stop-btn--ghost:focus-visible { outline: 2px solid var(--outline); outline-offset: 2px; }
+              .path-stop-btn--danger:hover { opacity: 0.92; }
+              .path-stop-btn--danger:focus-visible { outline: 2px solid var(--error); outline-offset: 2px; }
+              .path-stop-btn--primary:hover { opacity: 0.92; }
+              .path-stop-btn--primary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+              @media (prefers-reduced-motion: reduce) {
+                .path-stop-btn { transition: none; }
+                .path-stop-btn:active { transform: none; }
+              }
+            `}</style>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                background: 'var(--surface-container)',
+                border: '1px solid var(--outline-variant)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              {stuckGenerating ? (
+                <span
+                  aria-hidden
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '20px',
+                    width: '36px',
+                    height: '36px',
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--tertiary-container)',
+                    color: 'var(--on-tertiary-container)',
+                  }}
+                >
+                  sync_problem
+                </span>
+              ) : (
+                <span
+                  aria-hidden
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      border: '3px solid var(--outline-variant)',
+                      borderTopColor: 'var(--primary)',
+                      animation: 'spin 0.8s linear infinite',
+                    }}
+                  />
+                </span>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--on-surface)' }}>
+                  {stuckGenerating
+                    ? isTranslate
+                      ? 'Translation stalled'
+                      : 'This path got stuck'
+                    : isTranslate
+                      ? 'Translating your path'
+                      : 'Still generating your path'}
+                </p>
+                <p
+                  style={{
+                    margin: '2px 0 0',
+                    fontSize: '12px',
+                    color: 'var(--on-surface-variant)',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {stuckGenerating
+                    ? isTranslate
+                      ? "The translation didn't finish, but your path is intact. Restore it to bring it back to normal."
+                      : "It stopped responding and won't finish. Stop it to remove the path and create a fresh one."
+                    : isTranslate
+                      ? "Your path is being translated — this updates automatically when it's done."
+                      : "Your path is still being built — this updates automatically when it's done."}
+                </p>
+                {stopError ? (
+                  <p
+                    role="alert"
+                    style={{
+                      margin: '6px 0 0',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--error)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {stopError}
+                  </p>
+                ) : null}
+              </div>
+              {stuckGenerating ? (
+                stopConfirm ? (
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      className="path-stop-btn path-stop-btn--ghost"
+                      onClick={() => {
+                        setStopConfirm(false);
+                        setStopError(null);
+                      }}
+                      disabled={stopping}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '9px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'transparent',
+                        color: 'var(--on-surface-variant)',
+                        border: '1px solid var(--outline-variant)',
+                        fontFamily: 'inherit',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: stopping ? 'default' : 'pointer',
+                        opacity: stopping ? 0.6 : 1,
+                      }}
+                    >
+                      Keep waiting
+                    </button>
+                    <button
+                      type="button"
+                      className={`path-stop-btn ${
+                        isTranslate ? 'path-stop-btn--primary' : 'path-stop-btn--danger'
+                      }`}
+                      onClick={handleStopGenerating}
+                      disabled={stopping}
+                      aria-busy={stopping}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        minWidth: '128px',
+                        padding: '9px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: isTranslate ? 'var(--primary)' : 'var(--error)',
+                        color: isTranslate ? 'var(--on-primary)' : 'var(--on-error)',
+                        border: 'none',
+                        fontFamily: 'inherit',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: stopping ? 'default' : 'pointer',
+                        opacity: stopping ? 0.7 : 1,
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: '16px',
+                          animation: stopping ? 'spin 0.8s linear infinite' : undefined,
+                        }}
+                      >
+                        {stopping ? 'progress_activity' : isTranslate ? 'restart_alt' : 'close'}
+                      </span>
+                      {stopping
+                        ? isTranslate
+                          ? 'Restoring…'
+                          : 'Stopping…'
+                        : isTranslate
+                          ? 'Restore'
+                          : 'Stop & remove'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className={`path-stop-btn ${
+                      isTranslate ? 'path-stop-btn--primary' : 'path-stop-btn--danger'
+                    }`}
+                    onClick={() => setStopConfirm(true)}
+                    style={{
+                      flexShrink: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '9px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: isTranslate ? 'var(--primary)' : 'var(--error)',
+                      color: isTranslate ? 'var(--on-primary)' : 'var(--on-error)',
+                      border: 'none',
+                      fontFamily: 'inherit',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '16px' }}
+                    >
+                      {isTranslate ? 'restart_alt' : 'close'}
+                    </span>
+                    {isTranslate ? 'Restore path' : 'Stop generating'}
+                  </button>
+                )
+              ) : null}
+            </div>
+          </div>
+        ) : incompleteCount > 0 ? (
           <div style={{ maxWidth: '640px', margin: '12px auto 0', padding: '0 16px' }}>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             <div

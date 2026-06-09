@@ -23,21 +23,11 @@ import type { TimelinePayload } from '@notemage/shared';
 import HintButton from './HintButton';
 import SubmitBar from './SubmitBar';
 import { shuffleByKey } from './quizShuffle';
+import { parseYearForSort } from '@/lib/timeline-sort';
 import type { QuestionProps } from './types';
 
 function normalizeStr(s: string): string {
   return s.trim().toLowerCase();
-}
-
-function parseYearForSort(year: string): number {
-  const trimmed = year.trim();
-  const bceMatch = /^(-?\d+)\s*(?:bce|bc)$/i.exec(trimmed);
-  if (bceMatch) return -Math.abs(parseInt(bceMatch[1], 10));
-  const ceMatch = /^(-?\d+)\s*(?:ce|ad)$/i.exec(trimmed);
-  if (ceMatch) return parseInt(ceMatch[1], 10);
-  const direct = parseInt(trimmed, 10);
-  if (Number.isFinite(direct)) return direct;
-  return 0;
 }
 
 export default function TimelineRenderer({

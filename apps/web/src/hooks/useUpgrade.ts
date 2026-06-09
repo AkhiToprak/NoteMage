@@ -74,6 +74,12 @@ export function useUpgrade(onSuccess?: () => void) {
           }
         },
       });
+    } catch (e) {
+      // openProCheckout throws on a missing checkout URL or a Lemon.js load
+      // failure. Swallowing it left the CTA silently dead; rethrow so callers
+      // can surface a user-visible error.
+      console.error('[useUpgrade] checkout failed to open', e);
+      throw e;
     } finally {
       // Re-enable once the overlay is up; payment continues inside it.
       setUpgrading(false);

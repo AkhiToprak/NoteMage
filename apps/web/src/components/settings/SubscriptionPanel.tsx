@@ -45,6 +45,18 @@ export default function SubscriptionPanel() {
   const [iosSheetOpen, setIosSheetOpen] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
+  // Surface a checkout-open failure (missing checkout URL / Lemon.js load
+  // error). The button passed `startUpgrade` directly before, so a rejection
+  // became an unhandled promise and the CTA just flickered with no feedback.
+  const handleUpgrade = useCallback(async () => {
+    setError(null);
+    try {
+      await startUpgrade();
+    } catch {
+      setError("Couldn't open checkout. Please try again, or contact support if it persists.");
+    }
+  }, [startUpgrade]);
+
   const refresh = useCallback(() => {
     fetch('/api/user/subscription')
       .then((r) => r.json())
@@ -236,7 +248,7 @@ export default function SubscriptionPanel() {
             type="button"
             className="sub-btn sub-btn-primary"
             style={primaryBtnStyle}
-            onClick={isIos ? () => setIosSheetOpen(true) : startUpgrade}
+            onClick={isIos ? () => setIosSheetOpen(true) : handleUpgrade}
             disabled={upgrading}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>

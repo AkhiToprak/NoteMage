@@ -172,6 +172,13 @@ export interface SerializedPath {
   generationStatus: string;
   generationError: string | null;
   /**
+   * Last write to the row (ISO-8601). The generation/translation
+   * orchestrators bump this on every progress write, so the client can
+   * detect a wedged `generating` path (no heartbeat for longer than
+   * {@link STALE_GENERATION_MS}) and offer an in-app "stop" affordance.
+   */
+  updatedAt: string;
+  /**
    * What the background run (if any) is doing — `"translate"` while an
    * in-place translation is in flight, otherwise null. Lets the card show a
    * "Translating…" state instead of "Generating…" so a translation isn't
@@ -237,6 +244,7 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
     language: plan.language,
     generationStatus: plan.generationStatus,
     generationError: plan.generationError ?? null,
+    updatedAt: plan.updatedAt.toISOString(),
     generationMode,
     subjects: plan.subjects,
     subjectWeights: plan.subjectWeights,

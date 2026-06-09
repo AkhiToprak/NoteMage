@@ -58,7 +58,21 @@ type PathPlanListItem = PathPlan & {
   language?: string;
   /** 'translate' while an in-place translation is running; else absent. */
   generationMode?: string | null;
+  /** ISO-8601 timestamp of the last write — drives stuck-generation detection. */
+  updatedAt?: string;
 };
+
+// Mirrors STALE_GENERATION_MS in src/lib/path-loader.ts (kept here to avoid
+// pulling server-only code into the client bundle). A `generating` path with
+// no heartbeat for this long has a dead orchestrator — e.g. a redeploy killed
+// the detached worker — and is safe to stop. The server DELETE enforces the
+// same window, so this only gates whether the Stop affordance is shown.
+const STALE_GENERATION_MS = 15 * 60 * 1000;
+
+function isStuckGenerating(plan: PathPlanListItem): boolean {
+  if (plan.generationStatus !== 'generating' || !plan.updatedAt) return false;
+  return Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
+}
 
 function primarySubjectOf(plan: PathPlanListItem): SubjectId | null {
   const first = plan.subjects?.find((s) => isSubjectId(s));
@@ -120,6 +134,12 @@ export default function LearnPage() {
   const [deleteTarget, setDeleteTarget] = useState<PathPlanListItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Stop-a-stuck-generation target + in-flight state. A wedged `generating`
+  // path can't finish, so stopping it deletes the row (the canonical recovery —
+  // mirrors scripts/remove-stuck-path.ts) and lets the user start fresh.
+  const [cancelTarget, setCancelTarget] = useState<PathPlanListItem | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   // Path-publishing P2 — the plan currently being walked through the
   // PublishDialog. null = closed; non-null = modal open for this plan.
   const [publishTarget, setPublishTarget] = useState<PathPlanListItem | null>(null);
@@ -236,6 +256,42 @@ export default function LearnPage() {
     setDeleteTarget(null);
     setDeleteError(null);
   }, [deleting]);
+
+  // Stop a wedged generation. Reuses the DELETE endpoint, which already allows
+  // removing a `generating` row once its orchestrator has gone stale; refresh()
+  // drops the card and the poll loop halts once nothing is in flight.
+  const handleConfirmCancel = useCallback(async () => {
+    if (!cancelTarget) return;
+    // A stuck TRANSLATION leaves the path intact — restore it (POST /cancel)
+    // rather than deleting. A stuck GENERATION is incomplete — delete it.
+    const isTranslate = cancelTarget.generationMode === 'translate';
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(
+        `/api/learn/paths/${encodeURIComponent(cancelTarget.id)}${isTranslate ? '/cancel' : ''}`,
+        { method: isTranslate ? 'POST' : 'DELETE' },
+      );
+      const json = await res.json();
+      if (json?.success) {
+        setCancelTarget(null);
+        await refresh();
+      } else {
+        setCancelError(
+          json?.error ?? 'Could not stop this path. If it just started, give it a moment.',
+        );
+      }
+    } catch {
+      setCancelError('Network error. Try again.');
+    }
+    setCancelling(false);
+  }, [cancelTarget, refresh]);
+
+  const handleCancelCancel = useCallback(() => {
+    if (cancelling) return;
+    setCancelTarget(null);
+    setCancelError(null);
+  }, [cancelling]);
 
   // Close the publish dialog after a successful submit and refresh so
   // the card immediately gets the new chip (no UX flicker waiting for
@@ -540,7 +596,12 @@ export default function LearnPage() {
         >
           {(filteredPlans ?? []).map((plan) =>
             isInFlight(plan) ? (
-              <GeneratingCard key={plan.id} plan={plan} />
+              <GeneratingCard
+                key={plan.id}
+                plan={plan}
+                stuck={isStuckGenerating(plan)}
+                onRequestCancel={setCancelTarget}
+              />
             ) : (
               <PathCard
                 key={plan.id}
@@ -564,6 +625,16 @@ export default function LearnPage() {
           error={deleteError}
           onCancel={handleCancelDelete}
           onConfirm={handleConfirmDelete}
+        />
+      ) : null}
+
+      {cancelTarget ? (
+        <CancelPathDialog
+          plan={cancelTarget}
+          cancelling={cancelling}
+          error={cancelError}
+          onCancel={handleCancelCancel}
+          onConfirm={handleConfirmCancel}
         />
       ) : null}
 
@@ -619,9 +690,26 @@ export default function LearnPage() {
         .learn-paths-card--gold:focus-visible {
           outline-color: var(--brand-gold);
         }
+        .learn-path-stop-btn {
+          transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .learn-path-stop-btn:hover {
+          background: var(--surface-container-highest);
+          color: var(--error);
+          border-color: var(--error);
+        }
+        .learn-path-stop-btn:focus-visible {
+          outline: 2px solid var(--error);
+          outline-offset: 2px;
+        }
+        .learn-path-stop-btn:active {
+          transform: translateY(1px);
+        }
         @media (prefers-reduced-motion: reduce) {
           .learn-paths-card { transition: none; }
           .learn-paths-card:hover { transform: none; }
+          .learn-path-stop-btn { transition: none; }
+          .learn-path-stop-btn:active { transform: none; }
         }
       `}</style>
     </div>
@@ -961,8 +1049,19 @@ function PathCard({
 
 // Skeleton card shown for paths still being generated. The page polls
 // the list every 3s while any plan is in this state; when it flips to
-// `ready` the card swaps for the real PathCard.
-function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
+// `ready` the card swaps for the real PathCard. When a generation wedges
+// (`stuck` — its orchestrator died and stopped writing), the card swaps the
+// spinner for a warning and offers a Stop affordance so the path isn't a
+// permanent dead-end.
+function GeneratingCard({
+  plan,
+  stuck,
+  onRequestCancel,
+}: {
+  plan: PathPlanListItem;
+  stuck: boolean;
+  onRequestCancel: (plan: PathPlanListItem) => void;
+}) {
   return (
     <section
       style={{
@@ -976,19 +1075,40 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
         minHeight: '108px',
       }}
     >
-      <span
-        aria-hidden
-        className="learn-path-generating-spinner"
-        style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          border: '3px solid var(--outline-variant)',
-          borderTopColor: 'var(--primary)',
-          animation: 'learnPathSpin 0.9s linear infinite',
-          flexShrink: 0,
-        }}
-      />
+      {stuck ? (
+        <span
+          aria-hidden
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--tertiary-container)',
+            color: 'var(--on-tertiary-container)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+            sync_problem
+          </span>
+        </span>
+      ) : (
+        <span
+          aria-hidden
+          className="learn-path-generating-spinner"
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            border: '3px solid var(--outline-variant)',
+            borderTopColor: 'var(--primary)',
+            animation: 'learnPathSpin 0.9s linear infinite',
+            flexShrink: 0,
+          }}
+        />
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <h2
           style={{
@@ -1012,11 +1132,47 @@ function GeneratingCard({ plan }: { plan: PathPlanListItem }) {
             lineHeight: 1.4,
           }}
         >
-          {plan.generationMode === 'translate'
-            ? 'Translating your path…'
-            : 'Generating your path…'}
+          {stuck
+            ? plan.generationMode === 'translate'
+              ? 'Translation stalled — your path is intact.'
+              : "This path got stuck and won't finish. Stop it to start fresh."
+            : plan.generationMode === 'translate'
+              ? 'Translating your path…'
+              : 'Generating your path…'}
         </p>
       </div>
+      {stuck ? (
+        <button
+          type="button"
+          className="learn-path-stop-btn"
+          onClick={() => onRequestCancel(plan)}
+          aria-label={
+            plan.generationMode === 'translate'
+              ? `Restore ${plan.title}`
+              : `Stop generating ${plan.title}`
+          }
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--on-surface-variant)',
+            border: '1px solid var(--outline-variant)',
+            fontFamily: 'inherit',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+            {plan.generationMode === 'translate' ? 'restart_alt' : 'close'}
+          </span>
+          {plan.generationMode === 'translate' ? 'Restore' : 'Stop'}
+        </button>
+      ) : null}
     </section>
   );
 }
@@ -1739,6 +1895,173 @@ function DeletePathDialog({
             }}
           >
             {deleting ? 'Deleting…' : 'Delete path'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Confirmation for stopping a wedged generation. Stopping deletes the row
+// (a stuck path can't finish and is locked), so the copy is explicit that the
+// path is removed.
+function CancelPathDialog({
+  plan,
+  cancelling,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  plan: PathPlanListItem;
+  cancelling: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  // A stuck translation is non-destructive to recover (restore to ready); a
+  // stuck generation is incomplete and gets deleted. Copy + accent branch on it.
+  const isTranslate = plan.generationMode === 'translate';
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={isTranslate ? 'Restore path' : 'Stop generating path'}
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(4px)',
+        padding: '20px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '440px',
+          maxWidth: '95vw',
+          background: 'var(--surface-container)',
+          color: 'var(--on-surface)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--outline-variant)',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span
+            aria-hidden
+            className="material-symbols-outlined"
+            style={{
+              fontSize: '22px',
+              width: '40px',
+              height: '40px',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--surface-container-highest)',
+              color: isTranslate ? 'var(--primary)' : 'var(--error)',
+            }}
+          >
+            sync_problem
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: '18px',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {isTranslate ? 'Restore this path?' : 'Stop generating this path?'}
+            </h2>
+            <p
+              style={{
+                margin: '6px 0 0',
+                fontSize: '13px',
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.5,
+              }}
+            >
+              {isTranslate ? (
+                <>
+                  <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong>&apos;s
+                  translation stalled, but the path itself is intact. Restoring brings it back to
+                  normal — you can translate it again afterwards.
+                </>
+              ) : (
+                <>
+                  <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> got stuck and
+                  can&apos;t finish. Stopping it removes the path and anything generated so far, so
+                  you can create a fresh one. This can&apos;t be undone.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {error ? (
+          <p role="alert" style={{ margin: 0, fontSize: '13px', color: 'var(--error)' }}>
+            {error}
+          </p>
+        ) : null}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={cancelling}
+            style={{
+              padding: '9px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'transparent',
+              color: 'var(--on-surface-variant)',
+              border: '1px solid var(--outline-variant)',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: cancelling ? 'default' : 'pointer',
+              opacity: cancelling ? 0.6 : 1,
+            }}
+          >
+            Keep waiting
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={cancelling}
+            aria-busy={cancelling}
+            style={{
+              padding: '9px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: isTranslate ? 'var(--primary)' : 'var(--error)',
+              color: isTranslate ? 'var(--on-primary)' : 'var(--on-error)',
+              border: 'none',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: cancelling ? 'default' : 'pointer',
+              opacity: cancelling ? 0.7 : 1,
+            }}
+          >
+            {cancelling
+              ? isTranslate
+                ? 'Restoring…'
+                : 'Stopping…'
+              : isTranslate
+                ? 'Restore path'
+                : 'Stop generating'}
           </button>
         </div>
       </div>
