@@ -136,6 +136,67 @@ function splitSoftProseLines(text: string): string {
 }
 
 /**
+ * Maps GitHub-style admonition markers (`[!TIP]`, `[!WARNING]`, …) onto the
+ * four Callout types the editor supports. Keep the value set in sync with
+ * `CalloutType` in `src/lib/tiptap-callout.ts`. Unknown markers fall back to
+ * `info` so a stray `[!FOO]` still renders as a callout rather than literal
+ * text. The vocabulary is deliberately generous — models trained on GitHub
+ * reach for NOTE / IMPORTANT / CAUTION, so we accept those aliases too.
+ */
+const CALLOUT_TYPE_BY_MARKER: Record<string, 'info' | 'warning' | 'success' | 'tip'> = {
+  note: 'info',
+  info: 'info',
+  tip: 'tip',
+  hint: 'tip',
+  important: 'tip',
+  warning: 'warning',
+  caution: 'warning',
+  danger: 'warning',
+  attention: 'warning',
+  success: 'success',
+  check: 'success',
+  done: 'success',
+  ok: 'success',
+};
+
+/**
+ * Rewrite `marked`'s blockquote HTML into Callout nodes when the blockquote
+ * opens with a GitHub-style admonition marker.
+ *
+ * `marked` doesn't understand admonitions, so `> [!TIP]\n> body` comes out as
+ * a plain `<blockquote><p>[!TIP]\nbody</p></blockquote>`. The Callout extension
+ * (src/lib/tiptap-callout.ts) only parses `<div data-callout-type="…">`, so we
+ * translate the marked output here. Two shapes occur in practice:
+ *
+ *   (a) marker shares the first paragraph with its body:
+ *       `<blockquote><p>[!TIP]\nbody</p></blockquote>`
+ *   (b) marker sits alone in its own paragraph:
+ *       `<blockquote><p>[!NOTE]</p><p>body</p></blockquote>`
+ *
+ * Blockquotes without a leading marker are left untouched so ordinary quotes
+ * keep rendering as blockquotes.
+ */
+function admonitionsToCallouts(html: string): string {
+  return html.replace(/<blockquote>\s*([\s\S]*?)\s*<\/blockquote>/g, (match, inner: string) => {
+    const marker = inner.match(/^<p>\s*\[!(\w+)\]/i);
+    if (!marker) return match;
+    const type = CALLOUT_TYPE_BY_MARKER[marker[1].toLowerCase()] ?? 'info';
+
+    let body = inner
+      // (a) drop the "[!TYPE]" marker plus the soft-wrap newline after it,
+      // keeping the rest of the opening paragraph intact.
+      .replace(/^<p>\s*\[!\w+\][^\S\n]*\n?/i, '<p>')
+      // (b) if the marker was alone, that left an empty "<p></p>" — remove it.
+      .replace(/^<p>\s*<\/p>\s*/i, '')
+      .trim();
+
+    // A callout requires `block+` content; never emit an empty one.
+    if (!body) body = '<p></p>';
+    return `<div data-callout-type="${type}">${body}</div>`;
+  });
+}
+
+/**
  * Convert markdown source to an HTML string suitable for TipTap's
  * HTML-paste pipeline. Uses `marked` with GFM enabled (tables, strike-
  * through, etc.).
@@ -159,10 +220,13 @@ export function markdownToHtml(text: string): string {
   // Clamp <h4>-<h6> down to <h3>; keep the inner inline content intact so the
   // standard Heading extension picks it up as the heading's text. <h1>-<h3>
   // pass through unchanged.
-  const rewritten = raw.replace(
+  const headingFixed = raw.replace(
     /<h([4-6])>([\s\S]*?)<\/h\1>/g,
     (_match, _levelStr: string, inner: string) => `<h3>${inner}</h3>`
   );
+
+  // Promote GitHub-style admonition blockquotes into real Callout nodes.
+  const rewritten = admonitionsToCallouts(headingFixed);
 
   // Defense-in-depth: `marked` does NOT sanitize, so its output can carry raw
   // <script>/<img onerror> when the pasted plain text contained HTML. The

@@ -5,6 +5,8 @@ import type { Editor } from '@tiptap/react';
 import { useAiTask } from './AiTaskContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { Button } from '@/components/ui/Button';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { looksLikeMarkdown, markdownToHtml } from '@/lib/markdown-to-html';
 
 /**
  * Floating toolbar that appears whenever the user has a non-trivial text
@@ -337,12 +339,23 @@ export default function InlineAIToolbar({
     const docSize = editor.state.doc.content.size;
     const from = Math.min(preview.range.from, docSize);
     const to = Math.min(preview.range.to, docSize);
+
+    // The model replies in Markdown. Block-structured output (callouts, code
+    // blocks, lists, tables, headings, multi-paragraph prose) is rendered
+    // through the same markdown → HTML → schema pipeline the paste handler
+    // uses (see PageEditor handlePaste), so it lands as real editor nodes
+    // instead of literal "#" / "```" / "> [!TIP]" characters. A short, single
+    // -block plain reply (e.g. a rewritten phrase) is inserted as raw text so
+    // it stays inline — wrapping it in <p> would split the surrounding block.
+    const isBlock = looksLikeMarkdown(preview.text) || /\n\s*\n/.test(preview.text);
+    const content = isBlock ? markdownToHtml(preview.text) : preview.text;
+
     editor
       .chain()
       .focus()
       .setTextSelection({ from, to })
       .deleteSelection()
-      .insertContent(preview.text)
+      .insertContent(content, { parseOptions: { preserveWhitespace: false } })
       .run();
     setPreview(null);
     setHidden(true);
@@ -428,15 +441,17 @@ export default function InlineAIToolbar({
             fontSize: 'var(--fs-sm)',
             lineHeight: 'var(--lh-normal)',
             color: 'var(--on-surface)',
-            whiteSpace: 'pre-wrap',
-            maxHeight: 200,
+            maxHeight: 220,
             overflowY: 'auto',
             background: 'var(--ink-04)',
             borderRadius: 'var(--radius-md)',
             padding: '10px 12px',
           }}
         >
-          {preview.text}
+          {/* Render the staged Markdown so the preview matches what Accept
+              inserts — code blocks, lists, and emphasis show formatted rather
+              than as raw "```"/"-"/"**" characters. */}
+          <MarkdownRenderer content={preview.text} variant="plain" />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
           <Button variant="ghost" size="sm" onClick={discardPreview}>

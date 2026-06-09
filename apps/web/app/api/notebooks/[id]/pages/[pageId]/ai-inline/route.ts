@@ -41,26 +41,48 @@ type Params = { params: Promise<{ id: string; pageId: string }> };
 
 type InlineAction = 'rewrite' | 'summarize' | 'expand';
 
+// Shared formatting contract. The client renders the reply as Markdown and
+// converts it into real editor nodes (see src/lib/markdown-to-html.ts), so the
+// model SHOULD reach for Markdown when the content genuinely calls for it —
+// fenced code blocks (with a language) for code, lists for enumerations,
+// tables for tabular data, **bold**/*italic* for emphasis, and `## headings`
+// for longer structured passages. Callouts use GitHub admonition syntax on a
+// blockquote — the supported kinds are [!INFO]/[!NOTE], [!TIP], [!WARNING],
+// and [!SUCCESS], e.g.:
+//   > [!TIP]
+//   > Keep the chain rule handy here.
+const FORMATTING_RULES = [
+  'Write in GitHub-Flavored Markdown.',
+  'Match the formatting to the content and to the scale of the input: a short passage stays plain prose, while structured material should use the right element.',
+  'Use fenced code blocks with a language tag for code, bullet or numbered lists for enumerations, tables for tabular data, and **bold**/*italic* for emphasis.',
+  'For asides use a callout — a blockquote opening with one of [!INFO], [!TIP], [!WARNING], or [!SUCCESS], e.g. "> [!TIP]\\n> ...".',
+  'Do not wrap the entire reply in a code fence, add commentary, or surround it in quotes.',
+].join(' ');
+
 const SYSTEM_PROMPTS: Record<InlineAction, string> = {
   rewrite: [
     'You are an inline editing assistant for a study app.',
     'Rewrite the user-supplied passage to be clearer, more concise, and more readable.',
-    'Preserve the original meaning, key facts, and overall length (within +/- 20%).',
-    'Return ONLY the rewritten text — no commentary, no quotes, no markdown fencing.',
-    'If the passage is already perfect, return it unchanged.',
+    'Preserve the original meaning, key facts, formatting, and overall length (within +/- 20%).',
+    FORMATTING_RULES,
+    'Return ONLY the rewritten passage. If it is already perfect, return it unchanged.',
   ].join(' '),
   summarize: [
     'You are an inline editing assistant for a study app.',
     'Summarize the user-supplied passage into roughly one third of its length.',
     'Preserve the most important facts, names, and numbers.',
-    'Return ONLY the summary — no commentary, no quotes, no markdown fencing, no "Summary:" prefix.',
+    'A bullet list is often the clearest format for a summary.',
+    FORMATTING_RULES,
+    'Return ONLY the summary — no "Summary:" prefix.',
   ].join(' '),
   expand: [
     'You are an inline editing assistant for a study app.',
     'Expand the user-supplied passage with more detail, examples, and explanation.',
     'Stay strictly on topic — do not invent facts the original did not imply.',
     'Aim for roughly double the original length.',
-    'Return ONLY the expanded text — no commentary, no quotes, no markdown fencing.',
+    'Structure longer output with headings, lists, code blocks, and callouts where they aid understanding.',
+    FORMATTING_RULES,
+    'Return ONLY the expanded passage.',
   ].join(' '),
 };
 
