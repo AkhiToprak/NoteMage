@@ -219,13 +219,20 @@
   opacity: 0.42; transition: opacity 0.6s var(--ease);
 }
 .root :global(.pl-car-slide.pl-is-current) { opacity: 1; }
-/* intro-video slide — fills the carousel window edge-to-edge; the viewport's
-   height tracks the current slide (set in JS) so the 16:9 clip never letterboxes,
-   and the viewport's rounded clip rounds the corners. */
+/* video slides — a big title over a rounded 16:9 clip; the viewport height
+   tracks the current slide (set in JS) so nothing ever letterboxes. */
 .root :global(.pl-car-video-frame) { display: block; }
+.root :global(.pl-car-video-title) {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  letter-spacing: -0.03em; line-height: 1.05;
+  color: var(--ink); text-align: center;
+  margin: 0 0 16px; overflow-wrap: anywhere;
+}
 .root :global(.pl-car-video) {
   width: 100%; aspect-ratio: 16 / 9; display: block;
   object-fit: cover; background: var(--surface);
+  border-radius: var(--radius-md);
 }
 .root :global(.pl-car-arrow) {
   position: absolute; top: 46%; transform: translateY(-50%);

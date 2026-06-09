@@ -88,17 +88,19 @@ const SEG_H = [240, 480, 480, 480, 480, 520, 320];
 
 /* ─────────  hero preview carousel data  ───────── */
 type SectionSlide = { eyebrow: string; title: ReactNode; grade: string; desc: ReactNode; nodes: string[] };
-type VideoSlide = { video: string; label: string };
+type VideoSlide = { video: string; title: string; label: string };
 type Slide = SectionSlide | VideoSlide;
 const SLIDES: Slide[] = [
   {
     // Intro explainer — the first object in the carousel. Source of truth lives
     // in brand_assets/videos/; this served copy is in apps/web/public/videos/.
     video: '/videos/learning_path_landing_video.mp4',
+    title: 'Learning Paths',
     label: 'See how NoteMage turns your material into a guided learning path',
   },
   {
     video: '/videos/notemage-flashcards-16x9.mp4',
+    title: 'Flashcards',
     label: 'See how NoteMage turns your notes into flashcards',
   },
   {
@@ -144,6 +146,7 @@ function CarouselSlide({ s, idx, total, clone }: { s: Slide; idx: number; total:
     >
       {'video' in s ? (
         <div className="pl-car-video-frame">
+          <div className="pl-car-video-title">{s.title}</div>
           <video
             className="pl-car-video"
             src={s.video}
