@@ -88,14 +88,13 @@ const SEG_H = [240, 480, 480, 480, 480, 520, 320];
 
 /* ─────────  hero preview carousel data  ───────── */
 type SectionSlide = { eyebrow: string; title: ReactNode; grade: string; desc: ReactNode; nodes: string[] };
-type VideoSlide = { video: string; poster: string; label: string };
+type VideoSlide = { video: string; label: string };
 type Slide = SectionSlide | VideoSlide;
 const SLIDES: Slide[] = [
   {
     // Intro explainer — the first object in the carousel. Source of truth lives
     // in brand_assets/videos/; this served copy is in apps/web/public/videos/.
     video: '/videos/learning_path_landing_video.mp4',
-    poster: '/videos/learning_path_landing_video.jpg',
     label: 'See how NoteMage turns your material into a guided learning path',
   },
   {
@@ -141,21 +140,15 @@ function CarouselSlide({ s, idx, total, clone }: { s: Slide; idx: number; total:
     >
       {'video' in s ? (
         <div className="pl-car-video-frame">
-          {clone ? (
-            /* decorative right-edge peek — a still poster, never a second decoding <video> */
-            <img className="pl-car-video" src={s.poster} alt="" decoding="async" />
-          ) : (
-            <video
-              className="pl-car-video"
-              src={s.video}
-              poster={s.poster}
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              aria-label={s.label}
-            />
-          )}
+          <video
+            className="pl-car-video"
+            src={s.video}
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-label={s.label}
+          />
         </div>
       ) : (
         <>
@@ -497,10 +490,11 @@ export default function PathLanding() {
     const dots = Array.from(dotsWrap.children) as HTMLElement[];
     const reduce = prefersReducedMotion();
     const vp = root.querySelector<HTMLElement>('.pl-car-viewport');
-    // intro-video slide (cells[1]); the clone peek is a still <img>, so this
-    // matches only the one live <video>. Playback is JS-gated so reduced-motion
-    // users get a static poster (no autoplay attribute on the element).
-    const video = track.querySelector<HTMLVideoElement>('video.pl-car-video');
+    // The intro clip appears twice — the real first slide and its loop clone.
+    // Playback is JS-gated so reduced-motion users get a paused first frame
+    // (no autoplay attribute on the elements). video = the real one (icon sync).
+    const videos = Array.from(track.querySelectorAll<HTMLVideoElement>('video.pl-car-video'));
+    const video = videos[0] ?? null;
     let cur = 1; // cells[1] = first real slide
 
     function paint(animate: boolean) {
@@ -575,10 +569,12 @@ export default function PathLanding() {
       if (icon) icon.textContent = paused ? 'play_arrow' : 'pause';
       playPauseBtn.setAttribute('aria-label', paused ? 'Play intro video' : 'Pause intro video');
     };
+    const playAll = () => videos.forEach((v) => void v.play().catch(() => {}));
+    const pauseAll = () => videos.forEach((v) => v.pause());
     const onPlayPause = () => {
       if (!video) return;
-      if (video.paused) void video.play().catch(() => {});
-      else video.pause();
+      if (video.paused) playAll();
+      else pauseAll();
     };
     playPauseBtn?.addEventListener('click', onPlayPause);
     video?.addEventListener('play', syncPlayPause);
@@ -605,7 +601,7 @@ export default function PathLanding() {
       rt = setTimeout(() => paint(false), 120);
     };
     window.addEventListener('resize', onResize);
-    if (!reduce) void video?.play().catch(() => {});
+    if (!reduce) playAll();
     syncPlayPause();
 
     return () => {
