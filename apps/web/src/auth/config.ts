@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { getIpFromHeaders } from '@/lib/registration';
+import { getIpFromHeaders, normalizeEmail } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
 import { logSecurityEvent } from '@/lib/security-events';
 
@@ -112,7 +112,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await db.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: normalizeEmail(credentials.email) },
           select: {
             id: true,
             email: true,
@@ -284,7 +284,7 @@ export const authOptions: NextAuthOptions = {
       const emailVerified = p.email_verified === true || p.email_verified === 'true';
       if (!emailVerified) return false;
 
-      const email = (user.email ?? p.email ?? '').toLowerCase();
+      const email = normalizeEmail(user.email ?? p.email);
       if (!email) return false;
 
       const providerAccountId = account.providerAccountId;

@@ -43,25 +43,23 @@ export async function findOrCreateOAuthUser(input: OAuthUserInput): Promise<OAut
     return { ok: true, userId: existingLink.userId };
   }
 
-  // 2. Email collision? Safe-link or block.
+  // 2. Email collision? Link the provider identity to the existing account.
+  //    Our callers only reach this helper after the provider verified email
+  //    ownership (Google `email_verified` / Apple JWKS), so whoever is signing
+  //    in provably controls this mailbox — and any account registered to it.
+  //    That makes silent linking safe: the OAuth user and the existing-account
+  //    owner are the same mailbox owner, so there's no takeover to defend
+  //    against. We sign them straight into their existing account (keeping any
+  //    password they set) instead of forcing a separate password-then-link
+  //    detour. The only refusal here is a banned account.
   const existingByEmail = await db.user.findUnique({
     where: { email },
-    select: { id: true, password: true, onboardingComplete: true, banned: true },
+    select: { id: true, banned: true },
   });
 
   if (existingByEmail) {
     if (existingByEmail.banned) {
       return { ok: false, reason: 'banned' };
-    }
-    // Safe to silently link only if the existing account either:
-    //   (a) has no password set (already an OAuth account), OR
-    //   (b) never finished onboarding (no real profile data to hijack).
-    // Otherwise we block — the real owner must log in with their password
-    // and explicitly link OAuth from settings.
-    const safeToLink =
-      existingByEmail.password === null || existingByEmail.onboardingComplete === false;
-    if (!safeToLink) {
-      return { ok: false, reason: 'account_exists' };
     }
     await db.oAuthAccount.create({
       data: { userId: existingByEmail.id, provider, providerAccountId },

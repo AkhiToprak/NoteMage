@@ -7,6 +7,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { normalizeEmail } from '@/lib/registration';
 import { issuePasswordResetCode } from '@/lib/verification';
 import { sendPasswordResetCode } from '@/lib/verification-email';
 
@@ -22,8 +23,8 @@ export async function POST(request: NextRequest) {
     const ip = getClientIp(request);
 
     const body = await request.json().catch(() => null);
-    const email = body?.email;
-    if (typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
+    const email = normalizeEmail(body?.email);
+    if (!email || !EMAIL_REGEX.test(email)) {
       return badRequestResponse('A valid email is required');
     }
 

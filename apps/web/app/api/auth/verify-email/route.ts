@@ -7,6 +7,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { normalizeEmail } from '@/lib/registration';
 import { verifyEmailCode } from '@/lib/verification';
 
 // Confirms a credentials account's email via the 6-digit code. Unauthenticated
@@ -23,9 +24,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => null);
-    const email = body?.email;
+    const email = normalizeEmail(body?.email);
     const code = body?.code;
-    if (typeof email !== 'string' || typeof code !== 'string') {
+    if (!email || typeof code !== 'string') {
       return badRequestResponse('Email and code are required');
     }
     const cleanCode = code.trim();

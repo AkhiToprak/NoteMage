@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceIpCap, generatePlaceholderUsername, hashIp } from '@/lib/registration';
+import { enforceIpCap, generatePlaceholderUsername, hashIp, normalizeEmail } from '@/lib/registration';
 import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
 import { issueEmailVerificationCode } from '@/lib/verification';
 import { sendVerificationCode } from '@/lib/verification-email';
@@ -30,13 +30,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, birthDate } = body;
+    const { password, birthDate } = body;
+    const email = normalizeEmail(body.email);
 
     if (!email || !password) {
       return badRequestResponse('Email and password are required');
     }
 
-    if (!EMAIL_REGEX.test(String(email))) {
+    if (!EMAIL_REGEX.test(email)) {
       return badRequestResponse('Invalid email address');
     }
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       return badRequestResponse(`You must be at least ${MIN_AGE} years old to use NoteMage.`);
     }
 
-    const existingEmail = await db.user.findUnique({ where: { email: String(email) } });
+    const existingEmail = await db.user.findUnique({ where: { email } });
     if (existingEmail) {
       return badRequestResponse('An account with this email already exists');
     }
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     const [user] = await db.$transaction([
       db.user.create({
         data: {
-          email: String(email),
+          email,
           password: hashedPassword,
           username: generatePlaceholderUsername(),
           birthDate: birth,

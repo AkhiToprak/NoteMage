@@ -27,6 +27,19 @@ export function hashIp(ip: string): string {
   return createHmac('sha256', secret).update(ip).digest('hex');
 }
 
+/**
+ * Canonicalize an email for storage and lookup: trim surrounding whitespace
+ * and lowercase. Email is case-insensitive in practice, so every code path
+ * that reads or writes a `User.email` MUST funnel through this — otherwise a
+ * mixed-case signup is invisible to the lowercased OAuth lookup (and vice
+ * versa), which silently mints a duplicate account instead of matching the
+ * existing one. Returns '' for any non-string input so callers' existing
+ * truthiness guards still fire.
+ */
+export function normalizeEmail(raw: unknown): string {
+  return typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+}
+
 /** Must match USERNAME_REGEX in app/api/auth/register/route.ts. */
 const USER_USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 
