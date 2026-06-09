@@ -72,6 +72,17 @@ export default function MatchPairsRenderer({
     [sourceAnswer]
   );
 
+  // Resolve a connection to its right-column SLOT index. New answers carry
+  // `rightSlot` directly; historical answers (pre-slot model) only have
+  // `rightLabel`, so fall back to the first matching slot. Keying the right
+  // side by slot index — not by label text — is what lets two slots sharing
+  // an identical value (e.g. two "1945" chips) be matched independently.
+  const resolveSlot = useCallback(
+    (c: { rightSlot?: number; rightLabel: string }) =>
+      c.rightSlot ?? shuffledRights.findIndex((l) => l === c.rightLabel),
+    [shuffledRights]
+  );
+
   const leftRefs = useRef<Map<number, HTMLElement | null>>(new Map());
   const rightRefs = useRef<Map<number, HTMLElement | null>>(new Map());
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -101,7 +112,7 @@ export default function MatchPairsRenderer({
     const next: Line[] = [];
     for (const c of connections) {
       const leftEl = leftRefs.current.get(c.left);
-      const rightSlotIdx = shuffledRights.findIndex((label) => label === c.rightLabel);
+      const rightSlotIdx = resolveSlot(c);
       if (rightSlotIdx < 0) continue;
       const rightEl = rightRefs.current.get(rightSlotIdx);
       if (!leftEl || !rightEl) continue;
@@ -121,7 +132,7 @@ export default function MatchPairsRenderer({
       });
     }
     setLines(next);
-  }, [connections, shuffledRights, coarsePointer]);
+  }, [connections, resolveSlot, coarsePointer]);
 
   // Recompute on any layout or connection change.
   useLayoutEffect(() => {
@@ -144,7 +155,7 @@ export default function MatchPairsRenderer({
   };
 
   const updateConnections = (
-    nextConnections: { left: number; rightLabel: string }[]
+    nextConnections: { left: number; rightSlot?: number; rightLabel: string }[]
   ) => {
     onSelectAnswer({ kind: 'match_pairs', connections: nextConnections });
   };
@@ -166,25 +177,25 @@ export default function MatchPairsRenderer({
     const rightLabel = shuffledRights[rightSlotIdx];
     if (rightLabel === undefined) return;
 
-    // If this right is already connected, clicking it removes the connection.
-    const existing = connections.find((c) => c.rightLabel === rightLabel);
+    // If THIS slot is already connected, clicking it removes the connection.
+    // Keyed by slot index, not label, so a duplicate-value slot toggles on its
+    // own and doesn't disturb the other slot sharing the same text.
+    const existing = connections.find((c) => resolveSlot(c) === rightSlotIdx);
     if (existing) {
-      updateConnections(connections.filter((c) => c.rightLabel !== rightLabel));
+      updateConnections(connections.filter((c) => resolveSlot(c) !== rightSlotIdx));
       return;
     }
     if (selectedLeft === null) return;
     // Replace any previous connection from this left (defensive — left should
     // already have been removed by `handleLeftClick`'s toggle above).
     const filtered = connections.filter((c) => c.left !== selectedLeft);
-    updateConnections([...filtered, { left: selectedLeft, rightLabel }]);
+    updateConnections([...filtered, { left: selectedLeft, rightSlot: rightSlotIdx, rightLabel }]);
     setSelectedLeft(null);
   };
 
   const isLeftConnected = (leftIdx: number) => connections.some((c) => c.left === leftIdx);
-  const isRightConnected = (rightSlotIdx: number) => {
-    const label = shuffledRights[rightSlotIdx];
-    return label !== undefined && connections.some((c) => c.rightLabel === label);
-  };
+  const isRightConnected = (rightSlotIdx: number) =>
+    connections.some((c) => resolveSlot(c) === rightSlotIdx);
 
   const showResults = mode === 'review' || (isAnswered && connections.length === pairs.length);
 
@@ -249,16 +260,14 @@ export default function MatchPairsRenderer({
           {(() => {
             const unmatchedLefts = leftOrder.filter((i) => !isLeftConnected(i));
             if (unmatchedLefts.length === 0) return null;
-            // Consume one slot per connection by SLOT IDENTITY (not label): when two
-            // pairs share an identical definition, only the matched slot is removed so
-            // the duplicate stays tappable (mirrors the fine-pointer branch, which
-            // renders every slot). Filtering by label would hide both and strand the
-            // second term in an unpairable dead-end.
+            // Consume each connection's own SLOT (not its label): when two pairs
+            // share an identical definition, only the matched slot is removed so the
+            // duplicate stays tappable (mirrors the fine-pointer branch, which renders
+            // every slot). Removing by label would hide both and strand the second
+            // term in an unpairable dead-end.
             const consumedSlots = new Set<number>();
             for (const c of connections) {
-              const slotIdx = shuffledRights.findIndex(
-                (label, idx) => label === c.rightLabel && !consumedSlots.has(idx)
-              );
+              const slotIdx = resolveSlot(c);
               if (slotIdx >= 0) consumedSlots.add(slotIdx);
             }
             const unmatchedRights = shuffledRights
@@ -396,7 +405,7 @@ export default function MatchPairsRenderer({
         {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {shuffledRights.map((label, slotIdx) => {
-            const conn = connections.find((c) => c.rightLabel === label);
+            const conn = connections.find((c) => resolveSlot(c) === slotIdx);
             const showRes =
               showResults && conn !== undefined
                 ? isConnectionCorrect(conn.left, label)

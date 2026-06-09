@@ -300,6 +300,28 @@ describe('grade() — match_pairs kind', () => {
       }).isCorrect
     ).toBe(false);
   });
+
+  // Duplicate right values (e.g. two events in the same year) must be matchable
+  // independently. The renderer now tags each connection with the distinct
+  // right SLOT it chose; the grader still scores by `rightLabel`, which is
+  // value-correct here — both lefts legitimately map to the shared "1945".
+  it('marks duplicate right values correct when each left maps to a distinct slot', () => {
+    const dupPayload = {
+      pairs: [
+        { left: 'Hiroshima bombing', right: '1945' },
+        { left: 'End of WWII', right: '1945' },
+      ],
+    };
+    expect(
+      grade('match_pairs', dupPayload, NO_LEGACY, {
+        kind: 'match_pairs',
+        connections: [
+          { left: 0, rightSlot: 0, rightLabel: '1945' },
+          { left: 1, rightSlot: 1, rightLabel: '1945' },
+        ],
+      }).isCorrect
+    ).toBe(true);
+  });
 });
 
 describe('grade() — sentence_reorder kind', () => {

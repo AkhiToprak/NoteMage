@@ -31,7 +31,13 @@ export type UserAnswer =
   | { kind: 'true_false'; value: boolean }
   | { kind: 'fill_blank'; text: string }
   | { kind: 'word_bank'; slotAnswers: (string | null)[] }
-  | { kind: 'match_pairs'; connections: { left: number; rightLabel: string }[] }
+  // `left` is the payload pair index (unique). `rightSlot` is the chosen
+  // right-column slot's index in the shuffled `shuffledRights` array — the
+  // stable identity that lets two slots sharing the same text be matched
+  // independently. `rightLabel` is retained for grading (the server grader
+  // compares it by value) and for display. Optional `rightSlot` keeps
+  // already-saved attempts (which only carry `rightLabel`) type-compatible.
+  | { kind: 'match_pairs'; connections: { left: number; rightSlot?: number; rightLabel: string }[] }
   | { kind: 'translation'; text: string }
   | { kind: 'sentence_reorder'; orderedTokens: string[] }
   | { kind: 'equation'; expression: string }
