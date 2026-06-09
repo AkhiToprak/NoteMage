@@ -98,6 +98,10 @@ const SLIDES: Slide[] = [
     label: 'See how NoteMage turns your material into a guided learning path',
   },
   {
+    video: '/videos/notemage-flashcards-16x9.mp4',
+    label: 'See how NoteMage turns your notes into flashcards',
+  },
+  {
     eyebrow: 'Section 1', title: 'Section 1: How Python Works', grade: 'C',
     desc: 'Understand what Python is, how it runs code, and the mental model behind it…',
     nodes: ['What is Python?', 'How Python Runs Code', 'Your First Python Program'],
@@ -490,19 +494,45 @@ export default function PathLanding() {
     const dots = Array.from(dotsWrap.children) as HTMLElement[];
     const reduce = prefersReducedMotion();
     const vp = root.querySelector<HTMLElement>('.pl-car-viewport');
-    // The intro clip appears twice — the real first slide and its loop clone.
-    // Playback is JS-gated so reduced-motion users get a paused first frame
-    // (no autoplay attribute on the elements). video = the real one (icon sync).
+    const playPauseBtn = root.querySelector<HTMLButtonElement>('.pl-car-playpause');
+    // Each video slide (and the loop clone) renders a <video>. Only the current
+    // slide's clip plays — the rest stay paused so the hero never decodes more
+    // than one at a time. Playback is JS-gated, so reduced-motion users get a
+    // paused first frame (no autoplay attribute on the elements).
     const videos = Array.from(track.querySelectorAll<HTMLVideoElement>('video.pl-car-video'));
-    const video = videos[0] ?? null;
     let cur = 1; // cells[1] = first real slide
+    let userPaused = false; // manual pause of the current slide's video
+
+    const currentVideo = (): HTMLVideoElement | null =>
+      videos.find((v) => cells[cur].contains(v)) ?? null;
+
+    // The play/pause control governs the current slide's video — the pause
+    // affordance WCAG 2.2.2 wants for the looping clips. Hidden on slides with
+    // no video (and under reduced motion, via CSS).
+    const syncPlayPause = () => {
+      if (!playPauseBtn) return;
+      const cv = currentVideo();
+      playPauseBtn.style.display = cv ? '' : 'none';
+      if (!cv) return;
+      const icon = playPauseBtn.querySelector('.material-symbols-outlined');
+      if (icon) icon.textContent = cv.paused ? 'play_arrow' : 'pause';
+      playPauseBtn.setAttribute('aria-label', cv.paused ? 'Play video' : 'Pause video');
+    };
+    const syncVideos = () => {
+      const cv = currentVideo();
+      videos.forEach((v) => {
+        if (v === cv && !userPaused && !reduce) void v.play().catch(() => {});
+        else v.pause();
+      });
+      syncPlayPause();
+    };
 
     function paint(animate: boolean) {
       track!.style.transition = animate ? '' : 'none';
       if (vp) vp.style.transition = animate ? '' : 'none';
       track!.style.transform = `translateX(${-cells[cur].offsetLeft}px)`;
-      // Viewport hugs the current slide's own height, so the 16:9 video and the
-      // taller section previews each fill the window without letterboxing.
+      // Viewport hugs the current slide's own height, so each 16:9 video and the
+      // taller section previews fill the window without letterboxing.
       if (vp) vp.style.height = `${cells[cur].offsetHeight}px`;
       cells.forEach((c, i) => c.classList.toggle('pl-is-current', i === cur));
       const logical = (((cur - 1) % N) + N) % N;
@@ -510,6 +540,7 @@ export default function PathLanding() {
         if (i === logical) d.setAttribute('aria-current', 'true');
         else d.removeAttribute('aria-current');
       });
+      syncVideos();
       if (!animate) {
         void track!.offsetWidth; // commit, then re-enable transitions
         track!.style.transition = '';
@@ -517,6 +548,7 @@ export default function PathLanding() {
       }
     }
     function step(dir: number) {
+      userPaused = false;
       if (cur > N) {
         cur = 1;
         paint(false);
@@ -528,6 +560,7 @@ export default function PathLanding() {
       paint(true);
     }
     function toLogical(L: number) {
+      userPaused = false;
       cur = L + 1;
       paint(true);
     }
@@ -558,27 +591,23 @@ export default function PathLanding() {
     prevBtn?.addEventListener('click', onPrev);
     nextBtn?.addEventListener('click', onNext);
 
-    // The play/pause control governs the intro video only — the carousel has no
-    // autoplay to pause. This is the pause affordance WCAG 2.2.2 wants for the
-    // looping clip; CSS hides it under reduced motion (where the video is paused).
-    const playPauseBtn = root.querySelector<HTMLButtonElement>('.pl-car-playpause');
-    const syncPlayPause = () => {
-      if (!playPauseBtn) return;
-      const paused = !video || video.paused;
-      const icon = playPauseBtn.querySelector('.material-symbols-outlined');
-      if (icon) icon.textContent = paused ? 'play_arrow' : 'pause';
-      playPauseBtn.setAttribute('aria-label', paused ? 'Play intro video' : 'Pause intro video');
-    };
-    const playAll = () => videos.forEach((v) => void v.play().catch(() => {}));
-    const pauseAll = () => videos.forEach((v) => v.pause());
     const onPlayPause = () => {
-      if (!video) return;
-      if (video.paused) playAll();
-      else pauseAll();
+      const cv = currentVideo();
+      if (!cv) return;
+      if (cv.paused) {
+        userPaused = false;
+        void cv.play().catch(() => {});
+      } else {
+        userPaused = true;
+        cv.pause();
+      }
+      syncPlayPause();
     };
     playPauseBtn?.addEventListener('click', onPlayPause);
-    video?.addEventListener('play', syncPlayPause);
-    video?.addEventListener('pause', syncPlayPause);
+    videos.forEach((v) => {
+      v.addEventListener('play', syncPlayPause);
+      v.addEventListener('pause', syncPlayPause);
+    });
 
     // swipe / drag
     let x0: number | null = null;
@@ -601,8 +630,6 @@ export default function PathLanding() {
       rt = setTimeout(() => paint(false), 120);
     };
     window.addEventListener('resize', onResize);
-    if (!reduce) playAll();
-    syncPlayPause();
 
     return () => {
       clearTimeout(rt);
@@ -611,8 +638,10 @@ export default function PathLanding() {
       prevBtn?.removeEventListener('click', onPrev);
       nextBtn?.removeEventListener('click', onNext);
       playPauseBtn?.removeEventListener('click', onPlayPause);
-      video?.removeEventListener('play', syncPlayPause);
-      video?.removeEventListener('pause', syncPlayPause);
+      videos.forEach((v) => {
+        v.removeEventListener('play', syncPlayPause);
+        v.removeEventListener('pause', syncPlayPause);
+      });
       vp?.removeEventListener('pointerdown', onPointerDown);
       vp?.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('resize', onResize);
@@ -645,7 +674,7 @@ export default function PathLanding() {
 
         <section className="pl-hero-stage">
           <div className="pl-hero-card">
-            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="Intro video and example learning sections">
+            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="NoteMage videos and example learning sections">
               <div className="pl-car-viewport">
                 <div className="pl-car-track" ref={carTrackRef}>
                   <CarouselSlide s={SLIDES[N - 1]} idx={N - 1} total={N} clone />
@@ -663,17 +692,21 @@ export default function PathLanding() {
               </button>
               <div className="pl-car-controls">
                 <div className="pl-car-dots" ref={dotsRef} role="group" aria-label="Choose a section">
-                  {SLIDES.map((s, i) => (
-                    <button
-                      key={i}
-                      className="pl-car-dot"
-                      type="button"
-                      aria-label={'video' in s ? 'Go to intro video' : `Go to section ${i}`}
-                      data-i={i}
-                    />
-                  ))}
+                  {SLIDES.map((s, i) => {
+                    const isVideo = 'video' in s;
+                    const n = SLIDES.slice(0, i + 1).filter((x) => 'video' in x === isVideo).length;
+                    return (
+                      <button
+                        key={i}
+                        className="pl-car-dot"
+                        type="button"
+                        aria-label={isVideo ? `Go to video ${n}` : `Go to section ${n}`}
+                        data-i={i}
+                      />
+                    );
+                  })}
                 </div>
-                <button className="pl-car-playpause" type="button" aria-label="Pause section autoplay">
+                <button className="pl-car-playpause" type="button" aria-label="Pause video">
                   <span className="material-symbols-outlined" aria-hidden>pause</span>
                 </button>
               </div>
