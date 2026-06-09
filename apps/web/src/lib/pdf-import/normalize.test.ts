@@ -246,6 +246,28 @@ describe('normalizeDocModelShape — extended drift rescue', () => {
     }
   });
 
+  it('rescales a percent-scale bbox to fractions', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [8, 31, 92, 64] },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.bbox).toEqual([0.08, 0.31, 0.92, 0.64]);
+    }
+  });
+
+  it('leaves a pixel-scale bbox unclamped for the crop stage to rescale', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [100, 100, 600, 500] },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.bbox).toEqual([100, 100, 600, 500]);
+    }
+  });
+
   it('reinterprets an [x, y, w, h]-style bbox as corners', () => {
     const result = parseAfter([
       { type: 'image', ref: 'p1-fig-1', bbox: [0.1, 0.4, 0.8, 0.3] },

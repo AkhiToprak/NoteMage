@@ -47,15 +47,34 @@ export async function cropFigure(
   const pageH = image.height;
   if (pageW <= 0 || pageH <= 0) return null;
 
+  // Scale rescue — the contract is 0–1 fractions, but models drift into
+  // percent (0–100) or pixel coordinates of the very image they were shown.
+  // Clamping those to 0–1 collapses the box to zero area and silently loses
+  // the figure, so detect the scale and divide instead.
+  let values: number[] = [...bbox];
+  if (values.some((v) => v > 1)) {
+    if (values.every((v) => v <= 100)) {
+      values = values.map((v) => v / 100);
+    } else {
+      values = [values[0] / pageW, values[1] / pageH, values[2] / pageW, values[3] / pageH];
+    }
+  }
+
   // Clamp into 0–1 and order the corners — the model may emit either.
-  let [x0, y0, x1, y1] = bbox.map(clamp01);
+  let [x0, y0, x1, y1] = values.map(clamp01);
   if (x1 < x0) [x0, x1] = [x1, x0];
   if (y1 < y0) [y0, y1] = [y1, y0];
 
   // The unpadded figure size in page pixels — what the noise filter judges.
   const figureW = Math.round((x1 - x0) * pageW);
   const figureH = Math.round((y1 - y0) * pageH);
-  if (figureW < MIN_CROP_PX || figureH < MIN_CROP_PX) return null;
+  if (figureW < MIN_CROP_PX || figureH < MIN_CROP_PX) {
+    console.warn(
+      `[pdf-import] figure crop dropped: ${figureW}x${figureH}px below ${MIN_CROP_PX}px floor`,
+      { bbox, pageW, pageH },
+    );
+    return null;
+  }
 
   // Padded crop rect, clamped to the page edges.
   const left = Math.max(0, Math.round(x0 * pageW) - PADDING_PX);
@@ -64,7 +83,14 @@ export async function cropFigure(
   const bottom = Math.min(pageH, Math.round(y1 * pageH) + PADDING_PX);
   const cropW = right - left;
   const cropH = bottom - top;
-  if (cropW <= 0 || cropH <= 0) return null;
+  if (cropW <= 0 || cropH <= 0) {
+    console.warn('[pdf-import] figure crop dropped: degenerate crop rect', {
+      bbox,
+      pageW,
+      pageH,
+    });
+    return null;
+  }
 
   const canvas = createCanvas(cropW, cropH);
   const ctx = canvas.getContext('2d');

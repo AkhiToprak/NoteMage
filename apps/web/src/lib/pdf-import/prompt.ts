@@ -123,8 +123,9 @@ the image itself. A figure often sits in a tinted box with a coloured title
 bar; box the entire container, title bar included.
 - "ref" MUST be exactly the id given to you in the user message for that
   figure slot (a string like "p3-fig-1"). Number figures in reading order.
-- "bbox" is [x0, y0, x1, y1], each a fraction from 0 to 1 of the page width
-  or height, with the origin at the TOP-LEFT corner.
+- "bbox" is [x0, y0, x1, y1], each a DECIMAL FRACTION from 0 to 1 of the page
+  width or height, with the origin at the TOP-LEFT corner — e.g.
+  [0.08, 0.31, 0.92, 0.64]. Never pixel coordinates, never percentages.
 - A caption line under the figure ("Figure 1 — …") goes in the image block's
   "caption" key — an array of runs, e.g.
   "caption":[{"text":"Figure 1 — Weekly study time."}] — NOT a separate
