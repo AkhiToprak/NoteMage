@@ -325,22 +325,51 @@
 .root :global(.pl-car-playpause:active) { transform: scale(0.94); }
 .root :global(.pl-car-playpause:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 
-/* ─────────────────  "The magic" divider pill  ───────────────── */
-.root :global(.pl-magic-wrap) { display: flex; justify-content: center; padding: 124px 20px 116px; }
+/* ─────────────────  "The magic" divider pill  ─────────────────
+   Extra bottom space sets the pill apart from the path that follows. */
+.root :global(.pl-magic-wrap) { display: flex; justify-content: center; padding: 124px 20px 184px; }
 .root :global(.pl-magic) {
-  display: inline-flex; align-items: center; gap: 16px;
+  position: relative;
+  display: inline-flex; align-items: center; gap: 13px;
   background: var(--accent-soft); color: var(--on-lav);
   font-family: var(--font-display); font-weight: 800;
-  font-size: 24px; letter-spacing: -0.01em;
-  padding: 22px 52px; border: 0; border-radius: var(--radius-full);
+  font-size: 23px; letter-spacing: -0.01em;
+  padding: 20px 46px; border: 0; border-radius: var(--radius-full);
   cursor: pointer;
-  transition: transform 0.18s var(--ease);
+  /* tactile 3D pill — solid bottom lip + a soft lavender glow, matching the path nodes */
+  box-shadow: 0 6px 0 var(--on-lav-dim), 0 13px 24px rgba(140, 82, 255, 0.34);
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
-.root :global(.pl-magic) :global(.material-symbols-outlined) { font-size: 26px; transition: transform 0.25s var(--ease); }
-.root :global(.pl-magic:hover) { transform: translateY(-2px); }
-.root :global(.pl-magic:hover) :global(.material-symbols-outlined) { transform: translateY(3px); }
-.root :global(.pl-magic:active) { transform: translateY(1px); }
+.root :global(.pl-magic) :global(.material-symbols-outlined) { font-size: 24px; display: block; }
+.root :global(.pl-magic) :global(.pl-magic-star) { font-size: 25px; transition: transform 0.3s var(--spring); }
+.root :global(.pl-magic) :global(.pl-magic-chev) { margin-left: -3px; animation: plMagicNudge 1.9s var(--ease) infinite; }
+.root :global(.pl-magic:hover) {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 0 var(--on-lav-dim), 0 17px 28px rgba(140, 82, 255, 0.42);
+}
+.root :global(.pl-magic:hover) :global(.pl-magic-star) { transform: rotate(-14deg) scale(1.14); }
+/* press the pill into its own shadow — the lip collapses as it sinks */
+.root :global(.pl-magic:active) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--on-lav-dim), 0 6px 12px rgba(140, 82, 255, 0.3);
+}
 .root :global(.pl-magic:focus-visible) { outline: 3px solid var(--accent); outline-offset: 4px; }
+
+/* click reaction — a short burst of gold + lavender sparkles spawned from JS.
+   Each particle carries its own --dx/--dy/--rot/--sz; transform + opacity only. */
+.root :global(.pl-magic-spark) {
+  position: absolute; left: 50%; top: 42%;
+  pointer-events: none; z-index: 5; will-change: transform, opacity;
+  animation: plMagicSpark 0.72s var(--ease) forwards;
+}
+.root :global(.pl-magic-spark) :global(.material-symbols-outlined) { font-size: var(--sz, 16px); display: block; }
+@keyframes plMagicNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@keyframes plMagicSpark {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+  28%  { opacity: 1; transform: translate(calc(-50% + var(--dx) * 0.55), calc(-50% + var(--dy) * 0.55)) scale(1.1) rotate(calc(var(--rot) * 0.5)); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.55) rotate(var(--rot)); }
+}
 
 /* ─────────────────────────  PATH  ───────────────────────── */
 .root :global(.pl-path) { max-width: 1280px; margin: 0 auto; padding: 10px 20px 40px; }
@@ -602,7 +631,8 @@
 @media (prefers-reduced-motion: reduce) {
   .root :global(.pl-reveal) { opacity: 1 !important; transform: none !important; transition: none; }
   .root :global(.pl-floaty),
-  .root :global(.pl-bob) { animation: none !important; }
+  .root :global(.pl-bob),
+  .root :global(.pl-magic) :global(.pl-magic-chev) { animation: none !important; }
   .root :global(.pl-spine) :global(.pl-fill) { stroke-dashoffset: 0 !important; }
   .root :global(.pl-spine) :global(.pl-tip) { display: none; }
   .root :global(.pl-spine) :global(.pl-tip-halo) { animation: none; }

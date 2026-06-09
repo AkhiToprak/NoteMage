@@ -206,6 +206,7 @@ export default function PathLanding() {
   const carTrackRef = useRef<HTMLDivElement>(null);
   const dotsRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const magicRef = useRef<HTMLButtonElement>(null);
 
   // Native shells (iOS WebView, Electron) boot into the app, never the marketing
   // landing. Catch deep links / errant navs that drop a native user back at /.
@@ -469,10 +470,35 @@ export default function PathLanding() {
     return () => io.disconnect();
   }, []);
 
-  /* "The magic" → scroll down to the START checkpoint */
+  /* "The magic" → burst a few sparkles, then scroll to the START checkpoint */
   const onMagicClick = () => {
+    const reduce = prefersReducedMotion();
+    const btn = magicRef.current;
+    if (btn && !reduce) {
+      const COUNT = 11;
+      for (let i = 0; i < COUNT; i++) {
+        const spark = document.createElement('span');
+        spark.className = 'pl-magic-spark';
+        spark.setAttribute('aria-hidden', 'true');
+        const icon = document.createElement('span');
+        icon.className = 'material-symbols-outlined filled';
+        icon.textContent = 'auto_awesome';
+        spark.appendChild(icon);
+        // even fan-out around the pill, with a slight per-particle jitter from the index
+        const angle = (Math.PI * 2 * i) / COUNT + (i % 2 ? 0.32 : -0.18);
+        const dist = 52 + (i % 3) * 18;
+        spark.style.setProperty('--dx', `${(Math.cos(angle) * dist).toFixed(1)}px`);
+        spark.style.setProperty('--dy', `${(Math.sin(angle) * dist - 10).toFixed(1)}px`);
+        spark.style.setProperty('--rot', `${(i % 2 ? 1 : -1) * (110 + i * 16)}deg`);
+        spark.style.setProperty('--sz', `${13 + (i % 3) * 6}px`);
+        spark.style.color = i % 2 ? 'var(--gold)' : 'var(--primary)';
+        spark.style.animationDelay = `${i * 12}ms`;
+        spark.addEventListener('animationend', () => spark.remove(), { once: true });
+        btn.appendChild(spark);
+      }
+    }
     const startNode = rootRef.current?.querySelector('.pl-node-wrap[data-cp="0"]');
-    startNode?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+    startNode?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   };
 
   /* ─────────  hero preview carousel  ───────── */
@@ -730,9 +756,10 @@ export default function PathLanding() {
 
         {/* ─────────────  "The magic"  ───────────── */}
         <div className="pl-magic-wrap">
-          <button className="pl-magic pl-reveal" type="button" onClick={onMagicClick}>
-            <span className="material-symbols-outlined" aria-hidden>arrow_drop_down</span>
+          <button className="pl-magic pl-reveal" type="button" onClick={onMagicClick} ref={magicRef}>
+            <span className="material-symbols-outlined filled pl-magic-star" aria-hidden>auto_awesome</span>
             The magic
+            <span className="material-symbols-outlined pl-magic-chev" aria-hidden>expand_more</span>
           </button>
         </div>
 
