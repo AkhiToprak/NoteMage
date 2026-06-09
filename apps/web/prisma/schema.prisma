@@ -323,6 +323,7 @@ model ImportJob {
   fileName       String
   engine         String   @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"
   mode           String   @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
+  pageTitle      String?  // PDF only: user-chosen title for the created page; null = derive from fileName
   pageCap        Int
   status         String   @default("queued") // queued|processing|ready|failed
   progress       Json?    // { phase, totalPages, processedPages, message }

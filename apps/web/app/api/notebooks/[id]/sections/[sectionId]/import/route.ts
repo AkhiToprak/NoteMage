@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!section) return notFoundResponse('Section not found in this notebook');
 
     // Parse JSON body
-    const { storagePath, fileName: rawFileName, fileType } = await request.json();
+    const { storagePath, fileName: rawFileName, fileType, title: rawTitle } = await request.json();
 
     if (!storagePath) {
       return badRequestResponse('No storagePath provided');
@@ -77,9 +77,11 @@ export async function POST(request: NextRequest, { params }: Params) {
     // Always extract plain text for the textContent field (used for search)
     const textContent = await extractText(buffer, fileType);
 
-    // Derive page title from filename (without extension)
+    // User-chosen title from the organize mask wins; otherwise derive from
+    // the filename (without extension).
+    const customTitle = typeof rawTitle === 'string' ? rawTitle.trim().slice(0, 200) : '';
     const filename = rawFileName || 'Imported File';
-    const title = filename.replace(/\.[^.]+$/, '');
+    const title = customTitle || filename.replace(/\.[^.]+$/, '');
 
     // Determine sort order
     const maxOrder = await db.page.aggregate({

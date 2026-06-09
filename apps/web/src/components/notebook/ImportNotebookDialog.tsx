@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDirectUpload } from '@/hooks/useDirectUpload';
-import { validateFile } from '@/lib/file-validation';
-import { renderPdfToPngs, type RenderedPdfPage } from '@/lib/pdf-client-render';
-import PdfImportProgressModal from './PdfImportProgressModal';
+import { useState, useEffect, useCallback } from 'react';
 import OneNoteImportProgressModal from './OneNoteImportProgressModal';
+import PdfImportTab from './PdfImportTab';
 
 interface ImportNotebookDialogProps {
   notebookId: string;
@@ -55,6 +52,13 @@ export default function ImportNotebookDialog({
   // Default to the first rendered tab so IMPORT_TABS stays the single source of
   // truth (currently PDF; OneNote when the flag is on).
   const [activeTab, setActiveTab] = useState<TabType>(IMPORT_TABS[0][0]);
+  // The PDF tab locks dismissal while files render/upload client-side —
+  // closing then would silently abandon the remaining files.
+  const [locked, setLocked] = useState(false);
+
+  const requestClose = useCallback(() => {
+    if (!locked) onClose();
+  }, [locked, onClose]);
 
   return (
     <div
@@ -68,7 +72,7 @@ export default function ImportNotebookDialog({
         background: 'rgba(0,0,0,0.6)',
         backdropFilter: 'blur(4px)',
       }}
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         style={{
@@ -97,12 +101,15 @@ export default function ImportNotebookDialog({
             Import Notebook
           </span>
           <button
-            onClick={onClose}
+            onClick={requestClose}
+            disabled={locked}
+            aria-label="Close"
             style={{
               background: 'transparent',
               border: 'none',
               color: 'rgba(196,169,255,0.5)',
-              cursor: 'pointer',
+              cursor: locked ? 'not-allowed' : 'pointer',
+              opacity: locked ? 0.4 : 1,
               padding: '4px',
             }}
           >
@@ -183,7 +190,12 @@ export default function ImportNotebookDialog({
             <OneNoteTab notebookId={notebookId} onImported={onImported} onClose={onClose} />
           )}
           {activeTab === 'pdf' && (
-            <PdfTab notebookId={notebookId} onImported={onImported} onClose={onClose} />
+            <PdfImportTab
+              notebookId={notebookId}
+              onImported={onImported}
+              onClose={onClose}
+              onLockChange={setLocked}
+            />
           )}
         </div>
       </div>
@@ -733,355 +745,6 @@ function OneNoteTab({
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// PDF Tab
-// ═══════════════════════════════════════════════════════════════════
-
-/** pdfjs raises a `PasswordException` for encrypted PDFs. */
-function isPasswordError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  return /password/i.test(`${err.name} ${err.message}`);
-}
-
-function PdfTab({
-  notebookId,
-  onImported,
-  onClose,
-}: {
-  notebookId: string;
-  onImported: () => void;
-  onClose: () => void;
-}) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { upload } = useDirectUpload();
-
-  const [phase, setPhase] = useState<'idle' | 'rendering' | 'uploading' | 'starting'>('idle');
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [modalGeneration, setModalGeneration] = useState(0);
-  const [pendingFileName, setPendingFileName] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  // P6 — fast/rich engine selection. Per-import scope; default 'rich'.
-  const [mode, setMode] = useState<'rich' | 'fast'>('rich');
-
-  const busy = phase !== 'idle';
-
-  const ensureSectionId = useCallback(async (): Promise<string> => {
-    const res = await fetch(`/api/notebooks/${notebookId}/sections`);
-    const json = await res.json();
-    if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
-      return json.data[0].id as string;
-    }
-    const created = await fetch(`/api/notebooks/${notebookId}/sections`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Imports' }),
-    });
-    const createdJson = await created.json();
-    if (!createdJson?.success || !createdJson?.data?.id) {
-      throw new Error('Could not create a section for the imported PDF');
-    }
-    return createdJson.data.id as string;
-  }, [notebookId]);
-
-  // Mirrors the structured pipeline: render the PDF to page PNGs, upload the
-  // raw PDF + PNGs to temp-imports/, then start a server-side import job.
-  // PdfImportProgressModal tracks that job over SSE and builds ONE editable
-  // page — headings, tables, callouts, figures — not flat screenshots.
-  const handleFile = useCallback(
-    async (file: File) => {
-      const validationError = validateFile(file, 'pdf-import');
-      if (validationError) {
-        setErrorMessage(validationError);
-        return;
-      }
-      setErrorMessage('');
-      setPendingFileName(file.name);
-      setPhase('rendering');
-      setProgress(null);
-
-      try {
-        const sectionId = await ensureSectionId();
-
-        let pages: RenderedPdfPage[];
-        try {
-          pages = await renderPdfToPngs(file, {
-            onProgress: ({ current, total }) => setProgress({ current, total }),
-          });
-        } catch (err) {
-          throw new Error(
-            isPasswordError(err)
-              ? 'This PDF is password-protected. Remove the password and try again.'
-              : 'We couldn’t read this PDF — it may be damaged or in an unsupported format.'
-          );
-        }
-        if (pages.length === 0) {
-          throw new Error('We couldn’t find any pages in this PDF.');
-        }
-
-        setPhase('uploading');
-        const totalUploads = pages.length + 1;
-        setProgress({ current: 0, total: totalUploads });
-
-        const { storagePath: pdfPath } = await upload(file, 'pdf-import', { notebookId });
-        setProgress({ current: 1, total: totalUploads });
-
-        const pageImagePaths: string[] = [];
-        for (let i = 0; i < pages.length; i += 1) {
-          const page = pages[i];
-          const pngFile = new File([page.blob], `page-${page.pageNumber}.png`, {
-            type: 'image/png',
-          });
-          const { storagePath } = await upload(pngFile, 'pdf-import', { notebookId });
-          pageImagePaths.push(storagePath);
-          setProgress({ current: i + 2, total: totalUploads });
-        }
-
-        setPhase('starting');
-        const res = await fetch(`/api/notebooks/${notebookId}/pdf-import`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sectionId,
-            fileName: file.name,
-            pdfPath,
-            pageImagePaths,
-            mode,
-          }),
-        });
-        const json = (await res.json().catch(() => null)) as {
-          success?: boolean;
-          error?: string;
-          data?: { jobId?: string };
-        } | null;
-        if (!res.ok || !json?.success || !json.data?.jobId) {
-          throw new Error(json?.error ?? 'We couldn’t start the import. Please try again.');
-        }
-
-        setJobId(json.data.jobId);
-        setModalGeneration(0);
-      } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : 'Import failed. Please try again.');
-      } finally {
-        setPhase('idle');
-        setProgress(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    },
-    [notebookId, upload, ensureSectionId, mode]
-  );
-
-  const buttonLabel =
-    phase === 'rendering'
-      ? progress
-        ? `Rendering page ${progress.current} / ${progress.total}`
-        : 'Rendering PDF…'
-      : phase === 'uploading'
-        ? progress
-          ? `Uploading ${progress.current} / ${progress.total}`
-          : 'Uploading…'
-        : 'Starting import…';
-
-  return (
-    <div style={{ padding: '8px 0' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '16px',
-        }}
-      >
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(140,82,255,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: '#c4a9ff' }}
-            aria-hidden
-          >
-            upload_file
-          </span>
-        </div>
-        <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--on-surface)', margin: 0 }}>
-            Import PDF
-          </p>
-        </div>
-      </div>
-
-      <p
-        style={{
-          fontSize: '12px',
-          color: 'var(--ink-40)',
-          margin: '0 0 14px',
-          lineHeight: 1.5,
-        }}
-      >
-        {ONENOTE_IMPORT_ENABLED
-          ? 'Coming from GoodNotes or Apple Notes? Export your notes as PDF, then import the file here.'
-          : 'Coming from GoodNotes, Apple Notes, or OneNote? Export your notes as PDF, then import the file here.'}
-      </p>
-
-      {/*
-        P6 — fast-mode toggle. Default off; turning it on routes digital pages
-        through the text-layer engine for $0/page (figures + callouts drop;
-        headings, lists, tables preserved). Scanned pages fall back to the
-        vision engine server-side. Disabled once a job is in-flight to keep
-        the user's choice locked for the active import.
-      */}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={mode === 'fast'}
-        onClick={() => setMode(mode === 'fast' ? 'rich' : 'fast')}
-        disabled={busy || !!jobId}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          width: '100%',
-          padding: '10px 12px',
-          marginBottom: '10px',
-          borderRadius: '10px',
-          border: `1px solid ${mode === 'fast' ? 'rgba(174,137,255,0.5)' : 'rgba(174,137,255,0.20)'}`,
-          background: mode === 'fast' ? 'rgba(174,137,255,0.12)' : 'rgba(140,82,255,0.06)',
-          color: 'var(--on-surface)',
-          textAlign: 'left',
-          fontFamily: 'inherit',
-          cursor: busy || !!jobId ? 'not-allowed' : 'pointer',
-          opacity: busy || !!jobId ? 0.6 : 1,
-          transition: 'border-color 0.2s ease, background 0.2s ease',
-        }}
-      >
-        <span
-          className="material-symbols-outlined"
-          aria-hidden="true"
-          style={{
-            fontSize: '18px',
-            color: mode === 'fast' ? '#c4a9ff' : 'rgba(196,169,255,0.6)',
-            flexShrink: 0,
-          }}
-        >
-          bolt
-        </span>
-        <span
-          style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}
-        >
-          <span style={{ fontSize: '12.5px', fontWeight: 600 }}>Fast mode (only text)</span>
-        </span>
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'relative',
-            width: '30px',
-            height: '18px',
-            borderRadius: '999px',
-            background: mode === 'fast' ? '#8c52ff' : 'rgba(196,169,255,0.18)',
-            flexShrink: 0,
-            transition: 'background 0.2s ease',
-          }}
-        >
-          <span
-            style={{
-              position: 'absolute',
-              top: '2px',
-              left: '2px',
-              width: '14px',
-              height: '14px',
-              borderRadius: '999px',
-              background: 'var(--on-surface)',
-              transform: mode === 'fast' ? 'translateX(12px)' : 'translateX(0)',
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-          />
-        </span>
-      </button>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,application/pdf"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFile(file);
-        }}
-      />
-
-      <button
-        onClick={() => !busy && !jobId && fileInputRef.current?.click()}
-        disabled={busy}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          width: '100%',
-          marginTop: '4px',
-          padding: '12px',
-          borderRadius: '10px',
-          border: 'none',
-          cursor: busy ? 'progress' : 'pointer',
-          fontFamily: 'inherit',
-          fontSize: '14px',
-          fontWeight: 600,
-          background: 'rgba(140,82,255,0.8)',
-          color: 'var(--on-surface)',
-          opacity: busy ? 0.7 : 1,
-          transition: 'opacity 0.15s ease',
-        }}
-      >
-        {busy ? (
-          <>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 16, animation: 'spin 1s linear infinite' }}
-              aria-hidden
-            >
-              progress_activity
-            </span>
-            {buttonLabel}
-          </>
-        ) : (
-          <>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-              upload_file
-            </span>{' '}
-            Choose PDF file
-          </>
-        )}
-      </button>
-
-      {errorMessage && (
-        <p style={{ fontSize: '12px', color: 'var(--error)', margin: '8px 0 0', textAlign: 'center' }}>
-          {errorMessage}
-        </p>
-      )}
-
-      {jobId && (
-        <PdfImportProgressModal
-          key={`${jobId}:${modalGeneration}`}
-          notebookId={notebookId}
-          jobId={jobId}
-          fileName={pendingFileName}
-          onClose={onClose}
-          onRetried={() => setModalGeneration((g) => g + 1)}
-          onImported={onImported}
-        />
-      )}
     </div>
   );
 }

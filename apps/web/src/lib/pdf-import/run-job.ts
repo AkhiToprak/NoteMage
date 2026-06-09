@@ -410,7 +410,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     const page = await db.page.create({
       data: {
         sectionId,
-        title: deriveTitle(job.fileName),
+        title: job.pageTitle?.trim() || deriveTitle(job.fileName),
         pageType: 'text',
         content: EMPTY_DOC as unknown as Prisma.InputJsonValue,
         sortOrder: (sortAgg._max.sortOrder ?? -1) + 1,

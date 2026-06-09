@@ -36,6 +36,8 @@ type Params = { params: Promise<{ id: string }> };
 const MAX_PAGE_IMAGES = 1000;
 /** Trim the stored file name so a long upload name cannot bloat the row. */
 const MAX_FILE_NAME = 255;
+/** Matches the Section/Page title bound enforced elsewhere. */
+const MAX_PAGE_TITLE = 200;
 
 interface PdfImportBody {
   sectionId?: unknown;
@@ -44,6 +46,9 @@ interface PdfImportBody {
   pageImagePaths?: unknown;
   /** "rich" (default, vision engine) | "fast" (text-layer engine, P5 opt-in). */
   mode?: unknown;
+  /** Optional user-chosen title for the created page; the worker falls back
+   *  to deriving one from fileName when absent. */
+  pageTitle?: unknown;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -152,6 +157,12 @@ export async function POST(request: NextRequest, { params }: Params) {
       typeof body.fileName === 'string' ? body.fileName.trim().slice(0, MAX_FILE_NAME) : '';
     if (!fileName) return badRequestResponse('fileName is required');
 
+    if (body.pageTitle !== undefined && typeof body.pageTitle !== 'string') {
+      return badRequestResponse('pageTitle must be a string');
+    }
+    const pageTitle =
+      typeof body.pageTitle === 'string' ? body.pageTitle.trim().slice(0, MAX_PAGE_TITLE) : '';
+
     const pdfPath = typeof body.pdfPath === 'string' ? body.pdfPath : '';
     // Scope to the caller's temp-import prefix (service-role client bypasses RLS).
     if (!pdfPath || !validateStoragePath(pdfPath, `temp-imports/${userId}/`)) {
@@ -199,6 +210,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         fileName,
         engine: selectedEngine.name,
         mode,
+        pageTitle: pageTitle || null,
         pageCap,
         status: 'queued',
         pdfPath,
