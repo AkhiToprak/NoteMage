@@ -363,14 +363,15 @@
 .root :global(.pl-magic-burst) { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 .root :global(.pl-magic-spark) {
   position: absolute; will-change: transform, opacity;
-  animation: plMagicSpark 1s var(--ease) forwards;
+  animation: plMagicSpark 3s var(--ease) forwards;
 }
 .root :global(.pl-magic-spark) :global(.material-symbols-outlined) { font-size: var(--sz, 18px); display: block; }
 @keyframes plMagicNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
 @keyframes plMagicSpark {
   0%   { opacity: 0; transform: scale(0.2) rotate(0deg); }
-  22%  { opacity: 1; transform: scale(1.12) rotate(calc(var(--rot) * 0.4)); }
-  100% { opacity: 0; transform: translateY(var(--drift, -24px)) scale(0.55) rotate(var(--rot)); }
+  10%  { opacity: 1; transform: scale(1.12) rotate(calc(var(--rot) * 0.25)); }
+  65%  { opacity: 0.9; transform: translateY(calc(var(--drift, -24px) * 0.6)) scale(1) rotate(calc(var(--rot) * 0.7)); }
+  100% { opacity: 0; transform: translateY(var(--drift, -24px)) scale(0.6) rotate(var(--rot)); }
 }
 
 /* ─────────────────────────  PATH  ───────────────────────── */

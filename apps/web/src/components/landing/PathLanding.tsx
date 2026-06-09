@@ -481,7 +481,7 @@ export default function PathLanding() {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const band = Math.min(vw * 0.22, 260); // side band width — keep the center clear
-      const COUNT = 30;
+      const COUNT = 8;
       for (let i = 0; i < COUNT; i++) {
         const spark = document.createElement('span');
         spark.className = 'pl-magic-spark';
@@ -497,11 +497,11 @@ export default function PathLanding() {
         spark.style.setProperty('--sz', `${(14 + Math.random() * 18).toFixed(0)}px`);
         spark.style.setProperty('--drift', `${(-12 - Math.random() * 40).toFixed(0)}px`);
         spark.style.color = i % 3 === 0 ? 'var(--primary)' : 'var(--gold)';
-        spark.style.animationDelay = `${Math.floor(Math.random() * 160)}ms`;
+        spark.style.animationDelay = `${Math.floor(Math.random() * 300)}ms`;
         layer.appendChild(spark);
       }
       host.appendChild(layer);
-      window.setTimeout(() => layer.remove(), 1250); // 1s anim + max stagger, then clean up
+      window.setTimeout(() => layer.remove(), 3400); // 3s anim + max stagger, then clean up
     }
     const startNode = host?.querySelector('.pl-node-wrap[data-cp="0"]');
     startNode?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
