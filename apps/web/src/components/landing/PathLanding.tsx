@@ -108,6 +108,11 @@ const SLIDES: Slide[] = [
     title: 'Mage Chat',
     label: 'See how Mage Chat answers questions about your notes',
   },
+  {
+    video: '/videos/notemage-inline-edits-16x9.mp4',
+    title: 'Inline Edits',
+    label: 'See how NoteMage edits your notes inline',
+  },
 ];
 const SLOTS = ['left', 'center', 'right'];
 const CONN = ['M 80 6 C 80 40, 240 26, 240 58', 'M 240 6 C 240 40, 400 26, 400 58'];
