@@ -23,3 +23,6 @@ plans/
 .agents/
 .claude/skills/
 skills-lock.json
+
+# brand promo videos + render workspace (local-only, not product)
+brand_video/
