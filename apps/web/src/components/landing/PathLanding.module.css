@@ -227,6 +227,18 @@
   opacity: 0.42; transition: opacity 0.6s var(--ease);
 }
 .root :global(.pl-car-slide.pl-is-current) { opacity: 1; }
+/* intro-video slide — a framed 16:9 card, vertically centred so it sits balanced
+   inside the taller section slides the track stretches every cell to. */
+.root :global(.pl-car-video-frame) {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; min-height: 0; padding: 4px 0;
+}
+.root :global(.pl-car-video) {
+  width: 100%; aspect-ratio: 16 / 9; display: block;
+  object-fit: cover; background: var(--surface);
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34), 0 2px 8px rgba(0, 0, 0, 0.28);
+}
 .root :global(.pl-car-arrow) {
   position: absolute; top: 46%; transform: translateY(-50%);
   width: 40px; height: 40px; display: grid; place-items: center;

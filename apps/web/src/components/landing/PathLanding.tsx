@@ -87,8 +87,17 @@ const CP: Checkpoint[] = [
 const SEG_H = [240, 480, 480, 480, 480, 520, 320];
 
 /* ─────────  hero preview carousel data  ───────── */
-type Slide = { eyebrow: string; title: ReactNode; grade: string; desc: ReactNode; nodes: string[] };
+type SectionSlide = { eyebrow: string; title: ReactNode; grade: string; desc: ReactNode; nodes: string[] };
+type VideoSlide = { video: string; poster: string; label: string };
+type Slide = SectionSlide | VideoSlide;
 const SLIDES: Slide[] = [
+  {
+    // Intro explainer — the first object in the carousel. Source of truth lives
+    // in brand_assets/videos/; this served copy is in apps/web/public/videos/.
+    video: '/videos/learning_path_landing_video.mp4',
+    poster: '/videos/learning_path_landing_video.jpg',
+    label: 'See how NoteMage turns your material into a guided learning path',
+  },
   {
     eyebrow: 'Section 1', title: 'Section 1: How Python Works', grade: 'C',
     desc: 'Understand what Python is, how it runs code, and the mental model behind it…',
@@ -130,35 +139,57 @@ function CarouselSlide({ s, idx, total, clone }: { s: Slide; idx: number; total:
       aria-label={`${idx + 1} of ${total}`}
       {...(clone ? { 'data-clone': '', 'aria-hidden': true } : {})}
     >
-      <div className="pl-mini-banner">
-        <div className="pl-mb-text">
-          <div className="pl-mb-eyebrow">{s.eyebrow}</div>
-          <div className="pl-mb-title">{s.title}</div>
-          <div className="pl-mb-desc">{s.desc}</div>
+      {'video' in s ? (
+        <div className="pl-car-video-frame">
+          {clone ? (
+            /* decorative right-edge peek — a still poster, never a second decoding <video> */
+            <img className="pl-car-video" src={s.poster} alt="" decoding="async" />
+          ) : (
+            <video
+              className="pl-car-video"
+              src={s.video}
+              poster={s.poster}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label={s.label}
+            />
+          )}
         </div>
-        <span className="pl-grade-pill"><strong>{s.grade}</strong> AVG</span>
-        <span className="pl-mb-icon-btn"><span className="material-symbols-outlined">menu_book</span></span>
-      </div>
-      <div className="pl-mini-path">
-        {s.nodes.map((label, i) => (
-          <Fragment key={i}>
-            <div className="pl-mini-row">
-              <div className={`pl-mini-slot pl-${SLOTS[i]}`}>
-                <div className="pl-mini-node">
-                  <span className="material-symbols-outlined">menu_book</span>
-                  <span className="pl-mini-check"><span className="material-symbols-outlined">check</span></span>
-                </div>
-                <div className="pl-mini-label">{label}</div>
-              </div>
+      ) : (
+        <>
+          <div className="pl-mini-banner">
+            <div className="pl-mb-text">
+              <div className="pl-mb-eyebrow">{s.eyebrow}</div>
+              <div className="pl-mb-title">{s.title}</div>
+              <div className="pl-mb-desc">{s.desc}</div>
             </div>
-            {i < s.nodes.length - 1 && (
-              <svg className="pl-mini-conn" viewBox="0 0 480 64" preserveAspectRatio="none" aria-hidden>
-                <path d={CONN[i]} stroke="var(--node)" strokeWidth="5" fill="none" strokeLinecap="round" />
-              </svg>
-            )}
-          </Fragment>
-        ))}
-      </div>
+            <span className="pl-grade-pill"><strong>{s.grade}</strong> AVG</span>
+            <span className="pl-mb-icon-btn"><span className="material-symbols-outlined">menu_book</span></span>
+          </div>
+          <div className="pl-mini-path">
+            {s.nodes.map((label, i) => (
+              <Fragment key={i}>
+                <div className="pl-mini-row">
+                  <div className={`pl-mini-slot pl-${SLOTS[i]}`}>
+                    <div className="pl-mini-node">
+                      <span className="material-symbols-outlined">menu_book</span>
+                      <span className="pl-mini-check"><span className="material-symbols-outlined">check</span></span>
+                    </div>
+                    <div className="pl-mini-label">{label}</div>
+                  </div>
+                </div>
+                {i < s.nodes.length - 1 && (
+                  <svg className="pl-mini-conn" viewBox="0 0 480 64" preserveAspectRatio="none" aria-hidden>
+                    <path d={CONN[i]} stroke="var(--node)" strokeWidth="5" fill="none" strokeLinecap="round" />
+                  </svg>
+                )}
+              </Fragment>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -465,6 +496,10 @@ export default function PathLanding() {
     const cells = Array.from(track.children) as HTMLElement[]; // N + 2 (clones at both ends)
     const dots = Array.from(dotsWrap.children) as HTMLElement[];
     const reduce = prefersReducedMotion();
+    // intro-video slide (cells[1]); the clone peek is a still <img>, so this
+    // matches only the one live <video>. Playback is JS-gated so reduced-motion
+    // users get a static poster (no autoplay attribute on the element).
+    const video = track.querySelector<HTMLVideoElement>('video.pl-car-video');
     let cur = 1; // cells[1] = first real slide
     let timer: ReturnType<typeof setInterval> | null = null;
     let userPaused = false; // explicit pause via the play/pause control
@@ -557,8 +592,13 @@ export default function PathLanding() {
     };
     const onPlayPause = () => {
       userPaused = !userPaused;
-      if (userPaused) stop();
-      else start();
+      if (userPaused) {
+        stop();
+        video?.pause();
+      } else {
+        start();
+        void video?.play().catch(() => {});
+      }
       syncPlayPause();
     };
     playPauseBtn?.addEventListener('click', onPlayPause);
@@ -593,6 +633,7 @@ export default function PathLanding() {
       rt = setTimeout(() => paint(false), 120);
     };
     window.addEventListener('resize', onResize);
+    if (!reduce) void video?.play().catch(() => {});
     start();
 
     return () => {
@@ -639,7 +680,7 @@ export default function PathLanding() {
 
         <section className="pl-hero-stage">
           <div className="pl-hero-card">
-            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="Example learning sections">
+            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="Intro video and example learning sections">
               <div className="pl-car-viewport">
                 <div className="pl-car-track" ref={carTrackRef}>
                   <CarouselSlide s={SLIDES[N - 1]} idx={N - 1} total={N} clone />
@@ -657,8 +698,14 @@ export default function PathLanding() {
               </button>
               <div className="pl-car-controls">
                 <div className="pl-car-dots" ref={dotsRef} role="group" aria-label="Choose a section">
-                  {SLIDES.map((_, i) => (
-                    <button key={i} className="pl-car-dot" type="button" aria-label={`Go to section ${i + 1}`} data-i={i} />
+                  {SLIDES.map((s, i) => (
+                    <button
+                      key={i}
+                      className="pl-car-dot"
+                      type="button"
+                      aria-label={'video' in s ? 'Go to intro video' : `Go to section ${i}`}
+                      data-i={i}
+                    />
                   ))}
                 </div>
                 <button className="pl-car-playpause" type="button" aria-label="Pause section autoplay">
