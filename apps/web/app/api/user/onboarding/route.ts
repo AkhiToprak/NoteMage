@@ -18,10 +18,18 @@ export async function PUT(request: NextRequest) {
     // Prevent replay — onboarding can only be completed once
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { onboardingComplete: true },
+      select: { onboardingComplete: true, birthDate: true },
     });
     if (user?.onboardingComplete) {
       return badRequestResponse('Onboarding already completed');
+    }
+
+    // Age-gate backstop: the 13+ check lives in /api/user/birth-date, which the
+    // wizard always calls before this finale. A scripted client could otherwise
+    // PUT here directly and finish onboarding with birthDate=null, never having
+    // asserted it's 13+. Refuse to complete onboarding until DOB is on record.
+    if (!user?.birthDate) {
+      return badRequestResponse('Date of birth is required before completing onboarding');
     }
 
     const body = await request.json().catch(() => ({}));

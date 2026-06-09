@@ -17,6 +17,7 @@ Vollständige Angaben zum Anbieter finden Sie in unserem [Impressum](/legal).
 ## Welche Daten wir erheben
 
 - **Kontodaten** – Ihre E-Mail-Adresse und Ihren Namen sowie eine Kennung Ihres Login-Anbieters, wenn Sie sich mit Google anmelden.
+- **Geburtsdatum** – um zu überprüfen, dass Sie unser Mindestalter (13 Jahre) erfüllen. Wir speichern Ihr Geburtsdatum und das daraus abgeleitete Alter zu diesem Zweck.
 - **Ihre Inhalte** – die Notizen, Leinwand-Zeichnungen, Karteikarten, Quizze, Lernmaterialien und Dateien (z. B. PDFs), die Sie erstellen oder hochladen.
 - **Nutzungs- und technische Daten** – grundlegende Protokolle zur Nutzung des Dienstes sowie technische Angaben wie Geräte- und Browsertyp und IP-Adresse, die der Sicherheit und dem Betrieb des Dienstes dienen.
 - **Ungefährer Standort (für die Preisanzeige)** – um Preise in einer passenden Währung anzuzeigen, lesen wir Ihre IP-Adresse aus Ihrer Anfrage und gleichen sie mit einer lokalen MaxMind-GeoLite2-Datenbank (in unsere Website eingebunden) ab, um Ihr Land zu schätzen. Ihre IP-Adresse wird hierfür nur im Arbeitsspeicher für diese Anfrage verarbeitet; sie wird zu diesem Zweck **nicht** gespeichert oder protokolliert, und der Abgleich erfolgt auf unserem eigenen Server – er wird **nicht** an einen externen Geolokalisierungsdienst übermittelt. Wir nutzen das Ergebnis ausschliesslich, um die anzuzeigende Währung auszuwählen. Auf diese Weise angezeigte Preise sind ungefähre Schätzungen; der tatsächliche Preis und die Währungsumrechnung beim Bezahlvorgang werden von unserem Zahlungsdienstleister (unserem Merchant of Record) übernommen. Dieses Produkt enthält GeoLite2-Daten, die von MaxMind erstellt wurden und unter https://www.maxmind.com verfügbar sind.
@@ -32,6 +33,7 @@ Vollständige Angaben zum Anbieter finden Sie in unserem [Impressum](/legal).
 | KI-Lernmaterial aus Ihren Inhalten erzeugen | Vertragserfüllung |
 | Zahlungen abwickeln und Abonnements verwalten | Vertragserfüllung |
 | Den Dienst sicher halten und Missbrauch verhindern | Berechtigte Interessen |
+| Überprüfen, dass Sie unser Mindestalter erfüllen | Rechtliche Verpflichtung / Berechtigte Interessen |
 | Ihr Land aus Ihrer IP-Adresse schätzen, um Preise in einer passenden Währung anzuzeigen | Berechtigte Interessen |
 | Service- und Transaktions-E-Mails senden | Vertragserfüllung |
 | Produktanalyse | Ihre Einwilligung |

@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // Parse JSON body with storage path
     const { storagePath } = await request.json();
-    if (!storagePath || !validateStoragePath(storagePath, 'temp-imports/')) {
+    if (!storagePath || !validateStoragePath(storagePath, `temp-imports/${userId}/`)) {
       return badRequestResponse('Invalid or missing storagePath');
     }
 

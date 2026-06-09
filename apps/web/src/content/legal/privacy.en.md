@@ -17,6 +17,7 @@ For full provider details, see our [Legal Notice](/legal).
 ## What data we collect
 
 - **Account data** — your email address and name, and an identifier from your sign-in provider if you log in with Google.
+- **Date of birth** — to verify you meet our minimum age requirement (13+). We store your date of birth and the age derived from it for this purpose.
 - **Your content** — the notes, canvas drawings, flashcards, quizzes, study material, and files (such as PDFs) you create or upload.
 - **Usage and technical data** — basic logs about how the Service is used, plus technical information such as device and browser type and IP address, used for security and to keep the Service working.
 - **Approximate location (for pricing)** — to show prices in a relevant currency, we read your IP address from your request and look it up against a local MaxMind GeoLite2 database (bundled with our website) to estimate your country. Your IP is processed only in memory for that request to make this estimate; it is **not** stored or logged for this purpose, and the lookup runs on our own server — it is **not** sent to any third-party geolocation service. We use the result only to choose which currency to display. Prices shown this way are approximate estimates; the actual price and currency conversion at checkout are handled by our payment provider (our Merchant of Record). This product includes GeoLite2 data created by MaxMind, available from https://www.maxmind.com.
@@ -32,6 +33,7 @@ For full provider details, see our [Legal Notice](/legal).
 | Generate AI study material from your content | Performance of a contract |
 | Process payments and manage subscriptions | Performance of a contract |
 | Keep the Service secure and prevent abuse | Legitimate interests |
+| Verify you meet our minimum age requirement | Legal obligation / Legitimate interests |
 | Estimate your country from your IP to show prices in a relevant currency | Legitimate interests |
 | Send service and transactional emails | Performance of a contract |
 | Product analytics | Your consent |
