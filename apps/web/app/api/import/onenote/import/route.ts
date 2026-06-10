@@ -1,263 +1,119 @@
 import { NextRequest } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { Client } from '@microsoft/microsoft-graph-client';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getValidAccessToken } from '@/lib/microsoftAuth';
-import { onenoteHtmlToTipTapJSON, onenoteHtmlToPlainText } from '@/lib/onenoteConverter';
-import { saveImage } from '@/lib/storage';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { runOneNoteImportJob, MAX_ONENOTE_PAGES } from '@/lib/onenote-import/run-job';
 import {
-  successResponse,
+  createdResponse,
   badRequestResponse,
   unauthorizedResponse,
   notFoundResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 
+// Phase 4 of the OneNote-import plan — the queue-and-fire trigger route.
+//
+// This replaces the old synchronous importer, which ran the whole
+// section/page/image walk inside the request and timed out on large
+// notebooks. Modeled on `POST /api/notebooks/[id]/pdf-import`: it persists a
+// `queued` ImportJob and fires `runOneNoteImportJob` as a detached promise, so
+// the request returns at once and the client watches the neutral SSE
+// `/api/import/jobs/[jobId]/progress` route (Phase 3). All the real work — the
+// HTML→Tiptap converter, the SSRF-guarded image download, the image-URL fix,
+// Graph pagination, and the hard page cap — now lives in the worker.
+//
+// Access is free (no AI cost), so the only guards here are an anti-abuse rate
+// limit and the worker's hard page cap; nothing is metered.
+
+/** Cap on sections accepted in one import — far above any real selection. */
+const MAX_ONENOTE_SECTIONS = 50;
+
+interface OneNoteImportBody {
+  targetNotebookId?: unknown;
+  sectionIds?: unknown;
+}
+
 /**
- * POST – import OneNote sections into a Notemage notebook
- * Body: { targetNotebookId: string, sectionIds: string[] }
+ * POST — queue a OneNote import and kick off the background worker.
+ * Body: `{ targetNotebookId: string, sectionIds: string[] }`.
+ * Returns 201 `{ jobId }` immediately; progress streams over the SSE route.
  */
 export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const body = await request.json().catch(() => ({}));
-    const { targetNotebookId, sectionIds } = body as {
-      targetNotebookId?: string;
-      sectionIds?: string[];
-    };
-
-    if (!targetNotebookId || !sectionIds || !Array.isArray(sectionIds) || sectionIds.length === 0) {
-      return badRequestResponse('targetNotebookId and sectionIds are required');
+    // Abuse guard first — bounds how often a user can spawn import workers and
+    // shields the Microsoft token endpoint (hit below) from a request flood.
+    const limit = await rateLimit(rateLimitKey('onenote-import', request, userId), 5, 60_000);
+    if (!limit.success) {
+      return tooManyRequestsResponse(
+        'Too many import requests. Please wait a moment and try again.',
+        limit.retryAfterMs,
+      );
     }
 
-    // Verify Notemage notebook ownership
+    const body = (await request.json().catch(() => ({}))) as OneNoteImportBody;
+
+    const targetNotebookId =
+      typeof body.targetNotebookId === 'string' ? body.targetNotebookId : '';
+    if (!targetNotebookId) return badRequestResponse('targetNotebookId is required');
+
+    // Dedupe + drop non-string ids: a duplicate section id would otherwise be
+    // imported twice (two NoteMage sections), so collapse them up front.
+    const rawSectionIds = Array.isArray(body.sectionIds) ? body.sectionIds : [];
+    const sectionIds = [
+      ...new Set(rawSectionIds.filter((s): s is string => typeof s === 'string' && s.length > 0)),
+    ];
+    if (sectionIds.length === 0) return badRequestResponse('sectionIds is required');
+    if (sectionIds.length > MAX_ONENOTE_SECTIONS) {
+      return badRequestResponse('Too many sections selected for a single import.');
+    }
+
+    // Notebook ownership — a cheap DB check before the network round-trip below.
     const notebook = await db.notebook.findFirst({
       where: { id: targetNotebookId, userId },
+      select: { id: true },
     });
     if (!notebook) return notFoundResponse('Notebook not found');
 
-    let accessToken: string;
+    // Fail fast on a missing/expired Microsoft connection rather than queueing
+    // a job the worker would only immediately fail. `getValidAccessToken`
+    // returns user-facing messages ("Please reconnect…"); the worker re-checks.
     try {
-      accessToken = await getValidAccessToken(userId);
+      await getValidAccessToken(userId);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Not connected';
+      const message = err instanceof Error ? err.message : 'Not connected to Microsoft.';
       return badRequestResponse(message);
     }
 
-    const client = Client.init({
-      authProvider: (done) => done(null, accessToken),
+    // `pageCap` is the anti-abuse backstop (access is free, so there's no usage
+    // budget); the worker re-clamps it to MAX_ONENOTE_PAGES defensively.
+    const job = await db.importJob.create({
+      data: {
+        notebookId: targetNotebookId,
+        userId,
+        sourceFormat: 'onenote',
+        fileName: 'OneNote import',
+        engine: 'onenote-html',
+        pageCap: MAX_ONENOTE_PAGES,
+        status: 'queued',
+        oneNoteSectionIds: sectionIds as unknown as Prisma.InputJsonValue,
+      },
     });
 
-    let sectionsImported = 0;
-    let pagesImported = 0;
-    const errors: string[] = [];
-
-    // Get current max sort order for sections in the notebook
-    const maxSectionOrder = await db.section.aggregate({
-      where: { notebookId: targetNotebookId, parentId: null },
-      _max: { sortOrder: true },
+    // Fire-and-forget — `runOneNoteImportJob` never throws; the inner catch is
+    // only here for a synchronous scheduling failure.
+    void runOneNoteImportJob(job.id).catch((err) => {
+      console.error(`[onenote-import] worker crashed for job ${job.id}`, err);
     });
-    let sectionSortOrder = (maxSectionOrder._max.sortOrder ?? -1) + 1;
 
-    for (const onenoteSectionId of sectionIds) {
-      try {
-        // Fetch section details
-        const sectionInfo = await client
-          .api(`/me/onenote/sections/${onenoteSectionId}`)
-          .select('id,displayName')
-          .get();
-
-        // Create a Notemage section
-        const notemageSection = await db.section.create({
-          data: {
-            notebookId: targetNotebookId,
-            title: sectionInfo.displayName || 'Imported Section',
-            sortOrder: sectionSortOrder++,
-          },
-        });
-
-        // Fetch pages in this section
-        const pagesResponse = await client
-          .api(`/me/onenote/sections/${onenoteSectionId}/pages`)
-          .select('id,title,createdDateTime')
-          .orderby('createdDateTime')
-          .get();
-
-        const pages = pagesResponse.value || [];
-        let pageSortOrder = 0;
-
-        for (const onenotePage of pages) {
-          try {
-            // Fetch page content (HTML)
-            const pageContent: string = await client
-              .api(`/me/onenote/pages/${onenotePage.id}/content`)
-              .get();
-
-            // Create an image downloader that uses the Graph API access token
-            const imageDownloader = async (url: string): Promise<string | null> => {
-              try {
-                // Only download from Microsoft Graph API URLs
-                if (
-                  !url.startsWith('https://graph.microsoft.com/') &&
-                  !url.startsWith('https://www.onenote.com/')
-                ) {
-                  return null;
-                }
-                const imgResponse = await fetch(url, {
-                  headers: { Authorization: `Bearer ${accessToken}` },
-                });
-                if (!imgResponse.ok) return null;
-                const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
-                const contentType = imgResponse.headers.get('content-type') || 'image/png';
-                const ext =
-                  contentType.includes('jpeg') || contentType.includes('jpg')
-                    ? 'jpg'
-                    : contentType.includes('gif')
-                      ? 'gif'
-                      : contentType.includes('webp')
-                        ? 'webp'
-                        : 'png';
-                const fileName = `onenote-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-
-                // Save image — we'll create the page first, then use a placeholder pageId
-                // Actually, we need the page ID first. We'll create the page, then download images.
-                // For now, return the URL and we'll handle it after page creation.
-                return url; // placeholder — see below
-              } catch {
-                return null;
-              }
-            };
-
-            // Convert HTML to TipTap JSON (first pass without actual image downloads)
-            const content = await onenoteHtmlToTipTapJSON(pageContent);
-            const textContent = onenoteHtmlToPlainText(pageContent);
-
-            // Create the page
-            const page = await db.page.create({
-              data: {
-                sectionId: notemageSection.id,
-                title: onenotePage.title || 'Untitled',
-                content: content as unknown as Prisma.InputJsonValue,
-                textContent: textContent || '',
-                sortOrder: pageSortOrder++,
-              },
-            });
-
-            // Now download and save images, updating the page content
-            const imageUrls = extractImageUrls(pageContent);
-            if (imageUrls.length > 0) {
-              const imageMap = new Map<string, string>();
-
-              for (const imgUrl of imageUrls) {
-                try {
-                  if (
-                    !imgUrl.startsWith('https://graph.microsoft.com/') &&
-                    !imgUrl.startsWith('https://www.onenote.com/')
-                  ) {
-                    continue;
-                  }
-                  const imgResponse = await fetch(imgUrl, {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                    redirect: 'manual', // Prevent SSRF via redirect to internal URLs
-                    signal: AbortSignal.timeout(15_000), // 15s timeout per image
-                  });
-                  // Reject redirects — legitimate Graph API images don't redirect
-                  if (!imgResponse.ok || imgResponse.status >= 300) continue;
-
-                  // Check Content-Length before downloading body
-                  const contentLength = imgResponse.headers.get('content-length');
-                  if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) continue; // Skip >10MB
-
-                  const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
-                  if (imgBuffer.length > 10 * 1024 * 1024) continue; // Double-check actual size
-                  const contentType = imgResponse.headers.get('content-type') || 'image/png';
-                  const ext =
-                    contentType.includes('jpeg') || contentType.includes('jpg')
-                      ? 'jpg'
-                      : contentType.includes('gif')
-                        ? 'gif'
-                        : contentType.includes('webp')
-                          ? 'webp'
-                          : 'png';
-                  const fileName = `onenote-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-
-                  const { filePath } = await saveImage(page.id, fileName, imgBuffer);
-
-                  await db.pageImage.create({
-                    data: {
-                      pageId: page.id,
-                      fileName,
-                      filePath,
-                      fileSize: imgBuffer.length,
-                      mimeType: contentType,
-                    },
-                  });
-
-                  imageMap.set(imgUrl, `/api/images/${page.id}/${fileName}`);
-                } catch {
-                  // Skip failed images silently
-                }
-              }
-
-              // Re-convert with actual image paths if we downloaded any
-              if (imageMap.size > 0) {
-                const updatedContent = await onenoteHtmlToTipTapJSON(pageContent, async (url) => {
-                  return imageMap.get(url) || null;
-                });
-                await db.page.update({
-                  where: { id: page.id },
-                  data: { content: updatedContent as unknown as Prisma.InputJsonValue },
-                });
-              }
-            }
-
-            pagesImported++;
-          } catch (pageError) {
-            const pageTitle = onenotePage.title || onenotePage.id;
-            console.error(`[OneNote Import] Failed to import page "${pageTitle}":`, pageError);
-            errors.push(`Failed to import page "${pageTitle}"`);
-          }
-        }
-
-        sectionsImported++;
-      } catch (sectionError) {
-        console.error(
-          `[OneNote Import] Failed to import section ${onenoteSectionId}:`,
-          sectionError
-        );
-        errors.push(`Failed to import section ${onenoteSectionId}`);
-      }
-    }
-
-    return successResponse({
-      sectionsImported,
-      pagesImported,
-      errors,
-    });
+    return createdResponse({ jobId: job.id, status: job.status });
   } catch (error) {
-    console.error('[OneNote Import] Error:', error);
+    console.error('[onenote-import POST]', error);
     return internalErrorResponse();
   }
-}
-
-/**
- * Extract all image URLs from OneNote HTML.
- */
-function extractImageUrls(html: string): string[] {
-  const urls: string[] = [];
-  const regex = /(?:src|data-fullres-src)=["']([^"']+)["']/gi;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(html)) !== null) {
-    if (
-      match[1] &&
-      (match[1].startsWith('https://graph.microsoft.com/') ||
-        match[1].startsWith('https://www.onenote.com/'))
-    ) {
-      urls.push(match[1]);
-    }
-  }
-  return [...new Set(urls)];
 }

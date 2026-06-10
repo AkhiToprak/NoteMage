@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { acquireTokenByCode } from '@/lib/microsoftAuth';
+import { encryptToken } from '@/lib/microsoftTokenCrypto';
 import { db } from '@/lib/db';
 
 /**
@@ -32,19 +33,20 @@ export async function GET(request: NextRequest) {
   try {
     const result = await acquireTokenByCode(code, state);
 
-    // Upsert the Microsoft connection
+    // Upsert the Microsoft connection. Tokens are encrypted at rest — never
+    // store the plaintext access/refresh tokens returned by acquireTokenByCode.
     await db.microsoftConnection.upsert({
       where: { userId: result.userId },
       create: {
         userId: result.userId,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        accessToken: encryptToken(result.accessToken),
+        refreshToken: encryptToken(result.refreshToken),
         expiresAt: result.expiresAt,
         scope: result.scope,
       },
       update: {
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        accessToken: encryptToken(result.accessToken),
+        refreshToken: encryptToken(result.refreshToken),
         expiresAt: result.expiresAt,
         scope: result.scope,
       },
@@ -65,6 +67,13 @@ export async function GET(request: NextRequest) {
 }
 
 function buildCallbackHtml(type: 'success' | 'error', message: string): string {
+  // JSON.stringify does NOT neutralize a literal `</script>`, so harden the JSON
+  // before embedding it inside the inline <script> below — escape the characters
+  // that can break out of script context or the JS string (prevents reflected XSS).
+  const safeMessage = JSON.stringify(message)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
   return `<!DOCTYPE html>
 <html>
 <head><title>OneNote Connection</title></head>
@@ -75,7 +84,7 @@ function buildCallbackHtml(type: 'success' | 'error', message: string): string {
   </div>
   <script>
     if (window.opener) {
-      window.opener.postMessage({ type: 'onenote-auth-${type}', message: ${JSON.stringify(message)} }, window.location.origin);
+      window.opener.postMessage({ type: 'onenote-auth-${type}', message: ${safeMessage} }, window.location.origin);
     }
     setTimeout(() => window.close(), 1500);
   </script>

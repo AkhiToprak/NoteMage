@@ -7,6 +7,7 @@
 import * as cheerio from 'cheerio';
 import type { AnyNode, Element as DomElement, Text as DomText } from 'domhandler';
 import type { TipTapDoc, TipTapNode, TipTapTextNode, TipTapMark } from '@/lib/contentConverter';
+import { safeLinkHref } from '@/lib/contentConverter';
 
 type ImageDownloader = (url: string) => Promise<string | null>;
 
@@ -66,16 +67,16 @@ async function convertElement(
   const tagName = (el as DomElement).tagName?.toLowerCase();
   const $el = $(el);
 
-  // Headings → toggleHeading (matching contentConverter.ts pattern)
+  // Headings → standard heading nodes (level clamped to 1–3)
   const headingMatch = tagName.match(/^h([1-6])$/);
   if (headingMatch) {
-    const level = Math.min(parseInt(headingMatch[1], 10), 3);
-    const summaryText = $el.text().trim();
-    if (!summaryText) return null;
+    const level = Math.min(Math.max(parseInt(headingMatch[1], 10), 1), 3);
+    const headingText = $el.text().trim();
+    if (!headingText) return null;
     return {
-      type: 'toggleHeading',
-      attrs: { level, collapsed: false, summary: summaryText },
-      content: [{ type: 'paragraph' }],
+      type: 'heading',
+      attrs: { level },
+      content: [{ type: 'text', text: headingText }],
     };
   }
 
@@ -296,7 +297,7 @@ async function parseInlineContent(
       }
 
       case 'a': {
-        const href = $child.attr('href');
+        const href = safeLinkHref($child.attr('href'));
         const inner = await parseInlineContent($, $child, imageDownloader);
         if (href) {
           for (const node of inner) {
@@ -306,6 +307,7 @@ async function parseInlineContent(
             result.push(node);
           }
         } else {
+          // Missing or unsafe scheme (e.g. javascript:) — keep the text, drop the link.
           result.push(...inner);
         }
         break;

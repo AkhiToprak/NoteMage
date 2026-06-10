@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (!userId) return unauthorizedResponse();
 
     const quizSets = await db.quizSet.findMany({
-      where: { notebook: { userId } },
+      where: { userId },
       orderBy: { updatedAt: 'desc' },
       select: {
         id: true,
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         updatedAt: true,
         _count: { select: { questions: true } },
-        notebook: { select: { name: true, color: true } },
+        notebook: { select: { id: true, name: true, color: true, kind: true } },
       },
     });
 

@@ -31,14 +31,14 @@ interface ShareInfo {
 }
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container-low)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple: '#884efb',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
+  textPrimary: 'var(--on-surface)',
   textSecondary: '#aaa8c8',
   textMuted: '#8888a8',
   error: '#fd6f85',
@@ -409,7 +409,7 @@ export default function ShareNotebookModal({
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: `all 0.2s ${EASING}`,
+                transition: `border-color 0.2s ${EASING}, background 0.2s ${EASING}, color 0.2s ${EASING}`,
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
@@ -467,7 +467,7 @@ export default function ShareNotebookModal({
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: `all 0.2s ${EASING}`,
+                transition: `border-color 0.2s ${EASING}, background 0.2s ${EASING}, color 0.2s ${EASING}`,
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
@@ -631,7 +631,7 @@ export default function ShareNotebookModal({
                     borderRadius: '50%',
                     border: 'none',
                     background: 'rgba(0,0,0,0.6)',
-                    color: '#fff',
+                    color: 'var(--on-surface)',
                     fontSize: 12,
                     cursor: 'pointer',
                     display: 'flex',
@@ -673,7 +673,7 @@ export default function ShareNotebookModal({
               fontWeight: 500,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              transition: `all 0.2s ${EASING}`,
+              transition: `border-color 0.2s ${EASING}, color 0.2s ${EASING}`,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = COLORS.primary;
@@ -769,12 +769,12 @@ export default function ShareNotebookModal({
           borderRadius: 12,
           border: 'none',
           background: COLORS.primary,
-          color: '#fff',
+          color: 'var(--on-surface)',
           fontSize: 14,
           fontWeight: 700,
           cursor: isSharing ? 'wait' : 'pointer',
           opacity: isSharing ? 0.7 : 1,
-          transition: `all 0.2s ${EASING}`,
+          transition: `opacity 0.2s ${EASING}, transform 0.2s ${EASING}, box-shadow 0.2s ${EASING}`,
           transform: hoveredShareBtn && !isSharing ? 'translateY(-1px)' : 'none',
           boxShadow: hoveredShareBtn
             ? '0 8px 24px rgba(174,137,255,0.3)'
@@ -856,7 +856,7 @@ export default function ShareNotebookModal({
               fontWeight: 600,
               cursor: isUnsharing ? 'wait' : 'pointer',
               opacity: isUnsharing ? 0.7 : 1,
-              transition: `all 0.2s ${EASING}`,
+              transition: `background 0.2s ${EASING}, opacity 0.2s ${EASING}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -974,10 +974,10 @@ export default function ShareNotebookModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered
-                        ? 'rgba(255,255,255,0.07)'
+                        ? 'var(--ink-08)'
                         : 'transparent',
                     cursor: 'pointer',
-                    transition: `all 0.2s ${EASING}`,
+                    transition: `background 0.2s ${EASING}`,
                     width: '100%',
                     textAlign: 'left',
                   }}
@@ -994,13 +994,13 @@ export default function ShareNotebookModal({
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      transition: `all 0.2s ${EASING}`,
+                      transition: `border-color 0.2s ${EASING}, background 0.2s ${EASING}`,
                     }}
                   >
                     {isSelected && (
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}
+                        style={{ fontSize: 14, color: 'var(--on-surface)', fontWeight: 700 }}
                       >
                         check
                       </span>
@@ -1092,13 +1092,13 @@ export default function ShareNotebookModal({
               borderRadius: 12,
               border: 'none',
               background: selectedFriendIds.size === 0 ? COLORS.elevated : COLORS.primary,
-              color: selectedFriendIds.size === 0 ? COLORS.textMuted : '#fff',
+              color: selectedFriendIds.size === 0 ? COLORS.textMuted : 'var(--on-surface)',
               fontSize: 14,
               fontWeight: 700,
               cursor:
                 selectedFriendIds.size === 0 || isSendingToFriends ? 'not-allowed' : 'pointer',
               opacity: isSendingToFriends ? 0.7 : 1,
-              transition: `all 0.2s ${EASING}`,
+              transition: `background 0.2s ${EASING}, color 0.2s ${EASING}, opacity 0.2s ${EASING}, transform 0.2s ${EASING}, box-shadow 0.2s ${EASING}`,
               transform:
                 hoveredSendBtn && selectedFriendIds.size > 0 && !isSendingToFriends
                   ? 'translateY(-1px)'
@@ -1194,11 +1194,15 @@ export default function ShareNotebookModal({
                   : hoveredCopyBtn
                     ? COLORS.primary
                     : COLORS.elevated,
-                color: copied ? '#fff' : hoveredCopyBtn ? '#fff' : COLORS.textPrimary,
+                color: copied
+                  ? 'var(--on-surface)'
+                  : hoveredCopyBtn
+                    ? 'var(--on-surface)'
+                    : COLORS.textPrimary,
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: `all 0.2s ${EASING}`,
+                transition: `background 0.2s ${EASING}, color 0.2s ${EASING}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
@@ -1338,7 +1342,7 @@ export default function ShareNotebookModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transition: `all 0.2s ${EASING}`,
+                  transition: `background 0.2s ${EASING}, color 0.2s ${EASING}`,
                   flexShrink: 0,
                   marginLeft: 12,
                 }}
@@ -1390,7 +1394,7 @@ export default function ShareNotebookModal({
                     fontSize: isPhone ? 12 : 13,
                     fontWeight: isActive ? 600 : 500,
                     cursor: 'pointer',
-                    transition: `all 0.2s ${EASING}`,
+                    transition: `border-color 0.2s ${EASING}, color 0.2s ${EASING}`,
                     marginBottom: -1,
                   }}
                 >

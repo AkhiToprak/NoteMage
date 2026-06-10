@@ -140,7 +140,7 @@ export default function CoWorkInviteModal({
           height: isPhone ? '100dvh' : undefined,
           maxWidth: isPhone ? 'none' : 440,
           maxHeight: isPhone ? 'none' : undefined,
-          background: '#21213e',
+          background: 'var(--surface-container-low)',
           borderRadius: isPhone ? 0 : 24,
           boxShadow: isPhone ? 'none' : '0 32px 64px rgba(0,0,0,0.5)',
           zIndex: 10000,
@@ -178,7 +178,7 @@ export default function CoWorkInviteModal({
                 margin: 0,
                 fontSize: 18,
                 fontWeight: 700,
-                color: '#e5e3ff',
+                color: 'var(--on-surface)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
@@ -186,13 +186,13 @@ export default function CoWorkInviteModal({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 22, color: '#ae89ff' }}
+                style={{ fontSize: 22, color: 'var(--accent-strong)' }}
               >
                 group_work
               </span>
               Invite Friends
             </h2>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: '#aaa8c8' }}>
+            <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--on-surface-variant)' }}>
               Select friends to invite to this co-work session
             </p>
           </div>
@@ -205,13 +205,13 @@ export default function CoWorkInviteModal({
               height: 32,
               borderRadius: 10,
               border: 'none',
-              background: hoveredClose ? '#2d2d52' : 'transparent',
-              color: '#8888a8',
+              background: hoveredClose ? 'var(--surface-container-high)' : 'transparent',
+              color: 'var(--outline)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               flexShrink: 0,
             }}
           >
@@ -235,7 +235,7 @@ export default function CoWorkInviteModal({
               style={{
                 padding: '40px 0',
                 textAlign: 'center',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 fontSize: 13,
               }}
             >
@@ -251,7 +251,7 @@ export default function CoWorkInviteModal({
               style={{
                 padding: '40px 0',
                 textAlign: 'center',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 fontSize: 13,
               }}
             >
@@ -278,7 +278,7 @@ export default function CoWorkInviteModal({
                     background: isSelected
                       ? 'rgba(174,137,255,0.08)'
                       : isHovered && !isSent
-                        ? 'rgba(255,255,255,0.07)'
+                        ? 'var(--ink-08)'
                         : 'transparent',
                     transition: `background 0.12s ${EASING}`,
                     marginBottom: 2,
@@ -304,13 +304,13 @@ export default function CoWorkInviteModal({
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      transition: `all 0.15s ${EASING}`,
+                      transition: `border-color 0.15s ${EASING}, background 0.15s ${EASING}`,
                     }}
                   >
                     {isSelected && (
                       <span
                         className="material-symbols-outlined"
-                        style={{ fontSize: 14, color: '#fff' }}
+                        style={{ fontSize: 14, color: 'var(--on-surface)' }}
                       >
                         check
                       </span>
@@ -350,7 +350,7 @@ export default function CoWorkInviteModal({
                         justifyContent: 'center',
                         fontSize: 14,
                         fontWeight: 700,
-                        color: '#fff',
+                        color: 'var(--on-surface)',
                         flexShrink: 0,
                       }}
                     >
@@ -364,7 +364,7 @@ export default function CoWorkInviteModal({
                       flex: 1,
                       fontSize: 14,
                       fontWeight: 600,
-                      color: isSent ? '#8888a8' : '#e5e3ff',
+                      color: isSent ? '#8888a8' : 'var(--on-surface)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -392,7 +392,7 @@ export default function CoWorkInviteModal({
             justifyContent: 'space-between',
           }}
         >
-          <span style={{ fontSize: 12, color: '#8888a8' }}>
+          <span style={{ fontSize: 12, color: 'var(--outline)' }}>
             {selected.size > 0
               ? `${selected.size} selected`
               : sent.size > 0
@@ -412,12 +412,17 @@ export default function CoWorkInviteModal({
               padding: '10px 20px',
               borderRadius: 12,
               border: 'none',
-              background: selected.size === 0 ? '#35355c' : hoveredSend ? '#c4a6ff' : '#ae89ff',
-              color: selected.size === 0 ? '#8888a8' : '#fff',
+              background:
+                selected.size === 0
+                  ? 'var(--surface-container-highest)'
+                  : hoveredSend
+                    ? '#c4a6ff'
+                    : '#ae89ff',
+              color: selected.size === 0 ? '#8888a8' : 'var(--on-surface)',
               fontSize: 13,
               fontWeight: 700,
               cursor: selected.size === 0 || sending ? 'not-allowed' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}, box-shadow 0.15s ${EASING}, transform 0.15s ${EASING}`,
               fontFamily: 'inherit',
               boxShadow:
                 selected.size > 0 && hoveredSend ? '0 8px 24px rgba(174,137,255,0.3)' : 'none',

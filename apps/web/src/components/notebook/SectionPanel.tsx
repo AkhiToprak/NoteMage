@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Plus, FolderPlus } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import SectionListItem from '@/components/notebook/SectionListItem';
 
@@ -88,20 +87,20 @@ export default function SectionPanel() {
               background: 'transparent',
               border: 'none',
               textDecoration: 'none',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               flexShrink: 0,
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color =
-                'rgb(var(--notebook-ink-rgb) / 0.8)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-80)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color =
-                'rgb(var(--notebook-ink-rgb) / 0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-40)';
             }}
           >
-            <ArrowLeft size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              arrow_back
+            </span>
           </Link>
           <div
             style={{
@@ -146,10 +145,13 @@ export default function SectionPanel() {
               borderLeft: '3px solid rgba(140,82,255,0.4)',
             }}
           >
-            <FolderPlus
-              size={12}
-              style={{ color: 'rgb(var(--notebook-ink-rgb) / 0.3)', flexShrink: 0 }}
-            />
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+              aria-hidden
+            >
+              create_new_folder
+            </span>
             <input
               ref={inputRef}
               type="text"
@@ -301,7 +303,7 @@ export default function SectionPanel() {
             borderRadius: '5px',
             border: '1px solid rgba(140,82,255,0.12)',
             background: 'transparent',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.35)',
+            color: 'var(--ink-30)',
             fontFamily: 'inherit',
             fontSize: '11px',
             fontWeight: 500,
@@ -310,16 +312,16 @@ export default function SectionPanel() {
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.07)';
-            (e.currentTarget as HTMLButtonElement).style.color =
-              'rgb(var(--notebook-ink-rgb) / 0.6)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-60)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            (e.currentTarget as HTMLButtonElement).style.color =
-              'rgb(var(--notebook-ink-rgb) / 0.35)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
           }}
         >
-          <Plus size={12} />
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            add
+          </span>
           Add section
         </button>
       </div>

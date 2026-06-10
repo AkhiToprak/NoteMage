@@ -16,7 +16,13 @@ export async function GET(request: NextRequest) {
     if (!userId) return unauthorizedResponse();
     if (!NEXTAUTH_SECRET) return internalErrorResponse('Server misconfigured');
 
-    const payloadB64 = Buffer.from(JSON.stringify({ userId })).toString('base64url');
+    // `aud` scopes the token to the presence channel so it can't be replayed
+    // against any other system that also signs with NEXTAUTH_SECRET. The WS
+    // server should verify `aud === 'presence'` (unknown fields are ignored, so
+    // this is backward-compatible until that check ships).
+    const payloadB64 = Buffer.from(JSON.stringify({ userId, aud: 'presence' })).toString(
+      'base64url'
+    );
     const expiresB64 = Buffer.from(String(Date.now() + TOKEN_TTL)).toString('base64url');
     const signature = crypto
       .createHmac('sha256', NEXTAUTH_SECRET)

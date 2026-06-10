@@ -1,15 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  X,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  AlertCircle,
-  FileText,
-  SpellCheck,
-} from 'lucide-react';
 
 interface EssayIssue {
   type: 'spelling' | 'grammar' | 'clarity' | 'structure';
@@ -127,7 +118,7 @@ export default function EssayChecker({
         style={{
           width: '600px',
           maxHeight: '80vh',
-          background: '#000000',
+          background: 'var(--background)',
           border: '1px solid rgba(174,137,255,0.45)',
           borderRadius: '16px',
           display: 'flex',
@@ -150,7 +141,7 @@ export default function EssayChecker({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               margin: 0,
               fontFamily: 'inherit',
               display: 'flex',
@@ -158,20 +149,29 @@ export default function EssayChecker({
               gap: '8px',
             }}
           >
-            <SpellCheck size={16} style={{ color: '#c4a9ff' }} /> Grammar & Writing Check
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16, color: 'var(--accent-strong)' }}
+              aria-hidden
+            >
+              spellcheck
+            </span>{' '}
+            Grammar & Writing Check
           </h3>
           <button
             onClick={onClose}
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -192,7 +192,7 @@ export default function EssayChecker({
                   borderRadius: '10px',
                   padding: '14px',
                   fontSize: '14px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   lineHeight: 1.7,
                   fontFamily: 'inherit',
                   outline: 'none',
@@ -215,7 +215,7 @@ export default function EssayChecker({
                     borderRadius: '8px',
                     border: '1px solid rgba(140,82,255,0.3)',
                     background: 'transparent',
-                    color: '#c4a9ff',
+                    color: 'var(--accent-strong)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: loading || !text.trim() ? 'not-allowed' : 'pointer',
@@ -227,9 +227,17 @@ export default function EssayChecker({
                   }}
                 >
                   {loading ? (
-                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                   ) : (
-                    <SpellCheck size={14} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                      spellcheck
+                    </span>
                   )}
                   Check Grammar
                 </button>
@@ -241,7 +249,7 @@ export default function EssayChecker({
                     borderRadius: '8px',
                     border: 'none',
                     background: '#8c52ff',
-                    color: '#fff',
+                    color: 'var(--on-surface)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: loading || !text.trim() ? 'not-allowed' : 'pointer',
@@ -254,9 +262,17 @@ export default function EssayChecker({
                   }}
                 >
                   {loading ? (
-                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                   ) : (
-                    <FileText size={14} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                      description
+                    </span>
                   )}
                   Full Review
                 </button>
@@ -275,11 +291,14 @@ export default function EssayChecker({
                 gap: '12px',
               }}
             >
-              <Loader2
-                size={28}
-                style={{ color: '#c4a9ff', animation: 'spin 1s linear infinite' }}
-              />
-              <span style={{ fontSize: '13px', color: 'rgba(237,233,255,0.4)' }}>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 28, color: 'var(--accent-strong)', animation: 'spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
+              <span style={{ fontSize: '13px', color: 'var(--ink-40)' }}>
                 Analyzing your text...
               </span>
             </div>
@@ -296,8 +315,8 @@ export default function EssayChecker({
                   gap: '16px',
                   padding: '16px',
                   borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'var(--ink-04)',
+                  border: '1px solid var(--ink-12)',
                   marginBottom: '16px',
                 }}
               >
@@ -323,7 +342,7 @@ export default function EssayChecker({
                     style={{
                       fontSize: '14px',
                       fontWeight: 600,
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       marginBottom: '4px',
                     }}
                   >
@@ -334,7 +353,11 @@ export default function EssayChecker({
                         : 'Needs work'}
                   </div>
                   <div
-                    style={{ fontSize: '13px', color: 'rgba(237,233,255,0.5)', lineHeight: 1.5 }}
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--ink-50)',
+                      lineHeight: 1.5,
+                    }}
                   >
                     {result.summary}
                   </div>
@@ -353,9 +376,9 @@ export default function EssayChecker({
                       borderRadius: '6px',
                       border: !filterType
                         ? '1px solid rgba(140,82,255,0.4)'
-                        : '1px solid rgba(255,255,255,0.06)',
+                        : '1px solid var(--ink-08)',
                       background: !filterType ? 'rgba(140,82,255,0.15)' : 'transparent',
-                      color: !filterType ? '#c4a9ff' : 'rgba(237,233,255,0.4)',
+                      color: !filterType ? '#c4a9ff' : 'var(--ink-40)',
                       fontSize: '11px',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -373,9 +396,9 @@ export default function EssayChecker({
                         style={{
                           padding: '4px 10px',
                           borderRadius: '6px',
-                          border: `1px solid ${filterType === type ? colors.border : 'rgba(255,255,255,0.06)'}`,
+                          border: `1px solid ${filterType === type ? colors.border : 'var(--ink-08)'}`,
                           background: filterType === type ? colors.bg : 'transparent',
-                          color: filterType === type ? colors.text : 'rgba(237,233,255,0.4)',
+                          color: filterType === type ? colors.text : 'var(--ink-40)',
                           fontSize: '11px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -401,8 +424,14 @@ export default function EssayChecker({
                     gap: '8px',
                   }}
                 >
-                  <CheckCircle2 size={32} style={{ color: '#4ade80' }} />
-                  <span style={{ fontSize: '14px', color: '#4ade80', fontWeight: 600 }}>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 32, color: 'var(--success)' }}
+                    aria-hidden
+                  >
+                    check_circle
+                  </span>
+                  <span style={{ fontSize: '14px', color: 'var(--success)', fontWeight: 600 }}>
                     No issues found!
                   </span>
                 </div>
@@ -462,7 +491,7 @@ export default function EssayChecker({
                           <div
                             style={{
                               fontSize: '13px',
-                              color: 'rgba(237,233,255,0.5)',
+                              color: 'var(--ink-50)',
                               textDecoration: 'line-through',
                               marginBottom: '4px',
                             }}
@@ -474,7 +503,7 @@ export default function EssayChecker({
                           <div
                             style={{
                               fontSize: '13px',
-                              color: '#ede9ff',
+                              color: 'var(--on-surface)',
                               fontWeight: 500,
                               marginBottom: '4px',
                             }}
@@ -485,7 +514,7 @@ export default function EssayChecker({
                         <div
                           style={{
                             fontSize: '12px',
-                            color: 'rgba(237,233,255,0.4)',
+                            color: 'var(--ink-40)',
                             lineHeight: 1.5,
                           }}
                         >
@@ -513,7 +542,7 @@ export default function EssayChecker({
                     borderRadius: '8px',
                     border: '1px solid rgba(140,82,255,0.3)',
                     background: 'transparent',
-                    color: '#c4a9ff',
+                    color: 'var(--accent-strong)',
                     fontSize: '13px',
                     fontWeight: 600,
                     cursor: 'pointer',

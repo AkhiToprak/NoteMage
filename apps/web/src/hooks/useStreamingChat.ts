@@ -30,18 +30,35 @@ export interface DonePayload {
   };
   aborted?: boolean;
   partialText?: string;
+  chatTitle?: string;
 }
 
 type StreamStatus = 'idle' | 'streaming' | 'done' | 'error';
 
-interface UseStreamingChatOptions {
+/**
+ * Phase 9.3 generalized the hook so it accepts any send endpoint instead of a
+ * hardcoded `/api/notebooks/[id]/chats/[chatId]/messages` URL. Pass an explicit
+ * `endpoint` (e.g. `/api/learn/chats/<chatId>/messages`) for the new hub. The
+ * legacy `{ notebookId, chatId }` shape is still accepted for back-compat with
+ * any caller that hasn't migrated to /learn/chats yet.
+ */
+interface EndpointOptions {
+  endpoint: string;
+}
+interface NotebookChatOptions {
   notebookId: string;
   chatId: string;
 }
+export type UseStreamingChatOptions = EndpointOptions | NotebookChatOptions;
 
 interface SSEEvent {
   event: string;
   data: string;
+}
+
+function resolveEndpoint(options: UseStreamingChatOptions): string {
+  if ('endpoint' in options) return options.endpoint;
+  return `/api/notebooks/${options.notebookId}/chats/${options.chatId}/messages`;
 }
 
 function parseSSEEvents(buffer: string): { events: SSEEvent[]; remaining: string } {
@@ -75,7 +92,9 @@ function parseSSEEvents(buffer: string): { events: SSEEvent[]; remaining: string
   return { events, remaining };
 }
 
-export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions) {
+export function useStreamingChat(options: UseStreamingChatOptions) {
+  const endpoint = resolveEndpoint(options);
+
   const [streamingText, setStreamingText] = useState('');
   const [status, setStatus] = useState<StreamStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +124,7 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
 
       let response: Response;
       try {
-        response = await fetch(`/api/notebooks/${notebookId}/chats/${chatId}/messages`, {
+        response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message }),
@@ -168,6 +187,13 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
                 setStatus('done');
                 break;
               }
+              case 'chat_title': {
+                const parsed = JSON.parse(sse.data) as { title: string };
+                if (donePayload) {
+                  donePayload.chatTitle = parsed.title;
+                }
+                break;
+              }
               case 'error': {
                 const parsed = JSON.parse(sse.data) as { error: string };
                 setStatus('error');
@@ -190,7 +216,7 @@ export function useStreamingChat({ notebookId, chatId }: UseStreamingChatOptions
 
       return donePayload;
     },
-    [notebookId, chatId, abort]
+    [endpoint, abort]
   );
 
   // Clean up on unmount

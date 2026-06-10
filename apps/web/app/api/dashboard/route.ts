@@ -61,6 +61,8 @@ export async function GET(request: NextRequest) {
         },
       }),
 
+      // Distinct from the weekly page.count below (different date field + window),
+      // so the two counts can't be merged. Supporting index tracked in migration backlog.
       db.page.count({
         where: {
           updatedAt: { gte: todayStart },
@@ -93,7 +95,6 @@ export async function GET(request: NextRequest) {
           phases: { some: {} },
         },
         select: {
-          id: true,
           phases: { select: { status: true, updatedAt: true } },
         },
       }),

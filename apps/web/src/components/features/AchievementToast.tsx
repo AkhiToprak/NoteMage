@@ -42,9 +42,27 @@ export default function AchievementToast({
             opacity: 1;
           }
         }
+        @keyframes achievement-fade-in {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        .ach-toast {
+          animation: achievement-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .ach-toast-close:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ach-toast { animation: achievement-fade-in 0.2s ease forwards; }
+        }
       `}</style>
       <div
         ref={toastRef}
+        className="ach-toast"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
         style={{
           position: 'fixed',
           bottom: '24px',
@@ -54,15 +72,16 @@ export default function AchievementToast({
           alignItems: 'flex-start',
           gap: '14px',
           padding: '16px 20px',
-          background: '#272746',
+          background: 'var(--surface-container)',
           borderRadius: '16px',
-          border: '1px solid rgba(255,222,89,0.45)',
-          boxShadow: '0 0 24px rgba(255,222,89,0.1), 0 8px 32px rgba(0,0,0,0.4)',
+          border: '1px solid rgb(var(--achievement-gold-rgb) / 0.45)',
+          boxShadow:
+            '0 0 24px rgb(var(--achievement-gold-rgb) / 0.1), 0 8px 32px rgba(0, 0, 0, 0.4)',
           maxWidth: '360px',
-          animation: 'achievement-slide-in 0.4s cubic-bezier(0.22,1,0.36,1) forwards',
         }}
       >
         <div
+          aria-hidden
           style={{
             position: 'absolute',
             top: '-32px',
@@ -89,7 +108,7 @@ export default function AchievementToast({
             width: '44px',
             height: '44px',
             borderRadius: '12px',
-            background: 'rgba(255,222,89,0.12)',
+            background: 'rgb(var(--achievement-gold-rgb) / 0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -97,9 +116,10 @@ export default function AchievementToast({
         >
           <span
             className="material-symbols-outlined"
+            aria-hidden
             style={{
               fontSize: '24px',
-              color: '#ffde59',
+              color: 'var(--warning)',
               fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24",
             }}
           >
@@ -113,7 +133,7 @@ export default function AchievementToast({
             style={{
               fontSize: '11px',
               fontWeight: 700,
-              color: '#ffde59',
+              color: 'var(--warning)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '4px',
@@ -125,7 +145,7 @@ export default function AchievementToast({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               lineHeight: 1.3,
               marginBottom: '2px',
             }}
@@ -135,7 +155,7 @@ export default function AchievementToast({
           <div
             style={{
               fontSize: '12px',
-              color: '#aaa8c8',
+              color: 'var(--on-surface-variant)',
               lineHeight: 1.4,
             }}
           >
@@ -145,6 +165,9 @@ export default function AchievementToast({
 
         {/* Close */}
         <button
+          type="button"
+          aria-label="Dismiss"
+          className="ach-toast-close"
           onClick={(e) => {
             e.stopPropagation();
             onClose();
@@ -153,9 +176,12 @@ export default function AchievementToast({
             flexShrink: 0,
             background: 'none',
             border: 'none',
-            padding: '4px',
+            width: 44,
+            height: 44,
+            marginRight: -8,
+            padding: 0,
             cursor: 'pointer',
-            color: '#6a6a8c',
+            color: 'var(--on-surface-variant)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -164,15 +190,15 @@ export default function AchievementToast({
               'color 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#e5e3ff';
-            e.currentTarget.style.background = 'rgba(229,227,255,0.08)';
+            e.currentTarget.style.color = 'var(--on-surface)';
+            e.currentTarget.style.background = 'var(--ink-08)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#6a6a8c';
+            e.currentTarget.style.color = 'var(--on-surface-variant)';
             e.currentTarget.style.background = 'none';
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
             close
           </span>
         </button>

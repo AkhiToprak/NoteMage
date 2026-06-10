@@ -3,17 +3,17 @@ import LegalPageShell from '@/components/legal/LegalPageShell';
 import { getLegalContent } from '@/lib/legal-content';
 
 export const metadata: Metadata = {
-  title: 'Waitlist Terms — Notemage',
+  title: 'Terms of Service — Notemage',
   description:
-    'Waitlist Terms / AGB für die Warteliste. The terms that apply when you join the Notemage waitlist.',
+    'Terms of Service / Allgemeine Geschäftsbedingungen for Notemage — the terms that apply when you use Notemage.',
 };
 
 export default function TermsPage() {
   return (
     <LegalPageShell
       eyebrow="Legal"
-      titleEn="Waitlist Terms"
-      titleDe="AGB für die Warteliste"
+      titleEn="Terms of Service"
+      titleDe="Allgemeine Geschäftsbedingungen"
       enContent={getLegalContent('terms', 'en')}
       deContent={getLegalContent('terms', 'de')}
     />

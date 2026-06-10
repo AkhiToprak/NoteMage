@@ -1,16 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useMemo, type DragEvent, type ChangeEvent } from 'react';
-import {
-  X,
-  FileUp,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  FileSpreadsheet,
-  ClipboardPaste,
-  Archive,
-} from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 
 interface FlashcardImportDialogProps {
@@ -25,10 +15,10 @@ type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 type TermSepOption = 'tab' | 'comma' | 'semicolon' | 'colon' | 'custom';
 type CardSepOption = 'newline' | 'double-newline' | 'semicolon' | 'custom';
 
-const TABS: { key: Tab; label: string; icon: typeof FileSpreadsheet }[] = [
-  { key: 'csv', label: 'CSV / Excel', icon: FileSpreadsheet },
-  { key: 'paste', label: 'Paste Text', icon: ClipboardPaste },
-  { key: 'anki', label: 'Anki', icon: Archive },
+const TABS: { key: Tab; label: string; icon: string }[] = [
+  { key: 'csv', label: 'CSV / Excel', icon: 'grid_on' },
+  { key: 'paste', label: 'Paste Text', icon: 'content_paste' },
+  { key: 'anki', label: 'Anki', icon: 'archive' },
 ];
 
 function truncate(s: string, max: number): string {
@@ -271,14 +261,14 @@ export default function FlashcardImportDialog({
     borderRadius: '8px',
     padding: '10px 12px',
     fontSize: '14px',
-    color: '#ede9ff',
+    color: 'var(--on-surface)',
     fontFamily: 'inherit',
     outline: 'none',
   };
 
   const labelStyle: React.CSSProperties = {
     fontSize: '11px',
-    color: 'rgba(237,233,255,0.4)',
+    color: 'var(--ink-40)',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
     display: 'block',
@@ -291,7 +281,7 @@ export default function FlashcardImportDialog({
     borderRadius: '6px',
     border: isActive ? '1px solid rgba(140,82,255,0.5)' : '1px solid rgba(140,82,255,0.15)',
     background: isActive ? 'rgba(140,82,255,0.15)' : 'rgba(140,82,255,0.04)',
-    color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.5)',
+    color: isActive ? '#c4a9ff' : 'var(--ink-50)',
     fontSize: '11px',
     fontWeight: 600,
     fontFamily: 'inherit',
@@ -354,7 +344,7 @@ export default function FlashcardImportDialog({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               margin: 0,
               fontFamily: 'inherit',
             }}
@@ -366,19 +356,21 @@ export default function FlashcardImportDialog({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+              e.currentTarget.style.color = 'var(--ink-40)';
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -392,7 +384,6 @@ export default function FlashcardImportDialog({
         >
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
-            const Icon = tab.icon;
             return (
               <button
                 key={tab.key}
@@ -407,7 +398,7 @@ export default function FlashcardImportDialog({
                   border: 'none',
                   borderBottom: isActive ? '2px solid #8c52ff' : '2px solid transparent',
                   background: isActive ? 'rgba(140,82,255,0.06)' : 'transparent',
-                  color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.4)',
+                  color: isActive ? '#c4a9ff' : 'var(--ink-40)',
                   fontSize: '12px',
                   fontWeight: 600,
                   fontFamily: 'inherit',
@@ -415,13 +406,15 @@ export default function FlashcardImportDialog({
                   transition: 'color 0.15s ease, background 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.color = 'rgba(237,233,255,0.6)';
+                  if (!isActive) e.currentTarget.style.color = 'var(--ink-60)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                  if (!isActive) e.currentTarget.style.color = 'var(--ink-40)';
                 }}
               >
-                <Icon size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  {tab.icon}
+                </span>
                 {tab.label}
               </button>
             );
@@ -496,7 +489,13 @@ export default function FlashcardImportDialog({
                         justifyContent: 'center',
                       }}
                     >
-                      <FileUp size={22} style={{ color: '#8c52ff' }} />
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 22, color: '#8c52ff' }}
+                        aria-hidden
+                      >
+                        upload_file
+                      </span>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <p
@@ -504,7 +503,7 @@ export default function FlashcardImportDialog({
                           margin: '0 0 4px 0',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: '#ede9ff',
+                          color: 'var(--on-surface)',
                         }}
                       >
                         Drag a file here or click to browse
@@ -513,7 +512,7 @@ export default function FlashcardImportDialog({
                         style={{
                           margin: 0,
                           fontSize: '11px',
-                          color: 'rgba(237,233,255,0.35)',
+                          color: 'var(--ink-30)',
                         }}
                       >
                         {activeTab === 'anki' ? '.apkg files' : '.csv, .xlsx, .xls files'} — max
@@ -525,19 +524,23 @@ export default function FlashcardImportDialog({
 
                 {uploadState === 'uploading' && (
                   <>
-                    <Loader2
-                      size={26}
+                    <span
+                      className="material-symbols-outlined"
                       style={{
+                        fontSize: 26,
                         color: '#8c52ff',
                         animation: 'flashcard-import-spin 1s linear infinite',
                       }}
-                    />
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                     <p
                       style={{
                         margin: 0,
                         fontSize: '13px',
                         fontWeight: 600,
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                       }}
                     >
                       Importing {fileName}...
@@ -547,7 +550,13 @@ export default function FlashcardImportDialog({
 
                 {uploadState === 'success' && (
                   <>
-                    <CheckCircle2 size={26} style={{ color: '#4ade80' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 26, color: '#4ade80' }}
+                      aria-hidden
+                    >
+                      check_circle
+                    </span>
                     <p
                       style={{
                         margin: 0,
@@ -563,14 +572,20 @@ export default function FlashcardImportDialog({
 
                 {uploadState === 'error' && (
                   <>
-                    <AlertCircle size={26} style={{ color: '#f87171' }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 26, color: 'var(--error)' }}
+                      aria-hidden
+                    >
+                      error
+                    </span>
                     <div style={{ textAlign: 'center' }}>
                       <p
                         style={{
                           margin: '0 0 4px 0',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: '#f87171',
+                          color: 'var(--error)',
                         }}
                       >
                         {errorMessage}
@@ -579,7 +594,7 @@ export default function FlashcardImportDialog({
                         style={{
                           margin: 0,
                           fontSize: '11px',
-                          color: 'rgba(237,233,255,0.35)',
+                          color: 'var(--ink-30)',
                         }}
                       >
                         Click to try again
@@ -707,7 +722,7 @@ export default function FlashcardImportDialog({
                   style={{
                     margin: 0,
                     fontSize: '12px',
-                    color: parsedCards.length > 0 ? '#4ade80' : 'rgba(237,233,255,0.4)',
+                    color: parsedCards.length > 0 ? '#4ade80' : 'var(--ink-40)',
                     fontWeight: 600,
                   }}
                 >
@@ -738,12 +753,12 @@ export default function FlashcardImportDialog({
                             ? '1px solid rgba(140,82,255,0.1)'
                             : 'none',
                         fontSize: '12px',
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                         alignItems: 'center',
                       }}
                     >
                       <span style={{ flex: 1, opacity: 0.8 }}>{truncate(card.question, 40)}</span>
-                      <span style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }}>→</span>
+                      <span style={{ color: 'var(--ink-30)', flexShrink: 0 }}>→</span>
                       <span style={{ flex: 1, opacity: 0.6 }}>{truncate(card.answer, 40)}</span>
                     </div>
                   ))}
@@ -752,7 +767,7 @@ export default function FlashcardImportDialog({
                       style={{
                         padding: '6px 12px',
                         fontSize: '11px',
-                        color: 'rgba(237,233,255,0.35)',
+                        color: 'var(--ink-30)',
                       }}
                     >
                       ...and {parsedCards.length - 5} more
@@ -763,7 +778,7 @@ export default function FlashcardImportDialog({
 
               {/* Error */}
               {errorMessage && (
-                <p style={{ margin: 0, fontSize: '12px', color: '#f87171' }}>{errorMessage}</p>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--error)' }}>{errorMessage}</p>
               )}
             </>
           )}
@@ -786,9 +801,9 @@ export default function FlashcardImportDialog({
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '1px solid rgba(237,233,255,0.1)',
+              border: '1px solid var(--ink-12)',
               background: 'transparent',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'var(--ink-50)',
               fontSize: '13px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -814,8 +829,8 @@ export default function FlashcardImportDialog({
                     : 'rgba(140,82,255,0.2)',
                 color:
                   parsedCards.length > 0 && pasteTitle.trim() && !pasteSubmitting
-                    ? '#fff'
-                    : 'rgba(237,233,255,0.3)',
+                    ? 'var(--on-surface)'
+                    : 'var(--ink-30)',
                 fontSize: '13px',
                 cursor:
                   parsedCards.length > 0 && pasteTitle.trim() && !pasteSubmitting
@@ -826,10 +841,13 @@ export default function FlashcardImportDialog({
               }}
             >
               {pasteSubmitting && (
-                <Loader2
-                  size={14}
-                  style={{ animation: 'flashcard-import-spin 1s linear infinite' }}
-                />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, animation: 'flashcard-import-spin 1s linear infinite' }}
+                  aria-hidden
+                >
+                  progress_activity
+                </span>
               )}
               {pasteSubmitting ? 'Importing...' : `Import ${parsedCards.length} Cards`}
             </button>

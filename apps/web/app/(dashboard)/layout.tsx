@@ -4,16 +4,21 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import HomeHeader from '@/components/layout/HomeHeader';
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
+import { ToastProvider } from '@/components/ui/Toast';
 import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
+import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
 const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
 /** Matches /groups/<id> detail pages */
 const GROUP_DETAIL_RE = /^\/groups\/[^/]+/;
+/** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
+const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -28,41 +33,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [status, session, router]);
 
+  // Bind the iOS in-app-purchase identity to this account (RevenueCat
+  // appUserID = User.id) so StoreKit purchases attach to the right user.
+  // No-op outside the iOS shell.
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id && isInsideNativeShell()) {
+      void nativeBridge.setAppUser?.(session.user.id);
+    }
+  }, [status, session?.user?.id]);
+
   // Track minutes-in-app for the activity heatmap. Only runs when authed.
   useStudyHeartbeat(status === 'authenticated');
   const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
   const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
-  const isFullHeight = isNotebookWorkspace || isGroupDetail;
+  const isLearnChats = LEARN_CHATS_RE.test(pathname);
+  const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats;
+  // /learn owns its own spacing: the tab strip is full-bleed (flush under the
+  // header, edge to edge) and every /learn page self-pads (centered maxWidth +
+  // its own horizontal padding). Drop the generic <main> padding here — it
+  // otherwise insets the tab strip with a top + side margin.
+  const isLearn = pathname === '/learn' || pathname.startsWith('/learn/');
 
   return (
     <TutorialProvider>
       <TimerProvider>
         <UnlockProvider>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100dvh',
-              overflow: 'hidden',
-              background: 'var(--background)',
-            }}
-          >
-            {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
-            <main
+          <ToastProvider>
+            <div
               style={{
-                flex: 1,
-                minHeight: 0,
-                overflowX: 'hidden',
-                overflowY: isFullHeight ? 'hidden' : 'auto',
-                padding: isFullHeight ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-                color: 'var(--on-surface)',
-                display: isFullHeight ? 'flex' : undefined,
-                flexDirection: isFullHeight ? 'column' : undefined,
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100dvh',
+                overflow: 'hidden',
+                background: 'var(--background)',
               }}
             >
-              {children}
-            </main>
-          </div>
+              {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
+              <main
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowX: 'hidden',
+                  overflowY: isFullHeight ? 'hidden' : 'auto',
+                  padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
+                  color: 'var(--on-surface)',
+                  display: isFullHeight ? 'flex' : undefined,
+                  flexDirection: isFullHeight ? 'column' : undefined,
+                }}
+              >
+                {children}
+              </main>
+              {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
+                workspace, group detail, learn chats) which own the viewport. */}
+              {!isFullHeight && <MobileBottomNav />}
+            </div>
+          </ToastProvider>
         </UnlockProvider>
       </TimerProvider>
     </TutorialProvider>

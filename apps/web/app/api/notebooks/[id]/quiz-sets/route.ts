@@ -25,8 +25,11 @@ export async function GET(request: NextRequest, { params }: Params) {
     const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
     if (!notebook) return notFoundResponse('Notebook not found');
 
+    // Path-generated sets carry `sourcePathId` and are reachable through
+    // the path's checkpoint drawer — hide them from the notebook's flat
+    // list so they don't read as standalone notebook items.
     const sets = await db.quizSet.findMany({
-      where: { notebookId },
+      where: { notebookId, sourcePathId: null },
       include: {
         _count: { select: { questions: true } },
       },
@@ -95,6 +98,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const set = await db.quizSet.create({
       data: {
+        userId,
         notebookId,
         title: title.trim(),
         sectionId: sectionId || null,

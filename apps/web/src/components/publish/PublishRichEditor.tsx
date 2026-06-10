@@ -8,6 +8,8 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import TiptapImage from '@tiptap/extension-image';
 import { common, createLowlight } from 'lowlight';
 import { useEffect, useRef, useCallback } from 'react';
+import { insertCodeBlock } from '@/lib/tiptap-code-block';
+import { formatBlockSelectionAware } from '@/lib/tiptap-block-format';
 
 const lowlight = createLowlight(common);
 
@@ -231,38 +233,48 @@ export default function PublishRichEditor({ content, onChange }: PublishRichEdit
           icon="title"
           label="Heading 2"
           active={editor.isActive('heading', { level: 2 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 2 }))
+          }
         />
         <ToolbarButton
           icon="format_h3"
           label="Heading 3"
           active={editor.isActive('heading', { level: 3 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 3 }))
+          }
         />
         <div style={{ width: 1, background: COLORS.borderSubtle, margin: '4px 4px' }} />
         <ToolbarButton
           icon="format_list_bulleted"
           label="Bullet List"
           active={editor.isActive('bulletList')}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'bulletList', (c) => c.toggleBulletList())
+          }
         />
         <ToolbarButton
           icon="format_list_numbered"
           label="Ordered List"
           active={editor.isActive('orderedList')}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'orderedList', (c) => c.toggleOrderedList())
+          }
         />
         <ToolbarButton
           icon="format_quote"
           label="Blockquote"
           active={editor.isActive('blockquote')}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'blockquote', (c) => c.toggleBlockquote())
+          }
         />
         <ToolbarButton
           icon="code"
           label="Code Block"
           active={editor.isActive('codeBlock')}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => insertCodeBlock(editor)}
         />
         <div style={{ width: 1, background: COLORS.borderSubtle, margin: '4px 4px' }} />
         <ToolbarButton

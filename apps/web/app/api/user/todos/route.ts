@@ -17,9 +17,12 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
+    // Defensive cap: returns the 500 most-recent todos (safety bound, not
+    // user-facing pagination).
     const todos = await db.todo.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      take: 500,
     });
 
     return successResponse(todos);

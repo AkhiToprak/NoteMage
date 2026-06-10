@@ -21,7 +21,9 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import FontFamily from '@tiptap/extension-font-family';
-import { Loader } from 'lucide-react';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import { TaskList, TaskItem } from '@tiptap/extension-list';
 import EditorToolbar from './EditorToolbar';
 import DrawingOverlay, { hydrateStrokes, hydrateTexts } from './DrawingOverlay';
 import type {
@@ -33,12 +35,15 @@ import type {
   RulerState,
 } from './DrawingOverlay';
 import { ResizableImage } from './ResizableImage';
+import { ImagePlaceholder } from '@/lib/tiptap-image-placeholder';
+import ImagePlaceholderView from './ImagePlaceholderView';
 import { FontSize } from '@/lib/tiptap-font-size';
 import { InlineHeading } from '@/lib/tiptap-inline-heading';
 import { Callout } from '@/lib/tiptap-callout';
 import CalloutView from './CalloutView';
-import { ToggleHeading } from '@/lib/tiptap-toggle-heading';
-import ToggleHeadingView from './ToggleHeadingView';
+import { InlineMath, BlockMath } from '@/lib/tiptap-math';
+import MathView from './MathView';
+import { HeadingEnterBehavior } from '@/lib/tiptap-heading';
 import PageLockIndicator from './PageLockIndicator';
 import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
 import { looksLikeMarkdown, markdownToHtml } from '@/lib/markdown-to-html';
@@ -56,58 +61,66 @@ import { Mascot } from '@/components/mascot';
 /**
  * Prepare saved page content for re-entry into the editor.
  *
- *   1. Migrate any legacy `heading` nodes from older pages into
- *      `toggleHeading` nodes so they keep rendering the same way.
+ * NoteMage used to wrap every heading in a custom collapsible `toggleHeading`
+ * container (the heading text lived in a `summary` attr, the body was an empty
+ * paragraph, and following siblings were the "section"). We've moved to plain
+ * Obsidian-style headings — the standard `heading` node, a simple styled line
+ * whose text is normal inline content. This migration rewrites any stored
+ * `toggleHeading` back into a `heading`:
  *
- *   2. Force every `toggleHeading` to `collapsed: false`. The outline
- *      collapse plugin hides everything under a collapsed heading via
- *      `display: none` — useful for live editing, but when the saved
- *      state carries `collapsed: true` into a fresh page load every-
- *      thing beneath that heading looks like it vanished (the user's
- *      real bug report). Collapse is a UI affordance, not a content
- *      property; it should not persist across reloads.
+ *   - Heading text comes from the `summary` attr (flat model) or, for legacy
+ *     toggles that kept real content inside their body, from the first body
+ *     paragraph (preserving its inline marks).
+ *   - Any further body blocks are lifted out as following siblings so no
+ *     content is lost. The empty schema-placeholder paragraph is dropped.
+ *
+ * Old plain `heading` nodes already match the target shape and pass through
+ * untouched. Runs before `setContent`, so the editor (whose schema no longer
+ * knows `toggleHeading`) never has to parse the dead node type.
  */
-function migrateHeadingsToToggle(doc: any): any {
-  if (!doc || !doc.content) return doc;
+function migrateTogglesToHeading(doc: any): any {
+  if (!doc || !Array.isArray(doc.content)) return doc;
 
-  const walk = (node: any): any => {
-    if (!node || typeof node !== 'object') return node;
+  const isEmptyParagraph = (node: any): boolean =>
+    node?.type === 'paragraph' && (!node.content || node.content.length === 0);
 
-    // Legacy `heading` → `toggleHeading` conversion.
-    if (node.type === 'heading') {
-      const summaryText = (node.content || [])
-        .filter((c: any) => c.type === 'text')
-        .map((c: any) => c.text)
-        .join('');
-      return {
-        type: 'toggleHeading',
-        attrs: {
-          level: node.attrs?.level || 1,
-          collapsed: false,
-          summary: summaryText,
-        },
-        content: [{ type: 'paragraph' }],
-      };
+  // Returns an array: a toggleHeading expands into a heading plus any real
+  // body blocks lifted out as siblings; everything else returns itself.
+  const walk = (node: any): any[] => {
+    if (!node || typeof node !== 'object') return [node];
+
+    if (node.type === 'toggleHeading') {
+      const rawLevel = Number(node.attrs?.level) || 1;
+      const level = rawLevel > 3 ? 3 : rawLevel < 1 ? 1 : rawLevel;
+      const summary = typeof node.attrs?.summary === 'string' ? node.attrs.summary : '';
+
+      // Recurse into the body first so nested toggles/callouts convert too.
+      const body = (node.content || []).flatMap(walk);
+
+      let headingContent: any[] = [];
+      let liftedBody = body;
+      if (summary) {
+        headingContent = [{ type: 'text', text: summary }];
+        if (body.length === 1 && isEmptyParagraph(body[0])) liftedBody = [];
+      } else {
+        const first = body[0];
+        if (first && first.type === 'paragraph') {
+          headingContent = Array.isArray(first.content) ? first.content : [];
+          liftedBody = body.slice(1);
+        }
+      }
+
+      const heading = { type: 'heading', attrs: { level }, content: headingContent };
+      return [heading, ...liftedBody];
     }
 
-    let next = node;
-
-    // Force expanded state on every toggle heading we see.
-    if (node.type === 'toggleHeading' && node.attrs && node.attrs.collapsed) {
-      next = { ...node, attrs: { ...node.attrs, collapsed: false } };
+    if (Array.isArray(node.content)) {
+      return [{ ...node, content: node.content.flatMap(walk) }];
     }
-
-    // Recurse into children so nested toggles inside callouts / toggles
-    // also get reset.
-    if (Array.isArray(next.content)) {
-      const mapped = next.content.map(walk);
-      next = { ...next, content: mapped };
-    }
-
-    return next;
+    return [node];
   };
 
-  return walk(doc);
+  return { ...doc, content: doc.content.flatMap(walk) };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -157,7 +170,7 @@ export default function PageEditor({
 
   // Drawing state
   const [editorMode, setEditorMode] = useState<EditorMode>('cursor');
-  const [penColor, setPenColor] = useState('var(--on-surface)');
+  const [penColor, setPenColor] = useState('#ede9ff');
   const [penWidth, setPenWidth] = useState(4);
   const [lineStyle, setLineStyle] = useState<LineStyle>('solid');
   const [activeTool, setActiveTool] = useState<ActiveTool>('pen');
@@ -668,6 +681,18 @@ export default function PageEditor({
   const hydratedForPageIdRef = useRef<string | null>(null);
   const lastKnownContentWasEmptyRef = useRef<boolean>(false);
 
+  // Upload context for the imagePlaceholder NodeView. The editor instance
+  // (and its extension options) survives page switches, so the extension is
+  // configured with a getter over this ref rather than captured values.
+  const placeholderUploadCtxRef = useRef({ notebookId, pageId, sectionId: '' });
+  useEffect(() => {
+    placeholderUploadCtxRef.current = {
+      notebookId,
+      pageId,
+      sectionId: page?.sectionId ?? '',
+    };
+  }, [notebookId, pageId, page?.sectionId]);
+
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -676,7 +701,8 @@ export default function PageEditor({
       // flash-of-read-only on mount.
       editable: true,
       extensions: [
-        StarterKit.configure({ heading: false, codeBlock: false }),
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
+        HeadingEnterBehavior,
         CodeBlockLowlight.extend({
           addNodeView() {
             return ReactNodeViewRenderer(CodeBlockView);
@@ -688,15 +714,36 @@ export default function PageEditor({
         FontSize,
         Color,
         Highlight.configure({ multicolor: true }),
+        Subscript,
+        Superscript,
+        TaskList,
+        TaskItem.configure({ nested: true }),
         InlineHeading,
         Callout.extend({
           addNodeView() {
             return ReactNodeViewRenderer(CalloutView);
           },
         }),
-        ToggleHeading.extend({
+        ImagePlaceholder.extend({
           addNodeView() {
-            return ReactNodeViewRenderer(ToggleHeadingView);
+            return ReactNodeViewRenderer(ImagePlaceholderView);
+          },
+        }).configure({
+          getUploadContext: () => placeholderUploadCtxRef.current,
+        }),
+        // Editable KaTeX nodes. The base nodes (shared with the read-only theory
+        // viewer) carry a `latex` attr + a static DOM render; here we swap in an
+        // interactive React NodeView so equations can be edited in the notebook.
+        InlineMath.extend({
+          selectable: true,
+          addNodeView() {
+            return ReactNodeViewRenderer(MathView);
+          },
+        }),
+        BlockMath.extend({
+          selectable: true,
+          addNodeView() {
+            return ReactNodeViewRenderer(MathView);
           },
         }),
         ResizableImage,
@@ -837,7 +884,7 @@ export default function PageEditor({
     if (page.content) {
       // Real content from the server — push it into the editor.
       lastKnownContentWasEmptyRef.current = isEffectivelyEmptyTiptapDoc(page.content);
-      editor.commands.setContent(migrateHeadingsToToggle(page.content), { emitUpdate: false });
+      editor.commands.setContent(migrateTogglesToHeading(page.content), { emitUpdate: false });
     } else {
       // Brand-new / empty page. Leave the editor at its default empty
       // doc. Record that we KNOW the last-seen state was empty so the
@@ -897,7 +944,7 @@ export default function PageEditor({
         const remoteJson = JSON.stringify(json.data.content);
         if (currentJson === remoteJson) return;
 
-        editor.commands.setContent(migrateHeadingsToToggle(json.data.content), {
+        editor.commands.setContent(migrateTogglesToHeading(json.data.content), {
           emitUpdate: false,
         });
         // Update title only. Do NOT call setPage(json.data) — that
@@ -1052,7 +1099,7 @@ export default function PageEditor({
             width: '240px',
             height: '28px',
             borderRadius: '8px',
-            background: 'rgb(var(--notebook-ink-rgb) / 0.08)',
+            background: 'var(--ink-08)',
             marginBottom: '24px',
             animation: 'pulse 1.5s ease-in-out infinite',
           }}
@@ -1064,7 +1111,7 @@ export default function PageEditor({
               width: `${w * 100}%`,
               height: '14px',
               borderRadius: '6px',
-              background: 'rgb(var(--notebook-ink-rgb) / 0.05)',
+              background: 'var(--ink-04)',
               marginBottom: '12px',
               animation: `pulse 1.5s ease-in-out infinite ${i * 0.1}s`,
             }}
@@ -1089,7 +1136,7 @@ export default function PageEditor({
           style={{
             fontFamily: 'inherit',
             fontSize: '15px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+            color: 'var(--ink-30)',
           }}
         >
           Page not found.
@@ -1113,6 +1160,15 @@ export default function PageEditor({
           line-height: 1.75;
           caret-color: #a47bff;
         }
+        /* Reading measure (audit item 4) — caps prose line length for
+           comfortable reading. Gated to pages with NO pinned drawings: the
+           DrawingOverlay stores strokes at absolute content-box coordinates,
+           so reflowing text beneath existing strokes would misalign them.
+           Drawing pages therefore stay full-bleed. */
+        [data-reading-measure='on'] .notemage-editor {
+          max-width: var(--reading-measure);
+          margin-inline: auto;
+        }
         /* ── headings ── */
         .notemage-editor h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; margin: 28px 0 10px; line-height: 1.2; }
         .notemage-editor h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 22px 0 8px; line-height: 1.3; }
@@ -1130,9 +1186,9 @@ export default function PageEditor({
         .notemage-editor li { margin: 3px 0; display: list-item !important; }
         .notemage-editor li p { margin: 0; }
         /* ── blockquote ── */
-        .notemage-editor blockquote { border-left: 3px solid #8c52ff; padding-left: 16px; color: rgb(var(--notebook-ink-rgb) / 0.6); margin: 12px 0; }
+        .notemage-editor blockquote { border-left: 3px solid #8c52ff; padding-left: 16px; color: var(--ink-60); margin: 12px 0; }
         /* ── inline code ── */
-        .notemage-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; color: #c4a9ff; }
+        .notemage-editor code { background: rgba(140,82,255,0.14); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; color: var(--md-code); }
         /* ── code block ── */
         .notemage-editor pre {
           background: rgba(140,82,255,0.06);
@@ -1180,6 +1236,37 @@ export default function PageEditor({
         .notemage-editor .hljs-property { color: #b9c3ff; }
         .notemage-editor .hljs-regexp { color: #ff9e64; }
         .notemage-editor .hljs-meta { color: #ae89ff; }
+        /* ── light-mode syntax overrides (code block sits on a near-white tinted surface) ── */
+        [data-theme='light'] .notemage-editor .code-block-wrapper select option { color: var(--on-surface); }
+        [data-theme='light'] .notemage-editor .hljs-keyword,
+        [data-theme='light'] .notemage-editor .hljs-selector-tag,
+        [data-theme='light'] .notemage-editor .hljs-built_in { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-string,
+        [data-theme='light'] .notemage-editor .hljs-attr { color: #8a5a00; }
+        [data-theme='light'] .notemage-editor .hljs-number,
+        [data-theme='light'] .notemage-editor .hljs-literal { color: #a8431a; }
+        [data-theme='light'] .notemage-editor .hljs-function,
+        [data-theme='light'] .notemage-editor .hljs-title,
+        [data-theme='light'] .notemage-editor .hljs-title.function_ { color: #1f5fa8; }
+        [data-theme='light'] .notemage-editor .hljs-params { color: var(--on-surface); }
+        [data-theme='light'] .notemage-editor .hljs-comment,
+        [data-theme='light'] .notemage-editor .hljs-quote { color: #6b6790; }
+        [data-theme='light'] .notemage-editor .hljs-variable,
+        [data-theme='light'] .notemage-editor .hljs-template-variable { color: var(--on-surface); }
+        [data-theme='light'] .notemage-editor .hljs-type,
+        [data-theme='light'] .notemage-editor .hljs-class .hljs-title { color: #1f5fa8; }
+        [data-theme='light'] .notemage-editor .hljs-tag { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-name { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-attribute { color: #3a4aa0; }
+        [data-theme='light'] .notemage-editor .hljs-symbol,
+        [data-theme='light'] .notemage-editor .hljs-bullet { color: #a8431a; }
+        [data-theme='light'] .notemage-editor .hljs-addition { color: #2f7a3a; }
+        [data-theme='light'] .notemage-editor .hljs-deletion { color: #b3304a; }
+        [data-theme='light'] .notemage-editor .hljs-operator { color: #5b3aa8; }
+        [data-theme='light'] .notemage-editor .hljs-punctuation { color: #56527a; }
+        [data-theme='light'] .notemage-editor .hljs-property { color: #3a4aa0; }
+        [data-theme='light'] .notemage-editor .hljs-regexp { color: #a8431a; }
+        [data-theme='light'] .notemage-editor .hljs-meta { color: #5b3aa8; }
         /* ── callout blocks ── */
         .notemage-editor [data-callout-type] p { margin: 0 0 6px; }
         .notemage-editor [data-callout-type] p:last-child { margin: 0; }
@@ -1188,12 +1275,30 @@ export default function PageEditor({
         .notemage-editor [data-toggle-level] p:last-child { margin: 0; }
         /* ── mark / highlight ── */
         .notemage-editor mark { border-radius: 3px; padding: 1px 3px; }
+        /* ── links ── */
+        .notemage-editor a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, var(--primary) 55%, transparent); cursor: pointer; }
+        .notemage-editor a:hover { text-decoration-color: var(--primary); }
+        /* ── subscript / superscript ── */
+        .notemage-editor sub, .notemage-editor sup { font-size: 0.75em; line-height: 0; position: relative; }
+        .notemage-editor sub { vertical-align: sub; }
+        .notemage-editor sup { vertical-align: super; }
+        /* ── task list (checkboxes) ── */
+        .notemage-editor ul[data-type='taskList'] { list-style: none !important; padding-left: 4px; margin: 8px 0 10px; }
+        .notemage-editor ul[data-type='taskList'] li { display: flex !important; align-items: flex-start; gap: 8px; margin: 4px 0; }
+        .notemage-editor ul[data-type='taskList'] li > label { flex-shrink: 0; margin-top: 5px; user-select: none; }
+        .notemage-editor ul[data-type='taskList'] li > div { flex: 1 1 auto; min-width: 0; }
+        .notemage-editor ul[data-type='taskList'] li > div > p { margin: 0; }
+        .notemage-editor ul[data-type='taskList'] input[type='checkbox'] { accent-color: #8c52ff; width: 15px; height: 15px; cursor: pointer; }
+        .notemage-editor ul[data-type='taskList'] li[data-checked='true'] > div { color: var(--ink-50); text-decoration: line-through; }
+        /* ── math (KaTeX) ── */
+        .notemage-editor [data-math='block'] { display: block; text-align: center; margin: 14px 0; overflow-x: auto; }
+        .notemage-editor [data-math='inline'] { display: inline-block; }
         /* ── float clearfix for wrap-mode images ── */
         .notemage-editor .ProseMirror::after { content: ''; display: table; clear: both; }
         /* ── placeholder ── */
         .notemage-editor p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
-          color: rgb(var(--notebook-ink-rgb) / 0.2);
+          color: var(--ink-20);
           pointer-events: none;
           float: left;
           height: 0;
@@ -1201,7 +1306,7 @@ export default function PageEditor({
         /* ── tables ── */
         .notemage-editor table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 14px 0; overflow: hidden; }
         .notemage-editor td, .notemage-editor th { border: 1px solid rgba(174,137,255,0.36); padding: 8px 12px; vertical-align: top; position: relative; }
-        .notemage-editor th { background: rgba(140,82,255,0.10); font-weight: 600; color: #c4b5fd; }
+        .notemage-editor th { background: rgba(140,82,255,0.10); font-weight: 600; color: var(--on-surface); }
         .notemage-editor td { background: rgba(140,82,255,0.03); }
         .notemage-editor .selectedCell:after { content: ''; position: absolute; inset: 0; background: rgba(140,82,255,0.12); pointer-events: none; z-index: 2; }
         .notemage-editor .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: 0; width: 4px; background: rgba(140,82,255,0.4); cursor: col-resize; z-index: 10; }
@@ -1257,7 +1362,7 @@ export default function PageEditor({
               fontSize: '11px',
               color:
                 saveStatus === 'saved'
-                  ? 'rgb(var(--notebook-ink-rgb) / 0.2)'
+                  ? 'var(--ink-20)'
                   : saveStatus === 'saving'
                     ? 'rgba(140,82,255,0.6)'
                     : 'rgba(249,115,22,0.6)',
@@ -1265,7 +1370,13 @@ export default function PageEditor({
             }}
           >
             {saveStatus === 'saving' && (
-              <Loader size={11} style={{ animation: 'spin 0.8s linear infinite' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 11, animation: 'spin 0.8s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
             )}
             {saveStatus === 'saved' && 'Saved'}
             {saveStatus === 'saving' && 'Saving...'}
@@ -1276,7 +1387,7 @@ export default function PageEditor({
           style={{
             fontFamily: 'inherit',
             fontSize: '11px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.22)',
+            color: 'var(--ink-20)',
             margin: '0 0 0 2px',
           }}
         >
@@ -1323,6 +1434,10 @@ export default function PageEditor({
       {/* ── Editor canvas (full width, infinite scroll) ── */}
       <div ref={editorContainerRef} style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         <div
+          // Cap the reading measure only when the page carries no pinned
+          // drawings, so capping never reflows text out from under saved
+          // strokes (overlay coordinates are absolute). See the gated CSS rule.
+          data-reading-measure={strokes.length === 0 && texts.length === 0 ? 'on' : 'off'}
           style={{
             padding: isPhone ? '16px 16px 60px' : isTablet ? '20px 28px 80px' : '28px 56px 80px',
             minHeight: '100%',

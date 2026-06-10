@@ -15,6 +15,8 @@ import SearchDropdown from '@/components/search/SearchDropdown';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { responsiveValue } from '@/lib/responsive';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
+import MultiPdfImportModal from '@/components/import/MultiPdfImportModal';
+import { Button } from '@/components/ui/Button';
 
 const ALL_LABEL = 'All Subjects';
 
@@ -22,7 +24,7 @@ function SkeletonCard() {
   return (
     <div
       style={{
-        background: '#12122a',
+        background: 'var(--background)',
         borderRadius: '12px',
         overflow: 'hidden',
         minHeight: '160px',
@@ -101,6 +103,9 @@ function NotebooksPageContent() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<NotebookData | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Multi-PDF import modal
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Search state
   const {
@@ -192,13 +197,6 @@ function NotebooksPageContent() {
       const json = await res.json();
       if (json.success) {
         setShowForm(false);
-        if (data.presetId && json.data?.id) {
-          fetch(`/api/notebooks/${json.data.id}/scaffold`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ presetId: data.presetId }),
-          }).catch(() => {});
-        }
         if (tutorialStep === 'step-2-notebook-form' && json.data?.id) {
           tutorialAdvance('step-3-workspace');
           router.push(`/notebooks/${json.data.id}`);
@@ -329,18 +327,38 @@ function NotebooksPageContent() {
     }
   };
 
+  // Distinct user-set subjects that don't map to one of our presets, so they can
+  // be filtered too — sorted, case-insensitively de-duped (first-seen casing wins).
+  const customSubjects = (() => {
+    const seen = new Map<string, string>();
+    const consider = (subject: string | null | undefined) => {
+      const s = (subject ?? '').trim();
+      if (!s || getPresetForSubject(s)) return;
+      const key = s.toLowerCase();
+      if (!seen.has(key)) seen.set(key, s);
+    };
+    notebooks.forEach((nb) => consider(nb.subject));
+    folders.forEach((folder) => (folder.descendantSubjects ?? []).forEach(consider));
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+  })();
+
+  const isPresetFilter = PRESETS.some((p) => p.label === activeFilter);
+
+  const matchesActiveFilter = (subject: string | null | undefined) =>
+    isPresetFilter
+      ? getPresetForSubject(subject)?.label === activeFilter
+      : (subject ?? '').trim().toLowerCase() === activeFilter.toLowerCase();
+
   const filteredNotebooks =
-    activeFilter === 'All Subjects'
+    activeFilter === ALL_LABEL
       ? notebooks
-      : notebooks.filter((nb) => getPresetForSubject(nb.subject)?.label === activeFilter);
+      : notebooks.filter((nb) => matchesActiveFilter(nb.subject));
 
   const filteredFolders =
-    activeFilter === 'All Subjects'
+    activeFilter === ALL_LABEL
       ? folders
       : folders.filter((folder) =>
-          (folder.descendantSubjects ?? []).some(
-            (s) => getPresetForSubject(s)?.label === activeFilter
-          )
+          (folder.descendantSubjects ?? []).some((s) => matchesActiveFilter(s))
         );
 
   return (
@@ -395,8 +413,8 @@ function NotebooksPageContent() {
               padding: '8px 14px 8px 12px',
               borderRadius: '10px',
               border: `1px solid ${filterOpen ? 'rgba(174,137,255,0.35)' : 'rgba(174,137,255,0.12)'}`,
-              background: filterOpen ? 'rgba(174,137,255,0.08)' : '#22223a',
-              color: '#e5e3ff',
+              background: filterOpen ? 'rgba(174,137,255,0.08)' : 'var(--surface-container)',
+              color: 'var(--on-surface)',
               fontSize: '13px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -423,7 +441,7 @@ function NotebooksPageContent() {
                 filter_list
               </span>
             )}
-            <span style={{ color: activeFilter !== ALL_LABEL ? '#e5e3ff' : '#aaa8c8' }}>
+            <span style={{ color: activeFilter !== ALL_LABEL ? 'var(--on-surface)' : '#aaa8c8' }}>
               {activeFilter !== ALL_LABEL ? activeFilter : 'All Subjects'}
             </span>
             <span
@@ -448,7 +466,7 @@ function NotebooksPageContent() {
                 top: 'calc(100% + 6px)',
                 left: 0,
                 zIndex: 200,
-                background: '#18182e',
+                background: 'var(--surface)',
                 border: '1px solid rgba(174,137,255,0.18)',
                 borderRadius: '12px',
                 boxShadow: '0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(174,137,255,0.06)',
@@ -475,7 +493,7 @@ function NotebooksPageContent() {
                   borderRadius: '8px',
                   border: 'none',
                   background: activeFilter === ALL_LABEL ? 'rgba(174,137,255,0.12)' : 'transparent',
-                  color: activeFilter === ALL_LABEL ? '#e5e3ff' : '#aaa8c8',
+                  color: activeFilter === ALL_LABEL ? 'var(--on-surface)' : '#aaa8c8',
                   fontSize: '13px',
                   fontWeight: activeFilter === ALL_LABEL ? 600 : 400,
                   cursor: 'pointer',
@@ -505,7 +523,7 @@ function NotebooksPageContent() {
                 {activeFilter === ALL_LABEL && (
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: '14px', color: '#ae89ff', marginLeft: 'auto' }}
+                    style={{ fontSize: '14px', color: 'var(--md-h4)', marginLeft: 'auto' }}
                   >
                     check
                   </span>
@@ -533,7 +551,7 @@ function NotebooksPageContent() {
                     border: 'none',
                     background:
                       activeFilter === preset.label ? 'rgba(174,137,255,0.12)' : 'transparent',
-                    color: activeFilter === preset.label ? '#e5e3ff' : '#aaa8c8',
+                    color: activeFilter === preset.label ? 'var(--on-surface)' : '#aaa8c8',
                     fontSize: '13px',
                     fontWeight: activeFilter === preset.label ? 600 : 400,
                     cursor: 'pointer',
@@ -563,13 +581,91 @@ function NotebooksPageContent() {
                   {activeFilter === preset.label && (
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: '14px', color: '#ae89ff', marginLeft: 'auto' }}
+                      style={{ fontSize: '14px', color: 'var(--md-h4)', marginLeft: 'auto' }}
                     >
                       check
                     </span>
                   )}
                 </button>
               ))}
+
+              {customSubjects.length > 0 && (
+                <>
+                  <div
+                    style={{
+                      height: '1px',
+                      background: 'rgba(174,137,255,0.20)',
+                      margin: '4px 6px',
+                    }}
+                  />
+                  <div
+                    style={{
+                      padding: '6px 10px 4px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: '#8888a8',
+                    }}
+                  >
+                    Your subjects
+                  </div>
+                  {customSubjects.map((subject) => (
+                    <button
+                      key={`custom-${subject}`}
+                      onClick={() => {
+                        setActiveFilter(subject);
+                        setFilterOpen(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background:
+                          activeFilter === subject ? 'rgba(174,137,255,0.12)' : 'transparent',
+                        color: activeFilter === subject ? 'var(--on-surface)' : '#aaa8c8',
+                        fontSize: '13px',
+                        fontWeight: activeFilter === subject ? 600 : 400,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (activeFilter !== subject)
+                          (e.currentTarget as HTMLButtonElement).style.background =
+                            'rgba(174,137,255,0.06)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (activeFilter !== subject)
+                          (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: 'var(--primary)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      {subject}
+                      {activeFilter === subject && (
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '14px', color: 'var(--md-h4)', marginLeft: 'auto' }}
+                        >
+                          check
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -645,8 +741,8 @@ function NotebooksPageContent() {
               padding: '8px 12px 8px 38px',
               borderRadius: 10,
               border: `1.5px solid ${searchFocused ? '#ae89ff' : 'rgba(174,137,255,0.12)'}`,
-              background: '#22223a',
-              color: '#e5e3ff',
+              background: 'var(--surface-container)',
+              color: 'var(--on-surface)',
               fontSize: 13,
               outline: 'none',
               fontFamily: 'inherit',
@@ -681,110 +777,60 @@ function NotebooksPageContent() {
           style={{
             marginLeft: isPhone ? undefined : 'auto',
             display: 'flex',
+            flexWrap: 'wrap',
             gap: '10px',
             width: isPhone ? '100%' : undefined,
           }}
         >
-          {/* New Folder button */}
-          <button
+          {/* New Folder & Import PDFs are quiet secondaries — accent is
+              reserved for the single primary action (Add Notebook) per the
+              accent-discipline rule (audit item 5). */}
+          <Button
+            variant="secondary"
+            shape="pill"
+            leadingIcon="create_new_folder"
             onClick={() => {
               setEditingFolder(null);
               setShowFolderForm(true);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 20px',
-              borderRadius: '9999px',
-              border: '1px solid rgba(174,137,255,0.25)',
-              background: 'transparent',
-              color: '#ae89ff',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              flex: isPhone ? 1 : undefined,
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-            }}
-            onMouseDown={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
+            style={{ flex: isPhone ? '1 1 100%' : undefined }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              create_new_folder
-            </span>
             New Folder
-          </button>
+          </Button>
 
-          {/* Add Notebook button */}
-          <button
+          <Button
+            variant="secondary"
+            shape="pill"
+            leadingIcon="upload_file"
+            data-tutorial="notebooks"
+            onClick={() => setShowImportModal(true)}
+            style={{ flex: isPhone ? '1 1 100%' : undefined }}
+          >
+            Import PDFs
+          </Button>
+
+          <Button
+            variant="primary"
+            shape="pill"
+            leadingIcon="add"
             onClick={() => {
               setEditingNotebook(null);
               setShowForm(true);
             }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 24px',
-              borderRadius: '9999px',
-              border: 'none',
-              background: '#ae89ff',
-              color: '#2a0066',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              flex: isPhone ? 1 : undefined,
-              boxShadow: '0 4px 16px rgba(174,137,255,0.25)',
-              transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-            }}
-            onMouseDown={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.95)';
-            }}
-            onMouseUp={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
-            }}
+            style={{ flex: isPhone ? '1 1 100%' : undefined }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              add
-            </span>
             Add Notebook
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Loading */}
       {isLoading && (
         <div
+          className="responsive-grid-auto"
           style={{
             display: 'grid',
-            gridTemplateColumns: responsiveValue(bp, {
-              phone: '1fr',
-              tablet: 'repeat(auto-fill, minmax(240px, 1fr))',
-              desktop: 'repeat(auto-fill, minmax(280px, 1fr))',
-            }),
-            gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+            gap: 'clamp(16px, 2vw, 24px)',
           }}
         >
           {[0, 1, 2].map((i) => (
@@ -796,14 +842,10 @@ function NotebooksPageContent() {
       {/* Grid */}
       {!isLoading && (
         <div
+          className="responsive-grid-auto"
           style={{
             display: 'grid',
-            gridTemplateColumns: responsiveValue(bp, {
-              phone: '1fr',
-              tablet: 'repeat(auto-fill, minmax(240px, 1fr))',
-              desktop: 'repeat(auto-fill, minmax(280px, 1fr))',
-            }),
-            gap: responsiveValue(bp, { phone: '16px', tablet: '20px', desktop: '24px' }),
+            gap: 'clamp(16px, 2vw, 24px)',
           }}
         >
           {/* Folders first */}
@@ -867,7 +909,7 @@ function NotebooksPageContent() {
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
                 '.add-folder-label'
               );
-              if (label) label.style.color = '#e5e3ff';
+              if (label) label.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.3)';
@@ -875,7 +917,7 @@ function NotebooksPageContent() {
                 '.add-folder-icon-wrap'
               );
               if (icon) {
-                icon.style.background = '#272746';
+                icon.style.background = 'var(--surface-container)';
                 icon.style.transform = 'scale(1)';
               }
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
@@ -890,7 +932,7 @@ function NotebooksPageContent() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#272746',
+                background: 'var(--surface-container)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -900,7 +942,7 @@ function NotebooksPageContent() {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '28px', color: '#8888a8' }}
+                style={{ fontSize: '28px', color: 'var(--outline)' }}
               >
                 create_new_folder
               </span>
@@ -909,7 +951,7 @@ function NotebooksPageContent() {
               className="add-folder-label"
               style={{
                 fontWeight: 700,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 margin: '4px 0 0',
                 transition: 'color 0.2s',
               }}
@@ -919,7 +961,7 @@ function NotebooksPageContent() {
             <p
               style={{
                 fontSize: '12px',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 margin: 0,
                 textAlign: 'center',
                 padding: '0 24px',
@@ -960,7 +1002,7 @@ function NotebooksPageContent() {
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
                 '.add-label'
               );
-              if (label) label.style.color = '#e5e3ff';
+              if (label) label.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(70,69,96,0.3)';
@@ -968,7 +1010,7 @@ function NotebooksPageContent() {
                 '.add-icon-wrap'
               );
               if (icon) {
-                icon.style.background = '#272746';
+                icon.style.background = 'var(--surface-container)';
                 icon.style.transform = 'scale(1)';
               }
               const label = (e.currentTarget as HTMLDivElement).querySelector<HTMLParagraphElement>(
@@ -983,7 +1025,7 @@ function NotebooksPageContent() {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#272746',
+                background: 'var(--surface-container)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -993,7 +1035,7 @@ function NotebooksPageContent() {
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '28px', color: '#8888a8' }}
+                style={{ fontSize: '28px', color: 'var(--outline)' }}
               >
                 add
               </span>
@@ -1002,7 +1044,7 @@ function NotebooksPageContent() {
               className="add-label"
               style={{
                 fontWeight: 700,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 margin: '4px 0 0',
                 transition: 'color 0.2s',
               }}
@@ -1012,7 +1054,7 @@ function NotebooksPageContent() {
             <p
               style={{
                 fontSize: '12px',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 margin: 0,
                 textAlign: 'center',
                 padding: '0 24px',
@@ -1053,6 +1095,17 @@ function NotebooksPageContent() {
         />
       )}
 
+      {/* Multi-PDF import modal */}
+      {showImportModal && (
+        <MultiPdfImportModal
+          folderId={currentFolderId}
+          onClose={() => {
+            setShowImportModal(false);
+            fetchContents();
+          }}
+        />
+      )}
+
       {/* Delete notebook confirmation modal */}
       {deleteTarget && (
         <div
@@ -1073,7 +1126,7 @@ function NotebooksPageContent() {
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: '20px',
               padding: '32px',
               width: '100%',
@@ -1105,10 +1158,24 @@ function NotebooksPageContent() {
                 delete
               </span>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+            <h3
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: '0 0 8px',
+              }}
+            >
               Delete &ldquo;{deleteTarget.name}&rdquo;?
             </h3>
-            <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 28px', lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--on-surface-variant)',
+                margin: '0 0 28px',
+                lineHeight: 1.6,
+              }}
+            >
               This will permanently delete the notebook and all its documents and chat history. This
               action cannot be undone.
             </p>
@@ -1122,11 +1189,11 @@ function NotebooksPageContent() {
                   flex: 1,
                   padding: '12px',
                   borderRadius: '12px',
-                  background: '#35355c',
+                  background: 'var(--surface-container-highest)',
                   border: 'none',
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: deleteLoading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                 }}
@@ -1176,7 +1243,7 @@ function NotebooksPageContent() {
         >
           <div
             style={{
-              background: '#272746',
+              background: 'var(--surface-container)',
               borderRadius: '20px',
               padding: '32px',
               width: '100%',
@@ -1208,10 +1275,24 @@ function NotebooksPageContent() {
                 folder_delete
               </span>
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 8px' }}>
+            <h3
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: '0 0 8px',
+              }}
+            >
               Delete &ldquo;{deleteFolderTarget.name}&rdquo;?
             </h3>
-            <p style={{ fontSize: '14px', color: '#aaa8c8', margin: '0 0 28px', lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--on-surface-variant)',
+                margin: '0 0 28px',
+                lineHeight: 1.6,
+              }}
+            >
               This will delete the folder and all sub-folders. Notebooks inside will be moved to the
               root level. This action cannot be undone.
             </p>
@@ -1225,11 +1306,11 @@ function NotebooksPageContent() {
                   flex: 1,
                   padding: '12px',
                   borderRadius: '12px',
-                  background: '#35355c',
+                  background: 'var(--surface-container-highest)',
                   border: 'none',
                   fontSize: '14px',
                   fontWeight: 600,
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: deleteFolderLoading ? 'not-allowed' : 'pointer',
                   fontFamily: 'inherit',
                 }}
@@ -1270,7 +1351,7 @@ export default function NotebooksPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))',
               gap: '24px',
             }}
           >

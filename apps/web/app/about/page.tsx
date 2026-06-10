@@ -2,6 +2,7 @@
 
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import LandingFooter from '@/components/landing/LandingFooter';
+import MarketingHeroBackdrop from '@/components/landing/MarketingHeroBackdrop';
 
 export default function AboutPage() {
   return (
@@ -9,8 +10,8 @@ export default function AboutPage() {
       className="nm-about"
       style={{
         position: 'relative',
-        background: '#000000',
-        color: '#ede9ff',
+        background: '#0c0a1a',
+        color: 'var(--on-surface)',
         fontFamily: 'var(--font-sans)',
         minHeight: '100vh',
         overflow: 'hidden',
@@ -27,58 +28,7 @@ export default function AboutPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Layered radial glows */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            background: 'rgba(140, 82, 255, 0.16)',
-          }}
-        />
-        {/* Grain overlay */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            opacity: 0.05,
-            mixBlendMode: 'overlay',
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          }}
-        />
-
-        {/* Scattered sparkles */}
-        {[
-          { top: '26%', left: '14%', size: 16, delay: '0s' },
-          { top: '68%', left: '10%', size: 12, delay: '1.4s' },
-          { top: '30%', left: '84%', size: 18, delay: '0.8s' },
-          { top: '74%', left: '86%', size: 14, delay: '2.2s' },
-        ].map((s, i) => (
-          <div
-            key={i}
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: s.top,
-              left: s.left,
-              width: s.size,
-              height: s.size,
-              animation: `nm-about-twinkle 3.6s ease-in-out infinite ${s.delay}`,
-              pointerEvents: 'none',
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"
-                fill="#ffde59"
-              />
-            </svg>
-          </div>
-        ))}
+        <MarketingHeroBackdrop />
 
         <div
           style={{
@@ -545,18 +495,6 @@ export default function AboutPage() {
       <LandingFooter />
 
       <style jsx global>{`
-        @keyframes nm-about-twinkle {
-          0%,
-          100% {
-            opacity: 0.25;
-            transform: scale(0.9);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.15);
-          }
-        }
-
         .nm-about a:focus-visible,
         .nm-about button:focus-visible {
           outline: 2px solid #ffde59;

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getAdminUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { successResponse, forbiddenResponse, internalErrorResponse } from '@/lib/api-response';
+import { TIERS } from '@/lib/tiers';
 
 // GET — platform stats overview (admin only)
 export async function GET(request: NextRequest) {
@@ -11,40 +12,61 @@ export async function GET(request: NextRequest) {
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [totalUsers, tierCounts, weeklyTokensAgg, waitlistCount] = await Promise.all([
+    const [totalUsers, tierCounts, usageAgg, usageByFeatureRaw, waitlistCount] = await Promise.all([
       db.user.count(),
       db.user.groupBy({
         by: ['tier'],
         _count: { _all: true },
       }),
-      db.chatMessage.aggregate({
-        where: { createdAt: { gte: sevenDaysAgo }, tokens: { not: null } },
-        _sum: { tokens: true },
+      // All-AI token spend + computed USD cost (every feature, not just chat).
+      db.aiUsageEvent.aggregate({
+        where: { createdAt: { gte: sevenDaysAgo } },
+        _sum: { inputTokens: true, outputTokens: true, costUsd: true },
+      }),
+      // Per-feature breakdown for the same window.
+      db.aiUsageEvent.groupBy({
+        by: ['feature'],
+        where: { createdAt: { gte: sevenDaysAgo } },
+        _sum: { inputTokens: true, outputTokens: true, costUsd: true },
+        _count: { _all: true },
       }),
       db.waitlist.count(),
     ]);
 
-    const tierMap: Record<string, number> = { FREE: 0, PLUS: 0, PRO: 0 };
+    const tierMap: Record<string, number> = { FREE: 0, PRO: 0 };
     for (const row of tierCounts) {
       tierMap[row.tier] = row._count._all;
     }
 
     const freeUsers = tierMap.FREE || 0;
-    const plusUsers = tierMap.PLUS || 0;
     const proUsers = tierMap.PRO || 0;
 
-    const weeklyTokensTotal = weeklyTokensAgg._sum.tokens ?? 0;
+    const weeklyTokensTotal =
+      (usageAgg._sum.inputTokens ?? 0) + (usageAgg._sum.outputTokens ?? 0);
+    const weeklyCostUsd = usageAgg._sum.costUsd ?? 0;
     const avgWeeklyTokensPerUser = totalUsers > 0 ? weeklyTokensTotal / totalUsers : 0;
 
-    const totalRevenue = plusUsers * 5 + proUsers * 10;
+    // Per-feature rollup, heaviest token spend first.
+    const usageByFeature = usageByFeatureRaw
+      .map((row) => ({
+        feature: row.feature,
+        tokens: (row._sum.inputTokens ?? 0) + (row._sum.outputTokens ?? 0),
+        costUsd: row._sum.costUsd ?? 0,
+        calls: row._count._all,
+      }))
+      .sort((a, b) => b.tokens - a.tokens);
+
+    // Rough MRR estimate in CHF — Pro headcount × the monthly Pro price.
+    const totalRevenue = Math.round(proUsers * TIERS.PRO.priceCHF);
 
     return successResponse({
       totalUsers,
       freeUsers,
-      plusUsers,
       proUsers,
       avgWeeklyTokensPerUser: Math.round(avgWeeklyTokensPerUser),
       weeklyTokensTotal,
+      weeklyCostUsd,
+      usageByFeature,
       totalRevenue,
       waitlistCount,
     });

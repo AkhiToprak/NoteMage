@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import { Mascot } from '@/components/mascot';
+import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
+import DateOfBirthField from './DateOfBirthField';
 
 interface AccountStepData {
-  username: string;
   email: string;
-  name: string;
   password: string;
   confirmPassword: string;
+  birthDate: string;
   agreed: boolean;
 }
 
@@ -20,9 +21,7 @@ interface AccountStepProps {
   error: string;
 }
 
-type UsernameStatus = 'idle' | 'typing' | 'checking' | 'available' | 'taken' | 'invalid';
-
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getPasswordScore(password: string): number {
   let score = 0;
@@ -36,55 +35,15 @@ function getPasswordScore(password: string): number {
 const scoreLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'];
 const scoreColor = ['#555578', '#fd6f85', '#ffde59', '#ae89ff', '#4dff91'];
 
+/**
+ * Onboarding screen 1 (credentials path): the real sign-up form — email,
+ * password, date of birth, terms. No username or name (those become their
+ * own onboarding screens). The 13+ gate is checked here, before `onNext`
+ * triggers account creation, so an under-13 user never gets a row.
+ */
 export default function AccountStep({ data, onChange, onNext, loading, error }: AccountStepProps) {
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
-  const [usernameMessage, setUsernameMessage] = useState('');
   const [confirmBlurred, setConfirmBlurred] = useState(false);
   const [localError, setLocalError] = useState('');
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const checkUsername = useCallback(async (username: string) => {
-    if (!USERNAME_REGEX.test(username)) {
-      setUsernameStatus('invalid');
-      setUsernameMessage('3–20 chars, letters, numbers, underscores');
-      return;
-    }
-    setUsernameStatus('checking');
-    setUsernameMessage('');
-    try {
-      const res = await fetch(`/api/user/check-username?username=${encodeURIComponent(username)}`);
-      const json = await res.json();
-      if (json.data?.available) {
-        setUsernameStatus('available');
-        setUsernameMessage('Available');
-      } else {
-        setUsernameStatus('taken');
-        setUsernameMessage('Taken');
-      }
-    } catch {
-      setUsernameStatus('idle');
-      setUsernameMessage('');
-    }
-  }, []);
-
-  const handleUsernameChange = (value: string) => {
-    onChange('username', value);
-    setUsernameStatus('typing');
-    setUsernameMessage('');
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.length === 0) {
-      setUsernameStatus('idle');
-      return;
-    }
-    debounceRef.current = setTimeout(() => checkUsername(value), 500);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
 
   const passwordScore = getPasswordScore(data.password);
 
@@ -92,24 +51,12 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
     e.preventDefault();
     setLocalError('');
 
-    if (!data.username) {
-      setLocalError('Username is required');
-      return;
-    }
-    if (!USERNAME_REGEX.test(data.username)) {
-      setLocalError('Username must be 3–20 chars, letters, numbers, underscores only');
-      return;
-    }
-    if (usernameStatus === 'taken') {
-      setLocalError('That username is already taken');
-      return;
-    }
-    if (usernameStatus === 'checking') {
-      setLocalError('Please wait while we check username availability');
-      return;
-    }
     if (!data.email) {
       setLocalError('Email is required');
+      return;
+    }
+    if (!EMAIL_REGEX.test(data.email)) {
+      setLocalError('Please enter a valid email address');
       return;
     }
     if (data.password.length < 8) {
@@ -118,6 +65,15 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
     }
     if (data.password !== data.confirmPassword) {
       setLocalError('Passwords do not match');
+      return;
+    }
+    const birth = parseBirthDate(data.birthDate);
+    if (!birth) {
+      setLocalError('Please enter a valid date of birth');
+      return;
+    }
+    if (computeAge(birth) < MIN_AGE) {
+      setLocalError(`You must be at least ${MIN_AGE} years old to use NoteMage.`);
       return;
     }
     if (!data.agreed) {
@@ -130,20 +86,15 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px 12px 48px',
-    background: '#35355c',
+    background: 'var(--surface-container-highest)',
     border: 'none',
     borderRadius: '14px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '15px',
     fontFamily: 'inherit',
     outline: 'none',
     boxSizing: 'border-box',
     transition: 'box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-  };
-
-  const inputWithRightStyle: React.CSSProperties = {
-    ...inputStyle,
-    paddingRight: '44px',
   };
 
   const iconWrapStyle: React.CSSProperties = {
@@ -155,14 +106,14 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
     display: 'flex',
     alignItems: 'center',
     pointerEvents: 'none',
-    color: '#aaa8c8',
+    color: 'var(--on-surface-variant)',
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: '13px',
     fontWeight: 600,
-    color: '#b9c3ff',
+    color: 'var(--on-surface-variant)',
     marginBottom: '6px',
     paddingLeft: '4px',
   };
@@ -174,8 +125,17 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
         <Mascot pose="wave" size="md" idle="float" />
       </div>
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 14px' }}>
-        Create Account
+      <h2
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '22px',
+          fontWeight: 800,
+          letterSpacing: '-0.02em',
+          color: 'var(--on-surface)',
+          margin: '0 0 14px',
+        }}
+      >
+        Create your account
       </h2>
 
       {displayError && (
@@ -193,126 +153,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-      >
-        {/* Username */}
-        <div>
-          <label style={labelStyle}>Username</label>
-          <div style={{ position: 'relative' }}>
-            <div style={iconWrapStyle}>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                alternate_email
-              </span>
-            </div>
-            <input
-              type="text"
-              placeholder="coolmage42"
-              value={data.username}
-              onChange={(e) => handleUsernameChange(e.target.value)}
-              disabled={loading}
-              style={inputWithRightStyle}
-              onFocus={(e) => {
-                e.target.style.boxShadow = '0 0 0 2px rgba(174,137,255,0.4)';
-              }}
-              onBlur={(e) => {
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-            {/* Right icon / status */}
-            <div
-              style={{
-                position: 'absolute',
-                right: '14px',
-                top: 0,
-                bottom: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              {usernameStatus === 'checking' && (
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: '18px',
-                    color: '#ae89ff',
-                    animation: 'spin 1s linear infinite',
-                  }}
-                >
-                  progress_activity
-                </span>
-              )}
-              {usernameStatus === 'available' && (
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '18px', color: '#4dff91', fontVariationSettings: "'FILL' 1" }}
-                >
-                  check_circle
-                </span>
-              )}
-              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '18px', color: '#fd6f85', fontVariationSettings: "'FILL' 1" }}
-                >
-                  cancel
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Status message */}
-          {usernameStatus === 'available' && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#4dff91' }}>
-              {usernameMessage}
-            </p>
-          )}
-          {usernameStatus === 'taken' && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#fd6f85' }}>
-              {usernameMessage}
-            </p>
-          )}
-          {usernameStatus === 'invalid' && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#fd6f85' }}>
-              {usernameMessage}
-            </p>
-          )}
-          {(usernameStatus === 'idle' || usernameStatus === 'typing') && (
-            <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#8888a8' }}>
-              3–20 chars, letters, numbers, underscores
-            </p>
-          )}
-        </div>
-
-        {/* Full Name */}
-        <div>
-          <label style={labelStyle}>
-            Full Name <span style={{ color: '#8888a8', fontWeight: 400 }}>(optional)</span>
-          </label>
-          <div style={{ position: 'relative' }}>
-            <div style={iconWrapStyle}>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                person
-              </span>
-            </div>
-            <input
-              type="text"
-              placeholder="Alex Mage"
-              value={data.name}
-              onChange={(e) => onChange('name', e.target.value)}
-              disabled={loading}
-              style={inputStyle}
-              onFocus={(e) => {
-                e.target.style.boxShadow = '0 0 0 2px rgba(174,137,255,0.4)';
-              }}
-              onBlur={(e) => {
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-        </div>
-
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {/* Email */}
         <div>
           <label style={labelStyle}>Email Address</label>
@@ -365,7 +206,6 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
               }}
             />
           </div>
-          {/* Strength indicator */}
           {data.password.length > 0 && (
             <div style={{ marginTop: '10px' }}>
               <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
@@ -428,6 +268,19 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           )}
         </div>
 
+        {/* Date of birth */}
+        <div>
+          <label style={labelStyle}>Date of Birth</label>
+          <DateOfBirthField
+            value={data.birthDate}
+            onChange={(value) => onChange('birthDate', value)}
+            disabled={loading}
+          />
+          <p style={{ margin: '8px 0 0 4px', fontSize: '12px', color: 'var(--outline)' }}>
+            You must be at least {MIN_AGE} to use NoteMage.
+          </p>
+        </div>
+
         {/* Terms */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '0 4px' }}>
           <input
@@ -440,7 +293,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
               width: '18px',
               height: '18px',
               borderRadius: '4px',
-              background: '#35355c',
+              background: 'var(--surface-container-highest)',
               border: 'none',
               accentColor: '#ae89ff',
               flexShrink: 0,
@@ -449,14 +302,29 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
           />
           <label
             htmlFor="terms-onboarding"
-            style={{ fontSize: '13px', color: '#aaa8c8', lineHeight: '1.6', cursor: 'pointer' }}
+            style={{
+              fontSize: '13px',
+              color: 'var(--on-surface-variant)',
+              lineHeight: '1.6',
+              cursor: 'pointer',
+            }}
           >
-            I agree to the{' '}
-            <a href="#" style={{ color: '#b9c3ff', textDecoration: 'none' }}>
+            I have read and accept the{' '}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--brand-purple-strong)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            >
               Terms of Service
             </a>{' '}
             and{' '}
-            <a href="#" style={{ color: '#b9c3ff', textDecoration: 'none' }}>
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--brand-purple-strong)', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+            >
               Privacy Policy
             </a>
             .
@@ -485,6 +353,7 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
+            marginTop: '4px',
           }}
           onMouseEnter={(e) => {
             if (!loading) {
@@ -518,12 +387,27 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
         </button>
       </form>
 
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <p
+        style={{
+          margin: '18px 0 0',
+          textAlign: 'center',
+          fontSize: '13px',
+          color: 'var(--on-surface-variant)',
+        }}
+      >
+        Already have an account?{' '}
+        <a
+          href="/auth/login"
+          style={{
+            color: 'var(--brand-purple-strong)',
+            fontWeight: 600,
+            textDecoration: 'underline',
+            textUnderlineOffset: '2px',
+          }}
+        >
+          Sign in
+        </a>
+      </p>
     </>
   );
 }

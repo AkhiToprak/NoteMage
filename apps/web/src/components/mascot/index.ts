@@ -13,3 +13,11 @@ export {
   type PoseEntry,
 } from './poses';
 export { fireMascotConfetti, type MascotConfettiOptions } from './confetti';
+export {
+  CelebrationProvider,
+  useCelebration,
+  useOptionalCelebration,
+  type CelebrationConfig,
+  type CelebrationContextValue,
+} from './CelebrationProvider';
+export { CelebrationOverlay, type CelebrationOverlayProps } from './CelebrationOverlay';

@@ -3,16 +3,16 @@
 import React, { useState } from 'react';
 
 const COLORS = {
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
   primary: '#ae89ff',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
   error: '#fd6f85',
   success: '#4ade80',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';

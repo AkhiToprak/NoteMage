@@ -28,6 +28,22 @@ export async function POST(request: NextRequest) {
       skipDuplicates: true,
     });
 
+    // Bump lastSeenAt so the friend list's presence info stays fresh even
+    // when the user never opens a WS connection (ws-server only ticks for
+    // users currently connected via socket.io, which is rare outside cowork).
+    // Throttled to once every 2 min via the OR-on-stale filter to keep
+    // writes bounded.
+    const twoMinAgo = new Date(Date.now() - 120_000);
+    db.user
+      .updateMany({
+        where: {
+          id: { equals: userId },
+          OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: twoMinAgo } }],
+        },
+        data: { lastSeenAt: new Date() },
+      })
+      .catch(() => {});
+
     // Keep streak progression on app usage now that recordActivity is gone.
     updateStreak(userId).catch(() => {});
 

@@ -1,4 +1,5 @@
 import PptxGenJS from 'pptxgenjs';
+import type { QuestionKind } from '@notemage/shared';
 
 export interface SlideData {
   title: string;
@@ -12,6 +13,20 @@ const BRAND_COLORS = {
   accent: '8c52ff',
   text: 'ede9ff',
   subtext: 'a09cb5',
+};
+
+const KIND_LABEL: Record<QuestionKind, string> = {
+  mc: 'Multiple choice',
+  true_false: 'True/False',
+  fill_blank: 'Fill-in-the-blank',
+  word_bank: 'Word bank',
+  match_pairs: 'Match pairs',
+  sentence_reorder: 'Sentence reorder',
+  equation: 'Equation',
+  translation: 'Translation',
+  code_output: 'Code output',
+  timeline: 'Timeline',
+  code_write: 'Code writing',
 };
 
 export async function generateFlashcardPptx(
@@ -113,7 +128,13 @@ export async function generateFlashcardPptx(
 
 export async function generateQuizPptx(
   setTitle: string,
-  questions: { question: string; options: string[]; correctIndex: number; hint?: string | null }[]
+  questions: {
+    kind?: QuestionKind;
+    question: string;
+    options: string[];
+    correctIndex: number;
+    hint?: string | null;
+  }[]
 ): Promise<Buffer> {
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
@@ -145,6 +166,7 @@ export async function generateQuizPptx(
 
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
+    const kind: QuestionKind = q.kind ?? 'mc';
     const slide = pptx.addSlide();
     slide.background = { color: BRAND_COLORS.bg };
 
@@ -164,21 +186,32 @@ export async function generateQuizPptx(
       bold: true,
     });
 
-    // Options
-    q.options.forEach((opt, j) => {
-      slide.addText(`${OPTION_LABELS[j]}.  ${opt}`, {
+    if (kind === 'mc') {
+      q.options.forEach((opt, j) => {
+        slide.addText(`${OPTION_LABELS[j]}.  ${opt}`, {
+          x: 1.0,
+          y: 2.2 + j * 0.8,
+          w: '80%',
+          fontSize: 18,
+          color: BRAND_COLORS.text,
+        });
+      });
+      slide.addNotes(
+        `Correct answer: ${OPTION_LABELS[q.correctIndex]}. ${q.options[q.correctIndex]}${q.hint ? `\nHint: ${q.hint}` : ''}`
+      );
+    } else {
+      slide.addText(`[ ${KIND_LABEL[kind]} question — answer in the NoteMage app ]`, {
         x: 1.0,
-        y: 2.2 + j * 0.8,
+        y: 3.0,
         w: '80%',
         fontSize: 18,
-        color: BRAND_COLORS.text,
+        color: BRAND_COLORS.subtext,
+        italic: true,
       });
-    });
-
-    // Speaker notes with correct answer
-    slide.addNotes(
-      `Correct answer: ${OPTION_LABELS[q.correctIndex]}. ${q.options[q.correctIndex]}${q.hint ? `\nHint: ${q.hint}` : ''}`
-    );
+      slide.addNotes(
+        `${KIND_LABEL[kind]} question — full answer key is only viewable in-app.${q.hint ? `\nHint: ${q.hint}` : ''}`
+      );
+    }
   }
 
   const output = await pptx.write({ outputType: 'nodebuffer' });

@@ -5,11 +5,11 @@ import { UserAvatar } from '@/components/user/UserAvatar';
 import { UserName } from '@/components/user/UserName';
 
 const COLORS = {
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
   primary: '#ae89ff',
-  textPrimary: '#e5e3ff',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textMuted: 'var(--outline)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';

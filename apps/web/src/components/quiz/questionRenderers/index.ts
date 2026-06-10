@@ -1,10 +1,32 @@
 import type { ComponentType } from 'react';
 import type { QuestionKind } from '@notemage/shared';
 import MCRenderer from './MCRenderer';
+import TrueFalseRenderer from './TrueFalseRenderer';
+import FillBlankRenderer from './FillBlankRenderer';
+import TranslationRenderer from './TranslationRenderer';
+import WordBankRenderer from './WordBankRenderer';
+import MatchPairsRenderer from './MatchPairsRenderer';
+import SentenceReorderRenderer from './SentenceReorderRenderer';
+import EquationRenderer from './EquationRenderer';
+import CodeOutputRenderer from './CodeOutputRenderer';
+import TimelineRenderer from './TimelineRenderer';
+import CodeWriteRenderer from './CodeWriteRenderer';
 import type { QuestionProps } from './types';
 
 export type { QuestionProps, QuizQuestionForRender, QuizRenderMode, UserAnswer } from './types';
-export { MCRenderer };
+export {
+  MCRenderer,
+  TrueFalseRenderer,
+  FillBlankRenderer,
+  TranslationRenderer,
+  WordBankRenderer,
+  MatchPairsRenderer,
+  SentenceReorderRenderer,
+  EquationRenderer,
+  CodeOutputRenderer,
+  TimelineRenderer,
+  CodeWriteRenderer,
+};
 
 // Registry value type: each renderer narrows `TPayload` to its own payload
 // shape, but the registry erases that distinction. `any` here is the standard
@@ -15,9 +37,19 @@ export { MCRenderer };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyQuestionRenderer = ComponentType<QuestionProps<any>>;
 
-// Phase 1 registers only `mc`. Phase 2A/2B agents add the remaining seven
-// entries. The dispatcher in QuizViewer handles the missing-kind case so
-// unregistered kinds render a placeholder instead of crashing.
+// 11 kinds: the original 8 plus subject-native code_output (coding),
+// timeline (history/humanities), and code_write (server-graded code
+// execution via Piston).
 export const RENDERERS: Partial<Record<QuestionKind, AnyQuestionRenderer>> = {
   mc: MCRenderer,
+  true_false: TrueFalseRenderer,
+  fill_blank: FillBlankRenderer,
+  translation: TranslationRenderer,
+  word_bank: WordBankRenderer,
+  match_pairs: MatchPairsRenderer,
+  sentence_reorder: SentenceReorderRenderer,
+  equation: EquationRenderer,
+  code_output: CodeOutputRenderer,
+  timeline: TimelineRenderer,
+  code_write: CodeWriteRenderer,
 };

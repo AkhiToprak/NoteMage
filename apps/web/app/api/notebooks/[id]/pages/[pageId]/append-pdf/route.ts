@@ -44,7 +44,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { storagePath, fileType } = await request.json();
 
     if (!storagePath) return badRequestResponse('No storagePath provided');
-    if (!validateStoragePath(storagePath, 'temp-imports/')) {
+    // Scope to the caller's temp-import prefix (service-role client bypasses RLS).
+    if (!validateStoragePath(storagePath, `temp-imports/${userId}/`)) {
       return badRequestResponse('Invalid storage path');
     }
     if (fileType !== 'application/pdf') {

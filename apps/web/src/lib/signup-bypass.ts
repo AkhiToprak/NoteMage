@@ -11,8 +11,9 @@
 //   - the NextAuth `signIn` callback (Google / web Apple)
 //   - POST /api/auth/native/apple (iOS shell Apple)
 //
-// If `SIGNUP_BYPASS_TOKEN` is unset, every check returns false — i.e.
-// signups stay paused for everyone, which is the intended default.
+// The expected token is read solely from the `SIGNUP_BYPASS_TOKEN` env var —
+// there is no baked-in fallback. If that var is unset (or empty), every check
+// returns false, i.e. signups stay paused for everyone, the intended default.
 
 import { cookies as nextCookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
@@ -40,9 +41,9 @@ function normalizeEnvToken(raw: string | undefined): string {
 }
 
 export function isValidBypassToken(value: string | null | undefined): boolean {
+  if (typeof value !== 'string' || value.length === 0) return false;
   const expected = normalizeEnvToken(process.env.SIGNUP_BYPASS_TOKEN);
   if (expected.length === 0) return false;
-  if (typeof value !== 'string' || value.length === 0) return false;
   return constantTimeEqual(value, expected);
 }
 

@@ -224,13 +224,13 @@ export default function CoWorkChat({
             : hoveredToggle
               ? 'rgba(174,137,255,0.2)'
               : 'rgba(174,137,255,0.12)',
-          color: isOpen ? '#000000' : '#ae89ff',
+          color: isOpen ? 'var(--background)' : '#ae89ff',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           boxShadow: isOpen ? '0 8px 24px rgba(174,137,255,0.3)' : '0 4px 16px rgba(0,0,0,0.3)',
-          transition: `all 0.2s ${EASING}`,
+          transition: `background 0.2s ${EASING}, color 0.2s ${EASING}, box-shadow 0.2s ${EASING}`,
           zIndex: 1000,
         }}
       >
@@ -247,7 +247,7 @@ export default function CoWorkChat({
               height: 18,
               borderRadius: 9,
               background: '#fd6f85',
-              color: '#fff',
+              color: 'var(--on-surface)',
               fontSize: 9,
               fontWeight: 800,
               display: 'flex',
@@ -270,7 +270,7 @@ export default function CoWorkChat({
             right: 24,
             width: 320,
             maxHeight: 440,
-            background: '#21213e',
+            background: 'var(--surface-container-low)',
             borderRadius: 20,
             border: '1px solid #555578',
             boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
@@ -292,10 +292,12 @@ export default function CoWorkChat({
               gap: 8,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#ae89ff' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent-strong)' }}>
               forum
             </span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#e5e3ff' }}>Session Chat</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--on-surface)' }}>
+              Session Chat
+            </span>
             <span
               style={{
                 fontSize: 9,
@@ -327,7 +329,7 @@ export default function CoWorkChat({
                 style={{
                   textAlign: 'center',
                   padding: '40px 16px',
-                  color: '#8888a8',
+                  color: 'var(--outline)',
                   fontSize: 12,
                 }}
               >
@@ -364,12 +366,12 @@ export default function CoWorkChat({
                           justifyContent: 'center',
                           fontSize: 8,
                           fontWeight: 700,
-                          color: '#fff',
+                          color: 'var(--on-surface)',
                         }}
                       >
                         {msg.username[0].toUpperCase()}
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa8c8' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--on-surface-variant)' }}>
                         {msg.username}
                       </span>
                     </div>
@@ -379,9 +381,9 @@ export default function CoWorkChat({
                       maxWidth: '85%',
                       padding: '8px 12px',
                       borderRadius: isOwn ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                      background: isOwn ? 'rgba(174,137,255,0.2)' : '#2d2d52',
+                      background: isOwn ? 'rgba(174,137,255,0.2)' : 'var(--surface-container-high)',
                       fontSize: 13,
-                      color: '#e5e3ff',
+                      color: 'var(--on-surface)',
                       lineHeight: 1.5,
                       wordBreak: 'break-word',
                     }}
@@ -424,8 +426,8 @@ export default function CoWorkChat({
                 padding: '9px 14px',
                 borderRadius: 12,
                 border: 'none',
-                background: '#35355c',
-                color: '#e5e3ff',
+                background: 'var(--surface-container-highest)',
+                color: 'var(--on-surface)',
                 fontSize: 13,
                 fontFamily: 'inherit',
                 outline: 'none',
@@ -441,14 +443,18 @@ export default function CoWorkChat({
                 height: 36,
                 borderRadius: 10,
                 border: 'none',
-                background: input.trim() ? (hoveredSend ? '#c4a6ff' : '#ae89ff') : '#35355c',
-                color: input.trim() ? '#fff' : '#8888a8',
+                background: input.trim()
+                  ? hoveredSend
+                    ? '#c4a6ff'
+                    : '#ae89ff'
+                  : 'var(--surface-container-highest)',
+                color: input.trim() ? 'var(--on-surface)' : '#8888a8',
                 cursor: input.trim() ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                transition: `all 0.15s ${EASING}`,
+                transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>

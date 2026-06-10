@@ -1,4 +1,4 @@
-// Copy bank for the mascot reaction engine (Phase 3 of the personal-Duolingo rework).
+// Copy bank for the mascot reaction engine (Phase 3 of the personal learning-path rework).
 //
 // Drafts: first-pass, edit for voice. Tone: encouraging, plain English, no exclamation overload.
 // pickCopy() is deterministic when a seed is supplied — the same (tier, seed) pair always

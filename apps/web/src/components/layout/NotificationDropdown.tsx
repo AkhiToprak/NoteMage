@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import {
   Notification,
   NOTIFICATION_ICONS,
@@ -35,6 +36,7 @@ export default function NotificationDropdown({
   onReadAll,
 }: NotificationDropdownProps) {
   const router = useRouter();
+  const { isPhone } = useBreakpoint();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -97,12 +99,18 @@ export default function NotificationDropdown({
       `}</style>
       <div
         style={{
-          position: 'absolute',
-          right: 0,
-          top: '100%',
-          marginTop: 8,
-          width: 360,
-          maxHeight: 440,
+          // The bell sits between the timer and avatar, so a right-anchored
+          // 360px panel runs off the left edge on a phone. On phone, pin it to
+          // both viewport gutters instead (a fixed pixel top works whether the
+          // containing block is the backdrop-filtered header or the viewport).
+          position: isPhone ? 'fixed' : 'absolute',
+          right: isPhone ? 8 : 0,
+          left: isPhone ? 8 : 'auto',
+          top: isPhone ? 'calc(env(safe-area-inset-top, 0px) + 60px)' : '100%',
+          marginTop: isPhone ? 0 : 8,
+          width: isPhone ? 'auto' : 360,
+          maxWidth: isPhone ? 'none' : 'calc(100vw - 16px)',
+          maxHeight: isPhone ? 'calc(100dvh - 76px)' : 440,
           background: COLORS.cardBg,
           border: `1px solid ${COLORS.border}`,
           borderRadius: 18,

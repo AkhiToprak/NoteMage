@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 interface ShareContentModalProps {
   open: boolean;
@@ -18,17 +19,17 @@ interface ContentItem {
 }
 
 const COLORS = {
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
   error: '#fd6f85',
   success: '#4ade80',
-  border: '#555578',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -57,6 +58,7 @@ export default function ShareContentModal({
   const [hoveredClose, setHoveredClose] = useState(false);
   const [search, setSearch] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
+  const dims = useModalDimensions(520);
 
   const fetchContent = useCallback(async (type: string) => {
     setLoading(true);
@@ -246,11 +248,8 @@ export default function ShareContentModal({
           aria-modal="true"
           aria-label="Share Content"
           style={{
-            maxWidth: 520,
-            width: 'calc(100% - 32px)',
-            maxHeight: 'calc(100vh - 64px)',
+            ...dims,
             background: COLORS.cardBg,
-            borderRadius: 24,
             padding: 0,
             boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
             animation: `modalSlideUp 0.3s ${EASING}`,

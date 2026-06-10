@@ -48,7 +48,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const { storagePath, fileName } = await request.json();
 
-    if (!storagePath || !validateStoragePath(storagePath, 'images/')) {
+    if (!storagePath || !validateStoragePath(storagePath, `images/${pageId}/`)) {
       return badRequestResponse('Invalid or missing storagePath');
     }
 

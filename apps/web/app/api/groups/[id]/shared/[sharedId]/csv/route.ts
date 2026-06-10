@@ -61,8 +61,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 function escapeCsv(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  // Neutralize CSV/formula injection: a cell beginning with = + - @ (or a tab/CR
+  // that a spreadsheet treats as a formula lead-in) is prefixed with a single
+  // quote so Excel/Sheets/LibreOffice render it as literal text, not a formula.
+  let v = value;
+  if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
+  if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+    return `"${v.replace(/"/g, '""')}"`;
   }
-  return value;
+  return v;
 }

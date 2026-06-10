@@ -240,6 +240,69 @@
   will-change: transform;
 }
 
+@keyframes mascotCheerSmall {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-7px) scale(1.03);
+  }
+  70% {
+    transform: translateY(-1px) scale(1.01);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cheerSmall {
+  animation: mascotCheerSmall 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+@keyframes mascotCheerBig {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-12px) scale(1.05) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-16px) scale(1.07) rotate(3deg);
+  }
+  75% {
+    transform: translateY(-4px) scale(1.02) rotate(-1deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.cheerBig {
+  animation: mascotCheerBig 900ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  will-change: transform;
+}
+
+@keyframes mascotComfort {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  30% {
+    transform: rotate(-3deg) translateY(1px);
+  }
+  60% {
+    transform: rotate(3deg) translateY(1px);
+  }
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+
+.comfort {
+  animation: mascotComfort 700ms ease-in-out both;
+  will-change: transform;
+}
+
 .wandSparkle {
   position: absolute;
   inset: 0;
@@ -382,6 +445,9 @@
   .stepOut,
   .cast,
   .celebrate,
+  .cheerSmall,
+  .cheerBig,
+  .comfort,
   .wandSparkleDot,
   .burstDot1,
   .burstDot2,

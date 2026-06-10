@@ -11,6 +11,7 @@ import {
 } from 'react';
 import type { Editor } from '@tiptap/react';
 import type { SlashCommandState } from '@/lib/tiptap-slash-command';
+import { insertCodeBlock } from '@/lib/tiptap-code-block';
 
 /**
  * Slash menu popup component.
@@ -39,6 +40,28 @@ interface MenuItem {
 }
 
 const ITEMS: MenuItem[] = [
+  // ── AI ────────────────────────────────────────────────────
+  {
+    id: 'ask-ai',
+    label: 'Ask AI',
+    description: 'Rewrite, summarize or expand with AI',
+    icon: 'auto_fix',
+    group: 'AI',
+    keywords: ['ai', 'ask', 'assistant', 'rewrite', 'summarize', 'expand', 'generate'],
+    run: (editor, range) => {
+      // Remove the typed "/…", then select the current block's text so the
+      // inline AI toolbar (Rewrite / Summarize / Expand → preview) appears for
+      // it. Reuses the inline-AI preview flow (audit items 12 + 13). On an
+      // empty block there's nothing to select, so the toolbar simply won't show.
+      editor.chain().focus().deleteRange(range).run();
+      const { $from } = editor.state.selection;
+      const start = $from.start();
+      const end = $from.end();
+      if (end > start) {
+        editor.chain().focus().setTextSelection({ from: start, to: end }).run();
+      }
+    },
+  },
   // ── Basic blocks ──────────────────────────────────────────
   {
     id: 'paragraph',
@@ -57,7 +80,7 @@ const ITEMS: MenuItem[] = [
     group: 'Basic',
     keywords: ['heading', 'h1', 'title', 'big', 'large'],
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setToggleHeading({ level: 1 }).run(),
+      editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run(),
   },
   {
     id: 'h2',
@@ -67,7 +90,7 @@ const ITEMS: MenuItem[] = [
     group: 'Basic',
     keywords: ['heading', 'h2', 'subtitle', 'medium'],
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setToggleHeading({ level: 2 }).run(),
+      editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run(),
   },
   {
     id: 'h3',
@@ -77,7 +100,7 @@ const ITEMS: MenuItem[] = [
     group: 'Basic',
     keywords: ['heading', 'h3', 'small'],
     run: (editor, range) =>
-      editor.chain().focus().deleteRange(range).setToggleHeading({ level: 3 }).run(),
+      editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run(),
   },
   {
     id: 'bullet-list',
@@ -97,6 +120,15 @@ const ITEMS: MenuItem[] = [
     keywords: ['number', 'numbered', 'ordered', 'list', 'ol'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
   },
+  {
+    id: 'task-list',
+    label: 'Task list',
+    description: 'Checklist with checkboxes',
+    icon: 'checklist',
+    group: 'Lists',
+    keywords: ['task', 'todo', 'checklist', 'checkbox', 'check'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).toggleTaskList().run(),
+  },
   // ── Blocks ────────────────────────────────────────────────
   {
     id: 'blockquote',
@@ -114,7 +146,12 @@ const ITEMS: MenuItem[] = [
     icon: 'code',
     group: 'Blocks',
     keywords: ['code', 'codeblock', 'snippet', 'pre'],
-    run: (editor, range) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+    run: (editor, range) => {
+      // Strip the typed "/code" first, then drop a fresh code block on the
+      // now-empty line (scope-aware so it never converts the whole page).
+      editor.chain().focus().deleteRange(range).run();
+      insertCodeBlock(editor);
+    },
   },
   {
     id: 'hr',
@@ -138,6 +175,21 @@ const ITEMS: MenuItem[] = [
         .focus()
         .deleteRange(range)
         .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .run(),
+  },
+  {
+    id: 'equation',
+    label: 'Equation',
+    description: 'LaTeX math block',
+    icon: 'functions',
+    group: 'Blocks',
+    keywords: ['math', 'equation', 'latex', 'formula', 'katex'],
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'blockMath', attrs: { latex: '' } })
         .run(),
   },
   // ── Callouts ──────────────────────────────────────────────
@@ -174,12 +226,32 @@ const ITEMS: MenuItem[] = [
   {
     id: 'callout-tip',
     label: 'Tip callout',
-    description: 'Purple tip banner',
+    description: 'Green tip banner',
     icon: 'lightbulb',
     group: 'Callouts',
-    keywords: ['callout', 'tip', 'hint', 'purple'],
+    keywords: ['callout', 'tip', 'hint', 'green'],
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setCallout({ calloutType: 'tip' }).run(),
+  },
+  {
+    id: 'callout-danger',
+    label: 'Danger callout',
+    description: 'Red danger banner',
+    icon: 'dangerous',
+    group: 'Callouts',
+    keywords: ['callout', 'danger', 'error', 'critical', 'red'],
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).setCallout({ calloutType: 'danger' }).run(),
+  },
+  {
+    id: 'callout-note',
+    label: 'Note callout',
+    description: 'Purple note banner',
+    icon: 'sticky_note_2',
+    group: 'Callouts',
+    keywords: ['callout', 'note', 'remark', 'purple'],
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).setCallout({ calloutType: 'note' }).run(),
   },
 ];
 
@@ -327,7 +399,7 @@ export default function SlashMenu({ state, editor }: SlashMenuProps) {
     border: '1px solid rgba(174, 137, 255, 0.45)',
     borderRadius: 12,
     boxShadow:
-      '0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(140, 82, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+      '0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(140, 82, 255, 0.14), inset 0 1px 0 var(--ink-04)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     padding: '6px 0',
@@ -341,7 +413,7 @@ export default function SlashMenu({ state, editor }: SlashMenuProps) {
     fontWeight: 600,
     letterSpacing: '0.14em',
     textTransform: 'uppercase',
-    color: 'rgba(237, 233, 255, 0.42)',
+    color: 'var(--ink-40)',
   };
 
   return (
@@ -408,7 +480,7 @@ export default function SlashMenu({ state, editor }: SlashMenuProps) {
                   <span
                     style={{
                       fontSize: 11,
-                      color: 'rgba(237, 233, 255, 0.5)',
+                      color: 'var(--ink-50)',
                       lineHeight: 1.4,
                       marginTop: 2,
                     }}

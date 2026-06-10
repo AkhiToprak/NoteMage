@@ -3,22 +3,19 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { enforceIpCap, validateUserUsername } from '@/lib/registration';
-import { hasSignupBypass } from '@/lib/signup-bypass';
+import { enforceIpCap, generatePlaceholderUsername, hashIp, normalizeEmail } from '@/lib/registration';
+import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
+import { issueEmailVerificationCode } from '@/lib/verification';
+import { sendVerificationCode } from '@/lib/verification-email';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
   try {
-    // Pre-launch gate: middleware redirects /auth/register without a bypass
-    // cookie, but a direct POST would skip that — re-check here.
-    if (!hasSignupBypass(request)) {
-      return NextResponse.json({ success: false, error: 'Signups are paused.' }, { status: 403 });
-    }
-
-    // Rate limit: 5 registration attempts per IP per hour (in-memory, resets on restart)
+    // Rate limit: 5 registration attempts per IP per hour.
+    // Security-critical: fail closed so a Redis outage can't drop the cap.
     const ip = getClientIp(request);
-    const rl = await rateLimit(`register:${ip}`, 50, 60 * 60 * 1000); // Temporarily raised for testing (was 5)
+    const rl = await rateLimit(`register:${ip}`, 5, 60 * 60 * 1000, true);
     if (!rl.success) {
       return NextResponse.json(
         { success: false, error: 'Too many registration attempts. Please try again later.' },
@@ -33,19 +30,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, name, username: rawUsername } = body;
+    const { password, birthDate } = body;
+    const email = normalizeEmail(body.email);
 
     if (!email || !password) {
       return badRequestResponse('Email and password are required');
     }
 
-    const usernameCheck = validateUserUsername(rawUsername);
-    if (!usernameCheck.ok) {
-      return badRequestResponse(usernameCheck.reason);
-    }
-    const username = usernameCheck.username;
-
-    if (!EMAIL_REGEX.test(String(email))) {
+    if (!EMAIL_REGEX.test(email)) {
       return badRequestResponse('Invalid email address');
     }
 
@@ -53,35 +45,55 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Password must be 8–128 characters');
     }
 
+    // 13+ age gate — verified before any account row is created, so an
+    // under-13 user never gets a User row (defense in depth: the sign-up
+    // form also blocks them client-side).
+    const birth = parseBirthDate(birthDate);
+    if (!birth) {
+      return badRequestResponse('A valid date of birth is required');
+    }
+    const age = computeAge(birth);
+    if (age < MIN_AGE) {
+      return badRequestResponse(`You must be at least ${MIN_AGE} years old to use NoteMage.`);
+    }
+
     const existingEmail = await db.user.findUnique({ where: { email } });
     if (existingEmail) {
       return badRequestResponse('An account with this email already exists');
     }
 
-    const existingUsername = await db.user.findUnique({ where: { username } });
-    if (existingUsername) {
-      return badRequestResponse('This username is already taken');
-    }
-
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Username is no longer collected on the form — it becomes its own
+    // onboarding step. Start with a placeholder handle the user replaces
+    // there, exactly like the OAuth path.
     const [user] = await db.$transaction([
       db.user.create({
         data: {
-          email: String(email),
-          name: name ? String(name).slice(0, 100) : null,
+          email,
           password: hashedPassword,
-          username,
+          username: generatePlaceholderUsername(),
+          birthDate: birth,
+          age,
         },
       }),
       db.ipRegistration.create({
-        data: { ip },
+        // Store a salted HMAC, never the raw address (column name is legacy).
+        data: { ip: hashIp(ip) },
       }),
     ]);
 
+    // Issue + email the 6-digit confirmation code. The account row exists but
+    // is unverified, so CredentialsProvider.authorize() blocks login until the
+    // user confirms (see src/lib/verification.ts). A failed send is non-fatal:
+    // the account is created and the user can request a fresh code on the
+    // verify screen.
+    const code = await issueEmailVerificationCode(user.id);
+    await sendVerificationCode(user.email, code);
+
     return createdResponse(
-      { id: user.id, email: user.email, name: user.name, username: user.username },
-      'Account created successfully'
+      { id: user.id, email: user.email, requiresVerification: true },
+      'Account created — check your email for a verification code'
     );
   } catch (error) {
     console.error('Registration error:', error);

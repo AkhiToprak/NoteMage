@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { Globe, X, Loader2, AlertCircle, CheckCircle2, Youtube } from 'lucide-react';
 
 interface UrlImportDialogProps {
   notebookId: string;
@@ -113,12 +112,12 @@ export default function UrlImportDialog({
         style={{
           width: '100%',
           maxWidth: '480px',
-          background: '#000000',
+          background: 'var(--background)',
           borderRadius: '16px',
           border: '1px solid rgba(174,137,255,0.36)',
           padding: '24px',
           fontFamily: 'inherit',
-          color: '#ede9ff',
+          color: 'var(--on-surface)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}
       >
@@ -136,7 +135,7 @@ export default function UrlImportDialog({
               margin: 0,
               fontSize: '18px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
             }}
           >
             Import from URL
@@ -149,23 +148,25 @@ export default function UrlImportDialog({
               cursor: 'pointer',
               padding: '4px',
               borderRadius: '6px',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'var(--ink-50)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'color 0.15s ease, background 0.15s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
               e.currentTarget.style.background = 'rgba(140,82,255,0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
+              e.currentTarget.style.color = 'var(--ink-50)';
               e.currentTarget.style.background = 'none';
             }}
             aria-label="Close"
           >
-            <X size={18} />
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -199,16 +200,28 @@ export default function UrlImportDialog({
               }}
             >
               {isYouTubeUrl ? (
-                <Youtube size={24} style={{ color: '#ff0000' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 24, color: '#ff0000' }}
+                  aria-hidden
+                >
+                  smart_display
+                </span>
               ) : (
-                <Globe size={24} style={{ color: '#8c52ff' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 24, color: '#8c52ff' }}
+                  aria-hidden
+                >
+                  public
+                </span>
               )}
             </div>
             <p
               style={{
                 margin: 0,
                 fontSize: '13px',
-                color: 'rgba(237,233,255,0.5)',
+                color: 'var(--ink-50)',
                 textAlign: 'center',
                 lineHeight: '1.5',
               }}
@@ -248,8 +261,16 @@ export default function UrlImportDialog({
                   gap: '4px',
                 }}
               >
-                <Youtube size={14} style={{ color: '#fff' }} />
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>YouTube</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, color: 'var(--on-surface)' }}
+                  aria-hidden
+                >
+                  smart_display
+                </span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--on-surface)' }}>
+                  YouTube
+                </span>
               </div>
             </div>
           )}
@@ -276,7 +297,7 @@ export default function UrlImportDialog({
               borderRadius: '8px',
               padding: '12px 14px',
               fontSize: '14px',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               fontFamily: 'inherit',
               outline: 'none',
               transition: 'border-color 0.15s ease',
@@ -299,18 +320,22 @@ export default function UrlImportDialog({
                 padding: '8px 0',
               }}
             >
-              <Loader2
-                size={16}
+              <span
+                className="material-symbols-outlined"
                 style={{
+                  fontSize: 16,
                   color: '#8c52ff',
                   animation: 'url-import-spin 1s linear infinite',
                 }}
-              />
+                aria-hidden
+              >
+                progress_activity
+              </span>
               <p
                 style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: 'rgba(237,233,255,0.7)',
+                  color: 'var(--ink-70)',
                 }}
               >
                 Fetching and extracting content...
@@ -327,7 +352,13 @@ export default function UrlImportDialog({
                 padding: '8px 0',
               }}
             >
-              <CheckCircle2 size={16} style={{ color: '#4ade80' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: '#4ade80' }}
+                aria-hidden
+              >
+                check_circle
+              </span>
               <p
                 style={{
                   margin: 0,
@@ -350,12 +381,18 @@ export default function UrlImportDialog({
                 padding: '8px 0',
               }}
             >
-              <AlertCircle size={16} style={{ color: '#f87171', flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: 'var(--error)', flexShrink: 0 }}
+                aria-hidden
+              >
+                error
+              </span>
               <p
                 style={{
                   margin: 0,
                   fontSize: '13px',
-                  color: '#f87171',
+                  color: 'var(--error)',
                 }}
               >
                 {errorMessage}
@@ -383,17 +420,17 @@ export default function UrlImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: 'rgba(237,233,255,0.7)',
+              color: 'var(--ink-70)',
               cursor: 'pointer',
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.15)';
-              e.currentTarget.style.color = '#ede9ff';
+              e.currentTarget.style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(140,82,255,0.08)';
-              e.currentTarget.style.color = 'rgba(237,233,255,0.7)';
+              e.currentTarget.style.color = 'var(--ink-70)';
             }}
           >
             Cancel
@@ -412,7 +449,7 @@ export default function UrlImportDialog({
               fontSize: '13px',
               fontWeight: 600,
               fontFamily: 'inherit',
-              color: isDisabled ? 'rgba(237,233,255,0.3)' : '#fff',
+              color: isDisabled ? 'var(--ink-30)' : 'var(--on-surface)',
               cursor: isDisabled ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s ease',
             }}
@@ -428,7 +465,13 @@ export default function UrlImportDialog({
             }}
           >
             {importState === 'importing' && (
-              <Loader2 size={14} style={{ animation: 'url-import-spin 1s linear infinite' }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, animation: 'url-import-spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
             )}
             {importState === 'importing'
               ? isYouTubeUrl

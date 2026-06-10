@@ -22,11 +22,50 @@ export const NOTIFICATION_ICONS: Record<string, string> = {
   group_message: 'chat',
   dm_message: 'chat_bubble',
   group_content_shared: 'share',
+  // Path-publishing moderation lifecycle (Phase 1 of path-publishing plan).
+  path_published: 'rocket_launch',
+  path_rejected: 'block',
+  path_flagged_for_review: 'hourglass_top',
 };
 
 export function safeStr(val: unknown, fallback: string): string {
   if (typeof val === 'string' && val.length > 0 && val.length <= 200) return val;
   return fallback;
+}
+
+/**
+ * Translate a path-moderation reasonCode (e.g. "wordlist.en.adult" /
+ * "l2.spam" / "l5.offtopic") into a short human phrase suitable for
+ * a notification line. The raw code stays useful in admin/audit
+ * surfaces; this helper is just for the author-facing strip.
+ */
+export function describeModerationReason(reasonCode: unknown): string {
+  if (typeof reasonCode !== 'string' || reasonCode.length === 0) return 'see review notes';
+  const last = reasonCode.split('.').pop() ?? reasonCode;
+  switch (last) {
+    case 'adult':
+      return 'contains explicit or adult content';
+    case 'hateful':
+      return 'contains hateful language';
+    case 'spam':
+      return 'looks like spam or promotion';
+    case 'copyright':
+      return 'contains piracy or copyright bypass terms';
+    case 'offtopic':
+      return 'looks off-topic for a learning resource';
+    case 'low_quality':
+      return 'was flagged as low quality';
+    case 'other':
+      return 'was flagged by the review pipeline';
+    // Layer 4 (P13) — report aggregation + new-author trust gate. These
+    // surface on the admin ticket timeline, not author-facing copy.
+    case 'reports':
+      return 'was pulled for re-review after community reports';
+    case 'untrusted_author':
+      return 'was sent for a deeper look (new author)';
+    default:
+      return 'see review notes';
+  }
 }
 
 export function getNotificationText(n: Notification): string {
@@ -67,6 +106,12 @@ export function getNotificationText(n: Notification): string {
       return `${safeStr(data.senderName, 'Someone')} sent you a message`;
     case 'group_content_shared':
       return `${safeStr(data.sharerName, 'Someone')} shared "${safeStr(data.contentTitle, 'content')}"`;
+    case 'path_published':
+      return `Your path "${safeStr(data.title, 'Untitled')}" was approved and is live in the community library`;
+    case 'path_rejected':
+      return `Your path "${safeStr(data.title, 'Untitled')}" was rejected — ${describeModerationReason(data.reasonCode)}`;
+    case 'path_flagged_for_review':
+      return `Your path "${safeStr(data.title, 'Untitled')}" is queued for human review`;
     default:
       return 'You have a new notification';
   }
@@ -91,6 +136,13 @@ export function getNotificationLink(n: Notification): string | null {
     case 'dm_message':
     case 'group_content_shared':
       return typeof data.groupId === 'string' ? `/groups/${data.groupId}` : null;
+    case 'path_published':
+      return typeof data.shareId === 'string' ? `/learn/community/${data.shareId}` : null;
+    case 'path_rejected':
+    case 'path_flagged_for_review':
+      // Author needs to land on their own publication-status surface, not
+      // the public listing (which won't show non-approved paths).
+      return typeof data.shareId === 'string' ? `/learn/paths?status=${data.shareId}` : null;
     default:
       return null;
   }

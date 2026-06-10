@@ -1,37 +1,54 @@
 'use client';
 
 import { useState } from 'react';
-import { TIERS, type TierKey, type FeatureType } from '@/lib/tiers';
+import {
+  TIERS,
+  isLifetimeLimit,
+  INTERVAL_SUFFIX,
+  type TierKey,
+  type FeatureType,
+  type BillingInterval,
+} from '@/lib/tiers';
 
 interface PricingCardProps {
   tier: TierKey;
   selected?: boolean;
   onSelect?: (tier: TierKey) => void;
+  /** When provided, the CTA becomes a button that runs this (e.g. open checkout) instead of navigating. Takes precedence over ctaHref. */
+  onUpgrade?: () => void;
   ctaText?: string;
   ctaHref?: string;
   formattedPrice?: string;
+  /** Billing cadence the price reflects — drives the "/wk · /mo · /yr" suffix. */
+  interval?: BillingInterval;
+  /** Optional secondary line under the price, e.g. the per-month equivalent on yearly. */
+  priceSubline?: string;
   isRevealed?: boolean;
   delay?: number;
   /** Tighter spacing/typography for embedded contexts like the onboarding wizard. */
   compact?: boolean;
+  /**
+   * Phase 12 switchover: when true, the FREE tier's AI path generation is off,
+   * so the FREE card shows "Community study paths" instead of an AI-path count.
+   * Must be resolved server-side and passed in — the env flag is stripped from
+   * the client bundle, so the component can't read it itself.
+   */
+  freeAiPathsDisabled?: boolean;
+  /** Cap the number of feature rows shown. Used by the compact onboarding plan
+   *  step so two cards fit a laptop viewport without scrolling. */
+  maxFeatures?: number;
 }
 
 const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_flashcards: 'AI Flashcard sets',
   ai_pptx: 'AI Presentations',
   ai_study_plan: 'AI Study Plans',
+  ultra_path: 'Ultra paths',
   ai_quizzes: 'AI Quizzes',
   scholar_chat: 'Mage Chat messages',
   ai_inline_edit: 'Inline AI editing',
-};
-
-const FEATURE_ICONS: Record<FeatureType, string> = {
-  ai_flashcards: 'auto_awesome',
-  ai_pptx: 'slideshow',
-  ai_study_plan: 'school',
-  ai_quizzes: 'quiz',
-  scholar_chat: 'forum',
-  ai_inline_edit: 'auto_fix',
+  pdf_import: 'PDF pages',
+  path_translation: 'Path translations',
 };
 
 const ACCENT: Record<
@@ -44,13 +61,6 @@ const ACCENT: Record<
     bg: 'rgba(33, 33, 62,0.6)',
     text: 'var(--on-surface-variant)',
     hoverGlow: '0 8px 32px rgba(174,137,255,0.06), 0 2px 8px rgba(0,0,0,0.3)',
-  },
-  PLUS: {
-    border: 'rgba(174,137,255,0.45)',
-    glow: '0 0 32px rgba(174,137,255,0.08)',
-    bg: 'rgba(174,137,255,0.04)',
-    text: 'var(--primary)',
-    hoverGlow: '0 0 48px rgba(174,137,255,0.18), 0 8px 32px rgba(174,137,255,0.08)',
   },
   PRO: {
     border: 'rgba(255,222,89,0.45)',
@@ -66,12 +76,17 @@ export default function PricingCard({
   tier,
   selected = false,
   onSelect,
+  onUpgrade,
   ctaText,
   ctaHref,
   formattedPrice,
+  interval = 'monthly',
+  priceSubline,
   isRevealed = true,
   delay = 0,
   compact = false,
+  freeAiPathsDisabled = false,
+  maxFeatures,
 }: PricingCardProps) {
   const config = TIERS[tier];
   const accent = ACCENT[tier];
@@ -80,8 +95,9 @@ export default function PricingCard({
   const [hovered, setHovered] = useState(false);
   const [ctaHovered, setCtaHovered] = useState(false);
 
+  const periodAmount = config.price[interval];
   const displayPrice =
-    formattedPrice ?? (config.priceCHF === 0 ? 'Free' : `CHF ${config.priceCHF}`);
+    formattedPrice ?? (periodAmount === 0 ? 'Free' : `CHF ${periodAmount}`);
 
   const cardPadding = compact
     ? isPro
@@ -110,13 +126,7 @@ export default function PricingCard({
     cursor: onSelect ? 'pointer' : 'default',
     boxShadow: selected ? `0 0 40px ${accent.text}33` : hovered ? accent.hoverGlow : accent.glow,
     opacity: isRevealed ? 1 : 0,
-    transform: isRevealed
-      ? hovered && !onSelect
-        ? `translateY(-8px)${isPro ? ' scale(1.03)' : ''}`
-        : isPro
-          ? 'scale(1.03)'
-          : 'translateY(0)'
-      : 'translateY(24px)',
+    transform: isRevealed ? (isPro ? 'scale(1.03)' : 'translateY(0)') : 'translateY(24px)',
     transition: `
       opacity 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}ms,
       transform 0.4s cubic-bezier(0.22,1,0.36,1),
@@ -141,6 +151,49 @@ export default function PricingCard({
     opacity: hovered || selected ? 1 : 0,
     transition: 'opacity 0.35s cubic-bezier(0.22,1,0.36,1)',
   };
+
+  // Shared CTA visual — rendered as a <button> when onUpgrade is set, else an <a>.
+  const ctaStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    textAlign: 'center',
+    padding: '14px 24px',
+    borderRadius: 'var(--radius-md)',
+    fontWeight: 700,
+    fontSize: 14,
+    textDecoration: 'none',
+    background: isPro
+      ? 'var(--tertiary-container)'
+      : isPopular
+        ? 'var(--primary)'
+        : 'var(--surface-container-high)',
+    color: isPro ? '#22223a' : isPopular ? '#fff' : 'var(--on-surface-variant)',
+    border: tier === 'FREE' ? '1px solid rgba(136,136,168,0.15)' : 'none',
+    transform: ctaHovered ? 'translateY(-2px)' : 'translateY(0)',
+    boxShadow: ctaHovered
+      ? isPro
+        ? '0 8px 24px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.2)'
+        : isPopular
+          ? '0 8px 24px rgba(174,137,255,0.2), 0 2px 8px rgba(0,0,0,0.2)'
+          : '0 4px 16px rgba(0,0,0,0.2)'
+      : 'none',
+    transition:
+      'transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s cubic-bezier(0.22,1,0.36,1)',
+  };
+
+  const ctaInner = (
+    <>
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}
+      >
+        {isPro ? 'bolt' : isPopular ? 'rocket_launch' : 'arrow_forward'}
+      </span>
+      {ctaText ?? 'Get Started'}
+    </>
+  );
 
   const content = (
     <>
@@ -187,21 +240,38 @@ export default function PricingCard({
       </h3>
 
       {/* Price */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        <span
-          style={{
-            fontSize: compact ? 30 : 40,
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            letterSpacing: '-0.03em',
-            fontFamily: 'var(--font-display)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {displayPrice}
-        </span>
-        {config.priceCHF > 0 && (
-          <span style={{ fontSize: 14, color: 'var(--outline)', fontWeight: 500 }}>/mo</span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+          <span
+            style={{
+              fontSize: compact ? 30 : 40,
+              fontWeight: 800,
+              color: 'var(--on-surface)',
+              letterSpacing: '-0.03em',
+              fontFamily: 'var(--font-display)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {displayPrice}
+          </span>
+          {periodAmount > 0 && (
+            <span style={{ fontSize: 14, color: 'var(--outline)', fontWeight: 500 }}>
+              {INTERVAL_SUFFIX[interval]}
+            </span>
+          )}
+        </div>
+        {priceSubline && periodAmount > 0 && (
+          <span
+            style={{
+              display: 'block',
+              marginTop: 4,
+              fontSize: 12,
+              color: 'var(--outline)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {priceSubline}
+          </span>
         )}
       </div>
 
@@ -226,79 +296,105 @@ export default function PricingCard({
           flex: 1,
         }}
       >
-        {(Object.entries(config.limits) as [FeatureType, number][]).map(([feature, limit], idx) => (
-          <li
-            key={feature}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              fontSize: compact ? 13 : 14,
-              color: 'var(--on-surface-variant)',
-              lineHeight: 1.4,
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
+        {(Object.entries(config.limits) as [FeatureType, number][])
+          .slice(0, maxFeatures ?? Infinity)
+          .map(([feature, limit], idx) => {
+          // Phase 12 switchover: when FREE AI paths are off, surface the curated
+          // community-paths offering as an included feature instead of a count.
+          const isCommunityPaths =
+            freeAiPathsDisabled && tier === 'FREE' && feature === 'ai_study_plan';
+          const dimmed = !isCommunityPaths && limit === 0;
+          return (
+            <li
+              key={feature}
               style={{
-                fontSize: 18,
-                color: limit === 0 ? 'var(--outline)' : accent.text,
-                fontVariationSettings: "'FILL' 1",
-                flexShrink: 0,
-                opacity: isRevealed ? 1 : 0,
-                transform: isRevealed ? 'scale(1)' : 'scale(0.5)',
-                transition: `opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1)`,
-                transitionDelay: `${delay + 200 + idx * 50}ms`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontSize: compact ? 13 : 14,
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.4,
               }}
             >
-              {limit === -1 ? 'all_inclusive' : limit === 0 ? 'lock' : 'check_circle'}
-            </span>
-            <span
-              style={
-                limit === 0
-                  ? {
-                      color: 'var(--outline)',
-                      textDecoration: 'line-through',
-                    }
-                  : undefined
-              }
-            >
-              {limit === -1 ? (
-                <strong style={{ color: accent.text }}>Unlimited*</strong>
-              ) : limit === 0 ? null : (
-                limit
-              )}
-              {limit !== 0 && ' '}
-              {FEATURE_LABELS[feature]}
-              {limit > 0 && <span style={{ color: 'var(--outline)' }}>/mo</span>}
-              {limit === 0 && (
-                <span
-                  style={{
-                    display: 'inline-block',
-                    marginLeft: 6,
-                    padding: '1px 6px',
-                    borderRadius: 999,
-                    background: 'rgba(255, 222, 89, 0.14)',
-                    border: '1px solid rgba(255, 222, 89, 0.32)',
-                    color: '#ffde59',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    verticalAlign: 'middle',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Pro
-                </span>
-              )}
-            </span>
-          </li>
-        ))}
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: 18,
+                  color: dimmed ? 'var(--outline)' : accent.text,
+                  fontVariationSettings: "'FILL' 1",
+                  flexShrink: 0,
+                  opacity: isRevealed ? 1 : 0,
+                  transform: isRevealed ? 'scale(1)' : 'scale(0.5)',
+                  transition: `opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1)`,
+                  transitionDelay: `${delay + 200 + idx * 50}ms`,
+                }}
+              >
+                {isCommunityPaths
+                  ? 'check_circle'
+                  : limit === -1
+                    ? 'all_inclusive'
+                    : limit === 0
+                      ? 'lock'
+                      : 'check_circle'}
+              </span>
+              <span
+                style={
+                  dimmed
+                    ? {
+                        color: 'var(--outline)',
+                        textDecoration: 'line-through',
+                      }
+                    : undefined
+                }
+              >
+                {isCommunityPaths ? (
+                  'Community study paths'
+                ) : (
+                  <>
+                    {limit === -1 ? (
+                      <strong style={{ color: accent.text }}>Unlimited*</strong>
+                    ) : limit === 0 ? null : (
+                      limit
+                    )}
+                    {limit !== 0 && ' '}
+                    {FEATURE_LABELS[feature]}
+                    {limit > 0 && (
+                      <span style={{ color: 'var(--outline)' }}>
+                        {isLifetimeLimit(tier, feature) ? ' total' : '/mo'}
+                      </span>
+                    )}
+                    {limit === 0 && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: 6,
+                          padding: '1px 6px',
+                          borderRadius: 999,
+                          background: 'rgba(255, 222, 89, 0.14)',
+                          border: '1px solid rgba(255, 222, 89, 0.32)',
+                          color: '#ffde59',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          verticalAlign: 'middle',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        Pro
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
 
-      {/* Pro footnote */}
-      {isPro && (
+      {/* Pro footnote — hidden in compact (onboarding) to keep the card short;
+          the full explanation lives on the /pricing page. */}
+      {isPro && !compact && (
         <p
           style={{
             margin: 0,
@@ -314,48 +410,24 @@ export default function PricingCard({
       )}
 
       {/* CTA */}
-      {ctaHref ? (
+      {onUpgrade ? (
+        <button
+          type="button"
+          onClick={onUpgrade}
+          onMouseEnter={() => setCtaHovered(true)}
+          onMouseLeave={() => setCtaHovered(false)}
+          style={{ ...ctaStyle, width: '100%', cursor: 'pointer' }}
+        >
+          {ctaInner}
+        </button>
+      ) : ctaHref ? (
         <a
           href={ctaHref}
           onMouseEnter={() => setCtaHovered(true)}
           onMouseLeave={() => setCtaHovered(false)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            textAlign: 'center',
-            padding: '14px 24px',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: 700,
-            fontSize: 14,
-            textDecoration: 'none',
-            background: isPro
-              ? 'var(--tertiary-container)'
-              : isPopular
-                ? 'var(--primary)'
-                : 'var(--surface-container-high)',
-            color: isPro ? '#22223a' : isPopular ? '#fff' : 'var(--on-surface-variant)',
-            border: tier === 'FREE' ? '1px solid rgba(136,136,168,0.15)' : 'none',
-            transform: ctaHovered ? 'translateY(-2px)' : 'translateY(0)',
-            boxShadow: ctaHovered
-              ? isPro
-                ? '0 8px 24px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.2)'
-                : isPopular
-                  ? '0 8px 24px rgba(174,137,255,0.2), 0 2px 8px rgba(0,0,0,0.2)'
-                  : '0 4px 16px rgba(0,0,0,0.2)'
-              : 'none',
-            transition:
-              'transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s cubic-bezier(0.22,1,0.36,1)',
-          }}
+          style={ctaStyle}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}
-          >
-            {isPro ? 'bolt' : isPopular ? 'rocket_launch' : 'arrow_forward'}
-          </span>
-          {ctaText ?? 'Get Started'}
+          {ctaInner}
         </a>
       ) : onSelect ? (
         <div
@@ -373,7 +445,19 @@ export default function PricingCard({
             transform: selected ? 'scale(1.02)' : 'scale(1)',
           }}
         >
-          {selected ? '✓ Selected' : 'Select'}
+          {selected ? (
+            <>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 4 }}
+              >
+                check
+              </span>
+              Selected
+            </>
+          ) : (
+            'Select'
+          )}
         </div>
       ) : null}
     </>

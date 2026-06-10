@@ -18,12 +18,14 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
+    // Defensive cap: bounds the upcoming-exams list (safety bound, not
+    // user-facing pagination); keeps the soonest 500 upcoming exams.
     const exams = await db.exam.findMany({
       where: { userId, examDate: { gte: new Date() } },
       orderBy: { examDate: 'asc' },
+      take: 500,
       include: {
         notebook: { select: { id: true, name: true } },
-        studyPlan: { select: { id: true } },
       },
     });
 
@@ -91,7 +93,6 @@ export async function POST(request: NextRequest) {
       },
       include: {
         notebook: { select: { id: true, name: true } },
-        studyPlan: { select: { id: true } },
       },
     });
 

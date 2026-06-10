@@ -78,7 +78,7 @@ export default function FolderBreadcrumbs({
           style={{
             background: 'none',
             border: 'none',
-            color: breadcrumbs.length > 0 ? '#ae89ff' : '#e5e3ff',
+            color: breadcrumbs.length > 0 ? '#ae89ff' : 'var(--on-surface)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: breadcrumbs.length > 0 ? 'pointer' : 'default',
@@ -111,7 +111,7 @@ export default function FolderBreadcrumbs({
           <span key={crumb.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '16px', color: '#8888a8' }}
+              style={{ fontSize: '16px', color: 'var(--outline)' }}
             >
               chevron_right
             </span>
@@ -123,7 +123,7 @@ export default function FolderBreadcrumbs({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: isLast ? '#e5e3ff' : '#ae89ff',
+                  color: isLast ? 'var(--on-surface)' : '#ae89ff',
                   fontSize: '14px',
                   fontWeight: isLast ? 700 : 600,
                   cursor: isLast ? 'default' : 'pointer',

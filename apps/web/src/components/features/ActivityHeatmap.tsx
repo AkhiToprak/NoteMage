@@ -38,11 +38,16 @@ const MONTH_NAMES = [
 //   1–19       → light
 //   20–59      → mid
 //   60+        → full
+//
+// The four step colors are brand-purple alpha ramps tokenised in
+// globals.css under --heatmap-step-{0..3}. Both themes render legibly
+// because each step composites against the card surface (dark or light)
+// via alpha, not a fixed value.
 function getColor(minutes: number): string {
-  if (minutes === 0) return '#1b1a33';
-  if (minutes < 20) return '#2a1a62';
-  if (minutes < 60) return '#7a43b8';
-  return '#c29bff';
+  if (minutes === 0) return 'var(--heatmap-step-0)';
+  if (minutes < 20) return 'var(--heatmap-step-1)';
+  if (minutes < 60) return 'var(--heatmap-step-2)';
+  return 'var(--heatmap-step-3)';
 }
 
 function formatDate(dateStr: string): string {
@@ -50,7 +55,7 @@ function formatDate(dateStr: string): string {
   // so format them in UTC as well — otherwise a CEST user hovers "Apr 11"
   // and sees "Apr 10" in the tooltip.
   const d = new Date(dateStr + 'T00:00:00Z');
-  return d.toLocaleDateString('en-US', {
+  return d.toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -177,6 +182,19 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
     }
   }
 
+  // Drop a crowded leading-month label. Real month starts are always ≥4
+  // columns apart, so the only pair that can collide is the short leading
+  // partial month at the left edge and the first full month right after it
+  // (most visibly "Nov"/"Dec" on the 375px grid). When they fall within a
+  // label-width of each other, drop the earlier (partial) one so the labels
+  // never overlap.
+  const colWidth = CELL_SIZE + CELL_GAP;
+  const MIN_LABEL_GAP_PX = 28;
+  const spacedMonthLabels = monthLabels.filter((m, i) => {
+    const next = monthLabels[i + 1];
+    return !(next && (next.week - m.week) * colWidth < MIN_LABEL_GAP_PX);
+  });
+
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, date: string, count: number) => {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -207,10 +225,9 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
 
   return (
     <div
+      className="elev-1"
       style={{
-        background: '#21213e',
-        borderRadius: '24px',
-        padding: isPhone ? '18px' : '24px',
+        padding: isPhone ? '20px' : '24px 28px',
       }}
     >
       <div
@@ -219,13 +236,24 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '20px',
+          gap: '12px',
+          flexWrap: 'wrap',
         }}
       >
         <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 4px' }}>
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '18px',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--on-surface)',
+              margin: '0 0 4px',
+            }}
+          >
             Activity
-          </h3>
-          <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
             Minutes in the app over the last {subtitle ?? (isPhone ? '6 months' : 'year')}
           </p>
         </div>
@@ -234,8 +262,8 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '11px',
-            color: '#aaa8c8',
+            fontSize: 'var(--fs-2xs)',
+            color: 'var(--on-surface-variant)',
           }}
         >
           <span>Less</span>
@@ -261,7 +289,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             fontSize: '13px',
           }}
         >
@@ -288,15 +316,15 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
               }}
             >
               {/* Month labels */}
-              {monthLabels.map((m, i) => (
+              {spacedMonthLabels.map((m, i) => (
                 <div
                   key={`${m.label}-${i}`}
                   style={{
                     position: 'absolute',
                     left: `${leftPadding + m.week * (CELL_SIZE + CELL_GAP)}px`,
                     top: 0,
-                    fontSize: '11px',
-                    color: '#aaa8c8',
+                    fontSize: 'var(--fs-2xs)',
+                    color: 'var(--on-surface-variant)',
                     fontWeight: 500,
                     whiteSpace: 'nowrap',
                   }}
@@ -314,8 +342,8 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                       position: 'absolute',
                       left: 0,
                       top: `${topPadding + i * (CELL_SIZE + CELL_GAP) + 1}px`,
-                      fontSize: '11px',
-                      color: '#aaa8c8',
+                      fontSize: 'var(--fs-2xs)',
+                      color: 'var(--on-surface-variant)',
                       fontWeight: 500,
                       width: `${leftPadding - 6}px`,
                       textAlign: 'right',
@@ -362,15 +390,15 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
                 left: `${tooltip.x}px`,
                 top: `${tooltip.y}px`,
                 transform: 'translate(-50%, -100%)',
-                background: '#35355c',
-                color: '#e5e3ff',
+                background: 'var(--surface-container-highest)',
+                color: 'var(--on-surface)',
                 padding: '6px 10px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-sm)',
                 fontSize: '12px',
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 pointerEvents: 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                boxShadow: '0 4px 16px var(--bento-rest-shadow)',
                 zIndex: 10,
               }}
             >

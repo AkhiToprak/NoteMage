@@ -18,6 +18,7 @@ import {
   UnifrakturMaguntia,
 } from 'next/font/google';
 import './globals.css';
+import 'katex/dist/katex.min.css';
 import Providers from './providers';
 
 const epilogue = Epilogue({
@@ -48,6 +49,10 @@ const oswald = Oswald({
 // will ever equip them.
 const playfair = Playfair_Display({
   variable: '--font-playfair',
+  // Cosmetic-only: not preloaded so the marketing entry (and every other page)
+  // doesn't ship a <link rel=preload as=font> for a face only a handful of
+  // users ever equip. The file still loads on demand when the CSS var resolves.
+  preload: false,
   subsets: ['latin'],
   weight: ['500', '600', '700', '800'],
   display: 'swap',
@@ -55,6 +60,7 @@ const playfair = Playfair_Display({
 
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains',
+  preload: false,
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
@@ -67,6 +73,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 const cinzel = Cinzel({
   variable: '--font-cinzel',
+  preload: false,
   subsets: ['latin'],
   weight: ['500', '700', '900'],
   display: 'swap',
@@ -74,6 +81,7 @@ const cinzel = Cinzel({
 
 const unifraktur = UnifrakturMaguntia({
   variable: '--font-unifraktur',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -81,6 +89,7 @@ const unifraktur = UnifrakturMaguntia({
 
 const medievalSharp = MedievalSharp({
   variable: '--font-medieval',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -88,6 +97,7 @@ const medievalSharp = MedievalSharp({
 
 const imFellSc = IM_Fell_English_SC({
   variable: '--font-imfell',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -95,6 +105,7 @@ const imFellSc = IM_Fell_English_SC({
 
 const abrilFatface = Abril_Fatface({
   variable: '--font-abril',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -102,6 +113,7 @@ const abrilFatface = Abril_Fatface({
 
 const bungeeShade = Bungee_Shade({
   variable: '--font-bungee',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -109,6 +121,7 @@ const bungeeShade = Bungee_Shade({
 
 const pacifico = Pacifico({
   variable: '--font-pacifico',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -116,6 +129,7 @@ const pacifico = Pacifico({
 
 const permanentMarker = Permanent_Marker({
   variable: '--font-marker',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -123,6 +137,7 @@ const permanentMarker = Permanent_Marker({
 
 const pressStart = Press_Start_2P({
   variable: '--font-pressstart',
+  preload: false,
   subsets: ['latin'],
   weight: ['400'],
   display: 'swap',
@@ -130,6 +145,7 @@ const pressStart = Press_Start_2P({
 
 const orbitron = Orbitron({
   variable: '--font-orbitron',
+  preload: false,
   subsets: ['latin'],
   weight: ['500', '700', '900'],
   display: 'swap',
@@ -141,6 +157,7 @@ const orbitron = Orbitron({
 // can ever equip it.
 const silkscreen = Silkscreen({
   variable: '--font-minecraft',
+  preload: false,
   subsets: ['latin'],
   weight: ['400', '700'],
   display: 'swap',
@@ -149,7 +166,7 @@ const silkscreen = Silkscreen({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // No maximumScale — pinch-zoom must stay available (accessibility).
   viewportFit: 'cover',
 };
 
@@ -167,7 +184,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" style={{ colorScheme: 'dark' }}>
+    <html
+      lang="en"
+      data-theme="dark"
+      // next/font variable classes live on <html> (not <body>) so the CSS
+      // custom properties they define (--font-epilogue, --font-jakarta, …) exist
+      // at :root. The semantic font tokens (--font-sans/-display/-brand) are
+      // declared at :root in globals.css and reference these — if the next/font
+      // vars were only on <body>, those :root tokens would resolve to EMPTY
+      // (var() of an undefined property) and every surface would fall back to
+      // the system font stack.
+      className={[
+        epilogue.variable,
+        oswald.variable,
+        plusJakartaSans.variable,
+        playfair.variable,
+        jetbrainsMono.variable,
+        cinzel.variable,
+        unifraktur.variable,
+        medievalSharp.variable,
+        imFellSc.variable,
+        abrilFatface.variable,
+        bungeeShade.variable,
+        pacifico.variable,
+        permanentMarker.variable,
+        pressStart.variable,
+        orbitron.variable,
+        silkscreen.variable,
+      ].join(' ')}
+      style={{ colorScheme: 'dark' }}
+      suppressHydrationWarning
+    >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -180,30 +227,8 @@ export default function RootLayout({
             __html: `(function(){try{var p=localStorage.getItem('notemage-theme');var s=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';var t=p==='light'||p==='dark'?p:s;document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`,
           }}
         />
-        {/* Figma capture script - temporary for design export */}
-        <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
       </head>
-      <body
-        className={[
-          epilogue.variable,
-          oswald.variable,
-          plusJakartaSans.variable,
-          playfair.variable,
-          jetbrainsMono.variable,
-          cinzel.variable,
-          unifraktur.variable,
-          medievalSharp.variable,
-          imFellSc.variable,
-          abrilFatface.variable,
-          bungeeShade.variable,
-          pacifico.variable,
-          permanentMarker.variable,
-          pressStart.variable,
-          orbitron.variable,
-          silkscreen.variable,
-          'antialiased',
-        ].join(' ')}
-      >
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

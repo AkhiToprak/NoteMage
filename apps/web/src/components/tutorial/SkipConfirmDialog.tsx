@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 interface Props {
   onConfirm: () => void;
@@ -10,6 +11,7 @@ interface Props {
 export function SkipConfirmDialog({ onConfirm, onCancel }: Props) {
   const [opacity, setOpacity] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const dims = useModalDimensions(360, { fullScreenOnPhone: false });
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -61,12 +63,10 @@ export function SkipConfirmDialog({ onConfirm, onCancel }: Props) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
+          ...dims,
           background: 'var(--surface-container)',
-          borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--outline-variant)',
           padding: 24,
-          width: '100%',
-          maxWidth: 360,
           boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
           transform: opacity === 0 ? 'translateY(8px)' : 'translateY(0)',
           transition: reduceMotion ? 'none' : 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)',

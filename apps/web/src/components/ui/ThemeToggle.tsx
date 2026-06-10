@@ -50,7 +50,7 @@ export default function ThemeToggle({ compact = false }: Props) {
               border: 'none',
               cursor: 'pointer',
               background: active ? '#ae89ff' : 'transparent',
-              color: active ? '#ffffff' : 'var(--on-surface-variant)',
+              color: active ? 'var(--on-primary)' : 'var(--on-surface-variant)',
               transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
               padding: 0,
               fontFamily: 'inherit',

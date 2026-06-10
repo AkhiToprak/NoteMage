@@ -28,6 +28,51 @@ export interface TipTapDoc {
 }
 
 /**
+ * Allowlist of URL schemes permitted on imported link marks. Imported DOCX /
+ * OneNote content can carry arbitrary `href` values, including dangerous
+ * schemes (`javascript:`, `data:`, `vbscript:`) that turn into XSS once the
+ * link is rendered. Anything outside this set is dropped.
+ */
+const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
+/**
+ * Return `href` only if it uses an allowed scheme; otherwise return null so
+ * callers can omit the link mark entirely. Protocol-relative (`//host`) and
+ * scheme-less relative hrefs are treated as http(s) and kept. Unparseable
+ * values are dropped.
+ */
+export function safeLinkHref(href: string | null | undefined): string | null {
+  if (!href) return null;
+  const trimmed = href.trim();
+  if (!trimmed) return null;
+  try {
+    // Resolve against a dummy base so relative / protocol-relative hrefs parse;
+    // an absolute href with its own scheme ignores the base.
+    const protocol = new URL(trimmed, 'https://x.invalid').protocol;
+    return SAFE_LINK_PROTOCOLS.has(protocol) ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+// Deep-collect every non-empty string value (theory-visuals diagrams store
+// their labels/captions in attrs, not text nodes — moderation must still scan
+// them). Generic so it covers every diagram kind without per-kind branching.
+function collectDeepStrings(value: unknown, out: string[]): void {
+  if (typeof value === 'string') {
+    if (value.trim().length > 0) out.push(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const v of value) collectDeepStrings(v, out);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const v of Object.values(value)) collectDeepStrings(v, out);
+  }
+}
+
+/**
  * Extract plain text from a TipTap JSON document.
  * Recursively walks the node tree and collects all text content.
  * Returns null if the document is empty or invalid.
@@ -50,14 +95,35 @@ export function tiptapJsonToPlainText(doc: unknown): string | null {
         continue;
       }
 
-      // toggleHeading stores visible text in attrs.summary
-      if (
-        n.type === 'toggleHeading' &&
-        n.attrs &&
-        typeof (n.attrs as Record<string, unknown>).summary === 'string'
-      ) {
-        parts.push((n.attrs as Record<string, unknown>).summary as string);
-        parts.push('\n');
+      // theory-visuals custom nodes carry their human-readable strings in
+      // attrs — surface them so moderation scans image captions + diagram
+      // labels just like ordinary prose.
+      if (n.type === 'pathImage' && n.attrs) {
+        const alt = (n.attrs as Record<string, unknown>).alt;
+        if (typeof alt === 'string' && alt.trim().length > 0) {
+          parts.push(alt);
+          parts.push('\n');
+        }
+      }
+      if (n.type === 'pathDiagram' && n.attrs) {
+        const diagram = (n.attrs as Record<string, unknown>).diagram;
+        if (diagram && typeof diagram === 'object') {
+          const strings: string[] = [];
+          collectDeepStrings(diagram, strings);
+          for (const s of strings) parts.push(s, ' ');
+          parts.push('\n');
+        }
+      }
+
+      // KaTeX math nodes are atoms: the LaTeX source lives in `attrs.latex`,
+      // not a text child. Surface it so equations stay in the plain-text used
+      // for search, AI context and PDF export.
+      if ((n.type === 'inlineMath' || n.type === 'blockMath') && n.attrs) {
+        const latex = (n.attrs as Record<string, unknown>).latex;
+        if (typeof latex === 'string' && latex.trim().length > 0) {
+          parts.push(latex);
+          if (n.type === 'blockMath') parts.push('\n');
+        }
       }
 
       // Recurse into children
@@ -72,6 +138,7 @@ export function tiptapJsonToPlainText(doc: unknown): string | null {
         'toggleHeading',
         'blockquote',
         'listItem',
+        'taskItem',
         'codeBlock',
         'callout',
         'tableRow',
@@ -202,8 +269,8 @@ function makeBulletList(items: string[]): TipTapNode {
  * Convert plain text extracted from a PDF into TipTap JSON with basic
  * heading, bullet-list, and page-chrome handling. PDFs don't preserve
  * structure, so we reconstruct paragraphs from line groupings, promote
- * visually distinct lines (all-caps, numbered, chapter-style) to toggle
- * headings, and turn runs of "•"-separated fragments into real lists.
+ * visually distinct lines (all-caps, numbered, chapter-style) to headings,
+ * and turn runs of "•"-separated fragments into real lists.
  */
 export function pdfTextToTipTapJSON(text: string): TipTapDoc {
   const normalized = stripPageChrome(text.replace(/\r\n?/g, '\n'));
@@ -250,9 +317,9 @@ export function pdfTextToTipTapJSON(text: string): TipTapDoc {
       const { isHeading, level } = isLikelyHeading(lines[0]);
       if (isHeading) {
         content.push({
-          type: 'toggleHeading',
-          attrs: { level, collapsed: false, summary: lines[0].trim() },
-          content: [{ type: 'paragraph' }],
+          type: 'heading',
+          attrs: { level },
+          content: [{ type: 'text', text: lines[0].trim() }],
         });
         continue;
       }
@@ -265,9 +332,9 @@ export function pdfTextToTipTapJSON(text: string): TipTapDoc {
     let startIndex = 0;
     if (firstCheck.isHeading) {
       content.push({
-        type: 'toggleHeading',
-        attrs: { level: firstCheck.level, collapsed: false, summary: lines[0].trim() },
-        content: [{ type: 'paragraph' }],
+        type: 'heading',
+        attrs: { level: firstCheck.level },
+        content: [{ type: 'text', text: lines[0].trim() }],
       });
       startIndex = 1;
     }
@@ -416,20 +483,14 @@ function extractInner(fullElement: string, tagName: string): string {
  * Convert a block-level HTML element to a TipTap node.
  */
 function blockToNode(tagName: string, inner: string): TipTapNode | null {
-  // Headings → toggle headings
+  // Headings → standard heading nodes (level clamped to 1–3)
   const headingMatch = tagName.match(/^h([1-6])$/);
   if (headingMatch) {
-    const level = Math.min(parseInt(headingMatch[1], 10), 3);
+    const level = Math.min(Math.max(parseInt(headingMatch[1], 10), 1), 3);
     const inlineContent = parseInlineContent(inner);
-    const summaryText = inlineContent
-      .filter((c) => c.type === 'text')
-      .map((c) => (c as { text: string }).text)
-      .join('');
-    return {
-      type: 'toggleHeading',
-      attrs: { level, collapsed: false, summary: summaryText },
-      content: [{ type: 'paragraph' }],
-    };
+    const node: TipTapNode = { type: 'heading', attrs: { level } };
+    if (inlineContent.length > 0) node.content = inlineContent;
+    return node;
   }
 
   switch (tagName) {
@@ -636,9 +697,13 @@ function tagToMark(tag: string, attrs: string): TipTapMark | null {
       return { type: 'code' };
     case 'a': {
       const hrefMatch = attrs.match(/href\s*=\s*["']([^"']*)["']/i);
+      const href = safeLinkHref(hrefMatch ? decodeEntities(hrefMatch[1]) : null);
+      // Drop the link mark for missing/unsafe hrefs (e.g. javascript:) — the
+      // text still renders, just without a clickable link.
+      if (!href) return null;
       return {
         type: 'link',
-        attrs: { href: hrefMatch ? hrefMatch[1] : '', target: '_blank' },
+        attrs: { href, target: '_blank' },
       };
     }
     case 'sub':
@@ -764,9 +829,9 @@ export function xlsxToTipTapTableJSON(sheetsData: SheetData[]): TipTapDoc {
     // Add sheet heading if multiple sheets
     if (sheetsData.length > 1) {
       content.push({
-        type: 'toggleHeading',
-        attrs: { level: 2, collapsed: false, summary: sheet.name },
-        content: [{ type: 'paragraph' }],
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: sheet.name }],
       });
     }
 

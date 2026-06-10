@@ -36,6 +36,25 @@ export async function saveImage(
   return { filePath: storagePath };
 }
 
+/**
+ * Copy an existing private-bucket object to a new private-bucket path. Used by
+ * path theory generation to SNAPSHOT a source page image into a path-owned
+ * `theory-images/` object — so the embedded figure survives deletion of the
+ * source page and clones can deep-copy it. Returns the new path + byte size.
+ */
+export async function copyImage(
+  srcPath: string,
+  destPath: string
+): Promise<{ filePath: string; fileSize: number }> {
+  const buffer = await readFile(srcPath);
+  const { error } = await supabase.storage
+    .from(BUCKET_PRIVATE)
+    .upload(destPath, buffer, { upsert: false });
+
+  if (error) throw new Error(`Failed to copy image: ${error.message}`);
+  return { filePath: destPath, fileSize: buffer.length };
+}
+
 export async function saveFlashcardImage(
   cardId: string,
   filename: string,
@@ -123,8 +142,34 @@ export async function downloadFromStorage(
 /**
  * Validate that a storage path starts with the expected prefix
  * and contains no path traversal sequences.
+ *
+ * The Supabase client uses the service-role key (bypasses RLS), so this
+ * prefix check is the only cross-tenant barrier on storage reads/writes.
+ * We reject traversal, absolute paths, backslashes, and control chars —
+ * both on the raw string and on a single URL-decoded view of it, to defeat
+ * percent-encoded `..`/`/` smuggling (e.g. `%2e%2e`, `%2f`, `%00`).
  */
 export function validateStoragePath(path: string, expectedPrefix: string): boolean {
-  if (!path || path.includes('..') || path.includes('//')) return false;
+  if (!path) return false;
+
+  const candidates = [path];
+  try {
+    const decoded = decodeURIComponent(path);
+    if (decoded !== path) candidates.push(decoded);
+  } catch {
+    // Malformed percent-encoding — treat as hostile.
+    return false;
+  }
+
+  for (const candidate of candidates) {
+    if (candidate.includes('..')) return false;
+    if (candidate.includes('//')) return false;
+    if (candidate.includes('\\')) return false;
+    if (candidate.startsWith('/')) return false;
+    // NUL + other C0/DEL control characters (includes CR, LF, TAB).
+    // eslint-disable-next-line no-control-regex
+    if (/[\x00-\x1f\x7f]/.test(candidate)) return false;
+  }
+
   return path.startsWith(expectedPrefix);
 }

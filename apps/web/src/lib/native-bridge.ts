@@ -94,6 +94,9 @@ class WebFallbackBridge implements NativeBridge {
     if (!res.ok) throw new Error(`Entitlement fetch failed (${res.status})`);
     return (await res.json()) as Entitlement;
   }
+  async setAppUser(): Promise<void> {
+    // No StoreKit on web — IAP identity binding is iOS-only.
+  }
 
   // ── UX affordances ──────────────────────────────────────────────────────
   haptic(style: HapticStyle): void {
@@ -186,6 +189,9 @@ class IOSWebViewBridge implements NativeBridge {
   }
   getEntitlement(): Promise<Entitlement> {
     return this.shellBridge.getEntitlement();
+  }
+  setAppUser(userId: string): Promise<void> {
+    return this.shellBridge.setAppUser ? this.shellBridge.setAppUser(userId) : Promise.resolve();
   }
 
   haptic(style: HapticStyle): void {

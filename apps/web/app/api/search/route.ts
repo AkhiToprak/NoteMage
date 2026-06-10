@@ -5,8 +5,10 @@ import {
   successResponse,
   badRequestResponse,
   unauthorizedResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 function extractSnippet(text: string, query: string, radius = 50): string {
   const lower = text.toLowerCase();
@@ -25,6 +27,10 @@ export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Rate limit: 30 searches per minute per user (heavy multi-table query)
+    const rl = await rateLimit(rateLimitKey('search', request, userId), 30, 60_000);
+    if (!rl.success) return tooManyRequestsResponse('Too many search requests.', rl.retryAfterMs);
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q')?.trim();
@@ -196,6 +202,8 @@ export async function GET(request: NextRequest) {
         pageWhere.section = { notebook: { userId } };
       }
 
+      // ILIKE on pages.textContent is backed by a pg_trgm GIN index
+      // (migration 20260609000001_security_events_and_search_index, NM3-14).
       const pages = await db.page.findMany({
         where: pageWhere,
         select: {

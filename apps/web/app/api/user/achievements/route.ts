@@ -8,6 +8,7 @@ import { checkAndUnlockAchievements, gatherUserStats } from '@/lib/achievement-c
 export async function GET(request: NextRequest) {
   try {
     const authUserId = await getAuthUserId(request);
+    if (!authUserId) return unauthorizedResponse();
 
     // Support viewing another user's achievements via ?userId= query param
     const { searchParams } = new URL(request.url);
@@ -15,6 +16,40 @@ export async function GET(request: NextRequest) {
 
     // If viewing another user's achievements, return read-only data (no unlock check)
     if (targetUserId && targetUserId !== authUserId) {
+      // Privacy gate: hide the list when the target hides achievements, or
+      // their profile is private and the viewer isn't an accepted friend.
+      // Mirrors /api/user/profile/[username] + /api/schools/peers.
+      const target = await db.user.findUnique({
+        where: { id: targetUserId },
+        select: { profilePrivate: true, hideAchievements: true },
+      });
+
+      const emptyResult = successResponse({
+        unlocked: [],
+        locked: [],
+        total: ACHIEVEMENTS.length,
+        unlockedCount: 0,
+        progress: [],
+      });
+
+      // Unknown user, or the target hides achievements → return nothing.
+      if (!target || target.hideAchievements) return emptyResult;
+
+      // Private profile → only an accepted friend may see the achievements.
+      if (target.profilePrivate) {
+        const friendship = await db.friendship.findFirst({
+          where: {
+            status: 'accepted',
+            OR: [
+              { requesterId: authUserId, addresseeId: targetUserId },
+              { requesterId: targetUserId, addresseeId: authUserId },
+            ],
+          },
+          select: { id: true },
+        });
+        if (!friendship) return emptyResult;
+      }
+
       const unlockedRecords = await db.achievement.findMany({
         where: { userId: targetUserId },
         select: { badge: true, unlockedAt: true },
@@ -55,10 +90,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Own achievements: require auth
-    if (!authUserId) return unauthorizedResponse();
-
-    // Run the checker to auto-unlock any new achievements, then fetch state
+    // Own achievements: run the checker to auto-unlock any new ones, then fetch state
     await checkAndUnlockAchievements(authUserId);
 
     const [unlockedRecords, stats] = await Promise.all([

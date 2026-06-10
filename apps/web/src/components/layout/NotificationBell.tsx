@@ -128,6 +128,8 @@ export default function NotificationBell() {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
+        className="tap-target"
+        aria-label="Notifications"
         onClick={() => (dropdownOpen ? closeDropdown() : openDropdown())}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -137,7 +139,7 @@ export default function NotificationBell() {
           borderRadius: 10,
           border: 'none',
           background: hovered || dropdownOpen ? COLORS.elevated : 'transparent',
-          color: hovered || dropdownOpen ? COLORS.textPrimary : COLORS.textMuted,
+          color: hovered || dropdownOpen ? COLORS.textPrimary : 'var(--on-surface-variant)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

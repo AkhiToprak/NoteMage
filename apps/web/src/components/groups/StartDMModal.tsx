@@ -2,19 +2,20 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
 const COLORS = {
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
-  inputBg: '#35355c',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-highest)',
   primary: '#ae89ff',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
-  border: '#555578',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -40,6 +41,7 @@ export default function StartDMModal({ open, onClose }: Props) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
+  const dims = useModalDimensions(440);
 
   // Defer all setState — including the leading reset of search/starting and
   // setLoading(true) — into a microtask via Promise.resolve().then() so the
@@ -142,17 +144,14 @@ export default function StartDMModal({ open, onClose }: Props) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
+          ...dims,
           background: COLORS.elevated,
-          borderRadius: 20,
-          width: '100%',
-          maxWidth: 440,
-          maxHeight: '70vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 32px 64px rgba(0,0,0,0.5)',
         }}
       >
-        <div style={{ padding: '24px 24px 16px', borderBottom: `1px solid ${COLORS.border}1a` }}>
+        <div style={{ padding: '24px 24px 16px', borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)` }}>
           <div
             style={{
               display: 'flex',

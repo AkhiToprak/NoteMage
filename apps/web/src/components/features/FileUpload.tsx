@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, Loader } from 'lucide-react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
 
@@ -93,19 +92,23 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
       >
         {isUploading || isDirectUploading ? (
           <>
-            <Loader
-              size={26}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 26,
                 color: '#5170ff',
                 animation: 'spin 0.8s linear infinite',
               }}
-            />
+              aria-hidden
+            >
+              progress_activity
+            </span>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             <span
               style={{
                 fontFamily: 'inherit',
                 fontSize: '13px',
-                color: 'rgba(237,233,255,0.5)',
+                color: 'var(--on-surface-variant)',
               }}
             >
               Uploading and extracting text…
@@ -113,20 +116,24 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
           </>
         ) : (
           <>
-            <Upload
-              size={26}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 26,
                 color: isDragging ? '#5170ff' : 'rgba(81,112,255,0.5)',
                 transition: 'color 0.15s ease',
               }}
-            />
+              aria-hidden
+            >
+              upload
+            </span>
             <div>
               <p
                 style={{
                   fontFamily: 'inherit',
                   fontSize: '13px',
                   fontWeight: '600',
-                  color: isDragging ? '#ede9ff' : 'rgba(237,233,255,0.6)',
+                  color: isDragging ? 'var(--on-surface)' : 'var(--on-surface-variant)',
                   margin: '0 0 4px',
                   transition: 'color 0.15s ease',
                 }}
@@ -137,7 +144,7 @@ export default function FileUpload({ notebookId, onUploadComplete }: FileUploadP
                 style={{
                   fontFamily: 'inherit',
                   fontSize: '12px',
-                  color: 'rgba(237,233,255,0.3)',
+                  color: 'var(--on-surface-variant)',
                   margin: 0,
                 }}
               >

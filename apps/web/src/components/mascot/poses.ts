@@ -27,7 +27,15 @@ export type MascotIdle = 'none' | 'bounce' | 'float' | 'sway';
 
 export type MascotSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
-export type MascotOneShot = 'cast' | 'celebrate' | 'sparkle' | 'step-in' | 'step-out';
+export type MascotOneShot =
+  | 'cast'
+  | 'celebrate'
+  | 'sparkle'
+  | 'step-in'
+  | 'step-out'
+  | 'cheer-small'
+  | 'cheer-big'
+  | 'comfort';
 
 export const SIZE_PX: Record<MascotSize, number> = {
   xs: 40,

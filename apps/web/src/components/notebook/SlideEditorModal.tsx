@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Plus, Trash2, Download, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import SlidePreview from './SlidePreview';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
@@ -168,7 +167,7 @@ export default function SlideEditorModal({
           maxWidth: isPhone ? 'none' : '1000px',
           height: isPhone ? '100dvh' : '80vh',
           maxHeight: isPhone ? 'none' : undefined,
-          background: '#000000',
+          background: 'var(--background)',
           borderRadius: isPhone ? 0 : '16px',
           border: isPhone ? 'none' : '1px solid rgba(174,137,255,0.36)',
           overflow: 'hidden',
@@ -194,7 +193,7 @@ export default function SlideEditorModal({
               margin: 0,
               fontSize: isPhone ? '16px' : '18px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               fontFamily: 'inherit',
             }}
           >
@@ -238,7 +237,7 @@ export default function SlideEditorModal({
                       i === activeIndex ? '2px solid #8c52ff' : '1px solid rgba(140,82,255,0.15)',
                     background:
                       i === activeIndex ? 'rgba(140,82,255,0.12)' : 'rgba(140,82,255,0.04)',
-                    color: i === activeIndex ? '#c4a9ff' : 'rgba(237,233,255,0.4)',
+                    color: i === activeIndex ? '#c4a9ff' : 'var(--ink-40)',
                     fontSize: '9px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -264,14 +263,16 @@ export default function SlideEditorModal({
                   borderRadius: '6px',
                   border: '1px dashed rgba(140,82,255,0.25)',
                   background: 'transparent',
-                  color: 'rgba(237,233,255,0.35)',
+                  color: 'var(--ink-30)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Plus size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  add
+                </span>
               </button>
             </div>
           ) : (
@@ -320,7 +321,7 @@ export default function SlideEditorModal({
                   <label
                     style={{
                       fontSize: '11px',
-                      color: 'rgba(237,233,255,0.4)',
+                      color: 'var(--ink-40)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       fontFamily: 'inherit',
@@ -338,7 +339,7 @@ export default function SlideEditorModal({
                       borderRadius: '8px',
                       border: '1px solid rgba(140,82,255,0.15)',
                       background: 'rgba(140,82,255,0.04)',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '15px',
                       fontWeight: 600,
                       fontFamily: 'inherit',
@@ -359,7 +360,7 @@ export default function SlideEditorModal({
                   <label
                     style={{
                       fontSize: '11px',
-                      color: 'rgba(237,233,255,0.4)',
+                      color: 'var(--ink-40)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       fontFamily: 'inherit',
@@ -378,7 +379,7 @@ export default function SlideEditorModal({
                       borderRadius: '8px',
                       border: '1px solid rgba(140,82,255,0.15)',
                       background: 'rgba(140,82,255,0.04)',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '14px',
                       fontFamily: 'inherit',
                       outline: 'none',
@@ -400,7 +401,7 @@ export default function SlideEditorModal({
                   <label
                     style={{
                       fontSize: '11px',
-                      color: 'rgba(237,233,255,0.4)',
+                      color: 'var(--ink-40)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.08em',
                       fontFamily: 'inherit',
@@ -419,7 +420,7 @@ export default function SlideEditorModal({
                       borderRadius: '8px',
                       border: '1px solid rgba(140,82,255,0.15)',
                       background: 'rgba(140,82,255,0.04)',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '13px',
                       fontFamily: 'inherit',
                       outline: 'none',
@@ -443,7 +444,7 @@ export default function SlideEditorModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'rgba(237,233,255,0.3)',
+                  color: 'var(--ink-30)',
                   fontSize: '14px',
                   fontFamily: 'inherit',
                 }}
@@ -471,7 +472,7 @@ export default function SlideEditorModal({
           <span
             style={{
               fontSize: '12px',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'var(--ink-40)',
               fontFamily: 'inherit',
             }}
           >
@@ -486,7 +487,9 @@ export default function SlideEditorModal({
               disabled={activeIndex <= 0}
               title="Move slide up"
             >
-              <ChevronUp size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                expand_less
+              </span>
             </FooterIconButton>
 
             {/* Move down */}
@@ -495,7 +498,9 @@ export default function SlideEditorModal({
               disabled={activeIndex >= slides.length - 1}
               title="Move slide down"
             >
-              <ChevronDown size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                expand_more
+              </span>
             </FooterIconButton>
 
             {/* Delete slide */}
@@ -505,7 +510,9 @@ export default function SlideEditorModal({
               title="Delete slide"
               danger
             >
-              <Trash2 size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                delete
+              </span>
             </FooterIconButton>
 
             {/* Cancel */}
@@ -514,16 +521,16 @@ export default function SlideEditorModal({
               style={{
                 padding: isPhone ? '8px 10px' : '8px 16px',
                 borderRadius: '8px',
-                border: '1px solid rgba(237,233,255,0.1)',
+                border: '1px solid var(--ink-12)',
                 background: 'transparent',
-                color: 'rgba(237,233,255,0.5)',
+                color: 'var(--ink-50)',
                 fontSize: isPhone ? '12px' : '13px',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'background 0.12s ease',
               }}
               onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.background = 'rgba(237,233,255,0.05)';
+                (e.target as HTMLButtonElement).style.background = 'var(--ink-04)';
               }}
               onMouseLeave={(e) => {
                 (e.target as HTMLButtonElement).style.background = 'transparent';
@@ -544,7 +551,7 @@ export default function SlideEditorModal({
                 borderRadius: '8px',
                 border: 'none',
                 background: exporting ? 'rgba(140,82,255,0.4)' : '#8c52ff',
-                color: '#fff',
+                color: 'var(--on-surface)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: exporting ? 'not-allowed' : 'pointer',
@@ -562,9 +569,17 @@ export default function SlideEditorModal({
               }}
             >
               {exporting ? (
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                  aria-hidden
+                >
+                  progress_activity
+                </span>
               ) : (
-                <Download size={14} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                  download
+                </span>
               )}
               {exporting ? 'Exporting...' : 'Export PPTX'}
             </button>
@@ -601,12 +616,14 @@ function CloseButton({ onClick }: { onClick: () => void }) {
         borderRadius: '8px',
         border: '1px solid rgba(140,82,255,0.15)',
         background: hovered ? 'rgba(140,82,255,0.1)' : 'transparent',
-        color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.4)',
+        color: hovered ? '#c4a9ff' : 'var(--ink-40)',
         cursor: 'pointer',
         transition: 'background 0.12s ease, color 0.12s ease',
       }}
     >
-      <X size={16} />
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+        close
+      </span>
     </button>
   );
 }
@@ -627,7 +644,7 @@ function AddSlideButton({ onClick }: { onClick: () => void }) {
         borderRadius: '8px',
         border: '1px dashed rgba(140,82,255,0.25)',
         background: hovered ? 'rgba(140,82,255,0.08)' : 'transparent',
-        color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.35)',
+        color: hovered ? '#c4a9ff' : 'var(--ink-30)',
         fontSize: '11px',
         fontWeight: 600,
         cursor: 'pointer',
@@ -636,7 +653,10 @@ function AddSlideButton({ onClick }: { onClick: () => void }) {
         flexShrink: 0,
       }}
     >
-      <Plus size={12} /> Add Slide
+      <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+        add
+      </span>{' '}
+      Add Slide
     </button>
   );
 }
@@ -674,7 +694,7 @@ function FooterIconButton({
         borderRadius: '8px',
         border: `1px solid ${danger ? 'rgba(252,165,165,0.2)' : 'rgba(140,82,255,0.15)'}`,
         background: hovered && !disabled ? `${baseColor}0.1)` : 'transparent',
-        color: disabled ? 'rgba(237,233,255,0.15)' : hovered ? activeColor : `${baseColor}0.5)`,
+        color: disabled ? 'var(--ink-12)' : hovered ? activeColor : `${baseColor}0.5)`,
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background 0.12s ease, color 0.12s ease',
       }}

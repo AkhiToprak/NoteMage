@@ -1,21 +1,34 @@
 'use client';
 
-import { useState, type ReactElement } from 'react';
+import { Fragment, useState, type ReactElement } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { CanvasIcon, NotebookIcon, TextFileIcon } from '@/components/icons/NavIcons';
+import { TIERS, isLifetimeLimit, type TierKey, type FeatureType } from '@/lib/tiers';
 
 interface FeatureRow {
   name: string;
   /** Either a Material Symbols icon name, or a custom SVG element from NavIcons. */
   icon: string | ReactElement;
   free: string;
-  plus: string;
   pro: string;
 }
 
 interface FeatureCategory {
   category: string;
   features: FeatureRow[];
+}
+
+/**
+ * Format a TIERS limit the way the comparison cells expect:
+ * -1 → "Unlimited*", 0 → "—", otherwise "<n>/mo" (or "<n> total" for a
+ * lifetime budget). Driving this table off TIERS keeps it in lockstep with
+ * the pricing cards and the server-side enforcement — the numbers can't drift.
+ */
+function limitLabel(tier: TierKey, feature: FeatureType): string {
+  const limit = TIERS[tier].limits[feature];
+  if (limit === -1) return 'Unlimited*';
+  if (limit === 0) return '—';
+  return `${limit}${isLifetimeLimit(tier, feature) ? ' total' : '/mo'}`;
 }
 
 const COMPARISON_DATA: FeatureCategory[] = [
@@ -25,51 +38,111 @@ const COMPARISON_DATA: FeatureCategory[] = [
       {
         name: 'AI Flashcard Sets',
         icon: 'auto_awesome',
-        free: '1/mo',
-        plus: '4/mo',
-        pro: 'Unlimited*',
+        free: limitLabel('FREE', 'ai_flashcards'),
+        pro: limitLabel('PRO', 'ai_flashcards'),
       },
       {
         name: 'AI Presentations',
         icon: 'slideshow',
-        free: '1/mo',
-        plus: '3/mo',
-        pro: 'Unlimited*',
+        free: limitLabel('FREE', 'ai_pptx'),
+        pro: limitLabel('PRO', 'ai_pptx'),
       },
-      { name: 'AI Study Plans', icon: 'school', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
-      { name: 'AI Quizzes', icon: 'quiz', free: '2/mo', plus: '4/mo', pro: 'Unlimited*' },
+      {
+        name: 'AI Study Plans',
+        icon: 'school',
+        free: limitLabel('FREE', 'ai_study_plan'),
+        pro: limitLabel('PRO', 'ai_study_plan'),
+      },
+      {
+        name: 'Ultra Paths',
+        icon: 'bolt',
+        free: limitLabel('FREE', 'ultra_path'),
+        pro: limitLabel('PRO', 'ultra_path'),
+      },
+      {
+        name: 'AI Quizzes',
+        icon: 'quiz',
+        free: limitLabel('FREE', 'ai_quizzes'),
+        pro: limitLabel('PRO', 'ai_quizzes'),
+      },
       {
         name: 'Mage Chat Messages',
         icon: 'forum',
-        free: '50/mo',
-        plus: '100/mo',
-        pro: 'Unlimited*',
+        free: limitLabel('FREE', 'scholar_chat'),
+        pro: limitLabel('PRO', 'scholar_chat'),
       },
-      { name: 'Inline AI Editing', icon: 'auto_fix', free: '—', plus: '—', pro: 'Unlimited*' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
+      {
+        name: 'Inline AI Editing',
+        icon: 'auto_fix',
+        free: limitLabel('FREE', 'ai_inline_edit'),
+        pro: limitLabel('PRO', 'ai_inline_edit'),
+      },
+      {
+        name: 'PDF Pages',
+        icon: 'picture_as_pdf',
+        free: limitLabel('FREE', 'pdf_import'),
+        pro: limitLabel('PRO', 'pdf_import'),
+      },
+      {
+        name: 'Path Translations',
+        icon: 'translate',
+        free: limitLabel('FREE', 'path_translation'),
+        pro: limitLabel('PRO', 'path_translation'),
+      },
+      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
   {
     category: 'Study Tools',
     features: [
-      { name: 'Notebooks', icon: <NotebookIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Text Files', icon: <TextFileIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Flashcard Creator', icon: 'style', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Quiz Creator', icon: 'quiz', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Notebooks', icon: <NotebookIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Text Files', icon: <TextFileIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Flashcard Creator', icon: 'style', free: '✓', pro: '✓' },
+      { name: 'Quiz Creator', icon: 'quiz', free: '✓', pro: '✓' },
+      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
   {
     category: 'Collaboration',
     features: [
-      { name: 'Study Groups', icon: 'groups', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Classes', icon: 'school', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'Direct Messages', icon: 'chat', free: '✓', plus: '✓', pro: '✓' },
-      { name: 'And many more...', icon: 'more_horiz', free: '✓', plus: '✓', pro: '✓' },
+      { name: 'Study Groups', icon: 'groups', free: '✓', pro: '✓' },
+      { name: 'Classes', icon: 'school', free: '✓', pro: '✓' },
+      { name: 'Direct Messages', icon: 'chat', free: '✓', pro: '✓' },
+      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
 ];
+
+function buildComparisonData(freeAiPathsDisabled: boolean): FeatureCategory[] {
+  // Phase 12 switchover: when FREE AI path generation is off, FREE users get
+  // curated community paths instead of AI-generated ones. Reframe the row so the
+  // table tells the truth and stays consistent with the pricing card.
+  const studyPathsRow: FeatureRow = freeAiPathsDisabled
+    ? {
+        name: 'Study Paths',
+        icon: 'school',
+        free: 'Community',
+        pro: limitLabel('PRO', 'ai_study_plan'),
+      }
+    : {
+        name: 'AI Study Plans',
+        icon: 'school',
+        free: limitLabel('FREE', 'ai_study_plan'),
+        pro: limitLabel('PRO', 'ai_study_plan'),
+      };
+
+  return COMPARISON_DATA.map((category) =>
+    category.category === 'AI Features'
+      ? {
+          ...category,
+          features: category.features.map((f) =>
+            f.name === 'AI Study Plans' ? studyPathsRow : f
+          ),
+        }
+      : category
+  );
+}
 
 function CellValue({ value, isPro }: { value: string; isPro?: boolean }) {
   if (value === 'Unlimited*' || value === 'Unlimited') {
@@ -114,9 +187,14 @@ function CellValue({ value, isPro }: { value: string; isPro?: boolean }) {
   return <span style={{ fontSize: 13, color: 'var(--on-surface-variant)' }}>{value}</span>;
 }
 
-export default function FeatureComparison() {
+export default function FeatureComparison({
+  freeAiPathsDisabled = false,
+}: {
+  freeAiPathsDisabled?: boolean;
+}) {
   const { ref, isRevealed } = useScrollReveal();
   const [expandedMobile, setExpandedMobile] = useState<number>(0);
+  const comparisonData = buildComparisonData(freeAiPathsDisabled);
 
   return (
     <section
@@ -158,6 +236,7 @@ export default function FeatureComparison() {
           <thead>
             <tr>
               <th
+                scope="col"
                 style={{
                   textAlign: 'left',
                   padding: '12px 16px',
@@ -170,9 +249,10 @@ export default function FeatureComparison() {
               >
                 Feature
               </th>
-              {(['Free', 'Plus', 'Pro'] as const).map((tier) => (
+              {(['Free', 'Pro'] as const).map((tier) => (
                 <th
                   key={tier}
+                  scope="col"
                   style={{
                     textAlign: 'center',
                     padding: '12px 16px',
@@ -181,9 +261,7 @@ export default function FeatureComparison() {
                     color:
                       tier === 'Pro'
                         ? 'var(--tertiary-container)'
-                        : tier === 'Plus'
-                          ? 'var(--primary)'
-                          : 'var(--on-surface-variant)',
+                        : 'var(--on-surface-variant)',
                     borderBottom: '1px solid rgba(85,85,120,0.30)',
                     background: tier === 'Pro' ? 'rgba(255,222,89,0.03)' : 'transparent',
                   }}
@@ -194,11 +272,11 @@ export default function FeatureComparison() {
             </tr>
           </thead>
           <tbody>
-            {COMPARISON_DATA.map((category, catIdx) => (
-              <>
-                <tr key={`cat-${catIdx}`}>
+            {comparisonData.map((category, catIdx) => (
+              <Fragment key={catIdx}>
+                <tr>
                   <td
-                    colSpan={4}
+                    colSpan={3}
                     style={{
                       padding: '20px 16px 8px',
                       fontSize: 11,
@@ -257,9 +335,6 @@ export default function FeatureComparison() {
                     <td style={{ textAlign: 'center', padding: '12px 16px' }}>
                       <CellValue value={feature.free} />
                     </td>
-                    <td style={{ textAlign: 'center', padding: '12px 16px' }}>
-                      <CellValue value={feature.plus} />
-                    </td>
                     <td
                       style={{
                         textAlign: 'center',
@@ -271,7 +346,7 @@ export default function FeatureComparison() {
                     </td>
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -279,7 +354,7 @@ export default function FeatureComparison() {
 
       {/* ── Mobile Accordion ── */}
       <div className="comparison-mobile">
-        {COMPARISON_DATA.map((category, catIdx) => (
+        {comparisonData.map((category, catIdx) => (
           <div
             key={catIdx}
             style={{
@@ -346,17 +421,16 @@ export default function FeatureComparison() {
                     >
                       {feature.name}
                     </span>
-                    {/* 3-column grid for tiers */}
+                    {/* Per-tier values */}
                     <div
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr 1fr',
+                        gridTemplateColumns: '1fr 1fr',
                         gap: 8,
                       }}
                     >
                       {[
                         { label: 'Free', value: feature.free },
-                        { label: 'Plus', value: feature.plus },
                         { label: 'Pro', value: feature.pro },
                       ].map((item) => (
                         <div
@@ -387,9 +461,7 @@ export default function FeatureComparison() {
                               color:
                                 item.label === 'Pro'
                                   ? 'var(--tertiary-container)'
-                                  : item.label === 'Plus'
-                                    ? 'var(--primary)'
-                                    : 'var(--outline)',
+                                  : 'var(--outline)',
                             }}
                           >
                             {item.label}

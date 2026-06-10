@@ -3,7 +3,6 @@ export interface Preset {
   label: string;
   color: string;
   keywords: string[];
-  scaffold: string[];
 }
 
 export const PRESETS: Preset[] = [
@@ -22,7 +21,6 @@ export const PRESETS: Preset[] = [
       'botany',
       'zoology',
     ],
-    scaffold: ['Key Concepts', 'Diagrams & Definitions', 'Practice Questions'],
   },
   {
     id: 'chemistry',
@@ -40,7 +38,6 @@ export const PRESETS: Preset[] = [
       'acid',
       'base',
     ],
-    scaffold: ['Element Reference', 'Reaction Notes', 'Lab Notes', 'Practice Problems'],
   },
   {
     id: 'physics',
@@ -57,7 +54,6 @@ export const PRESETS: Preset[] = [
       'waves',
       'relativity',
     ],
-    scaffold: ['Formulas & Laws', 'Concept Notes', 'Problem Sets'],
   },
   {
     id: 'mathematics',
@@ -74,7 +70,6 @@ export const PRESETS: Preset[] = [
       'linear',
       'probability',
     ],
-    scaffold: ['Formulas', 'Worked Examples', 'Practice Problems'],
   },
   {
     id: 'language-learning',
@@ -102,7 +97,6 @@ export const PRESETS: Preset[] = [
       'turkish',
       'hindi',
     ],
-    scaffold: ['Vocabulary List', 'Grammar Notes', 'Phrases & Expressions', 'Reading Exercises'],
   },
   {
     id: 'history',
@@ -120,7 +114,6 @@ export const PRESETS: Preset[] = [
       'revolution',
       'era',
     ],
-    scaffold: ['Timeline', 'Key Figures', 'Event Summaries', 'Study Notes'],
   },
   {
     id: 'literature',
@@ -138,7 +131,6 @@ export const PRESETS: Preset[] = [
       'essay',
       'rhetoric',
     ],
-    scaffold: ['Reading Notes', 'Character Analysis', 'Themes & Motifs', 'Essay Drafts'],
   },
   {
     id: 'cs',
@@ -161,7 +153,6 @@ export const PRESETS: Preset[] = [
       'frontend',
       'database',
     ],
-    scaffold: ['Concepts & Definitions', 'Code Snippets', 'Algorithm Notes', 'Project Ideas'],
   },
 ];
 
@@ -172,10 +163,6 @@ export function matchPresets(query: string): Preset[] {
   return PRESETS.filter((preset) =>
     preset.keywords.some((kw) => kw.includes(q) || q.includes(kw))
   ).slice(0, 3);
-}
-
-export function getPresetById(id: string): Preset | undefined {
-  return PRESETS.find((p) => p.id === id);
 }
 
 /**

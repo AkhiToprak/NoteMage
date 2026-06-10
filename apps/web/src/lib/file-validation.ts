@@ -46,6 +46,9 @@ export const UPLOAD_RULES: Record<string, { accept: string[] }> = {
       'application/octet-stream', // .apkg files
     ],
   },
+  'pdf-import': {
+    accept: ['application/pdf'],
+  },
 };
 
 /**

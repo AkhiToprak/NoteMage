@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { storagePath, fileName, title: titleOverride, sectionId } = await request.json();
 
     if (!storagePath) return badRequestResponse('storagePath is required');
-    if (!validateStoragePath(storagePath, 'temp-imports/')) {
+    if (!validateStoragePath(storagePath, `temp-imports/${userId}/`)) {
       return badRequestResponse('Invalid storage path');
     }
 
@@ -107,6 +107,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const set = await db.flashcardSet.create({
       data: {
+        userId,
         notebookId,
         title,
         source,

@@ -16,17 +16,20 @@ import { ContextualMascot, useMascotContextPose } from '@/components/mascot';
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
 
+// Theme-aware chrome tokens. The header surface flips with var(--background),
+// so every child colour must be a token too (no hardcoded near-white text /
+// dark fills that would strand the search bar dark on the light header).
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#0f0f0f',
-  elevated: '#1f1f1f',
-  inputBg: '#1a1a1a',
-  primary: '#ae89ff',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
-  error: '#fd6f85',
-  border: 'rgba(174,137,255,0.18)',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
+  inputBg: 'var(--surface-container-high)',
+  primary: 'var(--brand-purple)',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
+  error: 'var(--error)',
+  border: 'var(--outline-variant)',
 } as const;
 
 export default function HomeHeader() {
@@ -109,22 +112,25 @@ export default function HomeHeader() {
         >
           {/* Burger button */}
           <button
+            className="tap-target"
             onClick={() => setBurgerOpen(true)}
             onMouseEnter={() => setHoveredBurger(true)}
             onMouseLeave={() => setHoveredBurger(false)}
+            data-tutorial="nav-menu"
+            aria-label="Open menu"
             style={{
               width: 38,
               height: 38,
               borderRadius: 10,
               border: 'none',
               background: hoveredBurger ? COLORS.elevated : 'transparent',
-              color: hoveredBurger ? COLORS.textPrimary : COLORS.textMuted,
+              color: hoveredBurger ? COLORS.textPrimary : COLORS.textSecondary,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
@@ -164,6 +170,7 @@ export default function HomeHeader() {
 
           {/* Search bar */}
           <div
+            data-tutorial="search"
             style={{
               flex: 1,
               maxWidth: isPhone ? undefined : isTablet ? 400 : 500,
@@ -179,7 +186,7 @@ export default function HomeHeader() {
                 top: '50%',
                 transform: 'translateY(-50%)',
                 fontSize: 20,
-                color: searchFocused ? COLORS.primary : COLORS.textMuted,
+                color: searchFocused ? COLORS.primary : COLORS.textSecondary,
                 transition: `color 0.2s ${EASING}`,
                 pointerEvents: 'none',
               }}
@@ -237,13 +244,16 @@ export default function HomeHeader() {
           {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             {/* Timer */}
-            <TimerWidget />
+            <div data-tutorial="timer" style={{ display: 'flex', alignItems: 'center' }}>
+              <TimerWidget />
+            </div>
             {/* Notification bell */}
             <NotificationBell />
 
             {/* User avatar */}
             <div ref={avatarMenuRef} style={{ position: 'relative' }}>
               <button
+                className="tap-target"
                 onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
                 onMouseEnter={() => setHoveredAvatar(true)}
                 onMouseLeave={() => setHoveredAvatar(false)}
@@ -282,6 +292,9 @@ export default function HomeHeader() {
                     top: '100%',
                     marginTop: 8,
                     minWidth: 180,
+                    // Cap so a long username can't push the right-anchored menu
+                    // off the left edge on a narrow phone.
+                    maxWidth: 'calc(100vw - 16px)',
                     background: COLORS.cardBg,
                     border: '1px solid rgba(174,137,255,0.30)',
                     borderRadius: 14,
@@ -344,7 +357,7 @@ export default function HomeHeader() {
                           color: isHovered ? COLORS.textPrimary : COLORS.textSecondary,
                           textDecoration: 'none',
                           fontSize: 13,
-                          transition: `all 0.1s`,
+                          transition: `background 0.1s, color 0.1s`,
                         }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
@@ -380,7 +393,7 @@ export default function HomeHeader() {
                         fontSize: 13,
                         cursor: 'pointer',
                         textAlign: 'left',
-                        transition: `all 0.1s`,
+                        transition: `background 0.1s, color 0.1s`,
                       }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 18 }}>

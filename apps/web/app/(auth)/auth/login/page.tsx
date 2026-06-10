@@ -5,14 +5,22 @@ import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
+import VerifyCodeForm from '@/components/auth/VerifyCodeForm';
+import OAuthProviderRow from '@/components/auth/OAuthProviderRow';
 
 export default function LoginPage() {
   // useSearchParams in a client page must be wrapped in Suspense for the
   // Next.js 14 build to succeed — the inner form owns the hook.
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      {/* The auth experience is always-dark (the (auth) layout paints a fixed
+          #0c0a1a frame). Scope a dark token island here so flipping tokens in
+          the login subtree — including the shared OAuthProviderRow /
+          VerifyCodeForm, which ALSO render on the light-flipping onboarding
+          surface — resolve to their dark values and stay legible in light mode. */}
+      <div data-theme="dark" style={{ display: 'contents' }}>
+        <LoginForm />
+      </div>
     </Suspense>
   );
 }
@@ -24,13 +32,25 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
+  // Set when authorize() rejects an unverified credentials account. Swaps the
+  // login card for the inline code-entry flow (the password is still in state,
+  // so we can finish signing in once the email is confirmed).
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   // Surface errors redirected here by the NextAuth signIn callback —
   // the most important one is OAuthAccountExists, which fires when an
   // OAuth sign-in collides with an existing password account and we
   // refused to silently link it.
+  // Success banner after completing a password reset (redirected from
+  // /auth/forgot-password with ?reset=1).
+  useEffect(() => {
+    if (searchParams.get('reset') === '1') {
+      setNotice('Your password has been reset. Please log in with your new password.');
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const err = searchParams.get('error');
     if (!err) return;
@@ -44,47 +64,6 @@ function LoginForm() {
       setError('Sign-in was denied. If you think this is a mistake, contact support.');
     }
   }, [searchParams]);
-
-  const handleOAuth = async (provider: 'google' | 'apple') => {
-    setError('');
-    setOauthLoading(provider);
-
-    // Inside the iOS WebView shell, Apple Sign-In has to use the native
-    // ASAuthorizationAppleIDProvider flow — NextAuth's redirect handshake
-    // doesn't work in an embedded WebView. The shell hands us back an
-    // identity token which we exchange for a session cookie.
-    if (provider === 'apple' && isInsideNativeShell()) {
-      try {
-        const result = await nativeBridge.signInWithApple();
-        const res = await fetch('/api/auth/native/apple', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(result),
-        });
-        if (!res.ok) {
-          const data = (await res.json().catch(() => null)) as { error?: string } | null;
-          if (data?.error === 'OAuthAccountExists') {
-            setError(
-              'An account already exists for this email. Please sign in with your password, then link Apple from settings.'
-            );
-          } else {
-            setError('Sign in with Apple failed. Please try again.');
-          }
-          setOauthLoading(null);
-          return;
-        }
-        router.push('/dashboard');
-      } catch {
-        // User cancelled or the bridge rejected — silently reset.
-        setOauthLoading(null);
-      }
-      return;
-    }
-
-    // Web (and Google in any environment): NextAuth redirect handshake.
-    // Keep OAuth users on the login surface while signups are paused.
-    signIn(provider, { callbackUrl: '/auth/login' });
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -105,6 +84,10 @@ function LoginForm() {
           setError(
             `Your account has been locked due to too many failed login attempts. It will be unlocked at ${timeStr}.`
           );
+        } else if (result.error === 'EMAIL_NOT_VERIFIED') {
+          // Correct password, but the email was never confirmed — swap to the
+          // inline verify flow instead of showing a wrong-password error.
+          setNeedsVerification(true);
         } else {
           setError('Invalid email or password');
         }
@@ -118,13 +101,26 @@ function LoginForm() {
     }
   };
 
+  // After the code is confirmed, finish the sign-in the user already started
+  // (email + password are still in state). The account is now verified, so the
+  // same credentials sail through authorize().
+  const handleVerifiedLogin = async () => {
+    const result = await signIn('credentials', { email, password, redirect: false });
+    if (result?.ok) {
+      router.push('/dashboard');
+    } else {
+      setNeedsVerification(false);
+      setError('Email verified! Please sign in.');
+    }
+  };
+
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '16px 16px 16px 44px',
     background: '#23233c',
     border: 'none',
     borderRadius: '16px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '15px',
     fontFamily: 'inherit',
     fontWeight: 600,
@@ -132,6 +128,89 @@ function LoginForm() {
     boxSizing: 'border-box',
     transition: 'box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
   };
+
+  // Inline email-confirmation flow — shown when a correct-password login is
+  // blocked because the account's email is unverified.
+  if (needsVerification) {
+    return (
+      <>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            marginBottom: '40px',
+          }}
+        >
+          <div style={{ position: 'relative', marginBottom: '24px' }}>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(174,137,255,0.2)',
+                filter: 'blur(24px)',
+                borderRadius: '50%',
+              }}
+            />
+            <Image
+              src="/logo_trimmed.png"
+              alt="Notemage"
+              width={96}
+              height={96}
+              style={{ objectFit: 'contain', position: 'relative' }}
+              priority
+            />
+          </div>
+          <h1
+            style={{
+              fontFamily: 'var(--font-brand)',
+              fontSize: '40px',
+              fontWeight: 400,
+              color: 'var(--brand-purple)',
+              margin: '0 0 8px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Verify your email
+          </h1>
+        </div>
+
+        <div
+          style={{
+            background: '#121222',
+            borderRadius: '32px',
+            padding: '40px',
+            boxShadow: '0 32px 64px -12px rgba(0,0,0,0.5)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <VerifyCodeForm email={email} resendOnMount onVerified={handleVerifiedLogin} />
+          <button
+            type="button"
+            onClick={() => {
+              setNeedsVerification(false);
+              setError('');
+            }}
+            style={{
+              width: '100%',
+              marginTop: '18px',
+              padding: '12px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--outline)',
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
+            Back to login
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -144,7 +223,11 @@ function LoginForm() {
           marginBottom: '40px',
         }}
       >
-        <div style={{ position: 'relative', marginBottom: '24px' }}>
+        <Link
+          href="/"
+          aria-label="Notemage home"
+          style={{ position: 'relative', display: 'inline-flex' }}
+        >
           <div
             style={{
               position: 'absolute',
@@ -157,24 +240,12 @@ function LoginForm() {
           <Image
             src="/logo_trimmed.png"
             alt="Notemage"
-            width={96}
-            height={96}
+            width={144}
+            height={144}
             style={{ objectFit: 'contain', position: 'relative' }}
             priority
           />
-        </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '48px',
-            fontWeight: 400,
-            color: '#ae89ff',
-            margin: '0 0 8px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Welcome back
-        </h1>
+        </Link>
       </div>
 
       {/* Card */}
@@ -188,17 +259,20 @@ function LoginForm() {
           overflow: 'hidden',
         }}
       >
-        {/* Top gradient line */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '1px',
-            background: 'rgba(174,137,255,0.4)',
-          }}
-        />
+        {notice && !error && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              background: 'rgba(77,255,145,0.12)',
+              color: '#4dff91',
+              fontSize: '14px',
+              marginBottom: '24px',
+            }}
+          >
+            {notice}
+          </div>
+        )}
 
         {error && (
           <div
@@ -226,7 +300,7 @@ function LoginForm() {
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: 700,
-                color: '#b9c3ff',
+                color: 'var(--on-surface-variant)',
                 marginBottom: '8px',
                 paddingLeft: '4px',
               }}
@@ -244,7 +318,7 @@ function LoginForm() {
                   display: 'flex',
                   alignItems: 'center',
                   pointerEvents: 'none',
-                  color: '#737390',
+                  color: 'var(--outline)',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -276,7 +350,7 @@ function LoginForm() {
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: 700,
-                color: '#b9c3ff',
+                color: 'var(--on-surface-variant)',
                 marginBottom: '8px',
                 paddingLeft: '4px',
               }}
@@ -294,7 +368,7 @@ function LoginForm() {
                   display: 'flex',
                   alignItems: 'center',
                   pointerEvents: 'none',
-                  color: '#737390',
+                  color: 'var(--outline)',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
@@ -329,7 +403,7 @@ function LoginForm() {
                   alignItems: 'center',
                   background: 'transparent',
                   border: 'none',
-                  color: '#737390',
+                  color: 'var(--outline)',
                   cursor: 'pointer',
                 }}
               >
@@ -339,8 +413,8 @@ function LoginForm() {
               </button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <a
-                href="#"
+              <Link
+                href="/auth/forgot-password"
                 style={{
                   fontSize: '13px',
                   fontWeight: 700,
@@ -350,7 +424,7 @@ function LoginForm() {
                 }}
               >
                 Forgot Password?
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -361,7 +435,7 @@ function LoginForm() {
             style={{
               width: '100%',
               padding: '16px',
-              background: loading ? '#464560' : '#ae89ff',
+              background: loading ? '#464560' : 'var(--brand-purple)',
               border: 'none',
               borderRadius: '16px',
               color: loading ? '#aaa8c8' : '#2a0066',
@@ -399,166 +473,29 @@ function LoginForm() {
             }}
           >
             {loading ? 'Signing in…' : 'Log In'}
-            {!loading && (
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                auto_awesome
-              </span>
-            )}
           </button>
         </form>
 
-        {/* OAuth divider + providers */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            margin: '28px 0 20px',
-          }}
-        >
-          <div style={{ flex: 1, height: '1px', background: 'rgba(174,137,255,0.30)' }} />
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#737390',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-            }}
-          >
-            or continue with
-          </span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(174,137,255,0.30)' }} />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button
-            type="button"
-            onClick={() => handleOAuth('google')}
-            disabled={loading || oauthLoading !== null}
-            style={{
-              width: '100%',
-              padding: '14px 16px',
-              background: '#ffffff',
-              border: 'none',
-              borderRadius: '16px',
-              color: '#1f1f1f',
-              fontSize: '15px',
-              fontWeight: 700,
-              cursor: loading || oauthLoading !== null ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              opacity: loading || (oauthLoading && oauthLoading !== 'google') ? 0.5 : 1,
-              transition:
-                'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading && !oauthLoading) {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.01)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                  '0 8px 24px rgba(255,255,255,0.08)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 48 48"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fill="#FFC107"
-                d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
-              />
-              <path
-                fill="#FF3D00"
-                d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
-              />
-              <path
-                fill="#4CAF50"
-                d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
-              />
-              <path
-                fill="#1976D2"
-                d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
-              />
-            </svg>
-            {oauthLoading === 'google' ? 'Redirecting…' : 'Continue with Google'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleOAuth('apple')}
-            disabled={loading || oauthLoading !== null}
-            style={{
-              width: '100%',
-              padding: '14px 16px',
-              background: '#000000',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '16px',
-              color: '#ffffff',
-              fontSize: '15px',
-              fontWeight: 700,
-              cursor: loading || oauthLoading !== null ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              opacity: loading || (oauthLoading && oauthLoading !== 'apple') ? 0.5 : 1,
-              transition:
-                'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading && !oauthLoading) {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.01)';
-                (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                  '0 8px 24px rgba(0,0,0,0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-              (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fill="currentColor"
-                d="M17.05 12.536c-.028-2.812 2.295-4.162 2.4-4.228-1.308-1.912-3.342-2.173-4.063-2.202-1.731-.175-3.38 1.018-4.258 1.018-.88 0-2.23-.993-3.668-.966-1.889.027-3.631 1.099-4.603 2.791-1.962 3.4-.501 8.424 1.411 11.184.934 1.35 2.05 2.867 3.513 2.812 1.411-.056 1.944-.912 3.651-.912s2.187.912 3.68.884c1.52-.027 2.486-1.377 3.421-2.73 1.078-1.571 1.523-3.098 1.551-3.175-.034-.017-2.978-1.144-3.035-4.476zm-2.788-8.21c.78-.944 1.308-2.257 1.163-3.562-1.128.045-2.49.75-3.299 1.694-.72.834-1.362 2.175-1.189 3.452 1.262.098 2.545-.64 3.325-1.584z"
-              />
-            </svg>
-            {oauthLoading === 'apple' ? 'Redirecting…' : 'Continue with Apple'}
-          </button>
-        </div>
+        <OAuthProviderRow
+          callbackUrl="/auth/login"
+          disabled={loading}
+          onError={setError}
+        />
       </div>
 
-      {/* Waitlist link */}
+      {/* Sign-up link */}
       <p
         style={{
           marginTop: '32px',
           textAlign: 'center',
-          color: '#aaa8c8',
+          color: 'var(--on-surface-variant)',
           fontSize: '15px',
         }}
       >
         Don&apos;t have an account?{' '}
         <Link
-          href="/waitlist"
-          style={{ color: '#ffde59', fontWeight: 900, textDecoration: 'none' }}
+          href="/auth/register"
+          style={{ color: 'var(--brand-gold)', fontWeight: 900, textDecoration: 'none' }}
         >
           Sign Up
         </Link>
@@ -569,31 +506,37 @@ function LoginForm() {
         style={{
           marginTop: '48px',
           display: 'flex',
+          flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: '32px',
+          gap: '12px 24px',
         }}
       >
-        {['Privacy Policy', 'Terms of Service', 'Help Center'].map((item) => (
+        {[
+          { label: 'Privacy Policy', href: '/privacy' },
+          { label: 'Terms of Service', href: '/terms' },
+          { label: 'Help Center', href: '/docs' },
+        ].map((item) => (
           <a
-            key={item}
-            href="#"
+            key={item.label}
+            href={item.href}
             style={{
               fontSize: '11px',
               fontWeight: 700,
-              color: 'rgba(115,115,144,0.4)',
+              color: 'var(--outline)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               textDecoration: 'none',
+              whiteSpace: 'nowrap',
               transition: 'color 0.15s',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = '#737390';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--on-surface)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(115,115,144,0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--outline)';
             }}
           >
-            {item}
+            {item.label}
           </a>
         ))}
       </div>

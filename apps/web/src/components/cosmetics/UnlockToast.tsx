@@ -20,7 +20,7 @@ import { ProfileBackground } from './ProfileBackground';
  * surface.
  *
  * Design:
- * - The provider polls `/api/user/cosmetics/pending-unlocks` every 12s and
+ * - The provider polls `/api/user/cosmetics/pending-unlocks` every 30s and
  *   maintains a FIFO queue of pending unlocks. It dedupes by notification id
  *   so repeated polls don't stack duplicates.
  * - Exactly ONE toast is visible at a time. When it auto-dismisses (or the
@@ -64,7 +64,7 @@ export function useUnlocks(): UnlockContextValue {
   return ctx;
 }
 
-const POLL_INTERVAL_MS = 12_000;
+const POLL_INTERVAL_MS = 30_000;
 const AUTO_DISMISS_MS = 7_000;
 const EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -283,7 +283,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
             maxWidth: 'calc(100vw - 48px)',
             borderRadius: 20,
             overflow: 'hidden',
-            background: '#2d2d52',
+            background: 'var(--surface-container-high)',
             border: '1px solid rgba(174,137,255,0.4)',
             transform: mounted
               ? 'translateX(0) translateY(0) scale(1)'
@@ -333,7 +333,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 14, color: '#ae89ff' }}
+                  style={{ fontSize: 14, color: 'var(--md-h4)' }}
                 >
                   {typeInfo.icon}
                 </span>
@@ -341,7 +341,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                   style={{
                     fontSize: 10,
                     fontWeight: 800,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                     fontFamily: 'var(--font-brand)',
@@ -364,7 +364,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                   borderRadius: '50%',
                   border: 'none',
                   background: 'rgba(136,136,168,0.14)',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   transition: `background 0.25s ${EASING}, transform 0.25s ${EASING}`,
@@ -407,7 +407,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                 style={{
                   fontSize: 17,
                   fontWeight: 800,
-                  color: '#e5e3ff',
+                  color: 'var(--on-surface)',
                   fontFamily: 'var(--font-display)',
                   letterSpacing: '-0.01em',
                   lineHeight: 1.2,
@@ -419,7 +419,7 @@ function UnlockToast({ unlock, onDismiss }: UnlockToastProps) {
                 style={{
                   marginTop: 4,
                   fontSize: 11,
-                  color: '#8888a8',
+                  color: 'var(--outline)',
                   letterSpacing: '0.05em',
                   textTransform: 'uppercase',
                   fontWeight: 700,
@@ -539,7 +539,7 @@ function FontPreview({ entry }: { entry: NameFontCosmetic }) {
         style={{
           fontSize: 44,
           fontWeight: 700,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: entry.css,
           lineHeight: 1,
         }}

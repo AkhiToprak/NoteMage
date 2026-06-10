@@ -25,6 +25,11 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/web/package.json apps/web/
+# apps/web/package.json pins the patched SheetJS build as
+# `xlsx: file:vendor/xlsx-0.20.3.tgz`, so the vendored tarball must be present
+# in this layer before install resolves it (the full source is only copied in
+# the builder stage, which runs after this install).
+COPY apps/web/vendor apps/web/vendor
 COPY apps/web/prisma apps/web/prisma
 RUN pnpm install --frozen-lockfile
 
@@ -55,6 +60,12 @@ ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
 ENV SENTRY_ORG=$SENTRY_ORG
 ENV SENTRY_PROJECT=$SENTRY_PROJECT
+
+# Give the Turbopack production build extra V8 heap. Without this the build
+# OOM-kills on memory-constrained hosts (Coolify), dying abruptly right at
+# "Creating an optimized production build ..." with no JS error and a generic
+# exit 255 — the SIGKILL terminates the process before it can print a trace.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 RUN pnpm --filter web exec next build
 

@@ -57,7 +57,8 @@ function derivePose(
     if (workspace?.activeFlashcardSetId) return 'holding-flashcards';
     if (workspace?.activeQuizSetId) return 'quizzing';
     if (workspace?.activeChatId) return 'chatting';
-    if (workspace?.activeStudyPlanId) return 'holding-scroll';
+    // Phase 9.4 moved /notebooks/[id]/study-plan/[planId] → /learn/paths/[planId];
+    // the activeStudyPlanId branch is unreachable from notebook URLs now.
     if (workspace?.activePageId) {
       const pageType = findPageType(workspace.flatSections, workspace.activePageId);
       return pageType === 'canvas' ? 'painting' : 'writing';

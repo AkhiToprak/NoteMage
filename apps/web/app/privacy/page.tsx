@@ -5,7 +5,7 @@ import { getLegalContent } from '@/lib/legal-content';
 export const metadata: Metadata = {
   title: 'Privacy Policy — Notemage',
   description:
-    'Privacy Policy / Datenschutzerklärung for Notemage. How we handle your data on the waitlist and beyond.',
+    'Privacy Policy / Datenschutzerklärung for Notemage — what data we collect, why, and your rights.',
 };
 
 export default function PrivacyPage() {

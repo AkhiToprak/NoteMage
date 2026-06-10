@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FolderPlus } from 'lucide-react';
 
 interface CreateSectionDialogProps {
   notebookId: string;
@@ -50,7 +49,13 @@ export default function CreateSectionDialog({
         padding: '4px 6px 4px 8px',
       }}
     >
-      <FolderPlus size={14} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: 14, color: 'var(--ink-30)', flexShrink: 0 }}
+        aria-hidden
+      >
+        create_new_folder
+      </span>
       <input
         ref={inputRef}
         type="text"
@@ -75,7 +80,7 @@ export default function CreateSectionDialog({
           fontFamily: 'inherit',
           fontSize: '13px',
           fontWeight: 600,
-          color: '#ede9ff',
+          color: 'var(--on-surface)',
           outline: 'none',
         }}
       />

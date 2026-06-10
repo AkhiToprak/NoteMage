@@ -3,58 +3,55 @@
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
-import CreateChatModal from '@/components/notebook/CreateChatModal';
-import ExamCountdown from '@/components/features/ExamCountdown';
-import ExamForm from '@/components/features/ExamForm';
+import CreateChatModal from '@/components/learn/CreateChatModal';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
 
-interface ExamItem {
-  id: string;
-  title: string;
-  examDate: string;
-  notebookId: string;
-  notebookName: string;
-  studyPlan?: { id: string };
-}
-
-interface SectionRef {
-  id: string;
-  title: string;
-  pages: { id: string; title: string }[];
-  children?: SectionRef[];
-  parentId?: string | null;
+function ContentSkeleton() {
+  const bar = (
+    width: string,
+    height: number,
+    marginBottom: number,
+    delay: number
+  ): React.CSSProperties => ({
+    width,
+    height,
+    marginBottom,
+    borderRadius: 8,
+    background: 'var(--surface-container-high)',
+    animation: 'nm-nb-skel 1.5s ease-in-out infinite',
+    animationDelay: `${delay}s`,
+  });
+  return (
+    <div aria-hidden>
+      <style>{`@keyframes nm-nb-skel { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+      <div style={bar('44%', 34, 28, 0)} />
+      <div style={bar('100%', 14, 12, 0.05)} />
+      <div style={bar('94%', 14, 12, 0.1)} />
+      <div style={bar('97%', 14, 28, 0.15)} />
+      <div style={bar('100%', 14, 12, 0.2)} />
+      <div style={bar('90%', 14, 12, 0.25)} />
+      <div style={bar('96%', 14, 0, 0.3)} />
+    </div>
+  );
 }
 
 export default function NotebookDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { notebook, flatSections, sectionsLoaded, refreshChats } = useNotebookWorkspace();
+  const { flatSections, sectionsLoaded, refreshChats } = useNotebookWorkspace();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [notebookExams, setNotebookExams] = useState<ExamItem[]>([]);
-  const [showExamForm, setShowExamForm] = useState(false);
+  const [skipRedirect, setSkipRedirect] = useState(false);
   const skipRedirectRef = useRef(false);
   const { step: tutorialStep, advance: tutorialAdvance, skip: tutorialSkip } = useTutorial();
-
-  // Fetch exams
-  useEffect(() => {
-    fetch('/api/user/exams')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (Array.isArray(d)) {
-          setNotebookExams(d.filter((e: ExamItem) => e.notebookId === id));
-        }
-      })
-      .catch(() => {});
-  }, [id]);
 
   // Auto-open modal when ?new=1 is in URL (e.g. from "New chat" sidebar button)
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       skipRedirectRef.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSkipRedirect(true);
       setShowCreateModal(true);
       if (tutorialStep === 'step-3-workspace') {
         tutorialAdvance('step-4-chat-modal');
@@ -91,47 +88,6 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
     }
   }, [flatSections, sectionsLoaded, id, router, searchParams]);
 
-  const handleCreateExam = async (data: {
-    title: string;
-    examDate: string;
-    notebookId: string;
-  }) => {
-    const res = await fetch('/api/user/exams', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (res.ok) {
-      setShowExamForm(false);
-      fetch('/api/user/exams')
-        .then((r) => r.json())
-        .then((res) => {
-          const d = res?.data ?? res;
-          if (Array.isArray(d)) {
-            setNotebookExams(d.filter((e: ExamItem) => e.notebookId === id));
-          }
-        })
-        .catch(() => {});
-    }
-  };
-
-  const handleGeneratePlan = async (examId: string) => {
-    try {
-      await fetch(`/api/user/exams/${examId}/generate-plan`, { method: 'POST' });
-      fetch('/api/user/exams')
-        .then((r) => r.json())
-        .then((res) => {
-          const d = res?.data ?? res;
-          if (Array.isArray(d)) {
-            setNotebookExams(d.filter((e: ExamItem) => e.notebookId === id));
-          }
-        })
-        .catch(() => {});
-    } catch {
-      /* ignore */
-    }
-  };
-
   const handleChatCreated = (chatId: string) => {
     setShowCreateModal(false);
     if (tutorialStep === 'step-4-chat-modal') {
@@ -148,186 +104,28 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  // Build section tree for modal
-  const sectionTree: SectionRef[] = flatSections
-    .filter((s) => !s.parentId)
-    .map((s) => ({
-      id: s.id,
-      title: s.title,
-      pages: s.pages,
-      children: flatSections
-        .filter((c) => c.parentId === s.id)
-        .map((c) => ({ id: c.id, title: c.title, pages: c.pages })),
-    }));
-
   const hasPages = sectionsLoaded && flatSections.some((s) => s.pages.length > 0);
+  // While loading sections — or once loaded with pages, in the beat before the
+  // redirect navigates — show a skeleton so the page never flashes content.
+  // The create-chat flow (?new=1) suppresses both the redirect and the skeleton,
+  // so the modal sits over a blank canvas rather than an endless skeleton. When
+  // a notebook has no pages there's nothing to open: leave the canvas blank.
+  const showSkeleton = !skipRedirect && (!sectionsLoaded || hasPages);
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', height: '100%' }}>
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px' }}>
-        {/* Empty state when no pages exist */}
-        {sectionsLoaded && !hasPages && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '120px 24px 48px',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'var(--font-brand)',
-                fontSize: '28px',
-                fontWeight: 400,
-                color: 'var(--outline)',
-                margin: 0,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Start learning {notebook?.name ?? '…'}...
-            </p>
-          </div>
-        )}
-
-        {/* ── Exams section ── */}
-        <div style={{ marginTop: '32px' }}>
-          <div
-            style={{
-              background: '#000000',
-              borderRadius: '22px',
-              padding: '26px',
-              border: '1px solid rgba(174,137,255,0.36)',
-              boxShadow: 'inset 0 1px 0 rgba(174,137,255,0.06), 0 24px 48px rgba(0,0,0,0.4)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '20px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <h3
-                  style={{
-                    fontSize: '18px',
-                    fontWeight: 800,
-                    color: '#e5e3ff',
-                    margin: 0,
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  Exams
-                </h3>
-                <span
-                  style={{
-                    padding: '3px 8px',
-                    background: 'rgba(174,137,255,0.1)',
-                    color: '#ae89ff',
-                    fontSize: '10px',
-                    fontWeight: 900,
-                    borderRadius: '6px',
-                    letterSpacing: '0.06em',
-                    border: '1px solid rgba(174,137,255,0.15)',
-                  }}
-                >
-                  {String(notebookExams.length).padStart(2, '0')} EXAMS
-                </span>
-              </div>
-              <button
-                onClick={() => setShowExamForm(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  background: 'rgba(174,137,255,0.12)',
-                  border: '1px solid rgba(174,137,255,0.2)',
-                  borderRadius: '10px',
-                  color: '#ae89ff',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition:
-                    'background 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.2)';
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(174,137,255,0.12)';
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                  add
-                </span>
-                Add Exam Date
-              </button>
-            </div>
-
-            {notebookExams.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa8c8' }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: '36px',
-                    display: 'block',
-                    marginBottom: '10px',
-                    opacity: 0.35,
-                  }}
-                >
-                  event_note
-                </span>
-                <p style={{ fontSize: '14px', margin: '0 0 4px', color: '#aaa8c8' }}>
-                  No exams linked to this notebook.
-                </p>
-                <p style={{ fontSize: '12px', margin: 0, color: '#8888a8' }}>
-                  Add an exam date to get a personalized study plan.
-                </p>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: notebookExams.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                  gap: '16px',
-                }}
-              >
-                {notebookExams.map((exam) => (
-                  <ExamCountdown key={exam.id} exam={exam} onGeneratePlan={handleGeneratePlan} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Exam Form Modal */}
-        {showExamForm && (
-          <ExamForm
-            notebooks={notebook ? [{ id, name: notebook.name }] : []}
-            onSubmit={handleCreateExam}
-            onClose={() => setShowExamForm(false)}
-          />
-        )}
-
-        {/* Create chat modal */}
-        {showCreateModal && (
-          <CreateChatModal
-            notebookId={id}
-            notebookName={notebook?.name ?? ''}
-            sections={sectionTree}
-            documents={[]}
-            onClose={handleCreateModalClose}
-            onCreate={handleChatCreated}
-          />
-        )}
+        {showSkeleton && <ContentSkeleton />}
       </div>
+
+      {/* Create chat modal */}
+      {showCreateModal && (
+        <CreateChatModal
+          defaultNotebookId={id}
+          onClose={handleCreateModalClose}
+          onCreate={handleChatCreated}
+        />
+      )}
     </div>
   );
 }

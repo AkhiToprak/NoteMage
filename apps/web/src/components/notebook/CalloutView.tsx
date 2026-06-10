@@ -4,16 +4,17 @@ import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
 import { useState, useRef, useEffect } from 'react';
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
-import { ChevronDown, Info, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
 
-const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
+const CALLOUT_ICONS: Record<string, string> = {
+  Info: 'info',
+  AlertTriangle: 'warning',
+  CheckCircle: 'check_circle',
+  Lightbulb: 'lightbulb',
+  AlertOctagon: 'dangerous',
+  StickyNote: 'sticky_note_2',
 };
 
-const TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip'];
+const TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip', 'danger', 'note'];
 
 export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
   const calloutType = (node.attrs.calloutType as CalloutType) || 'info';
@@ -56,31 +57,41 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '2px',
-            background: 'rgba(237,233,255,0.06)',
-            border: '1px solid rgba(237,233,255,0.1)',
+            background: 'var(--ink-08)',
+            border: '1px solid var(--ink-12)',
             borderRadius: '6px',
             padding: '3px 6px',
             cursor: 'pointer',
             fontSize: '16px',
             lineHeight: 1,
             transition: 'background 0.15s',
-            color: 'rgba(237,233,255,0.6)',
+            color: 'var(--ink-60)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.1)';
+            e.currentTarget.style.background = 'var(--ink-12)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.06)';
+            e.currentTarget.style.background = 'var(--ink-08)';
           }}
           title="Change callout type"
         >
           <span style={{ display: 'flex', alignItems: 'center', color: style.borderColor }}>
             {(() => {
-              const Icon = CALLOUT_ICONS[style.icon];
-              return Icon ? <Icon size={16} /> : null;
+              const name = CALLOUT_ICONS[style.icon];
+              return name ? (
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                  {name}
+                </span>
+              ) : null;
             })()}
           </span>
-          <ChevronDown size={10} style={{ opacity: 0.5 }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 10, opacity: 0.5 }}
+            aria-hidden
+          >
+            expand_more
+          </span>
         </button>
 
         {pickerOpen && (
@@ -90,7 +101,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
               position: 'absolute',
               top: 'calc(100% + 4px)',
               left: 0,
-              background: '#131228',
+              background: 'var(--surface-container-low)',
               border: '1px solid rgba(174,137,255,0.40)',
               borderRadius: '8px',
               padding: '4px',
@@ -118,7 +129,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                     borderRadius: '6px',
                     border: 'none',
                     background: calloutType === t ? 'rgba(140,82,255,0.18)' : 'transparent',
-                    color: calloutType === t ? '#a47bff' : 'rgba(237,233,255,0.7)',
+                    color: calloutType === t ? '#a47bff' : 'var(--ink-70)',
                     fontFamily: 'inherit',
                     fontSize: '13px',
                     cursor: 'pointer',
@@ -126,7 +137,7 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                     transition: 'background 0.1s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(237,233,255,0.06)';
+                    e.currentTarget.style.background = 'var(--ink-08)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background =
@@ -135,8 +146,16 @@ export default function CalloutView({ node, updateAttributes }: NodeViewProps) {
                 >
                   <span style={{ display: 'flex', alignItems: 'center', color: s.borderColor }}>
                     {(() => {
-                      const Icon = CALLOUT_ICONS[s.icon];
-                      return Icon ? <Icon size={14} /> : null;
+                      const name = CALLOUT_ICONS[s.icon];
+                      return name ? (
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 14 }}
+                          aria-hidden
+                        >
+                          {name}
+                        </span>
+                      ) : null;
                     })()}
                   </span>
                   <span>{s.label}</span>

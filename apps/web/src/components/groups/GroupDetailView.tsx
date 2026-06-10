@@ -14,15 +14,15 @@ import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 
 const COLORS = {
-  pageBg: '#000000',
-  cardBg: '#21213e',
-  elevated: '#2d2d52',
+  pageBg: 'var(--background)',
+  cardBg: 'var(--surface-container)',
+  elevated: 'var(--surface-container-high)',
   primary: '#ae89ff',
   deepPurple2: '#8348f6',
-  textPrimary: '#e5e3ff',
-  textSecondary: '#aaa8c8',
-  textMuted: '#8888a8',
-  border: '#555578',
+  textPrimary: 'var(--on-surface)',
+  textSecondary: 'var(--on-surface-variant)',
+  textMuted: 'var(--outline)',
+  border: 'var(--outline-variant)',
 } as const;
 
 const EASING = 'cubic-bezier(0.22,1,0.36,1)';
@@ -188,8 +188,8 @@ export default function GroupDetailView({ groupId }: Props) {
           display: 'flex',
           alignItems: 'center',
           gap: isPhone ? 8 : 10,
-          borderBottom: `1px solid ${COLORS.border}1a`,
-          background: `${COLORS.pageBg}cc`,
+          borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
+          background: `color-mix(in srgb, ${COLORS.pageBg} 80%, transparent)`,
           backdropFilter: 'blur(20px)',
           flexShrink: 0,
           position: 'relative',
@@ -317,9 +317,9 @@ export default function GroupDetailView({ groupId }: Props) {
           alignItems: 'center',
           gap: 0,
           padding: isPhone ? '0 12px' : '0 24px',
-          background: `${COLORS.cardBg}80`,
+          background: `color-mix(in srgb, ${COLORS.cardBg} 50%, transparent)`,
           backdropFilter: 'blur(12px)',
-          borderBottom: `1px solid ${COLORS.border}1a`,
+          borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
           flexShrink: 0,
           overflowX: isPhone ? 'auto' : undefined,
           WebkitOverflowScrolling: isPhone ? 'touch' : undefined,

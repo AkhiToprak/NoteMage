@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, FileText, Layers, HelpCircle, File, Check } from 'lucide-react';
 
 interface MaterialItem {
   id: string;
@@ -113,13 +112,29 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
   const getTabIcon = (tab: TabType) => {
     switch (tab) {
       case 'pages':
-        return <FileText size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            description
+          </span>
+        );
       case 'flashcard_sets':
-        return <Layers size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            layers
+          </span>
+        );
       case 'quiz_sets':
-        return <HelpCircle size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            help
+          </span>
+        );
       case 'documents':
-        return <File size={12} />;
+        return (
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            description
+          </span>
+        );
     }
   };
 
@@ -176,7 +191,9 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
             borderBottom: '1px solid rgba(174,137,255,0.20)',
           }}
         >
-          <span style={{ fontSize: '15px', fontWeight: 600, color: '#ede9ff' }}>Add Materials</span>
+          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--on-surface)' }}>
+            Add Materials
+          </span>
           <button
             onClick={onClose}
             style={{
@@ -187,7 +204,9 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               padding: '4px',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -233,7 +252,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               style={{
                 textAlign: 'center',
                 padding: '40px 0',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'var(--ink-30)',
                 fontSize: '13px',
               }}
             >
@@ -244,7 +263,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
               style={{
                 textAlign: 'center',
                 padding: '40px 0',
-                color: 'rgba(237,233,255,0.2)',
+                color: 'var(--ink-20)',
                 fontSize: '13px',
               }}
             >
@@ -283,15 +302,23 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      transition: 'all 0.12s ease',
+                      transition: 'background 0.12s ease, border-color 0.12s ease',
                     }}
                   >
-                    {isChecked && <Check size={12} style={{ color: '#fff' }} />}
+                    {isChecked && (
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 12, color: 'var(--on-surface)' }}
+                        aria-hidden
+                      >
+                        check
+                      </span>
+                    )}
                   </div>
                   <span
                     style={{
                       fontSize: '13px',
-                      color: isChecked ? '#ede9ff' : 'rgba(237,233,255,0.6)',
+                      color: isChecked ? 'var(--on-surface)' : 'var(--ink-60)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -342,7 +369,7 @@ export default function MaterialPicker({ notebookId, onSelect, onClose }: Materi
                 borderRadius: '8px',
                 border: 'none',
                 background: selected.size > 0 ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-                color: selected.size > 0 ? '#fff' : 'rgba(196,169,255,0.4)',
+                color: selected.size > 0 ? 'var(--on-surface)' : 'rgba(196,169,255,0.4)',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: selected.size > 0 ? 'pointer' : 'not-allowed',

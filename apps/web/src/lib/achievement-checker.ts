@@ -18,6 +18,9 @@ const NON_META_BADGES = ACHIEVEMENTS.filter((a) => a.badge !== 'all_achievements
 /** All valid badge keys (used to exclude orphaned old records from counts) */
 const VALID_BADGES = ACHIEVEMENTS.map((a) => a.badge);
 
+// These independent counts/lookups already run concurrently via Promise.all;
+// the remaining queries hit distinct tables/shapes, so there is nothing safe to
+// merge without changing results. Caching is out of scope (invalidation risk).
 export async function gatherUserStats(userId: string): Promise<UserStats> {
   const [
     notebookCount,
@@ -66,13 +69,17 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       select: { id: true },
     }),
 
-    // User record for usernameChanged, scholarName, tutorial state
+    // User record for usernameChanged, scholarName, tutorial state, and
+    // the Phase 7 in-session streak/comeback signals persisted by the
+    // attempts route.
     db.user.findUnique({
       where: { id: userId },
       select: {
         usernameChanged: true,
         scholarName: true,
         tutorialState: true,
+        maxQuizStreakEver: true,
+        everHadComeback: true,
       },
     }),
 
@@ -111,36 +118,125 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     db.chatMessage.count({ where: { userId, role: 'user' } }),
 
     // SR bumps Flashcard.repetitions; no per-review row exists, so sum.
+    // Phase 9.6 — FlashcardSet has direct userId now; no notebook hop.
     db.flashcard.aggregate({
       _sum: { repetitions: true },
-      where: { flashcardSet: { notebook: { userId } } },
+      where: { flashcardSet: { userId } },
     }),
 
     db.document.count({ where: { notebook: { userId } } }),
 
-    db.quizSet.count({ where: { notebook: { userId } } }),
+    // Phase 9.6 — QuizSet has direct userId now; no notebook hop.
+    db.quizSet.count({ where: { userId } }),
   ]);
 
-  // ── Perfect first try (needs sequential logic) ──────────────────────
-  let hasPerfectFirstTry = false;
-  const perfectAttempts = await db.quizAttempt.findMany({
-    where: { userId, percentage: 100 },
-    select: { quizSetId: true, createdAt: true },
-  });
-  for (const pa of perfectAttempts) {
-    const earlierAttempt = await db.quizAttempt.findFirst({
+  // ── Phase 7 — personal learning-path rework gather ───────────────────────
+  // Three of these go through Prisma (path/phase rollups), two through
+  // raw SQL where Prisma's relational where-builder can't express the
+  // condition cheaply (perfect-on-a-5+-question-quiz, first-attempt ace).
+  // `maxQuizStreakEver` and `everHadComeback` are denormalized on User
+  // and arrive via `userRecord` above — no extra query.
+  const [
+    perfectQuizRow,
+    phaseComplete,
+    pathComplete,
+    checkpointAceRow,
+  ] = await Promise.all([
+    db.$queryRaw<{ ok: boolean }[]>(Prisma.sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM quiz_attempts a
+        JOIN quiz_sets s ON s.id = a."quizSetId"
+        WHERE a."userId" = ${userId}
+          AND a.percentage = 100
+          AND (SELECT COUNT(*) FROM quiz_questions WHERE "quizSetId" = s.id) >= 5
+      ) AS ok
+    `),
+
+    // Phase 10 — any phase whose every slot has every activity completed
+    // (and has ≥1 slot with ≥1 activity). Scope through plan.userId so
+    // cross-notebook paths count too.
+    db.studyPhase.findFirst({
       where: {
-        userId,
-        quizSetId: pa.quizSetId,
-        createdAt: { lt: pa.createdAt },
+        plan: { userId },
+        slots: {
+          some: {},
+          every: {
+            activities: { some: {}, every: { completed: true } },
+          },
+        },
       },
       select: { id: true },
-    });
-    if (!earlierAttempt) {
-      hasPerfectFirstTry = true;
-      break;
-    }
-  }
+    }),
+
+    // Phase 10 — any plan whose every phase has every slot fully completed.
+    db.studyPlan.findFirst({
+      where: {
+        userId,
+        phases: {
+          some: {},
+          every: {
+            slots: {
+              some: {},
+              every: {
+                activities: { some: {}, every: { completed: true } },
+              },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    }),
+
+    // Phase 10 — first attempt per slot that scored 100%. ROW_NUMBER gives
+    // us the earliest assessment attempt per slot; we check whether any of
+    // those landed at 100% straight away (the "ace" pattern).
+    db.$queryRaw<{ ok: boolean }[]>(Prisma.sql`
+      SELECT EXISTS (
+        SELECT 1 FROM (
+          SELECT percentage,
+                 ROW_NUMBER() OVER (PARTITION BY "slotId" ORDER BY "attemptedAt" ASC) AS rn
+          FROM assessment_attempts
+          WHERE "userId" = ${userId}
+        ) t
+        WHERE t.rn = 1 AND t.percentage = 100
+      ) AS ok
+    `),
+  ]);
+  const hasPerfectQuiz = perfectQuizRow[0]?.ok === true;
+  const hasPhaseComplete = !!phaseComplete;
+  const hasPathComplete = !!pathComplete;
+  const hasCheckpointAce = checkpointAceRow[0]?.ok === true;
+
+  // ── Perfect first try ───────────────────────────────────────────────
+  // A "perfect first try" is a 100% attempt with no earlier attempt on the
+  // same quiz set. Instead of an N+1 (one findFirst per perfect attempt), we
+  // fetch every perfect attempt plus the earliest attempt timestamp per set
+  // in two flat queries, then compare in JS: a perfect attempt counts iff its
+  // createdAt equals the earliest createdAt for that set (i.e. nothing strictly
+  // earlier exists — identical to the old `createdAt < pa.createdAt` check,
+  // including the tie case where the earliest attempt is itself perfect).
+  const [perfectAttempts, earliestPerSet] = await Promise.all([
+    db.quizAttempt.findMany({
+      where: { userId, percentage: 100 },
+      select: { quizSetId: true, createdAt: true },
+    }),
+    db.quizAttempt.groupBy({
+      by: ['quizSetId'],
+      where: { userId },
+      _min: { createdAt: true },
+    }),
+  ]);
+  const earliestBySet = new Map(
+    earliestPerSet.map((g) => [g.quizSetId, g._min.createdAt]),
+  );
+  const hasPerfectFirstTry = perfectAttempts.some((pa) => {
+    const earliest = earliestBySet.get(pa.quizSetId);
+    // No earlier attempt exists ⇔ this attempt is at the earliest timestamp.
+    return earliest === null || earliest === undefined
+      ? true
+      : pa.createdAt.getTime() <= earliest.getTime();
+  });
 
   // ── Daily goal hit ──────────────────────────────────────────────────
   // "locked in" unlocks once the user has any single day with >=
@@ -181,6 +277,12 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     flashcardReviewCount: flashcardReviewAgg._sum.repetitions ?? 0,
     documentCount,
     quizSetCount,
+    hasPerfectQuiz,
+    maxQuizStreakEver: userRecord?.maxQuizStreakEver ?? 0,
+    everHadComeback: userRecord?.everHadComeback ?? false,
+    hasPhaseComplete,
+    hasPathComplete,
+    hasCheckpointAce,
   };
 }
 

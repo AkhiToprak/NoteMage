@@ -1,28 +1,22 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { validateFile } from '@/lib/file-validation';
-import { Mascot } from '@/components/mascot';
 
 interface AvatarStepProps {
   username: string;
   currentAvatarUrl: string | null;
   onAvatarChange: (url: string) => void;
-  onNext: () => void;
-  onSkip: () => void;
-  loading: boolean;
-  error: string;
+  /** Lifts upload-busy state so the shell can disable its CTA mid-upload. */
+  onUploadingChange?: (busy: boolean) => void;
 }
 
 export default function AvatarStep({
   username,
   currentAvatarUrl,
   onAvatarChange,
-  onNext,
-  onSkip,
-  loading,
-  error,
+  onUploadingChange,
 }: AvatarStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { upload, isUploading: isDirectUploading } = useDirectUpload();
@@ -31,6 +25,10 @@ export default function AvatarStep({
   const [uploadCardHovered, setUploadCardHovered] = useState(false);
 
   const isUploadBusy = uploading || isDirectUploading;
+
+  useEffect(() => {
+    onUploadingChange?.(isUploadBusy);
+  }, [isUploadBusy, onUploadingChange]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,17 +58,16 @@ export default function AvatarStep({
       setUploadError('Upload failed. Please try again.');
     } finally {
       setUploading(false);
-      // Reset file input so same file can be re-selected
+      // Reset file input so the same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const displayError = error || uploadError;
   const firstLetter = username ? username[0].toUpperCase() : '?';
 
   const cardBase: React.CSSProperties = {
     flex: 1,
-    background: '#2d2d52',
+    background: 'var(--surface-container-high)',
     borderRadius: '18px',
     padding: '14px 14px',
     border: '1px solid #555578',
@@ -84,20 +81,8 @@ export default function AvatarStep({
   };
 
   return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-        <Mascot pose="default" size="md" idle="bounce" />
-      </div>
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 6px' }}>
-          Choose your avatar
-        </h2>
-        <p style={{ fontSize: '13px', color: '#aaa8c8', margin: 0 }}>
-          This is how the community will see you.
-        </p>
-      </div>
-
-      {displayError && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {uploadError && (
         <div
           style={{
             padding: '10px 14px',
@@ -105,15 +90,14 @@ export default function AvatarStep({
             background: 'rgba(253,111,133,0.12)',
             color: '#fd6f85',
             fontSize: '13px',
-            marginBottom: '14px',
           }}
         >
-          {displayError}
+          {uploadError}
         </div>
       )}
 
       {/* Avatar Preview */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div
           style={{
             width: '96px',
@@ -162,7 +146,7 @@ export default function AvatarStep({
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '28px', color: '#ae89ff', animation: 'spin 1s linear infinite' }}
+                style={{ fontSize: '28px', color: 'var(--md-h4)', animation: 'spin 1s linear infinite' }}
               >
                 progress_activity
               </span>
@@ -172,7 +156,7 @@ export default function AvatarStep({
       </div>
 
       {/* Option Cards */}
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '18px' }}>
+      <div style={{ display: 'flex', gap: '14px' }}>
         {/* Upload Card */}
         <div
           style={{
@@ -183,18 +167,15 @@ export default function AvatarStep({
           onMouseLeave={() => setUploadCardHovered(false)}
           onClick={() => !isUploadBusy && fileInputRef.current?.click()}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '28px', color: '#ae89ff' }}
-          >
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--md-h4)' }}>
             photo_camera
           </span>
-          <span
-            style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', textAlign: 'center' }}
-          >
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', textAlign: 'center' }}>
             Upload Photo
           </span>
-          {uploading && <span style={{ fontSize: '11px', color: '#aaa8c8' }}>uploading...</span>}
+          {uploading && (
+            <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>Uploading…</span>
+          )}
           <input
             ref={fileInputRef}
             type="file"
@@ -205,14 +186,7 @@ export default function AvatarStep({
         </div>
 
         {/* Create Avatar Card */}
-        <div
-          style={{
-            ...cardBase,
-            opacity: 0.4,
-            pointerEvents: 'none',
-            cursor: 'default',
-          }}
-        >
+        <div style={{ ...cardBase, opacity: 0.4, pointerEvents: 'none', cursor: 'default' }}>
           {/* Coming Soon badge */}
           <div
             style={{
@@ -230,94 +204,13 @@ export default function AvatarStep({
           >
             Soon
           </div>
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '28px', color: '#ae89ff' }}
-          >
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--md-h4)' }}>
             face
           </span>
-          <span
-            style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', textAlign: 'center' }}
-          >
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface)', textAlign: 'center' }}>
             Create Avatar
           </span>
         </div>
-      </div>
-
-      {/* Buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <button
-          onClick={onNext}
-          disabled={loading || isUploadBusy}
-          style={{
-            width: '100%',
-            padding: '13px',
-            background: loading || uploading ? '#555578' : '#ae89ff',
-            border: 'none',
-            borderRadius: '14px',
-            color: loading || uploading ? '#aaa8c8' : '#2a0066',
-            fontSize: '16px',
-            fontWeight: 700,
-            cursor: loading || uploading ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit',
-            boxShadow: loading || uploading ? 'none' : '0 8px 24px rgba(174,137,255,0.3)',
-            transition:
-              'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-          onMouseEnter={(e) => {
-            if (!loading && !uploading) {
-              e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(174,137,255,0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!loading && !uploading) {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(174,137,255,0.3)';
-            }
-          }}
-          onMouseDown={(e) => {
-            if (!loading && !uploading) e.currentTarget.style.transform = 'scale(0.98)';
-          }}
-          onMouseUp={(e) => {
-            if (!loading && !uploading) e.currentTarget.style.transform = 'scale(1.02)';
-          }}
-        >
-          Continue
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            arrow_forward
-          </span>
-        </button>
-
-        <button
-          onClick={onSkip}
-          disabled={loading || isUploadBusy}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: 'transparent',
-            border: 'none',
-            borderRadius: '14px',
-            color: '#8888a8',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: loading || uploading ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit',
-            transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
-          }}
-          onMouseEnter={(e) => {
-            if (!loading && !uploading) e.currentTarget.style.color = '#aaa8c8';
-          }}
-          onMouseLeave={(e) => {
-            if (!loading && !uploading) e.currentTarget.style.color = '#8888a8';
-          }}
-        >
-          Skip for now
-        </button>
       </div>
 
       <style>{`
@@ -325,7 +218,14 @@ export default function AvatarStep({
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes obSpinnerPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="spin 1s"] { animation: obSpinnerPulse 1.2s ease-in-out infinite !important; }
+        }
       `}</style>
-    </>
+    </div>
   );
 }

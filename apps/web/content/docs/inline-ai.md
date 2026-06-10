@@ -25,4 +25,4 @@ It's the fastest way to use the AI without breaking your flow.
 
 ## Tier note
 
-Inline AI is currently a **Pro-only** feature. It's disabled on Free and Plus plans. See [Plans and limits](/docs/plans-and-limits).
+Inline AI is currently a **Pro-only** feature. It's disabled on the Free plan. See [Plans and limits](/docs/plans-and-limits).

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     await db.$transaction(async (tx) => {
       // Release all locks held by this user
       await tx.pageLock.deleteMany({
-        where: { sessionId, lockedById: userId },
+        where: { sessionId: { equals: sessionId }, lockedById: { equals: userId } },
       });
 
       // Mark participant as left. We deliberately do NOT auto-end the

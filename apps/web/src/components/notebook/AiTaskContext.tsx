@@ -240,7 +240,7 @@ function AiTaskPill({ label }: { label: string }) {
         background: 'rgba(35, 35, 66, 0.92)',
         border: '1px solid rgba(140, 82, 255, 0.28)',
         borderRadius: 9999,
-        color: '#eeecff',
+        color: 'var(--on-surface)',
         fontSize: 13,
         fontWeight: 500,
         fontFamily: 'var(--font-sans, inherit)',

@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import QuizViewer from '@/components/notebook/QuizViewer';
+import type { QuestionKind } from '@notemage/shared';
 
 interface QuizSetData {
   id: string;
@@ -12,6 +13,8 @@ interface QuizSetData {
   sectionId: string | null;
   questions: {
     id: string;
+    kind: QuestionKind;
+    payload: unknown;
     question: string;
     options: string[];
     correctIndex: number;
@@ -36,6 +39,8 @@ export default function QuizViewerPage({
   useEffect(() => {
     async function fetchSet() {
       try {
+        // Phase 10.1: dropped the legacy `?material=` gate. Path-launched
+        // quizzes will go through the inline checkpoint drawer (Phase 10.6).
         const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`);
         const json = await res.json();
         if (json.success && json.data) {
@@ -60,7 +65,7 @@ export default function QuizViewerPage({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: 'rgba(237,233,255,0.3)',
+          color: 'var(--ink-30)',
           fontFamily: 'inherit',
         }}
       >

@@ -22,6 +22,8 @@ declare module 'next-auth' {
       username: string;
       avatarUrl?: string;
       onboardingComplete: boolean;
+      /** True once a birth date is on file. Lets onboarding skip the DOB gate. */
+      hasBirthDate: boolean;
       role: string;
       tier: string;
       scholarName?: string;
@@ -40,6 +42,7 @@ declare module 'next-auth/jwt' {
     username?: string;
     avatarUrl?: string;
     onboardingComplete?: boolean;
+    hasBirthDate?: boolean;
     role?: string;
     tier?: string;
     scholarName?: string;

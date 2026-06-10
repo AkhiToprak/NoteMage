@@ -5,7 +5,7 @@ category: Study tools
 order: 32
 ---
 
-Quizzes in Notemage are multiple-choice tests built around your notebook. Every question has four answer choices, one correct answer, an optional hint, and explanations for both correct and wrong answers. Attempts are tracked so you can see whether you're improving.
+Quizzes in Notemage are tests built around your notebook. A classic question has four answer choices, one correct answer, an optional hint, and explanations for both correct and wrong answers. AI-built quizzes can mix in other formats too — true/false, fill-in-the-blank, matching, and ordering. Attempts are tracked so you can see whether you're improving.
 
 ## Building a quiz
 
@@ -44,7 +44,6 @@ Quiz sets export to:
 AI-generated quiz sets count against a monthly cap:
 
 - **Free** — 2 AI-generated quiz sets / month.
-- **Plus** — 4 AI-generated quiz sets / month.
 - **Pro** — unlimited.
 
 Manually-built quiz sets are unlimited on every plan. See [Plans and limits](/docs/plans-and-limits).

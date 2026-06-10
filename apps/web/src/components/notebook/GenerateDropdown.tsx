@@ -2,10 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, BookOpen, ClipboardCheck, Network, Loader2, SpellCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useAiTask } from './AiTaskContext';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
+import CreateChatModal from '@/components/learn/CreateChatModal';
+import LearnPathSetup from '@/components/learn/LearnPathSetup';
+import { getMageName } from '@/lib/scholar';
+import { useToast } from '@/components/ui/Toast';
 
 interface GenerateDropdownProps {
   notebookId: string;
@@ -14,19 +18,17 @@ interface GenerateDropdownProps {
   onEssayCheck?: () => void;
 }
 
-type GenerateType = 'flashcards' | 'quiz' | 'mindmap';
+type GenerateType = 'flashcards' | 'quiz';
 
-const OPTIONS: { type: GenerateType; label: string; icon: typeof BookOpen }[] = [
-  { type: 'flashcards', label: 'Generate Flashcards', icon: BookOpen },
-  { type: 'quiz', label: 'Generate Quiz', icon: ClipboardCheck },
-  { type: 'mindmap', label: 'Generate Mind Map', icon: Network },
+const OPTIONS: { type: GenerateType; label: string; icon: string }[] = [
+  { type: 'flashcards', label: 'Generate Flashcards', icon: 'menu_book' },
+  { type: 'quiz', label: 'Generate Quiz', icon: 'quiz' },
 ];
 
 // Labels shown in the global AI status pill while each action is running.
 const AI_TASK_LABELS: Record<GenerateType, string> = {
   flashcards: 'Generating flashcards…',
   quiz: 'Generating quiz…',
-  mindmap: 'Generating mind map…',
 };
 
 export default function GenerateDropdown({
@@ -39,6 +41,8 @@ export default function GenerateDropdown({
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<GenerateType | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [pathModalOpen, setPathModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -47,8 +51,12 @@ export default function GenerateDropdown({
   // suppressed for whatever reason; this guard blocks the double-fire.
   const lastFireRef = useRef(0);
   const router = useRouter();
+  const { data: session } = useSession();
+  const mageName = getMageName(session?.user?.scholarName);
   const { startAiTask, finishAiTask } = useAiTask();
-  const { refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
+  const { notebook, refreshFlashcardSets, refreshQuizSets } = useNotebookWorkspace();
+  const notebookName = notebook?.name ?? 'this notebook';
+  const { toast } = useToast();
 
   const fireOnce = useCallback((fn: () => void) => {
     if (Date.now() - lastFireRef.current < 600) return;
@@ -117,29 +125,45 @@ export default function GenerateDropdown({
 
         if (!res.ok) {
           const errMsg = json?.error || `Failed to generate ${type}`;
-          alert(errMsg);
+          toast({ title: 'Generation failed', description: errMsg, variant: 'error' });
           return;
         }
 
         const data = json.data;
 
+        // Generate in place: refresh the in-notebook sidebar group so the new
+        // set appears where the user already is, then toast a deep-link to it
+        // — no teleport to the global Learn hub (audit item 14).
         if (data.type === 'flashcards' && data.flashcardSet) {
           setOpen(false);
           refreshFlashcardSets();
-          router.push(`/notebooks/${notebookId}/flashcards/${data.flashcardSet.id}`);
+          toast({
+            title: 'Flashcards ready',
+            description: `Added to ${notebookName}.`,
+            variant: 'success',
+            action: {
+              label: 'Open flashcards',
+              href: `/notebooks/${notebookId}/flashcards/${data.flashcardSet.id}`,
+            },
+          });
         } else if (data.type === 'quiz' && data.quizSet) {
           setOpen(false);
           refreshQuizSets();
-          router.push(`/notebooks/${notebookId}/quizzes/${data.quizSet.id}`);
-        } else if (data.type === 'mindmap' && data.mindmap) {
-          setOpen(false);
-          alert(`Mind map "${data.mindmap.title}" generated successfully!`);
+          toast({
+            title: 'Quiz ready',
+            description: `Added to ${notebookName}.`,
+            variant: 'success',
+            action: {
+              label: 'Open quiz',
+              href: `/notebooks/${notebookId}/quizzes/${data.quizSet.id}`,
+            },
+          });
         } else if (data.text) {
           setOpen(false);
-          alert(data.text);
+          toast({ title: 'Nothing to generate', description: data.text });
         }
       } catch {
-        alert('Network error. Please try again.');
+        toast({ title: 'Network error', description: 'Please try again.', variant: 'error' });
       } finally {
         finishAiTask(taskId);
         setLoading(false);
@@ -150,7 +174,8 @@ export default function GenerateDropdown({
       loading,
       notebookId,
       pageId,
-      router,
+      toast,
+      notebookName,
       startAiTask,
       finishAiTask,
       refreshFlashcardSets,
@@ -181,7 +206,7 @@ export default function GenerateDropdown({
           borderRadius: '6px',
           border: 'none',
           background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: open ? '#a47bff' : 'rgba(237,233,255,0.5)',
+          color: open ? '#a47bff' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -192,21 +217,29 @@ export default function GenerateDropdown({
         }}
         onMouseEnter={(e) => {
           if (!open && !disabled && !loading) {
-            e.currentTarget.style.background = 'rgba(237,233,255,0.08)';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!open && !disabled && !loading) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgba(237,233,255,0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
         {loading ? (
-          <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 15, animation: 'spin 1s linear infinite' }}
+            aria-hidden
+          >
+            progress_activity
+          </span>
         ) : (
-          <Sparkles size={15} />
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+            auto_awesome
+          </span>
         )}
       </button>
       {open &&
@@ -240,7 +273,7 @@ export default function GenerateDropdown({
               width: '220px',
             }}
           >
-            {OPTIONS.map(({ type, label, icon: Icon }) => {
+            {OPTIONS.map(({ type, label, icon }) => {
               const isThisLoading = loading && loadingType === type;
               return (
                 <button
@@ -259,7 +292,7 @@ export default function GenerateDropdown({
                     border: 'none',
                     borderRadius: '6px',
                     background: 'transparent',
-                    color: loading && !isThisLoading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
+                    color: loading && !isThisLoading ? 'var(--ink-30)' : 'var(--on-surface)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     cursor: loading ? 'not-allowed' : 'pointer',
@@ -276,17 +309,136 @@ export default function GenerateDropdown({
                   }}
                 >
                   {isThisLoading ? (
-                    <Loader2
-                      size={14}
-                      style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}
-                    />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, animation: 'spin 1s linear infinite', flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      progress_activity
+                    </span>
                   ) : (
-                    <Icon size={14} style={{ flexShrink: 0 }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      {icon}
+                    </span>
                   )}
                   <span>{isThisLoading ? 'Generating...' : label}</span>
                 </button>
               );
             })}
+
+            {/* ── Divider + Learn hub shortcuts (Phase 9.5) ─────── */}
+            <div
+              style={{
+                height: '1px',
+                background: 'rgba(174,137,255,0.20)',
+                margin: '4px 8px',
+              }}
+            />
+            <button
+              type="button"
+              onPointerUp={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setChatModalOpen(true);
+                })
+              }
+              onClick={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setChatModalOpen(true);
+                })
+              }
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                minHeight: '40px',
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: loading ? 'var(--ink-30)' : 'var(--on-surface)',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.1s',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, flexShrink: 0 }}
+                aria-hidden
+              >
+                chat_bubble
+              </span>
+              <span>Ask {mageName} about this page</span>
+            </button>
+            <button
+              type="button"
+              onPointerUp={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setPathModalOpen(true);
+                })
+              }
+              onClick={() =>
+                fireOnce(() => {
+                  setOpen(false);
+                  setPathModalOpen(true);
+                })
+              }
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                minHeight: '40px',
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: loading ? 'var(--ink-30)' : 'var(--on-surface)',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.1s',
+                textAlign: 'left',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(140,82,255,0.12)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, flexShrink: 0 }}
+                aria-hidden
+              >
+                school
+              </span>
+              <span>Generate study path from this notebook</span>
+            </button>
+
             {onEssayCheck && (
               <>
                 <div
@@ -321,7 +473,7 @@ export default function GenerateDropdown({
                     border: 'none',
                     borderRadius: '6px',
                     background: 'transparent',
-                    color: loading ? 'rgba(237,233,255,0.3)' : '#ede9ff',
+                    color: loading ? 'var(--ink-30)' : 'var(--on-surface)',
                     fontSize: '13px',
                     fontFamily: 'inherit',
                     cursor: loading ? 'not-allowed' : 'pointer',
@@ -337,7 +489,13 @@ export default function GenerateDropdown({
                     e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  <SpellCheck size={14} style={{ flexShrink: 0 }} />
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 14, flexShrink: 0 }}
+                    aria-hidden
+                  >
+                    spellcheck
+                  </span>
                   <span>Check Grammar & Spelling</span>
                 </button>
               </>
@@ -345,6 +503,24 @@ export default function GenerateDropdown({
           </div>,
           document.body
         )}
+      {chatModalOpen && (
+        <CreateChatModal
+          defaultNotebookId={notebookId}
+          defaultContextPageIds={[pageId]}
+          onClose={() => setChatModalOpen(false)}
+          onCreate={(chatId) => {
+            setChatModalOpen(false);
+            router.push(`/learn/chats/${chatId}`);
+          }}
+        />
+      )}
+      {pathModalOpen && (
+        <LearnPathSetup
+          defaultNotebookId={notebookId}
+          defaultNotebookName={notebookName}
+          onClose={() => setPathModalOpen(false)}
+        />
+      )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );

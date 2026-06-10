@@ -42,6 +42,9 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     icon: (color) => <DashboardIcon size={22} color={color} />,
   },
+  // /learn is the learning dashboard — paths, notebooks, flashcards,
+  // and quizzes surfaced together as a single jump-off page.
+  { href: '/learn', label: 'Learn', icon: 'school' },
   {
     href: '/notebooks',
     label: 'Notebooks',
@@ -72,6 +75,13 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [hoveredLogout, setHoveredLogout] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Admin-only entry to the /admin console. `role` rides on the JWT, so this
+  // surfaces only for users whose User.role === 'admin'.
+  const navItems: NavItem[] =
+    user?.role === 'admin'
+      ? [...NAV_ITEMS, { href: '/admin', label: 'Admin', icon: 'admin_panel_settings' }]
+      : NAV_ITEMS;
 
   // Lock body scroll when open
   useEffect(() => {
@@ -192,7 +202,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
             gap: 2,
           }}
         >
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const isHovered = hoveredItem === item.href;
             return (
@@ -221,7 +231,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
                   textDecoration: 'none',
                   fontSize: 14,
                   fontWeight: isActive ? 700 : 500,
-                  transition: `all 0.15s ${EASING}`,
+                  transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
                 }}
               >
                 {typeof item.icon === 'function' ? (
@@ -279,7 +289,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
               fontSize: 14,
               fontWeight: 500,
               cursor: 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               textAlign: 'left',
             }}
           >

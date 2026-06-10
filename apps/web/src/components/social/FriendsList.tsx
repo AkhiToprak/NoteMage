@@ -69,7 +69,7 @@ function SkeletonRow({ compact }: { compact: boolean }) {
           width: 32,
           height: 32,
           borderRadius: '50%',
-          background: '#2d2d52',
+          background: 'var(--surface-container-high)',
           flexShrink: 0,
           animation: 'friendsListPulse 1.5s ease-in-out infinite',
         }}
@@ -80,7 +80,7 @@ function SkeletonRow({ compact }: { compact: boolean }) {
             width: 80,
             height: 12,
             borderRadius: 6,
-            background: '#2d2d52',
+            background: 'var(--surface-container-high)',
             marginBottom: compact ? 0 : 4,
             animation: 'friendsListPulse 1.5s ease-in-out 0.1s infinite',
           }}
@@ -91,7 +91,7 @@ function SkeletonRow({ compact }: { compact: boolean }) {
               width: 56,
               height: 10,
               borderRadius: 6,
-              background: '#2d2d52',
+              background: 'var(--surface-container-high)',
               animation: 'friendsListPulse 1.5s ease-in-out 0.2s infinite',
             }}
           />
@@ -210,7 +210,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                 fontSize: 13,
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 letterSpacing: '0.08em',
               }}
             >
@@ -226,7 +226,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                   height: 18,
                   borderRadius: '50%',
                   background: '#ae89ff',
-                  color: '#fff',
+                  color: 'var(--on-primary)',
                   fontSize: 10,
                   fontWeight: 700,
                 }}
@@ -257,7 +257,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
           <div
             style={{
               fontSize: 12,
-              color: '#8888a8',
+              color: 'var(--outline)',
               padding: '8px 0',
               textAlign: 'center',
             }}
@@ -282,7 +282,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                     gap: 8,
                     padding: '6px 8px',
                     borderRadius: 8,
-                    background: hoveredFriendId === friend.friendshipId ? '#2d2d52' : 'transparent',
+                    background: hoveredFriendId === friend.friendshipId ? 'var(--surface-container-high)' : 'transparent',
                     transition: TRANSITION,
                     cursor: 'pointer',
                   }}
@@ -296,7 +296,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                     style={{
                       fontSize: 14,
                       fontWeight: 700,
-                      color: '#e5e3ff',
+                      color: 'var(--on-surface)',
                       maxWidth: '100%',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -336,9 +336,9 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
   return (
     <div
       style={{
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: 12,
-        border: '1px solid #555578',
+        border: '1px solid var(--outline-variant)',
         overflow: 'hidden',
       }}
     >
@@ -356,7 +356,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               margin: 0,
             }}
           >
@@ -371,8 +371,8 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                 minWidth: 22,
                 height: 22,
                 borderRadius: 11,
-                background: '#2d2d52',
-                color: '#aaa8c8',
+                background: 'var(--surface-container-high)',
+                color: 'var(--on-surface-variant)',
                 fontSize: 12,
                 fontWeight: 600,
                 padding: '0 6px',
@@ -412,8 +412,8 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
       {pendingRequests.length > 0 && (
         <div
           style={{
-            borderTop: '1px solid #555578',
-            borderBottom: '1px solid #555578',
+            borderTop: '1px solid var(--outline-variant)',
+            borderBottom: '1px solid var(--outline-variant)',
           }}
         >
           <button
@@ -426,12 +426,12 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
               border: 'none',
               padding: '10px 16px',
               cursor: 'pointer',
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
             }}
             onClick={() => setPendingExpanded((prev) => !prev)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#aaa8c8' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--on-surface-variant)' }}>
                 Pending Requests
               </span>
               <span
@@ -443,7 +443,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                   height: 20,
                   borderRadius: 10,
                   background: '#ae89ff',
-                  color: '#fff',
+                  color: 'var(--on-primary)',
                   fontSize: 11,
                   fontWeight: 700,
                   padding: '0 5px',
@@ -456,7 +456,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
               className="material-symbols-outlined"
               style={{
                 fontSize: 18,
-                color: '#8888a8',
+                color: 'var(--outline)',
                 transition: TRANSITION,
                 transform: pendingExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               }}
@@ -467,12 +467,13 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
 
           <div
             style={{
-              maxHeight: pendingExpanded ? 300 : 0,
+              display: 'grid',
+              gridTemplateRows: pendingExpanded ? '1fr' : '0fr',
               overflow: 'hidden',
-              transition: 'max-height 0.3s cubic-bezier(0.22,1,0.36,1)',
+              transition: 'grid-template-rows 0.3s cubic-bezier(0.22,1,0.36,1)',
             }}
           >
-            <div style={{ padding: '0 16px 12px' }}>
+            <div style={{ minHeight: 0, overflow: 'hidden', padding: '0 16px 12px' }}>
               {pendingRequests.map((request) => (
                 <div
                   key={request.friendshipId}
@@ -492,7 +493,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                       style={{
                         fontSize: 14,
                         fontWeight: 700,
-                        color: '#e5e3ff',
+                        color: 'var(--on-surface)',
                         maxWidth: '100%',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -503,7 +504,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                       <div
                         style={{
                           fontSize: 12,
-                          color: '#aaa8c8',
+                          color: 'var(--on-surface-variant)',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -600,9 +601,9 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
           <button
             style={{
               background: 'none',
-              border: '1px solid #555578',
+              border: '1px solid var(--outline-variant)',
               borderRadius: 8,
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               fontSize: 13,
               fontWeight: 600,
               padding: '6px 14px',
@@ -627,14 +628,14 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
             padding: '40px 16px',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 40, color: '#8888a8' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 40, color: 'var(--outline)' }}>
             group
           </span>
           <span
             style={{
               fontSize: 15,
               fontWeight: 600,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
             }}
           >
             No friends yet
@@ -642,7 +643,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
           <span
             style={{
               fontSize: 13,
-              color: '#8888a8',
+              color: 'var(--outline)',
             }}
           >
             Find people to study with
@@ -664,7 +665,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                 alignItems: 'center',
                 gap: 10,
                 padding: '8px 16px',
-                background: hoveredFriendId === friend.friendshipId ? '#2d2d52' : 'transparent',
+                background: hoveredFriendId === friend.friendshipId ? 'var(--surface-container-high)' : 'transparent',
                 transition: TRANSITION,
                 cursor: 'pointer',
                 position: 'relative',
@@ -681,7 +682,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                   style={{
                     fontSize: 14,
                     fontWeight: 700,
-                    color: '#e5e3ff',
+                    color: 'var(--on-surface)',
                     maxWidth: '100%',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -692,7 +693,7 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                   <div
                     style={{
                       fontSize: 12,
-                      color: '#aaa8c8',
+                      color: 'var(--on-surface-variant)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -712,8 +713,8 @@ export default function FriendsList({ compact = false, onAddFriendClick }: Frien
                     height: 28,
                     borderRadius: 6,
                     border: 'none',
-                    background: '#35355c',
-                    color: '#8888a8',
+                    background: 'var(--surface-container-highest)',
+                    color: 'var(--outline)',
                     cursor: 'pointer',
                     flexShrink: 0,
                     transition: TRANSITION,

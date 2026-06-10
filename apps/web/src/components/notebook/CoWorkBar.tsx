@@ -281,7 +281,7 @@ export default function CoWorkBar({
             }}
           />
           <span
-            style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', letterSpacing: '0.05em' }}
+            style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', letterSpacing: '0.05em' }}
           >
             LIVE
           </span>
@@ -317,13 +317,13 @@ export default function CoWorkBar({
                 borderRadius: 8,
                 border: '2px solid #000000',
                 marginLeft: -8,
-                background: '#35355c',
+                background: 'var(--surface-container-highest)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 flexShrink: 0,
               }}
             >
@@ -332,7 +332,7 @@ export default function CoWorkBar({
           )}
         </div>
 
-        <span style={{ fontSize: 12, color: '#aaa8c8', fontWeight: 500 }}>
+        <span style={{ fontSize: 12, color: 'var(--on-surface-variant)', fontWeight: 500 }}>
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </span>
 
@@ -344,7 +344,7 @@ export default function CoWorkBar({
           style={{
             fontSize: 12,
             fontWeight: 600,
-            color: 'rgba(237,233,255,0.35)',
+            color: 'var(--ink-30)',
             fontFamily: "'Courier New', monospace",
             letterSpacing: '0.04em',
           }}
@@ -377,13 +377,13 @@ export default function CoWorkBar({
                   ? 'rgba(255,222,89,0.24)'
                   : 'rgba(255,222,89,0.18)'
                 : hoveredEdit
-                  ? 'rgba(237,233,255,0.1)'
-                  : 'rgba(237,233,255,0.05)',
+                  ? 'var(--ink-12)'
+                  : 'var(--ink-04)',
               color: editOpen ? '#ffde59' : '#aaa8c8',
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >
@@ -405,7 +405,7 @@ export default function CoWorkBar({
               gap: 4,
               padding: '5px 10px',
               borderRadius: 7,
-              background: editOpen ? 'rgba(255,222,89,0.14)' : 'rgba(237,233,255,0.05)',
+              background: editOpen ? 'rgba(255,222,89,0.14)' : 'var(--ink-04)',
               color: editOpen ? '#ffde59' : '#8888a8',
               fontSize: 11,
               fontWeight: 600,
@@ -432,11 +432,11 @@ export default function CoWorkBar({
             borderRadius: 7,
             border: 'none',
             background: hoveredInvite ? 'rgba(174,137,255,0.15)' : 'rgba(174,137,255,0.08)',
-            color: '#ae89ff',
+            color: 'var(--accent-strong)',
             fontSize: 11,
             fontWeight: 600,
             cursor: 'pointer',
-            transition: `all 0.15s ${EASING}`,
+            transition: `background 0.15s ${EASING}`,
             fontFamily: 'inherit',
           }}
         >
@@ -465,7 +465,7 @@ export default function CoWorkBar({
               fontSize: 11,
               fontWeight: 600,
               cursor: ending ? 'wait' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >
@@ -499,7 +499,7 @@ export default function CoWorkBar({
               fontSize: 11,
               fontWeight: 600,
               cursor: leaving ? 'wait' : 'pointer',
-              transition: `all 0.15s ${EASING}`,
+              transition: `background 0.15s ${EASING}`,
               fontFamily: 'inherit',
             }}
           >

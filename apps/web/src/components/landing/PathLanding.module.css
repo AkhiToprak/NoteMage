@@ -1,0 +1,649 @@
+/* Hallmark · studied-DNA port of Figma "Path Concept" landing (file vQMFfkwPAZLpCqemVhRRvO)
+ * theme: studied-DNA (source: Figma) · genre: playful · no gradients
+ * motion: scroll-reveal · trail-fill · mascot-float — transform/opacity only, reduced-motion safe
+ * pre-emit critique: P5 H5 E5 S5 R4 V4
+ *
+ * Scoping: `.root` is the only local (hashed) class; every structural selector is a
+ * `pl-`-namespaced :global descended from `.root`, so (a) CSS-Modules pure-mode is
+ * satisfied, (b) rules only apply inside the landing, and (c) the imperative spine /
+ * carousel JS can query and toggle by literal class names. Fonts (--font-display/-brand)
+ * and icons (.material-symbols-outlined) come from the app's global setup.
+ */
+
+.root {
+  /* surfaces */
+  --bg: #0c0a1a;
+  --surface: #1a1a36;          /* hero preview card */
+  --card: #17152f;             /* feature cards */
+  --card-active: #1d1b3a;      /* highlighted "main event" card */
+  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline-strong: rgba(255, 255, 255, 0.12);
+
+  /* purple family */
+  --primary: #d1bcff;          /* light lavender — banner, accents */
+  --node: #b69bff;             /* node fill on the path */
+  --node-shadow: #8e6fd6;      /* tactile 3D shadow under nodes */
+  --node-start: #c3a8ff;
+  --accent: #8c52ff;           /* saturated purple — active border / main-event pill */
+  --accent-soft: #c6a8ff;      /* "The magic" pill */
+  --on-lav: #3f0099;           /* dark glyph/text on lavender */
+  --on-lav-dim: #5a2ea8;
+
+  /* gold */
+  --gold: #ffde59;
+  --gold-shadow: #c9ab2e;
+  --on-gold: #3a2e00;
+
+  /* path nodes (rest/unlit) + control surfaces — tokenised from one-off hex */
+  --node-rest: #28284a;
+  --node-rest-ink: #8b88ad;
+  --node-rest-border: #4f4d72;
+  --node-rest-shadow: #131327;
+  --dot-rest: #45426a;
+  --surface-hover: #20203f;        /* ghost button + footer orb hover */
+  --arrow-hover: #2a2750;          /* carousel arrow hover */
+  --on-bubble: #2b2350;            /* dark glyph on the light START bubble */
+  --accent-deep: #6d39dd;          /* active-card eyebrow pill — 5.4:1 vs --on-accent */
+  --on-accent: #efe8ff;            /* text on accent surfaces */
+
+  /* type */
+  --ink: #efeefc;              /* headings (Figma off-white, not pure #fff) */
+  --body: #bcb9d8;             /* body copy (sampled from Figma) */
+  --eyebrow: #8e7dbc;          /* card eyebrows — muted lavender, not gray */
+  --footer-link: #8d8aa6;
+  --line: #5b577e;             /* unfilled trail */
+
+  /* Map onto the next/font variables that actually resolve at runtime. The app's
+     semantic aliases (--font-display/-sans/-brand) live in Tailwind `@theme inline`
+     and are NOT emitted as usable runtime variables, so we re-derive them here from
+     the next/font custom properties (--font-epilogue/-jakarta/-oswald, set on <body>). */
+  --font-display: var(--font-epilogue), 'Epilogue', serif;
+  --font-body: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-brand: var(--font-oswald), 'Oswald', sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* path geometry (kept in sync with the render data) */
+  --track: 120px;
+  --mascot-w: 168px;
+  /* clearance from the track edge to a gutter card/mascot. Sized to clear the
+     widest node cluster — a card-side node can be nudged toward its card AND
+     carry a grade badge + stars pill that overhang the track; the node's lit
+     glow spreads ~24px on top of that. 52px keeps real separation without
+     letting cards clip the viewport at the 1025px two-column breakpoint. */
+  --gutter-gap: 52px;
+
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.root *,
+.root *::before,
+.root *::after { box-sizing: border-box; }
+
+.root :global(.pl-sr-only) {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* horizontal clip lives on the inner page wrapper, NOT on .root — keeping it off
+   .root means the fixed nav (a child of .root) is never clipped or re-contained. */
+.root :global(.pl-page) { overflow-x: clip; }
+
+/* icons: the app loads Material Symbols globally; mirror the concept's heavier weight
+   (wght 500) and provide the fill variant locally. */
+.root :global(.material-symbols-outlined) {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+}
+.root :global(.material-symbols-outlined.filled) {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+/* accent words */
+.root :global(.pl-g-gold) { color: var(--gold); }
+.root :global(.pl-g-purple) { color: var(--node); }
+
+/* ─────────────────────────  GOLD BUTTON  ─────────────────────────
+   Shared by the page CTAs. The top nav now lives in the standalone
+   LandingNavbar component (reused across every signed-out page). */
+.root :global(.pl-btn-gold) {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--gold); color: var(--on-gold);
+  font-weight: 800; font-size: 15px;
+  padding: 11px 20px; border: 0; border-radius: var(--radius-full);
+  text-decoration: none; cursor: pointer;
+  font-family: var(--font-body);
+  box-shadow: 0 3px 0 var(--gold-shadow);
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.root :global(.pl-btn-gold:hover) { transform: translateY(-1px); box-shadow: 0 5px 0 var(--gold-shadow); }
+.root :global(.pl-btn-gold:active) { transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-shadow); }
+.root :global(.pl-btn-gold:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+
+/* ─────────────────────────  HERO  ───────────────────────── */
+.root :global(.pl-hero) { text-align: center; padding: 124px 20px 8px; }
+.root :global(.pl-hero h1) {
+  font-family: var(--font-display);
+  font-weight: 800; letter-spacing: -0.03em; line-height: 1.04;
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  margin: 0 auto; max-width: 14ch;
+  overflow-wrap: anywhere;
+  /* transform-only entrance: opacity stays 1 so the LCP headline paints on the
+     first frame (no JS gate). Pure CSS, runs at load even with JS disabled. */
+  animation: plHeroRise 0.6s var(--ease) both;
+}
+@keyframes plHeroRise { from { transform: translateY(16px); } to { transform: none; } }
+
+/* golden sparkles — the wrapper hugs the headline so the stars orbit the text
+   rather than the full-width hero. Decorative only (aria-hidden in markup). */
+.root :global(.pl-hero-title) { position: relative; display: inline-block; }
+.root :global(.pl-hspark) {
+  position: absolute;
+  color: var(--gold);
+  line-height: 0;
+  pointer-events: none;
+  /* soft golden glow — a colored shadow, not a gradient */
+  filter: drop-shadow(0 0 9px rgba(255, 222, 89, 0.45));
+  animation: plTwinkle 2.8s ease-in-out infinite alternate both;
+  will-change: transform, opacity;
+}
+.root :global(.pl-hspark) :global(.material-symbols-outlined) { font-size: 24px; display: block; }
+.root :global(.pl-hspark.pl-hspark--lg) :global(.material-symbols-outlined) { font-size: 34px; }
+.root :global(.pl-hspark.pl-hspark--sm) :global(.material-symbols-outlined) { font-size: 16px; }
+
+/* scatter around the title perimeter — % offsets stay proportional as the headline scales */
+.root :global(.pl-hspark-a) { top: -9%;   left: -8%;   animation-delay: 0s; }
+.root :global(.pl-hspark-b) { top: -4%;   right: -7%;  animation-delay: -0.9s; }
+.root :global(.pl-hspark-c) { top: 45%;   left: -11%;  animation-delay: -1.6s; }
+.root :global(.pl-hspark-d) { top: 30%;   right: -9%;  animation-delay: -0.4s; }
+.root :global(.pl-hspark-e) { bottom: 4%; left: -5%;   animation-delay: -2.1s; }
+.root :global(.pl-hspark-f) { bottom: -8%; right: -6%; animation-delay: -1.2s; }
+
+/* closing CTA cluster — scattered around the "Try it out for FREE" heading */
+.root :global(.pl-cta-title) { position: relative; display: inline-block; }
+.root :global(.pl-hspark-g) { top: -62%;  left: -8%;   animation-delay: -0.3s; }
+.root :global(.pl-hspark-h) { top: -78%;  right: -4%;  animation-delay: -1.4s; }
+.root :global(.pl-hspark-i) { top: 38%;   left: -12%;  animation-delay: -0.7s; }
+.root :global(.pl-hspark-j) { top: 30%;   right: -10%; animation-delay: -1.9s; }
+.root :global(.pl-hspark-k) { top: -94%;  left: 44%;   animation-delay: -1.1s; }
+
+@keyframes plTwinkle {
+  from { opacity: 0.35; transform: scale(0.82) rotate(-6deg); }
+  to   { opacity: 1;    transform: scale(1)    rotate(0deg); }
+}
+
+@media (max-width: 600px) {
+  .root :global(.pl-hspark.pl-hspark--lg) :global(.material-symbols-outlined) { font-size: 26px; }
+  .root :global(.pl-hspark-a) { left: -3%; }
+  .root :global(.pl-hspark-c) { left: -5%; }
+  .root :global(.pl-hspark-f) { right: -2%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(.pl-hspark) { animation: none; opacity: 0.8; transform: none; }
+}
+
+.root :global(.pl-hero-stage) { max-width: 1268px; margin: 36px auto 0; padding: 0 20px; position: relative; }
+.root :global(.pl-hero-card) {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
+  padding: 30px;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5);
+  animation: plFadeRise 0.7s var(--ease) 0.05s both;
+}
+@keyframes plFadeRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+.root :global(.pl-mini-banner) {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--primary); color: var(--on-lav);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+.root :global(.pl-mb-text) { flex: 1; min-width: 0; }
+.root :global(.pl-mb-eyebrow) {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--on-lav-dim);
+}
+.root :global(.pl-mb-title) {
+  font-family: var(--font-display); font-weight: 800; font-size: 19px;
+  margin: 2px 0 3px; letter-spacing: -0.01em;
+}
+.root :global(.pl-mb-desc) {
+  font-size: 13px; color: var(--on-lav); opacity: 0.8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.root :global(.pl-grade-pill) {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--gold); color: var(--on-gold);
+  font-weight: 800; font-size: 11px; letter-spacing: 0.08em;
+  padding: 6px 11px; border-radius: var(--radius-full);
+}
+.root :global(.pl-mb-icon-btn) {
+  display: grid; place-items: center;
+  width: 38px; height: 38px; border-radius: var(--radius-full);
+  background: rgba(63, 0, 153, 0.12); color: var(--on-lav);
+  flex-shrink: 0;
+}
+.root :global(.pl-mb-icon-btn) :global(.material-symbols-outlined) { font-size: 20px; }
+
+.root :global(.pl-mini-path) { position: relative; padding: 26px 8px 8px; }
+.root :global(.pl-mini-row) { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: start; }
+.root :global(.pl-mini-slot) { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.root :global(.pl-mini-slot.pl-center) { grid-column: 2; }
+.root :global(.pl-mini-slot.pl-left) { grid-column: 1; }
+.root :global(.pl-mini-slot.pl-right) { grid-column: 3; }
+.root :global(.pl-mini-node) {
+  position: relative; width: 56px; height: 56px; border-radius: 17px;
+  background: var(--node); color: var(--on-lav);
+  display: grid; place-items: center;
+  border: 2px solid var(--node);
+  box-shadow: 0 4px 0 var(--node-shadow);
+}
+.root :global(.pl-mini-node) :global(.material-symbols-outlined) { font-size: 26px; }
+.root :global(.pl-mini-check) {
+  position: absolute; top: -7px; right: -7px;
+  width: 20px; height: 20px; border-radius: var(--radius-full);
+  background: var(--gold); color: var(--on-gold);
+  display: grid; place-items: center; border: 2px solid var(--surface);
+}
+.root :global(.pl-mini-check) :global(.material-symbols-outlined) { font-size: 12px; }
+.root :global(.pl-mini-label) { font-size: 12px; color: var(--body); text-align: center; line-height: 1.25; max-width: 13ch; }
+.root :global(.pl-mini-conn) { width: 100%; height: 64px; display: block; }
+
+/* ─────────────────────────  HERO CAROUSEL  ───────────────────────── */
+.root :global(.pl-carousel) { position: relative; --car-peek: 48px; --car-gap: 16px; }
+.root :global(.pl-car-viewport) { overflow: hidden; border-radius: var(--radius-md); transition: height 0.6s var(--ease); }
+.root :global(.pl-car-track) { display: flex; align-items: flex-start; gap: var(--car-gap); transition: transform 0.6s var(--ease); will-change: transform; }
+.root :global(.pl-car-slide) {
+  flex: 0 0 calc(100% - var(--car-peek) - var(--car-gap)); min-width: 0;
+  opacity: 0.42; transition: opacity 0.6s var(--ease);
+}
+.root :global(.pl-car-slide.pl-is-current) { opacity: 1; }
+/* video slides — a big title over a rounded 16:9 clip; the viewport height
+   tracks the current slide (set in JS) so nothing ever letterboxes. */
+.root :global(.pl-car-video-frame) { display: block; }
+.root :global(.pl-car-video-title) {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(1.5rem, 3.4vw, 2.15rem);
+  letter-spacing: -0.03em; line-height: 1.05;
+  color: var(--gold); text-align: center;
+  margin: 0 0 16px; overflow-wrap: anywhere;
+}
+.root :global(.pl-car-video) {
+  width: 100%; aspect-ratio: 16 / 9; display: block;
+  object-fit: cover; background: var(--surface);
+  border-radius: var(--radius-md);
+}
+.root :global(.pl-car-arrow) {
+  position: absolute; top: 46%; transform: translateY(-50%);
+  width: 40px; height: 40px; display: grid; place-items: center;
+  background: rgba(20, 18, 40, 0.78); color: var(--ink);
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
+  cursor: pointer; z-index: 5; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: transform 0.18s var(--ease), background-color 0.2s var(--ease);
+}
+.root :global(.pl-car-arrow.pl-prev) { left: -8px; }
+.root :global(.pl-car-arrow.pl-next) { right: -8px; }
+.root :global(.pl-car-arrow) :global(.material-symbols-outlined) { font-size: 24px; }
+.root :global(.pl-car-arrow:hover) { background: var(--arrow-hover); transform: translateY(-50%) scale(1.07); }
+.root :global(.pl-car-arrow:active) { transform: translateY(-50%) scale(0.93); }
+.root :global(.pl-car-arrow:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.root :global(.pl-car-controls) { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
+.root :global(.pl-car-dots) { display: flex; align-items: center; gap: 6px; }
+.root :global(.pl-car-dot) {
+  /* 24×24 hit target (WCAG 2.5.8) wrapping an 8px visual dot */
+  width: 24px; height: 24px; padding: 0; border: 0; cursor: pointer;
+  background: transparent; display: grid; place-items: center; border-radius: var(--radius-full);
+}
+.root :global(.pl-car-dot)::before {
+  content: ""; width: 8px; height: 8px; border-radius: var(--radius-full);
+  background: var(--dot-rest);
+  transition: transform 0.25s var(--ease), background-color 0.2s var(--ease);
+}
+.root :global(.pl-car-dot[aria-current="true"])::before { background: var(--node); transform: scaleX(2.6); }
+.root :global(.pl-car-dot:hover)::before { background: var(--line); }
+.root :global(.pl-car-dot:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+.root :global(.pl-car-playpause) {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; padding: 0; cursor: pointer;
+  background: var(--surface); color: var(--body);
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
+  transition: transform 0.18s var(--ease), background-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.root :global(.pl-car-playpause) :global(.material-symbols-outlined) { font-size: 18px; }
+.root :global(.pl-car-playpause:hover) { background: var(--surface-hover); color: var(--ink); }
+.root :global(.pl-car-playpause:active) { transform: scale(0.94); }
+.root :global(.pl-car-playpause:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+
+/* ─────────────────  "The magic" divider pill  ─────────────────
+   Extra bottom space sets the pill apart from the path that follows. */
+.root :global(.pl-magic-wrap) { display: flex; justify-content: center; padding: 124px 20px 184px; }
+.root :global(.pl-magic) {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 13px;
+  background: var(--accent-soft); color: var(--on-lav);
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 23px; letter-spacing: -0.01em;
+  padding: 20px 46px; border: 0; border-radius: var(--radius-full);
+  cursor: pointer;
+  /* tactile 3D pill — solid bottom lip + a soft lavender glow, matching the path nodes */
+  box-shadow: 0 6px 0 var(--on-lav-dim), 0 13px 24px rgba(140, 82, 255, 0.34);
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.root :global(.pl-magic) :global(.material-symbols-outlined) { font-size: 24px; display: block; }
+.root :global(.pl-magic) :global(.pl-magic-star) { font-size: 25px; transition: transform 0.3s var(--spring); }
+.root :global(.pl-magic) :global(.pl-magic-chev) { margin-left: -3px; animation: plMagicNudge 1.9s var(--ease) infinite; }
+.root :global(.pl-magic:hover) {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 0 var(--on-lav-dim), 0 17px 28px rgba(140, 82, 255, 0.42);
+}
+.root :global(.pl-magic:hover) :global(.pl-magic-star) { transform: rotate(-14deg) scale(1.14); }
+/* press the pill into its own shadow — the lip collapses as it sinks */
+.root :global(.pl-magic:active) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--on-lav-dim), 0 6px 12px rgba(140, 82, 255, 0.3);
+}
+.root :global(.pl-magic:focus-visible) { outline: 3px solid var(--accent); outline-offset: 4px; }
+
+/* click reaction — a ~1s burst of gold + lavender sparkles down the left/right
+   edges of the viewport. The layer is fixed, so it stays in view while the page
+   smooth-scrolls to the path. Each particle carries its own placement +
+   --rot/--sz/--drift; transform + opacity only, JS-gated for reduced motion. */
+.root :global(.pl-magic-burst) { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.root :global(.pl-magic-spark) {
+  position: absolute; will-change: transform, opacity;
+  animation: plMagicSpark 3s var(--ease) forwards;
+}
+.root :global(.pl-magic-spark) :global(.material-symbols-outlined) { font-size: var(--sz, 18px); display: block; }
+@keyframes plMagicNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@keyframes plMagicSpark {
+  0%   { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  10%  { opacity: 1; transform: scale(1.12) rotate(calc(var(--rot) * 0.25)); }
+  65%  { opacity: 0.9; transform: translateY(calc(var(--drift, -24px) * 0.6)) scale(1) rotate(calc(var(--rot) * 0.7)); }
+  100% { opacity: 0; transform: translateY(var(--drift, -24px)) scale(0.6) rotate(var(--rot)); }
+}
+
+/* ─────────────────────────  PATH  ───────────────────────── */
+.root :global(.pl-path) { max-width: 1280px; margin: 0 auto; padding: 10px 20px 40px; }
+.root :global(.pl-track) { width: var(--track); margin: 0 auto; position: relative; }
+
+.root :global(.pl-node-wrap) { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 3; }
+.root :global(.pl-node-wrap[data-cp="0"]) { scroll-margin-top: 116px; }
+.root :global(.pl-node-col) { display: flex; flex-direction: column; align-items: center; }
+.root :global(.pl-node-bubble) {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: var(--radius-full); margin-bottom: 8px;
+}
+.root :global(.pl-node-bubble.pl-start) { background: var(--ink); color: var(--on-bubble); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); }
+.root :global(.pl-node-bubble.pl-finish) { background: var(--gold); color: var(--on-gold); box-shadow: 0 2px 0 var(--gold-shadow); text-transform: none; letter-spacing: 0.02em; }
+.root :global(.pl-node) {
+  position: relative; width: 64px; height: 64px; border-radius: 20px;
+  background: var(--node-rest); color: var(--node-rest-ink);
+  border: 2px solid var(--node-rest-border);
+  display: grid; place-items: center;
+  box-shadow: 0 5px 0 var(--node-rest-shadow), 0 9px 16px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.32s var(--ease), border-color 0.32s var(--ease),
+              color 0.32s var(--ease), box-shadow 0.38s var(--ease);
+  cursor: default;
+}
+.root :global(.pl-node) :global(.material-symbols-outlined) { font-size: 30px; }
+
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node) {
+  background: var(--node-start); color: var(--on-lav); border-color: var(--node-start);
+  box-shadow: 0 5px 0 var(--node-shadow), 0 11px 24px rgba(140, 82, 255, 0.38);
+  animation: nodePop 0.46s var(--spring);
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node.pl-start) {
+  box-shadow: 0 5px 0 var(--node-shadow), 0 0 0 6px rgba(140, 82, 255, 0.12), 0 0 28px 9px rgba(140, 82, 255, 0.32);
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node.pl-active) {
+  box-shadow: 0 5px 0 var(--node-shadow), 0 0 30px 9px rgba(140, 82, 255, 0.34);
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node.pl-finish) {
+  background: var(--gold); color: var(--on-gold); border-color: var(--gold);
+  box-shadow: 0 5px 0 var(--gold-shadow), 0 0 32px 10px rgba(255, 222, 89, 0.36);
+}
+@keyframes nodePop { 0% { transform: scale(0.9); } 52% { transform: scale(1.13); } 100% { transform: scale(1); } }
+
+.root :global(.pl-node-grade) {
+  position: absolute; top: -8px; right: -8px;
+  min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--gold); color: var(--on-gold);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  border: 2px solid var(--bg);
+}
+.root :global(.pl-node-stars) {
+  position: relative; display: flex; gap: 2px; margin-top: -6px; z-index: 4;
+  background: var(--bg); border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-full); padding: 3px 9px;
+}
+.root :global(.pl-node-stars) :global(.material-symbols-outlined) { font-size: 16px; color: var(--gold); }
+.root :global(.pl-node-grade),
+.root :global(.pl-node-stars) {
+  opacity: 0; transform-origin: center; transition: opacity 0.3s var(--ease) 0.08s;
+}
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node-grade),
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-node-stars) { opacity: 1; }
+
+.root :global(.pl-seg) { position: relative; }
+.root :global(.pl-spine) {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 1; pointer-events: none; overflow: visible;
+}
+.root :global(.pl-spine) :global(.pl-base) { stroke: var(--line); stroke-width: 10; fill: none; stroke-linecap: round; opacity: 0.45; }
+.root :global(.pl-spine) :global(.pl-fill) {
+  /* No drop-shadow: this path's strokeDashoffset is rewritten every scroll
+     frame, and a filtered element re-rasterizes its filter on each change. The
+     bright stroke + the tip-ball glow carry the trail without the per-frame cost. */
+  stroke: var(--node); stroke-width: 10; fill: none; stroke-linecap: round;
+}
+.root :global(.pl-spine) :global(.pl-tip) { opacity: 0; transition: opacity 0.2s var(--ease); }
+.root :global(.pl-spine) :global(.pl-tip-ball) {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 14px rgba(209, 188, 255, 0.6));
+}
+.root :global(.pl-spine) :global(.pl-tip-halo) {
+  fill: #ffffff; transform-box: fill-box; transform-origin: center;
+  animation: tipPing 1.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes tipPing {
+  0%   { transform: scale(0.55); opacity: 0.5; }
+  70%  { opacity: 0; }
+  100% { transform: scale(2.9); opacity: 0; }
+}
+
+/* cards & mascots float in the gutters, vertically centred on the segment */
+.root :global(.pl-gutter) { position: absolute; top: 50%; z-index: 2; }
+.root :global(.pl-gutter.pl-left) { right: calc(100% + var(--gutter-gap)); }
+.root :global(.pl-gutter.pl-right) { left: calc(100% + var(--gutter-gap)); }
+.root :global(.pl-gutter.pl-lone) { width: var(--mascot-w); }
+
+.root :global(.pl-node-wrap) :global(.pl-gutter) { opacity: 0; transition: opacity 0.5s var(--ease), transform 0.55s var(--ease); }
+.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left) { transform: translate(-28px, 12px); }
+.root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translate(28px, 12px); }
+.root :global(.pl-node-wrap) :global(.pl-gutter:not(.pl-from-left):not(.pl-from-right)) { transform: translateY(26px); }
+.root :global(.pl-node-wrap.pl-lit) :global(.pl-gutter) { opacity: 1; transform: none; }
+
+.root :global(.pl-card) {
+  /* fluid so the card always fits in its side rail — never clips the viewport
+     edge between the desktop breakpoint and the single-column stack */
+  width: min(440px, calc(50vw - 160px));
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+}
+.root :global(.pl-card.pl-active) {
+  width: min(456px, calc(50vw - 150px));
+  background: var(--card-active);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 4px rgba(140, 82, 255, 0.10), 0 24px 50px rgba(140, 82, 255, 0.12);
+}
+.root :global(.pl-eyebrow) {
+  display: inline-block;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.13em;
+  color: var(--eyebrow); margin-bottom: 10px;
+}
+.root :global(.pl-card.pl-active) :global(.pl-eyebrow) {
+  color: var(--on-accent); background: var(--accent-deep);
+  padding: 4px 10px; border-radius: var(--radius-full); letter-spacing: 0.1em;
+}
+.root :global(.pl-card h3) {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 23px; line-height: 1.15; letter-spacing: -0.01em;
+  margin: 0 0 10px;
+}
+.root :global(.pl-card p) { margin: 0 0 10px; font-size: 14.5px; line-height: 1.5; color: var(--body); }
+.root :global(.pl-bullets) { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.root :global(.pl-bullets li) { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; color: var(--body); }
+.root :global(.pl-bullets li) :global(.pl-spark) { color: var(--node); font-size: 13px; line-height: 1.4; flex-shrink: 0; }
+.root :global(.pl-card.pl-active) :global(.pl-bullets li) :global(.pl-spark) { color: var(--gold); }
+
+.root :global(.pl-mascot) { width: var(--mascot-w); filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45)); }
+.root :global(.pl-mascot-grid) { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 26px; width: 340px; }
+.root :global(.pl-mascot-grid img) { width: 126px; filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.4)); }
+
+.root :global(.pl-floaty) { animation: floatY 4.5s var(--ease) infinite; }
+.root :global(.pl-floaty.pl-d1) { animation-delay: 0.4s; }
+.root :global(.pl-floaty.pl-d2) { animation-delay: 0.9s; }
+.root :global(.pl-floaty.pl-d3) { animation-delay: 1.4s; }
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.root :global(.pl-bob) { animation: bobY 1.5s var(--ease) infinite; }
+@keyframes bobY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+/* ─────────────────────────  CTA  ───────────────────────── */
+.root :global(.pl-cta) { text-align: center; padding: 60px 20px 90px; }
+.root :global(.pl-cta h2) {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -0.02em; margin: 0 0 34px;
+}
+.root :global(.pl-cta-row) { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.root :global(.pl-btn-ghost) {
+  display: inline-flex; align-items: center;
+  background: var(--surface); color: var(--ink);
+  font-weight: 700; font-size: 16px; padding: 13px 24px;
+  border: 1px solid var(--hairline-strong); border-radius: var(--radius-full);
+  text-decoration: none; cursor: pointer; font-family: var(--font-body);
+  transition: transform 0.18s var(--ease), background-color 0.2s var(--ease);
+}
+.root :global(.pl-btn-ghost:hover) { transform: translateY(-1px); background: var(--surface-hover); }
+.root :global(.pl-btn-ghost:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+.root :global(.pl-btn-gold.pl-lg),
+.root :global(.pl-btn-ghost.pl-lg) { font-size: 16px; padding: 14px 26px; }
+
+/* ─────────────────────────  FOOTER  ───────────────────────── */
+.root :global(.pl-footer) { border-top: 1px solid var(--hairline); padding: 40px 20px 56px; max-width: 1280px; margin: 0 auto; }
+.root :global(.pl-footer-top) { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.root :global(.pl-brand) { display: flex; align-items: center; }
+.root :global(.pl-brand img) { height: 28px; width: auto; }
+.root :global(.pl-footer-orb) {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border-radius: var(--radius-md); background: var(--surface);
+  border: 1px solid var(--hairline); color: var(--body);
+  text-decoration: none;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.root :global(.pl-footer-orb:hover) { background: var(--surface-hover); color: var(--ink); }
+.root :global(.pl-footer-orb:focus-visible) { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+.root :global(.pl-footer-links) { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 30px; }
+.root :global(.pl-footer-links a) { color: var(--footer-link); text-decoration: none; font-size: 14px; transition: color 0.2s var(--ease); }
+.root :global(.pl-footer-links a:hover) { color: var(--ink); }
+.root :global(.pl-footer-links a:focus-visible) { outline: 2px solid var(--accent-soft); outline-offset: 2px; border-radius: 6px; }
+.root :global(.pl-footer-copy) { color: var(--footer-link); font-size: 13px; margin-top: 18px; }
+
+/* ─────────────────────────  REVEAL  ───────────────────────── */
+.root :global(.pl-reveal) { opacity: 0; transform: translateY(28px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+.root :global(.pl-reveal.pl-from-left) { transform: translate(-44px, 12px); }
+.root :global(.pl-reveal.pl-from-right) { transform: translate(44px, 12px); }
+.root :global(.pl-reveal.pl-in) { opacity: 1; transform: none; }
+
+/* ─────────────────────────  RESPONSIVE  ─────────────────────────
+   The two-sided gutter layout needs ~1080px+ to seat a card on each side of
+   the track without clipping. Below that everything collapses into ONE centred
+   column so nothing overlaps, clips, or stacks on top of anything else. */
+@media (max-width: 1024px) {
+  .root :global(.pl-path) { padding: 6px 16px 48px; }
+  .root :global(.pl-track) { width: 100%; max-width: 540px; }
+  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 32px 0; }
+
+  /* gutters leave the side rails and flow in-document, centred under the node */
+  .root :global(.pl-node-wrap) :global(.pl-gutter) {
+    position: relative; top: auto; right: auto; left: auto;
+    width: auto; z-index: 2; margin: 16px auto 0;
+  }
+  /* the node renders first (the trail's anchor); its card + mascot read directly
+     below it — so each checkpoint is node → its card → its mascot, in order */
+  .root :global(.pl-node-wrap) :global(.pl-node-col) { order: -1; }
+
+  /* reveal rises straight up — no horizontal slide, so no overflow */
+  .root :global(.pl-node-wrap) :global(.pl-gutter),
+  .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left),
+  .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translateY(20px); }
+  .root :global(.pl-node-wrap.pl-lit) :global(.pl-gutter) { transform: none; }
+
+  .root :global(.pl-card),
+  .root :global(.pl-card.pl-active) { width: 100%; max-width: 460px; margin: 0 auto; }
+  .root :global(.pl-mascot) { width: 132px; margin: 0 auto; }
+  .root :global(.pl-mascot-grid) { width: 100%; max-width: 300px; margin: 4px auto 0; justify-items: center; }
+  .root :global(.pl-mascot-grid img) { width: 116px; }
+
+  .root :global(.pl-node-shift) { transform: none !important; } /* drop the desktop zig-zag nudge */
+  .root :global(.pl-magic) { font-size: 21px; padding: 19px 40px; }
+}
+
+/* ≤720px — hero / carousel / footer tidy-ups */
+@media (max-width: 720px) {
+  .root :global(.pl-magic) { font-size: 20px; padding: 18px 38px; }
+  .root :global(.pl-carousel) { --car-peek: 26px; --car-gap: 12px; }
+  .root :global(.pl-mini-banner) { flex-wrap: wrap; }
+  .root :global(.pl-mb-desc) { white-space: normal; }
+  .root :global(.pl-footer-top) { flex-direction: column; align-items: flex-start; }
+}
+
+/* ≤560px — drop the decorative mascots (gutters without a card) so the cards
+   own the full column on small phones. Card gutters carry .pl-from-*; mascot
+   gutters don't, so :not() targets exactly the mascots. */
+@media (max-width: 560px) {
+  .root :global(.pl-node-wrap) :global(.pl-gutter:not(.pl-from-left):not(.pl-from-right)) { display: none; }
+}
+
+/* ≤420px — tighten the hero + flatten the carousel mini-path preview */
+@media (max-width: 420px) {
+  .root :global(.pl-hero) { padding-top: 104px; }
+  .root :global(.pl-mini-row) { grid-template-columns: 1fr; gap: 18px; }
+  .root :global(.pl-mini-slot.pl-left),
+  .root :global(.pl-mini-slot.pl-center),
+  .root :global(.pl-mini-slot.pl-right) { grid-column: 1; }
+  .root :global(.pl-mini-conn) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root :global(.pl-reveal) { opacity: 1 !important; transform: none !important; transition: none; }
+  .root :global(.pl-floaty),
+  .root :global(.pl-bob),
+  .root :global(.pl-magic) :global(.pl-magic-chev) { animation: none !important; }
+  .root :global(.pl-spine) :global(.pl-fill) { stroke-dashoffset: 0 !important; }
+  .root :global(.pl-spine) :global(.pl-tip) { display: none; }
+  .root :global(.pl-spine) :global(.pl-tip-halo) { animation: none; }
+  .root :global(.pl-node),
+  .root :global(.pl-node-wrap.pl-lit) :global(.pl-node) { transition: none !important; animation: none !important; }
+  .root :global(.pl-car-track),
+  .root :global(.pl-car-viewport) { transition: none !important; }
+  .root :global(.pl-hero h1),
+  .root :global(.pl-hero-card) { animation: none !important; }
+  .root :global(.pl-car-playpause) { display: none; }
+}

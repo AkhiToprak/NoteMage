@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { getPresetForSubject } from '@/lib/presets';
 
 export interface NotebookData {
   id: string;
@@ -30,55 +31,34 @@ interface AccentTheme {
   hoverBorder: string;
 }
 
-/** Map stored color hex → Neon Scholar accent theme */
+const DEFAULT_NOTEBOOK_COLOR = '#8c52ff';
+
+/**
+ * Build an accent theme from the notebook's own stored color, so each swatch
+ * renders as the color the user actually picked. (The previous version ran an
+ * RGB heuristic that quantised every color into one of four fixed themes —
+ * green, orange and blue all collapsed onto purple/pink/periwinkle and the
+ * chosen hex was never shown.) Tints are derived from the hex; badge and title
+ * text mix toward --on-surface, which flips with the theme, so the text stays
+ * readable in both light and dark mode instead of being light-on-light.
+ */
 function getAccent(color: string | null): AccentTheme {
-  if (!color) return PRIMARY_THEME;
-  const hex = color.replace('#', '');
+  const base = color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_NOTEBOOK_COLOR;
+  const hex = base.replace('#', '');
   const r = parseInt(hex.slice(0, 2), 16) || 0;
   const g = parseInt(hex.slice(2, 4), 16) || 0;
   const b = parseInt(hex.slice(4, 6), 16) || 0;
+  const tint = (a: number) => `rgba(${r},${g},${b},${a})`;
 
-  // Yellow / warm
-  if (r > 180 && g > 150 && b < 120) return TERTIARY_THEME;
-  // Red / pink dominant
-  if (r > g + 40 && r > b + 40) return ERROR_THEME;
-  // Blue / periwinkle
-  if (b > r + 20 && b > g - 30 && r < 160) return SECONDARY_THEME;
-  return PRIMARY_THEME;
+  return {
+    accent: base,
+    accentBg: tint(0.1),
+    badgeBg: tint(0.12),
+    badgeBorder: tint(0.32),
+    badgeText: `color-mix(in srgb, ${base}, var(--on-surface) 42%)`,
+    hoverBorder: tint(0.5),
+  };
 }
-
-const PRIMARY_THEME: AccentTheme = {
-  accent: '#ae89ff',
-  accentBg: 'rgba(174,137,255,0.1)',
-  badgeBg: 'rgba(174,137,255,0.1)',
-  badgeBorder: 'rgba(174,137,255,0.2)',
-  badgeText: '#ae89ff',
-  hoverBorder: 'rgba(174,137,255,0.4)',
-};
-const SECONDARY_THEME: AccentTheme = {
-  accent: '#b9c3ff',
-  accentBg: 'rgba(185,195,255,0.1)',
-  badgeBg: 'rgba(185,195,255,0.1)',
-  badgeBorder: 'rgba(185,195,255,0.32)',
-  badgeText: '#b9c3ff',
-  hoverBorder: 'rgba(185,195,255,0.55)',
-};
-const TERTIARY_THEME: AccentTheme = {
-  accent: '#ffedb3',
-  accentBg: 'rgba(255,237,179,0.1)',
-  badgeBg: 'rgba(255,237,179,0.1)',
-  badgeBorder: 'rgba(255,237,179,0.2)',
-  badgeText: '#f0d04c',
-  hoverBorder: 'rgba(255,237,179,0.4)',
-};
-const ERROR_THEME: AccentTheme = {
-  accent: '#fd6f85',
-  accentBg: 'rgba(253,111,133,0.1)',
-  badgeBg: 'rgba(253,111,133,0.1)',
-  badgeBorder: 'rgba(253,111,133,0.2)',
-  badgeText: '#c8475d',
-  hoverBorder: 'rgba(253,111,133,0.4)',
-};
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
@@ -103,7 +83,12 @@ export default function NotebookCard({
 }: NotebookCardProps) {
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const theme = getAccent(notebook.color);
+  // Tie the card's accent (spine + badge + title hover) to the notebook's
+  // subject so the color reads as meaning, not decoration (audit item 6). The
+  // subject's preset color wins; fall back to the user-chosen color, then the
+  // default. Notebooks with no subject keep their stored color exactly.
+  const subjectColor = getPresetForSubject(notebook.subject)?.color;
+  const theme = getAccent(subjectColor ?? notebook.color);
   const docCount =
     notebook._count.pages != null && notebook._count.pages > 0
       ? `${notebook._count.pages} page${notebook._count.pages !== 1 ? 's' : ''}`
@@ -126,13 +111,13 @@ export default function NotebookCard({
         <div
           style={{
             position: 'relative',
-            background: '#12122a',
-            borderRadius: '12px',
+            background: 'var(--surface-container)',
+            borderRadius: 'var(--radius-lg)',
             overflow: 'hidden',
-            border: `1px solid ${hovered ? theme.hoverBorder : 'rgba(70,69,96,0.1)'}`,
+            border: `1px solid ${hovered ? theme.hoverBorder : 'var(--ink-08)'}`,
             boxShadow: hovered
-              ? `0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px ${theme.hoverBorder}`
-              : '0 8px 24px rgba(0,0,0,0.3)',
+              ? `inset 0 1px 0 var(--ink-08), 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px ${theme.hoverBorder}`
+              : 'inset 0 1px 0 var(--ink-06), 0 8px 24px rgba(0,0,0,0.3)',
             transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
             transition:
               'transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s cubic-bezier(0.22,1,0.36,1), border-color 0.5s cubic-bezier(0.22,1,0.36,1)',
@@ -176,7 +161,7 @@ export default function NotebookCard({
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  border: '1.5px solid #ffffff',
+                  border: '1.5px solid var(--outline)',
                 }}
               />
             ))}
@@ -186,8 +171,7 @@ export default function NotebookCard({
           <div
             className="notebook-pattern"
             style={{
-              paddingLeft: '40px',
-              padding: '24px 24px 24px 40px',
+              padding: 'var(--card-pad) var(--card-pad) var(--card-pad) var(--card-pad-spine)',
               display: 'flex',
               flexDirection: 'column',
               height: '100%',
@@ -210,7 +194,7 @@ export default function NotebookCard({
                     background: theme.badgeBg,
                     border: `1px solid ${theme.badgeBorder}`,
                     borderRadius: '9999px',
-                    fontSize: '10px',
+                    fontSize: 'var(--fs-2xs)',
                     fontWeight: 700,
                     color: theme.badgeText,
                     textTransform: 'uppercase',
@@ -233,7 +217,7 @@ export default function NotebookCard({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -242,10 +226,10 @@ export default function NotebookCard({
                   transition: 'color 0.15s',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = theme.accent;
+                  (e.currentTarget as HTMLButtonElement).style.color = theme.badgeText;
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = '#aaa8c8';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface-variant)';
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
@@ -257,12 +241,12 @@ export default function NotebookCard({
             {/* Title */}
             <h3
               style={{
-                fontFamily: '"Epilogue", serif',
-                fontSize: '18px',
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--fs-lg)',
                 fontWeight: 700,
-                color: hovered ? theme.accent : '#e5e3ff',
+                color: hovered ? theme.badgeText : 'var(--on-surface)',
                 margin: 0,
-                lineHeight: 1.3,
+                lineHeight: 'var(--lh-snug)',
                 transition: 'color 0.3s cubic-bezier(0.22,1,0.36,1)',
               }}
             >
@@ -277,16 +261,23 @@ export default function NotebookCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderTop: '1px solid rgba(70,69,96,0.10)',
+                borderTop: '1px solid var(--ink-08)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#aaa8c8' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--on-surface-variant)',
+                }}
+              >
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
                   description
                 </span>
-                <span style={{ fontSize: '12px' }}>{docCount}</span>
+                <span style={{ fontSize: 'var(--fs-xs)' }}>{docCount}</span>
               </div>
-              <span style={{ fontSize: '10px', color: '#8888a8', fontStyle: 'italic' }}>
+              <span style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)' }}>
                 Updated {formatDate(notebook.updatedAt)}
               </span>
             </div>
@@ -301,7 +292,7 @@ export default function NotebookCard({
             position: 'absolute',
             top: '48px',
             right: '24px',
-            background: '#2d2d52',
+            background: 'var(--surface-container-high)',
             borderRadius: '12px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             overflow: 'hidden',
@@ -324,7 +315,7 @@ export default function NotebookCard({
               padding: '12px 16px',
               background: 'transparent',
               border: 'none',
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',
@@ -332,7 +323,8 @@ export default function NotebookCard({
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = '#35355c';
+              (e.currentTarget as HTMLButtonElement).style.background =
+                'var(--card-hover-bg-strong)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
@@ -340,7 +332,7 @@ export default function NotebookCard({
           >
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '18px', color: '#ae89ff' }}
+              style={{ fontSize: '18px', color: 'var(--md-h4)' }}
             >
               edit
             </span>
@@ -360,7 +352,7 @@ export default function NotebookCard({
               padding: '12px 16px',
               background: 'transparent',
               border: 'none',
-              color: '#fd6f85',
+              color: 'var(--error)',
               fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',

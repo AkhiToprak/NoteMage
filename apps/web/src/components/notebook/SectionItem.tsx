@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronRight, Plus, Trash2, FileUp, Layers, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import PageItem from '@/components/notebook/PageItem';
 import { TextFileIcon } from '@/components/icons/NavIcons';
@@ -113,21 +112,25 @@ export default function SectionItem({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
       >
-        <ChevronRight
-          size={14}
+        <span
+          className="material-symbols-outlined"
           style={{
-            color: 'rgba(237,233,255,0.3)',
+            fontSize: 14,
+            color: 'var(--ink-30)',
             flexShrink: 0,
             transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
             transition: 'transform 0.12s ease',
           }}
-        />
+          aria-hidden
+        >
+          chevron_right
+        </span>
         <span
           style={{
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: 600,
-            color: 'rgba(237,233,255,0.7)',
+            color: 'var(--ink-70)',
             flex: 1,
             minWidth: 0,
             overflow: 'hidden',
@@ -165,7 +168,7 @@ export default function SectionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.4)',
+                color: 'var(--ink-40)',
                 padding: 0,
                 transition: 'color 0.12s ease',
               }}
@@ -173,10 +176,12 @@ export default function SectionItem({
                 e.currentTarget.style.color = '#8c52ff';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                e.currentTarget.style.color = 'var(--ink-40)';
               }}
             >
-              <Plus size={14} />
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+                add
+              </span>
             </button>
             <div ref={importMenuRef} style={{ position: 'relative' }}>
               <button
@@ -195,7 +200,7 @@ export default function SectionItem({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: 'rgba(237,233,255,0.4)',
+                  color: 'var(--ink-40)',
                   padding: 0,
                   transition: 'color 0.12s ease',
                 }}
@@ -203,10 +208,12 @@ export default function SectionItem({
                   e.currentTarget.style.color = '#5170ff';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                  e.currentTarget.style.color = 'var(--ink-40)';
                 }}
               >
-                <FileUp size={12} />
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                  upload_file
+                </span>
               </button>
               {showImportMenu && (
                 <div
@@ -215,7 +222,7 @@ export default function SectionItem({
                     top: '100%',
                     right: 0,
                     marginTop: '4px',
-                    background: '#22223a',
+                    background: 'var(--surface-container)',
                     borderRadius: '10px',
                     border: '1px solid rgba(140,82,255,0.15)',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
@@ -239,7 +246,7 @@ export default function SectionItem({
                       background: 'transparent',
                       border: 'none',
                       borderRadius: '8px',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '13px',
                       fontFamily: 'inherit',
                       cursor: 'pointer',
@@ -252,7 +259,13 @@ export default function SectionItem({
                       e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <FileUp size={14} style={{ color: '#8c52ff', flexShrink: 0 }} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, color: '#8c52ff', flexShrink: 0 }}
+                      aria-hidden
+                    >
+                      upload_file
+                    </span>
                     Upload File
                   </button>
                   <button
@@ -270,7 +283,7 @@ export default function SectionItem({
                       background: 'transparent',
                       border: 'none',
                       borderRadius: '8px',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       fontSize: '13px',
                       fontFamily: 'inherit',
                       cursor: 'pointer',
@@ -310,7 +323,7 @@ export default function SectionItem({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.4)',
+                color: 'var(--ink-40)',
                 padding: 0,
                 transition: 'color 0.12s ease',
               }}
@@ -318,10 +331,12 @@ export default function SectionItem({
                 e.currentTarget.style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+                e.currentTarget.style.color = 'var(--ink-40)';
               }}
             >
-              <Trash2 size={12} />
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+                delete
+              </span>
             </button>
           </div>
         )}
@@ -361,7 +376,7 @@ export default function SectionItem({
                 padding: '4px 10px 4px 38px',
               }}
             >
-              <TextFileIcon size={14} color="rgba(237,233,255,0.3)" />
+              <TextFileIcon size={14} color="var(--ink-30)" />
               <input
                 ref={pageInputRef}
                 type="text"
@@ -386,7 +401,7 @@ export default function SectionItem({
                   padding: '3px 8px',
                   fontFamily: 'inherit',
                   fontSize: '13px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   outline: 'none',
                 }}
               />
@@ -462,19 +477,23 @@ function FlashcardSetItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Layers
-        size={14}
+      <span
+        className="material-symbols-outlined"
         style={{
+          fontSize: 14,
           color: hovered ? '#8c52ff' : 'rgba(140,82,255,0.45)',
           flexShrink: 0,
           transition: 'color 0.12s ease',
         }}
-      />
+        aria-hidden
+      >
+        layers
+      </span>
       <span
         style={{
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: hovered ? '#c4a9ff' : 'rgba(237,233,255,0.55)',
+          color: hovered ? '#c4a9ff' : 'var(--ink-50)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -513,19 +532,23 @@ function QuizSetItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <HelpCircle
-        size={14}
+      <span
+        className="material-symbols-outlined"
         style={{
+          fontSize: 14,
           color: hovered ? '#5170ff' : 'rgba(81,112,255,0.45)',
           flexShrink: 0,
           transition: 'color 0.12s ease',
         }}
-      />
+        aria-hidden
+      >
+        help
+      </span>
       <span
         style={{
           fontFamily: 'inherit',
           fontSize: '13px',
-          color: hovered ? '#93a8ff' : 'rgba(237,233,255,0.55)',
+          color: hovered ? '#93a8ff' : 'var(--ink-50)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',

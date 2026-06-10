@@ -1,8 +1,28 @@
 @import 'tailwindcss';
 
+/* Screen-reader-only utility: visually hidden but available to assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ─── Neon Scholar Design System ─────────────────────────────────────── */
 
-:root {
+/* Dark is the default token set. It's bound to BOTH `:root` and an explicit
+   `[data-theme='dark']` selector so a *nested* dark island (e.g. the always-dark
+   auth/login subtree) can re-establish the dark values even when the document
+   root is `[data-theme='light']` — custom properties otherwise just inherit the
+   light values down. Global behaviour is unchanged: on the light root the
+   `[data-theme='light']` block below still wins by source order. */
+:root,
+[data-theme='dark'] {
   /* Primary */
   --primary: #d1bcff;
   --primary-container: #a479f8;
@@ -37,6 +57,97 @@
   --on-tertiary-fixed: #7d6700;
   --on-tertiary-fixed-variant: #9d8200;
 
+  /* Brand accents (marketing surfaces) — fixed, NON theme-flipping. The public
+     landing/marketing pages render dark in both themes, so these stay constant.
+     --brand-purple matches --notebook-accent-rgb (174 137 255); --brand-gold is
+     the CTA gold; --brand-gold-ink is the readable ink used on gold fills. */
+  --brand-purple: #ae89ff;
+  --brand-gold: #ffde59;
+  --brand-gold-ink: #2a2200;
+  /* Readable gold INK for text/icons on theme-flipping app surfaces (the Ultra
+     accent on /learn). Stays bright gold on dark; the [data-theme='light']
+     block flips it to a deep amber so it never reads light-on-light. Use this
+     for gold text/icons; use --brand-gold for gold fills/borders. */
+  --ultra-ink: var(--brand-gold);
+
+  /* Quiz question card — a fixed deep navy-violet (NOT theme-flipping): the
+     card carries near-white question text in both themes, so it must stay
+     dark in light mode too. Replaces the former flat pure-black (#000). */
+  --quiz-question-surface: #0c0a1a;
+
+  /* Strong action purple — the saturated CTA / selection fill used across the
+     notebook viewers, chat, and forms (formerly the hardcoded #8c52ff). Fixed
+     (NON theme-flipping): it's a brand-accent fill that reads on both the dark
+     navy and the light near-white pages, and always carries white text
+     (var(--on-primary-container)) on top. The -rgb triplet composes the
+     translucent border / hover / disabled variants via
+     `rgb(var(--accent-strong-rgb) / a)` (same pattern as the --notebook-*-rgb). */
+  --accent-strong: #8c52ff;
+  --accent-strong-rgb: 140 82 255;
+
+  /* Spacing scale (4-pt base) — inline-style rhythm for marketing pages. */
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+  --space-page: 32px;
+  --space-section: 128px;
+
+  /* Card padding — one value every app card shares (paddings were eyeballed
+     24/28/40 per component before). The accent-spine offset is an explicit
+     extra (--card-pad-spine), not a fudged base padding. */
+  --card-pad: 24px;
+  --card-pad-sm: 16px;
+  --card-pad-spine: 40px;
+
+  /* ── Type scale (font-size tokens) ──────────────────────────────────────
+     One ramp the app's inline styles consume via `fontSize: 'var(--fs-*)'` so
+     type stops overlapping (there were ~2k ad-hoc px literals with no scale).
+     Named --fs-* (not --text-*) so it can't shadow Tailwind v4's built-in
+     font-size theme keys. 11px is the floor — no UI text below --fs-2xs. */
+  --fs-2xs: 11px; /* micro labels / timestamps (floor) */
+  --fs-xs: 12px; /* small meta, badges */
+  --fs-sm: 13px; /* secondary text, dense labels */
+  --fs-base: 15px; /* body / default UI text */
+  --fs-md: 16px; /* emphasized body */
+  --fs-lg: 18px; /* item / card titles */
+  --fs-xl: 22px; /* section headers (clearly outrank item titles) */
+  --fs-2xl: 28px; /* page H2 / large stat numerals */
+  --fs-3xl: 34px; /* page H1 / hero figures */
+
+  /* Line-height tokens — tight leading for display sizes, relaxed for body. */
+  --lh-tight: 1.2;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.7;
+
+  /* Secondary text — a readable muted tier between --on-surface-variant
+     (near-full contrast) and --outline (a border color that's too dim for
+     text). Repoint timestamp/meta text here, not to --outline / --ink-40. */
+  --text-secondary: #c9c8db;
+
+  /* Editor reading measure — caps prose line length for comfortable reading;
+     full-bleed editor children opt back out with their own max-width. */
+  --reading-measure: 720px;
+
+  /* Z-index scale — named layering tokens so stacking order reads as intent
+     instead of magic numbers. Adopt incrementally (legacy inline z-indexes
+     migrate in the token-discipline pass); raise a layer by referencing the
+     next token up, never an arbitrary value. */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
   /* Error */
   --error: #fea1b0;
   --error-container: #b61d42;
@@ -44,18 +155,48 @@
   --on-error: #7c0020;
   --on-error-container: #ffcad0;
 
-  /* Surface */
-  --background: #1a1a1a;
-  --surface: #1a1a1a;
-  --surface-dim: #1a1a1a;
-  --surface-bright: #444444;
-  --surface-container-lowest: #1e1e1e;
-  --surface-container-low: #282828;
-  --surface-container: #303030;
-  --surface-container-high: #383838;
-  --surface-container-highest: #404040;
+  /* Verdict / status accents — moderation rail + chips. Used as marker
+     backgrounds AND as label text; the [data-theme='light'] overrides below
+     darken them so they keep contrast on near-white surfaces. */
+  --success: #48ca9a;
+  --warning: #ffa726;
+
+  /* Verdict surface triplets — the correct / incorrect / partial fills the quiz
+     renderers paint behind answers. Space-separated RGB so any alpha composes
+     via `rgb(var(--verdict-pass-rgb) / a)`; theme-flipping so the tints stay
+     legible on the light near-white surfaces (the old literals were dark-tuned
+     and never flipped). Dark values match the former #4ade80 / #fca5a5 / #fbbf24. */
+  --verdict-pass-rgb: 74 222 128;
+  --verdict-fail-rgb: 252 165 165;
+  --verdict-warn-rgb: 251 191 36;
+
+  /* Surface — navy palette (restored). Dashboard/profile cards inline-style
+     `background: var(--surface-container)` etc; these resolve to navy in dark
+     mode and to the [data-theme='light'] override values below in light mode. */
+  --background: #1a1a36;
+  --surface: #1a1a36;
+  --surface-dim: #1a1a36;
+  --surface-bright: #333358;
+  --surface-container-lowest: #10102a;
+  --surface-container-low: #21213e;
+  --surface-container: #272746;
+  --surface-container-high: #2d2d52;
+  --surface-container-highest: #35355c;
   --surface-tint: #d1bcff;
-  --surface-variant: #404040;
+  --surface-variant: #2d2d52;
+
+  /* Bento card shadows — theme-aware so light mode doesn't drop a black halo. */
+  --bento-rest-shadow: rgba(0, 0, 0, 0.35);
+  --bento-hover-shadow: rgba(0, 0, 0, 0.4);
+
+  /* Card hover-state surfaces — JS hover handlers swap card bg between these
+     and the rest-state --surface-container-* tokens. Defined so light mode
+     can flip the lift direction (Material's light hierarchy has higher
+     elevation = darker, but users expect "lighter on hover"). Dark values
+     match the legacy hex literals (#272746/#2d2d52/#35355c) exactly. */
+  --card-hover-bg-soft: #272746;
+  --card-hover-bg-med: #2d2d52;
+  --card-hover-bg-strong: #35355c;
   --on-surface: #ffffff;
   --on-surface-variant: #dfdeeb;
   --on-background: #ffffff;
@@ -67,14 +208,51 @@
   --outline: #a5a5be;
   --outline-variant: #6a6a96;
 
+  /* Focus ring — keyboard :focus-visible. Theme-flipping so it keeps ≥3:1
+     contrast on both the dark navy and the light near-white surfaces. On the
+     dark theme it's the light lavender; the [data-theme='light'] block below
+     swaps it for a deep purple that reads on near-white. */
+  --color-focus: #d1bcff;
+
   /* Notebook surface tokens. The *-rgb triplets are space-separated so
      callers can compose translucent variants with the modern
-     `rgb(var(--token) / alpha)` syntax (same pattern as
-     --mouse-sparkles-glow-rgb below). */
+     `rgb(var(--token) / alpha)` syntax (same pattern as the
+     --notebook-*-rgb triplets below). */
   --notebook-page: #1a1933;
   --notebook-page-rgb: 26 25 51;
   --notebook-ink-rgb: 237 233 255;
   --notebook-accent-rgb: 174 137 255;
+
+  /* Stepped ink levels — pre-computed translucent text/border colors at
+     fixed opacity tiers. Components reference these directly instead of
+     `rgb(var(--notebook-ink-rgb) / 0.4)` so the light theme can boost
+     each tier's alpha independently (alpha curves that look subtle on
+     dark surfaces would read as washed-out grey on white). */
+  --ink-04: rgb(237 233 255 / 0.04);
+  --ink-06: rgb(237 233 255 / 0.06); /* elevation inset top-highlight */
+  --ink-08: rgb(237 233 255 / 0.08);
+  --ink-12: rgb(237 233 255 / 0.12);
+  --ink-20: rgb(237 233 255 / 0.2);
+  --ink-30: rgb(237 233 255 / 0.3);
+  --ink-40: rgb(237 233 255 / 0.4);
+  --ink-50: rgb(237 233 255 / 0.5);
+  --ink-60: rgb(237 233 255 / 0.6);
+  --ink-70: rgb(237 233 255 / 0.7);
+  --ink-80: rgb(237 233 255 / 0.8);
+
+  /* Markdown / flashcard text role tokens — dark-theme values match the
+     original hardcoded palette exactly so dark mode is byte-equivalent
+     to what shipped before. Light theme overrides each role with a
+     readable dark variant. */
+  --md-text: #ede9ff;
+  --md-em: #d4caff;
+  --md-h1: #ede9ff;
+  --md-h2: #e0d8ff;
+  --md-h3: #c4a9ff;
+  --md-h4: #ae89ff;
+  --md-link: #ae89ff;
+  --md-code: #c4a9ff;
+  --md-pre: #e0daf8;
 
   /* ── Cosmetic name-font vars ──────────────────────────────────────────
      Declared directly at :root (not only inside @theme inline) so they're
@@ -99,36 +277,209 @@
   /* Admin-only Minecraft-flavoured font. Silkscreen is the closest public
      Google Fonts match to Minecraft's chunky block glyphs. */
   --font-minecraft: var(--font-minecraft), 'Silkscreen', 'Press Start 2P', 'Courier New', monospace;
+
+  /* ── Semantic app fonts ───────────────────────────────────────────────
+     Declared directly at :root for the SAME reason as the cosmetic fonts
+     above: the matching entries in the `@theme inline` block below are used
+     only to generate Tailwind utilities — `@theme inline` does NOT emit them
+     as runtime custom properties, so hand-authored CSS and inline
+     `style={{ fontFamily: 'var(--font-display)' }}` would otherwise resolve
+     to EMPTY and fall back to the system stack. Each references the
+     next/font-generated variable from app/layout.tsx with a concrete
+     fallback. Keep in sync with the `@theme inline` block. */
+  --font-display: var(--font-epilogue), 'Epilogue', serif;
+  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-brand: var(--font-oswald), 'Oswald', sans-serif;
+  --font-chat: var(--font-oswald), 'Oswald', sans-serif;
+
+  /* ── Hallmark profile rework primitives ──────────────────────────────
+     Named tokens for the brand-purple tints, motion vocabulary, and
+     heatmap quantization steps that the profile surfaces used to inline
+     as raw rgba / hex. Light-theme overrides for the few values that
+     don't read on white live in the [data-theme='light'] block below. */
+  --brand-purple-rgb: 174 137 255;
+  --brand-purple-wash: rgb(var(--brand-purple-rgb) / 0.1);
+  --brand-purple-edge: rgb(var(--brand-purple-rgb) / 0.28);
+  --brand-purple-hover: rgb(var(--brand-purple-rgb) / 0.2);
+  --brand-purple-strong: rgb(var(--brand-purple-rgb) / 1);
+  --brand-purple-ink: #2a0066;
+  /* Achievement celebration gold (#ffde59) — the trophy/unlock accent used by
+     the AchievementToast border + glow + icon wash. Composed inline via
+     `rgb(var(--achievement-gold-rgb) / a)`, same pattern as the brand-purple
+     and --accent-strong-rgb channels. Decorative low-alpha only; the toast's
+     meaningful ink uses --warning, which theme-flips on its own. */
+  --achievement-gold-rgb: 255 222 89;
+  --success-ink: #082b13;
+  --rule-hairline: rgb(var(--brand-purple-rgb) / 0.16);
+  --dur-fast: 180ms;
+  --dur-normal: 240ms;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Activity heatmap quantization. Both themes use brand-purple alpha
+     ramps so the data widget reads on either surface tier. */
+  --heatmap-step-0: rgb(var(--brand-purple-rgb) / 0.08);
+  --heatmap-step-1: rgb(var(--brand-purple-rgb) / 0.3);
+  --heatmap-step-2: rgb(var(--brand-purple-rgb) / 0.65);
+  --heatmap-step-3: rgb(var(--brand-purple-rgb) / 1);
+
+  /* Modal scrim + Switch knob primitives. Theme-agnostic on purpose:
+     the scrim is always pure black at fixed alpha (sits behind every
+     modal), the switch knob is always white over either an on or off
+     pill (tactile depth cue, not a theme surface). */
+  --scrim-modal: rgba(0, 0, 0, 0.62);
+  --switch-knob: #ffffff;
+  --switch-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* ─── Light theme overrides (data-theme="light") ──────────────────────── */
 
 [data-theme='light'] {
-  --background: #ffffff;
+  /* Surface elevation restored — collapsing everything to pure white killed
+     all hierarchy and made dividers invisible. Now each layer is a distinct
+     near-white shade so cards/panels/dropdowns read as separate planes. */
+  --background: #f3f3f7;
   --surface: #ffffff;
-  --surface-dim: #ffffff;
+  --surface-dim: #d8d8e0;
   --surface-bright: #ffffff;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #ffffff;
-  --surface-container: #ffffff;
-  --surface-container-high: #ffffff;
-  --surface-container-highest: #fefeff;
-  --surface-variant: #ffffff;
-  --on-surface: #2c2c4f;
-  --on-surface-variant: #6a6a96;
-  --on-background: #2c2c4f;
-  --foreground: #2c2c4f;
-  --inverse-surface: #2c2c4f;
+  --surface-container-low: #e5e5ec;
+  --surface-container: #d8d8e0;
+  --surface-container-high: #c8c8d2;
+  --surface-container-highest: #b8b8c4;
+  --surface-variant: #dcdce4;
+
+  /* Bento card shadow overrides — light theme: muted navy instead of black. */
+  --bento-rest-shadow: rgba(15, 15, 30, 0.06);
+  --bento-hover-shadow: rgba(15, 15, 30, 0.08);
+
+  /* Card hover-state surfaces (light) — gentle lift toward white WITHOUT
+     going pure white; each tier sits between rest #e5e5ec and page #f3f3f7. */
+  --card-hover-bg-soft: #ebebf2;
+  --card-hover-bg-med: #eeeef4;
+  --card-hover-bg-strong: #f1f1f6;
+  /* Text — pushed darker and toward black so the brand stays slightly navy
+     but contrast is punchy on white. */
+  --on-surface: #0f0f1e;
+  --on-surface-variant: #3a3a52;
+  /* Secondary text (light) — readable medium grey-navy; the dark #c9c8db would
+     be ~1.2:1 on near-white. Sits a touch lighter than primary ink. */
+  --text-secondary: #3f3f57;
+  --on-background: #0f0f1e;
+  --foreground: #0f0f1e;
+  --inverse-surface: #0f0f1e;
   --inverse-on-surface: #ffffff;
 
-  --outline: #a5a5be;
-  --outline-variant: #f0f0f3;
+  /* Outlines — strong enough that dividers and borders are obvious. */
+  --outline: #4a4a66;
+  --outline-variant: #b8b8c4;
 
-  /* Notebook surface tokens — paper-white page with dark ink. Accent stays
-     purple in both themes (the brand purple reads on light too). */
-  --notebook-page: #fffef9;
-  --notebook-page-rgb: 255 254 249;
-  --notebook-ink-rgb: 44 44 79;
+  /* Focus ring (light) — deep purple; the dark-theme light lavender would be
+     ~1.1:1 on near-white. #5e3aa8 holds ~7:1 on white and ≥4.5:1 on the
+     tinted surface tiers. */
+  --color-focus: #5e3aa8;
+
+  /* Verdict / status accents — darkened so green/amber/yellow labels keep
+     AA contrast on near-white (the bright dark-mode values would be
+     light-on-light). */
+  --success: #1f7a54;
+  --warning: #8a5a00;
+  /* Ultra gold ink (light) — deep amber so the /learn Ultra accent text/icons
+     keep AA contrast on near-white. Gold FILLS still use --brand-gold. */
+  --ultra-ink: #8a5a00;
+
+  /* Light-mode verdict triplets — darker so low-alpha tints read on near-white. */
+  --verdict-pass-rgb: 31 122 84;
+  --verdict-fail-rgb: 186 26 26;
+  --verdict-warn-rgb: 138 90 0;
+
+  /* Error family — the base tokens don't theme-flip on their own (their dark
+     values are a light pink tuned for dark surfaces), so error text / borders /
+     fills were illegible on near-white in light mode (Phase 2 deferred this
+     here). Flip the whole family to Material's light error scheme: a deep red
+     that reads on white, white ink on the fill, and a pale container with
+     near-black ink. */
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+
+  /* Notebook surface tokens — pure-white paper, near-black ink. */
+  --notebook-page: #ffffff;
+  --notebook-page-rgb: 255 255 255;
+  --notebook-ink-rgb: 15 15 30;
+
+  /* Stepped ink levels — alphas boosted for light theme so translucent
+     text reads punchy on white. The dark-theme tier-to-alpha mapping
+     (e.g. tier 30 = alpha 0.3) was tuned for dark surfaces; on white
+     the same alpha composites to washed-out grey, so each tier's alpha
+     here is roughly doubled while preserving relative hierarchy. */
+  --ink-04: rgb(15 15 30 / 0.18);
+  --ink-06: rgb(15 15 30 / 0.22); /* elevation inset top-highlight */
+  --ink-08: rgb(15 15 30 / 0.26);
+  --ink-12: rgb(15 15 30 / 0.35);
+  --ink-20: rgb(15 15 30 / 0.45);
+  --ink-30: rgb(15 15 30 / 0.55);
+  --ink-40: rgb(15 15 30 / 0.7);
+  --ink-50: rgb(15 15 30 / 0.82);
+  --ink-60: rgb(15 15 30 / 0.9);
+  --ink-70: rgb(15 15 30 / 0.95);
+  --ink-80: rgb(15 15 30 / 1);
+
+  /* Markdown / flashcard text roles — light overrides. Body becomes dark
+     navy near-black; heading purples stay purple but darken enough to
+     read on white. */
+  --md-text: #0f0f1e;
+  --md-em: #3a2a6a;
+  --md-h1: #0f0f1e;
+  --md-h2: #1a1a2e;
+  --md-h3: #4a2a8e;
+  --md-h4: #5e3aa8;
+  --md-link: #5e3aa8;
+  --md-code: #4a2a8e;
+  --md-pre: #0f0f1e;
+
+  /* Hallmark profile primitives — only the hairline rule needs to flip:
+     16% violet on near-white is invisible. Everything else (brand purple,
+     motion easings, heatmap alpha ramps) reads in both themes. */
+  --rule-hairline: rgb(15 15 30 / 0.12);
+}
+
+/* Light mode: every tokenized surface card gets a visible deep outline so the
+   page bg vs. card bg contrast doesn't disappear. Targets <div> only to avoid
+   stomping on input/select outlines that components manage themselves. */
+[data-theme='light'] div[style*='var(--surface-container'] {
+  outline: 1px solid var(--outline);
+  outline-offset: -1px;
+}
+
+/* Link- and section-based surface cards (e.g. the Learn hub / paths cards) need
+   the same separation, but `outline` is their :focus-visible ring — so give
+   them an inset box-shadow border instead, leaving the focus ring intact. */
+[data-theme='light'] a[style*='var(--surface-container'],
+[data-theme='light'] section[style*='var(--surface-container'] {
+  box-shadow: inset 0 0 0 1px var(--outline);
+}
+
+/* Landing bento cells — light theme: tinted surface (not white), thick deep
+   borders, and theme-aware hover shadow (no black halo). */
+[data-theme='light'] .bento-cell {
+  background: var(--surface-container) !important;
+  border-width: 2px !important;
+  border-color: var(--outline) !important;
+  box-shadow:
+    0 1px 2px rgba(15, 15, 30, 0.05),
+    0 4px 12px rgba(15, 15, 30, 0.06) !important;
+}
+[data-theme='light'] .bento-cell:hover {
+  border-color: #2a2a40 !important;
+  box-shadow:
+    0 8px 24px rgba(15, 15, 30, 0.1),
+    0 4px 12px rgba(15, 15, 30, 0.08) !important;
+}
+
+/* Landing burger button — light theme: visible neutral bg + deep border */
+[data-theme='light'] .nm-burger {
+  background: rgba(15, 15, 30, 0.06) !important;
+  border-color: var(--outline) !important;
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */
@@ -198,7 +549,9 @@
 html {
   background: var(--background);
   color: var(--on-surface);
-  overflow-x: hidden;
+  /* `clip` (not `hidden`) prevents accidental horizontal scroll without
+     creating a scroll container that can be programmatically scrolled. */
+  overflow-x: clip;
 }
 
 body {
@@ -208,7 +561,7 @@ body {
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ─── Global scrollbar: hidden everywhere ────────────────────────────── */
@@ -260,15 +613,6 @@ body {
   font-family: var(--font-brand);
 }
 
-/* ─── Glass panel ─────────────────────────────────────────────────────── */
-
-.glass-panel {
-  background: rgba(33, 33, 54, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-xl);
-}
-
 /* ─── Neon glow ───────────────────────────────────────────────────────── */
 
 .neon-glow {
@@ -299,17 +643,6 @@ body {
   background: var(--outline);
 }
 
-/* ─── Gradient CTA ────────────────────────────────────────────────────── */
-
-.btn-primary-gradient {
-  background: var(--primary);
-  color: var(--on-primary-container);
-}
-
-.btn-primary-gradient:hover {
-  background: var(--primary-fixed);
-}
-
 /* ─── Tonal surface helpers ───────────────────────────────────────────── */
 
 .surface-elevated {
@@ -333,12 +666,115 @@ body {
     0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+/* ─── Elevation system (audit item 1) ────────────────────────────────────
+   A 3-tier surface scale so the page bg, a base card, and a raised /
+   interactive card read as distinct planes. The --ink-* tiers theme-flip, so
+   the hairline border + inset top-highlight stay correct in light mode. Set
+   the background HERE (not inline) so the light-theme auto-outline rule on
+   `div[style*="var(--surface-container"]` (above) doesn't double the border.
+   --elev-0 is the page background itself (no class needed). */
+.elev-1 {
+  background: var(--surface-container);
+  border: 1px solid var(--ink-08);
+  border-radius: var(--radius-lg);
+}
+.elev-2 {
+  background: var(--surface-container-high);
+  border: 1px solid var(--ink-12);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 var(--ink-06),
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+/* Interactive lift — opt-in hover/active for clickable cards. Animates only
+   transform + box-shadow (never `all`), spring easing. */
+.elev-interactive {
+  transition:
+    transform var(--dur-normal) var(--ease-spring),
+    box-shadow var(--dur-normal) var(--ease-spring);
+}
+.elev-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 var(--ink-08),
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 16px 40px rgba(0, 0, 0, 0.3);
+}
+.elev-interactive:active {
+  transform: translateY(0);
+}
+
+/* Light theme: muted-navy halos instead of black; borders/highlights inherit
+   the flipped --ink-* tiers automatically. */
+[data-theme='light'] .elev-2 {
+  box-shadow:
+    inset 0 1px 0 var(--ink-06),
+    0 1px 2px rgba(15, 15, 30, 0.05),
+    0 10px 28px rgba(15, 15, 30, 0.08);
+}
+[data-theme='light'] .elev-interactive:hover {
+  box-shadow:
+    inset 0 1px 0 var(--ink-08),
+    0 2px 4px rgba(15, 15, 30, 0.06),
+    0 16px 40px rgba(15, 15, 30, 0.12);
+}
+
+/* ─── Type helpers ───────────────────────────────────────────────────────
+   tabular-nums keeps stat figures from jittering width as values change. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 /* ─── Transitions (no transition-all) ────────────────────────────────── */
 
 .transition-spring {
   transition:
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Learn-hub card hover — a subtle lift + primary ring + elevation so the hub
+   cards react like the notebook cards do. `a.` specificity plus later source
+   order beats the light-mode separation box-shadow on hover. Reduced-motion
+   drops the lift. */
+.learn-hub-card {
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+a.learn-hub-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1px var(--primary),
+    0 12px 28px var(--bento-hover-shadow);
+}
+/* Gold-accented variant (Ultra path card + the New-path CTA) — same lift, but a
+   gold hover ring so it doesn't clash with the purple default. */
+a.learn-hub-card.learn-hub-card--gold:hover {
+  box-shadow:
+    0 0 0 1px var(--brand-gold),
+    0 12px 28px var(--bento-hover-shadow);
+}
+@media (prefers-reduced-motion: reduce) {
+  .learn-hub-card {
+    transition: none;
+  }
+  a.learn-hub-card:hover {
+    transform: none;
+  }
+}
+
+/* Spinner — used by the Button primitive's loading state. The global
+   reduced-motion baseline already collapses this animation. */
+@keyframes nm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.nm-spin {
+  animation: nm-spin 0.8s linear infinite;
 }
 
 /* ─── Input base ──────────────────────────────────────────────────────── */
@@ -356,79 +792,11 @@ body {
   color: var(--on-surface-variant);
 }
 
-.ns-input:focus {
-  box-shadow: 0 0 0 2px var(--primary);
-}
-
-/* ─── Magic Cursor ────────────────────────────────────────────────────── */
-
-:root {
-  --mouse-sparkles-glow-rgb: 174 137 255;
-}
-
-.mouse-sparkles-star {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  width: 1em;
-  height: 1em;
-  animation-fill-mode: forwards;
-}
-
-.mouse-sparkles-glow-point {
-  position: fixed;
-  pointer-events: none;
-  z-index: 9998;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgb(var(--mouse-sparkles-glow-rgb) / 0.6);
-  box-shadow: 0 0 6px 2px rgb(var(--mouse-sparkles-glow-rgb) / 0.4);
-}
-
-@keyframes fall-1 {
-  0% {
-    transform: translate(0px, 0px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(0.25);
-    opacity: 0;
-  }
-  5% {
-    transform: translate(10px, -10px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(25px, 200px) rotateX(180deg) rotateY(270deg) rotateZ(90deg) scale(1);
-    opacity: 0;
-  }
-}
-
-@keyframes fall-2 {
-  0% {
-    transform: translate(0px, 0px) rotateX(-20deg) rotateY(10deg) scale(0.25);
-    opacity: 0;
-  }
-  10% {
-    transform: translate(-10px, -5px) rotateX(-20deg) rotateY(10deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-10px, 160px) rotateX(-90deg) rotateY(45deg) scale(0.25);
-    opacity: 0;
-  }
-}
-
-@keyframes fall-3 {
-  0% {
-    transform: translate(0px, 0px) rotateX(0deg) rotateY(45deg) scale(0.5);
-    opacity: 0;
-  }
-  15% {
-    transform: translate(7px, 5px) rotateX(0deg) rotateY(45deg) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(20px, 120px) rotateX(-180deg) rotateY(-90deg) scale(0.5);
-    opacity: 0;
-  }
+.ns-input:focus-visible {
+  /* The box-shadow IS this input's focus ring, so suppress the global
+     outline (below) to avoid a double ring; --color-focus theme-flips. */
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus);
 }
 
 /* ─── Responsive Utilities ───────────────────────────────────────────── */
@@ -569,4 +937,210 @@ body {
 
 .scroll-hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ─── Responsive primitives (SSR-safe — mobile overhaul Phase 0) ──────── */
+/* These work during SSR (no JS), so they don't suffer the desktop-flash that
+   the useBreakpoint() hook does. Prefer them for layout-critical responsiveness. */
+
+/* A horizontal row that wraps; collapses to a stack on phone. Children set
+   their own flex-basis / min-width:0 as needed. */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cluster-gap, 16px);
+  min-width: 0;
+}
+
+/* Force any flex/grid container to a single column on phone, regardless of its
+   desktop direction. Pair with the element's own desktop layout. */
+@media (max-width: 767px) {
+  .stack-phone {
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .cluster {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Absolute/fixed dropdown that must never exceed the viewport. Set
+   --dropdown-w to the desktop width; on phone it always caps to the viewport. */
+.dropdown-phone-safe {
+  max-width: min(var(--dropdown-w, 360px), calc(100vw - 16px));
+}
+
+@media (max-width: 767px) {
+  .dropdown-phone-safe {
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+
+/* Opt-in 44px minimum hit area on coarse pointers (touch) without enlarging
+   the control on desktop. Add `tap-target` to small icon buttons. */
+@media (pointer: coarse) {
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Dashboard bento: main content + side rail. SSR-safe replacement for a JS
+   responsiveValue grid that flashed desktop columns on phone load. */
+.bento-3-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 768px) {
+  .bento-3-1 {
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+}
+@media (min-width: 1024px) {
+  .bento-3-1 {
+    grid-template-columns: 3fr 1fr;
+    gap: 24px;
+  }
+}
+
+/* ─── Focus visibility (keyboard a11y — audit finding 10) ─────────────── */
+/* A visible :focus-visible ring on every shared interactive primitive
+   (bottom nav, burger drawer, notebook cards, buttons, links, inputs).
+   Normal specificity + no !important, so components that ship their own
+   :focus-visible treatment still win, and elements that deliberately inline
+   `outline: none` keep opting out. The ring never animates (shows instantly
+   on focus); --color-focus theme-flips to hold ≥3:1 in both modes. Modern
+   browsers hug the element's own border-radius, so we don't set one here. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role='button']:focus-visible,
+[role='link']:focus-visible,
+[role='tab']:focus-visible,
+[role='switch']:focus-visible,
+[role='checkbox']:focus-visible,
+[role='radio']:focus-visible,
+[role='menuitem']:focus-visible,
+[role='option']:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ─── Reduced motion (global baseline — audit finding 22) ─────────────── */
+/* Safety net beneath the ~36 per-component handlers: when the OS asks to
+   reduce motion, collapse all spatial transitions and finite animations to
+   near-instant. A genuinely-essential continuous indicator (e.g. a long-load
+   spinner) can opt back out with a higher-specificity rule of its own. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── MarkdownRenderer (shared) ───────────────────────────────────────── */
+/* Hoisted out of src/components/ui/MarkdownRenderer.tsx, which used to render
+   this <style> block inside its JSX — duplicating the whole sheet per instance
+   (every chat bubble, quiz option, flashcard) and leaking the CSS text into
+   each option's accessible name. Defined once here instead. The element inline
+   styles still live in the component; only these class/marker rules and the
+   hljs token palette are global. */
+.md-renderer > *:first-child {
+  margin-top: 0 !important;
+}
+.md-renderer > *:last-child {
+  margin-bottom: 0 !important;
+}
+.md-renderer ul {
+  list-style-type: disc;
+}
+.md-renderer ol {
+  list-style-type: decimal;
+}
+.md-renderer li::marker {
+  color: rgba(174, 137, 255, 0.6);
+}
+
+/* Syntax-highlighting token colors matching Notemage's purple aesthetic. */
+.md-renderer .hljs-keyword,
+.md-renderer .hljs-selector-tag,
+.md-renderer .hljs-built_in {
+  color: #c4a0ff;
+}
+.md-renderer .hljs-string,
+.md-renderer .hljs-attr {
+  color: #ffde59;
+}
+.md-renderer .hljs-number,
+.md-renderer .hljs-literal {
+  color: #ff9e64;
+}
+.md-renderer .hljs-function,
+.md-renderer .hljs-title,
+.md-renderer .hljs-title.function_ {
+  color: #7ec8ff;
+}
+.md-renderer .hljs-params {
+  color: #e0daf8;
+  font-style: italic;
+}
+.md-renderer .hljs-comment,
+.md-renderer .hljs-quote {
+  color: #5c5680;
+  font-style: italic;
+}
+.md-renderer .hljs-variable,
+.md-renderer .hljs-template-variable {
+  color: #e0daf8;
+}
+.md-renderer .hljs-type,
+.md-renderer .hljs-class .hljs-title {
+  color: #7ec8ff;
+}
+.md-renderer .hljs-tag {
+  color: #c4a0ff;
+}
+.md-renderer .hljs-name {
+  color: #c4a0ff;
+}
+.md-renderer .hljs-attribute {
+  color: #b9c3ff;
+}
+.md-renderer .hljs-symbol,
+.md-renderer .hljs-bullet {
+  color: #ff9e64;
+}
+.md-renderer .hljs-addition {
+  color: #a6e3a1;
+}
+.md-renderer .hljs-deletion {
+  color: #ff6b8a;
+}
+.md-renderer .hljs-operator {
+  color: #c4a0ff;
+}
+.md-renderer .hljs-punctuation {
+  color: #8b85a8;
+}
+.md-renderer .hljs-property {
+  color: #b9c3ff;
+}
+.md-renderer .hljs-regexp {
+  color: #ff9e64;
+}
+.md-renderer .hljs-meta {
+  color: #ae89ff;
 }

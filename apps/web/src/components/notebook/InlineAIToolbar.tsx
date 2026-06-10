@@ -4,6 +4,9 @@ import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from
 import type { Editor } from '@tiptap/react';
 import { useAiTask } from './AiTaskContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { Button } from '@/components/ui/Button';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { markdownToHtml } from '@/lib/markdown-to-html';
 
 /**
  * Floating toolbar that appears whenever the user has a non-trivial text
@@ -63,6 +66,14 @@ export default function InlineAIToolbar({
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const [busyAction, setBusyAction] = useState<InlineAction | null>(null);
   const [hidden, setHidden] = useState(false);
+  // Staged AI suggestion awaiting Accept/Discard. While set, the action bar is
+  // replaced by a preview popover and the document is NOT mutated until Accept,
+  // so there's no reliance on undo to back out (audit item 13).
+  const [preview, setPreview] = useState<{
+    action: InlineAction;
+    range: { from: number; to: number };
+    text: string;
+  } | null>(null);
   const { isPhone } = useBreakpoint();
 
   const { startAiTask, finishAiTask } = useAiTask();
@@ -258,14 +269,20 @@ export default function InlineAIToolbar({
           for (const block of events) {
             const lines = block.split('\n');
             let eventName = 'message';
-            let dataStr = '';
+            const dataParts: string[] = [];
             for (const line of lines) {
               if (line.startsWith('event:')) {
                 eventName = line.slice(6).trim();
               } else if (line.startsWith('data:')) {
-                dataStr += line.slice(5).trim();
+                // Per the SSE spec, strip at most ONE leading space — trim()
+                // would eat whitespace that belongs to the payload.
+                dataParts.push(line.slice(5).replace(/^ /, ''));
               }
             }
+            // Per the SSE spec, multiple data: lines in one event join with
+            // a newline. Our server always sends single-line JSON, but don't
+            // silently corrupt payloads if that ever changes.
+            const dataStr = dataParts.join('\n');
             if (!dataStr) continue;
             let payload: { delta?: string; fullText?: string; error?: string };
             try {
@@ -285,16 +302,12 @@ export default function InlineAIToolbar({
           }
         }
 
-        // Apply the result
-        const range = pendingRangeRef.current;
-        if (range && fullText) {
-          editor
-            .chain()
-            .focus()
-            .setTextSelection(range)
-            .deleteSelection()
-            .insertContent(fullText)
-            .run();
+        // Stage the result as a preview instead of mutating the document.
+        // The doc stays untouched until the user clicks Accept (audit item 13);
+        // the captured range is carried into the preview for the apply step.
+        const finalRange = pendingRangeRef.current ?? range;
+        if (finalRange && fullText) {
+          setPreview({ action, range: finalRange, text: fullText });
         }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return;
@@ -324,6 +337,47 @@ export default function InlineAIToolbar({
     interactionEndRef.current = Date.now() + 600;
   }, [editor]);
 
+  // Accept the staged suggestion — only now is the document mutated. The saved
+  // range is re-clamped to the current doc size in case the user edited while
+  // the preview was open, so setTextSelection can't run past the doc end.
+  const applyPreview = useCallback(() => {
+    if (!editor || !preview) return;
+    const docSize = editor.state.doc.content.size;
+    const from = Math.min(preview.range.from, docSize);
+    const to = Math.min(preview.range.to, docSize);
+
+    // The model replies in Markdown. ALWAYS run it through the same
+    // markdown → HTML → schema pipeline the paste handler uses (see
+    // PageEditor handlePaste) so code blocks, callouts, lists, tables, and
+    // emphasis land as real editor nodes instead of literal "```" / "> [!TIP]"
+    // / "**" characters — markdownToHtml also repairs malformed model fences.
+    // When the whole reply collapses to a single paragraph (a short rewrite),
+    // unwrap it and insert its inline content so the edit merges into the
+    // surrounding block instead of splitting it.
+    const html = markdownToHtml(preview.text).trim();
+    const singleParagraph =
+      /^<p>[\s\S]*<\/p>$/.test(html) && (html.match(/<p[\s>]/g) ?? []).length === 1;
+    const unwrapped = singleParagraph ? html.replace(/^<p>/, '').replace(/<\/p>$/, '') : html;
+    // If sanitization stripped the reply to nothing, fall back to inserting
+    // the original text as a literal text node — never as parseable HTML.
+    const content = unwrapped || { type: 'text' as const, text: preview.text };
+
+    editor
+      .chain()
+      .focus()
+      .setTextSelection({ from, to })
+      .deleteSelection()
+      .insertContent(content, { parseOptions: { preserveWhitespace: false } })
+      .run();
+    setPreview(null);
+    setHidden(true);
+  }, [editor, preview]);
+
+  // Discard the staged suggestion — the document was never touched.
+  const discardPreview = useCallback(() => {
+    setPreview(null);
+  }, []);
+
   const visible = position !== null && !hidden && editor !== null;
 
   // Clamp position to the viewport
@@ -348,6 +402,81 @@ export default function InlineAIToolbar({
     return { top, left };
   }, [position, isPhone]);
 
+  // While a suggestion is staged, the preview popover replaces the action bar.
+  if (preview) {
+    const viewportBottom =
+      typeof window !== 'undefined' && window.visualViewport
+        ? window.visualViewport.height + window.visualViewport.offsetTop
+        : typeof window !== 'undefined'
+          ? window.innerHeight
+          : 800;
+    const anchor = clamped ?? {
+      top: viewportBottom * 0.5,
+      left: typeof window !== 'undefined' ? window.innerWidth / 2 : 200,
+    };
+    const top = Math.max(8, Math.min(anchor.top, viewportBottom - 320));
+    return (
+      <div
+        role="dialog"
+        aria-label={`${ACTION_LABELS[preview.action]} suggestion`}
+        style={{
+          position: 'fixed',
+          top,
+          left: anchor.left,
+          transform: 'translateX(-50%)',
+          zIndex: 250,
+          width: 'min(380px, calc(100vw - 24px))',
+          background: 'var(--surface-container-high)',
+          border: '1px solid var(--ink-12)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 14,
+          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--ink-06)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          fontFamily: 'var(--font-sans)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: 16, color: 'var(--accent-strong)' }}
+          >
+            {ACTION_ICONS[preview.action]}
+          </span>
+          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--on-surface)' }}>
+            {ACTION_LABELS[preview.action]} suggestion
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: 'var(--fs-sm)',
+            lineHeight: 'var(--lh-normal)',
+            color: 'var(--on-surface)',
+            maxHeight: 220,
+            overflowY: 'auto',
+            background: 'var(--ink-04)',
+            borderRadius: 'var(--radius-md)',
+            padding: '10px 12px',
+          }}
+        >
+          {/* Render the staged Markdown so the preview matches what Accept
+              inserts — code blocks, lists, and emphasis show formatted rather
+              than as raw "```"/"-"/"**" characters. */}
+          <MarkdownRenderer content={preview.text} variant="plain" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+          <Button variant="ghost" size="sm" onClick={discardPreview}>
+            Discard
+          </Button>
+          <Button variant="primary" size="sm" leadingIcon="check" onClick={applyPreview}>
+            Accept
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!visible || !clamped) return null;
 
   const wrapperStyle: CSSProperties = {
@@ -361,7 +490,7 @@ export default function InlineAIToolbar({
     borderRadius: 999,
     padding: isPhone ? '8px' : '6px',
     boxShadow:
-      '0 16px 48px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(255, 222, 89, 0.2), inset 0 1px 0 rgb(var(--notebook-ink-rgb) / 0.06)',
+      '0 16px 48px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(255, 222, 89, 0.2), inset 0 1px 0 var(--ink-08)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     display: 'flex',

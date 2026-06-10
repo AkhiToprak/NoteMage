@@ -21,12 +21,15 @@ type Purpose =
   | 'document'
   | 'section-import'
   | 'flashcard-import'
+  | 'pdf-import'
+  | 'multi-import'
   | 'admin-background';
 
 interface SignedUrlRequestBody {
   purpose: Purpose;
   fileName: string;
   contentType: string;
+  fileSize?: number;
   notebookId?: string;
   pageId?: string;
   sectionId?: string;
@@ -35,6 +38,16 @@ interface SignedUrlRequestBody {
   shareId?: string;
   groupId?: string;
 }
+
+/**
+ * Upper bound on a single upload (bytes). The file is PUT directly to
+ * Supabase Storage with the signed token, so the *authoritative* limit is the
+ * bucket's `fileSizeLimit` (set in the Supabase dashboard) — `createSignedUploadUrl`
+ * accepts no per-URL size option in storage-js. This is a defense-in-depth
+ * gate on the client-declared size so we refuse to mint a token for an
+ * obviously oversized upload before it ever starts.
+ */
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -59,10 +72,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body: SignedUrlRequestBody = await request.json();
-    const { purpose, fileName, contentType } = body;
+    const { purpose, fileName, contentType, fileSize } = body;
 
     if (!purpose || !fileName || !contentType) {
       return badRequestResponse('Missing required fields: purpose, fileName, contentType');
+    }
+
+    // Bound the declared size before minting an upload token. The real ceiling
+    // is enforced by the bucket's fileSizeLimit (storage-js has no per-URL
+    // size option); this just rejects oversized requests early.
+    if (typeof fileSize === 'number' && (!Number.isFinite(fileSize) || fileSize > MAX_UPLOAD_BYTES)) {
+      return badRequestResponse('File is too large (max 50 MB)');
     }
 
     const validPurposes: Purpose[] = [
@@ -75,6 +95,8 @@ export async function POST(request: NextRequest) {
       'document',
       'section-import',
       'flashcard-import',
+      'pdf-import',
+      'multi-import',
       'admin-background',
     ];
     if (!validPurposes.includes(purpose)) {
@@ -158,6 +180,19 @@ export async function POST(request: NextRequest) {
         if (!groupId) {
           return badRequestResponse('group-avatar requires groupId');
         }
+        // Only an accepted owner/admin/teacher may mint an avatar-upload token for
+        // the group (mirrors app/api/groups/[id]/avatar). Without this, the public
+        // bucket key is writable by any authenticated user.
+        const membership = await db.studyGroupMember.findUnique({
+          where: { groupId_userId: { groupId, userId } },
+        });
+        if (
+          !membership ||
+          !['owner', 'admin', 'teacher'].includes(membership.role) ||
+          membership.status !== 'accepted'
+        ) {
+          return forbiddenResponse('Only group owners, admins, or teachers can change the avatar');
+        }
         const ext = getExtensionFromContentType(contentType);
         storagePath = `avatars/group-${groupId}-${Date.now()}.${ext}`;
         bucket = BUCKET_PUBLIC;
@@ -213,6 +248,35 @@ export async function POST(request: NextRequest) {
         if (!notebook) return notFoundResponse('Notebook not found');
 
         storagePath = `temp-imports/${userId}/${timestamp}-${sanitized}`;
+        bucket = BUCKET_PRIVATE;
+        break;
+      }
+
+      case 'pdf-import': {
+        const { notebookId } = body;
+        if (!notebookId) {
+          return badRequestResponse('pdf-import requires notebookId');
+        }
+
+        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        if (!notebook) return notFoundResponse('Notebook not found');
+
+        // The structured importer uploads the raw PDF plus one PNG per
+        // page — the random suffix keeps those many near-simultaneous
+        // uploads from colliding on a shared millisecond.
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
+        bucket = BUCKET_PRIVATE;
+        break;
+      }
+
+      case 'multi-import': {
+        // The multi-PDF importer (onboarding finale + the notebooks-page
+        // "Import PDFs" flow) uploads raw PDFs and their page PNGs BEFORE
+        // any notebook exists — subjects are detected first, notebooks are
+        // created only at commit. The temp path is scoped by user alone.
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
         bucket = BUCKET_PRIVATE;
         break;
       }

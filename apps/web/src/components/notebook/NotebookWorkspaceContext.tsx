@@ -57,7 +57,6 @@ interface WorkspaceContextValue {
   activeChatId: string | null;
   activeFlashcardSetId: string | null;
   activeQuizSetId: string | null;
-  activeStudyPlanId: string | null;
   chats: NotebookChatItem[];
   studyPlans: StudyPlanSummary[];
   flashcardSets: FlashcardSetSummary[];
@@ -71,6 +70,10 @@ interface WorkspaceContextValue {
   sectionsLoaded: boolean;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  /** Shared visibility for the export dialog, so any workspace surface (the
+      sidebar footer, the page-actions menu, …) can open the same dialog. */
+  exportDialogOpen: boolean;
+  setExportDialogOpen: (open: boolean) => void;
 }
 
 const NotebookWorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -99,6 +102,7 @@ export function NotebookWorkspaceProvider({
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [chats, setChats] = useState<NotebookChatItem[]>([]);
   const [studyPlans, setStudyPlans] = useState<StudyPlanSummary[]>([]);
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSetSummary[]>([]);
@@ -128,11 +132,9 @@ export function NotebookWorkspaceProvider({
     return match?.[1] ?? null;
   })();
 
-  // Derive activeStudyPlanId from URL
-  const activeStudyPlanId = (() => {
-    const match = pathname.match(/\/notebooks\/[^/]+\/study-plan\/([^/]+)/);
-    return match?.[1] ?? null;
-  })();
+  // Phase 9.4 redirected /notebooks/[id]/study-plan/[planId] → /learn/paths/[planId],
+  // so the regex that used to derive activeStudyPlanId no longer matches.
+  // The state + downstream consumers were removed in Phase 9.6.
 
   const fetchNotebook = useCallback(async () => {
     try {
@@ -257,7 +259,6 @@ export function NotebookWorkspaceProvider({
         activeChatId,
         activeFlashcardSetId,
         activeQuizSetId,
-        activeStudyPlanId,
         chats,
         studyPlans,
         flashcardSets,
@@ -270,6 +271,8 @@ export function NotebookWorkspaceProvider({
         isMageView: activeChatId !== null,
         sidebarCollapsed,
         setSidebarCollapsed,
+        exportDialogOpen,
+        setExportDialogOpen,
       }}
     >
       <AiTaskProvider>{children}</AiTaskProvider>

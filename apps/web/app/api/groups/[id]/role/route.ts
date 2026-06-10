@@ -54,6 +54,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (!targetMembership || targetMembership.status !== 'accepted') {
       return notFoundResponse('Member not found');
     }
+    // Never allow demoting/changing the group owner — would lock them out of settings.
+    if (targetUserId === group.ownerId || targetMembership.role === 'owner') {
+      return forbiddenResponse("Cannot change the group owner's role");
+    }
 
     const updated = await db.studyGroupMember.update({
       where: { groupId_userId: { groupId: id, userId: targetUserId } },

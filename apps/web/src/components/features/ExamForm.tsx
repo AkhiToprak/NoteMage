@@ -48,10 +48,10 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
   const inputStyle = (hasError: boolean): React.CSSProperties => ({
     width: '100%',
     padding: '12px 14px',
-    background: '#272746',
+    background: 'var(--surface-container)',
     border: `1.5px solid ${hasError ? '#f87171' : 'rgba(174,137,255,0.15)'}`,
     borderRadius: '10px',
-    color: '#e5e3ff',
+    color: 'var(--on-surface)',
     fontSize: '14px',
     fontFamily: 'inherit',
     outline: 'none',
@@ -90,7 +90,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
           style={{
             width: '440px',
             maxWidth: '90vw',
-            background: '#000000',
+            background: 'var(--surface-container)',
             border: '1px solid rgba(174,137,255,0.2)',
             borderRadius: '20px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -122,7 +122,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '20px', color: '#ae89ff' }}
+                  style={{ fontSize: '20px', color: 'var(--md-h4)' }}
                 >
                   event
                 </span>
@@ -131,7 +131,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                 style={{
                   fontSize: '17px',
                   fontWeight: 700,
-                  color: '#e5e3ff',
+                  color: 'var(--on-surface)',
                   margin: 0,
                 }}
               >
@@ -143,7 +143,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#8888a8',
+                color: 'var(--outline)',
                 cursor: 'pointer',
                 padding: '4px',
                 display: 'flex',
@@ -151,11 +151,11 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                 transition: 'color 0.15s, background 0.15s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#e5e3ff';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--on-surface)';
                 (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = '#8888a8';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--outline)';
                 (e.currentTarget as HTMLButtonElement).style.background = 'none';
               }}
             >
@@ -175,7 +175,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                     display: 'block',
                     fontSize: '13px',
                     fontWeight: 600,
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     marginBottom: '8px',
                   }}
                 >
@@ -189,6 +189,8 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                     if (errors.title) setErrors((p) => ({ ...p, title: undefined }));
                   }}
                   placeholder="e.g. Midterm Exam, Final Quiz"
+                  aria-invalid={!!errors.title}
+                  aria-describedby={errors.title ? 'exam-title-error' : undefined}
                   style={inputStyle(!!errors.title)}
                   onFocus={(e) => {
                     (e.currentTarget as HTMLInputElement).style.borderColor = '#ae89ff';
@@ -200,7 +202,10 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                   }}
                 />
                 {errors.title && (
-                  <p style={{ fontSize: '12px', color: '#f87171', margin: '6px 0 0' }}>
+                  <p
+                    id="exam-title-error"
+                    style={{ fontSize: '12px', color: '#f87171', margin: '6px 0 0' }}
+                  >
                     {errors.title}
                   </p>
                 )}
@@ -213,7 +218,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                     display: 'block',
                     fontSize: '13px',
                     fontWeight: 600,
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     marginBottom: '8px',
                   }}
                 >
@@ -254,7 +259,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                     display: 'block',
                     fontSize: '13px',
                     fontWeight: 600,
-                    color: '#aaa8c8',
+                    color: 'var(--on-surface-variant)',
                     marginBottom: '8px',
                   }}
                 >
@@ -283,14 +288,14 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                       : 'rgba(174,137,255,0.15)';
                   }}
                 >
-                  <option value="" style={{ background: '#272746', color: '#8888a8' }}>
+                  <option value="" style={{ background: 'var(--surface-container)', color: 'var(--outline)' }}>
                     Select a notebook...
                   </option>
                   {notebooks.map((nb) => (
                     <option
                       key={nb.id}
                       value={nb.id}
-                      style={{ background: '#272746', color: '#e5e3ff' }}
+                      style={{ background: 'var(--surface-container)', color: 'var(--on-surface)' }}
                     >
                       {nb.name}
                     </option>

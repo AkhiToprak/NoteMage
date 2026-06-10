@@ -8,8 +8,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { sendSignupNotification } from '@/lib/email';
-import { verifyAndFulfillCheckout } from '@/lib/stripe-fulfillment';
-import { validateGoals } from '../study-goals/route';
+import { validateGoals } from '@/lib/study-goals';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -19,16 +18,35 @@ export async function PUT(request: NextRequest) {
     // Prevent replay — onboarding can only be completed once
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { onboardingComplete: true },
+      select: { onboardingComplete: true, birthDate: true },
     });
     if (user?.onboardingComplete) {
       return badRequestResponse('Onboarding already completed');
     }
 
+    // Age-gate backstop: the 13+ check lives in /api/user/birth-date, which the
+    // wizard always calls before this finale. A scripted client could otherwise
+    // PUT here directly and finish onboarding with birthDate=null, never having
+    // asserted it's 13+. Refuse to complete onboarding until DOB is on record.
+    if (!user?.birthDate) {
+      return badRequestResponse('Date of birth is required before completing onboarding');
+    }
+
     const body = await request.json().catch(() => ({}));
-    const { goals = {}, scholarName } = body as {
+    const {
+      goals = {},
+      scholarName,
+      name,
+      lineOfWork,
+      fieldOfStudy,
+      school,
+    } = body as {
       goals?: unknown;
       scholarName?: string | null;
+      name?: string | null;
+      lineOfWork?: string | null;
+      fieldOfStudy?: string | null;
+      school?: string | null;
     };
 
     if (scholarName !== undefined && scholarName !== null) {
@@ -40,28 +58,56 @@ export async function PUT(request: NextRequest) {
     const validated = validateGoals(goals);
     if (!validated.ok) return badRequestResponse(validated.error);
 
+    const data: Record<string, unknown> = {
+      onboardingComplete: true,
+      ...validated.data,
+    };
+
+    if (scholarName) data.scholarName = scholarName.trim();
+
+    // Identity/personalization screens: first + last name are joined into
+    // `name` ("First Last"); the context screen feeds `lineOfWork`.
+    if (name !== undefined && name !== null) {
+      if (typeof name !== 'string') {
+        return badRequestResponse('name must be a string');
+      }
+      const trimmed = name.trim().slice(0, 100);
+      if (trimmed) data.name = trimmed;
+    }
+
+    if (lineOfWork !== undefined && lineOfWork !== null) {
+      if (typeof lineOfWork !== 'string' || lineOfWork.length > 100) {
+        return badRequestResponse('lineOfWork must be at most 100 characters');
+      }
+      data.lineOfWork = lineOfWork.trim() || null;
+    }
+
+    if (fieldOfStudy !== undefined && fieldOfStudy !== null) {
+      if (typeof fieldOfStudy !== 'string' || fieldOfStudy.length > 100) {
+        return badRequestResponse('fieldOfStudy must be at most 100 characters');
+      }
+      data.fieldOfStudy = fieldOfStudy.trim() || null;
+    }
+
+    // School powers the onboarding "find classmates" peer suggestions — see
+    // /api/schools/peers — and shows up on the public profile bento card.
+    if (school !== undefined && school !== null) {
+      if (typeof school !== 'string' || school.length > 100) {
+        return badRequestResponse('school must be at most 100 characters');
+      }
+      data.school = school.trim() || null;
+    }
+
     await db.user.update({
       where: { id: userId },
-      data: {
-        onboardingComplete: true,
-        ...(scholarName ? { scholarName: scholarName.trim() } : {}),
-        ...validated.data,
-      },
+      data,
     });
 
-    // Read user AFTER update for freshest tier.
-    // If tier is still FREE, verify directly with Stripe (fallback if webhook hasn't arrived).
-    let fullUser = await db.user.findUnique({
+    // Read user AFTER update for the freshest values.
+    const fullUser = await db.user.findUnique({
       where: { id: userId },
       select: { email: true, tier: true },
     });
-
-    if (fullUser && fullUser.tier === 'FREE') {
-      const verifiedTier = await verifyAndFulfillCheckout(userId);
-      if (verifiedTier && verifiedTier !== 'FREE') {
-        fullUser = { ...fullUser, tier: verifiedTier };
-      }
-    }
 
     if (fullUser?.email) {
       sendSignupNotification(fullUser.email, fullUser.tier);

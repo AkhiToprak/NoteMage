@@ -25,7 +25,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       where: { groupId_userId: { groupId: id, userId } },
     });
 
-    if (!membership) {
+    // AUDIT[NM3-06] MEDIUM: this membership/authz gate (incl. the NM-H9 pending-invitee fix) has no automated regression test. See apps/web/docs/security-audit-2026-06-06.md
+    if (!membership || membership.status !== 'accepted') {
       return forbiddenResponse('You are not a member of this group');
     }
 

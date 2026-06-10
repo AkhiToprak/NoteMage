@@ -68,6 +68,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       // Create the new merged set
       const created = await tx.flashcardSet.create({
         data: {
+          userId,
           notebookId,
           title: trimmedTitle,
           source: 'manual',

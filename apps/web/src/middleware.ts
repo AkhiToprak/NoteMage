@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import {
-  SIGNUP_BYPASS_COOKIE,
-  SIGNUP_BYPASS_COOKIE_MAX_AGE,
-  SIGNUP_BYPASS_QUERY_PARAM,
-  hasSignupBypass,
-  isValidBypassToken,
-} from '@/lib/signup-bypass';
+
+// Content-Security-Policy. Shipped in Report-Only first so it CANNOT break the
+// app while the allowlist is tuned — violations only log to the browser console
+// (and Sentry), nothing is blocked. Once a representative session reports zero
+// violations, rename the header below to 'Content-Security-Policy' to enforce.
+//
+// Sources reflect current integrations: Supabase (REST + storage images +
+// realtime websocket), PostHog (reverse-proxied through same-origin /ingest, so
+// 'self' already covers it), Sentry ingest, Google Fonts / Material Symbols, and
+// the Google/Apple OAuth redirect targets. 'unsafe-inline' on script/style is
+// required by Next's inline bootstrap script and this project's inline style
+// objects; tightening to per-request nonces is a deliberate later step.
+// NOTE: if presence uses a custom NEXT_PUBLIC_WS_URL host (not *.supabase.co),
+// add its wss:// origin to connect-src — Report-Only will surface it.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self' https://accounts.google.com https://appleid.apple.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-inline'",
+  "worker-src 'self' blob:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
+].join('; ');
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -15,6 +35,15 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   response.headers.set('X-DNS-Prefetch-Control', 'off');
+  // HSTS is only honored by browsers over HTTPS, so setting it globally is safe.
+  // If the Coolify/Traefik proxy already emits this header, remove this line to
+  // avoid a duplicate (browsers honor the first one regardless).
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains; preload'
+  );
+  // Report-Only for now — see CONTENT_SECURITY_POLICY note above before enforcing.
+  response.headers.set('Content-Security-Policy-Report-Only', CONTENT_SECURITY_POLICY);
   return response;
 }
 
@@ -77,6 +106,24 @@ function isAuthLogicRoute(pathname: string): boolean {
   return AUTH_LOGIC_PATTERNS.some((p) => p.test(pathname));
 }
 
+// Public /api routes that intentionally serve unauthenticated requests:
+// next-auth + the credential signup/verify flow, the provider billing webhooks
+// (verified by signature, not session), the OAuth callback, currency/geo lookup,
+// the signup username-availability check, and the waitlist. Everything else under
+// /api requires a session token (the defense-in-depth gate in middleware()).
+const PUBLIC_API_ROUTES: RegExp[] = [
+  /^\/api\/auth(\/|$)/,
+  /^\/api\/billing\/[^/]+\/webhook(\/|$)/,
+  /^\/api\/currency(\/|$)/,
+  /^\/api\/import\/onenote\/callback(\/|$)/,
+  /^\/api\/user\/check-username(\/|$)/,
+  /^\/api\/waitlist(\/|$)/,
+];
+
+function isPublicApiRoute(pathname: string): boolean {
+  return PUBLIC_API_ROUTES.some((p) => p.test(pathname));
+}
+
 // The native shells (iOS + Windows/Electron) append a `NotemageShell/<plat>`
 // token to their default Chromium UA string before loading any URL. We use
 // that to gate the marketing experience out of the shell: landing, pricing,
@@ -110,11 +157,27 @@ export async function middleware(request: NextRequest) {
     return handleMaintenance(request, pathname);
   }
 
+  // Defense-in-depth for the API surface: every /api route except an explicit
+  // public allowlist requires a valid session token. Handlers still do their own
+  // object-level (ownership) authorization — this is a uniform FIRST gate so a
+  // route that forgets to authenticate can't ship reachable while anonymous.
+  if (pathname.startsWith('/api/')) {
+    if (!isPublicApiRoute(pathname)) {
+      const apiToken = await getToken({ req: request });
+      if (!apiToken) {
+        return withSecurityHeaders(
+          NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+        );
+      }
+    }
+    return withSecurityHeaders(NextResponse.next());
+  }
+
   // Outside maintenance, only the routes the existing logic was designed for
-  // get the full auth pipeline. Everything else (API routes, .well-known,
-  // /maintenance itself when accessed directly, anything not in the list)
-  // gets security headers and falls through. This preserves pre-maintenance
-  // behavior exactly even though the matcher below is now broad.
+  // get the full auth pipeline. Everything else (.well-known, /maintenance
+  // itself when accessed directly, anything not in the list) gets security
+  // headers and falls through. This preserves pre-maintenance behavior exactly
+  // even though the matcher below is now broad.
   if (!isAuthLogicRoute(pathname)) {
     return withSecurityHeaders(NextResponse.next());
   }
@@ -127,28 +190,6 @@ export async function middleware(request: NextRequest) {
   // route that's smart enough to send authed users onward to /dashboard.
   if (isNativeShell(request) && isMarketingRoute(pathname)) {
     return withSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));
-  }
-
-  // Signups are paused. A pre-launch bypass cookie unlocks the register
-  // route end-to-end. Visiting `/auth/register?key=<SIGNUP_BYPASS_TOKEN>`
-  // sets the cookie via the handshake below and redirects to a clean URL.
-  if (pathname.startsWith('/auth/register')) {
-    const queryToken = request.nextUrl.searchParams.get(SIGNUP_BYPASS_QUERY_PARAM);
-    if (queryToken && isValidBypassToken(queryToken)) {
-      const cleanUrl = new URL(pathname, request.url);
-      const response = NextResponse.redirect(cleanUrl);
-      response.cookies.set(SIGNUP_BYPASS_COOKIE, queryToken, {
-        httpOnly: true,
-        secure: request.nextUrl.protocol === 'https:',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: SIGNUP_BYPASS_COOKIE_MAX_AGE,
-      });
-      return withSecurityHeaders(response);
-    }
-    if (!hasSignupBypass(request)) {
-      return withSecurityHeaders(NextResponse.redirect(new URL('/waitlist', request.url)));
-    }
   }
 
   // Already-authed users hitting /auth/login (e.g. the iPad shell boots

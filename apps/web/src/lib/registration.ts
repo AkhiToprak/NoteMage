@@ -6,8 +6,39 @@
  * context where a request object isn't available.
  */
 
-import { randomBytes } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 import { db } from '@/lib/db';
+import { clientIpFromHeaders } from '@/lib/client-ip';
+
+/**
+ * Salted, one-way fingerprint of a client IP for the per-IP registration cap.
+ *
+ * We never persist the raw client address: the `IpRegistration.ip` column
+ * stores this HMAC instead (the column name is legacy — it now holds a hash,
+ * not an IP). The cap only needs equality + count, both of which survive a
+ * deterministic keyed hash, so the abuse control is unchanged while the raw
+ * address is no longer retained.
+ *
+ * The key prefers a dedicated `IP_HASH_SECRET`, falling back to
+ * `NEXTAUTH_SECRET` so this never throws if the dedicated secret is unset.
+ */
+export function hashIp(ip: string): string {
+  const secret = process.env.IP_HASH_SECRET || process.env.NEXTAUTH_SECRET || '';
+  return createHmac('sha256', secret).update(ip).digest('hex');
+}
+
+/**
+ * Canonicalize an email for storage and lookup: trim surrounding whitespace
+ * and lowercase. Email is case-insensitive in practice, so every code path
+ * that reads or writes a `User.email` MUST funnel through this — otherwise a
+ * mixed-case signup is invisible to the lowercased OAuth lookup (and vice
+ * versa), which silently mints a duplicate account instead of matching the
+ * existing one. Returns '' for any non-string input so callers' existing
+ * truthiness guards still fire.
+ */
+export function normalizeEmail(raw: unknown): string {
+  return typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+}
 
 /** Must match USERNAME_REGEX in app/api/auth/register/route.ts. */
 const USER_USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
@@ -44,9 +75,11 @@ export async function enforceIpCap(ip: string): Promise<IpCapResult> {
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
 
+  // The `ip` column stores a salted HMAC, not the raw address — hash the
+  // incoming IP the same way it was hashed on write so the count still matches.
   const ipRegistrationCount = await db.ipRegistration.count({
     where: {
-      ip,
+      ip: hashIp(ip),
       createdAt: { gte: twelveMonthsAgo },
     },
   });
@@ -63,19 +96,11 @@ export async function enforceIpCap(ip: string): Promise<IpCapResult> {
 
 /**
  * Read the client IP from a plain `Headers` object — used from the NextAuth
- * signIn callback via `next/headers`. Mirrors the precedence of
- * getClientIp() in src/lib/rate-limit.ts.
+ * signIn callback via `next/headers`. Shares the trusted-proxy precedence with
+ * getClientIp() via src/lib/client-ip.ts (TRUSTED_PROXY_HOPS).
  */
 export function getIpFromHeaders(headers: Headers): string {
-  const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) {
-    const ips = forwarded
-      .split(',')
-      .map((ip) => ip.trim())
-      .filter(Boolean);
-    return ips[ips.length - 1] || 'unknown';
-  }
-  return headers.get('x-real-ip') || 'unknown';
+  return clientIpFromHeaders(headers.get('x-forwarded-for'), headers.get('x-real-ip'));
 }
 
 /**

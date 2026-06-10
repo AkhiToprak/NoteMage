@@ -1,0 +1,313 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import PricingCard from '@/components/pricing/PricingCard';
+import PricingHero from '@/components/pricing/PricingHero';
+import BillingIntervalToggle from '@/components/pricing/BillingIntervalToggle';
+import FeatureComparison from '@/components/pricing/FeatureComparison';
+import FAQ from '@/components/pricing/FAQ';
+import LandingNavbar from '@/components/landing/LandingNavbar';
+import LandingFooter from '@/components/landing/LandingFooter';
+import {
+  TIERS,
+  monthlyEquivalent,
+  yearlySavingsPct,
+  type TierKey,
+  type BillingInterval,
+} from '@/lib/tiers';
+import { useCurrency } from '@/hooks/useCurrency';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
+
+export default function PricingPageClient({
+  freeAiPathsDisabled,
+}: {
+  freeAiPathsDisabled: boolean;
+}) {
+  const { formatPrice, currency } = useCurrency();
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
+  const { ref: cardsRef, isRevealed: cardsRevealed } = useScrollReveal();
+  const { ref: ctaRef, isRevealed: ctaRevealed } = useScrollReveal();
+
+  const tiers: { key: TierKey; ctaText: string }[] = [
+    { key: 'FREE', ctaText: 'Get Started Free' },
+    { key: 'PRO', ctaText: 'Get Pro' },
+  ];
+
+  return (
+    <main
+      style={{
+        position: 'relative',
+        isolation: 'isolate',
+        background: '#0c0a1a',
+        color: 'var(--on-surface)',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+      }}
+    >
+      {/* ── GLOBAL STYLES ── */}
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        .grain {
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          z-index: 999;
+          opacity: 0.022;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* Popular badge float */
+        @keyframes badge-float {
+          0%, 100% { transform: translateX(-50%) translateY(0); }
+          50% { transform: translateX(-50%) translateY(-3px); }
+        }
+        .popular-badge { animation: badge-float 3s ease-in-out infinite; }
+
+        /* Comparison: desktop table visible, mobile hidden */
+        .comparison-desktop { display: block; }
+        .comparison-mobile { display: none; }
+
+        /* Hover on comparison rows */
+        .comparison-row:hover {
+          background: rgba(174,137,255,0.04) !important;
+        }
+
+        /* CTA glow pulse */
+        @keyframes cta-glow {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+
+        /* ── Responsive: Tablet (768–1023px) ── */
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .pricing-hero { padding: 140px 24px 60px !important; }
+          .pricing-cards-grid {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+          }
+          .pricing-cards-grid > * {
+            flex: 0 0 calc(50% - 12px) !important;
+            max-width: calc(50% - 12px) !important;
+          }
+          .pricing-cards-section { padding: 20px 24px 60px !important; }
+          .comparison-section { padding: 60px 24px !important; }
+          .social-proof-section { padding: 20px 24px 60px !important; }
+        }
+
+        /* ── Responsive: Phone (max-width 767px) ── */
+        @media (max-width: 767px) {
+          .pricing-hero { padding: 120px 16px 40px !important; }
+          .pricing-cards-grid {
+            /* column-reverse keeps PRO (second in source order) on top on a
+               phone so it isn't below the fold; FREE follows underneath. */
+            flex-direction: column-reverse !important;
+            align-items: center !important;
+            padding-top: 8px !important;
+          }
+          .pricing-cards-grid > * {
+            width: 100% !important;
+            max-width: 400px !important;
+            transform: none !important;
+          }
+          .pricing-cards-section { padding: 20px 16px 40px !important; }
+          .comparison-section { padding: 40px 16px !important; }
+          .comparison-desktop { display: none !important; }
+          .comparison-mobile { display: block !important; }
+          .social-proof-section { padding: 20px 16px 40px !important; }
+          .social-proof-grid {
+            flex-direction: column !important;
+          }
+          .cta-banner { padding: 60px 16px !important; }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .popular-badge { animation: none !important; }
+          * { transition-duration: 0.01ms !important; }
+        }
+      `}</style>
+
+      {/* Grain */}
+      <div className="grain" />
+
+      {/* ── NAVBAR ── */}
+      <LandingNavbar />
+
+      {/* ── HERO ── */}
+      <PricingHero />
+
+      {/* ── PRICING CARDS ── */}
+      <section
+        ref={cardsRef}
+        className="pricing-cards-section"
+        style={{ padding: '20px 40px 80px', position: 'relative', zIndex: 1 }}
+      >
+        {/* Billing interval switcher */}
+        <div style={{ marginBottom: 40 }}>
+          <BillingIntervalToggle
+            value={billingInterval}
+            onChange={setBillingInterval}
+            savingsPct={yearlySavingsPct('PRO')}
+          />
+        </div>
+
+        <div
+          className="pricing-cards-grid"
+          style={{
+            display: 'flex',
+            gap: 24,
+            justifyContent: 'center',
+            alignItems: 'stretch',
+            maxWidth: 1280,
+            margin: '0 auto',
+          }}
+        >
+          {tiers.map(({ key, ctaText }, idx) => {
+            const subline =
+              key === 'PRO' && billingInterval === 'yearly'
+                ? `${formatPrice(monthlyEquivalent(key))} / month`
+                : undefined;
+            return (
+              <PricingCard
+                key={key}
+                tier={key}
+                freeAiPathsDisabled={freeAiPathsDisabled}
+                formattedPrice={formatPrice(TIERS[key].price[billingInterval])}
+                interval={billingInterval}
+                priceSubline={subline}
+                ctaHref="/auth/register"
+                ctaText={ctaText}
+                isRevealed={cardsRevealed}
+                delay={idx * 120}
+              />
+            );
+          })}
+        </div>
+
+        {currency !== 'CHF' && (
+          <p
+            style={{
+              margin: '24px auto 0',
+              maxWidth: 640,
+              textAlign: 'center',
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: 'var(--outline)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              info
+            </span>
+            Prices shown in your approximate local currency. You&apos;ll be billed in CHF,
+            converted at checkout.
+          </p>
+        )}
+      </section>
+
+      {/* ── FEATURE COMPARISON ── */}
+      <FeatureComparison freeAiPathsDisabled={freeAiPathsDisabled} />
+
+      {/* ── FAQ ── */}
+      <FAQ />
+
+      {/* ── CTA BANNER ── */}
+      <section
+        ref={ctaRef}
+        className="cta-banner"
+        style={{
+          padding: 'clamp(40px, 8vw, 80px) clamp(20px, 5vw, 40px)',
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(28px, 4vw, 40px)',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            color: 'var(--on-surface)',
+            marginBottom: 16,
+            position: 'relative',
+            zIndex: 1,
+            opacity: ctaRevealed ? 1 : 0,
+            transform: ctaRevealed ? 'translateY(0)' : 'translateY(16px)',
+            transition:
+              'opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1)',
+          }}
+        >
+          Get started today
+        </h2>
+        <p
+          style={{
+            fontSize: 'clamp(15px, 2vw, 17px)',
+            color: 'var(--on-surface-variant)',
+            opacity: ctaRevealed ? 0.7 : 0,
+            lineHeight: 1.6,
+            maxWidth: 480,
+            margin: '0 auto 32px',
+            position: 'relative',
+            zIndex: 1,
+            transform: ctaRevealed ? 'translateY(0)' : 'translateY(16px)',
+            transition:
+              'opacity 0.6s cubic-bezier(0.22,1,0.36,1) 80ms, transform 0.6s cubic-bezier(0.22,1,0.36,1) 80ms',
+          }}
+        >
+          Pick a plan and start learning in minutes.
+        </p>
+        <Link
+          href="/auth/register"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'var(--tertiary-container)',
+            color: '#22223a',
+            fontWeight: 700,
+            fontSize: 16,
+            padding: '15px 32px',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 28px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.3)',
+            position: 'relative',
+            zIndex: 1,
+            opacity: ctaRevealed ? 1 : 0,
+            transform: ctaRevealed ? 'translateY(0)' : 'translateY(16px)',
+            transition:
+              'opacity 0.6s cubic-bezier(0.22,1,0.36,1) 160ms, transform 0.4s cubic-bezier(0.22,1,0.36,1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow =
+              '0 10px 48px rgba(255,222,89,0.35), 0 4px 16px rgba(0,0,0,0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow =
+              '0 4px 28px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.3)';
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}
+          >
+            rocket_launch
+          </span>
+          Get Started Free
+        </Link>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <LandingFooter />
+    </main>
+  );
+}

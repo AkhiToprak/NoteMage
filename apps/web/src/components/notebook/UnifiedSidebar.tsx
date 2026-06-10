@@ -1,56 +1,41 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getMageName } from '@/lib/scholar';
 import Link from 'next/link';
 import { ContextualMascot, useMascotContextPose } from '@/components/mascot';
-import {
-  ArrowLeft,
-  Plus,
-  FolderPlus,
-  ChevronRight,
-  Trash2,
-  ChevronsLeft,
-  FilePlus,
-  MessageSquare,
-  Sparkles,
-  Layers,
-  HelpCircle,
-  Search,
-  SlidersHorizontal,
-  Upload,
-  Download,
-  CalendarDays,
-} from 'lucide-react';
 import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import { getSectionColor } from '@/components/notebook/SectionListItem';
 import type { SectionNode } from '@/components/notebook/SectionTree';
-import type { NotebookChatItem } from '@/components/notebook/NotebookWorkspaceContext';
 import PageTypeSelector from '@/components/notebook/PageTypeSelector';
-import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
-import FlashcardSetManager from '@/components/notebook/FlashcardSetManager';
 import ExportDialog from '@/components/notebook/ExportDialog';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
-import StudyPlanCreator from '@/components/notebook/StudyPlanCreator';
+import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
 import QuizSetCreator from '@/components/notebook/QuizSetCreator';
+import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import TimerWidget from '@/components/layout/TimerWidget';
-import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
+import NotebookExamsModal from '@/components/notebook/NotebookExamsModal';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UnifiedSidebar — OneNote-style sidebar with Files + Chats
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function UnifiedSidebar() {
-  const { notebookId, notebook, sections, refreshSections, setSidebarCollapsed } =
-    useNotebookWorkspace();
+  const {
+    notebookId,
+    notebook,
+    sections,
+    studyPlans,
+    refreshSections,
+    refreshStudyPlans,
+    setSidebarCollapsed,
+    exportDialogOpen,
+    setExportDialogOpen,
+  } = useNotebookWorkspace();
   const mascotContext = useMascotContextPose();
-  const { data: session } = useSession();
-  const mageName = getMageName(session?.user?.scholarName);
 
   const [isCreatingSection, setIsCreatingSection] = useState(false);
   const [sectionDraft, setSectionDraft] = useState('');
@@ -68,14 +53,20 @@ export default function UnifiedSidebar() {
   const [wsSearchFocused, setWsSearchFocused] = useState(false);
   const isSearchActive = wsSearchQuery.length >= 2;
 
-  // Flashcard set manager modal
-  const [showSetManager, setShowSetManager] = useState(false);
-
-  // Export dialog
-  const [showExportDialog, setShowExportDialog] = useState(false);
+  // Export dialog — visibility lives in the workspace context so the editor
+  // toolbar's page-actions menu can open the same dialog (audit item 16).
 
   // Import dialog
   const [showImportDialog, setShowImportDialog] = useState(false);
+
+  // Exams modal (per-notebook, opened from the header)
+  const [showExams, setShowExams] = useState(false);
+
+  // Learn path setup modal — opens the same flow as /learn/paths,
+  // scoped to this notebook by default (its files appear as the
+  // initial inventory; user can still uncheck or pull in materials
+  // from other notebooks inside the modal).
+  const [showPathSetup, setShowPathSetup] = useState(false);
 
   useEffect(() => {
     if (isCreatingSection && sectionInputRef.current) sectionInputRef.current.focus();
@@ -108,7 +99,7 @@ export default function UnifiedSidebar() {
       style={{
         width: '280px',
         minWidth: '280px',
-        background: '#000000',
+        background: 'var(--background)',
         borderRight: '1px solid rgba(174,137,255,0.22)',
         display: 'flex',
         flexDirection: 'column',
@@ -147,7 +138,7 @@ export default function UnifiedSidebar() {
               fontSize: 20,
               fontWeight: 500,
               letterSpacing: '0.02em',
-              color: '#ae89ff',
+              color: 'var(--md-h4)',
               lineHeight: 1,
               whiteSpace: 'nowrap',
             }}
@@ -169,18 +160,20 @@ export default function UnifiedSidebar() {
               background: 'transparent',
               border: 'none',
               textDecoration: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'var(--ink-40)',
               flexShrink: 0,
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(237,233,255,0.8)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-80)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(237,233,255,0.4)';
+              (e.currentTarget as HTMLAnchorElement).style.color = 'var(--ink-40)';
             }}
           >
-            <ArrowLeft size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              arrow_back
+            </span>
           </Link>
           <div
             style={{
@@ -195,7 +188,7 @@ export default function UnifiedSidebar() {
             style={{
               fontSize: '14px',
               fontWeight: 600,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -207,15 +200,15 @@ export default function UnifiedSidebar() {
           </span>
           <TimerWidget compact />
           <button
-            onClick={() => setSidebarCollapsed(true)}
-            title="Collapse sidebar"
+            onClick={() => setShowExams(true)}
+            title="Exams"
             style={{
               width: 22,
               height: 22,
               borderRadius: 5,
               background: 'transparent',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -225,13 +218,44 @@ export default function UnifiedSidebar() {
               transition: 'color 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.8)';
+              e.currentTarget.style.color = 'var(--ink-80)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(237,233,255,0.4)';
+              e.currentTarget.style.color = 'var(--ink-40)';
             }}
           >
-            <ChevronsLeft size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              event
+            </span>
+          </button>
+          <button
+            onClick={() => setSidebarCollapsed(true)}
+            title="Collapse sidebar"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 5,
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--ink-40)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              padding: 0,
+              transition: 'color 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--ink-80)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--ink-40)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              keyboard_double_arrow_left
+            </span>
           </button>
         </div>
       </div>
@@ -239,18 +263,22 @@ export default function UnifiedSidebar() {
       {/* ── Search bar ─────────────────────────────────────────────── */}
       <div style={{ padding: '8px 10px 4px', position: 'relative' }}>
         <div style={{ position: 'relative' }}>
-          <Search
-            size={14}
+          <span
+            className="material-symbols-outlined"
             style={{
+              fontSize: 14,
               position: 'absolute',
               left: 10,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: wsSearchFocused ? '#ae89ff' : 'rgba(237,233,255,0.3)',
+              color: wsSearchFocused ? '#ae89ff' : 'var(--ink-30)',
               transition: 'color 0.15s',
               pointerEvents: 'none',
             }}
-          />
+            aria-hidden
+          >
+            search
+          </span>
           <input
             type="text"
             placeholder="Search in notebook…"
@@ -263,8 +291,8 @@ export default function UnifiedSidebar() {
               padding: '6px 28px 6px 30px',
               borderRadius: 8,
               border: `1px solid ${wsSearchFocused ? 'rgba(174,137,255,0.35)' : 'rgba(140,82,255,0.1)'}`,
-              background: wsSearchFocused ? 'rgba(174,137,255,0.06)' : 'rgba(255,255,255,0.035)',
-              color: '#ede9ff',
+              background: wsSearchFocused ? 'rgba(174,137,255,0.06)' : 'var(--ink-04)',
+              color: 'var(--on-surface)',
               fontSize: 12,
               outline: 'none',
               fontFamily: 'inherit',
@@ -285,8 +313,8 @@ export default function UnifiedSidebar() {
                 borderRadius: 4,
                 border: 'none',
                 padding: 0,
-                background: 'rgba(237,233,255,0.1)',
-                color: 'rgba(237,233,255,0.5)',
+                background: 'var(--ink-12)',
+                color: 'var(--ink-50)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -333,7 +361,7 @@ export default function UnifiedSidebar() {
                   style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: 'rgba(237,233,255,0.5)',
+                    color: 'var(--ink-50)',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                   }}
@@ -353,18 +381,20 @@ export default function UnifiedSidebar() {
                     border: 'none',
                     background: 'transparent',
                     cursor: 'pointer',
-                    color: 'rgba(237,233,255,0.25)',
+                    color: 'var(--ink-20)',
                     padding: 0,
                     transition: 'color 0.12s ease',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.7)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-70)';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-20)';
                   }}
                 >
-                  <Plus size={13} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+                    add
+                  </span>
                 </button>
               </div>
 
@@ -384,7 +414,13 @@ export default function UnifiedSidebar() {
                     borderLeft: '3px solid rgba(140,82,255,0.4)',
                   }}
                 >
-                  <FolderPlus size={12} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 12, color: 'var(--ink-30)', flexShrink: 0 }}
+                    aria-hidden
+                  >
+                    create_new_folder
+                  </span>
                   <input
                     ref={sectionInputRef}
                     type="text"
@@ -415,7 +451,7 @@ export default function UnifiedSidebar() {
                       padding: '3px 7px',
                       fontFamily: 'inherit',
                       fontSize: '12px',
-                      color: '#ede9ff',
+                      color: 'var(--on-surface)',
                       outline: 'none',
                     }}
                   />
@@ -427,7 +463,7 @@ export default function UnifiedSidebar() {
                   <p
                     style={{
                       fontSize: '12px',
-                      color: 'rgba(237,233,255,0.4)',
+                      color: 'var(--ink-40)',
                       margin: 0,
                       lineHeight: 1.5,
                     }}
@@ -447,92 +483,144 @@ export default function UnifiedSidebar() {
               }}
             />
 
-            {/* ── Mage link ─────────────────────────────────────────── */}
-            <Link
-              href={`/notebooks/${notebookId}`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                margin: '0 6px 4px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                color: '#c4a9ff',
-                fontSize: '14px',
-                fontWeight: 600,
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(140,82,255,0.1)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-              }}
-            >
+            {/* ── PATHS group — generated paths + create CTA ─────────
+                Paths live in /learn but each path knows the notebooks
+                whose materials seeded it. We list every plan where this
+                notebook is the primary OR appears in contextNotebookIds
+                so they're discoverable from the notebook that spawned
+                them. Path-generated bundles stay hidden from the sets
+                lists above (filtered via sourcePathId). */}
+            <div style={{ padding: '4px 0 0' }}>
               <div
                 style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '5px',
-                  background: 'rgba(140,82,255,0.5)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  justifyContent: 'space-between',
+                  padding: '0 14px 6px',
                 }}
               >
-                <Sparkles size={11} style={{ color: '#e5dbff' }} />
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--ink-50)',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Paths
+                </span>
+                <button
+                  onClick={() => setShowPathSetup(true)}
+                  title="Generate a guided learning path from this notebook"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    color: 'var(--accent-strong)',
+                    padding: 0,
+                    transition: 'color 0.12s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '0.8';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+                    add
+                  </span>
+                </button>
               </div>
-              {mageName}
-            </Link>
 
-            {/* ── Manage Flashcard Sets button ─────────────────────── */}
-            <button
-              onClick={() => setShowSetManager(true)}
+              {studyPlans.map((plan) => (
+                <PathRow key={plan.id} plan={plan} />
+              ))}
+
+              {studyPlans.length === 0 && (
+                <button
+                  onClick={() => setShowPathSetup(true)}
+                  title="Generate a guided learning path from this notebook"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '7px 14px',
+                    margin: '0 6px 4px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--accent-strong)',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    textAlign: 'left',
+                    width: 'calc(100% - 12px)',
+                    transition: 'background 0.15s ease, color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      'rgba(140,82,255,0.10)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-strong)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--accent-strong)';
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '5px',
+                      background: 'rgba(140,82,255,0.18)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 11, color: 'var(--accent-strong)' }}
+                      aria-hidden
+                    >
+                      school
+                    </span>
+                  </div>
+                  Create learning path
+                </button>
+              )}
+            </div>
+
+            {/* ── CHATS group ────────────────────────────────────────
+                Restored to the notebook sidebar so a notebook's mage
+                chats are reachable here as well as in /learn. Rows link
+                to the in-notebook chat route (same record as /learn). */}
+            <ChatTreeSection />
+
+            {/* ── FLASHCARDS group — this notebook's sets (flat) ────── */}
+            <FlashcardTreeSection />
+
+            {/* ── QUIZZES group — this notebook's sets (flat) ───────── */}
+            <QuizTreeSection />
+
+            {/* ── Divider before utility actions ─────────────────────── */}
+            <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '7px 14px',
-                margin: '0 6px 4px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'transparent',
-                color: 'rgba(196,169,255,0.6)',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                textAlign: 'left',
-                width: 'calc(100% - 12px)',
-                transition: 'background 0.15s ease, color 0.15s ease',
+                margin: '12px 14px',
+                height: '1px',
+                background: 'rgba(174,137,255,0.22)',
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.1)';
-                (e.currentTarget as HTMLButtonElement).style.color = '#c4a9ff';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.6)';
-              }}
-            >
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '5px',
-                  background: 'rgba(140,82,255,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <SlidersHorizontal size={11} style={{ color: '#c4a9ff' }} />
-              </div>
-              Manage Sets
-            </button>
+            />
 
             {/* ── Import Notebook button ──────────────────────────── */}
             <button
@@ -576,14 +664,20 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <Upload size={11} style={{ color: '#c4a9ff' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 11, color: 'var(--accent-strong)' }}
+                  aria-hidden
+                >
+                  upload
+                </span>
               </div>
               Import
             </button>
 
             {/* ── Export Pages button ──────────────────────────────── */}
             <button
-              onClick={() => setShowExportDialog(true)}
+              onClick={() => setExportDialogOpen(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -623,36 +717,21 @@ export default function UnifiedSidebar() {
                   flexShrink: 0,
                 }}
               >
-                <Download size={11} style={{ color: '#c4a9ff' }} />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 11, color: 'var(--accent-strong)' }}
+                  aria-hidden
+                >
+                  download
+                </span>
               </div>
               Export
             </button>
-
-            {/* ── FLASHCARD SETS section ────────────────────────────── */}
-            <FlashcardSetTreeSection />
-
-            {/* ── QUIZZES section ──────────────────────────────────── */}
-            <QuizSetTreeSection />
-
-            {/* ── STUDY PLANS section ──────────────────────────────── */}
-            <StudyPlanTreeSection />
-
-            {/* ── CHATS section ─────────────────────────────────────── */}
-            <ChatTreeSection />
 
             {/* Close !isSearchActive wrapper */}
           </>
         )}
       </div>
-
-      {/* Flashcard Set Manager modal */}
-      {showSetManager && (
-        <FlashcardSetManager
-          notebookId={notebookId}
-          onClose={() => setShowSetManager(false)}
-          onUpdated={() => refreshSections()}
-        />
-      )}
 
       {/* Import Dialog modal */}
       {showImportDialog && (
@@ -666,15 +745,503 @@ export default function UnifiedSidebar() {
         />
       )}
 
-      {/* Export Dialog modal */}
-      {showExportDialog && (
+      {/* Export Dialog modal — opened from here or the editor's page-actions
+          menu (audit item 16); visibility is shared via the workspace context. */}
+      {exportDialogOpen && (
         <ExportDialog
           notebookId={notebookId}
           sections={sections}
-          onClose={() => setShowExportDialog(false)}
+          onClose={() => setExportDialogOpen(false)}
+        />
+      )}
+
+      {/* Learn-path setup modal — same component as /learn/paths, but
+          scoped to this notebook so the inventory is pre-filtered and
+          the AI tab anchors on the notebook id by default. Refresh the
+          Paths group on close so a freshly-generated plan appears. */}
+      {showPathSetup && (
+        <LearnPathSetup
+          defaultNotebookId={notebookId}
+          defaultNotebookName={notebook?.name}
+          onClose={() => {
+            setShowPathSetup(false);
+            refreshStudyPlans();
+          }}
+        />
+      )}
+
+      {/* Exams modal — per-notebook, opened from the header event button */}
+      {showExams && (
+        <NotebookExamsModal
+          notebookId={notebookId}
+          notebookName={notebook?.name ?? ''}
+          onClose={() => setShowExams(false)}
         />
       )}
     </aside>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PathRow — A learn path generated from (or seeded by) this notebook
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function PathRow({
+  plan,
+}: {
+  plan: { id: string; title: string; source: string; _count: { phases: number } };
+}) {
+  const [hovered, setHovered] = useState(false);
+  const phaseCount = plan._count.phases;
+
+  return (
+    <Link href={`/learn/paths/${plan.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '7px',
+          paddingLeft: '14px',
+          paddingRight: '8px',
+          paddingTop: '6px',
+          paddingBottom: '6px',
+          background: hovered ? 'rgba(140,82,255,0.08)' : 'transparent',
+          borderLeft: hovered ? '3px solid var(--accent-strong)' : '3px solid transparent',
+          transition: 'background 0.12s ease, border-color 0.12s ease',
+          cursor: 'pointer',
+        }}
+      >
+        <span
+          className="material-symbols-outlined"
+          style={{
+            fontSize: 13,
+            color: 'var(--accent-strong)',
+            flexShrink: 0,
+            transition: 'color 0.12s ease',
+          }}
+          aria-hidden
+        >
+          school
+        </span>
+        <span
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: hovered ? '#f0edff' : 'var(--ink-70)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {plan.title}
+        </span>
+        {phaseCount > 0 && (
+          <span
+            style={{
+              fontFamily: 'inherit',
+              fontSize: '11px',
+              color: 'var(--ink-40)',
+              flexShrink: 0,
+            }}
+          >
+            {phaseCount}
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Sidebar groups — shared primitives for the Chats / Flashcards / Quizzes
+   groups. They mirror the Sections / Paths header + row language.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function SidebarGroupHeader({ label, children }: { label: string; children?: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 14px 6px',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '12px',
+          fontWeight: 700,
+          color: 'var(--ink-50)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function GroupAddButton({
+  onClick,
+  title,
+}: {
+  onClick: (e: React.MouseEvent) => void;
+  title: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '18px',
+        height: '18px',
+        borderRadius: '4px',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        color: 'rgba(196,169,255,0.4)',
+        padding: 0,
+        transition: 'color 0.12s ease',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.85)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.4)';
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 13 }} aria-hidden>
+        add
+      </span>
+    </button>
+  );
+}
+
+// Shared one-line empty hint for the sidebar groups (chats / flashcards /
+// quizzes). Standardized on --text-secondary so the muted color is consistent
+// across the app's empty states, instead of the dimmer --ink-40 (items 2, 11).
+function GroupEmptyHint({ text }: { text: string }) {
+  return (
+    <div style={{ padding: '8px 14px 10px', textAlign: 'center' }}>
+      <p
+        style={{
+          fontSize: 'var(--fs-xs)',
+          color: 'var(--text-secondary)',
+          margin: 0,
+          lineHeight: 'var(--lh-normal)',
+        }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/* A single grouped row (chat / flashcard set / quiz set). One component for
+   all three — they differ only by icon, link target and the trailing count. */
+function GroupItemRow({
+  href,
+  icon,
+  title,
+  isActive,
+  count,
+  onDelete,
+  deleteTitle,
+}: {
+  href: string;
+  icon: string;
+  title: string;
+  isActive: boolean;
+  count?: number | null;
+  onDelete: (e: React.MouseEvent) => void;
+  deleteTitle: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Link href={href} style={{ textDecoration: 'none', display: 'block' }}>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '7px',
+          paddingLeft: '14px',
+          paddingRight: '8px',
+          paddingTop: '6px',
+          paddingBottom: '6px',
+          background: isActive
+            ? 'rgba(140,82,255,0.12)'
+            : hovered
+              ? 'var(--ink-04)'
+              : 'transparent',
+          borderLeft: isActive
+            ? '3px solid #8c52ff'
+            : hovered
+              ? '3px solid rgba(140,82,255,0.4)'
+              : '3px solid transparent',
+          transition: 'background 0.12s ease, border-color 0.12s ease',
+          cursor: 'pointer',
+        }}
+      >
+        <span
+          className="material-symbols-outlined"
+          style={{
+            fontSize: 13,
+            color: isActive ? '#c4a9ff' : 'rgba(140,82,255,0.55)',
+            flexShrink: 0,
+            transition: 'color 0.12s ease',
+          }}
+          aria-hidden
+        >
+          {icon}
+        </span>
+        <span
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: isActive ? 600 : 500,
+            color: isActive ? '#f0edff' : 'var(--ink-70)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </span>
+        {hovered ? (
+          <button
+            onClick={onDelete}
+            title={deleteTitle}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '18px',
+              height: '18px',
+              borderRadius: '4px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: 'var(--ink-30)',
+              padding: 0,
+              flexShrink: 0,
+              transition: 'color 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+              delete
+            </span>
+          </button>
+        ) : (
+          count != null &&
+          count > 0 && (
+            <span style={{ fontSize: '11px', color: 'var(--ink-40)', flexShrink: 0 }}>{count}</span>
+          )
+        )}
+      </div>
+    </Link>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ChatTreeSection — this notebook's mage chats. Rows link to the in-notebook
+   chat route (/notebooks/[id]/chats/[chatId]), which renders the same record
+   as /learn/chats/[chatId]. "+" opens the create-chat modal on the notebook
+   root via ?new=1 (handled in app/(dashboard)/notebooks/[id]/page.tsx).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ChatTreeSection() {
+  const router = useRouter();
+  const { notebookId, chats, activeChatId, refreshChats } = useNotebookWorkspace();
+
+  const handleDelete = useCallback(
+    async (chatId: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await fetch(`/api/notebooks/${notebookId}/chats/${chatId}`, { method: 'DELETE' });
+        refreshChats();
+        if (activeChatId === chatId) router.push(`/notebooks/${notebookId}`);
+      } catch {
+        /* silent */
+      }
+    },
+    [notebookId, activeChatId, router, refreshChats]
+  );
+
+  return (
+    <div style={{ padding: '4px 0 0' }}>
+      <SidebarGroupHeader label="Chats">
+        <GroupAddButton
+          title="New chat"
+          onClick={() => router.push(`/notebooks/${notebookId}?new=1`)}
+        />
+      </SidebarGroupHeader>
+      {chats.length === 0 ? (
+        <GroupEmptyHint text="No chats yet." />
+      ) : (
+        chats.map((chat) => (
+          <GroupItemRow
+            key={chat.id}
+            href={`/notebooks/${notebookId}/chats/${chat.id}`}
+            icon="forum"
+            title={chat.title}
+            isActive={chat.id === activeChatId}
+            count={chat._count?.messages}
+            onDelete={(e) => handleDelete(chat.id, e)}
+            deleteTitle="Delete chat"
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FlashcardTreeSection — this notebook's flashcard sets (flat). Path-generated
+   bundles are excluded server-side (sourcePathId), so they don't show here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function FlashcardTreeSection() {
+  const router = useRouter();
+  const { notebookId, flashcardSets, activeFlashcardSetId, refreshFlashcardSets, refreshSections } =
+    useNotebookWorkspace();
+  const [showCreator, setShowCreator] = useState(false);
+
+  const handleDelete = useCallback(
+    async (setId: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}`, { method: 'DELETE' });
+        refreshFlashcardSets();
+        refreshSections();
+        if (activeFlashcardSetId === setId) router.push(`/notebooks/${notebookId}`);
+      } catch {
+        /* silent */
+      }
+    },
+    [notebookId, activeFlashcardSetId, router, refreshFlashcardSets, refreshSections]
+  );
+
+  return (
+    <div style={{ padding: '4px 0 0' }}>
+      <SidebarGroupHeader label="Flashcards">
+        <GroupAddButton title="New flashcard set" onClick={() => setShowCreator(true)} />
+      </SidebarGroupHeader>
+      {flashcardSets.length === 0 ? (
+        <GroupEmptyHint text="No flashcard sets yet." />
+      ) : (
+        flashcardSets.map((set) => (
+          <GroupItemRow
+            key={set.id}
+            href={`/notebooks/${notebookId}/flashcards/${set.id}`}
+            icon="layers"
+            title={set.title}
+            isActive={set.id === activeFlashcardSetId}
+            count={set._count?.flashcards}
+            onDelete={(e) => handleDelete(set.id, e)}
+            deleteTitle="Delete flashcard set"
+          />
+        ))
+      )}
+      {showCreator && (
+        <FlashcardSetCreator
+          notebookId={notebookId}
+          onCreated={(setId) => {
+            setShowCreator(false);
+            refreshFlashcardSets();
+            refreshSections();
+            router.push(`/notebooks/${notebookId}/flashcards/${setId}`);
+          }}
+          onClose={() => setShowCreator(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   QuizTreeSection — this notebook's quiz sets (flat). Same sourcePathId
+   exclusion as flashcards.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function QuizTreeSection() {
+  const router = useRouter();
+  const { notebookId, quizSets, activeQuizSetId, refreshQuizSets, refreshSections } =
+    useNotebookWorkspace();
+  const [showCreator, setShowCreator] = useState(false);
+
+  const handleDelete = useCallback(
+    async (setId: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
+        refreshQuizSets();
+        refreshSections();
+        if (activeQuizSetId === setId) router.push(`/notebooks/${notebookId}`);
+      } catch {
+        /* silent */
+      }
+    },
+    [notebookId, activeQuizSetId, router, refreshQuizSets, refreshSections]
+  );
+
+  return (
+    <div style={{ padding: '4px 0 0' }}>
+      <SidebarGroupHeader label="Quizzes">
+        <GroupAddButton title="New quiz" onClick={() => setShowCreator(true)} />
+      </SidebarGroupHeader>
+      {quizSets.length === 0 ? (
+        <GroupEmptyHint text="No quizzes yet." />
+      ) : (
+        quizSets.map((set) => (
+          <GroupItemRow
+            key={set.id}
+            href={`/notebooks/${notebookId}/quizzes/${set.id}`}
+            icon="help"
+            title={set.title}
+            isActive={set.id === activeQuizSetId}
+            count={set._count?.questions}
+            onDelete={(e) => handleDelete(set.id, e)}
+            deleteTitle="Delete quiz"
+          />
+        ))
+      )}
+      {showCreator && (
+        <QuizSetCreator
+          notebookId={notebookId}
+          onCreated={(setId) => {
+            setShowCreator(false);
+            refreshQuizSets();
+            refreshSections();
+            router.push(`/notebooks/${notebookId}/quizzes/${setId}`);
+          }}
+          onClose={() => setShowCreator(false)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -684,15 +1251,8 @@ export default function UnifiedSidebar() {
 
 function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?: number }) {
   const router = useRouter();
-  const {
-    activeSectionId,
-    setActiveSectionId,
-    notebookId,
-    refreshSections,
-    activePageId,
-    activeFlashcardSetId,
-    activeQuizSetId,
-  } = useNotebookWorkspace();
+  const { activeSectionId, setActiveSectionId, notebookId, refreshSections, activePageId } =
+    useNotebookWorkspace();
 
   const [expanded, setExpanded] = useState(true);
   const [hovered, setHovered] = useState(false);
@@ -709,9 +1269,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
   const color = getSectionColor(section);
   const hasChildren = section.children.length > 0;
   const hasPages = section.pages.length > 0;
-  const hasFlashcardSets = (section.flashcardSets?.length ?? 0) > 0;
-  const hasContent =
-    hasChildren || hasPages || hasFlashcardSets || isCreatingChild || isCreatingPage;
+  const hasContent = hasChildren || hasPages || isCreatingChild || isCreatingPage;
 
   useEffect(() => {
     if (isCreatingChild && childInputRef.current) childInputRef.current.focus();
@@ -812,36 +1370,6 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
     [notebookId, activePageId, router, refreshSections]
   );
 
-  const handleDeleteFlashcardSet = useCallback(
-    async (setId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}`, { method: 'DELETE' });
-        refreshSections();
-        if (activeFlashcardSetId === setId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeFlashcardSetId, router, refreshSections]
-  );
-
-  const handleDeleteQuizSet = useCallback(
-    async (setId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
-        refreshSections();
-        if (activeQuizSetId === setId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeQuizSetId, router, refreshSections]
-  );
-
   const paddingLeft = 12 + depth * 14;
 
   return (
@@ -867,7 +1395,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
           background: isActive
             ? 'rgba(140,82,255,0.12)'
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'var(--ink-04)'
               : 'transparent',
           borderLeft: `3px solid ${isActive ? color : hovered ? color + '80' : color + '50'}`,
           transition: 'background 0.12s ease, border-color 0.12s ease',
@@ -883,19 +1411,23 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
           style={{
             display: 'flex',
             flexShrink: 0,
-            color: 'rgba(237,233,255,0.3)',
+            color: 'var(--ink-30)',
             marginLeft: '-4px',
             width: '14px',
           }}
         >
           {hasContent ? (
-            <ChevronRight
-              size={13}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 13,
                 transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
                 transition: 'transform 0.12s ease',
               }}
-            />
+              aria-hidden
+            >
+              chevron_right
+            </span>
           ) : (
             <div style={{ width: '13px' }} />
           )}
@@ -908,7 +1440,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
             fontFamily: 'inherit',
             fontSize: depth === 0 ? '14px' : '13px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.78)',
+            color: isActive ? '#f0edff' : 'var(--ink-80)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -935,7 +1467,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -943,10 +1475,12 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = '#69d2a0';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <FilePlus size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                note_add
+              </span>
             </button>
             {/* Add subsection */}
             <button
@@ -962,7 +1496,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -970,10 +1504,12 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = '#a47bff';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <FolderPlus size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                create_new_folder
+              </span>
             </button>
             {/* Delete section */}
             <button
@@ -989,7 +1525,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -997,10 +1533,12 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <Trash2 size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                delete
+              </span>
             </button>
           </div>
         )}
@@ -1025,38 +1563,6 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
             );
           })}
 
-          {/* Flashcard sets inside this section */}
-          {section.flashcardSets?.map((fc) => {
-            const isFcActive = fc.id === activeFlashcardSetId;
-            return (
-              <FlashcardSetTreeRow
-                key={fc.id}
-                flashcardSet={fc}
-                isActive={isFcActive}
-                notebookId={notebookId}
-                accentColor={color}
-                depth={depth}
-                onDelete={handleDeleteFlashcardSet}
-              />
-            );
-          })}
-
-          {/* Quiz sets inside this section */}
-          {section.quizSets?.map((qs) => {
-            const isQsActive = qs.id === activeQuizSetId;
-            return (
-              <QuizSetTreeRow
-                key={qs.id}
-                quizSet={qs}
-                isActive={isQsActive}
-                notebookId={notebookId}
-                accentColor={color}
-                depth={depth}
-                onDelete={handleDeleteQuizSet}
-              />
-            );
-          })}
-
           {/* Inline page creation */}
           {isCreatingPage && (
             <div
@@ -1071,7 +1577,13 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: `3px solid ${color}60`,
               }}
             >
-              <FilePlus size={11} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }}
+                aria-hidden
+              >
+                note_add
+              </span>
               <input
                 ref={pageInputRef}
                 type="text"
@@ -1102,7 +1614,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                   padding: '3px 7px',
                   fontFamily: 'inherit',
                   fontSize: '12px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   outline: 'none',
                 }}
               />
@@ -1123,7 +1635,13 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                 borderLeft: '3px solid rgba(140,82,255,0.4)',
               }}
             >
-              <FolderPlus size={11} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }}
+                aria-hidden
+              >
+                create_new_folder
+              </span>
               <input
                 ref={childInputRef}
                 type="text"
@@ -1154,7 +1672,7 @@ function SectionTreeItem({ section, depth = 0 }: { section: SectionNode; depth?:
                   padding: '3px 7px',
                   fontFamily: 'inherit',
                   fontSize: '12px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   outline: 'none',
                 }}
               />
@@ -1217,11 +1735,7 @@ function PageTreeRow({
           paddingRight: '8px',
           paddingTop: '5px',
           paddingBottom: '5px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgba(237,233,255,0.04)'
-              : 'transparent',
+          background: isActive ? `${accentColor}18` : hovered ? 'var(--ink-04)' : 'transparent',
           borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
           transition: 'background 0.1s ease',
           cursor: 'pointer',
@@ -1230,7 +1744,7 @@ function PageTreeRow({
         {page.pageType === 'canvas' ? (
           <CanvasIcon size={12} color={isActive ? '#ffde59' : 'rgba(255,222,89,0.35)'} />
         ) : (
-          <TextFileIcon size={12} color={isActive ? accentColor : 'rgba(237,233,255,0.25)'} />
+          <TextFileIcon size={12} color={isActive ? accentColor : 'var(--ink-20)'} />
         )}
         <span
           style={{
@@ -1239,7 +1753,7 @@ function PageTreeRow({
             fontFamily: 'inherit',
             fontSize: '13px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
+            color: isActive ? '#f0edff' : 'var(--ink-70)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -1261,7 +1775,7 @@ function PageTreeRow({
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: 'rgba(237,233,255,0.3)',
+              color: 'var(--ink-30)',
               padding: 0,
               flexShrink: 0,
             }}
@@ -1269,1451 +1783,12 @@ function PageTreeRow({
               (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+              (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
             }}
           >
-            <Trash2 size={11} />
-          </button>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FlashcardSetTreeRow — A flashcard set nested inside a section tree
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function FlashcardSetTreeRow({
-  flashcardSet,
-  isActive,
-  notebookId,
-  accentColor,
-  depth,
-  onDelete,
-}: {
-  flashcardSet: { id: string; title: string };
-  isActive: boolean;
-  notebookId: string;
-  accentColor: string;
-  depth: number;
-  onDelete?: (setId: string, e: React.MouseEvent) => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const paddingLeft = 12 + depth * 14 + 18;
-
-  return (
-    <Link
-      href={`/notebooks/${notebookId}/flashcards/${flashcardSet.id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
-    >
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '7px',
-          paddingLeft: `${paddingLeft}px`,
-          paddingRight: '8px',
-          paddingTop: '5px',
-          paddingBottom: '5px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgba(237,233,255,0.04)'
-              : 'transparent',
-          borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
-          transition: 'background 0.1s ease',
-          cursor: 'pointer',
-        }}
-      >
-        <Layers
-          size={12}
-          style={{ color: isActive ? accentColor : 'rgba(140,82,255,0.45)', flexShrink: 0 }}
-        />
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {flashcardSet.title}
-        </span>
-        {hovered && onDelete && (
-          <button
-            onClick={(e) => onDelete(flashcardSet.id, e)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(196,169,255,0.2)',
-              cursor: 'pointer',
-              flexShrink: 0,
-              padding: 0,
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
-            }}
-          >
-            <Trash2 size={11} />
-          </button>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FlashcardSetTreeSection — Flashcard Sets area
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function FlashcardSetTreeSection() {
-  const router = useRouter();
-  const { notebookId, flashcardSets, activeFlashcardSetId, refreshFlashcardSets, refreshSections } =
-    useNotebookWorkspace();
-  const [expanded, setExpanded] = useState(true);
-  const [showCreator, setShowCreator] = useState(false);
-
-  const handleDeleteSet = useCallback(
-    async (setId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}`, { method: 'DELETE' });
-        refreshFlashcardSets();
-        refreshSections();
-        if (activeFlashcardSetId === setId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeFlashcardSetId, router, refreshFlashcardSets, refreshSections]
-  );
-
-  return (
-    <>
-      <div style={{ paddingBottom: '4px' }}>
-        {/* Header */}
-        <div
-          onClick={() => setExpanded((v) => !v)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 14px 6px',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ChevronRight
-              size={12}
-              style={{
-                color: 'rgba(196,169,255,0.5)',
-                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.12s ease',
-              }}
-            />
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '4px',
-                background: 'rgba(140,82,255,0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Layers size={9} style={{ color: '#c4a9ff' }} />
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'rgba(196,169,255,0.65)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Flashcard Sets
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+              delete
             </span>
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCreator(true);
-            }}
-            title="New flashcard set"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(196,169,255,0.35)',
-              cursor: 'pointer',
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.35)';
-            }}
-          >
-            <Plus size={13} />
-          </button>
-        </div>
-
-        {expanded && (
-          <>
-            {flashcardSets.length === 0 && (
-              <div style={{ padding: '12px 14px', textAlign: 'center' }}>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
-                    margin: 0,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  No flashcard sets yet.
-                </p>
-              </div>
-            )}
-
-            {flashcardSets.map((set) => {
-              const isActive = set.id === activeFlashcardSetId;
-              return (
-                <Link
-                  key={set.id}
-                  href={`/notebooks/${notebookId}/flashcards/${set.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px 6px 28px',
-                    textDecoration: 'none',
-                    background: isActive ? 'rgba(140,82,255,0.12)' : 'transparent',
-                    borderRight: isActive ? '2px solid #8c52ff' : '2px solid transparent',
-                    transition: 'background 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background =
-                        'rgba(140,82,255,0.06)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {set.title}
-                    </div>
-                    {set._count && (
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          color: 'rgba(196,169,255,0.48)',
-                          marginTop: '1px',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {set._count.flashcards} card{set._count.flashcards !== 1 ? 's' : ''}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteSet(set.id, e)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '4px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'rgba(196,169,255,0.2)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      opacity: 0,
-                      transition: 'opacity 0.12s ease, color 0.12s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.8)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
-                    }}
-                    className="fc-delete-btn"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </Link>
-              );
-            })}
-          </>
-        )}
-      </div>
-
-      {showCreator && (
-        <FlashcardSetCreator
-          notebookId={notebookId}
-          onCreated={(setId) => {
-            setShowCreator(false);
-            refreshFlashcardSets();
-            refreshSections();
-            router.push(`/notebooks/${notebookId}/flashcards/${setId}`);
-          }}
-          onClose={() => setShowCreator(false)}
-        />
-      )}
-
-      <style>{`
-        a:hover .fc-delete-btn { opacity: 1 !important; }
-      `}</style>
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   QuizSetTreeSection — Quizzes area
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function QuizSetTreeSection() {
-  const router = useRouter();
-  const { notebookId, quizSets, activeQuizSetId, refreshQuizSets, refreshSections } =
-    useNotebookWorkspace();
-  const [expanded, setExpanded] = useState(true);
-  const [showCreator, setShowCreator] = useState(false);
-
-  const handleDeleteSet = useCallback(
-    async (setId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
-        refreshQuizSets();
-        refreshSections();
-        if (activeQuizSetId === setId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeQuizSetId, router, refreshQuizSets, refreshSections]
-  );
-
-  return (
-    <>
-      <div style={{ paddingBottom: '4px' }}>
-        {/* Header */}
-        <div
-          onClick={() => setExpanded((v) => !v)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 14px 6px',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ChevronRight
-              size={12}
-              style={{
-                color: 'rgba(196,169,255,0.5)',
-                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.12s ease',
-              }}
-            />
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '4px',
-                background: 'rgba(81,112,255,0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <HelpCircle size={9} style={{ color: '#b9c3ff' }} />
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'rgba(196,169,255,0.65)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Quizzes
-            </span>
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCreator(true);
-            }}
-            title="New quiz"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(196,169,255,0.35)',
-              cursor: 'pointer',
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.35)';
-            }}
-          >
-            <Plus size={13} />
-          </button>
-        </div>
-
-        {expanded && (
-          <>
-            {quizSets.length === 0 && (
-              <div style={{ padding: '12px 14px', textAlign: 'center' }}>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
-                    margin: 0,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  No quizzes yet.
-                </p>
-              </div>
-            )}
-
-            {quizSets.map((set) => {
-              const isActive = set.id === activeQuizSetId;
-              return (
-                <Link
-                  key={set.id}
-                  href={`/notebooks/${notebookId}/quizzes/${set.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px 6px 28px',
-                    textDecoration: 'none',
-                    background: isActive ? 'rgba(140,82,255,0.12)' : 'transparent',
-                    borderRight: isActive ? '2px solid #8c52ff' : '2px solid transparent',
-                    transition: 'background 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background =
-                        'rgba(140,82,255,0.06)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {set.title}
-                    </div>
-                    {set._count && (
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          color: 'rgba(196,169,255,0.48)',
-                          marginTop: '1px',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {set._count.questions} question{set._count.questions !== 1 ? 's' : ''}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteSet(set.id, e)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '4px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'rgba(196,169,255,0.2)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      opacity: 0,
-                      transition: 'opacity 0.12s ease, color 0.12s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.8)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
-                    }}
-                    className="quiz-delete-btn"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </Link>
-              );
-            })}
-          </>
-        )}
-      </div>
-
-      {showCreator && (
-        <QuizSetCreator
-          notebookId={notebookId}
-          onCreated={(setId) => {
-            setShowCreator(false);
-            refreshQuizSets();
-            refreshSections();
-            router.push(`/notebooks/${notebookId}/quizzes/${setId}`);
-          }}
-          onClose={() => setShowCreator(false)}
-        />
-      )}
-
-      <style>{`
-        a:hover .quiz-delete-btn { opacity: 1 !important; }
-      `}</style>
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   StudyPlanTreeSection — Study Plans area
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function StudyPlanTreeSection() {
-  const { notebookId, studyPlans, activeStudyPlanId, refreshStudyPlans } = useNotebookWorkspace();
-  const [expanded, setExpanded] = useState(true);
-  const [showCreator, setShowCreator] = useState(false);
-
-  const handleDeletePlan = useCallback(
-    async (planId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/study-plans/${planId}`, { method: 'DELETE' });
-        refreshStudyPlans();
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, refreshStudyPlans]
-  );
-
-  const formatDateRange = (start: string, end: string) => {
-    const s = new Date(start);
-    const e = new Date(end);
-    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${fmt(s)} – ${fmt(e)}`;
-  };
-
-  return (
-    <>
-      <div style={{ paddingBottom: '4px' }}>
-        {/* Header */}
-        <div
-          onClick={() => setExpanded((v) => !v)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 14px 6px',
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ChevronRight
-              size={12}
-              style={{
-                color: 'rgba(196,169,255,0.5)',
-                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.12s ease',
-              }}
-            />
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '4px',
-                background: 'rgba(140,82,255,0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <CalendarDays size={9} style={{ color: '#c4a9ff' }} />
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'rgba(196,169,255,0.65)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Study Plans
-            </span>
-          </div>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCreator(true);
-            }}
-            title="New study plan"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(196,169,255,0.35)',
-              cursor: 'pointer',
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.35)';
-            }}
-          >
-            <Plus size={13} />
-          </button>
-        </div>
-
-        {expanded && (
-          <>
-            {studyPlans.length === 0 && (
-              <div style={{ padding: '12px 14px', textAlign: 'center' }}>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: 'rgba(237,233,255,0.4)',
-                    margin: 0,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  No study plans yet.
-                </p>
-              </div>
-            )}
-
-            {studyPlans.map((plan) => {
-              const isActive = plan.id === activeStudyPlanId;
-              return (
-                <Link
-                  key={plan.id}
-                  href={`/notebooks/${notebookId}/study-plan/${plan.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px 6px 28px',
-                    textDecoration: 'none',
-                    background: isActive ? 'rgba(140,82,255,0.12)' : 'transparent',
-                    borderRight: isActive ? '2px solid #8c52ff' : '2px solid transparent',
-                    transition: 'background 0.12s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background =
-                        'rgba(140,82,255,0.06)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive)
-                      (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {plan.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: 'rgba(196,169,255,0.48)',
-                        marginTop: '1px',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {formatDateRange(plan.startDate, plan.endDate)} · {plan._count.phases} phase
-                      {plan._count.phases !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeletePlan(plan.id, e)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '4px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'rgba(196,169,255,0.2)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      opacity: 0,
-                      transition: 'opacity 0.12s ease, color 0.12s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.8)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
-                    }}
-                    className="plan-delete-btn"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </Link>
-              );
-            })}
-          </>
-        )}
-      </div>
-
-      {showCreator && (
-        <StudyPlanCreator
-          notebookId={notebookId}
-          onCreated={(planId) => {
-            setShowCreator(false);
-            refreshStudyPlans();
-            window.location.href = `/notebooks/${notebookId}/study-plan/${planId}`;
-          }}
-          onClose={() => setShowCreator(false)}
-        />
-      )}
-
-      {/* Show delete button on hover via CSS-in-JS (inline styles don't support :hover on children) */}
-      <style>{`
-        a:hover .plan-delete-btn { opacity: 1 !important; }
-      `}</style>
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ChatTreeSection — Mage Chats area
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function ChatTreeSection() {
-  const router = useRouter();
-  const { data: session } = useSession();
-  const mageName = getMageName(session?.user?.scholarName);
-  const { notebookId, chats, activeChatId, refreshChats } = useNotebookWorkspace();
-  const [expanded, setExpanded] = useState(true);
-  const chatCreateRef = useTutorialTarget('chat-create');
-
-  const handleDeleteChat = useCallback(
-    async (chatId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/chats/${chatId}`, { method: 'DELETE' });
-        refreshChats();
-        if (activeChatId === chatId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeChatId, router, refreshChats]
-  );
-
-  return (
-    <div style={{ paddingBottom: '12px' }}>
-      {/* Header */}
-      <div
-        onClick={() => setExpanded((v) => !v)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 14px 6px',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <ChevronRight
-            size={12}
-            style={{
-              color: 'rgba(196,169,255,0.5)',
-              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.12s ease',
-            }}
-          />
-          <div
-            style={{
-              width: '16px',
-              height: '16px',
-              borderRadius: '4px',
-              background: 'rgba(140,82,255,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Sparkles size={9} style={{ color: '#c4a9ff' }} />
-          </div>
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'rgba(196,169,255,0.65)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {mageName} Chats
-          </span>
-        </div>
-
-        <Link
-          ref={chatCreateRef}
-          href={`/notebooks/${notebookId}?new=1`}
-          onClick={(e) => e.stopPropagation()}
-          title="New chat"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '18px',
-            height: '18px',
-            borderRadius: '4px',
-            background: 'transparent',
-            textDecoration: 'none',
-            color: 'rgba(196,169,255,0.35)',
-            transition: 'color 0.12s ease',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(196,169,255,0.8)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(196,169,255,0.35)';
-          }}
-        >
-          <Plus size={13} />
-        </Link>
-      </div>
-
-      {expanded && (
-        <>
-          {chats.length === 0 && (
-            <div style={{ padding: '12px 14px', textAlign: 'center' }}>
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: 'rgba(237,233,255,0.4)',
-                  margin: 0,
-                  lineHeight: 1.5,
-                }}
-              >
-                No chats yet.
-              </p>
-            </div>
-          )}
-
-          {chats.map((chat) => (
-            <ChatTreeRow
-              key={chat.id}
-              chat={chat}
-              isActive={chat.id === activeChatId}
-              notebookId={notebookId}
-              onDelete={handleDeleteChat}
-            />
-          ))}
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ChatTreeRow — Individual chat item
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function ChatTreeRow({
-  chat,
-  isActive,
-  notebookId,
-  onDelete,
-}: {
-  chat: NotebookChatItem;
-  isActive: boolean;
-  notebookId: string;
-  onDelete: (id: string, e: React.MouseEvent) => void;
-}) {
-  const router = useRouter();
-  const { activeFlashcardSetId, activeQuizSetId, refreshSections, refreshChats } =
-    useNotebookWorkspace();
-  const [hovered, setHovered] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  const handleDeleteFlashcardSet = useCallback(
-    async (setId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/flashcard-sets/${setId}`, { method: 'DELETE' });
-        refreshSections();
-        refreshChats();
-        if (activeFlashcardSetId === setId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeFlashcardSetId, router, refreshSections, refreshChats]
-  );
-
-  const handleDeleteQuizSet = useCallback(
-    async (setId: string, e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
-        refreshSections();
-        refreshChats();
-        if (activeQuizSetId === setId) router.push(`/notebooks/${notebookId}`);
-      } catch {
-        /* silent */
-      }
-    },
-    [notebookId, activeQuizSetId, router, refreshSections, refreshChats]
-  );
-  const accentColor = '#8c52ff';
-  const hasFlashcards = chat.flashcardSets && chat.flashcardSets.length > 0;
-  const hasQuizzes = chat.quizSets && chat.quizSets.length > 0;
-  const hasSubItems = hasFlashcards || hasQuizzes;
-
-  // Auto-expand if a flashcard or quiz set in this chat is active
-  useEffect(() => {
-    if (activeFlashcardSetId && hasFlashcards) {
-      const match = chat.flashcardSets.some((fs) => fs.id === activeFlashcardSetId);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (match) setExpanded(true);
-    }
-    if (activeQuizSetId && hasQuizzes) {
-      const match = chat.quizSets.some((qs) => qs.id === activeQuizSetId);
-      if (match) setExpanded(true);
-    }
-  }, [
-    activeFlashcardSetId,
-    activeQuizSetId,
-    hasFlashcards,
-    hasQuizzes,
-    chat.flashcardSets,
-    chat.quizSets,
-  ]);
-
-  return (
-    <>
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-          padding: '5px 14px 5px 22px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgba(237,233,255,0.04)'
-              : 'transparent',
-          borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
-          transition: 'background 0.1s ease',
-          cursor: 'pointer',
-        }}
-      >
-        {/* Expand chevron (only if has sub-items) */}
-        {hasSubItems ? (
-          <div
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setExpanded((v) => !v);
-            }}
-            style={{
-              display: 'flex',
-              flexShrink: 0,
-              color: 'rgba(237,233,255,0.3)',
-              width: '14px',
-            }}
-          >
-            <ChevronRight
-              size={12}
-              style={{
-                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.12s ease',
-              }}
-            />
-          </div>
-        ) : (
-          <div style={{ width: '14px', flexShrink: 0 }} />
-        )}
-
-        <Link
-          href={`/notebooks/${notebookId}/chats/${chat.id}`}
-          style={{
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          <MessageSquare
-            size={12}
-            style={{ color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.25)', flexShrink: 0 }}
-          />
-          <span
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontFamily: 'inherit',
-              fontSize: '12px',
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {chat.title}
-          </span>
-        </Link>
-        {hovered && !isActive && (
-          <button
-            onClick={(e) => onDelete(chat.id, e)}
-            title="Delete chat"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '3px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: 'rgba(237,233,255,0.3)',
-              padding: 0,
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
-            }}
-          >
-            <Trash2 size={11} />
-          </button>
-        )}
-      </div>
-
-      {/* Flashcard sub-items */}
-      {expanded &&
-        hasFlashcards &&
-        chat.flashcardSets.map((fs) => {
-          const isSetActive = fs.id === activeFlashcardSetId;
-          return (
-            <FlashcardSetRow
-              key={fs.id}
-              flashcardSet={fs}
-              isActive={isSetActive}
-              notebookId={notebookId}
-              onDelete={handleDeleteFlashcardSet}
-            />
-          );
-        })}
-
-      {/* Quiz sub-items */}
-      {expanded &&
-        hasQuizzes &&
-        chat.quizSets.map((qs) => {
-          const isSetActive = qs.id === activeQuizSetId;
-          return (
-            <QuizSetRow
-              key={qs.id}
-              quizSet={qs}
-              isActive={isSetActive}
-              notebookId={notebookId}
-              onDelete={handleDeleteQuizSet}
-            />
-          );
-        })}
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FlashcardSetRow — Sub-item under a chat for a flashcard set
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function FlashcardSetRow({
-  flashcardSet,
-  isActive,
-  notebookId,
-  onDelete,
-}: {
-  flashcardSet: { id: string; title: string };
-  isActive: boolean;
-  notebookId: string;
-  onDelete?: (setId: string, e: React.MouseEvent) => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const accentColor = '#8c52ff';
-
-  return (
-    <Link
-      href={`/notebooks/${notebookId}/flashcards/${flashcardSet.id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
-    >
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '7px',
-          padding: '4px 14px 4px 52px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgba(237,233,255,0.04)'
-              : 'transparent',
-          borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
-          transition: 'background 0.1s ease',
-          cursor: 'pointer',
-        }}
-      >
-        <Layers
-          size={11}
-          style={{ color: isActive ? '#c4a9ff' : 'rgba(237,233,255,0.3)', flexShrink: 0 }}
-        />
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.62)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {flashcardSet.title}
-        </span>
-        {hovered && onDelete && (
-          <button
-            onClick={(e) => onDelete(flashcardSet.id, e)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '16px',
-              height: '16px',
-              borderRadius: '3px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(237,233,255,0.25)',
-              cursor: 'pointer',
-              flexShrink: 0,
-              padding: 0,
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
-            }}
-          >
-            <Trash2 size={10} />
-          </button>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   QuizSetRow — Sub-item under a chat for a quiz set
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function QuizSetRow({
-  quizSet,
-  isActive,
-  notebookId,
-  onDelete,
-}: {
-  quizSet: { id: string; title: string };
-  isActive: boolean;
-  notebookId: string;
-  onDelete?: (setId: string, e: React.MouseEvent) => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const accentColor = '#5170ff';
-
-  return (
-    <Link
-      href={`/notebooks/${notebookId}/quizzes/${quizSet.id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
-    >
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '7px',
-          padding: '4px 14px 4px 52px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgba(237,233,255,0.04)'
-              : 'transparent',
-          borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
-          transition: 'background 0.1s ease',
-          cursor: 'pointer',
-        }}
-      >
-        <HelpCircle
-          size={11}
-          style={{ color: isActive ? '#93a8ff' : 'rgba(81,112,255,0.45)', flexShrink: 0 }}
-        />
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.62)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {quizSet.title}
-        </span>
-        {hovered && onDelete && (
-          <button
-            onClick={(e) => onDelete(quizSet.id, e)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '16px',
-              height: '16px',
-              borderRadius: '3px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(237,233,255,0.25)',
-              cursor: 'pointer',
-              flexShrink: 0,
-              padding: 0,
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.25)';
-            }}
-          >
-            <Trash2 size={10} />
-          </button>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   QuizSetTreeRow — A quiz set nested inside a section tree
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function QuizSetTreeRow({
-  quizSet,
-  isActive,
-  notebookId,
-  accentColor,
-  depth,
-  onDelete,
-}: {
-  quizSet: { id: string; title: string };
-  isActive: boolean;
-  notebookId: string;
-  accentColor: string;
-  depth: number;
-  onDelete?: (setId: string, e: React.MouseEvent) => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const paddingLeft = 12 + depth * 14 + 18;
-
-  return (
-    <Link
-      href={`/notebooks/${notebookId}/quizzes/${quizSet.id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
-    >
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '7px',
-          paddingLeft: `${paddingLeft}px`,
-          paddingRight: '8px',
-          paddingTop: '5px',
-          paddingBottom: '5px',
-          background: isActive
-            ? `${accentColor}18`
-            : hovered
-              ? 'rgba(237,233,255,0.04)'
-              : 'transparent',
-          borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
-          transition: 'background 0.1s ease',
-          cursor: 'pointer',
-        }}
-      >
-        <HelpCircle
-          size={12}
-          style={{ color: isActive ? accentColor : 'rgba(81,112,255,0.45)', flexShrink: 0 }}
-        />
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#f0edff' : 'rgba(237,233,255,0.72)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {quizSet.title}
-        </span>
-        {hovered && onDelete && (
-          <button
-            onClick={(e) => onDelete(quizSet.id, e)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '4px',
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(196,169,255,0.2)',
-              cursor: 'pointer',
-              flexShrink: 0,
-              padding: 0,
-              transition: 'color 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.8)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.2)';
-            }}
-          >
-            <Trash2 size={11} />
           </button>
         )}
       </div>

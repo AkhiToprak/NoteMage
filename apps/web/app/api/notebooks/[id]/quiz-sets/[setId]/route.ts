@@ -12,7 +12,12 @@ import {
 type Params = { params: Promise<{ id: string; setId: string }> };
 
 /**
- * GET – fetch a quiz set with all its questions
+ * GET – fetch a quiz set with all its questions.
+ *
+ * Phase 10.1: stripped the old `?material=<materialId>` gate. Checkpoint
+ * gating moves to `CheckpointSlot` and lives in the inline drawer (Phase
+ * 10.6); the standalone quiz-player route is no longer the checkpoint
+ * entry point.
  */
 export async function GET(request: NextRequest, { params }: Params) {
   try {

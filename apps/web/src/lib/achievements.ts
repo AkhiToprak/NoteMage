@@ -20,6 +20,25 @@ export interface UserStats {
   flashcardReviewCount: number;
   documentCount: number;
   quizSetCount: number;
+  // ── Phase 7 — personal learning-path rework signals ─────────────────────
+  /** True if any quiz attempt scored 100% on a quiz with ≥5 questions. */
+  hasPerfectQuiz: boolean;
+  /** Longest consecutive-correct run in any single quiz session, ever. */
+  maxQuizStreakEver: number;
+  /** True if the user has ever, in one session, hit ≥3 wrong then ≥5 right. */
+  everHadComeback: boolean;
+  /**
+   * Phase 10 — true if any StudyPhase has every slot fully completed (every
+   * activity in every slot done). Replaces the old material-based check.
+   */
+  hasPhaseComplete: boolean;
+  /** True if any StudyPlan has every phase fully completed. */
+  hasPathComplete: boolean;
+  /**
+   * Phase 10 — true if the user scored 100% on any slot's assessment activity
+   * on the first attempt (queried from `assessment_attempts`).
+   */
+  hasCheckpointAce: boolean;
 }
 
 export interface AchievementDef {
@@ -262,6 +281,68 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     unlocks: ['font.mono'],
   },
 
+  // ── Phase 7 — personal learning-path rework ───────────────────────────────
+  {
+    badge: 'perfect_quiz',
+    name: 'perfectionist',
+    description: 'Score 100% on a quiz with at least 5 questions',
+    icon: 'verified',
+    category: 'study',
+    checkCondition: (s) => s.hasPerfectQuiz,
+    getProgress: (s) => ({ current: s.hasPerfectQuiz ? 1 : 0, target: 1 }),
+    unlocks: ['title.perfectionist'],
+  },
+  {
+    badge: 'streak_10_in_a_row',
+    name: 'unstoppable',
+    description: 'Get 10 answers correct in a row in a single quiz',
+    icon: 'local_fire_department',
+    category: 'study',
+    checkCondition: (s) => s.maxQuizStreakEver >= 10,
+    getProgress: (s) => ({ current: Math.min(s.maxQuizStreakEver, 10), target: 10 }),
+    unlocks: ['title.unstoppable'],
+  },
+  {
+    badge: 'phase_complete',
+    name: 'pathfinder',
+    description: 'Finish every lesson in a learn-path phase',
+    icon: 'route',
+    category: 'study',
+    checkCondition: (s) => s.hasPhaseComplete,
+    getProgress: (s) => ({ current: s.hasPhaseComplete ? 1 : 0, target: 1 }),
+    unlocks: ['title.pathfinder'],
+  },
+  {
+    badge: 'path_complete',
+    name: 'master',
+    description: 'Finish every phase of a learn path',
+    icon: 'workspace_premium',
+    category: 'special',
+    checkCondition: (s) => s.hasPathComplete,
+    getProgress: (s) => ({ current: s.hasPathComplete ? 1 : 0, target: 1 }),
+    unlocks: ['title.master'],
+  },
+  {
+    badge: 'checkpoint_ace',
+    name: 'ace',
+    description: 'Pass a checkpoint with 100% on your first attempt',
+    icon: 'flag',
+    category: 'study',
+    checkCondition: (s) => s.hasCheckpointAce,
+    getProgress: (s) => ({ current: s.hasCheckpointAce ? 1 : 0, target: 1 }),
+    unlocks: ['title.ace'],
+  },
+  {
+    badge: 'comeback',
+    name: 'comeback kid',
+    description: 'Get 5 right in a row after a 3-wrong streak in the same session',
+    icon: 'rotate_left',
+    category: 'study',
+    checkCondition: (s) => s.everHadComeback,
+    getProgress: (s) => ({ current: s.everHadComeback ? 1 : 0, target: 1 }),
+    unlocks: ['title.comeback-kid'],
+  },
+
   // ── Special ─────────────────────────────────────────────────────────
   {
     badge: 'all_achievements',
@@ -270,8 +351,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     icon: 'auto_awesome',
     category: 'special',
     // Bump when adding a non-meta achievement.
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 22,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 22), target: 22 }),
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 28,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 28), target: 28 }),
     unlocks: [
       'title.archmage',
       'font.unifraktur',

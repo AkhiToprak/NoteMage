@@ -7,10 +7,12 @@ import ActivityHeatmap from '@/components/features/ActivityHeatmap';
 import SocialsCard from '@/components/features/SocialsCard';
 import RecentTrophies from '@/components/features/RecentTrophies';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { UserName } from '@/components/user/UserName';
-import { UserAvatar } from '@/components/user/UserAvatar';
 import { CosmeticsPanel, type CosmeticsSelection } from '@/components/cosmetics/CosmeticsPanel';
-import { ProfileBackground } from '@/components/cosmetics/ProfileBackground';
+import { ProfileHero } from '@/components/profile/ProfileHero';
+import { ProfileStatsStrip } from '@/components/profile/ProfileStatsStrip';
+import { AboutLadder } from '@/components/profile/AboutLadder';
+import { Switch } from '@/components/ui/Switch';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 type UsernameStatus = 'idle' | 'typing' | 'checking' | 'available' | 'taken' | 'invalid';
@@ -63,44 +65,24 @@ const EMPTY_COSMETICS: CosmeticsSelection = {
   customBackgroundUrl: null,
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
+// Shared input style — outline-based focus ring (not border-color) so
+// activating an input doesn't shift layout and keyboard focus reads at
+// the standard 2px tokenised offset. Hover/focus rules live in a single
+// <style> block emitted near the form root.
 const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
-  background: '#272746',
-  border: '1px solid rgba(170,168,200,0.2)',
-  borderRadius: '10px',
-  color: '#e5e3ff',
+  background: 'var(--surface-container)',
+  border: '1px solid var(--outline-variant)',
+  borderRadius: 'var(--radius-md)',
+  color: 'var(--on-surface)',
   fontSize: '14px',
   fontFamily: 'inherit',
   outline: 'none',
-  transition: 'border-color 0.2s cubic-bezier(0.22,1,0.36,1)',
+  // outline-offset reservation lifts the focus ring above the parent
+  // background; the actual ring is applied via .hl-input:focus-visible
+  // in the <style> block so it doesn't transition.
 };
-
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: '12px',
-  fontWeight: 600,
-  color: '#8888a8',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  marginBottom: '6px',
-  display: 'block',
-};
-
-const DETAIL_ITEMS: { key: keyof ProfileData; label: string; icon: string }[] = [
-  { key: 'bio', label: 'Description', icon: 'description' },
-  { key: 'age', label: 'Age', icon: 'person' },
-  { key: 'location', label: 'Location', icon: 'location_on' },
-  { key: 'school', label: 'School', icon: 'school' },
-  { key: 'lineOfWork', label: 'Line of Work', icon: 'work' },
-];
 
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
@@ -136,13 +118,13 @@ export default function ProfilePage() {
   // to ensure the Save button is reachable.
   const [appearanceOpen, setAppearanceOpen] = useState(false);
 
-  // Friends count for the Socials bento card. The /api/user/profile (own)
+  // Friends count for the Socials card. The /api/user/profile (own)
   // endpoint doesn't return this, so we hit /api/friends?status=accepted
   // separately and use its `count` field.
   const [friendsCount, setFriendsCount] = useState<number>(0);
 
-  // Edit profile modal state
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  // Username modal state — opened from inside the edit drawer.
+  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
   const [avatarEditorOpen, setAvatarEditorOpen] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
@@ -198,13 +180,11 @@ export default function ProfilePage() {
       profilePrivate: profile.profilePrivate,
       hideAchievements: profile.hideAchievements,
     });
-    // cosmeticsForm lives in the always-visible Appearance card and is
-    // seeded from profile on mount — no need to re-seed here, and doing
-    // so would blow away any pending cosmetic selections.
     setEditing(true);
   };
 
-  // Username availability check
+  // Username availability check — same logic as before, kept inline so
+  // the modal stays self-contained.
   const checkUsername = useCallback(
     async (value: string) => {
       const normalized = value.toLowerCase();
@@ -256,16 +236,16 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const openEditModal = () => {
+  const openUsernameModal = () => {
     if (!profile) return;
     setUsernameInput(profile.username);
     setUsernameStatus('idle');
     setUsernameMessage('');
     setModalError('');
-    setEditModalOpen(true);
+    setUsernameModalOpen(true);
   };
 
-  const handleModalSave = async () => {
+  const handleUsernameModalSave = async () => {
     if (!profile) return;
     const normalized = usernameInput.trim().toLowerCase();
 
@@ -283,7 +263,7 @@ export default function ProfilePage() {
     }
 
     if (normalized === profile.username) {
-      setEditModalOpen(false);
+      setUsernameModalOpen(false);
       return;
     }
 
@@ -299,7 +279,7 @@ export default function ProfilePage() {
         const json = await res.json();
         setProfile(json.data ?? json);
         await updateSession();
-        setEditModalOpen(false);
+        setUsernameModalOpen(false);
       } else {
         const json = await res.json();
         setModalError(json.error || 'Save failed');
@@ -429,612 +409,712 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '400px',
-        }}
-      >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: '48px', color: '#ae89ff', animation: 'spin 1s linear infinite' }}
-        >
-          progress_activity
-        </span>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState />;
+  if (!profile) return <ErrorState />;
 
-  if (!profile) {
-    return (
-      <div style={{ textAlign: 'center', padding: '64px 24px', color: '#aaa8c8' }}>
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: '48px', display: 'block', marginBottom: '16px', opacity: 0.4 }}
-        >
-          error
-        </span>
-        <p style={{ fontSize: '16px', margin: 0 }}>Could not load profile.</p>
-      </div>
-    );
-  }
+  // Hero badges — Private + Hide-achievements pills, only shown on the
+  // owner's view so the public page stays clean. Wrap them in a fragment
+  // so ProfileHero can render the row.
+  const heroBadges = (
+    <>
+      {profile.profilePrivate && <HeroBadge icon="lock" label="Private" />}
+      {profile.hideAchievements && <HeroBadge icon="visibility_off" label="Achievements hidden" />}
+    </>
+  );
 
-  const hasDetails = DETAIL_ITEMS.some((item) => profile[item.key] != null);
+  // About ladder rows — empty when the user has no factual fields filled.
+  // The drawer is the editing surface; the ladder is read-only.
+  const aboutRows: { key: string; label: string; value: React.ReactNode }[] = [];
+  if (profile.age != null) aboutRows.push({ key: 'age', label: 'Age', value: profile.age });
+  if (profile.location)
+    aboutRows.push({ key: 'location', label: 'Location', value: profile.location });
+  if (profile.school) aboutRows.push({ key: 'school', label: 'School', value: profile.school });
+  if (profile.lineOfWork) aboutRows.push({ key: 'work', label: 'Work', value: profile.lineOfWork });
 
   return (
     <div
+      data-tutorial="profile"
       style={{
         maxWidth: '720px',
         margin: '0 auto',
         padding: isPhone ? '0 16px' : undefined,
         display: 'flex',
         flexDirection: 'column',
-        gap: isPhone ? '24px' : '32px',
+        gap: isPhone ? '20px' : '28px',
       }}
     >
-      {/* Profile Header */}
+      {/* 1. Hero strip. The Edit button opens the editing mask (modal); the
+          page underneath stays put so there's no scroll-to-edit. */}
+      <ProfileHero
+        user={profile}
+        badges={heroBadges}
+        action={<EditProfileButton onClick={startEditing} isPhone={isPhone} />}
+      />
+
+      {/* 2. Stats strip — 3-cell horizontal row: trophies · minutes ·
+          friends. Self-view always shows trophies (the hideAchievements
+          toggle hides them from *others*, not the owner). */}
+      <ProfileStatsStrip userId={profile.id} friendsCount={friendsCount} />
+
+      {/* 3. Activity heatmap */}
+      <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />
+
+      {/* 4. Trophy rail */}
+      <RecentTrophies userId={profile.id} ownerView />
+
+      {/* 5. Bottom row — About (read mode) + Social. Editing happens in the
+          EditProfileModal overlay, so this row stays put underneath it. */}
       <div
         style={{
-          position: 'relative',
-          background: '#21213e',
-          borderRadius: isPhone ? '20px' : '24px',
-          padding: isPhone ? '28px 20px' : '40px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          overflow: 'hidden',
+          display: 'grid',
+          gridTemplateColumns: isPhone ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: isPhone ? '20px' : '24px',
+          alignItems: 'stretch',
         }}
       >
-        {/* Equipped background layer — sits behind the content. Default /
-            unset renders nothing and the flat #21213e shows through. */}
-        <ProfileBackground
-          backgroundId={profile.equippedBackgroundId}
-          customBackgroundUrl={profile.customBackgroundUrl}
-          radius={isPhone ? 20 : 24}
+        {aboutRows.length > 0 ? (
+          <AboutLadder rows={aboutRows} />
+        ) : (
+          <EmptyAboutPrompt onEdit={startEditing} />
+        )}
+        <SocialsCard
+          friendsCount={friendsCount}
+          instagramHandle={profile.instagramHandle ?? null}
+          linkedinUrl={profile.linkedinUrl ?? null}
+          friendshipStatus={null}
+          friendshipId={null}
+          username={profile.username}
+          isOwnProfile
+          isAuthenticated={Boolean(session?.user)}
         />
-
-        {/* Avatar */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            marginBottom: '16px',
-          }}
-        >
-          <UserAvatar
-            user={profile}
-            size={isPhone ? 80 : 96}
-            radius="50%"
-            style={{
-              border: profile.equippedFrameId ? 'none' : '3px solid rgba(174,137,255,0.3)',
-            }}
-          />
-        </div>
-
-        {/* Name & Title */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <UserName
-            user={profile}
-            as="div"
-            showTitle
-            style={{
-              fontSize: isPhone ? 20 : 24,
-              fontWeight: 700,
-              color: '#e5e3ff',
-              marginBottom: 4,
-              justifyContent: 'center',
-            }}
-          />
-        </div>
-        <p
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            fontSize: isPhone ? '13px' : '14px',
-            color: '#aaa8c8',
-            margin: '0 0 12px',
-          }}
-        >
-          @{profile.username}
-        </p>
-
-        {/* Member Since */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#aaa8c8',
-            fontSize: '13px',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-            calendar_month
-          </span>
-          Member since {formatDate(profile.createdAt)}
-        </div>
-
-        {/* Privacy badges */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            gap: '8px',
-            marginTop: '12px',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-          }}
-        >
-          {profile.profilePrivate && (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 12px',
-                background: 'rgba(136,136,168,0.12)',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#8888a8',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                lock
-              </span>
-              Private Profile
-            </div>
-          )}
-          {profile.hideAchievements && (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 12px',
-                background: 'rgba(136,136,168,0.12)',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#8888a8',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                visibility_off
-              </span>
-              Achievements Hidden
-            </div>
-          )}
-        </div>
-
-        {/* Edit Profile Button */}
-        <button
-          onClick={openEditModal}
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginTop: '20px',
-            padding: '10px 24px',
-            background: 'rgba(174,137,255,0.15)',
-            color: '#ae89ff',
-            borderRadius: '12px',
-            border: '1px solid rgba(174,137,255,0.25)',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            transition:
-              'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.25)';
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.15)';
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-            edit
-          </span>
-          Edit Profile
-        </button>
       </div>
 
-      {/* Profile Details (view mode) */}
-      {!editing && hasDetails && (
-        <div
-          style={{
-            background: '#21213e',
-            borderRadius: isPhone ? '20px' : '24px',
-            padding: isPhone ? '20px' : '28px 32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
-              About
-            </h3>
-            <button
-              onClick={startEditing}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 12px',
-                background: 'transparent',
-                color: '#ae89ff',
-                borderRadius: '8px',
-                border: '1px solid rgba(174,137,255,0.2)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.1)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                edit
-              </span>
-              Edit
-            </button>
-          </div>
-          {DETAIL_ITEMS.map((item) => {
-            const value = profile[item.key];
-            if (value == null) return null;
-            return (
-              <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '20px', color: '#ae89ff', flexShrink: 0 }}
-                >
-                  {item.icon}
-                </span>
-                <div>
-                  <p
-                    style={{
-                      fontSize: '11px',
-                      color: '#8888a8',
-                      margin: '0 0 2px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.label}
-                  </p>
-                  <p style={{ fontSize: '14px', color: '#e5e3ff', margin: 0 }}>{String(value)}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {/* 6. Appearance panel — collapsible. Lives below the bottom row
+          so it doesn't push above-the-fold content. */}
+      <AppearancePanel
+        open={appearanceOpen}
+        onToggle={() => setAppearanceOpen((v) => !v)}
+        cosmeticsForm={cosmeticsForm}
+        onChange={handleCosmeticsChange}
+        previewUser={profile}
+        dirty={cosmeticsDirty}
+        saving={cosmeticsSaving}
+        feedback={cosmeticsFeedback}
+        onSave={handleSaveCosmetics}
+        isPhone={isPhone}
+      />
+
+      {/* Modals */}
+      {editing && (
+        <EditProfileModal
+          form={form}
+          setForm={setForm}
+          saving={saving}
+          saveError={saveError}
+          onCancel={() => setEditing(false)}
+          onSave={handleSave}
+          onChangePhoto={() => setAvatarEditorOpen(true)}
+          onChangeUsername={openUsernameModal}
+          isPhone={isPhone}
+        />
       )}
 
-      {/* Edit Form */}
-      {editing && (
+      {usernameModalOpen && (
+        <UsernameModal
+          usernameInput={usernameInput}
+          usernameStatus={usernameStatus}
+          usernameMessage={usernameMessage}
+          modalSaving={modalSaving}
+          modalError={modalError}
+          isPhone={isPhone}
+          onUsernameChange={handleUsernameChange}
+          onPhotoChange={() => setAvatarEditorOpen(true)}
+          onClose={() => setUsernameModalOpen(false)}
+          onSave={handleUsernameModalSave}
+        />
+      )}
+
+      <AvatarEditor
+        open={avatarEditorOpen}
+        onClose={() => setAvatarEditorOpen(false)}
+        onSaved={async () => {
+          setAvatarEditorOpen(false);
+          const res = await fetch('/api/user/profile');
+          const json = await res.json();
+          if (json.data?.id) setProfile(json.data);
+          await updateSession();
+        }}
+      />
+
+      {/* Shared interaction styles for tokenised inputs / focus rings /
+          reduced-motion fallbacks. Single block so the rules don't get
+          duplicated per-field. */}
+      <style>{`
+        .hl-input, .hl-textarea {
+          transition: border-color var(--dur-fast) var(--ease-spring);
+        }
+        .hl-input:focus-visible, .hl-textarea:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+          border-color: var(--brand-purple-edge);
+        }
+        .hl-input:disabled, .hl-textarea:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .hl-action-btn {
+          transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring);
+          outline: none;
+        }
+        .hl-action-btn:hover:not(:disabled) { transform: scale(1.02); }
+        .hl-action-btn:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+        }
+        .hl-ghost-btn {
+          transition: background-color var(--dur-fast) var(--ease-spring);
+          outline: none;
+        }
+        .hl-ghost-btn:hover:not(:disabled) { background: var(--brand-purple-wash); }
+        .hl-ghost-btn:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hl-input, .hl-textarea, .hl-action-btn, .hl-ghost-btn {
+            transition: none !important;
+          }
+          .hl-action-btn:hover { transform: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// State views
+// ───────────────────────────────────────────────────────────────────────────
+
+function LoadingState() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '400px',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        aria-label="Loading profile"
+        style={{
+          fontSize: '40px',
+          color: 'var(--md-h4)',
+          animation: 'spin 1s linear infinite',
+        }}
+      >
+        progress_activity
+      </span>
+    </div>
+  );
+}
+
+function ErrorState() {
+  return (
+    <div
+      style={{
+        textAlign: 'center',
+        padding: '64px 24px',
+        color: 'var(--on-surface-variant)',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: '48px', display: 'block', marginBottom: '16px', opacity: 0.4 }}
+      >
+        error
+      </span>
+      <p style={{ fontSize: '16px', margin: 0 }}>Could not load profile.</p>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Hero auxiliaries
+// ───────────────────────────────────────────────────────────────────────────
+
+function HeroBadge({ icon, label }: { icon: string; label: string }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '3px 10px',
+        background: 'var(--surface-container)',
+        borderRadius: 'var(--radius-full)',
+        fontSize: '11px',
+        fontWeight: 600,
+        color: 'var(--on-surface-variant)',
+        lineHeight: 1.4,
+      }}
+    >
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '13px' }}>
+        {icon}
+      </span>
+      {label}
+    </span>
+  );
+}
+
+function EditProfileButton({ onClick, isPhone }: { onClick: () => void; isPhone: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="hl-action-btn"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '10px 20px',
+        background: 'var(--brand-purple-wash)',
+        color: 'var(--md-h4)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--brand-purple-edge)',
+        fontSize: '14px',
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        width: isPhone ? '100%' : 'auto',
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+        edit
+      </span>
+      Edit profile
+    </button>
+  );
+}
+
+function EmptyAboutPrompt({ onEdit }: { onEdit: () => void }) {
+  return (
+    <div
+      style={{
+        background: 'var(--surface-container-low)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+      }}
+    >
+      <h2
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '18px',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          margin: 0,
+        }}
+      >
+        About
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontSize: '13px',
+          color: 'var(--on-surface-variant)',
+          lineHeight: 1.5,
+        }}
+      >
+        Add a bio, school, or location so others can find you.
+      </p>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="hl-action-btn"
+        style={{
+          marginTop: '4px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 14px',
+          background: 'var(--brand-purple-wash)',
+          color: 'var(--md-h4)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--brand-purple-edge)',
+          fontSize: '13px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+          edit
+        </span>
+        Add details
+      </button>
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Edit profile modal — opened from the hero "Edit profile" button. All About
+// fields + privacy toggles live here so editing happens in one focused mask
+// instead of an inline drawer the user has to scroll the page to reach.
+// ───────────────────────────────────────────────────────────────────────────
+
+interface EditProfileModalProps {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  saving: boolean;
+  saveError: string | null;
+  onCancel: () => void;
+  onSave: () => void;
+  onChangePhoto: () => void;
+  onChangeUsername: () => void;
+  isPhone: boolean;
+}
+
+function EditProfileModal({
+  form,
+  setForm,
+  saving,
+  saveError,
+  onCancel,
+  onSave,
+  onChangePhoto,
+  onChangeUsername,
+  isPhone,
+}: EditProfileModalProps) {
+  // Centered, capped, internally-scrolling dialog (full-bleed sheet on phone).
+  const dims = useModalDimensions(560);
+
+  // Escape closes the mask, mirroring backdrop-click. Disabled mid-save so a
+  // stray keypress can't drop the in-flight request's UI.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !saving) onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [saving, onCancel]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hl-edit-profile-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !saving) onCancel();
+      }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--scrim-modal)',
+        backdropFilter: 'blur(8px)',
+        padding: isPhone ? 0 : '16px',
+      }}
+    >
+      <div
+        style={{
+          ...dims,
+          background: 'var(--surface-container)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: '0 24px 64px var(--bento-hover-shadow)',
+        }}
+      >
+        {/* Sticky header — title + close. Photo/Handle live in the body so the
+            header stays uncluttered on phone. */}
         <div
           style={{
-            background: '#21213e',
-            borderRadius: isPhone ? '20px' : '24px',
-            padding: isPhone ? '20px' : '32px',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: isPhone ? '18px 20px' : '22px 28px',
+            borderBottom: '1px solid var(--rule-hairline)',
+          }}
+        >
+          <h2
+            id="hl-edit-profile-title"
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--on-surface)',
+            }}
+          >
+            Edit profile
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            aria-label="Close"
+            className="hl-ghost-btn"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
+              close
+            </span>
+          </button>
+        </div>
+
+        {/* Scrollable body — every field. The dialog caps at the viewport
+            height, so long forms scroll here while header/footer stay fixed. */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            padding: isPhone ? '20px' : '24px 28px',
             display: 'flex',
             flexDirection: 'column',
             gap: isPhone ? '16px' : '20px',
           }}
         >
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#e5e3ff', margin: 0 }}>
-            Edit Profile
-          </h3>
+          {/* Photo + Handle quick actions, split evenly across the row. */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={onChangePhoto}
+              className="hl-ghost-btn"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '10px 12px',
+                background: 'transparent',
+                border: '1px solid var(--brand-purple-edge)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--md-h4)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                photo_camera
+              </span>
+              Photo
+            </button>
+            <button
+              type="button"
+              onClick={onChangeUsername}
+              className="hl-ghost-btn"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '10px 12px',
+                background: 'transparent',
+                border: '1px solid var(--brand-purple-edge)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--md-h4)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                alternate_email
+              </span>
+              Handle
+            </button>
+          </div>
 
-          {/* Name */}
-          <div>
-            <label style={LABEL_STYLE}>Full Name</label>
+          <Field label="Name">
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               maxLength={100}
               placeholder="Your full name"
+              className="hl-input"
               style={INPUT_STYLE}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-              }}
             />
-          </div>
+          </Field>
 
-          {/* Bio */}
-          <div>
-            <label style={LABEL_STYLE}>Bio</label>
+          <Field label="Bio" helper={`${form.bio.length}/160`}>
             <textarea
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               maxLength={160}
               placeholder="Write a short description about yourself"
               rows={3}
+              className="hl-textarea"
               style={{
                 ...INPUT_STYLE,
                 resize: 'vertical',
                 minHeight: '72px',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
+                fontFamily: 'inherit',
               }}
             />
-            <p
-              style={{ fontSize: '11px', color: '#6a6a8c', margin: '4px 0 0', textAlign: 'right' }}
-            >
-              {form.bio.length}/160
-            </p>
-          </div>
+          </Field>
 
-          {/* Two-column grid for short fields */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: isPhone ? '1fr' : '1fr 1fr',
-              gap: '16px',
+              gap: '14px',
             }}
           >
-            <div>
-              <label style={LABEL_STYLE}>Age</label>
+            <Field label="Age">
               <input
                 type="number"
                 value={form.age}
                 onChange={(e) => setForm({ ...form, age: e.target.value })}
                 min={1}
                 max={150}
-                placeholder="Your age"
+                placeholder="—"
+                className="hl-input"
                 style={INPUT_STYLE}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                }}
               />
-            </div>
-            <div>
-              <label style={LABEL_STYLE}>Location</label>
+            </Field>
+            <Field label="Location">
               <input
                 type="text"
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
                 maxLength={100}
                 placeholder="City, Country"
+                className="hl-input"
                 style={INPUT_STYLE}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                }}
               />
-            </div>
-            <div>
-              <label style={LABEL_STYLE}>School</label>
+            </Field>
+            <Field label="School">
               <input
                 type="text"
                 value={form.school}
                 onChange={(e) => setForm({ ...form, school: e.target.value })}
                 maxLength={100}
                 placeholder="Your school or university"
+                className="hl-input"
                 style={INPUT_STYLE}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                }}
               />
-            </div>
-            <div>
-              <label style={LABEL_STYLE}>Line of Work</label>
+            </Field>
+            <Field label="Line of work">
               <input
                 type="text"
                 value={form.lineOfWork}
                 onChange={(e) => setForm({ ...form, lineOfWork: e.target.value })}
                 maxLength={100}
                 placeholder="Your profession"
+                className="hl-input"
                 style={INPUT_STYLE}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                }}
               />
-            </div>
-            <div>
-              <label style={LABEL_STYLE}>Instagram</label>
+            </Field>
+            <Field label="Instagram">
               <input
                 type="text"
                 value={form.instagramHandle}
                 onChange={(e) => setForm({ ...form, instagramHandle: e.target.value })}
                 maxLength={30}
                 placeholder="yourhandle"
+                className="hl-input"
                 style={INPUT_STYLE}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                }}
               />
-            </div>
-            <div>
-              <label style={LABEL_STYLE}>LinkedIn</label>
+            </Field>
+            <Field label="LinkedIn">
               <input
                 type="url"
                 value={form.linkedinUrl}
                 onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })}
                 maxLength={200}
-                placeholder="https://www.linkedin.com/in/you"
+                placeholder="https://linkedin.com/in/you"
+                className="hl-input"
                 style={INPUT_STYLE}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                }}
               />
-            </div>
+            </Field>
           </div>
 
-          {/* Privacy Toggles */}
-          <div style={{ borderTop: '1px solid rgba(170,168,200,0.20)', paddingTop: '20px' }}>
-            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#e5e3ff', margin: '0 0 16px' }}>
+          {/* Privacy block — separated by hairline so the toggles read as
+          their own section without an UPPERCASE eyebrow. */}
+          <div style={{ borderTop: '1px solid var(--rule-hairline)', paddingTop: '18px' }}>
+            <h3
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: '0 0 12px',
+              }}
+            >
               Privacy
-            </h4>
-
-            {/* Private Profile Toggle */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                background: '#272746',
-                borderRadius: '12px',
-                marginBottom: '10px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '20px', color: '#ae89ff' }}
-                >
-                  lock
-                </span>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', margin: 0 }}>
-                    Private Profile
-                  </p>
-                  <p style={{ fontSize: '11px', color: '#8888a8', margin: '2px 0 0' }}>
-                    Only friends can see your full profile
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setForm({ ...form, profilePrivate: !form.profilePrivate })}
-                style={{
-                  width: '44px',
-                  height: '24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  background: form.profilePrivate ? '#ae89ff' : '#3a3a5c',
-                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-              >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    background: '#fff',
-                    position: 'absolute',
-                    top: '3px',
-                    left: form.profilePrivate ? '23px' : '3px',
-                    transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)',
-                  }}
-                />
-              </button>
-            </div>
-
-            {/* Hide Achievements Toggle */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                background: '#272746',
-                borderRadius: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '20px', color: '#ae89ff' }}
-                >
-                  visibility_off
-                </span>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#e5e3ff', margin: 0 }}>
-                    Hide Achievements
-                  </p>
-                  <p style={{ fontSize: '11px', color: '#8888a8', margin: '2px 0 0' }}>
-                    Others cannot see your achievements
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setForm({ ...form, hideAchievements: !form.hideAchievements })}
-                style={{
-                  width: '44px',
-                  height: '24px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  background: form.hideAchievements ? '#ae89ff' : '#3a3a5c',
-                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-              >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    background: '#fff',
-                    position: 'absolute',
-                    top: '3px',
-                    left: form.hideAchievements ? '23px' : '3px',
-                    transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)',
-                  }}
-                />
-              </button>
-            </div>
+            </h3>
+            <ToggleRow
+              icon="lock"
+              title="Private profile"
+              description="Only friends can see your full profile"
+              checked={form.profilePrivate}
+              onChange={(next) => setForm({ ...form, profilePrivate: next })}
+            />
+            <div style={{ height: '10px' }} />
+            <ToggleRow
+              icon="visibility_off"
+              title="Hide achievements"
+              description="Others cannot see your achievements"
+              checked={form.hideAchievements}
+              onChange={(next) => setForm({ ...form, hideAchievements: next })}
+            />
           </div>
+        </div>
 
-          {/* Save error — surfaced inline so failed saves stop looking like
-              silent no-ops. Server reasons (validation, 500s) all land here. */}
+        {/* Sticky footer — error + actions stay reachable without scrolling
+            the body. */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+            padding: isPhone ? '16px 20px' : '18px 28px',
+            borderTop: '1px solid var(--rule-hairline)',
+          }}
+        >
           {saveError && (
             <div
               role="alert"
               style={{
-                background: 'rgba(253,111,133,0.10)',
-                border: '1px solid rgba(253,111,133,0.30)',
-                color: '#fd6f85',
-                borderRadius: '12px',
+                background: 'var(--error-container)',
+                border: '1px solid var(--error)',
+                color: 'var(--on-error-container)',
+                borderRadius: 'var(--radius-md)',
                 padding: '12px 16px',
                 fontSize: '13px',
                 fontWeight: 600,
@@ -1050,555 +1130,651 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Save / Cancel */}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => setEditing(false)}
+              type="button"
+              onClick={onCancel}
               disabled={saving}
+              className="hl-ghost-btn"
               style={{
-                padding: '10px 24px',
+                padding: '10px 20px',
                 background: 'transparent',
-                color: '#aaa8c8',
-                borderRadius: '12px',
-                border: '1px solid rgba(170,168,200,0.2)',
+                color: 'var(--on-surface-variant)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--outline-variant)',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(170,168,200,0.08)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
               }}
             >
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              type="button"
+              onClick={onSave}
               disabled={saving}
+              className="hl-action-btn"
               style={{
-                padding: '10px 24px',
-                background: '#ae89ff',
-                color: '#2a0066',
-                borderRadius: '12px',
+                padding: '10px 22px',
+                background: 'var(--brand-purple-strong)',
+                color: 'var(--brand-purple-ink)',
+                borderRadius: 'var(--radius-md)',
                 border: 'none',
                 fontSize: '14px',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: saving ? 'wait' : 'pointer',
                 fontFamily: 'inherit',
                 opacity: saving ? 0.7 : 1,
-                transition:
-                  'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
-              }}
-              onMouseEnter={(e) => {
-                if (!saving) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
               }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving…' : 'Save changes'}
             </button>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
 
-      {/* ── Appearance (always-visible, toggleable cosmetics studio) ──
-          Lives outside the About edit mode so users can tweak their
-          title/frame/background/name style at any time with a dedicated
-          save button. Collapsed by default to keep the profile skimmable;
-          the header row stays a clickable region that expands/collapses
-          the panel. Seeded on mount from /api/user/profile. */}
-      <div
+function Field({
+  label,
+  helper,
+  children,
+}: {
+  label: string;
+  helper?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label
         style={{
-          background: '#21213e',
-          borderRadius: isPhone ? '20px' : '24px',
-          padding: isPhone ? '20px' : '28px 32px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: appearanceOpen ? '20px' : 0,
-          transition: 'gap 0.25s cubic-bezier(0.22,1,0.36,1)',
+          fontSize: '12px',
+          fontWeight: 500,
+          color: 'var(--on-surface-variant)',
+          marginBottom: '6px',
+          display: 'block',
         }}
       >
-        {/* Header row: click anywhere to toggle. The Save button lives
-            inside this row and stops propagation so tapping Save doesn't
-            collapse the panel. */}
+        {label}
+      </label>
+      {children}
+      {helper && (
+        <p
+          style={{
+            fontSize: '11px',
+            color: 'var(--on-surface-variant)',
+            margin: '4px 0 0',
+            textAlign: 'right',
+            // Reserve the helper slot so a transient error appearing
+            // doesn't push the page down.
+            minHeight: '1lh',
+          }}
+        >
+          {helper}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ToggleRow({
+  icon,
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        background: 'var(--surface-container)',
+        borderRadius: 'var(--radius-md)',
+        gap: '12px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+        <span
+          className="material-symbols-outlined"
+          aria-hidden
+          style={{ fontSize: '20px', color: 'var(--md-h4)', flexShrink: 0 }}
+        >
+          {icon}
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--on-surface)',
+              margin: 0,
+            }}
+          >
+            {title}
+          </p>
+          <p
+            style={{
+              fontSize: '11px',
+              color: 'var(--on-surface-variant)',
+              margin: '2px 0 0',
+            }}
+          >
+            {description}
+          </p>
+        </div>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={title} />
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Appearance panel
+// ───────────────────────────────────────────────────────────────────────────
+
+interface AppearancePanelProps {
+  open: boolean;
+  onToggle: () => void;
+  cosmeticsForm: CosmeticsSelection;
+  onChange: (next: CosmeticsSelection) => void;
+  previewUser: ProfileData;
+  dirty: boolean;
+  saving: boolean;
+  feedback: { kind: 'saved' | 'error'; message: string } | null;
+  onSave: () => void;
+  isPhone: boolean;
+}
+
+function AppearancePanel({
+  open,
+  onToggle,
+  cosmeticsForm,
+  onChange,
+  previewUser,
+  dirty,
+  saving,
+  feedback,
+  onSave,
+  isPhone,
+}: AppearancePanelProps) {
+  return (
+    <section
+      style={{
+        background: 'var(--surface-container-low)',
+        borderRadius: 'var(--radius-xl)',
+        padding: isPhone ? '20px' : '24px 28px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: open ? '20px' : 0,
+        transition: 'gap var(--dur-normal) var(--ease-spring)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap',
+        }}
+      >
         <button
           type="button"
-          onClick={() => setAppearanceOpen((v) => !v)}
-          aria-expanded={appearanceOpen}
+          onClick={onToggle}
+          aria-expanded={open}
           aria-controls="appearance-panel-body"
+          className="hl-ghost-btn"
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-            flexWrap: 'wrap',
+            gap: '10px',
             background: 'transparent',
             border: 'none',
-            padding: 0,
-            margin: 0,
+            padding: '4px 0',
             cursor: 'pointer',
             textAlign: 'left',
             color: 'inherit',
             fontFamily: 'inherit',
-            width: '100%',
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h3
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: '20px', color: 'var(--md-h4)' }}
+          >
+            auto_awesome
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span
               style={{
-                fontSize: '15px',
+                fontFamily: 'var(--font-display)',
+                fontSize: '18px',
                 fontWeight: 700,
-                color: '#e5e3ff',
-                margin: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
+                letterSpacing: '-0.01em',
+                color: 'var(--on-surface)',
               }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '20px', color: '#ae89ff' }}
-              >
-                auto_awesome
-              </span>
               Appearance
-              <span
-                className="material-symbols-outlined"
-                aria-hidden
-                style={{
-                  fontSize: '20px',
-                  color: '#8888a8',
-                  marginLeft: 'auto',
-                  transform: appearanceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.25s cubic-bezier(0.22,1,0.36,1)',
-                }}
-              >
-                expand_more
-              </span>
-            </h3>
-            <p
+            </span>
+            <span
               style={{
                 fontSize: '12px',
-                color: '#8888a8',
-                margin: '6px 0 0',
+                color: 'var(--on-surface-variant)',
                 lineHeight: 1.5,
-                maxWidth: 520,
+                marginTop: '2px',
               }}
             >
-              {appearanceOpen
-                ? 'Earn achievements to unlock new titles, fonts, colors, frames and profile backgrounds.'
-                : 'Titles, fonts, colors, frames and backgrounds. Tap to customize.'}
-            </p>
-          </div>
-
-          {/* Save button + feedback chip — only reachable when expanded. */}
-          {appearanceOpen && (
-            <div
-              // Clicks on the save button / feedback chip must NOT toggle
-              // the panel, or the user would collapse the thing they just
-              // tried to save.
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                flexShrink: 0,
-              }}
-            >
-              {cosmeticsFeedback && (
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: cosmeticsFeedback.kind === 'saved' ? '#4efba5' : '#fd6f85',
-                  }}
-                >
-                  {cosmeticsFeedback.message}
-                </span>
-              )}
-              <span
-                role="button"
-                tabIndex={0}
-                aria-disabled={!cosmeticsDirty || cosmeticsSaving}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (cosmeticsDirty && !cosmeticsSaving) handleSaveCosmetics();
-                }}
-                onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && cosmeticsDirty && !cosmeticsSaving) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleSaveCosmetics();
-                  }
-                }}
-                style={{
-                  padding: '10px 22px',
-                  background:
-                    !cosmeticsDirty || cosmeticsSaving ? 'rgba(174,137,255,0.18)' : '#ae89ff',
-                  color: !cosmeticsDirty || cosmeticsSaving ? '#aaa8c8' : '#2a0066',
-                  borderRadius: '12px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: !cosmeticsDirty || cosmeticsSaving ? 'default' : 'pointer',
-                  transition:
-                    'transform 0.2s cubic-bezier(0.22,1,0.36,1), background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                  userSelect: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                }}
-              >
-                {cosmeticsSaving ? 'Saving…' : cosmeticsDirty ? 'Save appearance' : 'Saved'}
-              </span>
-            </div>
-          )}
+              {open
+                ? 'Earn achievements to unlock new titles, fonts, colors, frames and backgrounds.'
+                : 'Titles, fonts, colors, frames and backgrounds.'}
+            </span>
+          </span>
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{
+              fontSize: '20px',
+              color: 'var(--on-surface-variant)',
+              marginLeft: 'auto',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform var(--dur-normal) var(--ease-spring)',
+            }}
+          >
+            expand_more
+          </span>
         </button>
 
-        {/* Collapsible body. Using display:none when closed keeps the
-            initial DOM lightweight and prevents the (expensive) cosmetics
-            rails from rendering for users who never open the panel. */}
-        {appearanceOpen && (
-          <div id="appearance-panel-body">
-            <CosmeticsPanel
-              value={cosmeticsForm}
-              onChange={handleCosmeticsChange}
-              previewUser={{
-                name: profile.name,
-                username: profile.username,
-                avatarUrl: profile.avatarUrl,
+        {/* Save button + feedback — only renders when the panel is open
+            so the collapsed header stays focused on the title. */}
+        {open && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexShrink: 0,
+            }}
+          >
+            {feedback && (
+              <span
+                role="status"
+                aria-live="polite"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: feedback.kind === 'saved' ? 'var(--success)' : 'var(--error)',
+                }}
+              >
+                {feedback.message}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={!dirty || saving}
+              className="hl-action-btn"
+              style={{
+                padding: '10px 20px',
+                background:
+                  !dirty || saving ? 'var(--brand-purple-wash)' : 'var(--brand-purple-strong)',
+                color: !dirty || saving ? 'var(--on-surface-variant)' : 'var(--brand-purple-ink)',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: !dirty || saving ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
               }}
-              compact={isPhone}
-              isAdmin={profile.role === 'admin'}
-            />
+            >
+              {saving ? 'Saving…' : dirty ? 'Save appearance' : 'Saved'}
+            </button>
           </div>
         )}
       </div>
 
-      {/* Bento: Socials + Activity. Mirrors the public profile layout
-          (`app/(dashboard)/profile/[username]/page.tsx`) so the edit page
-          and the public view share the same visual story. The activity
-          column uses minmax(0, 1fr) so the heatmap (which is wider than
-          ~440px) doesn't blow out the 720px parent — its internal
-          overflowX:auto kicks in and it scrolls horizontally inside its
-          own card. Friend request UI stays hidden because it's the user's
-          own profile (isOwnProfile + isAuthenticated short-circuit). */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isPhone ? '1fr' : 'minmax(220px, 260px) minmax(0, 1fr)',
-          gap: '24px',
-          alignItems: 'stretch',
-        }}
-      >
-        <SocialsCard
-          friendsCount={friendsCount}
-          instagramHandle={profile.instagramHandle ?? null}
-          linkedinUrl={profile.linkedinUrl ?? null}
-          friendshipStatus={null}
-          friendshipId={null}
-          username={profile.username}
-          isOwnProfile
-          isAuthenticated={Boolean(session?.user)}
-        />
-        <div style={{ minWidth: 0 }}>
-          <ActivityHeatmap userId={profile.id} weeks={13} subtitle="3 months" />
-        </div>
-      </div>
-
-      {/* Trophy Board (recent + expandable to full shelf) */}
-      <RecentTrophies userId={profile.id} />
-
-      {/* Edit Profile Modal */}
-      {editModalOpen && profile && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.7)',
-            backdropFilter: 'blur(8px)',
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !modalSaving) setEditModalOpen(false);
-          }}
-        >
-          <div
-            style={{
-              background: '#272746',
-              borderRadius: isPhone ? '20px' : '24px',
-              padding: isPhone ? '24px 20px' : '32px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: isPhone ? '20px' : '24px',
-              maxWidth: '420px',
-              width: '90%',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+      {open && (
+        <div id="appearance-panel-body">
+          <CosmeticsPanel
+            value={cosmeticsForm}
+            onChange={onChange}
+            previewUser={{
+              name: previewUser.name,
+              username: previewUser.username,
+              avatarUrl: previewUser.avatarUrl,
             }}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#e5e3ff' }}>
-                Edit Profile
-              </h3>
-              <button
-                onClick={() => setEditModalOpen(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#aaa8c8',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(170,168,200,0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                  close
-                </span>
-              </button>
-            </div>
-
-            {/* Avatar section */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <UserAvatar
-                user={profile}
-                size={96}
-                radius="50%"
-                style={{
-                  border: profile.equippedFrameId ? 'none' : '3px solid rgba(174,137,255,0.3)',
-                }}
-              />
-              <button
-                onClick={() => setAvatarEditorOpen(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 16px',
-                  background: 'rgba(174,137,255,0.12)',
-                  color: '#ae89ff',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(174,137,255,0.2)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(174,137,255,0.12)';
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                  photo_camera
-                </span>
-                Change Photo
-              </button>
-            </div>
-
-            {/* Username input */}
-            <div>
-              <label style={LABEL_STYLE}>Username</label>
-              <div style={{ position: 'relative' }}>
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: '14px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '14px',
-                    color: '#8888a8',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  @
-                </span>
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => handleUsernameChange(e.target.value)}
-                  maxLength={20}
-                  placeholder="username"
-                  style={{
-                    ...INPUT_STYLE,
-                    paddingLeft: '32px',
-                    paddingRight: '40px',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(174,137,255,0.5)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(170,168,200,0.2)';
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {usernameStatus === 'checking' && (
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: '18px',
-                        color: '#aaa8c8',
-                        animation: 'spin 1s linear infinite',
-                      }}
-                    >
-                      progress_activity
-                    </span>
-                  )}
-                  {usernameStatus === 'available' && (
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: '18px',
-                        color: '#4dff91',
-                        fontVariationSettings: "'FILL' 1",
-                      }}
-                    >
-                      check_circle
-                    </span>
-                  )}
-                  {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: '18px',
-                        color: '#fd6f85',
-                        fontVariationSettings: "'FILL' 1",
-                      }}
-                    >
-                      cancel
-                    </span>
-                  )}
-                </div>
-              </div>
-              {usernameStatus === 'available' && (
-                <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#4dff91' }}>
-                  {usernameMessage}
-                </p>
-              )}
-              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
-                <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#fd6f85' }}>
-                  {usernameMessage}
-                </p>
-              )}
-              {(usernameStatus === 'idle' || usernameStatus === 'typing') && (
-                <p style={{ margin: '6px 0 0 4px', fontSize: '12px', color: '#8888a8' }}>
-                  3–20 chars, letters, numbers, underscores
-                </p>
-              )}
-            </div>
-
-            {/* Error */}
-            {modalError && (
-              <p style={{ margin: 0, fontSize: '13px', color: '#fd6f85' }}>{modalError}</p>
-            )}
-
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setEditModalOpen(false)}
-                disabled={modalSaving}
-                style={{
-                  padding: '10px 24px',
-                  background: 'transparent',
-                  color: '#aaa8c8',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(170,168,200,0.2)',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(170,168,200,0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleModalSave}
-                disabled={modalSaving || usernameStatus === 'checking'}
-                style={{
-                  padding: '10px 24px',
-                  background: '#ae89ff',
-                  color: '#2a0066',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: modalSaving ? 'wait' : 'pointer',
-                  fontFamily: 'inherit',
-                  opacity: modalSaving ? 0.7 : 1,
-                  transition:
-                    'transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!modalSaving)
-                    (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.03)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-                }}
-              >
-                {modalSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
+            compact={isPhone}
+            isAdmin={previewUser.role === 'admin'}
+          />
         </div>
       )}
+    </section>
+  );
+}
 
-      {/* Avatar Editor (nested over the modal) */}
-      <AvatarEditor
-        open={avatarEditorOpen}
-        onClose={() => setAvatarEditorOpen(false)}
-        onSaved={async () => {
-          setAvatarEditorOpen(false);
-          const res = await fetch('/api/user/profile');
-          const json = await res.json();
-          if (json.data?.id) setProfile(json.data);
-          await updateSession();
+// ───────────────────────────────────────────────────────────────────────────
+// Username modal
+// ───────────────────────────────────────────────────────────────────────────
+
+interface UsernameModalProps {
+  usernameInput: string;
+  usernameStatus: UsernameStatus;
+  usernameMessage: string;
+  modalSaving: boolean;
+  modalError: string;
+  isPhone: boolean;
+  onUsernameChange: (value: string) => void;
+  onPhotoChange: () => void;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+function UsernameModal({
+  usernameInput,
+  usernameStatus,
+  usernameMessage,
+  modalSaving,
+  modalError,
+  isPhone,
+  onUsernameChange,
+  onPhotoChange,
+  onClose,
+  onSave,
+}: UsernameModalProps) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hl-username-modal-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 400,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--scrim-modal)',
+        backdropFilter: 'blur(8px)',
+        padding: '16px',
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !modalSaving) onClose();
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--surface-container)',
+          borderRadius: 'var(--radius-xl)',
+          padding: isPhone ? '22px 20px' : '28px 32px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isPhone ? '18px' : '22px',
+          maxWidth: '420px',
+          width: '100%',
+          boxShadow: '0 24px 64px var(--bento-hover-shadow)',
         }}
-      />
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2
+            id="hl-username-modal-title"
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              color: 'var(--on-surface)',
+            }}
+          >
+            Account details
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={modalSaving}
+            aria-label="Close"
+            className="hl-ghost-btn"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--on-surface-variant)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              close
+            </span>
+          </button>
+        </div>
+
+        {/* Photo line — kept as a simple inline button instead of a
+            centered "change photo" stack which would re-introduce the
+            centered hero pattern. */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--on-surface)',
+            }}
+          >
+            Profile photo
+          </span>
+          <button
+            type="button"
+            onClick={onPhotoChange}
+            className="hl-ghost-btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              background: 'var(--brand-purple-wash)',
+              color: 'var(--md-h4)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--brand-purple-edge)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+              photo_camera
+            </span>
+            Change
+          </button>
+        </div>
+
+        {/* Username field */}
+        <div>
+          <label
+            htmlFor="hl-username-input"
+            style={{
+              fontSize: '12px',
+              fontWeight: 500,
+              color: 'var(--on-surface-variant)',
+              marginBottom: '6px',
+              display: 'block',
+            }}
+          >
+            Username
+          </label>
+          <div style={{ position: 'relative' }}>
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '14px',
+                color: 'var(--on-surface-variant)',
+                pointerEvents: 'none',
+              }}
+            >
+              @
+            </span>
+            <input
+              id="hl-username-input"
+              type="text"
+              value={usernameInput}
+              onChange={(e) => onUsernameChange(e.target.value)}
+              maxLength={20}
+              placeholder="username"
+              className="hl-input"
+              style={{
+                ...INPUT_STYLE,
+                paddingLeft: '32px',
+                paddingRight: '40px',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {usernameStatus === 'checking' && (
+                <span
+                  className="material-symbols-outlined"
+                  aria-label="Checking availability"
+                  style={{
+                    fontSize: '18px',
+                    color: 'var(--on-surface-variant)',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                >
+                  progress_activity
+                </span>
+              )}
+              {usernameStatus === 'available' && (
+                <span
+                  className="material-symbols-outlined"
+                  aria-label="Available"
+                  style={{
+                    fontSize: '18px',
+                    color: 'var(--success)',
+                    fontVariationSettings: "'FILL' 1",
+                  }}
+                >
+                  check_circle
+                </span>
+              )}
+              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                <span
+                  className="material-symbols-outlined"
+                  aria-label={usernameStatus === 'taken' ? 'Taken' : 'Invalid'}
+                  style={{
+                    fontSize: '18px',
+                    color: 'var(--error)',
+                    fontVariationSettings: "'FILL' 1",
+                  }}
+                >
+                  cancel
+                </span>
+              )}
+            </div>
+          </div>
+          <p
+            style={{
+              margin: '6px 0 0 4px',
+              fontSize: '12px',
+              color:
+                usernameStatus === 'available'
+                  ? 'var(--success)'
+                  : usernameStatus === 'taken' || usernameStatus === 'invalid'
+                    ? 'var(--error)'
+                    : 'var(--on-surface-variant)',
+              minHeight: '1lh',
+            }}
+          >
+            {usernameStatus === 'available' ||
+            usernameStatus === 'taken' ||
+            usernameStatus === 'invalid'
+              ? usernameMessage
+              : '3–20 chars, letters, numbers, underscores'}
+          </p>
+        </div>
+
+        {modalError && (
+          <p role="alert" style={{ margin: 0, fontSize: '13px', color: 'var(--error)' }}>
+            {modalError}
+          </p>
+        )}
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={modalSaving}
+            className="hl-ghost-btn"
+            style={{
+              padding: '10px 20px',
+              background: 'transparent',
+              color: 'var(--on-surface-variant)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--outline-variant)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={modalSaving || usernameStatus === 'checking'}
+            className="hl-action-btn"
+            style={{
+              padding: '10px 22px',
+              background: 'var(--brand-purple-strong)',
+              color: 'var(--brand-purple-ink)',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: modalSaving ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: modalSaving ? 0.7 : 1,
+            }}
+          >
+            {modalSaving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
 import { CanvasIcon, TextFileIcon } from '@/components/icons/NavIcons';
 import type { PageSummary } from '@/components/notebook/SectionTree';
 
@@ -54,7 +53,7 @@ export default function PageItem({
         textDecoration: 'none',
         fontFamily: 'inherit',
         fontSize: '13px',
-        color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.55)',
+        color: isActive ? 'var(--on-surface)' : 'var(--ink-50)',
         fontWeight: isActive ? 500 : 400,
         background: isActive
           ? 'rgba(140,82,255,0.25)'
@@ -71,7 +70,7 @@ export default function PageItem({
       {page.pageType === 'canvas' ? (
         <CanvasIcon size={14} color={isActive ? '#ffde59' : 'rgba(255,222,89,0.45)'} />
       ) : (
-        <TextFileIcon size={14} color={isActive ? '#8c52ff' : 'rgba(237,233,255,0.3)'} />
+        <TextFileIcon size={14} color={isActive ? '#8c52ff' : 'var(--ink-30)'} />
       )}
       <span
         style={{
@@ -115,7 +114,7 @@ export default function PageItem({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: 'rgba(237,233,255,0.35)',
+            color: 'var(--ink-30)',
             padding: 0,
             transition: 'color 0.12s ease',
           }}
@@ -123,10 +122,12 @@ export default function PageItem({
             e.currentTarget.style.color = '#fca5a5';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(237,233,255,0.35)';
+            e.currentTarget.style.color = 'var(--ink-30)';
           }}
         >
-          <Trash2 size={12} />
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>
+            delete
+          </span>
         </button>
       )}
     </Link>

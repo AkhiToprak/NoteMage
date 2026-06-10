@@ -1,8 +1,10 @@
 'use client';
 
-import { CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { McPayload } from '@notemage/shared';
+import { shuffleByKey } from './quizShuffle';
+import HintButton from './HintButton';
 import type { QuestionProps } from './types';
 
 // MCRenderer renders a multiple-choice question. Phase 1 reads the answer
@@ -20,8 +22,22 @@ export default function MCRenderer({
   onToggleHint,
   onSelectAnswer,
   isPhone,
+  coarsePointer,
 }: QuestionProps<McPayload | null>) {
-  const isCorrect = isAnswered && currentAnswer === question.correctIndex;
+  const selectedIdx = currentAnswer?.kind === 'mc' ? currentAnswer.selectedIdx : undefined;
+  const reviewIdx = reviewAnswer?.kind === 'mc' ? reviewAnswer.selectedIdx : undefined;
+  const isCorrect = isAnswered && selectedIdx === question.correctIndex;
+
+  // Present options in a content-independent order so the correct answer's
+  // position can't be predicted from how the AI happened to emit them (models
+  // cluster the right answer even when told to spread it). Seeded by
+  // question.id so the order is stable across re-renders — no reshuffle
+  // mid-attempt. We shuffle the option INDICES, so `selectedIdx` still refers
+  // to the original option index and grading (server + client) is untouched.
+  const displayOrder = useMemo(
+    () => shuffleByKey(question.options.map((_, i) => i), question.id),
+    [question.options, question.id]
+  );
 
   return (
     <div
@@ -33,7 +49,7 @@ export default function MCRenderer({
     >
       <div
         style={{
-          background: '#000000',
+          background: 'var(--quiz-question-surface)',
           border: '1px solid rgba(174,137,255,0.38)',
           borderRadius: '16px',
           padding: isPhone ? '20px 16px' : '28px 24px',
@@ -47,37 +63,38 @@ export default function MCRenderer({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-        {question.options.map((option, i) => {
-          const letter = String.fromCharCode(65 + i);
-          const isSelected = currentAnswer === i;
-          const isCorrectOption = question.correctIndex === i;
+        {displayOrder.map((origIdx, pos) => {
+          const option = question.options[origIdx];
+          const letter = String.fromCharCode(65 + pos);
+          const isSelected = selectedIdx === origIdx;
+          const isCorrectOption = question.correctIndex === origIdx;
           const showResult = isAnswered || mode === 'review';
-          const reviewSelected = mode === 'review' && reviewAnswer === i;
+          const reviewSelected = mode === 'review' && reviewIdx === origIdx;
 
           let borderColor = 'rgba(140,82,255,0.15)';
-          let bg = 'rgba(255,255,255,0.07)';
-          let textColor = 'rgba(237,233,255,0.7)';
+          let bg = 'var(--surface-container)';
+          let textColor = 'var(--on-surface-variant)';
 
           if (showResult) {
             if (isCorrectOption) {
-              borderColor = 'rgba(74,222,128,0.5)';
-              bg = 'rgba(74,222,128,0.08)';
-              textColor = '#4ade80';
+              borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
+              bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
+              textColor = 'var(--success)';
             } else if (isSelected || reviewSelected) {
-              borderColor = 'rgba(252,165,165,0.5)';
-              bg = 'rgba(252,165,165,0.08)';
-              textColor = '#fca5a5';
+              borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
+              bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
+              textColor = 'var(--error)';
             }
           } else if (isSelected) {
             borderColor = 'rgba(140,82,255,0.5)';
             bg = 'rgba(140,82,255,0.12)';
-            textColor = '#c4a9ff';
+            textColor = 'var(--accent-strong)';
           }
 
           return (
             <button
-              key={i}
-              onClick={() => onSelectAnswer(i)}
+              key={origIdx}
+              onClick={() => onSelectAnswer({ kind: 'mc', selectedIdx: origIdx })}
               disabled={isAnswered || mode === 'review'}
               style={{
                 display: 'flex',
@@ -110,76 +127,44 @@ export default function MCRenderer({
                   color: textColor,
                   background:
                     showResult && isCorrectOption
-                      ? 'rgba(74,222,128,0.15)'
+                      ? 'rgb(var(--verdict-pass-rgb) / 0.15)'
                       : showResult && (isSelected || reviewSelected)
-                        ? 'rgba(252,165,165,0.15)'
+                        ? 'rgb(var(--verdict-fail-rgb) / 0.15)'
                         : 'transparent',
                 }}
               >
                 {showResult && isCorrectOption ? (
-                  <CheckCircle2 size={14} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>check_circle</span>
                 ) : showResult && (isSelected || reviewSelected) ? (
-                  <XCircle size={14} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>cancel</span>
                 ) : (
                   letter
                 )}
               </span>
               <span style={{ fontSize: '16px', color: textColor, flex: 1, lineHeight: 1.5 }}>
-                {option}
+                <MarkdownRenderer content={option} />
               </span>
             </button>
           );
         })}
       </div>
 
-      {question.hint && !isAnswered && mode === 'quiz' && (
-        <button
-          onClick={onToggleHint}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            borderRadius: '10px',
-            border: '1px solid rgba(251,191,36,0.2)',
-            background: showHint ? 'rgba(251,191,36,0.08)' : 'transparent',
-            color: '#fbbf24',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            marginBottom: '12px',
-            fontFamily: 'inherit',
-            transition: 'background 0.12s',
-          }}
-        >
-          <Lightbulb size={13} />
-          {showHint ? 'Hide Hint' : 'Show Hint (H)'}
-        </button>
-      )}
-      {showHint && question.hint && (
-        <div
-          style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            background: 'rgba(251,191,36,0.06)',
-            border: '1px solid rgba(251,191,36,0.15)',
-            fontSize: '13px',
-            color: 'rgba(251,191,36,0.8)',
-            marginBottom: '12px',
-            lineHeight: 1.6,
-          }}
-        >
-          {question.hint}
-        </div>
-      )}
+      <HintButton
+        hint={question.hint}
+        showHint={showHint}
+        onToggle={onToggleHint}
+        isAnswered={isAnswered}
+        mode={mode}
+        coarsePointer={coarsePointer}
+      />
 
       {isAnswered && (
         <div
           style={{
             padding: '14px 18px',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(252,165,165,0.06)',
-            border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(252,165,165,0.2)'}`,
+            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
             marginBottom: '12px',
           }}
         >
@@ -191,25 +176,29 @@ export default function MCRenderer({
               fontSize: '14px',
               fontWeight: 700,
               marginBottom: '6px',
-              color: isCorrect ? '#4ade80' : '#fca5a5',
+              color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
             {isCorrect ? (
               <>
-                <CheckCircle2 size={16} /> Correct!
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Correct!
               </>
             ) : (
               <>
-                <XCircle size={16} /> Not quite
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
               </>
             )}
           </div>
-          <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-            {isCorrect
-              ? question.correctExplanation ||
-                `The answer is ${question.options[question.correctIndex]}.`
-              : question.wrongExplanation ||
-                `The correct answer is ${question.options[question.correctIndex]}.`}
+          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation ||
+                    `The answer is ${question.options[question.correctIndex]}.`
+                  : question.wrongExplanation ||
+                    `The correct answer is ${question.options[question.correctIndex]}.`
+              }
+            />
           </div>
         </div>
       )}
@@ -221,21 +210,21 @@ export default function MCRenderer({
             borderRadius: '12px',
             marginBottom: '12px',
             background:
-              reviewAnswer !== undefined
-                ? reviewAnswer === question.correctIndex
-                  ? 'rgba(74,222,128,0.06)'
-                  : 'rgba(252,165,165,0.06)'
-                : 'rgba(255,255,255,0.07)',
+              reviewIdx !== undefined
+                ? reviewIdx === question.correctIndex
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.06)'
+                : 'var(--surface-container)',
             border: `1px solid ${
-              reviewAnswer !== undefined
-                ? reviewAnswer === question.correctIndex
-                  ? 'rgba(74,222,128,0.2)'
-                  : 'rgba(252,165,165,0.2)'
-                : 'rgba(255,255,255,0.06)'
+              reviewIdx !== undefined
+                ? reviewIdx === question.correctIndex
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.2)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.2)'
+                : 'var(--ink-08)'
             }`,
           }}
         >
-          {reviewAnswer !== undefined ? (
+          {reviewIdx !== undefined ? (
             <>
               <div
                 style={{
@@ -245,31 +234,35 @@ export default function MCRenderer({
                   fontSize: '14px',
                   fontWeight: 700,
                   marginBottom: '6px',
-                  color: reviewAnswer === question.correctIndex ? '#4ade80' : '#fca5a5',
+                  color: reviewIdx === question.correctIndex ? 'var(--success)' : 'var(--error)',
                 }}
               >
-                {reviewAnswer === question.correctIndex ? (
+                {reviewIdx === question.correctIndex ? (
                   <>
-                    <CheckCircle2 size={16} /> You answered correctly
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> You answered correctly
                   </>
                 ) : (
                   <>
-                    <XCircle size={16} /> You answered incorrectly
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> You answered incorrectly
                   </>
                 )}
               </div>
-              <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.6)', lineHeight: 1.6 }}>
-                {reviewAnswer === question.correctIndex
-                  ? question.correctExplanation ||
-                    `The answer is ${question.options[question.correctIndex]}.`
-                  : question.wrongExplanation ||
-                    `The correct answer is ${question.options[question.correctIndex]}.`}
+              <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+                <MarkdownRenderer
+                  content={
+                    reviewIdx === question.correctIndex
+                      ? question.correctExplanation ||
+                        `The answer is ${question.options[question.correctIndex]}.`
+                      : question.wrongExplanation ||
+                        `The correct answer is ${question.options[question.correctIndex]}.`
+                  }
+                />
               </div>
             </>
           ) : (
-            <div style={{ fontSize: '13px', color: 'rgba(237,233,255,0.4)' }}>
+            <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
               You skipped this question. The correct answer is{' '}
-              <strong style={{ color: '#4ade80' }}>
+              <strong style={{ color: 'var(--success)' }}>
                 {question.options[question.correctIndex]}
               </strong>
               .

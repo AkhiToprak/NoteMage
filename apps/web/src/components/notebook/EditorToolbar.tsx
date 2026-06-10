@@ -3,54 +3,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Editor } from '@tiptap/react';
+import { insertCodeBlock } from '@/lib/tiptap-code-block';
+import { formatBlockSelectionAware } from '@/lib/tiptap-block-format';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Quote,
-  Code,
-  Palette,
-  Highlighter,
-  Undo,
-  Redo,
-  Pen,
-  ChevronDown,
-  ALargeSmall,
-  MessageSquareWarning,
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
-  MousePointer2,
-  Type,
-  Eraser,
-  Trash2,
-  Ruler,
-  Table2,
-  Rows3,
-  Columns3,
-  PanelTop,
-  Merge,
-  Plus,
-  Minus,
-  MoreHorizontal,
-} from 'lucide-react';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 
 import type { EditorMode, ActiveTool, LineStyle, RulerState, TextData } from './DrawingOverlay';
 
-const CALLOUT_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
-  Info,
-  AlertTriangle,
-  CheckCircle,
-  Lightbulb,
+const CALLOUT_ICONS: Record<string, string> = {
+  Info: 'info',
+  AlertTriangle: 'warning',
+  CheckCircle: 'check_circle',
+  Lightbulb: 'lightbulb',
+  AlertOctagon: 'dangerous',
+  StickyNote: 'sticky_note_2',
 };
 import { CALLOUT_STYLES, type CalloutType } from '@/lib/tiptap-callout';
 
@@ -232,13 +198,13 @@ function useSelectionGuard(editor: Editor | null) {
 
 /* ── single toolbar button ── */
 function ToolbarButton({
-  icon: Icon,
+  icon,
   label,
   isActive,
   onClick,
   disabled,
 }: {
-  icon: typeof Bold;
+  icon: string;
   label: string;
   isActive?: boolean;
   onClick: () => void;
@@ -258,7 +224,7 @@ function ToolbarButton({
         borderRadius: '6px',
         border: 'none',
         background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-        color: isActive ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+        color: isActive ? 'var(--md-h4)' : 'var(--ink-50)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -269,18 +235,20 @@ function ToolbarButton({
       }}
       onMouseEnter={(e) => {
         if (!disabled && !isActive) {
-          e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-          e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+          e.currentTarget.style.background = 'var(--ink-08)';
+          e.currentTarget.style.color = 'var(--ink-80)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
           e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+          e.currentTarget.style.color = 'var(--ink-50)';
         }
       }}
     >
-      <Icon size={15} />
+      <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+        {icon}
+      </span>
     </button>
   );
 }
@@ -292,11 +260,92 @@ function Sep() {
       style={{
         width: '1px',
         height: '18px',
-        background: 'rgb(var(--notebook-ink-rgb) / 0.08)',
-        margin: '0 2px',
+        background: 'var(--ink-08)',
+        // Wider gutter than the intra-group button spacing so the clusters
+        // (format / block / insert / mode) read as distinct groups (item 7a).
+        margin: '0 6px',
         flexShrink: 0,
       }}
     />
+  );
+}
+
+/* ── mode segmented control (cursor / pen / text) ──
+   Rendered as a recessed segmented track — distinct from the accent-filled
+   format toggles — so a persistent mode selection reads as a *mode*, not a hot
+   format. The active segment is a quiet raised neutral chip, so the always-on
+   default (cursor) no longer looks "pressed" like an active format (item 7b). */
+const MODE_OPTIONS: { mode: EditorMode; icon: string; label: string }[] = [
+  { mode: 'cursor', icon: 'arrow_selector_tool', label: 'Cursor mode' },
+  { mode: 'pen', icon: 'draw', label: 'Pen mode' },
+  { mode: 'text', icon: 'text_fields', label: 'Text mode' },
+];
+
+function ModeSwitch({
+  mode,
+  onModeChange,
+}: {
+  mode: EditorMode;
+  onModeChange: (mode: EditorMode) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Editor mode"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 2,
+        padding: 2,
+        borderRadius: 8,
+        background: 'var(--ink-04)',
+        flexShrink: 0,
+      }}
+    >
+      {MODE_OPTIONS.map(({ mode: m, icon, label }) => {
+        const active = mode === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={label}
+            title={label}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onModeChange(m);
+            }}
+            style={{
+              width: 28,
+              height: 24,
+              borderRadius: 6,
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: active ? 'var(--surface-container-highest)' : 'transparent',
+              color: active ? 'var(--on-surface)' : 'var(--ink-50)',
+              boxShadow: active
+                ? '0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 var(--ink-08)'
+                : 'none',
+              transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              if (!active) e.currentTarget.style.color = 'var(--ink-80)';
+            }}
+            onMouseLeave={(e) => {
+              if (!active) e.currentTarget.style.color = 'var(--ink-50)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+              {icon}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -305,13 +354,13 @@ function ColorPicker({
   colors,
   activeColor,
   onPick,
-  icon: Icon,
+  icon,
   label,
 }: {
   colors: string[];
   activeColor: string | undefined;
   onPick: (c: string) => void;
-  icon: typeof Palette;
+  icon: string;
   label: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -340,7 +389,7 @@ function ColorPicker({
           borderRadius: '6px',
           border: 'none',
           background: !!activeColor ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: !!activeColor ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: !!activeColor ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -350,18 +399,20 @@ function ColorPicker({
         }}
         onMouseEnter={(e) => {
           if (!activeColor) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!activeColor) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
-        <Icon size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          {icon}
+        </span>
       </button>
       {open && (
         <div
@@ -395,10 +446,7 @@ function ColorPicker({
                 height: '24px',
                 borderRadius: '6px',
                 background: c,
-                border:
-                  activeColor === c
-                    ? '2px solid #a47bff'
-                    : '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                border: activeColor === c ? '2px solid var(--md-h4)' : '1px solid var(--ink-12)',
                 cursor: 'pointer',
                 transition: 'transform 0.1s',
               }}
@@ -421,12 +469,12 @@ function ColorPicker({
               gridColumn: '1 / -1',
               height: '22px',
               borderRadius: '6px',
-              background: 'rgb(var(--notebook-ink-rgb) / 0.05)',
-              border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+              background: 'var(--ink-04)',
+              border: '1px solid var(--ink-12)',
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: '10px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               marginTop: '2px',
             }}
           >
@@ -493,9 +541,9 @@ function FontFamilySelect({
           height: '28px',
           padding: '0 8px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
-          background: open ? 'rgba(140,82,255,0.12)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+          border: '1px solid var(--ink-12)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'var(--ink-04)',
+          color: 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -505,7 +553,13 @@ function FontFamilySelect({
         }}
       >
         <span style={{ flex: 1, textAlign: 'left' }}>{current}</span>
-        <ChevronDown size={11} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 11, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -546,7 +600,7 @@ function FontFamilySelect({
                 borderRadius: '6px',
                 border: 'none',
                 background: current === f.label ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: current === f.label ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: current === f.label ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: f.value || 'inherit',
                 fontSize: '13px',
                 cursor: 'pointer',
@@ -554,7 +608,7 @@ function FontFamilySelect({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -622,9 +676,9 @@ function FontSizeControl({
           height: '28px',
           padding: '0 7px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
-          background: open ? 'rgba(140,82,255,0.12)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+          border: '1px solid var(--ink-12)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'var(--ink-04)',
+          color: 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -633,7 +687,13 @@ function FontSizeControl({
         }}
       >
         <span style={{ flex: 1, textAlign: 'left' }}>{currentSize}px</span>
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 10, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -675,7 +735,7 @@ function FontSizeControl({
                 borderRadius: '5px',
                 border: 'none',
                 background: currentSize === s ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: currentSize === s ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: currentSize === s ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -683,7 +743,7 @@ function FontSizeControl({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -741,14 +801,14 @@ function InlineScaleDropdown({
           height: '28px',
           padding: '0 7px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
+          border: '1px solid var(--ink-12)',
           background:
             activeLevel !== null
               ? 'rgba(140,82,255,0.22)'
               : open
                 ? 'rgba(140,82,255,0.12)'
-                : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: activeLevel !== null ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                : 'var(--ink-04)',
+          color: activeLevel !== null ? 'var(--md-h4)' : 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '12px',
           cursor: 'pointer',
@@ -757,17 +817,29 @@ function InlineScaleDropdown({
         }}
         onMouseEnter={(e) => {
           if (activeLevel === null && !open) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
+            e.currentTarget.style.background = 'var(--ink-08)';
           }
         }}
         onMouseLeave={(e) => {
           if (activeLevel === null && !open) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.04)';
+            e.currentTarget.style.background = 'var(--ink-04)';
           }
         }}
       >
-        <ALargeSmall size={14} style={{ flexShrink: 0 }} />
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 14, flexShrink: 0 }}
+          aria-hidden
+        >
+          format_size
+        </span>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 10, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -803,7 +875,7 @@ function InlineScaleDropdown({
                 borderRadius: '5px',
                 border: 'none',
                 background: activeLevel === level ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: activeLevel === level ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: activeLevel === level ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '13px',
                 fontWeight: level <= 2 ? 700 : 600,
@@ -812,7 +884,7 @@ function InlineScaleDropdown({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -838,17 +910,17 @@ function InlineScaleDropdown({
               borderRadius: '5px',
               border: 'none',
               background: 'transparent',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+              color: 'var(--ink-40)',
               fontFamily: 'inherit',
               fontSize: '11px',
               cursor: 'pointer',
               textAlign: 'left',
               marginTop: '2px',
-              borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.06)',
+              borderTop: '1px solid var(--ink-08)',
               paddingTop: '6px',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+              e.currentTarget.style.background = 'var(--ink-08)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -863,7 +935,7 @@ function InlineScaleDropdown({
 }
 
 /* ── callout dropdown ── */
-const CALLOUT_TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip'];
+const CALLOUT_TYPES: CalloutType[] = ['info', 'warning', 'success', 'tip', 'danger', 'note'];
 
 function CalloutDropdown({ editor }: { editor: Editor }) {
   const [open, setOpen] = useState(false);
@@ -893,7 +965,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
           borderRadius: '6px',
           border: 'none',
           background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: isActive ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -903,18 +975,20 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
         }}
         onMouseEnter={(e) => {
           if (!isActive) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!isActive) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
-        <MessageSquareWarning size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          feedback
+        </span>
       </button>
       {open && (
         <div
@@ -938,7 +1012,9 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                 key={t}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  editor.chain().focus().toggleCallout({ calloutType: t }).run();
+                  formatBlockSelectionAware(editor, 'callout', (c) =>
+                    c.toggleCallout({ calloutType: t })
+                  );
                   setOpen(false);
                 }}
                 style={{
@@ -950,7 +1026,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                   borderRadius: '6px',
                   border: 'none',
                   background: 'transparent',
-                  color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                  color: 'var(--ink-70)',
                   fontFamily: 'inherit',
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -958,7 +1034,7 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                   transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                  e.currentTarget.style.background = 'var(--ink-08)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'transparent';
@@ -966,8 +1042,16 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
               >
                 <span style={{ display: 'flex', alignItems: 'center', color: s.borderColor }}>
                   {(() => {
-                    const Icon = CALLOUT_ICONS[s.icon];
-                    return Icon ? <Icon size={14} /> : null;
+                    const name = CALLOUT_ICONS[s.icon];
+                    return name ? (
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 14 }}
+                        aria-hidden
+                      >
+                        {name}
+                      </span>
+                    ) : null;
                   })()}
                 </span>
                 <span>{s.label}</span>
@@ -997,17 +1081,17 @@ function CalloutDropdown({ editor }: { editor: Editor }) {
                 borderRadius: '5px',
                 border: 'none',
                 background: 'transparent',
-                color: 'rgb(var(--notebook-ink-rgb) / 0.4)',
+                color: 'var(--ink-40)',
                 fontFamily: 'inherit',
                 fontSize: '11px',
                 cursor: 'pointer',
                 textAlign: 'left',
                 marginTop: '2px',
-                borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.06)',
+                borderTop: '1px solid var(--ink-08)',
                 paddingTop: '6px',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
@@ -1054,7 +1138,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
           borderRadius: '6px',
           border: 'none',
           background: isActive ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: isActive ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: isActive ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1064,18 +1148,20 @@ function TableGridPicker({ editor }: { editor: Editor }) {
         }}
         onMouseEnter={(e) => {
           if (!isActive) {
-            e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.08)';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.85)';
+            e.currentTarget.style.background = 'var(--ink-08)';
+            e.currentTarget.style.color = 'var(--ink-80)';
           }
         }}
         onMouseLeave={(e) => {
           if (!isActive) {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgb(var(--notebook-ink-rgb) / 0.5)';
+            e.currentTarget.style.color = 'var(--ink-50)';
           }
         }}
       >
-        <Table2 size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          table
+        </span>
       </button>
       {open && (
         <div
@@ -1131,7 +1217,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
               textAlign: 'center',
               marginTop: '4px',
               fontSize: '11px',
-              color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+              color: 'var(--ink-50)',
               fontFamily: 'inherit',
             }}
           >
@@ -1151,31 +1237,31 @@ function TableContextButtons({ editor }: { editor: Editor }) {
     <>
       <Sep />
       <ToolbarButton
-        icon={PanelTop}
+        icon="view_day"
         label="Toggle header row"
         isActive={false}
         onClick={() => editor.chain().focus().toggleHeaderRow().run()}
       />
       <ToolbarButton
-        icon={Rows3}
+        icon="table_rows"
         label="Add row after"
         isActive={false}
         onClick={() => editor.chain().focus().addRowAfter().run()}
       />
       <ToolbarButton
-        icon={Columns3}
+        icon="view_column"
         label="Add column after"
         isActive={false}
         onClick={() => editor.chain().focus().addColumnAfter().run()}
       />
       <ToolbarButton
-        icon={Merge}
+        icon="cell_merge"
         label="Merge/split cells"
         isActive={false}
         onClick={() => editor.chain().focus().mergeOrSplit().run()}
       />
       <ToolbarButton
-        icon={Trash2}
+        icon="delete"
         label="Delete table"
         isActive={false}
         onClick={() => editor.chain().focus().deleteTable().run()}
@@ -1231,9 +1317,9 @@ function LineStylePicker({
           height: '28px',
           padding: '0 8px',
           borderRadius: '6px',
-          border: '1px solid rgb(var(--notebook-ink-rgb) / 0.1)',
-          background: open ? 'rgba(140,82,255,0.12)' : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-          color: 'rgb(var(--notebook-ink-rgb) / 0.7)',
+          border: '1px solid var(--ink-12)',
+          background: open ? 'rgba(140,82,255,0.12)' : 'var(--ink-04)',
+          color: 'var(--ink-70)',
           fontFamily: 'inherit',
           fontSize: '11px',
           cursor: 'pointer',
@@ -1247,13 +1333,19 @@ function LineStylePicker({
             y1="6"
             x2="26"
             y2="6"
-            stroke="rgb(var(--notebook-ink-rgb) / 0.7)"
+            stroke="var(--ink-70)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeDasharray={current.dasharray ?? 'none'}
           />
         </svg>
-        <ChevronDown size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 10, flexShrink: 0, opacity: 0.5 }}
+          aria-hidden
+        >
+          expand_more
+        </span>
       </button>
       {open && (
         <div
@@ -1287,7 +1379,7 @@ function LineStylePicker({
                 borderRadius: '6px',
                 border: 'none',
                 background: value === ls.value ? 'rgba(140,82,255,0.18)' : 'transparent',
-                color: value === ls.value ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.7)',
+                color: value === ls.value ? 'var(--md-h4)' : 'var(--ink-70)',
                 fontFamily: 'inherit',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -1295,7 +1387,7 @@ function LineStylePicker({
                 transition: 'background 0.1s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgb(var(--notebook-ink-rgb) / 0.06)';
+                e.currentTarget.style.background = 'var(--ink-08)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background =
@@ -1308,7 +1400,7 @@ function LineStylePicker({
                   y1="5"
                   x2="30"
                   y2="5"
-                  stroke={value === ls.value ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.6)'}
+                  stroke={value === ls.value ? 'var(--md-h4)' : 'var(--ink-60)'}
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeDasharray={ls.dasharray ?? 'none'}
@@ -1328,7 +1420,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { refreshSections } = useNotebookWorkspace();
+  const { refreshSections, setExportDialogOpen } = useNotebookWorkspace();
 
   useEffect(() => {
     if (!open) return;
@@ -1365,7 +1457,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
           borderRadius: 6,
           border: 'none',
           background: open ? 'rgba(140,82,255,0.22)' : 'transparent',
-          color: open ? '#a47bff' : 'rgb(var(--notebook-ink-rgb) / 0.5)',
+          color: open ? 'var(--md-h4)' : 'var(--ink-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1373,7 +1465,9 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
           transition: 'background 0.1s, color 0.1s',
         }}
       >
-        <MoreHorizontal size={15} />
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          more_horiz
+        </span>
       </button>
       {open && (
         <div
@@ -1390,6 +1484,40 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
             minWidth: 160,
           }}
         >
+          {/* Export — surfaces the same ExportDialog as the sidebar footer,
+              so PDF/PPTX export is discoverable from the page itself (item 16). */}
+          <button
+            onClick={() => {
+              setExportDialogOpen(true);
+              setOpen(false);
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--on-surface)',
+              fontSize: 13,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--ink-08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              ios_share
+            </span>
+            Export
+          </button>
           <button
             onClick={handleDelete}
             style={{
@@ -1401,7 +1529,7 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
               borderRadius: 6,
               border: 'none',
               background: 'transparent',
-              color: '#fca5a5',
+              color: 'var(--error)',
               fontSize: 13,
               fontFamily: 'inherit',
               cursor: 'pointer',
@@ -1414,7 +1542,9 @@ function PageActionsMenu({ notebookId, pageId }: { notebookId: string; pageId: s
               e.currentTarget.style.background = 'transparent';
             }}
           >
-            <Trash2 size={14} />
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              delete
+            </span>
             Delete page
           </button>
         </div>
@@ -1454,15 +1584,18 @@ export default function EditorToolbar({
   const [, setTick] = useState(0);
   const bump = useCallback(() => setTick((t) => t + 1), []);
   const withSelection = useSelectionGuard(editor);
-  const { isPhone } = useBreakpoint();
+  const { isPhone, isPhoneOrTablet } = useBreakpoint();
 
+  // Phones AND tablets get horizontally-scrollable toolbar rows — the full
+  // button set is far wider than either viewport, so without this the trailing
+  // tools clipped off the right edge. Tighter padding only on phones.
   const responsiveRowStyle: React.CSSProperties = {
     ...ROW_STYLE,
-    ...(isPhone
+    ...(isPhoneOrTablet
       ? {
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
-          padding: '4px 8px',
+          padding: isPhone ? '4px 8px' : '4px 12px',
           gap: '2px',
           scrollbarWidth: 'none',
         }
@@ -1489,16 +1622,19 @@ export default function EditorToolbar({
         position: 'sticky',
         top: 0,
         zIndex: 200,
+        minWidth: 0,
       }}
     >
-      {isPhone && <style>{`.editor-toolbar-row::-webkit-scrollbar { display: none; }`}</style>}
+      {isPhoneOrTablet && (
+        <style>{`.editor-toolbar-row::-webkit-scrollbar { display: none; }`}</style>
+      )}
 
       {/* Row 1: Font controls + inline formatting */}
       <div
-        className={isPhone ? 'editor-toolbar-row' : undefined}
+        className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined}
         style={{
           ...responsiveRowStyle,
-          borderBottom: '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+          borderBottom: '1px solid var(--ink-08)',
           gap: '4px',
         }}
       >
@@ -1522,7 +1658,7 @@ export default function EditorToolbar({
         />
         <Sep />
         <ToolbarButton
-          icon={Bold}
+          icon="format_bold"
           label="Bold (Cmd+B)"
           isActive={
             selectedTextAnnotation
@@ -1544,7 +1680,7 @@ export default function EditorToolbar({
           }}
         />
         <ToolbarButton
-          icon={Italic}
+          icon="format_italic"
           label="Italic (Cmd+I)"
           isActive={
             selectedTextAnnotation
@@ -1566,7 +1702,7 @@ export default function EditorToolbar({
           }}
         />
         <ToolbarButton
-          icon={Underline}
+          icon="format_underlined"
           label="Underline (Cmd+U)"
           isActive={
             selectedTextAnnotation
@@ -1588,7 +1724,7 @@ export default function EditorToolbar({
           }}
         />
         <ToolbarButton
-          icon={Strikethrough}
+          icon="format_strikethrough"
           label="Strikethrough"
           isActive={
             selectedTextAnnotation
@@ -1611,7 +1747,7 @@ export default function EditorToolbar({
         />
         <Sep />
         <ColorPicker
-          icon={Palette}
+          icon="palette"
           label="Text Color"
           colors={TEXT_COLORS}
           activeColor={
@@ -1637,7 +1773,7 @@ export default function EditorToolbar({
           }}
         />
         <ColorPicker
-          icon={Highlighter}
+          icon="ink_highlighter"
           label="Highlight"
           colors={HIGHLIGHT_COLORS}
           activeColor={editor.getAttributes('highlight').color as string | undefined}
@@ -1653,49 +1789,76 @@ export default function EditorToolbar({
       </div>
 
       {/* Row 2: Block formatting + utilities */}
-      <div className={isPhone ? 'editor-toolbar-row' : undefined} style={responsiveRowStyle}>
+      <div
+        className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined}
+        style={responsiveRowStyle}
+      >
         <ToolbarButton
-          icon={Heading1}
+          icon="format_h1"
           label="Heading 1"
-          isActive={editor.isActive('toggleHeading', { level: 1 })}
-          onClick={() => editor.chain().focus().toggleToggleHeading({ level: 1 }).run()}
+          isActive={editor.isActive('heading', { level: 1 })}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 1 }))
+          }
         />
         <ToolbarButton
-          icon={Heading2}
+          icon="format_h2"
           label="Heading 2"
-          isActive={editor.isActive('toggleHeading', { level: 2 })}
-          onClick={() => editor.chain().focus().toggleToggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 2 }))
+          }
         />
         <ToolbarButton
-          icon={Heading3}
+          icon="format_h3"
           label="Heading 3"
-          isActive={editor.isActive('toggleHeading', { level: 3 })}
-          onClick={() => editor.chain().focus().toggleToggleHeading({ level: 3 }).run()}
+          isActive={editor.isActive('heading', { level: 3 })}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'heading', (c) => c.toggleHeading({ level: 3 }))
+          }
         />
         <Sep />
         <ToolbarButton
-          icon={List}
+          icon="format_list_bulleted"
           label="Bullet List"
           isActive={editor.isActive('bulletList')}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'bulletList', (c) => c.toggleBulletList())
+          }
         />
         <ToolbarButton
-          icon={ListOrdered}
+          icon="format_list_numbered"
           label="Ordered List"
           isActive={editor.isActive('orderedList')}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'orderedList', (c) => c.toggleOrderedList())
+          }
         />
         <ToolbarButton
-          icon={Quote}
+          icon="format_quote"
           label="Blockquote"
           isActive={editor.isActive('blockquote')}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          onClick={() =>
+            formatBlockSelectionAware(editor, 'blockquote', (c) => c.toggleBlockquote())
+          }
         />
         <ToolbarButton
-          icon={Code}
+          icon="code"
           label="Code Block"
           isActive={editor.isActive('codeBlock')}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => insertCodeBlock(editor)}
+        />
+        <ToolbarButton
+          icon="functions"
+          label="Equation"
+          isActive={editor.isActive('blockMath')}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertContent({ type: 'blockMath', attrs: { latex: '' } })
+              .run()
+          }
         />
         <CalloutDropdown editor={editor} />
         <TableGridPicker editor={editor} />
@@ -1716,34 +1879,17 @@ export default function EditorToolbar({
         />
         <GenerateDropdown notebookId={notebookId} pageId={pageId} />
         <Sep />
-        {/* Cursor / Pen / Text mode toggle */}
-        <ToolbarButton
-          icon={MousePointer2}
-          label="Cursor mode"
-          isActive={editorMode === 'cursor'}
-          onClick={() => onModeChange('cursor')}
-        />
-        <ToolbarButton
-          icon={Pen}
-          label="Pen mode"
-          isActive={editorMode === 'pen'}
-          onClick={() => onModeChange('pen')}
-        />
-        <ToolbarButton
-          icon={Type}
-          label="Text mode"
-          isActive={editorMode === 'text'}
-          onClick={() => onModeChange('text')}
-        />
+        {/* Cursor / Pen / Text mode — a segmented control, not format toggles */}
+        <ModeSwitch mode={editorMode} onModeChange={onModeChange} />
         <Sep />
         <ToolbarButton
-          icon={Undo}
+          icon="undo"
           label="Undo (Cmd+Z)"
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         />
         <ToolbarButton
-          icon={Redo}
+          icon="redo"
           label="Redo (Cmd+Shift+Z)"
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
@@ -1754,22 +1900,22 @@ export default function EditorToolbar({
       {/* Row 3: Pen settings (visible only in pen mode) */}
       {editorMode === 'pen' && (
         <div
-          className={isPhone ? 'editor-toolbar-row' : undefined}
+          className={isPhoneOrTablet ? 'editor-toolbar-row' : undefined}
           style={{
             ...responsiveRowStyle,
-            borderTop: '1px solid rgb(var(--notebook-ink-rgb) / 0.08)',
+            borderTop: '1px solid var(--ink-08)',
             gap: '6px',
           }}
         >
           {/* Pen / Eraser sub-tool */}
           <ToolbarButton
-            icon={Pen}
+            icon="draw"
             label="Pen"
             isActive={activeTool === 'pen'}
             onClick={() => onActiveToolChange('pen')}
           />
           <ToolbarButton
-            icon={Eraser}
+            icon="ink_eraser"
             label="Eraser"
             isActive={activeTool === 'eraser'}
             onClick={() => onActiveToolChange('eraser')}
@@ -1848,14 +1994,14 @@ export default function EditorToolbar({
 
           {/* Ruler toggle */}
           <ToolbarButton
-            icon={Ruler}
+            icon="straighten"
             label="Ruler"
             isActive={ruler.active}
             onClick={onRulerToggle}
           />
 
           {/* Clear all drawings */}
-          <ToolbarButton icon={Trash2} label="Clear All Drawings" onClick={onClearDrawing} />
+          <ToolbarButton icon="delete" label="Clear All Drawings" onClick={onClearDrawing} />
         </div>
       )}
     </div>

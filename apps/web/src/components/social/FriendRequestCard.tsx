@@ -58,7 +58,7 @@ export default function FriendRequestCard({
         gap: 12,
         padding: '12px 16px',
         borderRadius: 12,
-        background: hovered ? '#35355c' : '#2d2d52',
+        background: hovered ? 'var(--surface-container-highest)' : 'var(--surface-container-high)',
         transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
       }}
     >
@@ -81,7 +81,7 @@ export default function FriendRequestCard({
             style={{
               fontSize: 14,
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               lineHeight: 1.3,
               maxWidth: '100%',
               overflow: 'hidden',
@@ -92,7 +92,7 @@ export default function FriendRequestCard({
           <span
             style={{
               fontSize: 12,
-              color: '#8888a8',
+              color: 'var(--outline)',
               lineHeight: 1.3,
               whiteSpace: 'nowrap',
             }}
@@ -104,7 +104,7 @@ export default function FriendRequestCard({
           <div
             style={{
               fontSize: 12,
-              color: '#aaa8c8',
+              color: 'var(--on-surface-variant)',
               lineHeight: 1.4,
               marginTop: 2,
               overflow: 'hidden',

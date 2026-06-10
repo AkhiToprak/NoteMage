@@ -4,10 +4,11 @@ import GoogleProvider from 'next-auth/providers/google';
 import AppleProvider from 'next-auth/providers/apple';
 import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { getIpFromHeaders } from '@/lib/registration';
+import { getIpFromHeaders, normalizeEmail } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
-import { hasSignupBypassFromAppCookies } from '@/lib/signup-bypass';
+import { logSecurityEvent } from '@/lib/security-events';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -28,6 +29,7 @@ export async function hydrateTokenFromDb(
     where: { id: userId },
     select: {
       onboardingComplete: true,
+      birthDate: true,
       username: true,
       avatarUrl: true,
       role: true,
@@ -42,6 +44,7 @@ export async function hydrateTokenFromDb(
   });
   if (!freshUser) return;
   token.onboardingComplete = freshUser.onboardingComplete;
+  token.hasBirthDate = freshUser.birthDate != null;
   token.username = freshUser.username;
   token.avatarUrl = freshUser.avatarUrl ?? undefined;
   token.role = freshUser.role;
@@ -109,12 +112,14 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await db.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: normalizeEmail(credentials.email) },
           select: {
             id: true,
             email: true,
             name: true,
             password: true,
+            emailVerified: true,
+            birthDate: true,
             username: true,
             avatarUrl: true,
             onboardingComplete: true,
@@ -170,24 +175,39 @@ export const authOptions: NextAuthOptions = {
           // skipped so an attacker can't lock them out by spamming the
           // credentials form with a known email.
           if (user && !isOauthOnly) {
-            await db.$executeRaw`UPDATE users SET "failedLoginAttempts" = "failedLoginAttempts" + 1 WHERE id = ${user.id}`;
+            // Atomic increment + lock in a single statement. Incrementing and
+            // reading the count separately races: concurrent attempts can all
+            // read a pre-cap value and sail past MAX_FAILED_ATTEMPTS. Doing it
+            // under one row lock with RETURNING gives each request the true
+            // post-increment count, and the `"lockedAt" IS NULL` guard means
+            // exactly one request stamps the lock as the counter crosses the
+            // cap (acts as an atomic compare-and-set).
+            const rows = await db.$queryRaw<{ failedLoginAttempts: number; lockedAt: Date | null }[]>(
+              Prisma.sql`
+                UPDATE users
+                SET "failedLoginAttempts" = "failedLoginAttempts" + 1,
+                    "lockedAt" = CASE
+                      WHEN "failedLoginAttempts" + 1 >= ${MAX_FAILED_ATTEMPTS} AND "lockedAt" IS NULL
+                        THEN NOW()
+                      ELSE "lockedAt"
+                    END
+                WHERE id = ${user.id}
+                RETURNING "failedLoginAttempts", "lockedAt"
+              `
+            );
 
-            // Re-read to get the new count
-            const freshUser = await db.user.findUnique({
-              where: { id: user.id },
-              select: { failedLoginAttempts: true },
-            });
-
-            if (freshUser && freshUser.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-              const now = new Date();
-              await db.user.update({
-                where: { id: user.id },
-                data: { lockedAt: now },
+            const updated = rows[0];
+            if (updated && updated.lockedAt && updated.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+              logSecurityEvent({
+                userId: user.id,
+                type: 'account.locked',
+                detail: { failedLoginAttempts: updated.failedLoginAttempts },
               });
-              const unlockAt = new Date(now.getTime() + LOCKOUT_DURATION_MS);
+              const unlockAt = new Date(updated.lockedAt.getTime() + LOCKOUT_DURATION_MS);
               throw new Error(`ACCOUNT_LOCKED:${unlockAt.toISOString()}`);
             }
           }
+          logSecurityEvent({ userId: user?.id ?? null, type: 'login.failed' });
           return null;
         }
 
@@ -198,6 +218,16 @@ export const authOptions: NextAuthOptions = {
           );
         }
 
+        // Email-confirmation hard gate. A correct password on an account whose
+        // `emailVerified` is null means the user registered but never confirmed
+        // their email — refuse login with a distinct error string the login UI
+        // maps to the code-entry screen. OAuth accounts never reach this branch
+        // (they're created provider-verified), and pre-existing accounts were
+        // grandfathered in the add_email_verification migration.
+        if (!user.emailVerified) {
+          throw new Error('EMAIL_NOT_VERIFIED');
+        }
+
         // Successful login — reset failed attempt counter
         if (user.failedLoginAttempts > 0) {
           await db.user.update({
@@ -206,6 +236,7 @@ export const authOptions: NextAuthOptions = {
           });
         }
 
+        logSecurityEvent({ userId: user.id, type: 'login.success' });
         return {
           id: user.id,
           email: user.email,
@@ -213,6 +244,7 @@ export const authOptions: NextAuthOptions = {
           username: user.username,
           avatarUrl: user.avatarUrl ?? undefined,
           onboardingComplete: user.onboardingComplete,
+          hasBirthDate: user.birthDate != null,
           role: user.role,
           tier: user.tier,
           scholarName: user.scholarName ?? undefined,
@@ -252,7 +284,7 @@ export const authOptions: NextAuthOptions = {
       const emailVerified = p.email_verified === true || p.email_verified === 'true';
       if (!emailVerified) return false;
 
-      const email = (user.email ?? p.email ?? '').toLowerCase();
+      const email = normalizeEmail(user.email ?? p.email);
       if (!email) return false;
 
       const providerAccountId = account.providerAccountId;
@@ -268,7 +300,7 @@ export const authOptions: NextAuthOptions = {
         // ignore
       }
 
-      const allowNewUser = await hasSignupBypassFromAppCookies();
+      const allowNewUser = true; // signups are open
 
       const resolution = await findOrCreateOAuthUser({
         provider,
@@ -285,9 +317,6 @@ export const authOptions: NextAuthOptions = {
         // login surface; banned/ip_cap/signup_disabled stay opaque.
         if (resolution.reason === 'account_exists') {
           return '/auth/login?error=OAuthAccountExists';
-        }
-        if (resolution.reason === 'signup_disabled') {
-          return '/waitlist';
         }
         return false;
       }
@@ -308,6 +337,7 @@ export const authOptions: NextAuthOptions = {
           username?: string;
           avatarUrl?: string;
           onboardingComplete?: boolean;
+          hasBirthDate?: boolean;
           role?: string;
           tier?: string;
           scholarName?: string;
@@ -326,6 +356,7 @@ export const authOptions: NextAuthOptions = {
         token.username = u.username;
         token.avatarUrl = u.avatarUrl;
         token.onboardingComplete = u.onboardingComplete;
+        token.hasBirthDate = u.hasBirthDate;
         token.role = u.role;
         token.tier = u.tier;
         token.scholarName = u.scholarName;
@@ -357,6 +388,7 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username as string;
         session.user.avatarUrl = token.avatarUrl as string | undefined;
         session.user.onboardingComplete = token.onboardingComplete as boolean;
+        session.user.hasBirthDate = (token.hasBirthDate as boolean) ?? false;
         session.user.role = (token.role as string) ?? 'user';
         session.user.tier = (token.tier as string) ?? 'FREE';
         session.user.scholarName = token.scholarName as string | undefined;

@@ -45,12 +45,13 @@ export default function MaintenancePage() {
       />
 
       <section
-        className="glass-panel"
         style={{
           position: 'relative',
           width: '100%',
           maxWidth: 520,
           padding: '48px 36px 40px',
+          background: 'var(--surface-container-high)',
+          borderRadius: 'var(--radius-xl)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -115,10 +116,7 @@ export default function MaintenancePage() {
             lineHeight: 1.1,
             margin: 0,
             marginBottom: 16,
-            background: '#ffffff',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+            color: 'var(--on-surface)',
           }}
         >
           We&rsquo;ll be back shortly.

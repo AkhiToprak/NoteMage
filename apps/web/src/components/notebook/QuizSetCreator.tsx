@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Trash2, Plus, Loader2 } from 'lucide-react';
 
 interface QuizSetCreatorProps {
   notebookId: string;
@@ -152,7 +151,7 @@ export default function QuizSetCreator({
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               margin: 0,
               fontFamily: 'inherit',
             }}
@@ -164,13 +163,15 @@ export default function QuizSetCreator({
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(237,233,255,0.4)',
+              color: 'var(--ink-40)',
               cursor: 'pointer',
               padding: '4px',
               display: 'flex',
             }}
           >
-            <X size={16} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+              close
+            </span>
           </button>
         </div>
 
@@ -190,7 +191,7 @@ export default function QuizSetCreator({
             <label
               style={{
                 fontSize: '11px',
-                color: 'rgba(237,233,255,0.4)',
+                color: 'var(--ink-40)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 display: 'block',
@@ -212,7 +213,7 @@ export default function QuizSetCreator({
                 borderRadius: '8px',
                 padding: '10px 12px',
                 fontSize: '14px',
-                color: '#ede9ff',
+                color: 'var(--on-surface)',
                 fontFamily: 'inherit',
                 outline: 'none',
               }}
@@ -244,7 +245,7 @@ export default function QuizSetCreator({
                 <span
                   style={{
                     fontSize: '11px',
-                    color: 'rgba(237,233,255,0.3)',
+                    color: 'var(--ink-30)',
                     fontWeight: 600,
                   }}
                 >
@@ -269,7 +270,13 @@ export default function QuizSetCreator({
                       (e.currentTarget as HTMLButtonElement).style.color = 'rgba(252,165,165,0.5)';
                     }}
                   >
-                    <Trash2 size={13} />
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 13 }}
+                      aria-hidden
+                    >
+                      delete
+                    </span>
                   </button>
                 )}
               </div>
@@ -287,7 +294,7 @@ export default function QuizSetCreator({
                   borderRadius: '6px',
                   padding: '8px 10px',
                   fontSize: '13px',
-                  color: '#ede9ff',
+                  color: 'var(--on-surface)',
                   fontFamily: 'inherit',
                   outline: 'none',
                   width: '100%',
@@ -300,7 +307,7 @@ export default function QuizSetCreator({
                 <span
                   style={{
                     fontSize: '10px',
-                    color: 'rgba(237,233,255,0.25)',
+                    color: 'var(--ink-20)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -372,7 +379,7 @@ export default function QuizSetCreator({
                         borderRadius: '6px',
                         padding: '7px 10px',
                         fontSize: '13px',
-                        color: '#ede9ff',
+                        color: 'var(--on-surface)',
                         fontFamily: 'inherit',
                         outline: 'none',
                         boxSizing: 'border-box',
@@ -394,7 +401,7 @@ export default function QuizSetCreator({
                   borderRadius: '6px',
                   padding: '7px 10px',
                   fontSize: '12px',
-                  color: 'rgba(237,233,255,0.6)',
+                  color: 'var(--ink-60)',
                   fontFamily: 'inherit',
                   outline: 'none',
                   width: '100%',
@@ -431,7 +438,10 @@ export default function QuizSetCreator({
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(196,169,255,0.6)';
             }}
           >
-            <Plus size={14} /> Add Question
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
+              add
+            </span>{' '}
+            Add Question
           </button>
 
           {/* Error */}
@@ -465,9 +475,9 @@ export default function QuizSetCreator({
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
-              border: '1px solid rgba(237,233,255,0.1)',
+              border: '1px solid var(--ink-12)',
               background: 'transparent',
-              color: 'rgba(237,233,255,0.5)',
+              color: 'var(--ink-50)',
               fontSize: '13px',
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -486,14 +496,22 @@ export default function QuizSetCreator({
               borderRadius: '8px',
               border: 'none',
               background: canSubmit ? '#8c52ff' : 'rgba(140,82,255,0.2)',
-              color: canSubmit ? '#fff' : 'rgba(237,233,255,0.3)',
+              color: canSubmit ? 'var(--on-surface)' : 'var(--ink-30)',
               fontSize: '13px',
               cursor: canSubmit ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',
               fontWeight: 600,
             }}
           >
-            {isSubmitting && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+            {isSubmitting && (
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 14, animation: 'spin 1s linear infinite' }}
+                aria-hidden
+              >
+                progress_activity
+              </span>
+            )}
             {isSubmitting ? 'Creating...' : 'Create Quiz'}
           </button>
         </div>

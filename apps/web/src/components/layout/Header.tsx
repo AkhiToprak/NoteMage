@@ -41,7 +41,7 @@ export default function Header() {
           fontFamily: 'var(--font-brand)',
           fontSize: '24px',
           fontWeight: '400',
-          color: '#ae89ff',
+          color: 'var(--md-h4)',
           margin: 0,
         }}
       >
@@ -56,13 +56,13 @@ export default function Header() {
               style={{
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#aaa8c8',
+                color: 'var(--on-surface-variant)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
               }}
             >
-              Hello, <UserName user={session.user} style={{ color: '#e5e3ff' }} />
+              Hello, <UserName user={session.user} style={{ color: 'var(--on-surface)' }} />
               <TierBadge tier={session.user.tier || 'FREE'} role={session.user.role} />
             </span>
             <UserAvatar user={session.user} size={40} />
@@ -79,7 +79,7 @@ export default function Header() {
             borderRadius: '12px',
             border: '1px solid rgba(70,69,96,0.3)',
             background: 'transparent',
-            color: '#aaa8c8',
+            color: 'var(--on-surface-variant)',
             fontSize: '14px',
             fontWeight: '700',
             cursor: 'pointer',
@@ -87,7 +87,7 @@ export default function Header() {
             transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#2d2d52';
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--card-hover-bg-med)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.background = 'transparent';

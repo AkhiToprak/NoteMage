@@ -25,11 +25,15 @@ export async function GET(request: NextRequest, { params }: Params) {
     const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
     if (!notebook) return notFoundResponse('Notebook not found');
 
+    // Path-generated sets carry `sourcePathId` and are reachable through
+    // the path's checkpoint drawer — hide them from the notebook's flat
+    // list so they don't read as standalone notebook items.
     const sets = await db.flashcardSet.findMany({
-      where: { notebookId },
+      where: { notebookId, sourcePathId: null },
       include: {
         _count: { select: { flashcards: true } },
-        flashcards: { orderBy: { sortOrder: 'asc' } },
+        // Defensive cap: real sets stay well under this; bounds the payload.
+        flashcards: { orderBy: { sortOrder: 'asc' }, take: 200 },
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -91,6 +95,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const set = await db.flashcardSet.create({
       data: {
+        userId,
         notebookId,
         title: title.trim(),
         source: source || 'manual',

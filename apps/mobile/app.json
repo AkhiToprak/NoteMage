@@ -13,13 +13,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#0e0d20"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.notemage.mobile",
       "buildNumber": "1",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:notemage.app"],
+      "associatedDomains": [
+        "applinks:notemage.app"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Notemage uses Face ID to keep your notebooks private after the app is unlocked the first time."
@@ -46,12 +50,25 @@
               "host": "notemage.app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
+      ],
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "revenueCatIosKey": "appl_YWMUdKEPdPqGENDYqViYRSyphQS",
+      "eas": {
+        "projectId": "9bc81d69-a804-4c48-a8b3-aa8719edf1e5"
+      }
     },
     "plugins": [
       "./plugins/with-pencil-module.js",
@@ -77,6 +94,7 @@
         }
       ],
       "expo-apple-authentication"
-    ]
+    ],
+    "owner": "akhitoprak"
   }
 }

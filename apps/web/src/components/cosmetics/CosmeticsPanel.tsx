@@ -91,7 +91,7 @@ const SWATCH_RADIUS = 14;
 const LABEL_STYLE: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: '#8888a8',
+  color: 'var(--outline)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
   marginBottom: 10,
@@ -211,7 +211,7 @@ function SwatchShell({
           inset: 0,
           borderRadius: SWATCH_RADIUS,
           overflow: 'hidden',
-          background: '#2a2a4c',
+          background: 'var(--surface-container-highest)',
           border: selected ? '2px solid #ae89ff' : '1px solid rgba(136,136,168,0.36)',
           boxShadow: selected
             ? '0 0 0 3px rgba(174,137,255,0.18), 0 8px 24px rgba(174,137,255,0.22)'
@@ -225,28 +225,33 @@ function SwatchShell({
         {children}
       </div>
 
-      {/* Lock overlay */}
+      {/* Lock corner badge */}
       {locked && (
         <div
           style={{
             position: 'absolute',
-            inset: 0,
-            borderRadius: SWATCH_RADIUS,
+            top: 6,
+            right: 6,
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            background: 'rgba(17,17,38,0.72)',
+            backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(17,17,38,0.35)',
-            backdropFilter: 'blur(1px)',
             pointerEvents: 'none',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+            zIndex: 2,
           }}
         >
           <span
             className="material-symbols-outlined"
             style={{
-              fontSize: 22,
+              fontSize: 13,
               color: lockHint ? '#ae89ff' : '#e5e3ff',
               opacity: lockHint ? 1 : 0.85,
-              textShadow: '0 2px 8px rgba(0,0,0,0.45)',
+              textShadow: '0 1px 4px rgba(0,0,0,0.5)',
               transition: `color 0.25s ${EASING}, opacity 0.25s ${EASING}`,
             }}
           >
@@ -385,7 +390,7 @@ function Rail({
           <div
             style={{
               fontSize: 11,
-              color: '#6a6a8c',
+              color: 'var(--outline-variant)',
               fontStyle: 'italic',
             }}
           >
@@ -431,7 +436,7 @@ function TitleSwatchBody({ entry }: { entry: TitleCosmetic }) {
         style={{
           fontSize: 13,
           fontWeight: 700,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: 'var(--font-brand)',
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
@@ -461,7 +466,7 @@ function FontSwatchBody({ entry }: { entry: NameFontCosmetic }) {
         style={{
           fontSize: 22,
           fontWeight: 700,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: entry.css,
           lineHeight: 1,
         }}
@@ -471,7 +476,7 @@ function FontSwatchBody({ entry }: { entry: NameFontCosmetic }) {
       <span
         style={{
           fontSize: 10,
-          color: '#8888a8',
+          color: 'var(--outline)',
           fontWeight: 600,
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
@@ -520,7 +525,7 @@ function ColorSwatchBody({ entry }: { entry: NameColorCosmetic }) {
       <span
         style={{
           fontSize: 10,
-          color: '#8888a8',
+          color: 'var(--outline)',
           fontWeight: 600,
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
@@ -554,7 +559,7 @@ function FrameSwatchBody({ entry }: { entry: FrameCosmetic }) {
       <span
         style={{
           fontSize: 10,
-          color: '#8888a8',
+          color: 'var(--outline)',
           fontWeight: 600,
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
@@ -585,7 +590,7 @@ function BackgroundSwatchBody({ entry }: { entry: BackgroundCosmetic }) {
         <span
           style={{
             fontSize: 10,
-            color: '#e5e3ff',
+            color: 'var(--on-surface)',
             fontWeight: 700,
             letterSpacing: '0.05em',
             textTransform: 'uppercase',
@@ -598,9 +603,10 @@ function BackgroundSwatchBody({ entry }: { entry: BackgroundCosmetic }) {
   );
 }
 
-// Compare for sorting: level asc, then label asc.
-function byLevelThenLabel(a: Cosmetic, b: Cosmetic) {
-  if (a.requiredLevel !== b.requiredLevel) return a.requiredLevel - b.requiredLevel;
+// Compare for sorting: defaults first (so the "no cosmetic" baseline is at
+// the front of the rail), then label asc.
+function byDefaultThenLabel(a: Cosmetic, b: Cosmetic) {
+  if (!!a.isDefault !== !!b.isDefault) return a.isDefault ? -1 : 1;
   return a.label.localeCompare(b.label);
 }
 
@@ -617,12 +623,12 @@ export function CosmeticsPanel({
   const { data, loading, error } = useCosmetics();
 
   // Catalog subsets, sorted by level asc.
-  const titles = React.useMemo(() => getCosmeticsByType('title').sort(byLevelThenLabel), []);
-  const fonts = React.useMemo(() => getCosmeticsByType('nameFont').sort(byLevelThenLabel), []);
-  const colors = React.useMemo(() => getCosmeticsByType('nameColor').sort(byLevelThenLabel), []);
-  const frames = React.useMemo(() => getCosmeticsByType('frame').sort(byLevelThenLabel), []);
+  const titles = React.useMemo(() => getCosmeticsByType('title').sort(byDefaultThenLabel), []);
+  const fonts = React.useMemo(() => getCosmeticsByType('nameFont').sort(byDefaultThenLabel), []);
+  const colors = React.useMemo(() => getCosmeticsByType('nameColor').sort(byDefaultThenLabel), []);
+  const frames = React.useMemo(() => getCosmeticsByType('frame').sort(byDefaultThenLabel), []);
   const backgrounds = React.useMemo(
-    () => getCosmeticsByType('background').sort(byLevelThenLabel),
+    () => getCosmeticsByType('background').sort(byDefaultThenLabel),
     []
   );
 
@@ -631,13 +637,13 @@ export function CosmeticsPanel({
     (id: string) => {
       if (!data) return false;
       const entry = COSMETICS[id];
-      // Admin-only cosmetics are NEVER auto-owned. They use `requiredLevel: 1`
-      // purely as a sort sentinel; ownership must come from an explicit admin
-      // grant that writes a UserCosmetic row.
+      // Admin-only cosmetics are NEVER auto-owned — ownership must come from
+      // an explicit admin grant that writes a UserCosmetic row.
       if (entry?.adminOnly) return data.owned.has(id);
-      // Level-1 defaults are always owned even if the UserCosmetic row hasn't
-      // been written yet — this mirrors the profile PUT validator.
-      if (entry && entry.requiredLevel <= 1) return true;
+      // The baseline "no cosmetic" entries are always owned even if the
+      // UserCosmetic row hasn't been written yet — mirrors the profile
+      // PUT validator.
+      if (entry?.isDefault) return true;
       return data.owned.has(id);
     },
     [data]
@@ -768,7 +774,7 @@ export function CosmeticsPanel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#8888a8',
+          color: 'var(--outline)',
           fontSize: 13,
         }}
       >
@@ -776,7 +782,7 @@ export function CosmeticsPanel({
           className="material-symbols-outlined"
           style={{
             fontSize: 32,
-            color: '#ae89ff',
+            color: 'var(--md-h4)',
             animation: 'spin 1s linear infinite',
           }}
         >
@@ -841,7 +847,7 @@ export function CosmeticsPanel({
           borderRadius: 20,
           overflow: 'hidden',
           border: '1px solid rgba(174,137,255,0.40)',
-          background: '#1c1c38',
+          background: 'var(--surface-container)',
           padding: previewPad,
           minHeight: 140,
           display: 'flex',
@@ -888,7 +894,7 @@ export function CosmeticsPanel({
               // would override what the user just picked in the rail.
               fontSize: compact ? 20 : 24,
               fontWeight: 800,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               lineHeight: 1.1,
             }}
           />
@@ -896,7 +902,7 @@ export function CosmeticsPanel({
             style={{
               margin: 0,
               fontSize: 13,
-              color: '#aaa8c8',
+              color: 'var(--on-surface-variant)',
               letterSpacing: '0.02em',
             }}
           >
@@ -909,7 +915,7 @@ export function CosmeticsPanel({
               fontWeight: 700,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: '#6a6a8c',
+              color: 'var(--outline-variant)',
             }}
           >
             Live preview
@@ -932,7 +938,7 @@ export function CosmeticsPanel({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="material-symbols-outlined" style={{ color: '#ffde59', fontSize: 22 }}>
+            <span className="material-symbols-outlined" style={{ color: 'var(--warning)', fontSize: 22 }}>
               admin_panel_settings
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -940,7 +946,7 @@ export function CosmeticsPanel({
                 style={{
                   fontSize: 13,
                   fontWeight: 800,
-                  color: '#ffde59',
+                  color: 'var(--warning)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                 }}
@@ -950,7 +956,7 @@ export function CosmeticsPanel({
               <div
                 style={{
                   fontSize: 12,
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   marginTop: 2,
                 }}
               >
@@ -973,7 +979,7 @@ export function CosmeticsPanel({
                 borderRadius: 10,
                 border: 'none',
                 background: 'rgba(255,222,89,0.15)',
-                color: '#ffde59',
+                color: 'var(--warning)',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: adminBgUploading ? 'wait' : 'pointer',
@@ -1055,7 +1061,10 @@ export function CosmeticsPanel({
               justifyContent: 'center',
             }}
           >
-            <span className="material-symbols-outlined" style={{ color: '#6a6a8c', fontSize: 26 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ color: 'var(--outline-variant)', fontSize: 26 }}
+            >
               block
             </span>
           </div>

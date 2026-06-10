@@ -17,7 +17,7 @@ const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 async function cleanExpiredLocks(sessionId: string) {
   await db.pageLock.deleteMany({
-    where: { sessionId, expiresAt: { lt: new Date() } },
+    where: { sessionId: { equals: sessionId }, expiresAt: { lt: new Date() } },
   });
 }
 
@@ -109,6 +109,22 @@ export async function POST(request: NextRequest, { params }: Params) {
         where: { id: existingLock.id },
         data: { lockedById: userId, lockedAt: new Date(), expiresAt },
       });
+
+      // Real-time broadcast — the lock holder changed, so peers must learn
+      // about it the same way they do on a fresh lock. Without this, anyone
+      // who was editing the (now expired-and-reclaimed) page keeps editing it
+      // even though someone else now holds the lock.
+      await wsEmit({
+        room: `session:${sessionId}`,
+        event: 'cowork:page_locked',
+        data: {
+          sessionId,
+          pageId,
+          lockedById: userId,
+          expiresAt: updated.expiresAt.toISOString(),
+        },
+      });
+
       return successResponse({
         id: updated.id,
         pageId,

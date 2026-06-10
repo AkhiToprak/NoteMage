@@ -53,7 +53,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { storagePath, fileName, fileType } = await request.json();
 
     if (!storagePath) return badRequestResponse('No storagePath provided');
-    if (!validateStoragePath(storagePath, 'documents/')) {
+    // Scope to this notebook's document prefix — the notebook is already
+    // ownership-checked above, and the service-role client bypasses RLS.
+    if (!validateStoragePath(storagePath, `documents/${notebookId}/`)) {
       return badRequestResponse('Invalid storage path');
     }
     if (!ALLOWED_MIME_TYPES.includes(fileType)) {

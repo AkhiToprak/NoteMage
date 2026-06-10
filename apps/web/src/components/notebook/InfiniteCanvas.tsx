@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Loader } from 'lucide-react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 // NOTE: This whole module is only ever loaded client-side because the parent
 // `app/(dashboard)/notebooks/[id]/pages/[pageId]/page.tsx` imports it via
@@ -23,6 +22,7 @@ import type {
 } from '@excalidraw/excalidraw/element/types';
 import { useCoworkSocket } from '@/lib/cowork-socket';
 import { isInsideNativeShell, nativeBridge } from '@/lib/native-bridge';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import RemoteCursor from './RemoteCursor';
 import PageLockIndicator from './PageLockIndicator';
 
@@ -135,7 +135,7 @@ function getLuminance(hex: string): number {
  * reads as subtle paper texture, not a loud grid.
  */
 function getInkColor(hex: string): string {
-  return getLuminance(hex) < 0.5 ? 'rgb(var(--notebook-ink-rgb) / 0.12)' : 'rgba(0,0,0,0.14)';
+  return getLuminance(hex) < 0.5 ? 'var(--ink-12)' : 'rgba(0,0,0,0.14)';
 }
 
 /**
@@ -196,7 +196,7 @@ function renderPatternBody(style: BackgroundStyle, ink: string) {
  * apart at a glance.
  */
 function StyleTileSwatch({ style }: { style: BackgroundStyle }) {
-  const ink = 'rgb(var(--notebook-ink-rgb) / 0.55)';
+  const ink = 'var(--ink-50)';
   const bg = 'rgba(0,0,0,0.3)';
   if (style === 'blank') {
     return (
@@ -294,6 +294,13 @@ export default function InfiniteCanvas({
   const backgroundStyleRef = useRef<BackgroundStyle>('blank');
   const patternElementRef = useRef<SVGPatternElement | null>(null);
   titleRef.current = title;
+
+  // Component is loaded via dynamic(ssr:false), so useBreakpoint reads the real
+  // viewport on the first client render — no SSR snapshot to flash past.
+  const { isPhone, isTablet, isPhoneOrTablet } = useBreakpoint();
+  // Tracks the last page we fit-to-viewport on so the mobile fit runs once per
+  // page (and re-runs when the user switches canvas pages).
+  const fittedPageRef = useRef<string | null>(null);
 
   /* ─── Co-work state ─────────────────────────────────────────────────── *
    * Mirrors PageEditor's cowork plumbing but adapted for Excalidraw's
@@ -1123,6 +1130,47 @@ export default function InfiniteCanvas({
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [page]);
 
+  /* ─── Mobile: fit the saved drawing into the viewport on load ───────── *
+   * Excalidraw mounts at 100% zoom anchored near the scene origin. On a
+   * phone or tablet that left the saved drawing scrolled out of frame —
+   * the elements exist in the DOM but aren't presented in the small
+   * viewport, so the canvas reads as blank. Once the absolute-inset
+   * wrapper has a real size AND the imperative API is ready, fit the
+   * content to the viewport so the whole drawing is visible at a sane
+   * zoom. Desktop keeps Excalidraw's default centring (initialData's
+   * scrollToContent) untouched. The RAF retry covers the first frames
+   * where the wrapper hasn't been measured yet (the common cause of the
+   * "blank on mobile" report). Blank canvases are left at the origin —
+   * there's nothing to frame. */
+  useEffect(() => {
+    if (isLoading || !page) return;
+    if (!isPhoneOrTablet) return;
+    if (fittedPageRef.current === pageId) return;
+
+    let raf = 0;
+    let tries = 0;
+    const attempt = () => {
+      const api = excalidrawAPIRef.current;
+      const wrap = canvasWrapperRef.current;
+      if (api && wrap && wrap.clientWidth > 0 && wrap.clientHeight > 0) {
+        const els = api.getSceneElements();
+        if (els.length > 0) {
+          api.scrollToContent(els, {
+            fitToViewport: true,
+            viewportZoomFactor: 0.9,
+            maxZoom: 1,
+          });
+        }
+        fittedPageRef.current = pageId;
+        return;
+      }
+      // ~0.66s of frames to let the canvas mount + lay out before giving up.
+      if (tries++ < 40) raf = requestAnimationFrame(attempt);
+    };
+    raf = requestAnimationFrame(attempt);
+    return () => cancelAnimationFrame(raf);
+  }, [isLoading, page, isPhoneOrTablet, pageId]);
+
   /* ─── Derive initial data from fetched page (memoized per page) ─────── */
   const initialData = useMemo<ExcalidrawInitialDataState | null>(() => {
     if (!page) return null;
@@ -1150,7 +1198,7 @@ export default function InfiniteCanvas({
             width: '240px',
             height: '28px',
             borderRadius: '8px',
-            background: 'rgb(var(--notebook-ink-rgb) / 0.08)',
+            background: 'var(--ink-08)',
             marginBottom: '24px',
             animation: 'pulse 1.5s ease-in-out infinite',
           }}
@@ -1160,7 +1208,7 @@ export default function InfiniteCanvas({
             width: '100%',
             height: '400px',
             borderRadius: '12px',
-            background: 'rgb(var(--notebook-ink-rgb) / 0.04)',
+            background: 'var(--ink-04)',
             animation: 'pulse 1.5s ease-in-out infinite 0.1s',
           }}
         />
@@ -1183,7 +1231,7 @@ export default function InfiniteCanvas({
           style={{
             fontFamily: 'inherit',
             fontSize: '15px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.3)',
+            color: 'var(--ink-30)',
           }}
         >
           Page not found.
@@ -1365,7 +1413,12 @@ export default function InfiniteCanvas({
       `}</style>
 
       {/* Title + save status */}
-      <div style={{ padding: '18px 40px 0', flexShrink: 0 }}>
+      <div
+        style={{
+          padding: isPhone ? '14px 14px 0' : isTablet ? '16px 24px 0' : '18px 40px 0',
+          flexShrink: 0,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
           <input
             value={title}
@@ -1400,13 +1453,9 @@ export default function InfiniteCanvas({
               height: '26px',
               padding: 0,
               borderRadius: '6px',
-              background: uiHidden
-                ? 'rgba(174,137,255,0.14)'
-                : 'rgb(var(--notebook-ink-rgb) / 0.04)',
-              border: uiHidden
-                ? '1px solid rgba(174,137,255,0.45)'
-                : '1px solid rgb(var(--notebook-ink-rgb) / 0.10)',
-              color: uiHidden ? 'rgba(206,184,255,0.95)' : 'rgb(var(--notebook-ink-rgb) / 0.55)',
+              background: uiHidden ? 'rgba(174,137,255,0.14)' : 'var(--ink-04)',
+              border: uiHidden ? '1px solid rgba(174,137,255,0.45)' : '1px solid var(--ink-12)',
+              color: uiHidden ? 'rgba(206,184,255,0.95)' : 'var(--ink-50)',
               cursor: 'pointer',
               transition: 'background 0.15s, border-color 0.15s, color 0.15s',
               flexShrink: 0,
@@ -1426,7 +1475,7 @@ export default function InfiniteCanvas({
               fontSize: '11px',
               color:
                 saveStatus === 'saved'
-                  ? 'rgb(var(--notebook-ink-rgb) / 0.2)'
+                  ? 'var(--ink-20)'
                   : saveStatus === 'saving'
                     ? 'rgba(140,82,255,0.6)'
                     : 'rgba(249,115,22,0.6)',
@@ -1434,7 +1483,7 @@ export default function InfiniteCanvas({
             }}
           >
             {saveStatus === 'saving' && (
-              <Loader size={11} style={{ animation: 'spin 0.8s linear infinite' }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11, animation: 'spin 0.8s linear infinite' }} aria-hidden>progress_activity</span>
             )}
             {saveStatus === 'saved' && 'Saved'}
             {saveStatus === 'saving' && 'Saving...'}
@@ -1445,7 +1494,7 @@ export default function InfiniteCanvas({
           style={{
             fontFamily: 'inherit',
             fontSize: '11px',
-            color: 'rgb(var(--notebook-ink-rgb) / 0.22)',
+            color: 'var(--ink-20)',
             margin: '0 0 0 2px',
           }}
         >
@@ -1600,7 +1649,7 @@ export default function InfiniteCanvas({
                     style={{
                       fontSize: '11px',
                       fontWeight: 500,
-                      color: 'rgb(var(--notebook-ink-rgb) / 0.5)',
+                      color: 'var(--ink-50)',
                       letterSpacing: '0.02em',
                       padding: '0 2px',
                     }}
@@ -1637,7 +1686,7 @@ export default function InfiniteCanvas({
                             borderRadius: '6px',
                             border: selected
                               ? '1px solid rgba(174,137,255,0.9)'
-                              : '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                              : '1px solid var(--ink-12)',
                             background: selected ? 'rgba(174,137,255,0.12)' : 'rgba(0,0,0,0.35)',
                             cursor: 'pointer',
                             padding: 0,
@@ -1674,7 +1723,7 @@ export default function InfiniteCanvas({
                         height: '16px',
                         borderRadius: '4px',
                         background: bgColor,
-                        border: '1px solid rgb(var(--notebook-ink-rgb) / 0.15)',
+                        border: '1px solid var(--ink-12)',
                         flexShrink: 0,
                       }}
                     />
@@ -1685,7 +1734,7 @@ export default function InfiniteCanvas({
                       style={{
                         flex: 1,
                         background: 'rgba(0,0,0,0.35)',
-                        border: '1px solid rgb(var(--notebook-ink-rgb) / 0.12)',
+                        border: '1px solid var(--ink-12)',
                         borderRadius: '5px',
                         color: 'var(--on-surface)',
                         fontFamily: 'inherit',

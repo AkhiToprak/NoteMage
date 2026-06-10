@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ChevronRight, Trash2, FolderPlus } from 'lucide-react';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import type { SectionNode } from '@/components/notebook/SectionTree';
 
@@ -110,7 +109,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
           background: isActive
             ? 'rgba(140,82,255,0.12)'
             : hovered
-              ? 'rgba(237,233,255,0.04)'
+              ? 'var(--ink-04)'
               : 'transparent',
           borderLeft: `3px solid ${isActive ? color : hovered ? color + '80' : color + '50'}`,
           transition: 'background 0.12s ease, border-color 0.12s ease',
@@ -126,19 +125,23 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
           style={{
             display: 'flex',
             flexShrink: 0,
-            color: 'rgba(237,233,255,0.3)',
+            color: 'var(--ink-30)',
             marginLeft: '-4px',
             width: '14px',
           }}
         >
           {section.children.length > 0 || isCreatingChild ? (
-            <ChevronRight
-              size={13}
+            <span
+              className="material-symbols-outlined"
               style={{
+                fontSize: 13,
                 transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
                 transition: 'transform 0.12s ease',
               }}
-            />
+              aria-hidden
+            >
+              chevron_right
+            </span>
           ) : (
             <div style={{ width: '13px' }} />
           )}
@@ -151,7 +154,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
             fontFamily: 'inherit',
             fontSize: depth === 0 ? '13px' : '12px',
             fontWeight: isActive ? 600 : 400,
-            color: isActive ? '#ede9ff' : 'rgba(237,233,255,0.65)',
+            color: isActive ? 'var(--on-surface)' : 'var(--ink-60)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -178,7 +181,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -186,10 +189,12 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 (e.currentTarget as HTMLButtonElement).style.color = '#a47bff';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <FolderPlus size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                create_new_folder
+              </span>
             </button>
             {/* Delete */}
             <button
@@ -205,7 +210,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                color: 'rgba(237,233,255,0.3)',
+                color: 'var(--ink-30)',
                 padding: 0,
                 flexShrink: 0,
               }}
@@ -213,10 +218,12 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
                 (e.currentTarget as HTMLButtonElement).style.color = '#fca5a5';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = 'rgba(237,233,255,0.3)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--ink-30)';
               }}
             >
-              <Trash2 size={11} />
+              <span className="material-symbols-outlined" style={{ fontSize: 11 }} aria-hidden>
+                delete
+              </span>
             </button>
           </div>
         )}
@@ -236,7 +243,13 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
             borderLeft: '3px solid rgba(140,82,255,0.4)',
           }}
         >
-          <FolderPlus size={11} style={{ color: 'rgba(237,233,255,0.3)', flexShrink: 0 }} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 11, color: 'var(--ink-30)', flexShrink: 0 }}
+            aria-hidden
+          >
+            create_new_folder
+          </span>
           <input
             ref={childInputRef}
             type="text"
@@ -267,7 +280,7 @@ export default function SectionListItem({ section, depth = 0 }: SectionListItemP
               padding: '3px 7px',
               fontFamily: 'inherit',
               fontSize: '12px',
-              color: '#ede9ff',
+              color: 'var(--on-surface)',
               outline: 'none',
             }}
           />

@@ -12,7 +12,7 @@
 
 ## Always Do First
 
-- **Invoke the `frontend-design` skill** before writing any frontend code, every session, no exceptions.
+- **Invoke the `hallmark` skill** before writing any frontend code, every session, no exceptions.
 
 ## Already shipped (don't re-flag)
 

@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { hasProAccess } from '@/lib/pro-access';
 import { TutorialContext, type TutorialContextValue } from './TutorialContext';
 import { TutorialOverlay } from './TutorialOverlay';
+import { getStepConfig } from './steps';
 import type {
   TutorialCompletionResult,
   TutorialPersistedState,
@@ -17,10 +20,17 @@ const LEGACY_STORAGE_KEY = 'notemage-tutorial';
 
 const ACTIVE_RESUMABLE_STEPS: ReadonlyArray<TutorialStep> = [
   'welcome',
-  'step-1-dashboard',
-  'step-2-notebook-form',
-  'step-3-workspace',
-  'step-4-chat-modal',
+  'dashboard',
+  'nav-menu',
+  'search',
+  'timer',
+  'profile',
+  'notebooks',
+  'learn-tabs',
+  'learn-paths',
+  'learn-community',
+  'learn-chats',
+  'cowork',
   'complete',
 ];
 
@@ -106,10 +116,13 @@ async function postComplete(): Promise<TutorialCompletionResult | null> {
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session, update: updateSession } = useSession();
   const onboardingComplete = session?.user?.onboardingComplete === true;
   const serverState = session?.user?.tutorialState;
   const userId = session?.user?.id ?? null;
+  const isPro = hasProAccess(session?.user);
+  const { isPhone } = useBreakpoint();
 
   const [step, setStep] = useState<TutorialStep>('idle');
   const [hydrated, setHydrated] = useState(false);
@@ -118,6 +131,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const targetsRef = useRef<Map<TutorialTargetKey, HTMLElement>>(new Map());
   const persistedRef = useRef<TutorialPersistedState>({});
+  // Guards the server-reconcile effect from re-adopting the stale
+  // completedAt/dismissedAt while a restart() (Re-take tour) reset is in
+  // flight — otherwise the tour is stood back down before the reset lands.
+  const restartingRef = useRef(false);
 
   // Hydrate per-user state once we know who the user is. Re-runs on userId
   // change so a fresh signup on the same browser starts from a clean slate.
@@ -138,6 +155,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // local mirror doesn't know yet, adopt it and stand the tour down.
   useEffect(() => {
     if (!hydrated || !serverState) return;
+    // A restart just cleared local terminal state; the session may still
+    // report the old completedAt/dismissedAt until updateSession() lands.
+    // Adopting them now would cancel the restart, so skip while in flight.
+    if (restartingRef.current) return;
     let mutated: TutorialPersistedState | null = null;
 
     if (serverState.completedAt && !persistedRef.current.completedAt) {
@@ -186,10 +207,21 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   const start = useCallback(() => {
-    setStep('step-1-dashboard');
-    persist({ ...persistedRef.current, step: 'step-1-dashboard' });
-    void patchServer({ step: 'step-1-dashboard' });
+    setStep('dashboard');
+    persist({ ...persistedRef.current, step: 'dashboard' });
+    void patchServer({ step: 'dashboard' });
   }, [persist]);
+
+  // Active route-stepping: each tour step declares the route it's shown on.
+  // When the current step's route differs from where we are, navigate there so
+  // the step's anchor (e.g. a /learn tab) is on screen for the overlay to
+  // spotlight. The pathname guard makes this a no-op once we've arrived.
+  useEffect(() => {
+    if (!hydrated) return;
+    const route = getStepConfig(step, isPro, isPhone)?.route;
+    if (!route || pathname === route) return;
+    router.push(route);
+  }, [step, isPro, isPhone, hydrated, pathname, router]);
 
   const skip = useCallback(() => {
     const dismissedAt = new Date().toISOString();
@@ -238,14 +270,24 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   );
 
   const restart = useCallback(() => {
+    restartingRef.current = true;
     setResult(null);
     persistedRef.current = { step: 'welcome' };
     writeStored(userId, persistedRef.current);
     setStep('welcome');
-    void patchServer({ reset: true }).then(() => {
-      void patchServer({ step: 'welcome' });
-      void updateSession();
-    });
+    // Hold the reconcile guard until BOTH the server reset and the session
+    // refresh have landed, so the effect never re-adopts the stale terminal
+    // timestamps. patchServer/updateSession swallow their own errors; the
+    // finally still releases the guard if anything rejects.
+    void (async () => {
+      try {
+        await patchServer({ reset: true });
+        await patchServer({ step: 'welcome' });
+        await updateSession();
+      } finally {
+        restartingRef.current = false;
+      }
+    })();
   }, [updateSession, userId]);
 
   const register = useCallback((key: TutorialTargetKey, el: HTMLElement) => {
@@ -258,15 +300,22 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setTargetVersion((v) => v + 1);
   }, []);
 
-  const getTarget = useCallback(
-    (key: TutorialTargetKey) => targetsRef.current.get(key) ?? null,
-    []
-  );
+  const getTarget = useCallback((key: TutorialTargetKey) => {
+    // Prefer an element registered via useTutorialTarget; otherwise fall back
+    // to a `data-tutorial="<key>"` attribute so anchors can be added to any
+    // page (server or client) without threading a ref through it.
+    const registered = targetsRef.current.get(key);
+    if (registered) return registered;
+    if (typeof document === 'undefined') return null;
+    return document.querySelector<HTMLElement>(`[data-tutorial="${key}"]`);
+  }, []);
 
   const value = useMemo<TutorialContextValue>(
     () => ({
       step,
       hydrated,
+      isPro,
+      isPhone,
       targetVersion,
       result,
       start,
@@ -281,6 +330,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     [
       step,
       hydrated,
+      isPro,
+      isPhone,
       targetVersion,
       result,
       start,

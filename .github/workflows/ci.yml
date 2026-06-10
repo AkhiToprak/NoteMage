@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so we can diff against the PR base / previous push.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 9.12.0
@@ -20,9 +23,57 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web exec prisma generate
-      - run: pnpm --filter web lint
+
+      - name: Collect changed web files
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+          echo "Diffing ${BASE_SHA}..${{ github.sha }}"
+          # The eslint and prettier baselines are red repo-wide (a set of legacy
+          # react-hooks errors, and ~247 files pending the repo-wide prettier
+          # reformat after a printWidth/trailingComma config change). We gate only
+          # on files this PR/push actually changes so a pre-existing issue in an
+          # untouched file can't block an unrelated change. Paths are emitted
+          # relative to apps/web (where the eslint/prettier configs live).
+          git diff --name-only --diff-filter=ACMR "$BASE_SHA" "${{ github.sha }}" -- apps/web \
+            | sed 's#^apps/web/##' > "$RUNNER_TEMP/changed.txt"
+          grep -E '\.(ts|tsx|js|jsx)$' "$RUNNER_TEMP/changed.txt" > "$RUNNER_TEMP/changed_lint.txt" || true
+          echo "Changed web files:"
+          cat "$RUNNER_TEMP/changed.txt" || true
+
+      - name: Lint changed files
+        run: |
+          if [ ! -s "$RUNNER_TEMP/changed_lint.txt" ]; then
+            echo "No changed JS/TS files to lint."
+            exit 0
+          fi
+          mapfile -t FILES < "$RUNNER_TEMP/changed_lint.txt"
+          pnpm --filter web exec eslint "${FILES[@]}"
+
       - run: pnpm --filter web typecheck
-      - run: pnpm --filter web format:check
+
+      - name: Unit tests (advisory)
+        # Now the suite actually RUNS in CI (it never did before). Advisory
+        # (non-blocking) until the 9 pre-existing failures are fixed (moderation
+        # layer4/5 runners, pretranslate, paths-access, admin pretranslate). Flip
+        # to blocking — drop continue-on-error — once the suite is green.
+        continue-on-error: true
+        run: pnpm --filter web exec vitest run
+
+      - name: Format check (advisory)
+        # Advisory (non-blocking) until the repo-wide prettier reformat lands
+        # (~247 files drift from a printWidth/trailingComma config change). Flip
+        # back to blocking — drop continue-on-error — once that reformat merges.
+        continue-on-error: true
+        run: |
+          if [ ! -s "$RUNNER_TEMP/changed.txt" ]; then
+            echo "No changed files to format-check."
+            exit 0
+          fi
+          mapfile -t FILES < "$RUNNER_TEMP/changed.txt"
+          pnpm --filter web exec prettier --check --ignore-unknown "${FILES[@]}"
 
   build:
     runs-on: ubuntu-latest

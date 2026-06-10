@@ -35,8 +35,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!section) return notFoundResponse('Section not found in this notebook');
 
     // Parse JSON body with storage path
-    const { storagePath } = await request.json();
-    if (!storagePath || !validateStoragePath(storagePath, 'temp-imports/')) {
+    const { storagePath, title: rawTitle } = await request.json();
+    if (!storagePath || !validateStoragePath(storagePath, `temp-imports/${userId}/`)) {
       return badRequestResponse('Invalid or missing storagePath');
     }
 
@@ -68,7 +68,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     const sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
 
-    // Derive title from storage path filename
+    // User-chosen title from the organize mask wins; otherwise derive from
+    // the storage path filename.
+    const customTitle = typeof rawTitle === 'string' ? rawTitle.trim().slice(0, 200) : '';
     const fileName =
       storagePath
         .split('/')
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const page = await db.page.create({
       data: {
         sectionId,
-        title: fileName,
+        title: customTitle || fileName,
         content,
         textContent,
         sortOrder,

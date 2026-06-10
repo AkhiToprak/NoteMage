@@ -95,7 +95,7 @@ export default function PageLockIndicator({
             justifyContent: 'center',
             fontSize: 10,
             fontWeight: 700,
-            color: '#fff',
+            color: 'var(--on-surface)',
             flexShrink: 0,
           }}
         >

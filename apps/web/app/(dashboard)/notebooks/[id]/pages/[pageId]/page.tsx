@@ -128,7 +128,7 @@ export default function PageEditorPage({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          color: 'rgba(237,233,255,0.3)',
+          color: 'var(--ink-30)',
           fontFamily: 'inherit',
           fontSize: '14px',
         }}

@@ -1,24 +1,15 @@
-import { BGPattern } from '@/components/ui/bg-pattern';
-
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main
       style={{
-        background: '#000000',
-        color: '#e5e3ff',
-        minHeight: '100vh',
+        background: '#0c0a1a',
+        color: 'var(--on-surface)',
+        minHeight: '100dvh',
         overflowX: 'hidden',
         position: 'relative',
         isolation: 'isolate',
       }}
     >
-      <BGPattern
-        variant="dots"
-        size={22}
-        fill="rgba(174, 137, 255, 0.14)"
-        style={{ position: 'fixed' }}
-      />
-
       {/* Grain texture */}
       <div
         style={{
@@ -37,7 +28,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         style={{
           position: 'relative',
           zIndex: 10,
-          minHeight: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -46,6 +37,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         }}
       >
         <div
+          className="auth-rise"
           style={{
             width: '100%',
             maxWidth: '560px',
@@ -60,6 +52,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         @keyframes authSlideUp {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .auth-rise { animation: none !important; }
         }
       `}</style>
     </main>

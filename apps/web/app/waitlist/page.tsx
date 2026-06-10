@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BGPattern } from '@/components/ui/bg-pattern';
 
 // =====================================================================
 // WAITLIST PAGE
@@ -41,9 +40,11 @@ export default function WaitlistPage() {
   return (
     <div
       className="waitlist-outer"
+      data-theme="dark"
       style={{
         minHeight: '100vh',
-        background: '#000000',
+        background: '#0c0a1a',
+        colorScheme: 'dark',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -54,13 +55,6 @@ export default function WaitlistPage() {
         padding: '24px',
       }}
     >
-      <BGPattern
-        variant="dots"
-        size={22}
-        fill="rgba(174, 137, 255, 0.14)"
-        style={{ position: 'fixed' }}
-      />
-
       {/* Content card */}
       <div
         style={{
@@ -130,10 +124,10 @@ export default function WaitlistPage() {
               </div>
               <h2
                 style={{
-                  fontFamily: 'var(--font-epilogue), sans-serif',
+                  fontFamily: 'var(--font-display), sans-serif',
                   fontSize: '24px',
                   fontWeight: 700,
-                  color: '#eeecff',
+                  color: 'var(--on-surface)',
                   marginBottom: '12px',
                   letterSpacing: '-0.03em',
                 }}
@@ -142,9 +136,9 @@ export default function WaitlistPage() {
               </h2>
               <p
                 style={{
-                  fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                  fontFamily: 'var(--font-sans), sans-serif',
                   fontSize: '15px',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   lineHeight: 1.7,
                 }}
               >
@@ -157,10 +151,10 @@ export default function WaitlistPage() {
               <h1
                 className="waitlist-heading"
                 style={{
-                  fontFamily: 'var(--font-epilogue), sans-serif',
+                  fontFamily: 'var(--font-display), sans-serif',
                   fontSize: '28px',
                   fontWeight: 700,
-                  color: '#eeecff',
+                  color: 'var(--on-surface)',
                   marginBottom: '12px',
                   letterSpacing: '-0.03em',
                   lineHeight: 1.2,
@@ -170,9 +164,9 @@ export default function WaitlistPage() {
               </h1>
               <p
                 style={{
-                  fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                  fontFamily: 'var(--font-sans), sans-serif',
                   fontSize: '15px',
-                  color: '#aaa8c8',
+                  color: 'var(--on-surface-variant)',
                   lineHeight: 1.7,
                   marginBottom: '32px',
                 }}
@@ -191,6 +185,7 @@ export default function WaitlistPage() {
                 >
                   <input
                     type="email"
+                    aria-label="Email address"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -201,9 +196,9 @@ export default function WaitlistPage() {
                       background: 'rgba(13, 13, 26, 0.7)',
                       border: '1px solid rgba(136, 136, 168, 0.25)',
                       borderRadius: '12px',
-                      color: '#eeecff',
+                      color: 'var(--on-surface)',
                       fontSize: '15px',
-                      fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                      fontFamily: 'var(--font-sans), sans-serif',
                       outline: 'none',
                       transition: 'border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                     }}
@@ -220,7 +215,7 @@ export default function WaitlistPage() {
                       padding: '14px 24px',
                       background: status === 'loading' ? '#ccb238' : '#ffde59',
                       color: '#000000',
-                      fontFamily: 'var(--font-epilogue), sans-serif',
+                      fontFamily: 'var(--font-display), sans-serif',
                       fontSize: '15px',
                       fontWeight: 700,
                       border: 'none',
@@ -241,7 +236,7 @@ export default function WaitlistPage() {
                       e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 222, 89, 0.25)';
                     }}
                   >
-                    {status === 'loading' ? 'Joining...' : 'Join the Waitlist'}
+                    {status === 'loading' ? 'Joining…' : 'Join the Waitlist'}
                   </button>
                 </div>
 
@@ -251,7 +246,7 @@ export default function WaitlistPage() {
                       color: '#fd6f85',
                       fontSize: '13px',
                       marginTop: '12px',
-                      fontFamily: 'var(--font-plus-jakarta), sans-serif',
+                      fontFamily: 'var(--font-sans), sans-serif',
                     }}
                   >
                     {errorMsg}
@@ -267,8 +262,8 @@ export default function WaitlistPage() {
           style={{
             marginTop: '28px',
             fontSize: '14px',
-            color: '#8888a8',
-            fontFamily: 'var(--font-plus-jakarta), sans-serif',
+            color: 'var(--outline)',
+            fontFamily: 'var(--font-sans), sans-serif',
           }}
         >
           Already have an account?{' '}
@@ -299,6 +294,14 @@ export default function WaitlistPage() {
         }
       `}</style>
       <style>{`
+        .waitlist-outer a:focus-visible,
+        .waitlist-outer button:focus-visible,
+        .waitlist-outer input:focus-visible {
+          outline: 2px solid var(--brand-gold);
+          outline-offset: 3px;
+          border-radius: 12px;
+        }
+
         /* ── Responsive: Tablet (768–1023px) ── */
         @media (min-width: 768px) and (max-width: 1023px) {
           .waitlist-outer { padding: 24px 24px !important; }

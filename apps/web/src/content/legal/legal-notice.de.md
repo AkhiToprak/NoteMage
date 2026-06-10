@@ -1,9 +1,25 @@
 # Impressum
 
-Diese Seite wird gerade vorbereitet.
+Angaben zum Betreiber von **Notemage** gemäss den geltenden Informationspflichten.
 
-Notemage wird aus der Schweiz betrieben. Die Anbieterangaben (Name, Adresse, Kontaktinformationen und Handelsregistereintrag) werden hier vor dem öffentlichen Launch von Notemage veröffentlicht.
+## Betreiber
 
-Für Anfragen nutzen Sie bitte vorerst unsere [Kontaktseite](/contact).
+Notemage wird als Einzelunternehmen von einer Einzelperson mit Sitz in der Schweiz betrieben:
 
-_Stand: noch ausstehend._
+- **Name:** Toprak Demirel
+- **Adresse:** Habsburgerstrasse 38, 4055 Basel, Schweiz
+- **E-Mail:** notemage.app@gmail.com (oder über unsere [Kontaktseite](/contact))
+
+## Verantwortlich für den Inhalt
+
+Toprak Demirel ist für den Inhalt dieser Website verantwortlich.
+
+## Haftungsausschluss
+
+Wir erstellen die Inhalte dieser Website mit Sorgfalt. Für deren Richtigkeit, Vollständigkeit und Aktualität übernehmen wir jedoch keine Haftung. Soweit diese Website auf externe Seiten verweist, haben wir keinen Einfluss auf deren Inhalte und übernehmen dafür keine Verantwortung; für diese Seiten sind die jeweiligen Betreiber verantwortlich.
+
+## Datenschutz
+
+Wie wir mit personenbezogenen Daten umgehen, ist in unserer [Datenschutzerklärung](/privacy) beschrieben. Die Bedingungen für die Nutzung des Dienstes finden Sie in unseren [Allgemeinen Geschäftsbedingungen](/terms).
+
+_Stand: 21. Mai 2026._

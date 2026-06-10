@@ -41,9 +41,11 @@ const TYPE_ORDER: { type: CosmeticType; label: string; icon: string }[] = [
   { type: 'background', label: 'Backgrounds', icon: 'wallpaper' },
 ];
 
-// Sorting: level asc, then label asc.
-function byLevelThenLabel(a: Cosmetic, b: Cosmetic) {
-  if (a.requiredLevel !== b.requiredLevel) return a.requiredLevel - b.requiredLevel;
+// Sorting: defaults first, then label asc. Showcase rails generally hide
+// defaults anyway, but the comparator is referenced by the grouping pass
+// before that filter runs.
+function byDefaultThenLabel(a: Cosmetic, b: Cosmetic) {
+  if (!!a.isDefault !== !!b.isDefault) return a.isDefault ? -1 : 1;
   return a.label.localeCompare(b.label);
 }
 
@@ -82,7 +84,7 @@ function TitleTileBody({ entry }: { entry: TitleCosmetic }) {
         style={{
           fontSize: 12,
           fontWeight: 800,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: 'var(--font-brand)',
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
@@ -111,7 +113,7 @@ function FontTileBody({ entry }: { entry: NameFontCosmetic }) {
         style={{
           fontSize: 26,
           fontWeight: 700,
-          color: '#e5e3ff',
+          color: 'var(--on-surface)',
           fontFamily: entry.css,
           lineHeight: 1,
         }}
@@ -242,10 +244,10 @@ function ShowcaseTile({ entry }: { entry: Cosmetic }) {
 // ---------------------------------------------------------------------------
 export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsShowcaseProps) {
   // Resolve slugs to catalog entries, dropping any unknown ids and hiding
-  // level-1 defaults (they're the baseline — everyone has them, showing them
-  // makes the showcase look uniform and uninteresting). adminOnly entries
-  // are the exception: they use `requiredLevel: 1` only as a sort sentinel
-  // and are explicitly granted, so they should always appear in the showcase.
+  // the baseline `isDefault` entries (they're the "no cosmetic" sentinel —
+  // everyone has them, showing them makes the showcase look uniform and
+  // uninteresting). adminOnly entries are explicitly granted, so they
+  // should always appear.
   const resolved = React.useMemo(() => {
     const entries: Cosmetic[] = [];
     const seen = new Set<string>();
@@ -254,7 +256,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
       seen.add(id);
       const entry = COSMETICS[id];
       if (!entry) continue;
-      if (entry.requiredLevel <= 1 && !entry.adminOnly) continue;
+      if (entry.isDefault) continue;
       entries.push(entry);
     }
     return entries;
@@ -266,7 +268,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
       type,
       label,
       icon,
-      entries: resolved.filter((e) => e.type === type).sort(byLevelThenLabel),
+      entries: resolved.filter((e) => e.type === type).sort(byDefaultThenLabel),
     })).filter((g) => g.entries.length > 0);
   }, [resolved]);
 
@@ -278,7 +280,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
     <div
       style={{
         position: 'relative',
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: isPhone ? 20 : 24,
         padding: isPhone ? '24px 20px' : '32px',
         display: 'flex',
@@ -313,10 +315,10 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            color: '#e5e3ff',
+            color: 'var(--on-surface)',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#ae89ff' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--md-h4)' }}>
             auto_awesome
           </span>
           <h3
@@ -335,7 +337,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: '#8888a8',
+            color: 'var(--outline)',
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
           }}
@@ -364,7 +366,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
             >
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: 16, color: '#8888a8' }}
+                style={{ fontSize: 16, color: 'var(--outline)' }}
               >
                 {group.icon}
               </span>
@@ -372,7 +374,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#8888a8',
+                  color: 'var(--outline)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                 }}
@@ -382,7 +384,7 @@ export function CosmeticsShowcase({ unlockedIds, isPhone = false }: CosmeticsSho
               <span
                 style={{
                   fontSize: 11,
-                  color: '#555578',
+                  color: 'var(--outline-variant)',
                   fontWeight: 600,
                 }}
               >

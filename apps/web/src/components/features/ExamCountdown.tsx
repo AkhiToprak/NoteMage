@@ -1,19 +1,15 @@
 'use client';
 
-import Link from 'next/link';
-
 interface Exam {
   id: string;
   title: string;
   examDate: string;
   notebookId: string;
   notebookName: string;
-  studyPlan?: { id: string };
 }
 
 interface ExamCountdownProps {
   exam: Exam;
-  onGeneratePlan?: (examId: string) => void;
   onDelete?: (examId: string) => void;
 }
 
@@ -33,7 +29,7 @@ function getUrgencyColor(days: number): string {
   return '#4ade80';
 }
 
-export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCountdownProps) {
+export default function ExamCountdown({ exam, onDelete }: ExamCountdownProps) {
   const days = getDaysRemaining(exam.examDate);
   const urgencyColor = getUrgencyColor(days);
   const isPast = days < 0;
@@ -41,7 +37,7 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
   return (
     <div
       style={{
-        background: '#21213e',
+        background: 'var(--surface-container-low)',
         borderRadius: '16px',
         padding: '20px',
         borderLeft: `4px solid ${urgencyColor}`,
@@ -52,10 +48,10 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
         opacity: isPast ? 0.55 : 1,
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = '#272746';
+        (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-soft)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = '#21213e';
+        (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
       }}
     >
       {/* Top row: title + notebook + delete */}
@@ -65,7 +61,7 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
             style={{
               fontSize: '15px',
               fontWeight: 700,
-              color: '#e5e3ff',
+              color: 'var(--on-surface)',
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -117,11 +113,11 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span
             className="material-symbols-outlined"
-            style={{ fontSize: '14px', color: '#aaa8c8' }}
+            style={{ fontSize: '14px', color: 'var(--on-surface-variant)' }}
           >
             auto_stories
           </span>
-          <span style={{ fontSize: '12px', color: '#aaa8c8', fontWeight: 500 }}>
+          <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', fontWeight: 500 }}>
             {exam.notebookName}
           </span>
         </div>
@@ -133,11 +129,11 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '18px', color: '#8888a8' }}
+              style={{ fontSize: '18px', color: 'var(--outline)' }}
             >
               event_available
             </span>
-            <span style={{ fontSize: '14px', color: '#8888a8', fontWeight: 600 }}>Exam passed</span>
+            <span style={{ fontSize: '14px', color: 'var(--outline)', fontWeight: 600 }}>Exam passed</span>
           </div>
         ) : (
           <>
@@ -152,85 +148,12 @@ export default function ExamCountdown({ exam, onGeneratePlan, onDelete }: ExamCo
             >
               {days}
             </span>
-            <span style={{ fontSize: '13px', color: '#aaa8c8', fontWeight: 600 }}>
+            <span style={{ fontSize: '13px', color: 'var(--on-surface-variant)', fontWeight: 600 }}>
               {days === 1 ? 'day left' : 'days left'}
             </span>
           </>
         )}
       </div>
-
-      {/* Action button */}
-      {!isPast && (
-        <div>
-          {exam.studyPlan ? (
-            <Link
-              href={`/notebooks/${exam.notebookId}/study-plan`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                background: 'rgba(174,137,255,0.12)',
-                border: '1px solid rgba(174,137,255,0.2)',
-                borderRadius: '10px',
-                color: '#ae89ff',
-                fontSize: '13px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                cursor: 'pointer',
-                transition:
-                  'background 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(174,137,255,0.2)';
-                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(174,137,255,0.12)';
-                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                calendar_month
-              </span>
-              View Study Plan
-            </Link>
-          ) : onGeneratePlan ? (
-            <button
-              onClick={() => onGeneratePlan(exam.id)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                background: `${urgencyColor}18`,
-                border: `1px solid ${urgencyColor}40`,
-                borderRadius: '10px',
-                color: urgencyColor,
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition:
-                  'background 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = `${urgencyColor}28`;
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = `${urgencyColor}18`;
-                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                auto_fix_high
-              </span>
-              Generate Study Plan
-            </button>
-          ) : null}
-        </div>
-      )}
     </div>
   );
 }
