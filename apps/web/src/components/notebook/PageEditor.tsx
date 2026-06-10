@@ -14,7 +14,6 @@ const lowlightInstance = createLowlight(all);
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
-import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
@@ -756,9 +755,6 @@ export default function PageEditor({
           },
         }),
         ResizableImage,
-        Placeholder.configure({
-          placeholder: 'Start writing...',
-        }),
         Typography,
         Table.configure({ resizable: true, handleWidth: 5, cellMinWidth: 80 }).extend({
           // When a full row or column is selected (CellSelection whose
@@ -1307,14 +1303,6 @@ export default function PageEditor({
         .notemage-editor [data-math='inline'] { display: inline-block; }
         /* ── float clearfix for wrap-mode images ── */
         .notemage-editor .ProseMirror::after { content: ''; display: table; clear: both; }
-        /* ── placeholder ── */
-        .notemage-editor p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          color: var(--ink-20);
-          pointer-events: none;
-          float: left;
-          height: 0;
-        }
         /* ── tables ── */
         .notemage-editor table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 14px 0; overflow: hidden; }
         .notemage-editor td, .notemage-editor th { border: 1px solid rgba(174,137,255,0.36); padding: 8px 12px; vertical-align: top; position: relative; }
