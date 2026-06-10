@@ -266,3 +266,38 @@ describe('docModelSchema — rejects malformed DocModels', () => {
     expect(docModelSchema.safeParse(null).success).toBe(false);
   });
 });
+
+describe('DOC_MODEL_JSON_SCHEMA stays in sync with the zod schema', () => {
+  it('covers exactly the block types the zod union accepts', async () => {
+    const { DOC_MODEL_JSON_SCHEMA } = await import('./doc-model-json-schema');
+    const anyOf = (DOC_MODEL_JSON_SCHEMA.properties.blocks.items as unknown as { anyOf: unknown[] })
+      .anyOf;
+    const schemaTypes = anyOf
+      .map(
+        (b) =>
+          (b as { properties: { type: { enum: string[] } } }).properties.type.enum[0],
+      )
+      .sort();
+    const zodTypes = [
+      'heading',
+      'paragraph',
+      'callout',
+      'bulletList',
+      'orderedList',
+      'taskList',
+      'table',
+      'codeBlock',
+      'blockquote',
+      'image',
+      'math',
+      'horizontalRule',
+    ].sort();
+    expect(schemaTypes).toEqual(zodTypes);
+    for (const type of zodTypes) {
+      expect(
+        docModelSchema.safeParse({ blocks: [] }).success,
+        `sanity: zod schema parses (${type} listed)`,
+      ).toBe(true);
+    }
+  });
+});

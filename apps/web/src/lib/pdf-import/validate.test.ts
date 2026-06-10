@@ -29,6 +29,35 @@ describe('extractJson', () => {
     expect(extractJson('')).toBeNull();
     expect(extractJson('   ')).toBeNull();
   });
+
+  // Observed live: Flash-Lite emitting the page JSON twice in one response.
+  // The first-{-to-last-} slice welded both objects into invalid JSON and
+  // lost the page to the heuristic; the balanced scan takes the first value.
+  it('extracts the first object when the model emits the JSON twice', () => {
+    const valid = '{"blocks":[{"type":"paragraph","runs":[{"text":"a"}]}]}';
+    expect(extractJson(`${valid}\n${valid}`)).toBe(valid);
+    const result = parseDocModelBlocks(`${valid}\n${valid}`);
+    expect(result.ok).toBe(true);
+    expect(result.blocks).toHaveLength(1);
+  });
+
+  it('ignores trailing junk after a complete object', () => {
+    const valid = '{"blocks":[]}';
+    expect(extractJson(`${valid} and that concludes the page}`)).toBe(valid);
+  });
+
+  it('is not fooled by braces inside string values', () => {
+    const valid = '{"blocks":[{"type":"paragraph","runs":[{"text":"a } b \\" c {"}]}]}';
+    expect(extractJson(`${valid}garbage`)).toBe(valid);
+    expect(parseDocModelBlocks(`${valid}garbage`).ok).toBe(true);
+  });
+
+  it('still falls back to the widest slice for truncated output', () => {
+    // Never closes — balanced scan fails; the wide slice (then JSON.parse)
+    // fails too, which is what drives the repair retry.
+    const truncated = '{"blocks":[{"type":"para';
+    expect(parseDocModelBlocks(truncated).ok).toBe(false);
+  });
 });
 
 describe('parseDocModelBlocks — accepts valid output', () => {

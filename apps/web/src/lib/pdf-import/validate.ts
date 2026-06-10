@@ -15,10 +15,40 @@ export interface ParseResult {
 const MAX_REPORTED_ISSUES = 20;
 
 /**
- * Pull a JSON value out of a model response. Handles three shapes:
- * a bare value, a value inside a markdown code fence, and a value embedded
- * in surrounding prose. Returns the object or array literal, or null when
- * none is found. Validity is left to `JSON.parse` — no brace balancing.
+ * The first COMPLETE JSON value starting at `start`, found by depth counting
+ * (string- and escape-aware). Returns null when the value never closes
+ * (truncated output).
+ */
+function scanBalanced(text: string, start: number): string | null {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{' || ch === '[') depth += 1;
+    else if (ch === '}' || ch === ']') {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+/**
+ * Pull a JSON value out of a model response. Handles a bare value, a value
+ * inside a markdown code fence, a value embedded in surrounding prose, AND a
+ * value followed by trailing junk — including a duplicated second JSON object
+ * (observed live: Flash-Lite emitting the page JSON twice). The FIRST
+ * balanced value wins; only a value that never closes (truncated output)
+ * falls back to the first-to-last slice, whose parse failure then drives the
+ * repair retry.
  */
 export function extractJson(raw: string): string | null {
   const trimmed = raw.trim();
@@ -31,18 +61,22 @@ export function extractJson(raw: string): string | null {
   const firstArr = candidate.indexOf('[');
 
   let start: number;
-  let end: number;
+  let lastClose: string;
   if (firstArr !== -1 && (firstObj === -1 || firstArr < firstObj)) {
     start = firstArr;
-    end = candidate.lastIndexOf(']');
+    lastClose = ']';
   } else if (firstObj !== -1) {
     start = firstObj;
-    end = candidate.lastIndexOf('}');
+    lastClose = '}';
   } else {
     return null;
   }
-  if (end <= start) return null;
 
+  const balanced = scanBalanced(candidate, start);
+  if (balanced !== null) return balanced;
+
+  const end = candidate.lastIndexOf(lastClose);
+  if (end <= start) return null;
   return candidate.slice(start, end + 1);
 }
 

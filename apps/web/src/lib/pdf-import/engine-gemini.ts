@@ -8,6 +8,7 @@ import {
   StructureEngineError,
 } from './engine';
 import { getGeminiClient } from '../gemini';
+import { DOC_MODEL_JSON_SCHEMA } from './doc-model-json-schema';
 import { buildPageUserText, buildRepairSuffix, STRUCTURE_SYSTEM_PROMPT } from './prompt';
 import { parseDocModelBlocks } from './validate';
 
@@ -60,6 +61,22 @@ function getClient(): GoogleGenAI {
   }
 }
 
+/**
+ * Constrained decoding: when enabled (default), the DocModel JSON Schema is
+ * passed as `responseJsonSchema`, making trailing junk, duplicated objects
+ * and drifted shapes impossible to emit. `PDF_GEMINI_SCHEMA=0` disables it;
+ * if the API ever rejects the schema itself (subset drift on Google's side),
+ * the call self-heals — it retries bare and remembers for the process.
+ */
+let schemaRejected = false;
+const schemaEnabled = (): boolean =>
+  process.env.PDF_GEMINI_SCHEMA !== '0' && !schemaRejected;
+
+function isSchemaRejection(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return /INVALID_ARGUMENT|response_json_schema|responseJsonSchema|json.?schema/i.test(message);
+}
+
 /** The real Gemini-backed model call. */
 const geminiModelCall: ModelCall = async (req, onUsage) => {
   const client = getClient();
@@ -76,8 +93,8 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
       ]
     : [{ role: 'user', parts: userParts }];
 
-  try {
-    const response = await client.models.generateContent({
+  const generate = (withSchema: boolean) =>
+    client.models.generateContent({
       model: GEMINI_PDF_MODEL,
       contents,
       config: {
@@ -85,9 +102,24 @@ const geminiModelCall: ModelCall = async (req, onUsage) => {
         temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         responseMimeType: 'application/json',
+        ...(withSchema ? { responseJsonSchema: DOC_MODEL_JSON_SCHEMA } : {}),
         abortSignal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
       },
     });
+
+  try {
+    let response: Awaited<ReturnType<typeof generate>>;
+    try {
+      response = await generate(schemaEnabled());
+    } catch (err) {
+      if (!schemaEnabled() || !isSchemaRejection(err)) throw err;
+      console.warn(
+        '[pdf-import] Gemini rejected responseJsonSchema — retrying without it',
+        err instanceof Error ? err.message : err,
+      );
+      schemaRejected = true;
+      response = await generate(false);
+    }
     // `promptTokenCount` is the total input (cached subset included), matching
     // the convention the chat/path Gemini call sites pass to logAiUsage().
     const u = response.usageMetadata;
