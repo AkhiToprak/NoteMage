@@ -148,6 +148,8 @@ interface EditorToolbarProps {
   ) => void;
   snapEnabled?: boolean;
   onSnapToggle?: () => void;
+  /** Open the equation modal to insert a new block equation at the caret. */
+  onEquationInsert?: () => void;
 }
 
 /*
@@ -1580,6 +1582,7 @@ export default function EditorToolbar({
   onTextDefaultsUpdate,
   snapEnabled = false,
   onSnapToggle,
+  onEquationInsert,
 }: EditorToolbarProps) {
   // Active when the user is in text mode without an annotation selected —
   // toolbar controls should target textDefaults so the user's chosen
@@ -1856,13 +1859,7 @@ export default function EditorToolbar({
           icon="functions"
           label="Equation"
           isActive={editor.isActive('blockMath')}
-          onClick={() =>
-            editor
-              .chain()
-              .focus()
-              .insertContent({ type: 'blockMath', attrs: { latex: '' } })
-              .run()
-          }
+          onClick={() => onEquationInsert?.()}
         />
         <CalloutDropdown editor={editor} />
         <TableGridPicker editor={editor} />

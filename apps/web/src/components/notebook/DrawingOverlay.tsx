@@ -894,15 +894,53 @@ export default function DrawingOverlay({
     return () => parent.removeEventListener('pointerdown', handler, true);
   }, [mode, createTextAt]);
 
+  // ── Cursor-mode canvas interactions at the parent level ──
+  // In cursor mode the SVG root is pointer-events:none so single clicks fall
+  // through to TipTap (place caret / select text) while entities — which set
+  // their own pointer-events — stay grabbable. Two parent-level listeners add
+  // the canvas behaviours the SVG can no longer see:
+  //   • double-click on empty space → drop a floating text annotation. A
+  //     double-click that landed on a word (non-empty selection) or on an
+  //     existing entity is left to the editor / entity handler.
+  //   • plain click on empty space → clear the overlay selection (without
+  //     preventDefault, so the caret still lands in the document).
+  useEffect(() => {
+    if (mode !== 'cursor') return;
+    const container = containerRef.current;
+    const parent = container?.parentElement;
+    if (!container || !parent) return;
+
+    const isEntity = (target: Element | null): boolean =>
+      !!target && (!!target.closest('[data-text-annotation]') || !!target.closest('[data-stroke]'));
+
+    const onDblClick = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      if (isEntity(target)) return;
+      // A word was double-clicked in the document — let the editor select it.
+      if ((window.getSelection()?.toString().length ?? 0) > 0) return;
+      // Empty space → drop a floating text. Suppress the editor's own
+      // double-click caret placement so focus goes to the new annotation.
+      e.preventDefault();
+      const rect = container.getBoundingClientRect();
+      createTextAt({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (isEntity(e.target as Element | null)) return;
+      setSelectedId(null);
+    };
+
+    parent.addEventListener('dblclick', onDblClick);
+    parent.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      parent.removeEventListener('dblclick', onDblClick);
+      parent.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [mode, createTextAt]);
+
   // Handle pointer down
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
-      if (mode === 'cursor') {
-        const target = e.target as Element;
-        if (target.closest('[data-text-annotation]')) return;
-        setSelectedId(null);
-        return;
-      }
       if (mode === 'text') {
         // Don't create a new text if the click originated on an existing text element
         const target = e.target as Element;
@@ -1265,24 +1303,15 @@ export default function DrawingOverlay({
         height={svgHeight}
         style={{
           display: 'block',
-          // `all` (not `auto`) forces the SVG to capture pointer events on
-          // its entire bounding box — including transparent areas over
-          // images below. With `auto`, the SVG root sometimes falls back
-          // to `visiblePainted` semantics and empty regions above
-          // images let clicks slip through to the image instead.
-          pointerEvents: 'all',
+          // In pen/text mode the SVG captures events on its whole bounding box
+          // (`all`, not `auto`) so clicks over images below don't slip through.
+          // In cursor mode the root is `none` so single clicks/drags fall
+          // through to TipTap for caret placement and text selection — strokes
+          // and text annotations set their own pointer-events to stay grabbable.
+          pointerEvents: mode === 'pen' || mode === 'text' ? 'all' : 'none',
           cursor: mode === 'pen' ? 'crosshair' : mode === 'text' ? 'text' : 'default',
         }}
-        onPointerDown={handlePointerDown}
-        onDoubleClick={(e) => {
-          if (mode !== 'cursor') return;
-          const target = e.target as Element;
-          if (target.closest('[data-text-annotation]')) return;
-          const container = containerRef.current;
-          if (!container) return;
-          const rect = container.getBoundingClientRect();
-          createTextAt({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-        }}
+        onPointerDown={mode === 'pen' || mode === 'text' ? handlePointerDown : handleBackgroundClick}
         onPointerMove={(e) => {
           if (mode === 'pen') handlePointerMove(e);
           if (dragState.current) handleDragMove(e);
@@ -1299,19 +1328,21 @@ export default function DrawingOverlay({
           if (mode === 'pen') handlePointerUp();
         }}
       >
-        {/* Full-canvas hit target. Without this, clicks over opaque <img>
-            elements below the SVG can slip through even though the SVG has
-            pointer-events: all — some browsers treat the root <svg>'s empty
-            area inconsistently. A transparent <rect> guarantees a hit target
-            everywhere in all three modes. */}
-        <rect
-          x={0}
-          y={0}
-          width="100%"
-          height={svgHeight}
-          fill="transparent"
-          style={{ pointerEvents: 'all' }}
-        />
+        {/* Explicit full-canvas hit target for pen/text modes. Without this,
+            clicks over opaque <img> elements below the SVG can slip through
+            even though the SVG has pointer-events: all — some browsers treat
+            the root <svg>'s empty area inconsistently. Not rendered in cursor
+            mode, where the SVG root is pointer-events:none on purpose. */}
+        {(mode === 'pen' || mode === 'text') && (
+          <rect
+            x={0}
+            y={0}
+            width="100%"
+            height={svgHeight}
+            fill="transparent"
+            style={{ pointerEvents: 'all' }}
+          />
+        )}
 
         {/* Rendered strokes */}
         {strokes.map((stroke) => {
@@ -1326,6 +1357,7 @@ export default function DrawingOverlay({
             <g key={stroke.id} transform={`translate(${ox}, ${oy})`}>
               {/* Invisible hit area for selection (always active in cursor mode) */}
               <path
+                data-stroke
                 d={d}
                 fill="none"
                 stroke="transparent"
