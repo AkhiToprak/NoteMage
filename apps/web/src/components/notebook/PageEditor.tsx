@@ -182,6 +182,7 @@ export default function PageEditor({
   const [strokes, setStrokes] = useState<StrokeData[]>([]);
   const [texts, setTexts] = useState<TextData[]>([]);
   const [selectedTextAnnotation, setSelectedTextAnnotation] = useState<TextData | null>(null);
+  const [snapEnabled, setSnapEnabled] = useState(false);
   // Style defaults for NEW text annotations. Writing to these while in
   // text mode with no annotation selected lets the user pre-configure
   // the look of the next text they drop, instead of having to place
@@ -838,13 +839,15 @@ export default function PageEditor({
     [pageId, handleSlashStateChange]
   );
 
-  // Flip editable imperatively whenever the effective read-only state
-  // changes. TipTap exposes `editor.setEditable(bool)` for exactly this
-  // so we never have to rebuild the whole editor on a lock flip.
+  // Flip editable imperatively whenever the effective read-only state or
+  // editor mode changes. TipTap is not accessible in cursor mode — the SVG
+  // overlay intercepts all pointer events, so we also set non-editable to
+  // remove the hover text-cursor and make the intent explicit.
+  // effectiveReadOnly (cowork lock) always dominates.
   useEffect(() => {
     if (!editor) return;
-    editor.setEditable(!effectiveReadOnly);
-  }, [editor, effectiveReadOnly]);
+    editor.setEditable(!effectiveReadOnly && editorMode !== 'cursor');
+  }, [editor, effectiveReadOnly, editorMode]);
 
   // Hydrate editor content on initial page load. Only fires when the
   // editor instance or the pageId changes — NOT on every `page` state
@@ -1429,6 +1432,8 @@ export default function PageEditor({
         onAnnotationUpdate={updateSelectedAnnotation}
         textDefaults={textDefaults}
         onTextDefaultsUpdate={(updates) => setTextDefaults((cur) => ({ ...cur, ...updates }))}
+        snapEnabled={snapEnabled}
+        onSnapToggle={() => setSnapEnabled((v) => !v)}
       />
 
       {/* ── Editor canvas (full width, infinite scroll) ── */}
@@ -1470,6 +1475,8 @@ export default function PageEditor({
             onRulerChange={setRuler}
             onSelectedTextChange={setSelectedTextAnnotation}
             textDefaults={textDefaults}
+            snapEnabled={snapEnabled}
+            snapInterval={16}
           />
           {isEditorEmpty && !title.trim() && editorMode === 'cursor' && (
             <div

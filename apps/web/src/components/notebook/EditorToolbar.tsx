@@ -146,6 +146,8 @@ interface EditorToolbarProps {
       strike: boolean;
     }>
   ) => void;
+  snapEnabled?: boolean;
+  onSnapToggle?: () => void;
 }
 
 /*
@@ -277,8 +279,8 @@ function Sep() {
    default (cursor) no longer looks "pressed" like an active format (item 7b). */
 const MODE_OPTIONS: { mode: EditorMode; icon: string; label: string }[] = [
   { mode: 'cursor', icon: 'arrow_selector_tool', label: 'Cursor mode' },
-  { mode: 'pen', icon: 'draw', label: 'Pen mode' },
   { mode: 'text', icon: 'text_fields', label: 'Text mode' },
+  { mode: 'pen', icon: 'draw', label: 'Pen mode' },
 ];
 
 function ModeSwitch({
@@ -1576,6 +1578,8 @@ export default function EditorToolbar({
   onAnnotationUpdate,
   textDefaults,
   onTextDefaultsUpdate,
+  snapEnabled = false,
+  onSnapToggle,
 }: EditorToolbarProps) {
   // Active when the user is in text mode without an annotation selected —
   // toolbar controls should target textDefaults so the user's chosen
@@ -1879,8 +1883,42 @@ export default function EditorToolbar({
         />
         <GenerateDropdown notebookId={notebookId} pageId={pageId} />
         <Sep />
-        {/* Cursor / Pen / Text mode — a segmented control, not format toggles */}
+        {/* Cursor / Text / Pen mode — a segmented control, not format toggles */}
         <ModeSwitch mode={editorMode} onModeChange={onModeChange} />
+        {onSnapToggle && (
+          <button
+            type="button"
+            title={snapEnabled ? 'Snap enabled — click to disable' : 'Snap disabled — click to enable'}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onSnapToggle();
+            }}
+            style={{
+              width: 28,
+              height: 24,
+              borderRadius: 6,
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: snapEnabled ? 'rgba(140,82,255,0.22)' : 'transparent',
+              color: snapEnabled ? 'var(--md-h4)' : 'var(--ink-50)',
+              transition: 'background 0.15s, color 0.15s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              if (!snapEnabled) (e.currentTarget as HTMLElement).style.color = 'var(--ink-80)';
+            }}
+            onMouseLeave={(e) => {
+              if (!snapEnabled) (e.currentTarget as HTMLElement).style.color = 'var(--ink-50)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+              {snapEnabled ? 'grid_on' : 'grid_off'}
+            </span>
+          </button>
+        )}
         <Sep />
         <ToolbarButton
           icon="undo"

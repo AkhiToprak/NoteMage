@@ -35,6 +35,24 @@ export interface TextData {
 export type EditorMode = 'cursor' | 'pen' | 'text';
 export type ActiveTool = 'pen' | 'eraser';
 
+/** Axis-aligned guide line shown during a snapped drag. */
+export interface SnapLine {
+  /** 'x' = vertical guide line at x=position, 'y' = horizontal line at y=position */
+  axis: 'x' | 'y';
+  position: number;
+  start: number;
+  end: number;
+}
+
+interface EntityBounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  centerX: number;
+  centerY: number;
+}
+
 export interface RulerState {
   active: boolean;
   angle: number;
@@ -67,6 +85,10 @@ interface DrawingOverlayProps {
     underline: boolean;
     strike: boolean;
   };
+  /** When true, grid snap and object snap are applied during drag moves. */
+  snapEnabled?: boolean;
+  /** Grid snap interval in pixels. Defaults to 16. */
+  snapInterval?: number;
 }
 
 /* ── Helpers ── */
@@ -161,6 +183,107 @@ function getBoundingBox(points: { x: number; y: number }[]) {
     if (p.y > maxY) maxY = p.y;
   }
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+function snapToGrid(value: number, interval: number): number {
+  return Math.round(value / interval) * interval;
+}
+
+function getStrokeBounds(stroke: StrokeData, override?: { x: number; y: number }): EntityBounds {
+  const ox = override?.x ?? stroke.offset?.x ?? 0;
+  const oy = override?.y ?? stroke.offset?.y ?? 0;
+  const bb = getBoundingBox(stroke.points);
+  const left = bb.x + ox;
+  const top = bb.y + oy;
+  const right = left + bb.width;
+  const bottom = top + bb.height;
+  return { left, top, right, bottom, centerX: (left + right) / 2, centerY: (top + bottom) / 2 };
+}
+
+function getTextBounds(text: TextData, override?: { x: number; y: number }): EntityBounds {
+  const ox = override?.x ?? text.offset?.x ?? 0;
+  const oy = override?.y ?? text.offset?.y ?? 0;
+  const estHeight = text.fontSize * 1.8;
+  const left = text.x + ox;
+  const top = text.y + oy;
+  const right = left + text.width;
+  const bottom = top + estHeight;
+  return { left, top, right, bottom, centerX: (left + right) / 2, centerY: (top + bottom) / 2 };
+}
+
+const OBJECT_SNAP_THRESHOLD = 8;
+
+function computeObjectSnapDelta(
+  dragged: EntityBounds,
+  others: EntityBounds[],
+  threshold: number
+): { dx: number; dy: number; lines: SnapLine[] } {
+  let bestDx = 0;
+  let bestDy = 0;
+  let bestDxDist = threshold + 1;
+  let bestDyDist = threshold + 1;
+
+  const dragXEdges = [dragged.left, dragged.centerX, dragged.right];
+  const dragYEdges = [dragged.top, dragged.centerY, dragged.bottom];
+
+  for (const other of others) {
+    const otherXEdges = [other.left, other.centerX, other.right];
+    const otherYEdges = [other.top, other.centerY, other.bottom];
+
+    for (const dx of dragXEdges) {
+      for (const ox of otherXEdges) {
+        const dist = Math.abs(dx - ox);
+        if (dist < bestDxDist) {
+          bestDxDist = dist;
+          bestDx = ox - dx;
+        }
+      }
+    }
+
+    for (const dy of dragYEdges) {
+      for (const oy of otherYEdges) {
+        const dist = Math.abs(dy - oy);
+        if (dist < bestDyDist) {
+          bestDyDist = dist;
+          bestDy = oy - dy;
+        }
+      }
+    }
+  }
+
+  const lines: SnapLine[] = [];
+
+  if (bestDxDist <= threshold) {
+    const snapX = dragged.left + bestDx;
+    const allYs = others.flatMap((o) => [o.top, o.bottom]);
+    const draggY = [dragged.top + bestDy, dragged.bottom + bestDy];
+    const allSpan = [...allYs, ...draggY];
+    lines.push({
+      axis: 'x',
+      position: snapX,
+      start: Math.min(...allSpan) - 8,
+      end: Math.max(...allSpan) + 8,
+    });
+  }
+
+  if (bestDyDist <= threshold) {
+    const snapY = dragged.top + bestDy;
+    const allXs = others.flatMap((o) => [o.left, o.right]);
+    const draggX = [dragged.left + bestDx, dragged.right + bestDx];
+    const allSpan = [...allXs, ...draggX];
+    lines.push({
+      axis: 'y',
+      position: snapY,
+      start: Math.min(...allSpan) - 8,
+      end: Math.max(...allSpan) + 8,
+    });
+  }
+
+  return {
+    dx: bestDxDist <= threshold ? bestDx : 0,
+    dy: bestDyDist <= threshold ? bestDy : 0,
+    lines,
+  };
 }
 
 function projectToRulerLine(
@@ -538,6 +661,8 @@ export default function DrawingOverlay({
   onRulerChange,
   onSelectedTextChange,
   textDefaults,
+  snapEnabled = false,
+  snapInterval = 16,
 }: DrawingOverlayProps) {
   const { isPhone } = useBreakpoint();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -556,6 +681,8 @@ export default function DrawingOverlay({
   const [textDragOffset, setTextDragOffset] = useState<{ id: string; x: number; y: number } | null>(
     null
   );
+
+  const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
 
   // Drag state
   const dragState = useRef<{
@@ -770,6 +897,12 @@ export default function DrawingOverlay({
   // Handle pointer down
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
+      if (mode === 'cursor') {
+        const target = e.target as Element;
+        if (target.closest('[data-text-annotation]')) return;
+        setSelectedId(null);
+        return;
+      }
       if (mode === 'text') {
         // Don't create a new text if the click originated on an existing text element
         const target = e.target as Element;
@@ -889,16 +1022,39 @@ export default function DrawingOverlay({
     [mode, selectedId, strokes]
   );
 
-  const handleDragMove = useCallback((e: React.PointerEvent) => {
-    if (!dragState.current) return;
-    const dx = e.clientX - dragState.current.startX;
-    const dy = e.clientY - dragState.current.startY;
-    setDragOffset({
-      id: dragState.current.strokeId,
-      x: dragState.current.origOffset.x + dx,
-      y: dragState.current.origOffset.y + dy,
-    });
-  }, []);
+  const handleDragMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragState.current) return;
+      const rawDx = e.clientX - dragState.current.startX;
+      const rawDy = e.clientY - dragState.current.startY;
+      let finalX = dragState.current.origOffset.x + rawDx;
+      let finalY = dragState.current.origOffset.y + rawDy;
+
+      if (snapEnabled) {
+        const interval = snapInterval ?? 16;
+        finalX = snapToGrid(finalX, interval);
+        finalY = snapToGrid(finalY, interval);
+
+        const draggedStroke = strokes.find((s) => s.id === dragState.current!.strokeId);
+        if (draggedStroke) {
+          const draggedBounds = getStrokeBounds(draggedStroke, { x: finalX, y: finalY });
+          const others = [
+            ...strokes.filter((s) => s.id !== dragState.current!.strokeId).map((s) => getStrokeBounds(s)),
+            ...texts.map((t) => getTextBounds(t)),
+          ];
+          const { dx: sdx, dy: sdy, lines } = computeObjectSnapDelta(draggedBounds, others, OBJECT_SNAP_THRESHOLD);
+          finalX += sdx;
+          finalY += sdy;
+          setSnapLines(lines);
+        } else {
+          setSnapLines([]);
+        }
+      }
+
+      setDragOffset({ id: dragState.current.strokeId, x: finalX, y: finalY });
+    },
+    [snapEnabled, snapInterval, strokes, texts]
+  );
 
   const handleDragEnd = useCallback(() => {
     if (!dragState.current || !dragOffset) {
@@ -912,6 +1068,7 @@ export default function DrawingOverlay({
     );
     onStrokesChange(updated);
     dragState.current = null;
+    setSnapLines([]);
     setDragOffset(null);
   }, [strokes, onStrokesChange, dragOffset]);
 
@@ -963,16 +1120,39 @@ export default function DrawingOverlay({
     [mode, texts]
   );
 
-  const handleTextDragMove = useCallback((e: React.PointerEvent) => {
-    if (!textDragState.current) return;
-    const dx = e.clientX - textDragState.current.startX;
-    const dy = e.clientY - textDragState.current.startY;
-    setTextDragOffset({
-      id: textDragState.current.textId,
-      x: textDragState.current.origOffset.x + dx,
-      y: textDragState.current.origOffset.y + dy,
-    });
-  }, []);
+  const handleTextDragMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!textDragState.current) return;
+      const rawDx = e.clientX - textDragState.current.startX;
+      const rawDy = e.clientY - textDragState.current.startY;
+      let finalX = textDragState.current.origOffset.x + rawDx;
+      let finalY = textDragState.current.origOffset.y + rawDy;
+
+      if (snapEnabled) {
+        const interval = snapInterval ?? 16;
+        finalX = snapToGrid(finalX, interval);
+        finalY = snapToGrid(finalY, interval);
+
+        const draggedText = texts.find((t) => t.id === textDragState.current!.textId);
+        if (draggedText) {
+          const draggedBounds = getTextBounds(draggedText, { x: finalX, y: finalY });
+          const others = [
+            ...texts.filter((t) => t.id !== textDragState.current!.textId).map((t) => getTextBounds(t)),
+            ...strokes.map((s) => getStrokeBounds(s)),
+          ];
+          const { dx: sdx, dy: sdy, lines } = computeObjectSnapDelta(draggedBounds, others, OBJECT_SNAP_THRESHOLD);
+          finalX += sdx;
+          finalY += sdy;
+          setSnapLines(lines);
+        } else {
+          setSnapLines([]);
+        }
+      }
+
+      setTextDragOffset({ id: textDragState.current.textId, x: finalX, y: finalY });
+    },
+    [snapEnabled, snapInterval, texts, strokes]
+  );
 
   const handleTextDragEnd = useCallback(() => {
     if (!textDragState.current || !textDragOffset) {
@@ -986,6 +1166,7 @@ export default function DrawingOverlay({
     );
     onTextsChange(updated);
     textDragState.current = null;
+    setSnapLines([]);
     setTextDragOffset(null);
   }, [texts, onTextsChange, textDragOffset]);
 
@@ -1089,12 +1270,19 @@ export default function DrawingOverlay({
           // images below. With `auto`, the SVG root sometimes falls back
           // to `visiblePainted` semantics and empty regions above
           // images let clicks slip through to the image instead.
-          pointerEvents: mode === 'pen' || mode === 'text' ? 'all' : 'none',
+          pointerEvents: 'all',
           cursor: mode === 'pen' ? 'crosshair' : mode === 'text' ? 'text' : 'default',
         }}
-        onPointerDown={
-          mode === 'pen' || mode === 'text' ? handlePointerDown : handleBackgroundClick
-        }
+        onPointerDown={handlePointerDown}
+        onDoubleClick={(e) => {
+          if (mode !== 'cursor') return;
+          const target = e.target as Element;
+          if (target.closest('[data-text-annotation]')) return;
+          const container = containerRef.current;
+          if (!container) return;
+          const rect = container.getBoundingClientRect();
+          createTextAt({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        }}
         onPointerMove={(e) => {
           if (mode === 'pen') handlePointerMove(e);
           if (dragState.current) handleDragMove(e);
@@ -1111,21 +1299,19 @@ export default function DrawingOverlay({
           if (mode === 'pen') handlePointerUp();
         }}
       >
-        {/* Explicit full-canvas hit target for pen/text modes. Without
-            this, clicks over opaque <img> elements below the SVG can slip
-            through even though the SVG has pointer-events: all — some
-            browsers treat the root <svg>'s empty area inconsistently.
-            A transparent <rect> guarantees a hit target everywhere. */}
-        {(mode === 'pen' || mode === 'text') && (
-          <rect
-            x={0}
-            y={0}
-            width="100%"
-            height={svgHeight}
-            fill="transparent"
-            style={{ pointerEvents: 'all' }}
-          />
-        )}
+        {/* Full-canvas hit target. Without this, clicks over opaque <img>
+            elements below the SVG can slip through even though the SVG has
+            pointer-events: all — some browsers treat the root <svg>'s empty
+            area inconsistently. A transparent <rect> guarantees a hit target
+            everywhere in all three modes. */}
+        <rect
+          x={0}
+          y={0}
+          width="100%"
+          height={svgHeight}
+          fill="transparent"
+          style={{ pointerEvents: 'all' }}
+        />
 
         {/* Rendered strokes */}
         {strokes.map((stroke) => {
@@ -1200,6 +1386,35 @@ export default function DrawingOverlay({
             )}
             style={{ pointerEvents: 'none' }}
           />
+        )}
+
+        {/* Snap guide lines — visible only during an active snapped drag */}
+        {snapLines.map((line, i) =>
+          line.axis === 'x' ? (
+            <line
+              key={i}
+              x1={line.position}
+              y1={line.start}
+              x2={line.position}
+              y2={line.end}
+              stroke="rgba(100,180,255,0.75)"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+              style={{ pointerEvents: 'none' }}
+            />
+          ) : (
+            <line
+              key={i}
+              x1={line.start}
+              y1={line.position}
+              x2={line.end}
+              y2={line.position}
+              stroke="rgba(100,180,255,0.75)"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+              style={{ pointerEvents: 'none' }}
+            />
+          )
         )}
 
         {/* Text annotations */}
