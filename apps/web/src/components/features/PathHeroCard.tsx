@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { PathPhase, PathPlan } from '@/components/learn/PathView';
+import { UltraBadge } from '@/components/learn/UltraBadge';
 
 type FetchState =
   | { kind: 'loading' }
@@ -246,6 +247,7 @@ export default function PathHeroCard() {
 
   const { plan, activePhase, activePhaseIndex, nextSlotIsAssessment, nextSlotId, percent, pathDone } =
     derived;
+  const ultra = plan.ultra === true;
 
   const ctaLabel = pathDone
     ? 'Path complete'
@@ -264,8 +266,8 @@ export default function PathHeroCard() {
     <div
       style={{
         background: 'var(--surface-container-low)',
-        border: '1px solid var(--outline-variant)',
-        borderLeft: '4px solid var(--primary)',
+        border: ultra ? '1.5px solid var(--brand-gold)' : '1px solid var(--outline-variant)',
+        borderLeft: ultra ? '4px solid var(--brand-gold)' : '4px solid var(--primary)',
         borderRadius: '16px',
         padding: '20px',
         display: 'flex',
@@ -293,21 +295,25 @@ export default function PathHeroCard() {
         >
           Continue your path
         </p>
-        <h3
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: '20px',
-            fontWeight: 700,
-            color: 'var(--on-surface)',
-            letterSpacing: '-0.01em',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {plan.title}
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 700,
+              color: 'var(--on-surface)',
+              letterSpacing: '-0.01em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+            }}
+          >
+            {plan.title}
+          </h3>
+          {ultra && <UltraBadge />}
+        </div>
         <p
           style={{
             margin: 0,
@@ -353,7 +359,7 @@ export default function PathHeroCard() {
               height: '100%',
               transform: `scaleX(${percent / 100})`,
               transformOrigin: 'left',
-              background: 'var(--primary)',
+              background: ultra ? 'var(--brand-gold)' : 'var(--primary)',
               borderRadius: '999px',
               transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1)',
             }}
