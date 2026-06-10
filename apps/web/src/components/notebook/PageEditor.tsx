@@ -43,6 +43,8 @@ import { Callout } from '@/lib/tiptap-callout';
 import CalloutView from './CalloutView';
 import { InlineMath, BlockMath } from '@/lib/tiptap-math';
 import MathView from './MathView';
+import EquationModal from './EquationModal';
+import { MathModalContext, type MathModalRequest } from './math-modal-context';
 import { HeadingEnterBehavior } from '@/lib/tiptap-heading';
 import PageLockIndicator from './PageLockIndicator';
 import { isEffectivelyEmptyTiptapDoc } from '@/lib/tiptap-is-empty';
@@ -183,6 +185,12 @@ export default function PageEditor({
   const [texts, setTexts] = useState<TextData[]>([]);
   const [selectedTextAnnotation, setSelectedTextAnnotation] = useState<TextData | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(false);
+  // Equation-input modal. Opened by the toolbar (insert a new blockMath at the
+  // caret) or by double-clicking an existing equation (edit its latex). Holding
+  // the request here — above <EditorContent> — lets the deep MathView NodeView
+  // open it through MathModalContext.
+  const [mathReq, setMathReq] = useState<MathModalRequest | null>(null);
+  const openMathModal = useCallback((req: MathModalRequest) => setMathReq(req), []);
   // Style defaults for NEW text annotations. Writing to these while in
   // text mode with no annotation selected lets the user pre-configure
   // the look of the next text they drop, instead of having to place
@@ -839,15 +847,16 @@ export default function PageEditor({
     [pageId, handleSlashStateChange]
   );
 
-  // Flip editable imperatively whenever the effective read-only state or
-  // editor mode changes. TipTap is not accessible in cursor mode — the SVG
-  // overlay intercepts all pointer events, so we also set non-editable to
-  // remove the hover text-cursor and make the intent explicit.
-  // effectiveReadOnly (cowork lock) always dominates.
+  // Flip editable imperatively whenever the effective read-only state
+  // changes. The document is always editable (subject only to the cowork
+  // lock); the cursor/text/pen modes govern what clicking empty canvas or
+  // dragging does, never whether the text can be edited — so the formatting
+  // toolbar always works. TipTap exposes `setEditable(bool)` for exactly this
+  // so we never rebuild the editor on a lock flip.
   useEffect(() => {
     if (!editor) return;
-    editor.setEditable(!effectiveReadOnly && editorMode !== 'cursor');
-  }, [editor, effectiveReadOnly, editorMode]);
+    editor.setEditable(!effectiveReadOnly);
+  }, [editor, effectiveReadOnly]);
 
   // Hydrate editor content on initial page load. Only fires when the
   // editor instance or the pageId changes — NOT on every `page` state
@@ -1434,6 +1443,20 @@ export default function PageEditor({
         onTextDefaultsUpdate={(updates) => setTextDefaults((cur) => ({ ...cur, ...updates }))}
         snapEnabled={snapEnabled}
         onSnapToggle={() => setSnapEnabled((v) => !v)}
+        onEquationInsert={() => {
+          if (!editor) return;
+          const pos = editor.state.selection.from;
+          openMathModal({
+            initialLatex: '',
+            isBlock: true,
+            onSubmit: (latex) =>
+              editor
+                .chain()
+                .focus()
+                .insertContentAt(pos, { type: 'blockMath', attrs: { latex } })
+                .run(),
+          });
+        }}
       />
 
       {/* ── Editor canvas (full width, infinite scroll) ── */}
@@ -1449,7 +1472,9 @@ export default function PageEditor({
             position: 'relative',
           }}
         >
-          <EditorContent editor={editor} />
+          <MathModalContext.Provider value={openMathModal}>
+            <EditorContent editor={editor} />
+          </MathModalContext.Provider>
           <SlashMenu state={slashState} editor={editor} />
           <InlineAIToolbar
             editor={editor}
@@ -1502,6 +1527,18 @@ export default function PageEditor({
         title="Inline AI is a Pro feature"
         description="Rewrite, summarize, and expand your notes with one click — upgrade to Pro to unlock it."
       />
+
+      {mathReq && (
+        <EquationModal
+          initialLatex={mathReq.initialLatex}
+          isBlock={mathReq.isBlock}
+          onSubmit={(latex) => {
+            mathReq.onSubmit(latex);
+            setMathReq(null);
+          }}
+          onClose={() => setMathReq(null)}
+        />
+      )}
     </div>
   );
 }
