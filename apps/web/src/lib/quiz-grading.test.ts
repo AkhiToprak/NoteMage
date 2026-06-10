@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
+import { EquationPayloadSchema, QuizQuestionV2Schema } from '@notemage/shared';
 import { grade, type LegacyMcColumns } from './quiz-grading';
 
 // Equation rows carry their answer key on `payload`; the legacy MC columns are
@@ -58,6 +59,183 @@ describe('grade() — equation kind', () => {
       { kind: 'equation', expression: 'import("child_process")' }
     );
     expect(r.isCorrect).toBe(false);
+  });
+});
+
+// ── B1: equation grading leniency (figure-caption-reuse.md, Part B) ──
+
+describe('grade() — equation leniency', () => {
+  const eq = (expected: string, expression: string, extra: Record<string, unknown> = {}) =>
+    grade('equation', { expectedExpression: expected, ...extra }, NO_LEGACY, {
+      kind: 'equation',
+      expression,
+    }).isCorrect;
+
+  it('accepts the live repro: work shown, then the answer stated', () => {
+    // Reported bug: typing the equation AND its solution graded false.
+    expect(eq('5', '2x+3=13 x=5')).toBe(true);
+  });
+
+  it('accepts "x=5" against expected "5"', () => {
+    expect(eq('5', 'x=5')).toBe(true);
+  });
+
+  it('accepts the flipped form "5=x" against expected "5"', () => {
+    expect(eq('5', '5=x')).toBe(true);
+  });
+
+  it('still grades the original equation alone as false (no false positive)', () => {
+    // Candidates from "2x+3=13" are "13" and "2x+3"; neither equals 5.
+    expect(eq('5', '2x+3=13')).toBe(false);
+  });
+
+  it('normalizes a locale decimal comma (2,5 → 2.5)', () => {
+    expect(eq('2.5', '2,5')).toBe(true);
+    // A single comma between digits is a decimal point (Swiss/German): the
+    // German "1,5" means one-and-a-half, not fifteen.
+    expect(eq('1.5', '1,5')).toBe(true);
+  });
+
+  it('does not treat a thousands-style multi-comma run as a decimal', () => {
+    // Several commas in one digit run is ambiguous (thousands separators), so
+    // it is NOT collapsed to a decimal — "1,000,000" never grades as 1000000.
+    expect(eq('1000000', '1,000,000')).toBe(false);
+  });
+
+  it('normalizes unicode operators (× ÷ − π ² ³ · and dash variants)', () => {
+    expect(eq('6', '2×3')).toBe(true);
+    expect(eq('2', '6÷3')).toBe(true);
+    expect(eq('-1', '2−3')).toBe(true); // U+2212 minus sign
+    expect(eq('-1', '2–3')).toBe(true); // U+2013 en-dash
+    expect(eq('-1', '2—3')).toBe(true); // U+2014 em-dash
+    expect(eq('6', '2·3')).toBe(true); // U+00B7 middle dot → multiply
+    expect(eq('6', '2⋅3')).toBe(true); // U+22C5 dot operator → multiply
+    expect(eq('pi', 'π')).toBe(true);
+    expect(eq('9', '3²')).toBe(true);
+  });
+
+  it('accepts work-then-answer chains split on ; and newlines', () => {
+    expect(eq('5', '2x + 3 = 13; x = 5')).toBe(true);
+    expect(eq('5', '2x + 3 = 13\nx = 5')).toBe(true);
+  });
+
+  it('handles the f(x)= form with variable sampling', () => {
+    expect(eq('2*x + 3', 'f(x) = 2*x + 3', { variables: ['x'] })).toBe(true);
+  });
+
+  it('does not split or decimalize commas inside function-argument lists', () => {
+    // The comma is an arg separator, not a statement break or a decimal —
+    // crucially also in the no-space form a learner naturally types.
+    expect(eq('max(2, 5)', '5')).toBe(true);
+    expect(eq('5', 'max(2, 5)')).toBe(true);
+    expect(eq('5', 'max(2,5)')).toBe(true); // no space → must NOT become max(2.5)
+    expect(eq('1', 'mod(10,3)')).toBe(true); // mod(10,3) = 1
+    // Regression guard against the false POSITIVE: max(2,5)=5, never 2.5.
+    expect(eq('2.5', 'max(2,5)')).toBe(false);
+  });
+
+  it('accepts the equation written with the answer on the left (LHS candidate)', () => {
+    // Plan B4 #2/#3 tradeoff: a learner who writes "5 = 2x+3" has still typed
+    // the correct value 5, so the LHS candidate matches. Pinned so this can't
+    // silently widen — and it never marks a WRONG answer correct.
+    expect(eq('5', '5=2x+3')).toBe(true);
+    expect(eq('5', '5=x')).toBe(true);
+  });
+
+  it('accepts a match against any acceptedExpressions entry', () => {
+    const accepted = { acceptedExpressions: ['-3'] };
+    expect(eq('2', 'x = -3', accepted)).toBe(true); // matches the alt root
+    expect(eq('2', 'x = 2', accepted)).toBe(true); // matches the primary
+    expect(eq('2', 'x = 4', accepted)).toBe(false); // matches neither
+  });
+
+  it('rejects an over-length input before parsing', () => {
+    expect(eq('5', '9'.repeat(300))).toBe(false);
+  });
+
+  it('rejects malformed garbage', () => {
+    expect(eq('5', '@#$%')).toBe(false);
+    expect(eq('5', '   ')).toBe(false);
+  });
+
+  it('only considers the last statement (caps candidate spam)', () => {
+    // A spam list of values: only "5" (the last) is graded.
+    expect(eq('5', '1, 2, 3, 4, 5')).toBe(true);
+    expect(eq('99', '1, 2, 3, 4, 5')).toBe(false);
+  });
+});
+
+describe('grade() — equation kill switch', () => {
+  afterEach(() => {
+    delete process.env.EQUATION_LENIENT_GRADING_DISABLED;
+  });
+
+  it('reverts to the strict raw-string comparison when disabled', () => {
+    process.env.EQUATION_LENIENT_GRADING_DISABLED = '1';
+    // The live repro grades false again under the legacy path (raw string is
+    // fed straight to safe-math, which can't parse "2x+3=13 x=5").
+    expect(
+      grade('equation', { expectedExpression: '5' }, NO_LEGACY, {
+        kind: 'equation',
+        expression: '2x+3=13 x=5',
+      }).isCorrect
+    ).toBe(false);
+  });
+
+  it('still grades a plain equivalent answer correct under the strict path', () => {
+    process.env.EQUATION_LENIENT_GRADING_DISABLED = '1';
+    expect(
+      grade('equation', { expectedExpression: '2 + 2' }, NO_LEGACY, {
+        kind: 'equation',
+        expression: '1 + 3',
+      }).isCorrect
+    ).toBe(true);
+  });
+});
+
+// ── B1.3: persist-time hardening — strip `=` from expected at validation ──
+
+describe('EquationPayloadSchema — persist-time = stripping', () => {
+  it('strips a leading LHS= from expectedExpression', () => {
+    expect(EquationPayloadSchema.parse({ expectedExpression: 'x = 5' }).expectedExpression).toBe(
+      '5'
+    );
+  });
+
+  it('leaves an =-free expression untouched', () => {
+    expect(
+      EquationPayloadSchema.parse({ expectedExpression: '2*x + 3' }).expectedExpression
+    ).toBe('2*x + 3');
+  });
+
+  it('strips each acceptedExpressions entry too', () => {
+    const parsed = EquationPayloadSchema.parse({
+      expectedExpression: 'f(x) = 2*x + 3',
+      acceptedExpressions: ['y = -3', '4'],
+    });
+    expect(parsed.expectedExpression).toBe('2*x + 3');
+    expect(parsed.acceptedExpressions).toEqual(['-3', '4']);
+  });
+
+  it('strips through the QuizQuestionV2 discriminated union', () => {
+    const parsed = QuizQuestionV2Schema.parse({
+      kind: 'equation',
+      prompt: 'Solve 2x + 3 = 13 for x.',
+      payload: { expectedExpression: 'x = 5' },
+    });
+    expect(parsed.kind).toBe('equation');
+    if (parsed.kind === 'equation') {
+      expect(parsed.payload.expectedExpression).toBe('5');
+    }
+  });
+
+  it('rejects an expected expression that strips to empty (whitespace-only)', () => {
+    expect(() => EquationPayloadSchema.parse({ expectedExpression: '   ' })).toThrow();
+  });
+
+  it('rejects a degenerate "="/"==" expected expression (still ungradeable)', () => {
+    expect(() => EquationPayloadSchema.parse({ expectedExpression: '=' })).toThrow();
+    expect(() => EquationPayloadSchema.parse({ expectedExpression: '==' })).toThrow();
   });
 });
 

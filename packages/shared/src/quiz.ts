@@ -111,10 +111,41 @@ export const SentenceReorderPayloadSchema = z.object({
 });
 export type SentenceReorderPayload = z.infer<typeof SentenceReorderPayloadSchema>;
 
+// An equation answer is a FINAL ANSWER, never a full equation — it must not
+// carry an `=`. The grader self-heals legacy `=`-bearing values at grading
+// time, but we also strip them here at PERSIST time so the AI can never store
+// an ungradeable expected answer (and the wrong-answer feedback shows a clean
+// expression). Pure string op: take the RHS of the last `=`, else the LHS of
+// the first `=`, else the value unchanged. Mirrors the grader's primary
+// candidate (`extractAnswerCandidates`) without depending on the math engine.
+function stripEquationSides(raw: string): string {
+  const s = raw.trim();
+  if (!s.includes('=')) return s;
+  const rhs = s.slice(s.lastIndexOf('=') + 1).trim();
+  if (rhs.length > 0) return rhs;
+  const lhs = s.slice(0, s.indexOf('=')).trim();
+  return lhs.length > 0 ? lhs : s;
+}
+
+// `.min(1)` rejects an empty input; the post-transform `.pipe` rejects a value
+// that strips to empty (whitespace-only) or still carries an `=` (a degenerate
+// `=`/`==`). Either way the result is ungradeable, so we FAIL validation at
+// persist time — the AI retry/fallback chain then produces a usable answer
+// instead of silently storing an always-wrong question.
+const ExpectedExpressionSchema = z
+  .string()
+  .min(1)
+  .transform(stripEquationSides)
+  .pipe(z.string().min(1).refine((s) => !s.includes('='), 'must not contain "="'));
+
 export const EquationPayloadSchema = z.object({
-  expectedExpression: z.string().min(1),
+  expectedExpression: ExpectedExpressionSchema,
   tolerance: z.number().min(0).optional(),
   variables: z.array(z.string().min(1)).optional(),
+  // Several distinct answers can be legitimately correct (e.g. the two roots
+  // of a quadratic). The grader accepts a match against the expected
+  // expression OR any of these. Each is stripped of `=` like the primary.
+  acceptedExpressions: z.array(ExpectedExpressionSchema).max(8).optional(),
 });
 export type EquationPayload = z.infer<typeof EquationPayloadSchema>;
 

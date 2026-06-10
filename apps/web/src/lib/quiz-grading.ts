@@ -340,6 +340,7 @@ interface EquationParsed {
   expectedExpression: string;
   tolerance?: number;
   variables?: string[];
+  acceptedExpressions?: string[];
 }
 
 function readEquationPayload(payload: unknown): EquationParsed | null {
@@ -350,7 +351,14 @@ function readEquationPayload(payload: unknown): EquationParsed | null {
   const variables = Array.isArray(p.variables)
     ? p.variables.filter((s): s is string => typeof s === 'string')
     : undefined;
-  return { expectedExpression: p.expectedExpression, tolerance, variables };
+  // `.slice(0, 8)` mirrors the schema's `.max(8)` so a hand-edited/legacy DB row
+  // that bypassed the zod cap can't widen the grade-time compare loop.
+  const acceptedExpressions = Array.isArray(p.acceptedExpressions)
+    ? p.acceptedExpressions
+        .filter((s): s is string => typeof s === 'string' && s.length > 0)
+        .slice(0, 8)
+    : undefined;
+  return { expectedExpression: p.expectedExpression, tolerance, variables, acceptedExpressions };
 }
 
 // Untrusted expressions are bounded in length: even behind the hardened
@@ -359,23 +367,251 @@ function readEquationPayload(payload: unknown): EquationParsed | null {
 // grading path can't be turned into a CPU/ReDoS sink.
 const MAX_EQUATION_CHARS = 256;
 
+/**
+ * Normalize a raw math answer to the ASCII form safe-math expects, WITHOUT
+ * touching statement separators (newlines stay so extraction can split on
+ * them). Applied to BOTH the user answer and every expected expression so the
+ * two sides are compared on equal footing.
+ *
+ * - Unicode operators/symbols → ASCII (`×→*`, `÷→/`, U+2212 `−→-`, `²→^2`,
+ *   `³→^3`, `π→pi`), strip `≈` and a leading `~` (approximation markers).
+ * - Locale decimals: a comma directly between digits, when it's the only comma
+ *   in that digit run, is a decimal point (`2,5 → 2.5`). Thousands-style runs
+ *   with several commas are left alone (ambiguous, not a decimal).
+ * - Collapse horizontal whitespace; newlines are preserved as separators.
+ */
+function normalizeMathInput(raw: string): string {
+  let s = raw.replace(/≈/g, '').replace(/^\s*~+\s*/, '');
+  s = s
+    .replace(/×/g, '*')
+    .replace(/[·⋅]/g, '*') // middle dot / dot operator → multiply
+    .replace(/÷/g, '/')
+    .replace(/[−–—‐―]/g, '-') // U+2212 minus + en/em/hyphen/horizontal-bar dashes
+    .replace(/²/g, '^2')
+    .replace(/³/g, '^3')
+    .replace(/π/g, 'pi');
+  // Locale decimal comma → point, but ONLY at bracket depth 0 and only for an
+  // unambiguous single comma between digits (`2,5 → 2.5`). A comma INSIDE
+  // parentheses is a function-argument separator (`max(2,5)`) and must be left
+  // intact; a multi-comma run (`1,000,000`) is ambiguous and left intact too.
+  s = convertDecimalCommas(s);
+  // Collapse spaces/tabs/CR but keep newlines for statement splitting.
+  return s.replace(/[ \t\f\v\r]+/g, ' ').trim();
+}
+
+/**
+ * Convert German/Swiss decimal commas to points, but only where a comma is
+ * unambiguously a decimal: a single comma between digits at bracket depth 0.
+ * Commas inside `()`/`[]`/`{}` are function-argument separators and are left
+ * untouched, so `max(2,5)` stays a two-argument call rather than collapsing to
+ * `max(2.5)`. Done as a depth-tracking scan because a plain regex over the
+ * whole string can't tell an arg comma from a decimal comma.
+ */
+function convertDecimalCommas(s: string): string {
+  let depth = 0;
+  let out = '';
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '(' || ch === '[' || ch === '{') {
+      depth++;
+      out += ch;
+      i++;
+    } else if (ch === ')' || ch === ']' || ch === '}') {
+      if (depth > 0) depth--;
+      out += ch;
+      i++;
+    } else if (ch >= '0' && ch <= '9') {
+      // Consume the maximal run of digits and commas. Bracket depth is constant
+      // across it (neither digits nor commas change depth).
+      let j = i;
+      while (j < s.length && ((s[j] >= '0' && s[j] <= '9') || s[j] === ',')) j++;
+      const run = s.slice(i, j);
+      out += depth === 0 && /^\d+,\d+$/.test(run) ? run.replace(',', '.') : run;
+      i = j;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
+ * Split a normalized answer into statements at top-level `,`/`;` and at any
+ * `\n`, `→`, or `=>`. Commas/semicolons INSIDE parentheses are left intact so
+ * function-argument lists (`max(2, 3)`, `mod(10, 3)`) survive — only
+ * separators at bracket depth 0 cut. Decimal commas were already converted by
+ * `normalizeMathInput`, so a remaining top-level comma is a real separator.
+ */
+function splitStatements(input: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (ch === '(' || ch === '[' || ch === '{') {
+      depth++;
+      cur += ch;
+    } else if (ch === ')' || ch === ']' || ch === '}') {
+      if (depth > 0) depth--;
+      cur += ch;
+    } else if (input.startsWith('=>', i)) {
+      out.push(cur);
+      cur = '';
+      i++; // consume the '>' too
+    } else if (ch === '\n' || ch === '→') {
+      out.push(cur);
+      cur = '';
+    } else if ((ch === ',' || ch === ';') && depth === 0) {
+      out.push(cur);
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out.map((s) => s.trim()).filter((s) => s.length > 0);
+}
+
+/**
+ * From a normalized answer, derive the ordered candidate expressions to grade.
+ * Learners show their work and state the final answer LAST, so only the last
+ * statement is considered. Within it (≤3 candidates):
+ *   - if it contains `=`: the RHS of the last `=`, then the LHS of the first
+ *     `=` (covers `x=5` and `5=x`);
+ *   - otherwise: the whole statement.
+ * The original equation alone (`2x+3=13`) yields `13` and `2x+3` — neither
+ * equals the answer `5`, so leniency never manufactures a false positive.
+ */
+function extractAnswerCandidates(normalized: string): string[] {
+  const statements = splitStatements(normalized);
+  if (statements.length === 0) return [];
+  const last = statements[statements.length - 1];
+  const raw: string[] = [];
+  // The `equation` kind is for final-answer math, never relations: relational
+  // operators (`>=`, `<=`, `==`) are out of scope and aren't parsed specially —
+  // their `=` just splits here, leaving a dangling fragment that fails to parse
+  // and is harmlessly discarded by compareExpressions' try/catch.
+  if (last.includes('=')) {
+    const rhs = last.slice(last.lastIndexOf('=') + 1).trim();
+    const lhs = last.slice(0, last.indexOf('=')).trim();
+    if (rhs.length > 0) raw.push(rhs);
+    if (lhs.length > 0) raw.push(lhs);
+  } else {
+    raw.push(last);
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of raw) {
+    if (seen.has(c)) continue;
+    seen.add(c);
+    out.push(c);
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
+/**
+ * Numerically compare one user expression against one expected expression via
+ * the hardened safe-math engine. With declared `variables`, samples at several
+ * points (algebraic equivalence); otherwise a single numeric compare. Any
+ * parse/eval error or non-finite value → not a match (never throws).
+ */
+function compareExpressions(
+  userExpr: string,
+  expectedExpr: string,
+  variables: string[] | null,
+  tol: number
+): boolean {
+  try {
+    if (variables) {
+      // Multi-point numeric equivalence. Avoids relying on symbolic-simplify
+      // identifying every algebraic restatement.
+      const samples = [1.7183, 2.5, -0.41, 3.14159];
+      const userNode = safeParse(userExpr);
+      const expectedNode = safeParse(expectedExpr);
+      for (const seed of samples) {
+        const scope = Object.fromEntries(variables.map((v, i) => [v, seed + i * 0.137]));
+        const userVal = Number(userNode.evaluate(scope));
+        const expectedVal = Number(expectedNode.evaluate(scope));
+        if (!Number.isFinite(userVal) || !Number.isFinite(expectedVal)) return false;
+        if (Math.abs(userVal - expectedVal) > tol) return false;
+      }
+      return true;
+    }
+    const userVal = Number(safeEvaluate(userExpr));
+    const expectedVal = Number(safeEvaluate(expectedExpr));
+    if (!Number.isFinite(userVal) || !Number.isFinite(expectedVal)) return false;
+    // `<=` matches the inclusive boundary used by the variables branch above
+    // (which fails only when the gap is strictly > tol).
+    return Math.abs(userVal - expectedVal) <= tol;
+  } catch {
+    return false;
+  }
+}
+
 function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResult {
+  // Rollback lever: revert to the raw-string comparison if lenient grading
+  // ever misbehaves in prod (no code redeploy needed).
+  if (process.env.EQUATION_LENIENT_GRADING_DISABLED === '1') {
+    return gradeEquationStrict(userExpression, p);
+  }
+  if (userExpression.trim().length === 0) return { isCorrect: false };
+  // Length cap on the raw untrusted input before any parsing.
+  if (userExpression.length > MAX_EQUATION_CHARS) return { isCorrect: false };
+
+  const userCandidates = extractAnswerCandidates(normalizeMathInput(userExpression));
+  if (userCandidates.length === 0) return { isCorrect: false };
+
+  // Canonicalize every accepted expected answer (the primary expression plus
+  // any `acceptedExpressions`) through the SAME normalizer + extractor. This is
+  // why a legacy `=`-bearing expected (e.g. "x = 5") self-heals to its final
+  // answer at grading time with no migration.
+  const expectedInputs = [p.expectedExpression, ...(p.acceptedExpressions ?? [])];
+  const expectedCanonical: string[] = [];
+  for (const raw of expectedInputs) {
+    if (typeof raw !== 'string' || raw.trim().length === 0 || raw.length > MAX_EQUATION_CHARS) {
+      continue;
+    }
+    const cand = extractAnswerCandidates(normalizeMathInput(raw));
+    if (cand.length > 0) expectedCanonical.push(cand[0]);
+  }
+  if (expectedCanonical.length === 0) return { isCorrect: false };
+
+  const tol = p.tolerance ?? 1e-6;
+  const variables = p.variables && p.variables.length > 0 ? p.variables : null;
+
+  // First success wins: try each user candidate (in priority order) against
+  // each accepted expected answer.
+  for (const userCand of userCandidates) {
+    for (const expectedCand of expectedCanonical) {
+      if (compareExpressions(userCand, expectedCand, variables, tol)) {
+        return { isCorrect: true };
+      }
+    }
+  }
+  return { isCorrect: false };
+}
+
+/**
+ * The pre-leniency grader, kept verbatim behind the
+ * `EQUATION_LENIENT_GRADING_DISABLED=1` rollback lever: raw user + expected
+ * strings fed straight to safe-math with no normalization or extraction.
+ */
+function gradeEquationStrict(userExpression: string, p: EquationParsed): QuizGradeResult {
   if (userExpression.trim().length === 0) return { isCorrect: false };
   if (userExpression.length > MAX_EQUATION_CHARS || p.expectedExpression.length > MAX_EQUATION_CHARS) {
     return { isCorrect: false };
   }
   try {
     if (p.variables && p.variables.length > 0) {
-      // Multi-point numeric equivalence. Avoids relying on symbolic-simplify
-      // identifying every algebraic restatement.
       const samples = [1.7183, 2.5, -0.41, 3.14159];
       const userNode = safeParse(userExpression);
       const expectedNode = safeParse(p.expectedExpression);
       const tol = p.tolerance ?? 1e-6;
       for (const seed of samples) {
-        const scope = Object.fromEntries(
-          p.variables.map((v, i) => [v, seed + i * 0.137])
-        );
+        const scope = Object.fromEntries(p.variables.map((v, i) => [v, seed + i * 0.137]));
         const userVal = Number(userNode.evaluate(scope));
         const expectedVal = Number(expectedNode.evaluate(scope));
         if (!Number.isFinite(userVal) || !Number.isFinite(expectedVal)) {
@@ -385,14 +621,11 @@ function gradeEquation(userExpression: string, p: EquationParsed): QuizGradeResu
       }
       return { isCorrect: true };
     }
-    // No declared variables → evaluate both as numbers.
     const userVal = Number(safeEvaluate(userExpression));
     const expectedVal = Number(safeEvaluate(p.expectedExpression));
     if (!Number.isFinite(userVal) || !Number.isFinite(expectedVal)) {
       return { isCorrect: false };
     }
-    // `<=` matches the inclusive boundary used by the variables branch above
-    // (which fails only when the gap is strictly > tol).
     return { isCorrect: Math.abs(userVal - expectedVal) <= (p.tolerance ?? 1e-6) };
   } catch {
     return { isCorrect: false };
