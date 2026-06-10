@@ -6,6 +6,7 @@ import SlotNode from '@/components/learn/SlotNode';
 import PathConnector from '@/components/learn/PathConnector';
 import PathDecoration, { decorationsForSection } from '@/components/learn/PathDecorations';
 import { sectionAverageGrade } from '@/lib/path-gating';
+import { UltraBadge } from '@/components/learn/UltraBadge';
 
 // Phase 10.5 — guided path view.
 //
@@ -70,6 +71,7 @@ export interface PathPlan {
   description: string | null;
   notebookId: string | null;
   notebookTitle: string | null;
+  ultra?: boolean;
   phases: PathPhase[];
 }
 
@@ -134,18 +136,21 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
           section banner. Stays in normal flow so it scrolls off
           while the section banner pins. */}
       <header style={{ margin: '0 4px 16px' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-display)',
-            fontSize: '24px',
-            fontWeight: 800,
-            color: 'var(--on-surface)',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {plan.title}
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <h1
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-display)',
+              fontSize: '24px',
+              fontWeight: 800,
+              color: 'var(--on-surface)',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {plan.title}
+          </h1>
+          {plan.ultra && <UltraBadge />}
+        </div>
         {plan.description ? (
           <p
             style={{
