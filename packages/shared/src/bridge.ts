@@ -29,6 +29,13 @@ export interface SignInWithAppleResult {
   user: AppleUser;
 }
 
+export interface GoogleSignInResult {
+  // Google's OpenID id_token (a JWT). The server verifies it against Google's
+  // JWKS and reads email / name / picture from the validated claims, so —
+  // unlike Apple — the shell doesn't need to forward a cached user object.
+  idToken: string;
+}
+
 export type Tier = 'FREE' | 'PRO';
 
 export interface Entitlement {
@@ -80,6 +87,11 @@ export interface NativeBridge {
 
   // ── Auth / account ────────────────────────────────────────────────────
   signInWithApple(): Promise<SignInWithAppleResult>;
+  // Google sign-in runs in the system browser (ASWebAuthenticationSession),
+  // NOT the WebView — Google blocks OAuth inside embedded WebViews. The shell
+  // returns a verified id_token which the web side exchanges for a session at
+  // POST /api/auth/native/google (mirrors the native Apple flow).
+  signInWithGoogle(): Promise<GoogleSignInResult>;
   // Binds the StoreKit / RevenueCat identity to the logged-in account so iOS
   // purchases attach to this user (RevenueCat appUserID = User.id). Optional:
   // only the iOS shell implements it; web/desktop are no-ops.
@@ -117,6 +129,7 @@ export interface NativeBridge {
 
 export type BridgeRequestMethod =
   | 'signInWithApple'
+  | 'signInWithGoogle'
   | 'getProducts'
   | 'purchase'
   | 'restorePurchases'

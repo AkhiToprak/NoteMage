@@ -37,11 +37,12 @@ interface OAuthProviderRowProps {
  * original login page so the onboarding wizard's credentials account step can
  * mount the same surface — register/login share the OAuth entry point.
  *
- * Apple inside the iOS WebView uses `nativeBridge.signInWithApple()` →
- * `POST /api/auth/native/apple` because NextAuth's redirect handshake can't
- * complete inside an embedded WebView. Google falls through to the standard
- * redirect handshake in every environment (matches the pre-extraction
- * behavior; Google-in-WebView is a known follow-up).
+ * Inside the iOS WebView shell, both providers sign in natively because
+ * NextAuth's redirect handshake can't complete in an embedded WebView: Apple
+ * via `nativeBridge.signInWithApple()` and Google via
+ * `nativeBridge.signInWithGoogle()` (system-browser OAuth), each exchanged for
+ * a session at `POST /api/auth/native/{apple,google}`. On the web both use the
+ * standard NextAuth redirect handshake (Apple is hidden there — see showApple).
  */
 export default function OAuthProviderRow({
   callbackUrl,
@@ -64,26 +65,38 @@ export default function OAuthProviderRow({
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider);
 
-    // Inside the iOS WebView shell, Apple Sign-In has to use the native
-    // ASAuthorizationAppleIDProvider flow — NextAuth's redirect handshake
-    // doesn't work in an embedded WebView. The shell hands us back an
-    // identity token which we exchange for a session cookie.
-    if (provider === 'apple' && isInsideNativeShell()) {
+    // Inside the iOS WebView shell, OAuth can't use NextAuth's redirect
+    // handshake: Apple's ASAuthorization and Google's "disallowed_useragent"
+    // policy both refuse an embedded WebView. The shell runs each flow natively
+    // (Apple via ASAuthorizationAppleIDProvider, Google via
+    // ASWebAuthenticationSession) and hands back an identity token we exchange
+    // for a session cookie at the matching /api/auth/native/* endpoint.
+    if (isInsideNativeShell()) {
       try {
-        const result = await nativeBridge.signInWithApple();
-        const res = await fetch('/api/auth/native/apple', {
+        let endpoint: string;
+        let payload: unknown;
+        if (provider === 'apple') {
+          endpoint = '/api/auth/native/apple';
+          payload = await nativeBridge.signInWithApple();
+        } else {
+          endpoint = '/api/auth/native/google';
+          payload = await nativeBridge.signInWithGoogle();
+        }
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(result),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const data = (await res.json().catch(() => null)) as { error?: string } | null;
           if (data?.error === 'OAuthAccountExists') {
             onError?.(
-              'An account already exists for this email. Please sign in with your password, then link Apple from settings.'
+              'An account already exists for this email. Please sign in with your password, then link it from settings.'
             );
           } else {
-            onError?.('Sign in with Apple failed. Please try again.');
+            onError?.(
+              `Sign in with ${provider === 'apple' ? 'Apple' : 'Google'} failed. Please try again.`
+            );
           }
           setOauthLoading(null);
           return;
@@ -99,7 +112,8 @@ export default function OAuthProviderRow({
       return;
     }
 
-    // Web (and Google in any environment): NextAuth redirect handshake.
+    // Web: NextAuth redirect handshake (Apple is hidden on web; Google uses
+    // the standard hosted redirect).
     signIn(provider, { callbackUrl });
   };
 

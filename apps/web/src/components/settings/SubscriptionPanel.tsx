@@ -267,18 +267,24 @@ export default function SubscriptionPanel() {
 
         {isPro && !isApple && (
           <>
-            <button
-              type="button"
-              className="sub-btn sub-btn-secondary"
-              style={secondaryBtnStyle}
-              onClick={openPortal}
-              disabled={busy}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                receipt_long
-              </span>
-              Manage billing
-            </button>
+            {/* External billing portal (Lemon Squeezy) is hidden inside the iOS
+                shell — App Store 3.1.1 disallows steering to external payment
+                management. Cross-platform subscribers can still cancel in-app
+                here and update card details on the web. */}
+            {!isIos && (
+              <button
+                type="button"
+                className="sub-btn sub-btn-secondary"
+                style={secondaryBtnStyle}
+                onClick={openPortal}
+                disabled={busy}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  receipt_long
+                </span>
+                Manage billing
+              </button>
+            )}
             {!cancelScheduled && !confirmingCancel && (
               <button
                 type="button"

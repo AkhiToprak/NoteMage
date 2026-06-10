@@ -26,6 +26,7 @@
 import type {
   AppleUser,
   Entitlement,
+  GoogleSignInResult,
   HapticStyle,
   NativeBridge,
   NativePlatform,
@@ -77,6 +78,9 @@ class WebFallbackBridge implements NativeBridge {
   // ── Auth / IAP — not supported on web yet ───────────────────────────────
   async signInWithApple(): Promise<SignInWithAppleResult> {
     throw new Error('signInWithApple is unavailable in the browser');
+  }
+  async signInWithGoogle(): Promise<GoogleSignInResult> {
+    throw new Error('signInWithGoogle is unavailable in the browser');
   }
   async getProducts(): Promise<Product[]> {
     return [];
@@ -178,6 +182,9 @@ class IOSWebViewBridge implements NativeBridge {
   signInWithApple(): Promise<SignInWithAppleResult> {
     return this.shellBridge.signInWithApple();
   }
+  signInWithGoogle(): Promise<GoogleSignInResult> {
+    return this.shellBridge.signInWithGoogle();
+  }
   getProducts(): Promise<Product[]> {
     return this.shellBridge.getProducts();
   }
@@ -261,6 +268,7 @@ export function getNativePlatform(): NativePlatform {
 export type {
   AppleUser,
   Entitlement,
+  GoogleSignInResult,
   HapticStyle,
   NativeBridge,
   NativePlatform,

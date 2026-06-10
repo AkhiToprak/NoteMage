@@ -28,6 +28,7 @@ import type { WebView } from 'react-native-webview';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Notifications from 'expo-notifications';
 import * as ExpoLinking from 'expo-linking';
@@ -39,6 +40,7 @@ import type {
   BridgeRequest,
   BridgeResponse,
   Entitlement,
+  GoogleSignInResult,
   HapticStyle,
   Product,
   PurchaseResult,
@@ -49,6 +51,11 @@ import type {
 } from '@notemage/shared';
 import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
 import Constants from 'expo-constants';
+
+// Completes any pending ASWebAuthenticationSession redirect after the Google
+// OAuth round-trip re-evaluates the JS bundle. No-op when nothing is pending;
+// safe to call once at module scope.
+WebBrowser.maybeCompleteAuthSession();
 
 // ─── Pencil native module (custom Swift, registered via the bridging header).
 // On non-iOS or when the module isn't installed (e.g. Expo Go) we no-op.
@@ -131,6 +138,7 @@ export const INJECTED_BEFORE_CONTENT_LOADED = `
     platform: function () { return 'ios'; },
 
     signInWithApple: function () { return send('signInWithApple'); },
+    signInWithGoogle: function () { return send('signInWithGoogle'); },
     getProducts: function () { return send('getProducts'); },
     purchase: function (id) { return send('purchase', { productId: id }); },
     restorePurchases: function () { return send('restorePurchases'); },
@@ -228,6 +236,27 @@ function toEntitlement(info: CustomerInfo): Entitlement {
     expiresAt: active.expirationDate ?? null,
     inGracePeriod: active.billingIssueDetectedAt != null,
   };
+}
+
+// ─── Google sign-in (system browser, not the WebView) ──────────────────────
+// Google rejects OAuth inside embedded WebViews ("disallowed_useragent"), so
+// the shell runs the authorization-code + PKCE flow in ASWebAuthenticationSession
+// and exchanges the code for an id_token, which the web side posts to
+// /api/auth/native/google. The redirect URI uses the reversed iOS client id
+// scheme (Google's iOS-client convention); that scheme must also be registered
+// in Info.plist CFBundleURLTypes for the redirect to return to the app.
+const GOOGLE_DISCOVERY: AuthSession.DiscoveryDocument = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+};
+
+function googleIosClientId(): string | null {
+  return (
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
+    (Constants.expoConfig?.extra as { googleIosClientId?: string } | undefined)?.googleIosClientId ??
+    null
+  );
 }
 
 export interface ShellBridgeOptions {
@@ -410,6 +439,46 @@ export class ShellBridge {
           user: { id: cred.user, email: cred.email, fullName },
         };
         return result;
+      }
+      case 'signInWithGoogle': {
+        const clientId = googleIosClientId();
+        if (!clientId) {
+          throw new Error('GOOGLE_UNAVAILABLE: iOS Google client id not configured');
+        }
+        // Reversed client id, e.g. 123-abc.apps.googleusercontent.com →
+        // com.googleusercontent.apps.123-abc.
+        const reversedScheme = clientId.split('.').reverse().join('.');
+        const redirectUri = AuthSession.makeRedirectUri({
+          native: `${reversedScheme}:/oauth2redirect`,
+        });
+        const request = new AuthSession.AuthRequest({
+          clientId,
+          scopes: ['openid', 'email', 'profile'],
+          redirectUri,
+          responseType: AuthSession.ResponseType.Code,
+          usePKCE: true,
+        });
+        const authResult = await request.promptAsync(GOOGLE_DISCOVERY);
+        if (authResult.type !== 'success' || !authResult.params.code) {
+          // Dismissed / cancelled — surface a named error the web side ignores,
+          // matching the Apple cancel path (no error toast).
+          throw new Error('GOOGLE_CANCELLED');
+        }
+        const tokenResult = await AuthSession.exchangeCodeAsync(
+          {
+            clientId,
+            code: authResult.params.code,
+            redirectUri,
+            extraParams: request.codeVerifier
+              ? { code_verifier: request.codeVerifier }
+              : {},
+          },
+          GOOGLE_DISCOVERY
+        );
+        if (!tokenResult.idToken) {
+          throw new Error('Google did not return an identity token');
+        }
+        return { idToken: tokenResult.idToken } satisfies GoogleSignInResult;
       }
       case 'setAppUser': {
         const userId = (req.args as { userId?: string } | undefined)?.userId;

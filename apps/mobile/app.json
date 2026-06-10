@@ -26,7 +26,9 @@
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSFaceIDUsageDescription": "Notemage uses Face ID to keep your notebooks private after the app is unlocked the first time."
+        "NSFaceIDUsageDescription": "Notemage uses Face ID to keep your notebooks private after the app is unlocked the first time.",
+        "NSCameraUsageDescription": "Notemage uses the camera when you choose to take a photo to attach to a note, flashcard, or your profile picture.",
+        "NSPhotoLibraryUsageDescription": "Notemage accesses your photo library when you choose an image to attach to a note, flashcard, or your profile picture."
       },
       "entitlements": {
         "aps-environment": "production"
@@ -66,6 +68,7 @@
     },
     "extra": {
       "revenueCatIosKey": "appl_YWMUdKEPdPqGENDYqViYRSyphQS",
+      "googleIosClientId": "730333373931-1tcf2qf4eod8ckaa3lad2uda6k866lkm.apps.googleusercontent.com",
       "eas": {
         "projectId": "9bc81d69-a804-4c48-a8b3-aa8719edf1e5"
       }
