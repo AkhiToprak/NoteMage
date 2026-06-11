@@ -164,7 +164,7 @@ export default function LearnDashboardPage() {
       <section style={{ marginBottom: '44px' }}>
         <SectionHeading title="Start something" />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          <QuickAction icon="add" label="New path" href="/learn/paths" primary />
+          <QuickAction icon="add" label="New path" href="/learn/paths?create=1" primary />
           <QuickAction icon="public" label="Browse community" href="/learn/community" />
           <QuickAction icon="chat" label="New chat" href="/learn/chats" />
           <QuickAction icon="menu_book" label="Open notebooks" href="/notebooks" />

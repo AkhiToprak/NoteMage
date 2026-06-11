@@ -121,6 +121,10 @@ export default function LearnPage() {
   const [plans, setPlans] = useState<PathPlanListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Set when arriving via the Learn overview's "New path" quick action
+  // (`?create=1`). Honoured once `canGenerate` resolves so the create CTA
+  // runs through the same gate as a manual click.
+  const [pendingCreate, setPendingCreate] = useState(false);
   // Phase 12 — null until the capability probe resolves. false = the
   // FREE-tier switchover is on for this user, so the create CTA routes to
   // the community library instead of opening the generator.
@@ -188,6 +192,19 @@ export default function LearnPage() {
     void refresh();
   }, [refresh]);
 
+  // Honour `?create=1` from the Learn overview's "New path" quick action.
+  // Read from window (not useSearchParams) to avoid opting the route out of
+  // static rendering, and strip the param so a refresh doesn't re-open.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('create') !== '1') return;
+    setPendingCreate(true);
+    params.delete('create');
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+  }, []);
+
   // Refresh on modal close so a newly created path shows up immediately
   // (LearnPathSetup auto-closes itself once Stage A returns, before the
   // path finishes generating — refresh picks up the `generating` card so
@@ -225,6 +242,14 @@ export default function LearnPage() {
     }
     setCreateOpen(true);
   }, [canGenerate, router]);
+
+  // Once the capability probe resolves, run a pending `?create=1` request
+  // through the same gate as a manual click (FREE → community, else modal).
+  useEffect(() => {
+    if (!pendingCreate || canGenerate === null) return;
+    setPendingCreate(false);
+    handleCreateClick();
+  }, [pendingCreate, canGenerate, handleCreateClick]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
