@@ -50,14 +50,20 @@ export default function TimerWidget({ compact }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [fixedPos, setFixedPos] = useState<{ top: number; left: number } | null>(null);
 
-  // Compute fixed position for compact (sidebar) mode
+  // Compute fixed position. On phone the panel is pinned to the viewport with
+  // gutters (anchoring it to the trigger near the right edge pushed it
+  // off-screen); compact sidebar mode flies out to the right of the rail.
   useEffect(() => {
-    if (open && compact && btnRef.current) {
+    if (open && btnRef.current && (compact || isPhone)) {
       const rect = btnRef.current.getBoundingClientRect();
-      setFixedPos({ top: rect.top, left: rect.right + 8 });
+      if (isPhone) {
+        setFixedPos({ top: rect.bottom + 8, left: 12 });
+      } else {
+        setFixedPos({ top: rect.top, left: rect.right + 8 });
+      }
     }
     if (!open) setFixedPos(null);
-  }, [open, compact]);
+  }, [open, compact, isPhone]);
 
   // Close on outside click
   useEffect(() => {
@@ -183,14 +189,22 @@ export default function TimerWidget({ compact }: Props) {
       {open && (
         <div
           style={{
-            position: compact ? 'fixed' : 'absolute',
-            ...(compact && fixedPos
-              ? { top: fixedPos.top, left: fixedPos.left }
-              : !compact
-                ? { top: '100%', marginTop: 8, right: 0 }
-                : {}),
-            width: isPhone ? 'calc(100vw - 24px)' : 310,
-            maxWidth: 340,
+            position: compact || isPhone ? 'fixed' : 'absolute',
+            ...(isPhone && fixedPos
+              ? {
+                  top: fixedPos.top,
+                  left: 12,
+                  right: 12,
+                  maxHeight: `calc(100dvh - ${fixedPos.top}px - 12px)`,
+                  overflowY: 'auto',
+                }
+              : compact && fixedPos
+                ? { top: fixedPos.top, left: fixedPos.left }
+                : !compact
+                  ? { top: '100%', marginTop: 8, right: 0 }
+                  : {}),
+            width: isPhone ? undefined : 310,
+            maxWidth: isPhone ? undefined : 340,
             background: C.cardBg,
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
@@ -203,7 +217,7 @@ export default function TimerWidget({ compact }: Props) {
             `,
             zIndex: 200,
             animation: `twDropIn 0.2s ${EASING}`,
-            overflow: 'hidden',
+            overflow: isPhone ? undefined : 'hidden',
           }}
         >
           {/* Mode tabs */}
