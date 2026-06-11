@@ -21,12 +21,77 @@ import { annotatePhases } from './path-gating';
 export const STALE_GENERATION_MS = 15 * 60 * 1000;
 
 /**
+ * Transient `generationStatus` set when the user cancels a LIVE generation.
+ * `DELETE /api/learn/paths/[id]` flips a live `generating` row to this instead
+ * of refusing; the orchestrator polls for it between checkpoints, stops (so it
+ * doesn't keep burning tokens on a discarded path), and self-deletes via
+ * {@link deletePathCascade}. The value is short-lived — the row vanishes once
+ * the writer acts — but it counts as in-flight for the list poll so the card
+ * shows "Cancelling…" until it does.
+ */
+export const CANCELLING_STATUS = 'cancelling';
+
+/**
  * Timestamp boundary for {@link STALE_GENERATION_MS}: a `generating` row whose
  * `updatedAt` is older than this counts as a dead orchestrator and is
  * reclaimable. `updatedAt < cutoff` ⇒ stale; `updatedAt >= cutoff` ⇒ live.
  */
 export function staleGenerationCutoff(): Date {
   return new Date(Date.now() - STALE_GENERATION_MS);
+}
+
+/**
+ * Delete a path and ALL the content it generated. Deleting the StudyPlan
+ * cascades phases → slots → activities, but the activity → content FK points
+ * the other way, so the generated TheoryContent / QuizSet / FlashcardSet rows
+ * are removed explicitly (their children — questions, cards, attempts — cascade).
+ *
+ * Shared by the DELETE route and the generator's own cancel cleanup so the two
+ * never drift. Content ids are re-read at call time, so calling this only AFTER
+ * the writer has stopped guarantees no orphans. No-ops if the row is already
+ * gone.
+ */
+export async function deletePathCascade(planId: string): Promise<void> {
+  const plan = await db.studyPlan.findUnique({
+    where: { id: planId },
+    select: {
+      phases: {
+        select: {
+          slots: {
+            select: {
+              activities: {
+                select: { theoryId: true, flashcardSetId: true, quizSetId: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!plan) return;
+
+  const theoryIds: string[] = [];
+  const quizSetIds: string[] = [];
+  const flashcardSetIds: string[] = [];
+  for (const phase of plan.phases) {
+    for (const slot of phase.slots) {
+      for (const activity of slot.activities) {
+        if (activity.theoryId) theoryIds.push(activity.theoryId);
+        if (activity.quizSetId) quizSetIds.push(activity.quizSetId);
+        if (activity.flashcardSetId) flashcardSetIds.push(activity.flashcardSetId);
+      }
+    }
+  }
+
+  // `deleteMany` (not `delete`) so concurrent callers — e.g. two DELETE requests
+  // racing, or the route and the generator's own cleanup — don't throw P2025 on
+  // the loser; the studyPlan delete still cascades phases → slots → activities.
+  await db.$transaction([
+    db.studyPlan.deleteMany({ where: { id: planId } }),
+    db.theoryContent.deleteMany({ where: { id: { in: theoryIds } } }),
+    db.quizSet.deleteMany({ where: { id: { in: quizSetIds } } }),
+    db.flashcardSet.deleteMany({ where: { id: { in: flashcardSetIds } } }),
+  ]);
 }
 
 /**

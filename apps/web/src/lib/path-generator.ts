@@ -96,6 +96,7 @@ import {
   type PathActivityKind,
 } from './path-slot-activities';
 import { normalizePathLanguage, type PathLanguageCode } from './path-languages';
+import { CANCELLING_STATUS, deletePathCascade } from './path-loader';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
@@ -1699,6 +1700,34 @@ async function writeProgress(planId: string, snap: ProgressSnapshot): Promise<vo
 }
 
 /**
+ * Thrown by the cooperative-cancel checkpoint to unwind out of the slot/sweep
+ * loops the moment the user cancels a live generation. Caught in
+ * {@link runPathGeneration}, which deletes the half-built path rather than
+ * letting it settle to `ready`. Never escapes to {@link generatePath}'s catch,
+ * so a cancel is not recorded as a `failed` generation.
+ */
+class PathGenerationCancelled extends Error {
+  constructor() {
+    super('path generation cancelled');
+    this.name = 'PathGenerationCancelled';
+  }
+}
+
+/**
+ * Cheap status probe between checkpoints. Returns true once the row has been
+ * flipped to `cancelling` (user hit Cancel — see the DELETE route) or has
+ * vanished entirely (hard-deleted). Either way the orchestrator must stop:
+ * continuing would keep spending tokens on a path nobody is waiting for.
+ */
+async function isCancelRequested(planId: string): Promise<boolean> {
+  const row = await db.studyPlan.findUnique({
+    where: { id: planId },
+    select: { generationStatus: true },
+  });
+  return !row || row.generationStatus === CANCELLING_STATUS;
+}
+
+/**
  * Stage B — generate every slot's activities for a plan that's already
  * been persisted with `generationStatus: "queued"` or `"generating"`.
  * Designed to be called as fire-and-forget from `POST /api/learn/paths`:
@@ -1745,6 +1774,13 @@ async function runGenerationPass(
       // those N rather than every slot in the path.
       if (missingKinds.length === 0) {
         continue;
+      }
+
+      // Cooperative cancel: bail before paying for the next checkpoint if the
+      // user cancelled (status → `cancelling`) or deleted the path mid-run.
+      // Unwinds via PathGenerationCancelled so runPathGeneration can clean up.
+      if (await isCancelRequested(planId)) {
+        throw new PathGenerationCancelled();
       }
 
       await writeProgress(planId, {
@@ -1889,25 +1925,41 @@ async function runPathGeneration(
   const progressTotal = pendingSlotCount(plan);
 
   let failedSlotIds: string[] = [];
-  for (let sweep = 0; sweep <= extraSweeps; sweep++) {
-    if (sweep > 0) {
-      // Re-load so the existing/pruned activity sets reflect the prior pass,
-      // then carry the accumulated usage forward into the fresh plan object.
-      const fresh = await loadPlanForGeneration(planId);
-      if (!fresh) break;
-      fresh.usage = usage;
-      plan = fresh;
-      logTelemetry(plan.userId, 'path.generation.sweep', {
-        planId,
-        sweep,
-        retryingSlots: new Set(failedSlotIds).size,
-      });
+  try {
+    for (let sweep = 0; sweep <= extraSweeps; sweep++) {
+      if (sweep > 0) {
+        // Re-load so the existing/pruned activity sets reflect the prior pass,
+        // then carry the accumulated usage forward into the fresh plan object.
+        const fresh = await loadPlanForGeneration(planId);
+        if (!fresh) break;
+        fresh.usage = usage;
+        plan = fresh;
+        logTelemetry(plan.userId, 'path.generation.sweep', {
+          planId,
+          sweep,
+          retryingSlots: new Set(failedSlotIds).size,
+        });
+      }
+      // Slots already finished in prior sweeps (progressTotal minus what's still
+      // pending now) seed this sweep's counter, so progress advances monotonically.
+      const completedSlotsBase = progressTotal - pendingSlotCount(plan);
+      failedSlotIds = await runGenerationPass(plan, planId, progressTotal, completedSlotsBase);
+      if (failedSlotIds.length === 0) break;
     }
-    // Slots already finished in prior sweeps (progressTotal minus what's still
-    // pending now) seed this sweep's counter, so progress advances monotonically.
-    const completedSlotsBase = progressTotal - pendingSlotCount(plan);
-    failedSlotIds = await runGenerationPass(plan, planId, progressTotal, completedSlotsBase);
-    if (failedSlotIds.length === 0) break;
+  } catch (error) {
+    if (error instanceof PathGenerationCancelled) {
+      // User cancelled a live generation. The writer has stopped, so deleting
+      // now captures every row it created — no orphans. The credit refund (and
+      // its per-day cap) is owned by the DELETE route at cancel time, not here —
+      // the route can answer the user synchronously, and keeping it there means
+      // a single, daily-capped refund instead of one per code path.
+      await deletePathCascade(planId).catch((e) =>
+        console.error('[path-generator] cancel cleanup failed', e),
+      );
+      logTelemetry(plan.userId, 'path.generation.cancelled', { planId });
+      return;
+    }
+    throw error;
   }
 
   // Reserve-and-settle: if an ULTRA path produced NOTHING after every sweep,
@@ -1934,10 +1986,28 @@ async function runPathGeneration(
   // path (path-gating treats them as passable) and surface their own
   // Regenerate affordance. `failed` is reserved for catastrophic failure.
   // (Phase 5 will branch the terminal status on any remaining failures.)
-  await db.studyPlan.update({
-    where: { id: planId },
+  //
+  // Guarded so a cancel that landed AFTER our last checkpoint but BEFORE this
+  // write can't be resurrected: only flip `generating` → `ready`. If the row was
+  // flipped to `cancelling` in that window, honor the cancel and delete it (the
+  // DELETE route already refunded) instead of shipping a path the user discarded.
+  const settled = await db.studyPlan.updateMany({
+    where: { id: planId, generationStatus: 'generating' },
     data: { generationStatus: 'ready', generationError: null },
   });
+  if (settled.count === 0) {
+    const current = await db.studyPlan.findUnique({
+      where: { id: planId },
+      select: { generationStatus: true },
+    });
+    if (current?.generationStatus === CANCELLING_STATUS) {
+      await deletePathCascade(planId).catch((e) =>
+        console.error('[path-generator] post-complete cancel cleanup failed', e),
+      );
+      logTelemetry(plan.userId, 'path.generation.cancelled', { planId, race: 'post_complete' });
+    }
+    return;
+  }
   logTelemetry(plan.userId, 'path.generation.completed', {
     planId,
     totalSlots: total,

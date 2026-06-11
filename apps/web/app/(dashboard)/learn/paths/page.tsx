@@ -15,7 +15,13 @@ import {
 import { PublishStatusChip } from '@/components/path-publish/PublishStatusChip';
 import PublishDialog from '@/components/path-publish/PublishDialog';
 import { UltraBadge } from '@/components/learn/UltraBadge';
+import { useToast } from '@/components/ui/Toast';
 import type { SharedPathModerationStatus } from '@notemage/shared';
+
+// Surfaced in the "cancel limit reached" toast so a user who's out of daily
+// refunds can still reclaim their Ultra credit through a human.
+const SUPPORT_MAILTO =
+  'mailto:notemage.app@gmail.com?subject=Ultra%20path%20credit%20refund';
 
 // Phase 2 of plans/path-publishing-community-library.md — the list
 // endpoint now returns a `publication` companion for every plan so the
@@ -66,7 +72,10 @@ type PathPlanListItem = PathPlan & {
 const STALE_GENERATION_MS = 15 * 60 * 1000;
 
 function isStuckGenerating(plan: PathPlanListItem): boolean {
-  if (plan.generationStatus !== 'generating' || !plan.updatedAt) return false;
+  const s = plan.generationStatus;
+  // `cancelling` joins `generating` here: if the orchestrator died mid-cancel it
+  // never self-deletes, so a stale one needs the same force-stop escape hatch.
+  if ((s !== 'generating' && s !== 'cancelling') || !plan.updatedAt) return false;
   return Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
 }
 
@@ -77,7 +86,9 @@ function primarySubjectOf(plan: PathPlanListItem): SubjectId | null {
 
 function isInFlight(plan: PathPlanListItem): boolean {
   const status = plan.generationStatus;
-  return status === 'queued' || status === 'generating';
+  // `cancelling` keeps the card on the generating skeleton (showing "Cancelling…")
+  // and keeps the list polling until the orchestrator removes the row.
+  return status === 'queued' || status === 'generating' || status === 'cancelling';
 }
 
 // Path-publishing P2 — non-terminal moderation states the page polls
@@ -118,6 +129,7 @@ function menuItemStyle(color: string): React.CSSProperties {
 
 export default function LearnPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [plans, setPlans] = useState<PathPlanListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -278,13 +290,14 @@ export default function LearnPage() {
     setDeleteError(null);
   }, [deleting]);
 
-  // Stop a wedged generation. Reuses the DELETE endpoint, which already allows
-  // removing a `generating` row once its orchestrator has gone stale; refresh()
-  // drops the card and the poll loop halts once nothing is in flight.
+  // Stop a generation via the DELETE endpoint. A LIVE run is cooperatively
+  // cancelled (the row flips to `cancelling`, the orchestrator stops + self-
+  // deletes); a stale/dead one is removed outright. Either way refresh() reflects
+  // the new state and the poll loop halts once nothing is in flight.
   const handleConfirmCancel = useCallback(async () => {
     if (!cancelTarget) return;
     // A stuck TRANSLATION leaves the path intact — restore it (POST /cancel)
-    // rather than deleting. A stuck GENERATION is incomplete — delete it.
+    // rather than deleting. A GENERATION (live or stuck) goes through DELETE.
     const isTranslate = cancelTarget.generationMode === 'translate';
     setCancelling(true);
     setCancelError(null);
@@ -295,8 +308,30 @@ export default function LearnPage() {
       );
       const json = await res.json();
       if (json?.success) {
+        const wasUltra = cancelTarget.ultra === true;
         setCancelTarget(null);
         await refresh();
+        // Tell the user what happened to their Ultra credit. The DELETE route
+        // refunds a never-delivered Ultra path, but only the first few cancels
+        // per day — past that it points them to support.
+        if (!isTranslate && wasUltra) {
+          if (json?.data?.refundLimited) {
+            toast({
+              title: 'Ultra credit not refunded',
+              description:
+                "Your path was stopped, but you've hit today's cancel limit so the credit wasn't returned automatically. Contact support to recover it.",
+              variant: 'error',
+              duration: 0,
+              action: { label: 'Email support', href: SUPPORT_MAILTO },
+            });
+          } else if (json?.data?.creditRefunded) {
+            toast({
+              title: 'Ultra credit refunded',
+              description: 'Your path was stopped and the credit returned to this month.',
+              variant: 'success',
+            });
+          }
+        }
       } else {
         setCancelError(
           json?.error ?? 'Could not stop this path. If it just started, give it a moment.'
@@ -306,7 +341,7 @@ export default function LearnPage() {
       setCancelError('Network error. Try again.');
     }
     setCancelling(false);
-  }, [cancelTarget, refresh]);
+  }, [cancelTarget, refresh, toast]);
 
   const handleCancelCancel = useCallback(() => {
     if (cancelling) return;
@@ -1082,6 +1117,22 @@ function GeneratingCard({
   stuck: boolean;
   onRequestCancel: (plan: PathPlanListItem) => void;
 }) {
+  const isTranslate = plan.generationMode === 'translate';
+  // A cancel is already in flight — the orchestrator is winding down and will
+  // remove the row. Show a passive "Cancelling…" pill instead of a live button,
+  // UNLESS it's gone stale (writer died mid-cancel), which routes to `stuck` and
+  // its force-stop control below.
+  const cancelling = plan.generationStatus === 'cancelling' && !stuck;
+  // Right-side control. Generations always get a stop/cancel affordance (live →
+  // Cancel, stuck → Stop); a translation only gets Restore once stuck — a live
+  // translation is non-destructive and finishes on its own.
+  const showButton = !cancelling && (stuck || !isTranslate);
+  const buttonLabel = isTranslate ? 'Restore' : stuck ? 'Stop' : 'Cancel';
+  const buttonAria = isTranslate
+    ? `Restore ${plan.title}`
+    : stuck
+      ? `Stop generating ${plan.title}`
+      : `Cancel generating ${plan.title}`;
   return (
     <section
       style={{
@@ -1152,25 +1203,46 @@ function GeneratingCard({
             lineHeight: 1.4,
           }}
         >
-          {stuck
-            ? plan.generationMode === 'translate'
-              ? 'Translation stalled — your path is intact.'
-              : "This path got stuck and won't finish. Stop it to start fresh."
-            : plan.generationMode === 'translate'
-              ? 'Translating your path…'
-              : 'Generating your path…'}
+          {cancelling
+            ? 'Cancelling…'
+            : stuck
+              ? isTranslate
+                ? 'Translation stalled — your path is intact.'
+                : "This path got stuck and won't finish. Stop it to start fresh."
+              : isTranslate
+                ? 'Translating your path…'
+                : 'Generating your path…'}
         </p>
       </div>
-      {stuck ? (
+      {cancelling ? (
+        <span
+          aria-live="polite"
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--on-surface-variant)',
+            border: '1px solid var(--outline-variant)',
+            fontSize: '12px',
+            fontWeight: 700,
+            opacity: 0.7,
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+            hourglass_empty
+          </span>
+          Cancelling…
+        </span>
+      ) : showButton ? (
         <button
           type="button"
           className="learn-path-stop-btn"
           onClick={() => onRequestCancel(plan)}
-          aria-label={
-            plan.generationMode === 'translate'
-              ? `Restore ${plan.title}`
-              : `Stop generating ${plan.title}`
-          }
+          aria-label={buttonAria}
           style={{
             flexShrink: 0,
             display: 'inline-flex',
@@ -1188,9 +1260,9 @@ function GeneratingCard({
           }}
         >
           <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
-            {plan.generationMode === 'translate' ? 'restart_alt' : 'close'}
+            {isTranslate ? 'restart_alt' : 'close'}
           </span>
-          {plan.generationMode === 'translate' ? 'Restore' : 'Stop'}
+          {buttonLabel}
         </button>
       ) : null}
     </section>
@@ -1921,9 +1993,9 @@ function DeletePathDialog({
   );
 }
 
-// Confirmation for stopping a wedged generation. Stopping deletes the row
-// (a stuck path can't finish and is locked), so the copy is explicit that the
-// path is removed.
+// Confirmation for stopping a generation (live or wedged) or restoring a stalled
+// translation. Stopping a generation deletes the row, so the copy is explicit
+// that the path and its partial content are removed.
 function CancelPathDialog({
   plan,
   cancelling,
@@ -1937,14 +2009,16 @@ function CancelPathDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  // A stuck translation is non-destructive to recover (restore to ready); a
-  // stuck generation is incomplete and gets deleted. Copy + accent branch on it.
+  // A stalled translation is non-destructive to recover (restore to ready); a
+  // generation is discarded. `stuck` separates a LIVE generation (still running
+  // — "Cancel") from a dead one ("got stuck — Stop"). Copy + accent branch on it.
   const isTranslate = plan.generationMode === 'translate';
+  const stuck = isStuckGenerating(plan);
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={isTranslate ? 'Restore path' : 'Stop generating path'}
+      aria-label={isTranslate ? 'Restore path' : stuck ? 'Stop generating path' : 'Cancel path'}
       onClick={onCancel}
       style={{
         position: 'fixed',
@@ -2003,7 +2077,11 @@ function CancelPathDialog({
                 letterSpacing: '-0.01em',
               }}
             >
-              {isTranslate ? 'Restore this path?' : 'Stop generating this path?'}
+              {isTranslate
+                ? 'Restore this path?'
+                : stuck
+                  ? 'Stop generating this path?'
+                  : 'Cancel this path?'}
             </h2>
             <p
               style={{
@@ -2019,11 +2097,17 @@ function CancelPathDialog({
                   translation stalled, but the path itself is intact. Restoring brings it back to
                   normal — you can translate it again afterwards.
                 </>
-              ) : (
+              ) : stuck ? (
                 <>
                   <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> got stuck and
                   can&apos;t finish. Stopping it removes the path and anything generated so far, so
                   you can create a fresh one. This can&apos;t be undone.
+                </>
+              ) : (
+                <>
+                  <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> is still being
+                  built. Cancelling stops generation and removes the path and anything generated so
+                  far. This can&apos;t be undone.
                 </>
               )}
             </p>
@@ -2077,10 +2161,14 @@ function CancelPathDialog({
             {cancelling
               ? isTranslate
                 ? 'Restoring…'
-                : 'Stopping…'
+                : stuck
+                  ? 'Stopping…'
+                  : 'Cancelling…'
               : isTranslate
                 ? 'Restore path'
-                : 'Stop generating'}
+                : stuck
+                  ? 'Stop generating'
+                  : 'Cancel path'}
           </button>
         </div>
       </div>
