@@ -11,12 +11,14 @@
 // `error`. Import never hard-fails on content either: a page the engine
 // cannot describe falls back to the deterministic heuristic extractor.
 
+import * as Sentry from '@sentry/nextjs';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { downloadFromStorage, deleteFile, saveImage } from '@/lib/storage';
 import { tiptapJsonToPlainText } from '@/lib/contentConverter';
 import { incrementUsage } from '@/lib/usage-limits';
 import { logAiUsage } from '@/lib/ai-usage';
+import { sanitizeCaption, sweepPageCaptions } from '@/lib/image-captions';
 import type { TierKey } from '@/lib/tiers';
 import { assembleTiptap } from './assemble';
 import type { DocModelBlock } from './doc-model';
@@ -244,7 +246,10 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     });
 
     const allBlocks: DocModelBlock[] = [];
-    const figureCrops: Array<{ ref: string; buffer: Buffer }> = [];
+    // `alt` is the model's import-time figure title (P1) — written through to
+    // `PageImage.aiCaption` below. It rides WITH the crop result so it dies if
+    // the crop is dropped (no orphan captions).
+    const figureCrops: Array<{ ref: string; buffer: Buffer; alt?: string }> = [];
     let fallbackPages = 0;
 
     for (let i = 0; i < pageCount; i++) {
@@ -355,7 +360,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           if (block.type !== 'image') continue;
           try {
             const crop = await cropFigure(pngBuffer, block.bbox);
-            if (crop) figureCrops.push({ ref: block.ref, buffer: crop });
+            if (crop) figureCrops.push({ ref: block.ref, buffer: crop, alt: block.alt });
           } catch (err) {
             console.error(
               `[pdf-import] job ${jobId} page ${i + 1}: figure crop failed`,
@@ -418,10 +423,17 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     });
     await db.importJob.update({ where: { id: jobId }, data: { resultPageId: page.id } });
 
-    // Upload each figure crop and map its ref → served image URL.
+    // Upload each figure crop and map its ref → served image URL. Layer 1 of
+    // the captioning ladder: the model's import-time `alt`, sanitized, is
+    // written through to `aiCaption` so figure reuse needs no generation-time
+    // vision call. Gated by the same kill switch as the prompt fragment and the
+    // sweep — when off, captions stay null (today's behaviour, layer 3 heals).
+    const figureTitlesEnabled = process.env.IMPORT_FIGURE_TITLES_DISABLED !== '1';
     const imageSrcByRef: Record<string, string> = {};
+    let figuresTitled = 0;
     for (const crop of figureCrops) {
       const fileName = `${crop.ref}.png`;
+      const aiCaption = figureTitlesEnabled ? sanitizeCaption(crop.alt) : null;
       try {
         const { filePath } = await saveImage(page.id, fileName, crop.buffer);
         const image = await db.pageImage.create({
@@ -431,13 +443,16 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
             filePath,
             fileSize: crop.buffer.length,
             mimeType: 'image/png',
+            ...(aiCaption ? { aiCaption, captionedAt: new Date() } : {}),
           },
         });
+        if (aiCaption) figuresTitled += 1;
         imageSrcByRef[crop.ref] = `/api/uploads/images/${image.id}`;
       } catch (err) {
         console.error(`[pdf-import] job ${jobId}: figure upload failed for ${crop.ref}`, err);
       }
     }
+    const figuresCropped = figureCrops.length;
 
     const { doc, truncated } = assembleTiptap({ blocks: allBlocks }, imageSrcByRef);
 
@@ -477,6 +492,24 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         }),
       },
     });
+
+    // Coverage telemetry — alt-title regressions show up as a falling
+    // titled/cropped ratio after a prompt change (P1 acceptance gate).
+    Sentry.addBreadcrumb({
+      category: 'pdf-import',
+      level: 'info',
+      message: 'figures titled at import',
+      data: { jobId, figuresCropped, figuresTitled },
+    });
+
+    // Layer 2 of the captioning ladder — caption any figure the model didn't
+    // title at import. Fire-and-forget + idempotent: the job is already `ready`,
+    // so this never blocks completion and never throws into the job (own
+    // try/catch); a redeploy-killed sweep is healed by the generation-time lazy
+    // pass (import failure-mode #8).
+    if (figureTitlesEnabled && figuresCropped > figuresTitled) {
+      void sweepPageCaptions(page.id);
+    }
 
     // Meter the pages actually imported against the user's PDF-import
     // budget (FREE: a lifetime allowance; PRO: monthly). Charged only on

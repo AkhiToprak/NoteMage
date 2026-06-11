@@ -22,6 +22,8 @@ interface QuizSetData {
     correctExplanation: string | null;
     wrongExplanation: string | null;
     sortOrder: number;
+    // Figure-reuse (P5): exhibit image (0-or-1), rendered by QuizViewer.
+    image?: { id: string; caption: string | null } | null;
   }[];
 }
 

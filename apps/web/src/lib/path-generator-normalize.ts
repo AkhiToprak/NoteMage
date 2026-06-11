@@ -189,6 +189,11 @@ export function normalizeTheoryInput(raw: unknown): NormalizedTheoryInput {
 interface NormalizedFlashcard {
   question: string;
   answer: string;
+  // Optional figure-reuse payload (P3). Passed through verbatim (raw object) so
+  // the generator validates it with FlashcardFigureSchema and drops invalid
+  // refs — a malformed figure must never fail the card. Absent on legacy output
+  // and whenever no source-figure catalog accompanied the prompt.
+  figure?: Record<string, unknown>;
 }
 
 export interface NormalizedFlashcardsInput {
@@ -247,7 +252,12 @@ export function normalizeFlashcardsInput(raw: unknown): NormalizedFlashcardsInpu
       asFlexibleString(item.definition) ??
       asFlexibleString(item.response);
     if (question && answer) {
-      flashcards.push({ question, answer });
+      const card: NormalizedFlashcard = { question, answer };
+      // Pass any figure object through untyped — FlashcardFigureSchema is the
+      // arbiter in the generator. Accept `figure` or `image` as the key.
+      const figureRaw = item.figure ?? item.image;
+      if (isPlainObject(figureRaw)) card.figure = figureRaw;
+      flashcards.push(card);
     }
   }
   return { title, flashcards };
@@ -264,6 +274,11 @@ interface NormalizedQuizQuestion {
   correctExplanation?: string;
   wrongExplanation?: string;
   payload: Record<string, unknown>;
+  // Optional figure-reuse payload (P4). Passed through verbatim (raw object) so
+  // the generator validates it with QuizFigureSchema and drops invalid refs — a
+  // malformed figure must never fail the question. Absent on legacy output and
+  // whenever no source-figure catalog accompanied the prompt.
+  figure?: Record<string, unknown>;
 }
 
 // Pull the visible text out of an option that the model returned as an
@@ -537,6 +552,10 @@ export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
     if (hint) normalized.hint = hint;
     if (correctExplanation) normalized.correctExplanation = correctExplanation;
     if (wrongExplanation) normalized.wrongExplanation = wrongExplanation;
+    // Pass any figure object through untyped — QuizFigureSchema is the arbiter
+    // in the generator. Accept `figure` or `image` as the key.
+    const figureRaw = q.figure ?? q.image;
+    if (isPlainObject(figureRaw)) normalized.figure = figureRaw;
     out.push(normalized);
   }
   return out;

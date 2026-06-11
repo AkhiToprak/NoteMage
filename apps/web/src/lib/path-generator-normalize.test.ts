@@ -6,7 +6,7 @@
 // (`answer: { text }`) vanished → empty set → spurious "failure".
 
 import { describe, it, expect } from 'vitest';
-import { normalizeFlashcardsInput } from './path-generator-normalize';
+import { normalizeFlashcardsInput, normalizeQuizQuestions } from './path-generator-normalize';
 
 describe('normalizeFlashcardsInput', () => {
   it('keeps canonical {question, answer} string pairs', () => {
@@ -89,5 +89,67 @@ describe('normalizeFlashcardsInput', () => {
     expect(normalizeFlashcardsInput('nope').flashcards).toEqual([]);
     expect(normalizeFlashcardsInput({ title: 't' }).flashcards).toEqual([]);
     expect(normalizeFlashcardsInput({}).title).toBe('');
+  });
+
+  // Figure-reuse (P3): the optional per-card figure object passes through
+  // verbatim for the generator to validate; cards without one stay {q,a}-only.
+  it('passes a figure object through (figure / image keys) and omits it otherwise', () => {
+    const out = normalizeFlashcardsInput({
+      title: 't',
+      flashcards: [
+        {
+          question: 'Q1',
+          answer: 'A1',
+          figure: { imageRef: 'img_1', side: 'back', caption: 'A diagram' },
+        },
+        { question: 'Q2', answer: 'A2', image: { imageRef: 'img_2', caption: 'Another' } },
+        { question: 'Q3', answer: 'A3' },
+        { question: 'Q4', answer: 'A4', figure: 'not-an-object' },
+      ],
+    });
+    expect(out.flashcards[0].figure).toEqual({
+      imageRef: 'img_1',
+      side: 'back',
+      caption: 'A diagram',
+    });
+    expect(out.flashcards[1].figure).toEqual({ imageRef: 'img_2', caption: 'Another' });
+    expect(out.flashcards[2].figure).toBeUndefined();
+    // A non-object figure is ignored (no key added); the card still survives.
+    expect(out.flashcards[3]).toEqual({ question: 'Q4', answer: 'A4' });
+  });
+});
+
+describe('normalizeQuizQuestions', () => {
+  // Figure-reuse (P4): the optional per-question figure object passes through
+  // verbatim (figure / image key) for the generator to validate; questions
+  // without one carry no figure key.
+  it('passes a question figure through and omits it otherwise', () => {
+    const out = normalizeQuizQuestions([
+      {
+        kind: 'mc',
+        prompt: 'Q1',
+        payload: { options: ['a', 'b', 'c', 'd'], correctIndex: 0 },
+        figure: { imageRef: 'img_1', caption: 'An exhibit' },
+      },
+      {
+        kind: 'true_false',
+        prompt: 'Q2',
+        payload: { correct: true },
+        image: { imageRef: 'img_2', caption: 'Via image key' },
+      },
+      { kind: 'mc', prompt: 'Q3', payload: { options: ['a', 'b', 'c', 'd'], correctIndex: 1 } },
+      {
+        kind: 'mc',
+        prompt: 'Q4',
+        payload: { options: ['a', 'b', 'c', 'd'], correctIndex: 2 },
+        figure: 'not-an-object',
+      },
+    ]);
+    expect(out[0].figure).toEqual({ imageRef: 'img_1', caption: 'An exhibit' });
+    expect(out[1].figure).toEqual({ imageRef: 'img_2', caption: 'Via image key' });
+    expect(out[2].figure).toBeUndefined();
+    // A non-object figure is ignored; the question still survives.
+    expect(out[3].figure).toBeUndefined();
+    expect(out[3].prompt).toBe('Q4');
   });
 });

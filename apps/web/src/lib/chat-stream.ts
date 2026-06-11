@@ -9,9 +9,22 @@ import {
 import { db } from './db';
 import { anthropic, AI_MODEL, MAX_OUTPUT_TOKENS, MAX_CONTEXT_CHARS } from './anthropic';
 import { checkUsageLimit, incrementUsage } from './usage-limits';
-import { extractToolUses } from './ai-tools';
+import {
+  extractToolUses,
+  FLASHCARD_TOOL_WITH_FIGURES,
+  QUIZ_TOOL_V2_WITH_FIGURES,
+} from './ai-tools';
 import { resolveChatIntent } from './chat-intent';
 import { CHAT_BASE_INSTRUCTIONS, INTENT_GUIDANCE, INTENT_TOOL } from './chat-guidance';
+import {
+  loadSourceImages,
+  renderImageCatalog,
+  resolveFlashcardFigures,
+  resolveQuizFigures,
+  type SourceImage,
+} from './path-image-catalog';
+import { copyImage } from './storage';
+import { randomUUID } from 'crypto';
 import { resolveModel } from './model-routing';
 import { logAiUsage } from './ai-usage';
 import { streamGeminiChatText } from './chat-stream-gemini';
@@ -239,18 +252,65 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     const intentResult = await resolveChatIntent({ userMessage, recentTail });
     const intent = intentResult.intent;
 
+    // ── Figure-reuse (P5): chat-conditional source-image catalog ──
+    // Only flashcards/quiz turns can place a figure, and ONLY from images on the
+    // chat's ATTACHED context pages that already carry a caption (no captioning
+    // pass inside a chat turn). Attached Documents have no PageImages → never
+    // offered. The catalog is deterministic given the context pages, so it rides
+    // the cached context block. Chat never invents images — any non-catalog ref
+    // is dropped at persist time by resolve{Flashcard,Quiz}Figures.
+    let chatImageCatalog = '';
+    let chatSourceImages: SourceImage[] = [];
+    if (
+      (intent === 'flashcards' || intent === 'quiz') &&
+      process.env.CHAT_FIGURES_DISABLED !== '1' &&
+      chat.contextPageIds.length > 0
+    ) {
+      try {
+        const imgs = await loadSourceImages(userId, chat.contextPageIds);
+        const rendered = renderImageCatalog(imgs); // '' when none captioned
+        if (rendered) {
+          chatImageCatalog = rendered;
+          // Validate only against captioned images (the model only ever sees
+          // those in the catalog).
+          chatSourceImages = imgs.filter((i) => i.caption && i.caption.trim().length > 0);
+        }
+      } catch (err) {
+        Sentry.addBreadcrumb({
+          category: 'chat',
+          level: 'warning',
+          message: 'chat figure catalog load failed',
+          data: { message: err instanceof Error ? err.message : String(err) },
+        });
+      }
+    }
+    const figuresAvailable = chatImageCatalog.length > 0;
+
     const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
       { type: 'text', text: CHAT_BASE_INSTRUCTIONS },
     ];
     if (intent !== 'chat') {
       systemBlocks.push({ type: 'text', text: INTENT_GUIDANCE[intent] });
     }
-    if (contextParts.length > 0) {
+    // Context block = the notebook corpus + (P5) the optional figure catalog.
+    // Both are byte-stable for the chat's context, so they ride one 1h-cached
+    // block reused across turns.
+    let contextBlockText =
+      contextParts.length > 0
+        ? '\nThe user has provided the following context from their notebook:\n\n' +
+          contextParts.join('\n\n---\n\n')
+        : '';
+    if (figuresAvailable) {
+      const figInstr =
+        intent === 'flashcards'
+          ? 'OPTIONAL FIGURES — a card MAY embed ONE image from the SOURCE FIGURES list below by adding a `"figure"` object to that card: `{ "imageRef": string, "side": "front"|"back", "caption": string }`. Copy each `imageRef` VERBATIM from that list (never invent one); add a figure ONLY to a card it genuinely illustrates; AT MOST 4 cards may carry one; prefer omission. `side` defaults to "front" (the question side).'
+          : 'OPTIONAL FIGURES — a question MAY show ONE image from the SOURCE FIGURES list below by adding a `"figure"` object at the QUESTION level (a sibling of `kind`/`prompt`/`payload`, NEVER inside `payload`): `{ "imageRef": string, "caption": string }`. The image renders as an exhibit ABOVE the prompt. Copy each `imageRef` VERBATIM from that list (never invent one); add a figure ONLY to a question it genuinely illustrates; AT MOST 3 questions may carry one; prefer omission.';
+      contextBlockText += (contextBlockText ? '\n\n' : '\n') + figInstr + '\n\n' + chatImageCatalog;
+    }
+    if (contextBlockText) {
       systemBlocks.push({
         type: 'text',
-        text:
-          '\nThe user has provided the following context from their notebook:\n\n' +
-          contextParts.join('\n\n---\n\n'),
+        text: contextBlockText,
         // 1h TTL: chat turns can span >5 min; the byte-stable corpus is the
         // big cacheable block, reused across turns of the same chat.
         cache_control: { type: 'ephemeral', ttl: '1h' },
@@ -264,11 +324,20 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     });
 
     // Single forced tool for a generation intent (cloned so we never mutate
-    // the shared export); null for plain chat.
-    const forcedTool: Anthropic.Messages.Tool | null =
+    // the shared export); null for plain chat. P5: swap in the figure-enabled
+    // flashcard/quiz variant ONLY when a catalog is present, so a turn without
+    // imported images never advertises a `figure` field it can't validate.
+    const baseToolForIntent: Anthropic.Messages.Tool | null =
       intent === 'chat'
         ? null
-        : { ...INTENT_TOOL[intent], cache_control: { type: 'ephemeral', ttl: '1h' } };
+        : figuresAvailable && intent === 'flashcards'
+          ? FLASHCARD_TOOL_WITH_FIGURES
+          : figuresAvailable && intent === 'quiz'
+            ? QUIZ_TOOL_V2_WITH_FIGURES
+            : INTENT_TOOL[intent];
+    const forcedTool: Anthropic.Messages.Tool | null = baseToolForIntent
+      ? { ...baseToolForIntent, cache_control: { type: 'ephemeral', ttl: '1h' } }
+      : null;
 
     // Plain chat (no tool) routes via the resolver: the optimized default is
     // Flash for BOTH free and Pro (cheaper than Haiku, better than Flash-Lite).
@@ -548,6 +617,44 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                   return;
                 }
 
+                // Figure-reuse (P5): validate the model's per-card figures
+                // against the chat catalog (drop hallucinated/duplicate refs,
+                // cap 4), then SNAPSHOT each into flashcard-images/{cardId}/…
+                // BEFORE the tx — storage I/O must not hold a DB transaction
+                // open. Pre-generated card ids let the rows nest into the same
+                // create. A copy failure drops that one figure; the card saves.
+                const fcFigures = figuresAvailable
+                  ? resolveFlashcardFigures(flashcards, chatSourceImages)
+                  : [];
+                const fcCardIds = flashcards.map(() => randomUUID());
+                const fcSnapped = new Map<
+                  number,
+                  { side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
+                >();
+                for (const fig of fcFigures) {
+                  try {
+                    const dest = `flashcard-images/${fcCardIds[fig.cardIndex]}/${Date.now()}-${fig.cardIndex}`;
+                    const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
+                    const list = fcSnapped.get(fig.cardIndex) ?? [];
+                    list.push({
+                      side: fig.side,
+                      fileName: fig.image.fileName,
+                      filePath,
+                      fileSize,
+                      mimeType: fig.image.mimeType,
+                      caption: fig.caption,
+                    });
+                    fcSnapped.set(fig.cardIndex, list);
+                  } catch (err) {
+                    Sentry.addBreadcrumb({
+                      category: 'chat',
+                      level: 'warning',
+                      message: 'chat flashcard figure copy failed',
+                      data: { message: err instanceof Error ? err.message : String(err) },
+                    });
+                  }
+                }
+
                 const result = await db.$transaction(async (tx) => {
                   const userMsg = await tx.chatMessage.create({
                     data: {
@@ -568,11 +675,30 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                       title: setTitle,
                       source: 'ai',
                       flashcards: {
-                        create: flashcards.map((fc, i) => ({
-                          question: fc.question,
-                          answer: fc.answer,
-                          sortOrder: i,
-                        })),
+                        create: flashcards.map((fc, i) => {
+                          const imgs = fcSnapped.get(i);
+                          return {
+                            id: fcCardIds[i],
+                            question: fc.question,
+                            answer: fc.answer,
+                            sortOrder: i,
+                            ...(imgs && imgs.length > 0
+                              ? {
+                                  images: {
+                                    create: imgs.map((s) => ({
+                                      side: s.side,
+                                      fileName: s.fileName,
+                                      filePath: s.filePath,
+                                      fileSize: s.fileSize,
+                                      mimeType: s.mimeType,
+                                      caption: s.caption,
+                                      sortOrder: 0,
+                                    })),
+                                  },
+                                }
+                              : {}),
+                          };
+                        }),
                       },
                     },
                     include: { flashcards: true },
@@ -680,6 +806,41 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 return;
               }
 
+              // Figure-reuse (P5): validate per-question exhibits against the
+              // chat catalog (drop hallucinated/duplicate refs, cap 3), then
+              // SNAPSHOT each into quiz-images/{questionId}/… BEFORE the tx.
+              // Pre-generated question ids let the row nest into the same
+              // create. A copy failure drops that one exhibit; the question saves.
+              const qFigures = figuresAvailable
+                ? resolveQuizFigures(parsed.data.questions, chatSourceImages)
+                : [];
+              const qQuestionIds = parsed.data.questions.map(() => randomUUID());
+              const qSnapped = new Map<
+                number,
+                { fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string; sourcePageImageId: string }
+              >();
+              for (const fig of qFigures) {
+                try {
+                  const dest = `quiz-images/${qQuestionIds[fig.questionIndex]}/${Date.now()}-${fig.questionIndex}`;
+                  const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
+                  qSnapped.set(fig.questionIndex, {
+                    fileName: fig.image.fileName,
+                    filePath,
+                    fileSize,
+                    mimeType: fig.image.mimeType,
+                    caption: fig.caption,
+                    sourcePageImageId: fig.image.id,
+                  });
+                } catch (err) {
+                  Sentry.addBreadcrumb({
+                    category: 'chat',
+                    level: 'warning',
+                    message: 'chat quiz figure copy failed',
+                    data: { message: err instanceof Error ? err.message : String(err) },
+                  });
+                }
+              }
+
               const result = await db.$transaction(async (tx) => {
                 const userMsg = await tx.chatMessage.create({
                   data: {
@@ -699,16 +860,34 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                     messageId: '',
                     title: quizTitle,
                     questions: {
-                      create: parsed.data.questions.map((q, i) => ({
-                        kind: q.kind,
-                        payload: q.payload,
-                        question: q.prompt,
-                        ...buildLegacyColumns(q.kind, q.payload),
-                        hint: q.hint ?? null,
-                        correctExplanation: q.correctExplanation ?? null,
-                        wrongExplanation: q.wrongExplanation ?? null,
-                        sortOrder: i,
-                      })),
+                      create: parsed.data.questions.map((q, i) => {
+                        const snap = qSnapped.get(i);
+                        return {
+                          id: qQuestionIds[i],
+                          kind: q.kind,
+                          payload: q.payload,
+                          question: q.prompt,
+                          ...buildLegacyColumns(q.kind, q.payload),
+                          hint: q.hint ?? null,
+                          correctExplanation: q.correctExplanation ?? null,
+                          wrongExplanation: q.wrongExplanation ?? null,
+                          sortOrder: i,
+                          ...(snap
+                            ? {
+                                image: {
+                                  create: {
+                                    fileName: snap.fileName,
+                                    filePath: snap.filePath,
+                                    fileSize: snap.fileSize,
+                                    mimeType: snap.mimeType,
+                                    caption: snap.caption,
+                                    sourcePageImageId: snap.sourcePageImageId,
+                                  },
+                                },
+                              }
+                            : {}),
+                        };
+                      }),
                     },
                   },
                   include: { questions: true },

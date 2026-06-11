@@ -55,8 +55,15 @@ import {
   loadSourceImages,
   captionMissing,
   renderImageCatalog,
+  resolveFlashcardFigures,
+  resolveQuizFigures,
   type SourceImage,
 } from './path-image-catalog';
+
+// Re-exported for back-compat: these figure validators moved to
+// path-image-catalog (their natural home, also reused by chat-stream) but the
+// path generator and its tests still import them from here.
+export { resolveFlashcardFigures, resolveQuizFigures };
 import { refundUsage } from './usage-limits';
 import {
   QuizSetV2Schema,
@@ -67,6 +74,7 @@ import {
   type TheorySection,
   type PathDiagram,
 } from '@notemage/shared';
+import { randomUUID } from 'crypto';
 import { copyImage } from './storage';
 import { buildLegacyColumns } from './quiz-grading';
 import { db } from './db';
@@ -694,9 +702,9 @@ interface PlanForGeneration {
   corpus: string | null;
   /**
    * Rendered source-image catalog appended to the theory prompt's cached
-   * system block. Non-null only on ultra paths whose materials carried
-   * (captioned) images and `PATH_THEORY_FIGURES_DISABLED` is off. When null,
-   * the theory model is never told figures exist.
+   * system block. Non-null only when the path's materials carried (captioned)
+   * images and `PATH_THEORY_FIGURES_DISABLED` is off (all tiers since P2). When
+   * null, the theory model is never told figures exist.
    */
   imageCatalog: string | null;
   /**
@@ -704,6 +712,12 @@ interface PlanForGeneration {
    * Empty when figures are off. `imageRef` (PageImage.id) maps to one entry.
    */
   availableImages: SourceImage[];
+  /** Whether theory figures are offered/kept (false ⇢ PATH_THEORY_FIGURES_DISABLED). */
+  theoryFiguresEnabled: boolean;
+  /** Whether flashcard figures are offered/kept (false ⇢ PATH_FLASHCARD_FIGURES_DISABLED). */
+  flashcardFiguresEnabled: boolean;
+  /** Whether quiz exhibit figures are offered/kept (false ⇢ PATH_QUIZ_FIGURES_DISABLED). */
+  quizFiguresEnabled: boolean;
   /** Whether structured diagrams are offered/kept (false ⇢ PATH_THEORY_DIAGRAMS_DISABLED). */
   diagramsEnabled: boolean;
   /** Token usage accumulated across this run's Stage B calls. */
@@ -756,15 +770,21 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   const corpus = corpusEntries ? renderMaterialCorpus(corpusEntries) : null;
 
   // Theory visuals. Diagrams are all-tiers (no added AI cost) so they ride a
-  // simple kill-switch. Figures are ultra-only: the vision captioning pass is
-  // the sole added cost, gated to ultra + PATH_THEORY_FIGURES_DISABLED. The
-  // whole catalog build is best-effort — any failure leaves imageCatalog null
-  // and figures are simply never offered, so a path never fails over visuals.
+  // simple kill-switch. Figures are all-tiers too: captions are pre-warmed at
+  // import time (P1), so generation adds zero vision tokens for fresh imports —
+  // captionMissing only heals pre-feature/OneNote/sweep-killed gaps. Theory,
+  // flashcard (P3) and quiz (P4) figures share ONE catalog (deterministic +
+  // 1h-cached); each feature has its own kill-switch and is gated at its
+  // consumption site, so the catalog is built whenever ANY is enabled. The whole
+  // build is best-effort — any failure leaves imageCatalog null and figures are
+  // simply never offered, so a path never fails over visuals.
   const diagramsEnabled = process.env.PATH_THEORY_DIAGRAMS_DISABLED !== '1';
-  const figuresEnabled = plan.ultra && process.env.PATH_THEORY_FIGURES_DISABLED !== '1';
+  const theoryFiguresEnabled = process.env.PATH_THEORY_FIGURES_DISABLED !== '1';
+  const flashcardFiguresEnabled = process.env.PATH_FLASHCARD_FIGURES_DISABLED !== '1';
+  const quizFiguresEnabled = process.env.PATH_QUIZ_FIGURES_DISABLED !== '1';
   let imageCatalog: string | null = null;
   let availableImages: SourceImage[] = [];
-  if (figuresEnabled) {
+  if (theoryFiguresEnabled || flashcardFiguresEnabled || quizFiguresEnabled) {
     try {
       availableImages = await loadSourceImages(plan.userId, plan.materialIds);
       if (availableImages.length > 0) {
@@ -797,6 +817,9 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     corpus,
     imageCatalog,
     availableImages,
+    theoryFiguresEnabled,
+    flashcardFiguresEnabled,
+    quizFiguresEnabled,
     diagramsEnabled,
     usage: emptyMeter(),
     phases: plan.phases.map((p) => ({
@@ -909,8 +932,13 @@ function makeSlotContentContext(
     hasSourceMaterials: Boolean(plan.corpus && plan.corpus.trim().length > 0),
     language: plan.language,
     theoryText,
-    // Only buildTheoryPrompt reads these; flashcards/quiz prompts ignore them.
-    imageCatalog: plan.imageCatalog,
+    // The same catalog feeds three prompts behind separate kill-switches:
+    // buildTheoryPrompt reads `imageCatalog`, buildFlashcardsPrompt reads
+    // `flashcardImageCatalog`, buildQuizPrompt reads `quizImageCatalog`. Each is
+    // gated by its own feature flag so any can be off while the others are on.
+    imageCatalog: plan.theoryFiguresEnabled ? plan.imageCatalog : null,
+    flashcardImageCatalog: plan.flashcardFiguresEnabled ? plan.imageCatalog : null,
+    quizImageCatalog: plan.quizFiguresEnabled ? plan.imageCatalog : null,
     diagramsEnabled: plan.diagramsEnabled,
   };
 }
@@ -1041,7 +1069,10 @@ async function generateTheoryActivity(
   // Theory visuals — validate the model's figures (drop hallucinated refs) and
   // diagrams (drop per-kind-invalid), then snapshot referenced source images
   // into path-owned blobs and emit pathImage / pathDiagram nodes.
-  const figures = plan.imageCatalog ? resolveFigures(resolved.figures, plan.availableImages) : [];
+  const figures =
+    plan.theoryFiguresEnabled && plan.imageCatalog
+      ? resolveFigures(resolved.figures, plan.availableImages)
+      : [];
   const diagrams = plan.diagramsEnabled ? resolveDiagrams(resolved.diagrams) : [];
 
   // Snapshot blobs OUTSIDE the DB transaction — storage I/O must not hold a DB
@@ -1220,6 +1251,45 @@ async function generateFlashcardsActivity(
   }
   const input = resolved;
 
+  // Figure-reuse (P3): validate the model's per-card figures against the catalog
+  // (drop hallucinated/duplicate refs, cap at 4), then SNAPSHOT each referenced
+  // source image into a path-owned `flashcard-images/{cardId}/…` blob. Card ids
+  // are pre-generated so the snapshot path is known AND the FlashcardImage rows
+  // attach in the same nested create — storage I/O stays OUTSIDE the DB
+  // transaction (mirrors theory figure snapshotting). A copy failure simply
+  // drops that one figure; the card is still written text-only.
+  const figures =
+    plan.flashcardFiguresEnabled && plan.imageCatalog
+      ? resolveFlashcardFigures(input.flashcards, plan.availableImages)
+      : [];
+  const cardIds = input.flashcards.map(() => randomUUID());
+  const snappedByCard = new Map<
+    number,
+    { side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
+  >();
+  for (const fig of figures) {
+    try {
+      const dest = `flashcard-images/${cardIds[fig.cardIndex]}/${Date.now()}-${fig.cardIndex}`;
+      const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
+      const list = snappedByCard.get(fig.cardIndex) ?? [];
+      list.push({
+        side: fig.side,
+        fileName: fig.image.fileName,
+        filePath,
+        fileSize,
+        mimeType: fig.image.mimeType,
+        caption: fig.caption,
+      });
+      snappedByCard.set(fig.cardIndex, list);
+    } catch (error) {
+      logTelemetry(plan.userId, 'path.flashcards.figure_copy_failed', {
+        planId: plan.id,
+        slotId: slot.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   await db.$transaction(async (tx) => {
     const set = await tx.flashcardSet.create({
       data: {
@@ -1231,11 +1301,30 @@ async function generateFlashcardsActivity(
         title: input.title || slot.title,
         source: 'ai',
         flashcards: {
-          create: input.flashcards.map((fc, i) => ({
-            question: fc.question,
-            answer: fc.answer,
-            sortOrder: i,
-          })),
+          create: input.flashcards.map((fc, i) => {
+            const imgs = snappedByCard.get(i);
+            return {
+              id: cardIds[i],
+              question: fc.question,
+              answer: fc.answer,
+              sortOrder: i,
+              ...(imgs && imgs.length > 0
+                ? {
+                    images: {
+                      create: imgs.map((s) => ({
+                        side: s.side,
+                        fileName: s.fileName,
+                        filePath: s.filePath,
+                        fileSize: s.fileSize,
+                        mimeType: s.mimeType,
+                        caption: s.caption,
+                        sortOrder: 0,
+                      })),
+                    },
+                  }
+                : {}),
+            };
+          }),
         },
       },
     });
@@ -1468,6 +1557,43 @@ async function generateQuizActivity(
   const finalQuestions = questions;
   const finalTitle = parsed.title;
 
+  // Figure-reuse (P4): validate the model's per-question exhibits against the
+  // catalog (drop hallucinated/duplicate refs, cap at 3), then SNAPSHOT each
+  // referenced source image into a path-owned `quiz-images/{questionId}/…` blob.
+  // Question ids are pre-generated so the snapshot path is known AND the
+  // QuizQuestionImage row attaches in the same nested create — storage I/O stays
+  // OUTSIDE the DB transaction (mirrors theory/flashcard figure snapshotting). A
+  // copy failure simply drops that one exhibit; the question is still written.
+  const figures =
+    plan.quizFiguresEnabled && plan.imageCatalog
+      ? resolveQuizFigures(finalQuestions, plan.availableImages)
+      : [];
+  const questionIds = finalQuestions.map(() => randomUUID());
+  const snappedByQuestion = new Map<
+    number,
+    { fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string; sourcePageImageId: string }
+  >();
+  for (const fig of figures) {
+    try {
+      const dest = `quiz-images/${questionIds[fig.questionIndex]}/${Date.now()}-${fig.questionIndex}`;
+      const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
+      snappedByQuestion.set(fig.questionIndex, {
+        fileName: fig.image.fileName,
+        filePath,
+        fileSize,
+        mimeType: fig.image.mimeType,
+        caption: fig.caption,
+        sourcePageImageId: fig.image.id,
+      });
+    } catch (error) {
+      logTelemetry(plan.userId, 'path.quiz.figure_copy_failed', {
+        planId: plan.id,
+        slotId: slot.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   await db.$transaction(async (tx) => {
     const quizSet = await tx.quizSet.create({
       data: {
@@ -1480,7 +1606,9 @@ async function generateQuizActivity(
         questions: {
           create: finalQuestions.map((q, i) => {
             const legacy = buildLegacyColumns(q.kind, q.payload);
+            const snap = snappedByQuestion.get(i);
             return {
+              id: questionIds[i],
               kind: q.kind,
               payload: q.payload as unknown as Prisma.InputJsonValue,
               question: q.prompt,
@@ -1490,6 +1618,20 @@ async function generateQuizActivity(
               correctExplanation: q.correctExplanation ?? null,
               wrongExplanation: q.wrongExplanation ?? null,
               sortOrder: i,
+              ...(snap
+                ? {
+                    image: {
+                      create: {
+                        fileName: snap.fileName,
+                        filePath: snap.filePath,
+                        fileSize: snap.fileSize,
+                        mimeType: snap.mimeType,
+                        caption: snap.caption,
+                        sourcePageImageId: snap.sourcePageImageId,
+                      },
+                    },
+                  }
+                : {}),
             };
           }),
         },

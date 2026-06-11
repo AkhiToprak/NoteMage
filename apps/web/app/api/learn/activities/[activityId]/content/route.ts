@@ -40,10 +40,25 @@ export async function GET(request: NextRequest, { params }: Params) {
         },
         theory: true,
         flashcardSet: {
-          include: { flashcards: { orderBy: { sortOrder: 'asc' } } },
+          include: {
+            flashcards: {
+              orderBy: { sortOrder: 'asc' },
+              // Figure-reuse (P3): carry each card's embedded figures so the
+              // checkpoint viewer can render them. Empty for unfigured sets.
+              include: { images: { orderBy: { sortOrder: 'asc' } } },
+            },
+          },
         },
         quizSet: {
-          include: { questions: { orderBy: { sortOrder: 'asc' } } },
+          include: {
+            questions: {
+              orderBy: { sortOrder: 'asc' },
+              // Figure-reuse (P4): carry each question's exhibit image (0-or-1)
+              // so the quiz player can render it above the prompt. `image` is
+              // null for unfigured questions.
+              include: { image: true },
+            },
+          },
         },
       },
     });

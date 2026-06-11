@@ -505,6 +505,9 @@ model FlashcardImage {
   filePath    String
   fileSize    Int
   mimeType    String
+  // Slot-local caption for path-generated figures (figure-reuse feature). Null
+  // for manually-uploaded flashcard images, which carry no AI caption.
+  caption     String?
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
 
@@ -573,9 +576,33 @@ model QuizQuestion {
 
   quizSet QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
   answers QuizAnswer[]
+  // Figure-reuse (P4) — at most one snapshotted exhibit image per question.
+  image   QuizQuestionImage?
 
   @@index([quizSetId])
   @@map("quiz_questions")
+}
+
+// Path-owned snapshot of a source image embedded as a quiz question's exhibit
+// (figure-reuse feature, P4). Mirrors TheoryImage: the blob is COPIED at
+// generation time (not referenced) so the question survives source-page
+// deletion, and the community-clone flow deep-copies these rows by blob
+// reference. `questionId` is UNIQUE — one exhibit per question — so the
+// renderer/clone/walkers treat it as a 0-or-1 relation, never an array.
+model QuizQuestionImage {
+  id                String   @id @default(cuid())
+  questionId        String   @unique
+  sourcePageImageId String? // provenance only; nullable so source deletion can't strand us
+  fileName          String
+  filePath          String
+  fileSize          Int
+  mimeType          String
+  caption           String?
+  createdAt         DateTime @default(now())
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_question_images")
 }
 
 model QuizAttempt {

@@ -135,6 +135,14 @@ const imageBlockSchema = z
     bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
     /** Optional figure caption rendered as an italic line beneath the image. */
     caption: z.array(inlineRunSchema).optional(),
+    /**
+     * Optional model-written figure title (P1, import-time figure titles). A
+     * short description of what the figure shows and the concept it illustrates,
+     * stored on `PageImage.aiCaption` at import to steer later figure reuse —
+     * distinct from `caption`, which is the document's own printed caption line.
+     * Optional everywhere so constrained decoding never starts rejecting.
+     */
+    alt: z.string().optional(),
   })
   .strict();
 

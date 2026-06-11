@@ -157,6 +157,8 @@ const BLOCK = {
         ref: { type: 'string' },
         bbox: BBOX,
         caption: RUNS,
+        // P1 figure title — optional so constrained decoding never rejects.
+        alt: { type: 'string' },
       },
       required: ['type', 'ref', 'bbox'],
       additionalProperties: false,

@@ -5,7 +5,14 @@ import type { QuestionKind } from '@notemage/shared';
 
 export interface FlashcardToolInput {
   title: string;
-  flashcards: { question: string; answer: string }[];
+  // Figure-reuse (P5): optional per-card figure, present only when the chat
+  // turn's attached context carried captioned images and the figure-enabled
+  // tool variant was used. Mirrors the path FlashcardFigure shape.
+  flashcards: {
+    question: string;
+    answer: string;
+    figure?: { imageRef: string; side?: 'front' | 'back'; caption: string };
+  }[];
 }
 
 export interface QuizToolInput {
@@ -26,6 +33,10 @@ interface QuizToolV2Common {
   hint?: string;
   correctExplanation?: string;
   wrongExplanation?: string;
+  // Figure-reuse (P4): one optional exhibit image, only offered to the model
+  // when a source-image catalog accompanies the prompt (path quiz slots).
+  // Lives at the question level — outside `payload` — so grading is untouched.
+  figure?: { imageRef: string; caption: string };
 }
 
 export interface QuizToolV2McQuestion extends QuizToolV2Common {
@@ -980,6 +991,27 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
               description:
                 'Back of the card. Keep it focused — 1–3 sentences or a short list.',
             },
+            figure: {
+              type: 'object',
+              description:
+                'OPTIONAL. Only when a source-figure list accompanies this prompt: embed ONE image on this card. Add a figure ONLY when it genuinely illustrates this card; most cards omit it; at most 4 cards per set may carry one.',
+              properties: {
+                imageRef: {
+                  type: 'string',
+                  description: 'An id copied verbatim from the supplied source-figure list.',
+                },
+                side: {
+                  type: 'string',
+                  enum: ['front', 'back'],
+                  description: 'Which side shows the image. Defaults to "front" (the question side).',
+                },
+                caption: {
+                  type: 'string',
+                  description: 'A short caption tying this figure to the card.',
+                },
+              },
+              required: ['imageRef', 'caption'],
+            },
           },
           required: ['question', 'answer'],
         },
@@ -991,6 +1023,87 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
+// Figure-reuse: per-item figure properties injected into the figure-enabled
+// tool variants. The per-question exhibit (P4, quiz) shows above the prompt; the
+// per-card figure (P3, flashcards) embeds on one side. Both are advertised ONLY
+// when a source-figure catalog accompanies the prompt — the base chat tools
+// stay figure-less so a turn/path without imported images never offers a
+// capability that can't validate.
+const QUIZ_FIGURE_PROPERTY = {
+  type: 'object' as const,
+  description:
+    "OPTIONAL. Only when a source-figure list accompanies this prompt: attach ONE image as this question's exhibit, shown above the prompt. Add a figure ONLY when it genuinely illustrates the question; most questions omit it; at most 3 questions per quiz may carry one.",
+  properties: {
+    imageRef: {
+      type: 'string' as const,
+      description: 'An id copied verbatim from the supplied source-figure list.',
+    },
+    caption: {
+      type: 'string' as const,
+      description: 'A short caption tying this figure to the question.',
+    },
+  },
+  required: ['imageRef', 'caption'],
+};
+
+const FLASHCARD_FIGURE_PROPERTY = {
+  type: 'object' as const,
+  description:
+    'OPTIONAL. Only when a source-figure list accompanies this prompt: embed ONE image on this card. Add a figure ONLY when it genuinely illustrates this card; most cards omit it; at most 4 cards per set may carry one.',
+  properties: {
+    imageRef: {
+      type: 'string' as const,
+      description: 'An id copied verbatim from the supplied source-figure list.',
+    },
+    side: {
+      type: 'string' as const,
+      enum: ['front', 'back'],
+      description: 'Which side shows the image. Defaults to "front" (the question side).',
+    },
+    caption: {
+      type: 'string' as const,
+      description: 'A short caption tying this figure to the card.',
+    },
+  },
+  required: ['imageRef', 'caption'],
+};
+
+/**
+ * Clone a tool's `input_schema` and inject an optional `figure` property into
+ * the items of its `arrayKey` array (e.g. `questions` / `flashcards`). Lets the
+ * figure-enabled variants single-source their base schema so the two can never
+ * drift, while keeping the base tool figure-less.
+ */
+function withFigureProperty(
+  inputSchema: Anthropic.Messages.Tool['input_schema'],
+  arrayKey: string,
+  figureProperty: object,
+): Anthropic.Messages.Tool['input_schema'] {
+  const base = inputSchema as unknown as {
+    properties: Record<
+      string,
+      { items?: { properties?: Record<string, unknown>; [k: string]: unknown }; [k: string]: unknown }
+    >;
+    required?: string[];
+    [k: string]: unknown;
+  };
+  const arr = base.properties[arrayKey];
+  return {
+    ...base,
+    type: 'object',
+    properties: {
+      ...base.properties,
+      [arrayKey]: {
+        ...arr,
+        items: {
+          ...arr.items,
+          properties: { ...(arr.items?.properties ?? {}), figure: figureProperty },
+        },
+      },
+    },
+  } as unknown as Anthropic.Messages.Tool['input_schema'];
+}
+
 export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   name: 'create_quiz_for_slot',
   description: [
@@ -999,9 +1112,25 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
     'Pick the kind that fits each item: mc for factual recall, true_false for crisp single-claim checks, fill_blank for short typed answers, word_bank for ordered grammar/sequence fills, match_pairs for term↔definition pairs, translation for language items, sentence_reorder for syntax/ordering, equation for math.',
     'Use the exact payload shapes given in the system prompt; the server rejects drift.',
   ].join('\n'),
-  // The schema mirrors QUIZ_TOOL_V2; the inputs are validated post-hoc
-  // with `QuizSetV2Schema` exactly like the chat-driven quiz tool.
-  input_schema: QUIZ_TOOL_V2.input_schema,
+  // Mirrors QUIZ_TOOL_V2 (single-sourced) plus an optional per-question `figure`
+  // exhibit; inputs are validated post-hoc with `QuizSetV2Schema` exactly like
+  // the chat-driven quiz tool.
+  input_schema: withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
+};
+
+// Figure-reuse (P5): chat-conditional figure-enabled variants of the chat
+// flashcard / quiz tools. `chat-stream.ts` swaps these in for FLASHCARD_TOOL /
+// QUIZ_TOOL_V2 ONLY when the turn's attached context carries captioned images
+// (it builds + injects the catalog). The base tools stay figure-less so a turn
+// without imported images never advertises figures.
+export const FLASHCARD_TOOL_WITH_FIGURES: Anthropic.Messages.Tool = {
+  ...FLASHCARD_TOOL,
+  input_schema: withFigureProperty(FLASHCARD_TOOL.input_schema, 'flashcards', FLASHCARD_FIGURE_PROPERTY),
+};
+
+export const QUIZ_TOOL_V2_WITH_FIGURES: Anthropic.Messages.Tool = {
+  ...QUIZ_TOOL_V2,
+  input_schema: withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
 };
 
 // ── Subject classifier (path generation pre-step) ──────────────────────

@@ -63,7 +63,13 @@ export async function loadSharedPathSnapshot(sharedPathId: string): Promise<{
                 select: {
                   flashcards: {
                     orderBy: { sortOrder: 'asc' },
-                    select: { question: true, answer: true },
+                    select: {
+                      question: true,
+                      answer: true,
+                      // Figure-reuse (P3): figure captions are author-supplied
+                      // prose and must face moderation like the card text.
+                      images: { orderBy: { sortOrder: 'asc' }, select: { caption: true } },
+                    },
                   },
                 },
               },
@@ -71,7 +77,12 @@ export async function loadSharedPathSnapshot(sharedPathId: string): Promise<{
                 select: {
                   questions: {
                     orderBy: { sortOrder: 'asc' },
-                    select: { question: true },
+                    select: {
+                      question: true,
+                      // Figure-reuse (P4): exhibit captions are author-facing
+                      // prose and must face moderation like the question text.
+                      image: { select: { caption: true } },
+                    },
                   },
                 },
               },
@@ -103,10 +114,18 @@ export async function loadSharedPathSnapshot(sharedPathId: string): Promise<{
           for (const card of activity.flashcardSet.flashcards) {
             fields.push({ field: `${actLabel} card`, text: card.question });
             fields.push({ field: `${actLabel} card`, text: card.answer });
+            for (const img of card.images) {
+              if (img.caption) {
+                fields.push({ field: `${actLabel} card figure`, text: img.caption });
+              }
+            }
           }
         } else if (activity.kind === 'quiz' && activity.quizSet) {
           for (const q of activity.quizSet.questions) {
             fields.push({ field: `${actLabel} question`, text: q.question });
+            if (q.image?.caption) {
+              fields.push({ field: `${actLabel} question figure`, text: q.image.caption });
+            }
           }
         }
       }

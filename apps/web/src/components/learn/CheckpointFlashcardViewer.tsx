@@ -17,6 +17,9 @@ interface FlashcardImageData {
   fileName: string;
   filePath: string;
   mimeType: string;
+  // Slot-local caption for path-generated figures (P3). Null/absent for
+  // manually-uploaded images, which render without a caption.
+  caption?: string | null;
   sortOrder: number;
 }
 
@@ -515,20 +518,52 @@ function CardFace({ side, card }: { side: 'front' | 'back'; card: Flashcard }) {
             maxWidth: '100%',
           }}
         >
-          {images.map((img) => (
-            <img
-              key={img.id}
-              src={`/api/uploads/flashcard-images/${img.id}`}
-              alt={img.fileName}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '220px',
-                borderRadius: 'var(--radius-md)',
-                objectFit: 'contain',
-                border: '1px solid var(--outline-variant)',
-              }}
-            />
-          ))}
+          {images.map((img) => {
+            const caption = img.caption?.trim();
+            return (
+              <figure
+                key={img.id}
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  maxWidth: '100%',
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/uploads/flashcard-images/${img.id}`}
+                  alt={caption || img.fileName}
+                  loading="lazy"
+                  onError={(e) => {
+                    const fig = e.currentTarget.closest('figure');
+                    if (fig) (fig as HTMLElement).style.display = 'none';
+                  }}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '220px',
+                    borderRadius: 'var(--radius-md)',
+                    objectFit: 'contain',
+                    border: '1px solid var(--outline-variant)',
+                  }}
+                />
+                {caption ? (
+                  <figcaption
+                    style={{
+                      fontSize: '12px',
+                      lineHeight: 1.4,
+                      textAlign: 'center',
+                      color: 'var(--on-surface-variant)',
+                    }}
+                  >
+                    {caption}
+                  </figcaption>
+                ) : null}
+              </figure>
+            );
+          })}
         </div>
       ) : null}
     </div>

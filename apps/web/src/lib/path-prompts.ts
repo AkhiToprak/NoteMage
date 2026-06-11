@@ -119,12 +119,28 @@ export interface SlotContentContext {
   theoryText?: string;
   /**
    * For `theory`: a deterministic catalog of source images the slot MAY embed
-   * (one line per image: `imageRef` + caption + source page). Present only on
-   * ultra paths whose materials carried captioned images. When set,
-   * `buildTheoryPrompt` adds figure guidance + the catalog to the cached
+   * (one line per image: `imageRef` + caption + source page). Present only when
+   * the path's materials carried captioned images (all tiers since P2). When
+   * set, `buildTheoryPrompt` adds figure guidance + the catalog to the cached
    * system block; absent → the model is never told figures exist.
    */
   imageCatalog?: string | null;
+  /**
+   * For `flashcards`: the same deterministic source-image catalog (one line per
+   * image) the model MAY embed via a per-card `figure`. Present only when the
+   * path's materials carried captioned images and `PATH_FLASHCARD_FIGURES_DISABLED`
+   * is off. When set, `buildFlashcardsPrompt` adds figure guidance + the catalog;
+   * absent → the model is never told figures exist.
+   */
+  flashcardImageCatalog?: string | null;
+  /**
+   * For `quiz`: the same deterministic source-image catalog (one line per image)
+   * the model MAY attach to a question via a per-question `figure`. Present only
+   * when the path's materials carried captioned images and `PATH_QUIZ_FIGURES_DISABLED`
+   * is off. When set, `buildQuizPrompt` adds figure guidance + the catalog;
+   * absent → the model is never told figures exist.
+   */
+  quizImageCatalog?: string | null;
   /**
    * For `theory`: whether structured diagrams (timeline/steps/comparison/cycle)
    * are offered. Defaults to true. The generator sets it false when
@@ -367,6 +383,19 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
   if (subjectFragment.length > 0) {
     systemLines.push(subjectFragment);
   }
+  // Optional figures — only when a source-image catalog is supplied (P3). Each
+  // card may embed ONE image via a `figure` object; the catalog body is the same
+  // deterministic list theory uses. Capped at 4 figured cards per set; prefer
+  // omission. The JSON-shape prose is load-bearing for the schemaless Gemini path.
+  const catalog = ctx.flashcardImageCatalog?.trim();
+  if (catalog) {
+    systemLines.push(
+      '',
+      'OPTIONAL FIGURES — a card MAY embed ONE image from the SOURCE FIGURES list below by adding a `"figure"` object to that card: `{ "imageRef": string, "side": "front"|"back", "caption": string }`. Rules: copy each `imageRef` VERBATIM from that list (never invent one); add a figure ONLY to a card it genuinely illustrates; AT MOST 4 cards in the set may carry a figure; prefer omission — most cards need no image; `side` defaults to "front" (the question side). Omit `figure` on every card that does not need one.',
+      '',
+      catalog,
+    );
+  }
   const dir = languageDirective(ctx.language);
   if (dir) systemLines.unshift(dir, '');
 
@@ -460,6 +489,21 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
   const subjectFragment = subjectQuizGuidanceFragment(ctx.subjects, ctx.subjectWeights);
   if (subjectFragment.length > 0) {
     systemLines.push(subjectFragment);
+  }
+  // Optional exhibits — only when a source-image catalog is supplied (P4). A
+  // question MAY attach ONE image via a top-level `figure` object (a sibling of
+  // `kind`/`prompt`/`payload`, NEVER inside `payload`). The catalog body is the
+  // same deterministic list theory/flashcards use. Capped at 3 figured
+  // questions per quiz; prefer omission. The JSON-shape prose is load-bearing
+  // for the schemaless Gemini path.
+  const quizCatalog = ctx.quizImageCatalog?.trim();
+  if (quizCatalog) {
+    systemLines.push(
+      '',
+      'OPTIONAL FIGURES — a question MAY show ONE image from the SOURCE FIGURES list below by adding a `"figure"` object at the QUESTION level (a sibling of `kind`/`prompt`/`payload`, NEVER inside `payload`): `{ "imageRef": string, "caption": string }`. The image renders as an exhibit ABOVE the prompt. Rules: copy each `imageRef` VERBATIM from that list (never invent one); add a figure ONLY to a question it genuinely illustrates; AT MOST 3 questions in the quiz may carry one; prefer omission — most questions need no image. Omit `figure` on every question that does not need one.',
+      '',
+      quizCatalog,
+    );
   }
   const dir = languageDirective(ctx.language);
   if (dir) systemLines.unshift(dir, '');

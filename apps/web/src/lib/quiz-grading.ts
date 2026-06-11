@@ -513,6 +513,21 @@ function extractAnswerCandidates(normalized: string): string[] {
 }
 
 /**
+ * The single expression `gradeEquation` will try FIRST for a raw user answer —
+ * the same normalize → extract pipeline the grader uses, exposed so the
+ * equation renderer's live preview can show the learner exactly what will be
+ * graded ("Grading: …"). One implementation feeds both verdict and preview, so
+ * the two can never drift (B4.6). Returns null for empty, over-length, or
+ * no-candidate input (the preview then shows its can't-read hint).
+ */
+export function extractGradingCandidate(raw: string): string | null {
+  if (raw.trim().length === 0) return null;
+  if (raw.length > MAX_EQUATION_CHARS) return null;
+  const candidates = extractAnswerCandidates(normalizeMathInput(raw));
+  return candidates.length > 0 ? candidates[0] : null;
+}
+
+/**
  * Numerically compare one user expression against one expected expression via
  * the hardened safe-math engine. With declared `variables`, samples at several
  * points (algebraic equivalence); otherwise a single numeric compare. Any

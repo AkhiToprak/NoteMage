@@ -200,6 +200,14 @@ const QuestionCommonShape = {
   hint: z.string().optional(),
   correctExplanation: z.string().optional(),
   wrongExplanation: z.string().optional(),
+  // Figure-reuse (P4): a question MAY carry ONE exhibit image referenced by a
+  // catalog id. Held LOOSE (`unknown`) here on purpose — a single malformed
+  // figure must NOT fail (and retry) the whole question. The generator
+  // validates it separately with `QuizFigureSchema` and drops the invalid ones
+  // (mirrors how TheorySectionSchema holds `figures` loose). Lives OUTSIDE the
+  // per-kind `payload` so all kinds get it with zero payload-catalog churn and
+  // zero grading impact. Absent on legacy / already-generated questions.
+  figure: z.unknown().optional(),
 };
 
 export const QuizQuestionV2Schema = z.discriminatedUnion('kind', [
@@ -277,6 +285,28 @@ export const TheoryFigureSchema = z.object({
   caption: z.string().min(1),
 });
 export type TheoryFigure = z.infer<typeof TheoryFigureSchema>;
+
+// Figure-reuse feature (P3): a flashcard MAY embed ONE source image on either
+// side. Mirrors TheoryFigureSchema with an extra `side` (defaults to the front
+// / question side). Validated per-card in the path generator so a hallucinated
+// `imageRef` is dropped before any FlashcardImage row is written.
+export const FlashcardFigureSchema = z.object({
+  imageRef: z.string().min(1),
+  side: z.enum(['front', 'back']).default('front'),
+  caption: z.string().min(1),
+});
+export type FlashcardFigure = z.infer<typeof FlashcardFigureSchema>;
+
+// Figure-reuse feature (P4): a quiz question MAY embed ONE source image as an
+// exhibit, rendered above the prompt by shared player chrome (NOT per-renderer,
+// so all kinds get it for free). Mirrors TheoryFigureSchema. Validated per-
+// question in the path generator so a hallucinated `imageRef` is dropped before
+// any QuizQuestionImage row is written.
+export const QuizFigureSchema = z.object({
+  imageRef: z.string().min(1),
+  caption: z.string().min(1),
+});
+export type QuizFigure = z.infer<typeof QuizFigureSchema>;
 
 // Structured diagram emitted alongside theory prose and rendered by a React
 // component (no AI image generation). The Anthropic/Gemini tool schema is kept

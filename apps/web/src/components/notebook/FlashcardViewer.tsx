@@ -14,6 +14,9 @@ interface FlashcardImageData {
   fileName: string;
   filePath: string;
   mimeType: string;
+  // Slot-local caption for path-generated figures (P3). Null/absent for
+  // manually-uploaded images, which render without a caption.
+  caption?: string | null;
   sortOrder: number;
 }
 
@@ -49,6 +52,56 @@ interface FlashcardViewerProps {
   // card answered, post-summary view). The checkpoint drawer uses this
   // to PATCH the activity as completed and advance to the next.
   onComplete?: (result: { correct: number; total: number }) => void;
+}
+
+// A single embedded flashcard figure (manual upload OR path-generated). Renders
+// on a neutral surface (crops are white-background PNGs — matters in dark mode),
+// captions path figures, uses the caption as alt text, and hides itself cleanly
+// if the blob 404s mid-study. Mirrors TheoryViewer's TheoryFigure treatment.
+function FlashcardFigure({ img, accent }: { img: FlashcardImageData; accent: string }) {
+  const caption = img.caption?.trim();
+  return (
+    <figure
+      style={{
+        margin: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '4px',
+        maxWidth: '100%',
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/api/uploads/flashcard-images/${img.id}`}
+        alt={caption || img.fileName}
+        loading="lazy"
+        onError={(e) => {
+          const fig = e.currentTarget.closest('figure');
+          if (fig) (fig as HTMLElement).style.display = 'none';
+        }}
+        style={{
+          maxWidth: '100%',
+          maxHeight: '150px',
+          borderRadius: '8px',
+          objectFit: 'contain',
+          border: `1px solid ${accent}`,
+        }}
+      />
+      {caption ? (
+        <figcaption
+          style={{
+            fontSize: '12px',
+            lineHeight: 1.4,
+            textAlign: 'center',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
 }
 
 export default function FlashcardViewer({
@@ -1337,18 +1390,7 @@ export default function FlashcardViewer({
                   {card.images
                     .filter((img) => img.side === 'front')
                     .map((img) => (
-                      <img
-                        key={img.id}
-                        src={`/api/uploads/flashcard-images/${img.id}`}
-                        alt={img.fileName}
-                        style={{
-                          maxWidth: '100%',
-                          maxHeight: '150px',
-                          borderRadius: '8px',
-                          objectFit: 'contain',
-                          border: '1px solid rgba(140,82,255,0.15)',
-                        }}
-                      />
+                      <FlashcardFigure key={img.id} img={img} accent="rgba(140,82,255,0.15)" />
                     ))}
                 </div>
               ) : null}
@@ -1415,18 +1457,7 @@ export default function FlashcardViewer({
                   {card.images
                     .filter((img) => img.side === 'back')
                     .map((img) => (
-                      <img
-                        key={img.id}
-                        src={`/api/uploads/flashcard-images/${img.id}`}
-                        alt={img.fileName}
-                        style={{
-                          maxWidth: '100%',
-                          maxHeight: '150px',
-                          borderRadius: '8px',
-                          objectFit: 'contain',
-                          border: '1px solid rgba(81,112,255,0.15)',
-                        }}
-                      />
+                      <FlashcardFigure key={img.id} img={img} accent="rgba(81,112,255,0.15)" />
                     ))}
                 </div>
               ) : null}

@@ -9,15 +9,20 @@
 // then references images by `imageRef` (= PageImage.id) via the optional
 // `figures` field.
 //
-// Ultra-only by policy (see loadPlanForGeneration): the vision pass is the
-// only added AI cost, and gating it to ultra keeps the free-tier COGS budget
-// intact. Gemini-only by design: vision is cheap on Flash-Lite and this is
-// cost-sensitive; if Gemini isn't configured the pass no-ops and figures are
-// simply never offered.
+// The captioning core (captionMissing + the shared sanitizer) now lives in
+// `image-captions.ts`, shared with the PDF import worker's post-import sweep so
+// every layer of the captioning ladder writes the same caption contract. This
+// file owns only the catalog-building half (load + render) and re-exports
+// captionMissing for the path generator's existing call site.
 
 import { db } from './db';
-import { readFile } from './storage';
-import { getGeminiClient, GEMINI_PATH_MODEL_LITE } from './gemini';
+import { FlashcardFigureSchema, QuizFigureSchema } from '@notemage/shared';
+import { captionMissing } from './image-captions';
+
+// Re-exported so the path generator keeps importing the lazy captioning pass
+// from here (the catalog's natural home) even though it now lives in the
+// shared captioning module.
+export { captionMissing };
 
 export interface SourceImage {
   /** PageImage.id — used verbatim as the `imageRef` the model copies. */
@@ -33,12 +38,6 @@ export interface SourceImage {
 /** Hard ceiling on images per path so a pathological notebook can't blow the
  *  vision budget or the prompt size. */
 const MAX_CATALOG_IMAGES = 24;
-/** Images per vision round-trip — keeps the multimodal request small. */
-const CAPTION_BATCH = 8;
-/** Vision model id (env-overridable; defaults to the cheap multimodal Flash-Lite). */
-const CAPTION_MODEL = process.env.PATH_IMAGE_CAPTION_MODEL ?? GEMINI_PATH_MODEL_LITE;
-const CAPTION_TIMEOUT_MS = 60_000;
-const MAX_CAPTION_CHARS = 300;
 
 /**
  * Load the captioned-or-not source images for the picked materials,
@@ -77,105 +76,6 @@ export async function loadSourceImages(
   }));
 }
 
-interface GeminiPart {
-  text?: string;
-  inlineData?: { mimeType: string; data: string };
-}
-
-const CAPTION_SYSTEM =
-  'You caption figures for a study lesson. For each figure you are given a ' +
-  '[[imageRef=…]] label followed by the image. Return ONLY JSON of the form ' +
-  '{"captions":[{"imageRef":"<the id>","caption":"<one concise sentence>"}]} ' +
-  'with one entry per figure. Each caption states what the figure shows AND ' +
-  'the concept/topic it illustrates, so a tutor can decide which lesson it ' +
-  'fits. No markdown, no extra keys.';
-
-/** One batched vision round-trip; returns id → caption for the batch. */
-async function captionBatch(batch: SourceImage[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  const parts: GeminiPart[] = [
-    { text: 'Caption every figure below. Return the JSON described in the system instruction.' },
-  ];
-  const present: string[] = [];
-  for (const img of batch) {
-    let data: string;
-    try {
-      data = (await readFile(img.filePath)).toString('base64');
-    } catch {
-      continue; // missing blob → skip this image, caption the rest
-    }
-    parts.push({ text: `[[imageRef=${img.id}]] (from page "${img.pageTitle}")` });
-    parts.push({ inlineData: { mimeType: img.mimeType, data } });
-    present.push(img.id);
-  }
-  if (present.length === 0) return out;
-
-  const client = getGeminiClient();
-  const response = await client.models.generateContent({
-    model: CAPTION_MODEL,
-    contents: [{ role: 'user', parts }],
-    config: {
-      systemInstruction: CAPTION_SYSTEM,
-      temperature: 0,
-      maxOutputTokens: 2048,
-      responseMimeType: 'application/json',
-      abortSignal: AbortSignal.timeout(CAPTION_TIMEOUT_MS),
-    },
-  });
-
-  const present_ = new Set(present);
-  try {
-    const parsed = JSON.parse(response.text ?? '');
-    const items = Array.isArray(parsed?.captions) ? parsed.captions : [];
-    for (const it of items) {
-      if (it && typeof it.imageRef === 'string' && typeof it.caption === 'string') {
-        const caption = it.caption.trim().slice(0, MAX_CAPTION_CHARS);
-        if (present_.has(it.imageRef) && caption.length > 0) out.set(it.imageRef, caption);
-      }
-    }
-  } catch {
-    // Unparseable response → this batch stays uncaptioned; callers fall back to
-    // not offering those figures. Never throws into the generation pipeline.
-  }
-  return out;
-}
-
-/**
- * Caption every image missing `aiCaption`, persist the captions, and mutate
- * the passed objects in place so the caller can render the catalog without a
- * reload. Best-effort: any failure (Gemini unconfigured, call error, bad
- * blob) leaves the affected images uncaptioned rather than failing the path.
- */
-export async function captionMissing(images: SourceImage[]): Promise<void> {
-  const missing = images.filter((i) => !i.caption || i.caption.trim().length === 0);
-  if (missing.length === 0) return;
-  if (!process.env.GEMINI_API_KEY) return; // vision not configured → skip silently
-
-  for (let i = 0; i < missing.length; i += CAPTION_BATCH) {
-    const batch = missing.slice(i, i + CAPTION_BATCH);
-    let captions: Map<string, string>;
-    try {
-      captions = await captionBatch(batch);
-    } catch {
-      continue; // one batch failing must not strand the rest
-    }
-    if (captions.size === 0) continue;
-    const now = new Date();
-    await Promise.all(
-      batch.map(async (img) => {
-        const caption = captions.get(img.id);
-        if (!caption) return;
-        img.caption = caption;
-        await db.pageImage
-          .update({ where: { id: img.id }, data: { aiCaption: caption, captionedAt: now } })
-          .catch(() => {
-            /* persistence failure → keep the in-memory caption for this run */
-          });
-      }),
-    );
-  }
-}
-
 /**
  * Render the captioned images into the catalog block appended to the theory
  * prompt's cached system text. Deterministic given the same (ordered) images.
@@ -193,4 +93,72 @@ export function renderImageCatalog(images: SourceImage[]): string {
     'Images from the learner\'s materials you MAY embed via `figures` (copy each imageRef verbatim):',
     ...lines,
   ].join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Figure validators — shared by path generation (theory/flashcards/quiz) AND
+// chat-conditional figures (P5). Pure functions over the catalog's SourceImage
+// list; each validates the model's per-item figure with the strict shared zod
+// schema and drops hallucinated/duplicate refs so a bad figure is never
+// persisted (and never fails the card/question). Live here (the catalog's home)
+// rather than in the heavy path-generation orchestrator so the chat stream can
+// reuse them without importing it.
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Validate each card's optional figure against the image catalog (figure-reuse
+ * P3). Returns one entry per figured card — in card order, deduped by source
+ * image, capped at 4 — so a hallucinated or duplicate `imageRef` (or a figure on
+ * a 5th card) is dropped before any FlashcardImage is snapshotted.
+ */
+export function resolveFlashcardFigures(
+  cards: { figure?: unknown }[],
+  available: SourceImage[],
+): { cardIndex: number; image: SourceImage; side: 'front' | 'back'; caption: string }[] {
+  if (available.length === 0) return [];
+  const byId = new Map(available.map((img) => [img.id, img]));
+  const seen = new Set<string>();
+  const out: { cardIndex: number; image: SourceImage; side: 'front' | 'back'; caption: string }[] =
+    [];
+  for (let i = 0; i < cards.length; i++) {
+    const raw = cards[i]?.figure;
+    if (raw == null) continue;
+    const parsed = FlashcardFigureSchema.safeParse(raw);
+    if (!parsed.success) continue;
+    const img = byId.get(parsed.data.imageRef);
+    if (!img || seen.has(img.id)) continue;
+    seen.add(img.id);
+    out.push({ cardIndex: i, image: img, side: parsed.data.side, caption: parsed.data.caption });
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+/**
+ * Validate each question's optional figure against the image catalog (figure-
+ * reuse P4). Returns one entry per figured question — in question order, deduped
+ * by source image, capped at 3 — so a hallucinated or duplicate `imageRef` (or a
+ * figure on a 4th question) is dropped before any QuizQuestionImage is
+ * snapshotted. One exhibit per question (the table's `questionId` is unique).
+ */
+export function resolveQuizFigures(
+  questions: { figure?: unknown }[],
+  available: SourceImage[],
+): { questionIndex: number; image: SourceImage; caption: string }[] {
+  if (available.length === 0) return [];
+  const byId = new Map(available.map((img) => [img.id, img]));
+  const seen = new Set<string>();
+  const out: { questionIndex: number; image: SourceImage; caption: string }[] = [];
+  for (let i = 0; i < questions.length; i++) {
+    const raw = questions[i]?.figure;
+    if (raw == null) continue;
+    const parsed = QuizFigureSchema.safeParse(raw);
+    if (!parsed.success) continue;
+    const img = byId.get(parsed.data.imageRef);
+    if (!img || seen.has(img.id)) continue;
+    seen.add(img.id);
+    out.push({ questionIndex: i, image: img, caption: parsed.data.caption });
+    if (out.length >= 3) break;
+  }
+  return out;
 }

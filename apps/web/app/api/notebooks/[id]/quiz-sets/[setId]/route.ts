@@ -34,6 +34,9 @@ export async function GET(request: NextRequest, { params }: Params) {
       include: {
         questions: {
           orderBy: { sortOrder: 'asc' },
+          // Figure-reuse (P5): carry each question's exhibit image (0-or-1) so
+          // QuizViewer renders it above the prompt. Null for unfigured questions.
+          include: { image: true },
         },
       },
     });

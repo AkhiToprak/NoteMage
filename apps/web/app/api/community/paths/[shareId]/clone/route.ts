@@ -198,6 +198,7 @@ export async function POST(request: NextRequest, { params }: Params) {
                                     filePath: true,
                                     fileSize: true,
                                     mimeType: true,
+                                    caption: true,
                                     sortOrder: true,
                                   },
                                 },
@@ -220,6 +221,17 @@ export async function POST(request: NextRequest, { params }: Params) {
                                 correctExplanation: true,
                                 wrongExplanation: true,
                                 sortOrder: true,
+                                // Figure-reuse (P4): deep-copy the exhibit (0-or-1).
+                                image: {
+                                  select: {
+                                    fileName: true,
+                                    filePath: true,
+                                    fileSize: true,
+                                    mimeType: true,
+                                    caption: true,
+                                    sourcePageImageId: true,
+                                  },
+                                },
                               },
                             },
                           },
@@ -446,6 +458,7 @@ function buildActivityCreate(
               filePath: string;
               fileSize: number;
               mimeType: string;
+              caption: string | null;
               sortOrder: number;
             }>;
           }>;
@@ -464,6 +477,14 @@ function buildActivityCreate(
             correctExplanation: string | null;
             wrongExplanation: string | null;
             sortOrder: number;
+            image: {
+              fileName: string;
+              filePath: string;
+              fileSize: number;
+              mimeType: string;
+              caption: string | null;
+              sourcePageImageId: string | null;
+            } | null;
           }>;
         }
       | null;
@@ -549,6 +570,7 @@ function buildActivityCreate(
                     filePath: img.filePath,
                     fileSize: img.fileSize,
                     mimeType: img.mimeType,
+                    caption: img.caption,
                     sortOrder: img.sortOrder,
                   })),
                 }
@@ -584,6 +606,22 @@ function buildActivityCreate(
             correctExplanation: q.correctExplanation,
             wrongExplanation: q.wrongExplanation,
             sortOrder: q.sortOrder,
+            // Figure-reuse (P4): deep-copy the exhibit by blob reference, like
+            // FlashcardImage above — the cloned QuizQuestionImage points at the
+            // same persistent (non-ref-counted) Supabase blob, so it survives
+            // the source author later deleting their own quiz.
+            image: q.image
+              ? {
+                  create: {
+                    fileName: q.image.fileName,
+                    filePath: q.image.filePath,
+                    fileSize: q.image.fileSize,
+                    mimeType: q.image.mimeType,
+                    caption: q.image.caption,
+                    sourcePageImageId: q.image.sourcePageImageId,
+                  },
+                }
+              : undefined,
           })),
         },
       },

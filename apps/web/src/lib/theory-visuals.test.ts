@@ -9,10 +9,18 @@
 //   5. Moderation: tiptapJsonToPlainText surfaces diagram labels + image alt.
 
 import { describe, it, expect } from 'vitest';
-import { PathDiagramSchema, TheoryFigureSchema, TheorySectionSchema } from '@notemage/shared';
+import {
+  PathDiagramSchema,
+  TheoryFigureSchema,
+  FlashcardFigureSchema,
+  QuizFigureSchema,
+  TheorySectionSchema,
+} from '@notemage/shared';
 import {
   theoryInputToTipTap,
   resolveFigures,
+  resolveFlashcardFigures,
+  resolveQuizFigures,
   resolveDiagrams,
 } from '@/lib/path-generator';
 import { collectTheoryVisualSlots } from '@/lib/path-translator';
@@ -146,6 +154,102 @@ describe('resolveFigures drops hallucinated + duplicate refs', () => {
 
   it('returns nothing when no images are available', () => {
     expect(resolveFigures([{ imageRef: 'img_1', caption: 'c' }], [])).toHaveLength(0);
+  });
+});
+
+describe('FlashcardFigureSchema', () => {
+  it('requires imageRef + caption and defaults side to front', () => {
+    const ok = FlashcardFigureSchema.safeParse({ imageRef: 'a', caption: 'b' });
+    expect(ok.success).toBe(true);
+    if (ok.success) expect(ok.data.side).toBe('front');
+    expect(FlashcardFigureSchema.safeParse({ imageRef: 'a', side: 'back', caption: 'b' }).success).toBe(
+      true,
+    );
+    expect(FlashcardFigureSchema.safeParse({ imageRef: 'a' }).success).toBe(false);
+    expect(FlashcardFigureSchema.safeParse({ imageRef: 'a', side: 'middle', caption: 'b' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('resolveFlashcardFigures validates refs, dedupes, caps at 4', () => {
+  it('keeps catalog refs in card order with side + caption, dropping bad/dup refs', () => {
+    const available = [mkImage('img_1'), mkImage('img_2'), mkImage('img_3')];
+    const figs = resolveFlashcardFigures(
+      [
+        { figure: { imageRef: 'img_1', caption: 'front default' } },
+        {}, // no figure
+        { figure: { imageRef: 'ghost', caption: 'hallucinated' } }, // dropped
+        { figure: { imageRef: 'img_2', side: 'back', caption: 'on back' } },
+        { figure: { imageRef: 'img_1', caption: 'dup image' } }, // dropped (seen)
+        { figure: { junk: true } as Record<string, unknown> }, // dropped (invalid)
+      ],
+      available,
+    );
+    expect(figs).toHaveLength(2);
+    expect(figs[0]).toMatchObject({ cardIndex: 0, side: 'front', caption: 'front default' });
+    expect(figs[0].image.id).toBe('img_1');
+    expect(figs[1]).toMatchObject({ cardIndex: 3, side: 'back', caption: 'on back' });
+    expect(figs[1].image.id).toBe('img_2');
+  });
+
+  it('caps at 4 figured cards', () => {
+    const available = Array.from({ length: 6 }, (_, i) => mkImage(`img_${i}`));
+    const cards = available.map((img) => ({
+      figure: { imageRef: img.id, caption: `c-${img.id}` },
+    }));
+    expect(resolveFlashcardFigures(cards, available)).toHaveLength(4);
+  });
+
+  it('returns nothing when no images are available', () => {
+    expect(
+      resolveFlashcardFigures([{ figure: { imageRef: 'img_1', caption: 'c' } }], []),
+    ).toHaveLength(0);
+  });
+});
+
+describe('QuizFigureSchema', () => {
+  it('requires imageRef + caption (no side field)', () => {
+    expect(QuizFigureSchema.safeParse({ imageRef: 'a', caption: 'b' }).success).toBe(true);
+    expect(QuizFigureSchema.safeParse({ imageRef: 'a' }).success).toBe(false);
+    expect(QuizFigureSchema.safeParse({ caption: 'b' }).success).toBe(false);
+    expect(QuizFigureSchema.safeParse({ imageRef: '', caption: 'b' }).success).toBe(false);
+  });
+});
+
+describe('resolveQuizFigures validates refs, dedupes, caps at 3', () => {
+  it('keeps catalog refs in question order with caption, dropping bad/dup refs', () => {
+    const available = [mkImage('img_1'), mkImage('img_2'), mkImage('img_3')];
+    const figs = resolveQuizFigures(
+      [
+        { figure: { imageRef: 'img_1', caption: 'exhibit one' } },
+        {}, // no figure
+        { figure: { imageRef: 'ghost', caption: 'hallucinated' } }, // dropped
+        { figure: { imageRef: 'img_2', caption: 'exhibit two' } },
+        { figure: { imageRef: 'img_1', caption: 'dup image' } }, // dropped (seen)
+        { figure: { junk: true } as Record<string, unknown> }, // dropped (invalid)
+      ],
+      available,
+    );
+    expect(figs).toHaveLength(2);
+    expect(figs[0]).toMatchObject({ questionIndex: 0, caption: 'exhibit one' });
+    expect(figs[0].image.id).toBe('img_1');
+    expect(figs[1]).toMatchObject({ questionIndex: 3, caption: 'exhibit two' });
+    expect(figs[1].image.id).toBe('img_2');
+  });
+
+  it('caps at 3 figured questions', () => {
+    const available = Array.from({ length: 6 }, (_, i) => mkImage(`img_${i}`));
+    const questions = available.map((img) => ({
+      figure: { imageRef: img.id, caption: `c-${img.id}` },
+    }));
+    expect(resolveQuizFigures(questions, available)).toHaveLength(3);
+  });
+
+  it('returns nothing when no images are available', () => {
+    expect(
+      resolveQuizFigures([{ figure: { imageRef: 'img_1', caption: 'c' } }], []),
+    ).toHaveLength(0);
   });
 });
 

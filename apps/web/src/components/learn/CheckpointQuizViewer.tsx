@@ -23,6 +23,9 @@ interface QuizQuestion {
   correctExplanation: string | null;
   wrongExplanation: string | null;
   sortOrder: number;
+  // Figure-reuse (P4): exhibit image (0-or-1) threaded from the content route
+  // into QuizViewer, which renders it above the prompt.
+  image?: { id: string; caption: string | null } | null;
 }
 
 interface QuizSetPayload {

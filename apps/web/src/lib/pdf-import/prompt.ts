@@ -12,6 +12,15 @@ export function imageRef(pageNumber: number, index: number): string {
   return `p${pageNumber}-fig-${index}`;
 }
 
+/**
+ * Import-time figure titles (P1) kill switch. Read once at module load — these
+ * are deploy-time levers, and the import worker gates the matching write-through
+ * and post-import sweep on the same env var. When disabled the model is never
+ * asked for an `alt`, so figures stay uncaptioned at import and layer-3 lazy
+ * captioning heals them at first generation (today's behaviour).
+ */
+const FIGURE_TITLES_ENABLED = process.env.IMPORT_FIGURE_TITLES_DISABLED !== '1';
+
 export const STRUCTURE_SYSTEM_PROMPT = `You convert ONE page of a PDF into a structured list of content blocks.
 
 You are given:
@@ -62,7 +71,7 @@ Each block is exactly one of:
 - {"type":"blockquote","runs":[run,...]}
     one blockquote block per LINE of a quote box — see Blockquotes below.
 - {"type":"image","ref":"...","bbox":[x0,y0,x1,y1]}
-    plus an optional "caption" key — see Figures below.
+    plus an optional "caption" key${FIGURE_TITLES_ENABLED ? ' and an "alt" title' : ''} — see Figures below.
 - {"type":"math","latex":"...","display":true|false}
     plus an optional "caption" key — see Math below.
 - {"type":"horizontalRule"}
@@ -130,7 +139,16 @@ bar; box the entire container, title bar included.
 - A caption line under the figure ("Figure 1 — …") goes in the image block's
   "caption" key — an array of runs, e.g.
   "caption":[{"text":"Figure 1 — Weekly study time."}] — NOT a separate
-  paragraph. Omit the key when the figure has no caption.
+  paragraph. Omit the key when the figure has no caption.${
+    FIGURE_TITLES_ENABLED
+      ? `
+- "alt" is a short title (≤12 words) of what the figure SHOWS and the concept it
+  illustrates — your own plain-string description, e.g. "alt":"Bar chart of
+  weekly study hours rising over a term". ALWAYS include "alt" for every figure.
+  Do NOT copy the document's printed "caption" line verbatim — "alt" describes
+  the figure, "caption" is the page's own caption text.`
+      : ''
+  }
 
 ### Definition lists
 For a term/definition list (a short bold term with its definition below or

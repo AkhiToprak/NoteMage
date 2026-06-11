@@ -120,6 +120,39 @@ describe('normalizeDocModelShape — extended drift rescue', () => {
     }
   });
 
+  it('keeps a string alt on an image block', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], alt: 'Bar chart of weekly study hours.' },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.alt).toBe('Bar chart of weekly study hours.');
+    }
+  });
+
+  it('flattens a run-array alt into a string instead of failing validation', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], alt: [{ text: 'A' }, { text: 'cell.' }] },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.alt).toBe('A cell.');
+    }
+  });
+
+  it('drops a non-string alt with no recoverable text (number)', () => {
+    const result = parseAfter([
+      { type: 'image', ref: 'p1-fig-1', bbox: [0, 0, 1, 1], alt: 42 },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const img = result.data.blocks[0];
+      if (img.type === 'image') expect(img.alt).toBeUndefined();
+    }
+  });
+
   it('coerces checked given as a string and items given as strings', () => {
     const result = parseAfter([
       {

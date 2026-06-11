@@ -330,6 +330,8 @@ interface QuizQuestionRow {
   correctExplanation: string | null;
   wrongExplanation: string | null;
   payload: Prisma.JsonValue;
+  // Figure-reuse (P4): exhibit caption is translatable prose. 0-or-1 per question.
+  image: { id: string; caption: string | null } | null;
 }
 
 interface TextSlot {
@@ -460,7 +462,16 @@ interface ActivityRow {
   title: string;
   theory: { id: string; title: string; body: Prisma.JsonValue } | null;
   flashcardSet:
-    | { id: string; title: string; flashcards: Array<{ id: string; question: string; answer: string }> }
+    | {
+        id: string;
+        title: string;
+        flashcards: Array<{
+          id: string;
+          question: string;
+          answer: string;
+          images: Array<{ id: string; caption: string | null }>;
+        }>;
+      }
     | null;
   quizSet: { id: string; title: string; questions: QuizQuestionRow[] } | null;
 }
@@ -525,6 +536,12 @@ async function translateFlashcardsActivity(
   set.flashcards.forEach((fc, i) => {
     strings.push({ id: `q${i}`, text: fc.question });
     strings.push({ id: `a${i}`, text: fc.answer });
+    // Figure-reuse (P3): translate each figure caption in place so a translated
+    // path doesn't keep an English caption under a card.
+    fc.images.forEach((img, j) => {
+      const caption = img.caption?.trim();
+      if (caption) strings.push({ id: `c${i}_${j}`, text: caption });
+    });
   });
   const map = await translateBatch(strings, source, target, onUsage);
 
@@ -545,6 +562,17 @@ async function translateFlashcardsActivity(
           answer: map.get(`a${i}`) ?? fc.answer,
         },
       }),
+    ),
+    ...set.flashcards.flatMap((fc, i) =>
+      fc.images
+        .map((img, j) => ({ img, j }))
+        .filter(({ img }) => Boolean(img.caption?.trim()))
+        .map(({ img, j }) =>
+          db.flashcardImage.update({
+            where: { id: img.id },
+            data: { caption: map.get(`c${i}_${j}`) ?? img.caption },
+          }),
+        ),
     ),
   ]);
 }
@@ -570,6 +598,13 @@ async function translateQuizActivity(
     const slots = questionSlots(i, q, payload);
     slots.forEach((s) => strings.push({ id: s.id, text: s.get() }));
     return { q, payload, slots };
+  });
+
+  // Figure-reuse (P4): translate each exhibit caption in place so a translated
+  // path doesn't keep an English caption under a question's figure.
+  set.questions.forEach((q, i) => {
+    const caption = q.image?.caption?.trim();
+    if (caption) strings.push({ id: `cap${i}`, text: caption });
   });
 
   const map = await translateBatch(strings, source, target, onUsage);
@@ -602,6 +637,15 @@ async function translateQuizActivity(
         },
       }),
     ),
+    ...set.questions
+      .map((q, i) => ({ q, i }))
+      .filter(({ q }) => Boolean(q.image?.caption?.trim()))
+      .map(({ q, i }) =>
+        db.quizQuestionImage.update({
+          where: { questionId: q.id },
+          data: { caption: map.get(`cap${i}`) ?? q.image?.caption ?? null },
+        }),
+      ),
   ]);
 }
 
@@ -654,10 +698,27 @@ export async function translatePath(
                   include: {
                     theory: { select: { id: true, title: true, body: true } },
                     flashcardSet: {
-                      include: { flashcards: { orderBy: { sortOrder: 'asc' } } },
+                      include: {
+                        flashcards: {
+                          orderBy: { sortOrder: 'asc' },
+                          // Figure-reuse (P3): figure captions are translatable prose.
+                          include: {
+                            images: {
+                              orderBy: { sortOrder: 'asc' },
+                              select: { id: true, caption: true },
+                            },
+                          },
+                        },
+                      },
                     },
                     quizSet: {
-                      include: { questions: { orderBy: { sortOrder: 'asc' } } },
+                      include: {
+                        questions: {
+                          orderBy: { sortOrder: 'asc' },
+                          // Figure-reuse (P4): exhibit captions are translatable prose.
+                          include: { image: { select: { id: true, caption: true } } },
+                        },
+                      },
                     },
                   },
                 },

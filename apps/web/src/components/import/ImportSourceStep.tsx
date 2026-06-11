@@ -62,9 +62,6 @@ export default function ImportSourceStep({
         >
           Import your study material
         </h2>
-        <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'var(--on-surface-variant)' }}>
-          Add your PDFs — NoteMage sorts them into notebooks.
-        </p>
       </header>
 
       <button
@@ -240,8 +237,7 @@ export default function ImportSourceStep({
           padding: '12px 14px',
           borderRadius: 'var(--radius-md)',
           border: `1px solid ${mode === 'fast' ? 'var(--primary)' : 'var(--outline-variant)'}`,
-          background:
-            mode === 'fast' ? 'rgba(174,137,255,0.08)' : 'var(--surface-container-high)',
+          background: mode === 'fast' ? 'rgba(174,137,255,0.08)' : 'var(--surface-container-high)',
           color: 'var(--on-surface)',
           textAlign: 'left',
           fontFamily: 'inherit',
@@ -261,7 +257,9 @@ export default function ImportSourceStep({
         >
           bolt
         </span>
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <span
+          style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}
+        >
           <span style={{ fontSize: '13.5px', fontWeight: 700 }}>
             Fast mode — text only, no images or diagrams (free)
           </span>
@@ -274,8 +272,7 @@ export default function ImportSourceStep({
             width: '34px',
             height: '20px',
             borderRadius: 'var(--radius-full)',
-            background:
-              mode === 'fast' ? 'var(--primary)' : 'var(--surface-container-highest)',
+            background: mode === 'fast' ? 'var(--primary)' : 'var(--surface-container-highest)',
             flexShrink: 0,
             transition: 'background 0.2s ease',
           }}
@@ -349,7 +346,11 @@ export default function ImportSourceStep({
           }}
         >
           Continue
-          <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '19px' }}>
+          <span
+            className="material-symbols-outlined"
+            aria-hidden="true"
+            style={{ fontSize: '19px' }}
+          >
             arrow_forward
           </span>
         </button>

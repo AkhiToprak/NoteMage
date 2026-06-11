@@ -18,6 +18,14 @@ import { trackEvent } from '@/lib/telemetry';
 import type { QuestionKind } from '@notemage/shared';
 import SlideEditorModal, { SlideData } from './SlideEditorModal';
 
+// Figure-reuse (P4): a question's optional exhibit image (0-or-1), served from
+// /api/uploads/quiz-images/{id}. Present only on path-generated quizzes whose
+// materials carried captioned figures.
+interface QuestionImageData {
+  id: string;
+  caption: string | null;
+}
+
 interface QuizQuestion {
   id: string;
   // Phase 2: kind is required on the wire; older callers that haven't
@@ -31,6 +39,8 @@ interface QuizQuestion {
   correctExplanation: string | null;
   wrongExplanation: string | null;
   sortOrder: number;
+  // Figure-reuse (P4). Absent/null on manually-authored and pre-feature quizzes.
+  image?: QuestionImageData | null;
 }
 
 interface AnswerEntry {
@@ -89,6 +99,62 @@ interface QuizViewerProps {
 }
 
 type QuizMode = 'quiz' | 'review' | 'results';
+
+// A single quiz question's exhibit image (figure-reuse P4). Rendered by the
+// dispatcher ABOVE the prompt — shared player chrome, not per-renderer, so all
+// question kinds get it for free with zero grading impact. Renders on a neutral
+// surface (crops are white-background PNGs — matters in dark mode), captions the
+// figure, uses the caption as alt text, lazy-loads, and hides itself cleanly if
+// the blob 404s mid-quiz. Height-clamped so MatchPairs / sentence-reorder still
+// fit on the pinned-nav phone player. Mirrors FlashcardViewer's FlashcardFigure.
+function QuestionFigure({ img, isPhone }: { img: QuestionImageData; isPhone: boolean }) {
+  const caption = img.caption?.trim();
+  return (
+    <figure
+      style={{
+        width: '100%',
+        maxWidth: isPhone ? '100%' : '480px',
+        margin: '0 0 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '4px',
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/api/uploads/quiz-images/${img.id}`}
+        alt={caption || 'Question exhibit'}
+        loading="lazy"
+        onError={(e) => {
+          const fig = e.currentTarget.closest('figure');
+          if (fig) (fig as HTMLElement).style.display = 'none';
+        }}
+        style={{
+          maxWidth: '100%',
+          maxHeight: isPhone ? '160px' : '200px',
+          borderRadius: '10px',
+          objectFit: 'contain',
+          background: 'var(--surface-container-high)',
+          border: '1px solid var(--outline-variant)',
+          padding: '6px',
+        }}
+      />
+      {caption ? (
+        <figcaption
+          style={{
+            fontSize: '12px',
+            lineHeight: 1.4,
+            textAlign: 'center',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
 
 export default function QuizViewer({
   notebookId,
@@ -1378,31 +1444,38 @@ export default function QuizViewer({
             );
           }
           return (
-            <Renderer
-              key={question.id}
-              question={{
-                id: question.id,
-                kind,
-                question: question.question,
-                options: question.options,
-                correctIndex: question.correctIndex,
-                payload: question.payload as never,
-                hint: question.hint,
-                correctExplanation: question.correctExplanation,
-                wrongExplanation: question.wrongExplanation,
-                sortOrder: question.sortOrder,
-              }}
-              mode={mode === 'review' ? 'review' : 'quiz'}
-              isAnswered={isAnswered}
-              currentAnswer={currentAnswer}
-              reviewAnswer={mode === 'review' ? answers.get(currentIndex)?.answer : undefined}
-              gradedCorrect={currentEntry?.isCorrect}
-              showHint={showHint}
-              onToggleHint={() => setShowHint((v) => !v)}
-              onSelectAnswer={selectAnswer}
-              isPhone={isPhone}
-              coarsePointer={coarsePointer}
-            />
+            <>
+              {/* Figure-reuse (P4): exhibit image above the prompt, in both
+                  quiz and review modes. Keyed so it swaps with the question. */}
+              {question.image ? (
+                <QuestionFigure key={`fig-${question.id}`} img={question.image} isPhone={isPhone} />
+              ) : null}
+              <Renderer
+                key={question.id}
+                question={{
+                  id: question.id,
+                  kind,
+                  question: question.question,
+                  options: question.options,
+                  correctIndex: question.correctIndex,
+                  payload: question.payload as never,
+                  hint: question.hint,
+                  correctExplanation: question.correctExplanation,
+                  wrongExplanation: question.wrongExplanation,
+                  sortOrder: question.sortOrder,
+                }}
+                mode={mode === 'review' ? 'review' : 'quiz'}
+                isAnswered={isAnswered}
+                currentAnswer={currentAnswer}
+                reviewAnswer={mode === 'review' ? answers.get(currentIndex)?.answer : undefined}
+                gradedCorrect={currentEntry?.isCorrect}
+                showHint={showHint}
+                onToggleHint={() => setShowHint((v) => !v)}
+                onSelectAnswer={selectAnswer}
+                isPhone={isPhone}
+                coarsePointer={coarsePointer}
+              />
+            </>
           );
         })()
       )}

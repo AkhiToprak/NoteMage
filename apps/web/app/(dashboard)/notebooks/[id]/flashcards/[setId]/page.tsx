@@ -15,6 +15,17 @@ interface FlashcardSetData {
     question: string;
     answer: string;
     sortOrder: number;
+    // Figure-reuse: embedded images (manual uploads or P5 chat figures),
+    // rendered by FlashcardViewer.
+    images?: {
+      id: string;
+      side: string;
+      fileName: string;
+      filePath: string;
+      mimeType: string;
+      caption?: string | null;
+      sortOrder: number;
+    }[];
   }[];
 }
 

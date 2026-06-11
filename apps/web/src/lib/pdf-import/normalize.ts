@@ -36,7 +36,7 @@ const BLOCK_KEYS: Record<string, readonly string[]> = {
   table: ['type', 'rows', 'headerRow'],
   codeBlock: ['type', 'lang', 'code'],
   blockquote: ['type', 'runs'],
-  image: ['type', 'ref', 'bbox', 'caption'],
+  image: ['type', 'ref', 'bbox', 'caption', 'alt'],
   math: ['type', 'latex', 'display', 'caption'],
   horizontalRule: ['type'],
 };
@@ -251,6 +251,16 @@ function normalizeImageBlock(block: Record<string, unknown>): void {
     block.bbox = bbox;
   }
   if (typeof block.ref === 'number') block.ref = String(block.ref);
+  // The P1 figure title is a plain string, but the model occasionally emits it
+  // as a run array or a number — flatten to a string so the optional field
+  // validates instead of failing the whole block to a repair retry.
+  if ('alt' in block && typeof block.alt !== 'string') {
+    const runs: InlineRun[] = [];
+    collectRuns(block.alt, runs);
+    const text = runs.map((run) => run.text).join(' ').trim();
+    if (text) block.alt = text;
+    else delete block.alt;
+  }
   normalizeCaption(block);
 }
 
