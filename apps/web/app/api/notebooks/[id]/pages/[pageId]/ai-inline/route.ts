@@ -69,6 +69,7 @@ const SYSTEM_PROMPTS: Record<InlineAction, string> = {
     'Rewrite the user-supplied passage to be clearer, more concise, and more readable.',
     'Preserve the original meaning, key facts, formatting, and overall length (within +/- 20%).',
     FORMATTING_RULES,
+    'Respond in the language of the selected text.',
     'Return ONLY the rewritten passage. If it is already perfect, return it unchanged.',
   ].join(' '),
   summarize: [
@@ -77,6 +78,7 @@ const SYSTEM_PROMPTS: Record<InlineAction, string> = {
     'Preserve the most important facts, names, and numbers.',
     'A bullet list is often the clearest format for a summary.',
     FORMATTING_RULES,
+    'Respond in the language of the selected text.',
     'Return ONLY the summary — no "Summary:" prefix.',
   ].join(' '),
   expand: [
@@ -86,11 +88,15 @@ const SYSTEM_PROMPTS: Record<InlineAction, string> = {
     'Aim for roughly double the original length.',
     'Structure longer output with headings, lists, code blocks, and callouts where they aid understanding.',
     FORMATTING_RULES,
+    'Respond in the language of the selected text.',
     'Return ONLY the expanded passage.',
   ].join(' '),
 };
 
 const MAX_INPUT_CHARS = 4000;
+// expand targets ~2× input; a 4K-char selection can produce ~4K chars of output.
+const MAX_OUTPUT_TOKENS_EXPAND = 4096;
+const MAX_OUTPUT_TOKENS_DEFAULT = 2048;
 
 function isValidAction(value: unknown): value is InlineAction {
   return value === 'rewrite' || value === 'summarize' || value === 'expand';
@@ -179,6 +185,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     // finalizes the partial (no duplicate restart).
     const systemPrompt = SYSTEM_PROMPTS[action];
     const resolved = resolveModel(`inline-${action}` as ModelFeature);
+    const maxOutputTokens =
+      action === 'expand' ? MAX_OUTPUT_TOKENS_EXPAND : MAX_OUTPUT_TOKENS_DEFAULT;
 
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
@@ -230,11 +238,15 @@ export async function POST(request: NextRequest, { params }: Params) {
                   signal: abortController.signal,
                   onText: enqueueText,
                   model: resolved.model,
-                  maxOutputTokens: 2048,
+                  maxOutputTokens,
                 });
                 if (abortController.signal.aborted) {
                   await finalize(0, 0, 'gemini', resolved.model);
                   return;
+                }
+                // PA-40e: close any unclosed triple-backtick fence.
+                if ((fullText.match(/```/g) ?? []).length % 2 !== 0) {
+                  enqueueText('\n```');
                 }
                 await finalize(usage.promptTokens, usage.candidatesTokens, 'gemini', resolved.model);
                 return;
@@ -261,7 +273,7 @@ export async function POST(request: NextRequest, { params }: Params) {
             const stream = anthropic.messages.stream(
               {
                 model: anthropicModel,
-                max_tokens: 2048,
+                max_tokens: maxOutputTokens,
                 system: systemPrompt,
                 messages: [{ role: 'user', content: text }],
               },
@@ -269,6 +281,10 @@ export async function POST(request: NextRequest, { params }: Params) {
             );
             stream.on('text', enqueueText);
             const response = await stream.finalMessage();
+            // PA-40e: close any unclosed triple-backtick fence.
+            if ((fullText.match(/```/g) ?? []).length % 2 !== 0) {
+              enqueueText('\n```');
+            }
             await finalize(
               response.usage.input_tokens,
               response.usage.output_tokens,
@@ -278,7 +294,10 @@ export async function POST(request: NextRequest, { params }: Params) {
           } catch (err) {
             if (abortController.signal.aborted) {
               // Finalize whatever streamed so the client keeps the partial edit.
-              await finalize(0, 0, 'anthropic', AI_MODEL).catch(() => {
+              // PA-40e: use the resolved anthropicModel, not the bare AI_MODEL constant.
+              const resolvedAbortModel =
+                resolved.provider === 'anthropic' ? resolved.model : AI_MODEL;
+              await finalize(0, 0, 'anthropic', resolvedAbortModel).catch(() => {
                 controller.enqueue(sseEvent('error', { error: 'Failed to save partial response' }));
                 controller.close();
               });

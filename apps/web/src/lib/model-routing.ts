@@ -45,7 +45,8 @@ export type ModelFeature =
   | 'inline-rewrite'
   | 'inline-summarize'
   | 'inline-expand'
-  | 'doc-summarize';
+  | 'doc-summarize'
+  | 'page-generate';
 
 export interface ResolveModelCtx {
   /** Billing tier — used by tier-sensitive features (chat-plain, essay). */
@@ -249,6 +250,11 @@ export function resolveModel(
 
     case 'doc-summarize':
       return resolveStatic('DOCSUM_MODEL', 'haiku', 'flash-lite');
+
+    case 'page-generate':
+      // Anthropic-only (forced-tool call). PAGE_GENERATE_MODEL env token
+      // overrides; MODEL_COMPOSITION_LEGACY=1 keeps Haiku (same as default).
+      return resolveStatic('PAGE_GENERATE_MODEL', 'haiku', 'haiku');
 
     case 'chat-plain':
       return resolveChatPlain(ctx);

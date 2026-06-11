@@ -11,10 +11,29 @@
 // (plan.gemini) are forwarded to the resolver.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { buildCachedSystem, buildSourceMaterialsBlock } from './path-prompts';
+import { buildCachedSystem, buildSourceMaterialsBlock, GEMINI_JSON_PREAMBLE } from './path-prompts';
 import { forcedStructuredCallAnthropic } from './path-generator-anthropic';
 import { forcedStructuredCallGemini, type GeminiUsage } from './path-generator-gemini';
 import { resolveModel, type ModelFeature } from './model-routing';
+import {
+  PATH_STRUCTURE_TOOL,
+  THEORY_SECTION_TOOL,
+  FLASHCARDS_FOR_SLOT_TOOL,
+  QUIZ_FOR_SLOT_TOOL,
+} from './ai-tools';
+
+/**
+ * All four path tools in a fixed order. Sending a byte-identical `tools`
+ * array on every stage call lets the Anthropic prompt cache cover the tools
+ * block across stages — `tool_choice` selects the active tool without
+ * invalidating the cache.
+ */
+const PATH_TOOLS_STABLE: Anthropic.Messages.Tool[] = [
+  PATH_STRUCTURE_TOOL,
+  THEORY_SECTION_TOOL,
+  FLASHCARDS_FOR_SLOT_TOOL,
+  QUIZ_FOR_SLOT_TOOL,
+];
 
 export type Provider = 'anthropic' | 'gemini';
 export type Stage = 'structure' | 'theory' | 'flashcards' | 'quiz';
@@ -33,7 +52,7 @@ export interface NormalizedUsage {
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
-  /** 0 on the Gemini side in v1 — implicit caching has no separate write line. */
+  /** Anthropic: cache_creation_input_tokens. Gemini: explicit CachedContent create cost (0 when inline). */
   cacheWriteTokens: number;
 }
 
@@ -54,8 +73,6 @@ export interface StructuredCallCtx<T> {
   dynamicInstructions: string;
   /** Anthropic tool definition for the call. */
   anthropicTool: Anthropic.Messages.Tool;
-  /** Gemini `responseSchema` — optional, when omitted only JSON mode is set. */
-  geminiSchema?: object;
   /** User-turn message — usually 'Generate now.' or a corrective notice on retry. */
   userMessage: string;
   /** Max attempts at the call level. Default 2 (matches the existing pattern). */
@@ -99,14 +116,19 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   const model = resolved.model;
 
   if (provider === 'anthropic') {
+    // Stage A is a single call per path — its 1h cache write is never read,
+    // so use ephemeral (5-min, 1.25× write) to cover retries only.
+    const cacheTtl: '1h' | '5m' = ctx.stage === 'structure' ? '5m' : '1h';
     const system = buildCachedSystem(
       ctx.corpus,
       ctx.staticInstructions,
       ctx.dynamicInstructions,
+      cacheTtl,
     );
     return forcedStructuredCallAnthropic<T>({
       system,
       tool: ctx.anthropicTool,
+      tools: PATH_TOOLS_STABLE,
       userMessage: ctx.userMessage,
       maxAttempts: ctx.maxAttempts,
       model,
@@ -128,7 +150,12 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // Gemini, so this is the high-volume cost path) and otherwise falls back to
   // an inline, byte-identical systemInstruction. The corpus block leads so the
   // prefix is byte-identical across a run's calls (cache + implicit-cache match).
+  //
+  // GEMINI_JSON_PREAMBLE is prepended here (not in the builders) because it is
+  // Gemini JSON-mode-specific: on the Anthropic path tool_choice forces
+  // structured output so the preamble is both redundant and contradictory.
   const cacheablePrefix = [
+    GEMINI_JSON_PREAMBLE,
     ctx.corpus && ctx.corpus.trim().length > 0 ? buildSourceMaterialsBlock(ctx.corpus) : null,
     ctx.staticInstructions,
   ]
@@ -144,20 +171,33 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // pattern in `engine-gemini.ts` and `subject-detect.ts`. The schemas
   // in `ai-tools-gemini.ts` stay for documentation / future re-enable
   // once Gemini relaxes the constraint.
+  //
+  // Stage A (structure) is a single call per path — no benefit from creating an
+  // explicit CachedContent for it. Pass it as a flat systemInstruction instead.
+  const isStructureStage = ctx.stage === 'structure';
   return forcedStructuredCallGemini<T>({
-    cacheablePrefix,
-    dynamicTail: ctx.dynamicInstructions,
+    ...(isStructureStage
+      ? {
+          systemInstruction: [cacheablePrefix, ctx.dynamicInstructions]
+            .filter((p) => p.length > 0)
+            .join('\n\n'),
+        }
+      : { cacheablePrefix, dynamicTail: ctx.dynamicInstructions }),
     userMessage: ctx.userMessage,
     maxAttempts: ctx.maxAttempts,
     model,
-    onUsage: (usage: GeminiUsage) =>
+    onUsage: (usage: GeminiUsage) => {
+      // `promptTokenCount` includes `cachedContentTokenCount`; subtract to
+      // avoid double-billing cached tokens as both input and cache-read.
+      const uncachedInput = Math.max(0, usage.promptTokens - usage.cachedTokens);
       ctx.onUsage({
         provider: 'gemini',
         model,
-        inputTokens: usage.promptTokens,
+        inputTokens: uncachedInput,
         outputTokens: usage.candidatesTokens,
         cacheReadTokens: usage.cachedTokens,
-        cacheWriteTokens: 0,
-      }),
+        cacheWriteTokens: usage.cacheWriteTokens ?? 0,
+      });
+    },
   });
 }

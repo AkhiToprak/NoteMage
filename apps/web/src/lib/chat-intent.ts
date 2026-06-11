@@ -9,6 +9,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { anthropic, AI_CLASSIFIER_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
 import { CLASSIFY_CHAT_INTENT_TOOL, type ClassifyChatIntentToolInput } from './ai-tools';
+import { logAiUsage } from './ai-usage';
 
 export type ChatIntent =
   | 'chat'
@@ -133,6 +134,16 @@ export async function classifyChatIntent(
       messages: [{ role: 'user', content: lines.join('\n') }],
       tools: [CLASSIFY_CHAT_INTENT_TOOL],
       tool_choice: { type: 'tool', name: CLASSIFY_CHAT_INTENT_TOOL.name },
+    });
+
+    logAiUsage({
+      userId: null,
+      feature: 'chat-intent',
+      provider: 'anthropic',
+      model: AI_CLASSIFIER_MODEL,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
     });
 
     const block = findToolUse(response.content, CLASSIFY_CHAT_INTENT_TOOL.name);

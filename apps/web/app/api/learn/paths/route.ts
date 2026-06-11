@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json().catch(() => ({}))) as CreatePathBody;
-    const title = body.title?.trim();
+    const title = body.title?.trim().slice(0, 200);
     if (!title) return badRequestResponse('Title is required');
 
     const ultra = body.ultra === true;

@@ -53,6 +53,15 @@ describe('L2_RUBRIC: cacheability', () => {
       expect(L2_RUBRIC).toContain(cat);
     }
   });
+
+  it('contains the injection-hardening instruction (PA-30)', () => {
+    expect(L2_RUBRIC).toContain('BEGIN UNTRUSTED AUTHOR CONTENT');
+    expect(L2_RUBRIC).toContain('END UNTRUSTED AUTHOR CONTENT');
+  });
+
+  it('defines confidence as a probability (PA-35 / F12 uniform definition)', () => {
+    expect(L2_RUBRIC).toContain('probability');
+  });
 });
 
 describe('L2_ANTHROPIC_TOOL: schema', () => {
@@ -84,8 +93,14 @@ describe('L2_GEMINI_SCHEMA: schema parity with Anthropic', () => {
       'confidence',
       'reason',
     ]);
-    const props = L2_GEMINI_SCHEMA.properties as Record<string, { enum?: string[] }>;
+    const props = L2_GEMINI_SCHEMA.properties as Record<string, { enum?: string[]; minimum?: number; maximum?: number }>;
     expect(props.verdict.enum).toEqual(['pass', 'reject', 'flag']);
+  });
+
+  it('has 0–1 bounds on confidence (F12)', () => {
+    const props = L2_GEMINI_SCHEMA.properties as Record<string, { minimum?: number; maximum?: number }>;
+    expect(props.confidence.minimum).toBe(0);
+    expect(props.confidence.maximum).toBe(1);
   });
 });
 
@@ -118,11 +133,26 @@ describe('parseL2Response', () => {
     expect(() => parseL2Response({ ...valid, category: '' })).toThrow();
   });
 
-  it('rejects confidence out of [0, 1]', () => {
-    expect(() => parseL2Response({ ...valid, confidence: -0.01 })).toThrow();
-    expect(() => parseL2Response({ ...valid, confidence: 1.01 })).toThrow();
+  it('clamps out-of-range confidence instead of throwing (PA-35)', () => {
+    // NaN / non-number still throws (not a scale-confusion, it's garbage).
     expect(() => parseL2Response({ ...valid, confidence: NaN })).toThrow();
     expect(() => parseL2Response({ ...valid, confidence: '0.5' })).toThrow();
+
+    // Values in (1, 100] are treated as percent-scale and divided by 100.
+    const scaled = parseL2Response({ ...valid, confidence: 90 });
+    expect(scaled.confidence).toBeCloseTo(0.9);
+
+    // Values below 0 clamp to 0.
+    const neg = parseL2Response({ ...valid, confidence: -0.5 });
+    expect(neg.confidence).toBe(0);
+
+    // Values above 1 (but > 100) clamp to 1.
+    const over = parseL2Response({ ...valid, confidence: 200 });
+    expect(over.confidence).toBe(1);
+
+    // Exactly 1 and 0 are valid as-is.
+    expect(parseL2Response({ ...valid, confidence: 1 }).confidence).toBe(1);
+    expect(parseL2Response({ ...valid, confidence: 0 }).confidence).toBe(0);
   });
 
   it('rejects missing reason / non-string reason', () => {
@@ -130,10 +160,10 @@ describe('parseL2Response', () => {
     expect(() => parseL2Response({ ...valid, reason: 123 })).toThrow();
   });
 
-  it('clamps a runaway long reason to 4000 chars', () => {
+  it('clamps a runaway long reason to 600 chars (schema maxLength, F12)', () => {
     const long = 'x'.repeat(10_000);
     const out = parseL2Response({ ...valid, reason: long });
-    expect(out.reason.length).toBe(4_000);
+    expect(out.reason.length).toBe(600);
   });
 });
 
@@ -167,6 +197,30 @@ describe('projectL2Output: pass branch', () => {
     expect(j.rejectionReason).toBeNull();
     expect(j.failedClosed).toBe(false);
     expect(j.reasoning).toContain('Clean educational path');
+  });
+
+  it('downgrades low-confidence pass to flag (PA-35 guard)', () => {
+    const j = projectL2Output({
+      verdict: 'pass',
+      category: 'other',
+      confidence: 0.5, // < 0.6 threshold
+      reason: 'Not sure — might be fine.',
+    });
+    expect(j.verdict).toBe('flag');
+    expect(j.reasonCode).toBe('l2.other');
+    expect(j.reasoning).toContain('downgraded pass→flag');
+    expect(j.rejectionReason).toBeNull();
+    expect(j.failedClosed).toBe(false);
+  });
+
+  it('does NOT downgrade a pass at confidence 0.6 (boundary)', () => {
+    const j = projectL2Output({
+      verdict: 'pass',
+      category: 'other',
+      confidence: 0.6,
+      reason: 'Acceptable.',
+    });
+    expect(j.verdict).toBe('pass');
   });
 });
 

@@ -140,11 +140,22 @@ describe('parseL3Response', () => {
     expect(() => parseL3Response({ ...valid, category: '' })).toThrow();
   });
 
-  it('rejects confidence out of [0, 1]', () => {
-    expect(() => parseL3Response({ ...valid, confidence: -0.01 })).toThrow();
-    expect(() => parseL3Response({ ...valid, confidence: 1.01 })).toThrow();
+  it('clamps out-of-range confidence instead of throwing (PA-35)', () => {
+    // NaN / non-number still throws.
     expect(() => parseL3Response({ ...valid, confidence: NaN })).toThrow();
     expect(() => parseL3Response({ ...valid, confidence: '0.9' })).toThrow();
+
+    // Percent-scale values in (1, 100] are divided by 100.
+    const scaled = parseL3Response({ ...valid, confidence: 85 });
+    expect(scaled.confidence).toBeCloseTo(0.85);
+
+    // Negative values clamp to 0.
+    const neg = parseL3Response({ ...valid, confidence: -0.5 });
+    expect(neg.confidence).toBe(0);
+
+    // Values above 100 clamp to 1.
+    const over = parseL3Response({ ...valid, confidence: 200 });
+    expect(over.confidence).toBe(1);
   });
 
   it('rejects missing reason / non-string reason', () => {
@@ -152,10 +163,10 @@ describe('parseL3Response', () => {
     expect(() => parseL3Response({ ...valid, reason: 123 })).toThrow();
   });
 
-  it('clamps a runaway long reason to 4000 chars', () => {
+  it('clamps a runaway long reason to 800 chars', () => {
     const long = 'x'.repeat(10_000);
     const out = parseL3Response({ ...valid, reason: long });
-    expect(out.reason.length).toBe(4_000);
+    expect(out.reason.length).toBe(800);
   });
 });
 

@@ -44,6 +44,8 @@ export interface TranslationRunResult {
   costUsd: number;
   /** Resolved model id (e.g. "gemini-2.5-flash"). Empty on pre-call failure. */
   model: string;
+  /** Resolved provider. Populated on both success and failure. */
+  provider: 'anthropic' | 'gemini';
   /** Aggregated token usage across attempts. Null when no attempt landed. */
   usage: {
     inputTokens: number;
@@ -160,6 +162,7 @@ export async function runTranslation(
       payload: projected.payload,
       costUsd: cost.usd,
       model: modelId,
+      provider,
       usage: aggregateUsage,
     };
   }
@@ -191,11 +194,9 @@ export async function runTranslation(
     payload: null,
     costUsd: cost.usd,
     model: modelId,
+    provider,
     usage: aggregateUsage,
     error: runError ?? 'Translation failed.',
-    // Make the provider influence visible in tests / logs — useful when
-    // a specific provider is misbehaving.
-    ...({ _provider: provider } as Record<string, unknown>),
   };
 }
 

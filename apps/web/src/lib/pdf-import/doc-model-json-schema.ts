@@ -88,6 +88,11 @@ const CALLOUT_CHILD = {
   anyOf: [PARAGRAPH, LIST_BLOCK('bulletList'), LIST_BLOCK('orderedList'), LIST_BLOCK('taskList')],
 } as const;
 
+// PA-40j: bbox is intentionally unbounded (no minimum/maximum on values).
+// The figure-crop rescale heuristic in cropFigure() depends on seeing
+// out-of-range values (e.g. 0–1000 pixel coords) to detect and rescale them.
+// normalizeImageBlock also applies its own [0,1] clamping only for the
+// ≤1.2 case, letting larger values pass through for cropFigure to handle.
 const BBOX = {
   type: 'array',
   items: { type: 'number' },
@@ -135,10 +140,12 @@ const BLOCK = {
       type: 'object',
       properties: {
         type: { type: 'string', enum: ['codeBlock'] },
+        // PA-40f: lang is optional (nullable) — models that omit it get
+        // normalize.ts defaulting it to null rather than triggering a repair.
         lang: { type: ['string', 'null'] },
         code: { type: 'string' },
       },
-      required: ['type', 'lang', 'code'],
+      required: ['type', 'code'],
       additionalProperties: false,
     },
     {

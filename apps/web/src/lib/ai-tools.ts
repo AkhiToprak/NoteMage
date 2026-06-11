@@ -15,17 +15,6 @@ export interface FlashcardToolInput {
   }[];
 }
 
-export interface QuizToolInput {
-  title: string;
-  questions: {
-    question: string;
-    options: string[];
-    correctIndex: number;
-    hint?: string;
-    correctExplanation?: string;
-    wrongExplanation?: string;
-  }[];
-}
 
 // QUIZ_TOOL_V2 — kind-aware AI tool. Phase 2 ships all 8 kinds.
 interface QuizToolV2Common {
@@ -298,7 +287,7 @@ export interface QuizForSlotToolInput {
 export const FLASHCARD_TOOL: Anthropic.Messages.Tool = {
   name: 'create_flashcards',
   description:
-    'Create a set of study flashcards. Use this tool when the user asks you to create, generate, or make flashcards from their notes or on a topic. Each flashcard has a question on the front and an answer on the back.',
+    'Create a set of study flashcards. Each flashcard has a question on the front and a concise answer on the back.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -332,59 +321,6 @@ export const FLASHCARD_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-export const QUIZ_TOOL: Anthropic.Messages.Tool = {
-  name: 'create_quiz',
-  description:
-    'Create a multiple-choice quiz. Use this tool when the user asks you to create, generate, or make a quiz, test, or multiple-choice questions from their notes or on a topic. Each question has 4 options with one correct answer.',
-  input_schema: {
-    type: 'object' as const,
-    properties: {
-      title: {
-        type: 'string',
-        description: 'A short, descriptive title for the quiz (e.g. "Cell Biology Quiz")',
-      },
-      questions: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            question: {
-              type: 'string',
-              description: 'The question text',
-            },
-            options: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Exactly 4 answer choices',
-              minItems: 4,
-              maxItems: 4,
-            },
-            correctIndex: {
-              type: 'number',
-              description: 'The 0-based index of the correct answer (0-3)',
-            },
-            hint: {
-              type: 'string',
-              description: 'An optional hint to help the student',
-            },
-            correctExplanation: {
-              type: 'string',
-              description: 'Explanation shown when the student answers correctly',
-            },
-            wrongExplanation: {
-              type: 'string',
-              description: 'Explanation shown when the student answers incorrectly',
-            },
-          },
-          required: ['question', 'options', 'correctIndex'],
-        },
-        description: 'Array of quiz question objects',
-        minItems: 1,
-      },
-    },
-    required: ['title', 'questions'],
-  },
-};
 
 // The canonical per-kind quiz payload catalog (Quiz v2). SINGLE SOURCE OF
 // TRUTH shared by the chat quiz tool (`QUIZ_TOOL_V2`, below) and the path
@@ -447,7 +383,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
     '',
     QUIZ_PAYLOAD_CATALOG,
     '',
-    'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math, code_output for coding output prediction, timeline for chronology. Avoid all-MC unless the material is purely factual. Only emit `kind` values from the allowed list the subject-aware prompt gives you — anything outside it will be dropped.',
+    'Mix kinds intentionally — use mc for factual recall with 4 options, true_false for crisp single-claim checks, fill_blank for definitions/short answers, word_bank for ordered grammar/syntax fills, match_pairs for terms/definitions, translation for language learning, sentence_reorder for syntax/sequencing, equation for math, code_output for coding output prediction, timeline for chronology. Avoid all-MC unless the material is purely factual.',
   ].join('\n'),
   input_schema: {
     type: 'object' as const,
@@ -477,7 +413,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
                 'code_write',
               ],
               description:
-                'The question kind. Picks which payload shape to validate against and which renderer the client uses. Use only kinds the subject-aware system prompt explicitly allows for this quiz.',
+                'The question kind. Picks which payload shape to validate against and which renderer the client uses.',
             },
             prompt: {
               type: 'string',
@@ -514,7 +450,7 @@ export const QUIZ_TOOL_V2: Anthropic.Messages.Tool = {
 export const MINDMAP_TOOL: Anthropic.Messages.Tool = {
   name: 'create_mindmap',
   description:
-    'Create an interactive mind map. Use this tool when the user asks you to create, generate, or make a mind map, concept map, or topic overview from their notes or on a topic. The mindmap is defined as Markdown with heading hierarchy (# for root, ## for branches, ### for sub-branches, etc.).',
+    'Create an interactive mind map defined as Markdown with heading hierarchy (# for root, ## for branches, ### for sub-branches, etc.).',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -611,10 +547,45 @@ export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
+// Slim chat variant — only persisted fields; avoids forcing the model to
+// hallucinate referenceIds (no inventory is injected in chat turns).
+export const CHAT_STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
+  name: 'create_study_plan',
+  description: 'Create a structured study plan with phases.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      title: {
+        type: 'string',
+        description: 'A short, descriptive title for the study plan (e.g. "Biology Midterm Prep")',
+      },
+      description: {
+        type: 'string',
+        description: 'A brief description of the study plan goals and approach',
+      },
+      phases: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Phase title (e.g. "Week 1: Foundations")' },
+            description: { type: 'string', description: 'What the student should focus on in this phase' },
+            durationDays: { type: 'number', description: 'How many days this phase should last' },
+          },
+          required: ['title', 'description', 'durationDays'],
+        },
+        description: 'Sequential phases of the study plan',
+        minItems: 1,
+      },
+    },
+    required: ['title', 'description', 'phases'],
+  },
+};
+
 export const PRESENTATION_TOOL: Anthropic.Messages.Tool = {
   name: 'create_presentation',
   description:
-    'Create a visually rich presentation / PowerPoint deck. Use this tool when the user asks you to create, generate, or make a presentation, slides, PowerPoint, PPT, or deck from their notes or on a topic. Produce well-structured slides with varied types, fitting colors, and descriptions of graphics/diagrams where appropriate.',
+    'Create a visually rich presentation / PowerPoint deck with well-structured slides, varied types, fitting colors, and descriptions of graphics/diagrams where appropriate.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -703,7 +674,7 @@ export const PRESENTATION_TOOL: Anthropic.Messages.Tool = {
 export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
   name: 'recommend_videos',
   description:
-    'Recommend relevant YouTube videos for a topic. Use this tool when the user explicitly asks for video recommendations, tutorials, or visual explanations. You may also use it autonomously when a complex topic would benefit from a video explanation (e.g. visual processes, step-by-step procedures, or concepts that are easier to understand through demonstration). Do NOT use this for every question — only when a video would genuinely add value beyond your text explanation.',
+    'Search for and recommend relevant YouTube videos for a topic.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -723,7 +694,7 @@ export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
 
 // ── Phase 10.2 — Path generator tools ──────────────────────────────────
 //
-// These are intentionally NOT included in `ALL_TOOLS` (the chat surface).
+// These are intentionally NOT part of the chat tool set (CHAT_TOOLS in chat-stream.ts).
 // They're driven by `path-generator.ts` with `tool_choice: { type: 'tool',
 // name }` so the AI is forced into a single structured output.
 
@@ -1109,7 +1080,7 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
   description: [
     'Create a 5–8 question quiz that tests one checkpoint slot (12–20 for the final exam).',
     'Use AT LEAST 3 different question kinds across the set — an all-MC quiz is never acceptable.',
-    'Pick the kind that fits each item: mc for factual recall, true_false for crisp single-claim checks, fill_blank for short typed answers, word_bank for ordered grammar/sequence fills, match_pairs for term↔definition pairs, translation for language items, sentence_reorder for syntax/ordering, equation for math.',
+    'Use the kinds listed in the system prompt menu for this slot; the server rejects kinds outside that list.',
     'Use the exact payload shapes given in the system prompt; the server rejects drift.',
   ].join('\n'),
   // Mirrors QUIZ_TOOL_V2 (single-sourced) plus an optional per-question `figure`
@@ -1258,22 +1229,11 @@ export const CLASSIFY_CHAT_INTENT_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
-export const ALL_TOOLS = [
-  FLASHCARD_TOOL,
-  QUIZ_TOOL,
-  QUIZ_TOOL_V2,
-  MINDMAP_TOOL,
-  STUDY_PLAN_TOOL,
-  PRESENTATION_TOOL,
-  YOUTUBE_VIDEOS_TOOL,
-];
-
 // ── Helper to extract tool uses from Anthropic response ──
 
 export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
   let text = '';
   let flashcard: { id: string; input: FlashcardToolInput } | null = null;
-  let quiz: { id: string; input: QuizToolInput } | null = null;
   let quizV2: { id: string; input: QuizToolV2Input } | null = null;
   let mindmap: { id: string; input: MindmapToolInput } | null = null;
   let studyPlan: { id: string; input: StudyPlanToolInput } | null = null;
@@ -1286,8 +1246,6 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
     } else if (block.type === 'tool_use') {
       if (block.name === 'create_flashcards') {
         flashcard = { id: block.id, input: block.input as FlashcardToolInput };
-      } else if (block.name === 'create_quiz') {
-        quiz = { id: block.id, input: block.input as QuizToolInput };
       } else if (block.name === 'create_quiz_v2') {
         quizV2 = { id: block.id, input: block.input as QuizToolV2Input };
       } else if (block.name === 'create_mindmap') {
@@ -1302,5 +1260,5 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
     }
   }
 
-  return { text, flashcard, quiz, quizV2, mindmap, studyPlan, presentation, youtubeVideos };
+  return { text, flashcard, quizV2, mindmap, studyPlan, presentation, youtubeVideos };
 }

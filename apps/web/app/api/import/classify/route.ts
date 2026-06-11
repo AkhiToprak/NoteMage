@@ -13,11 +13,10 @@ import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { logAiUsage } from '@/lib/ai-usage';
 import { extractGroundTruth, type GroundTruth } from '@/lib/pdf-import/ground-truth';
-import { detectSubjects, type SubjectDetectItem } from '@/lib/onboarding/subject-detect';
+import { detectSubjects, SUBJECT_MODEL, type SubjectDetectItem } from '@/lib/onboarding/subject-detect';
 import { PRESETS, getPresetForSubject } from '@/lib/presets';
-
-/** Model id the classify call runs on; mirrors subject-detect.ts. */
-const SUBJECT_MODEL = process.env.GEMINI_PDF_MODEL ?? 'gemini-2.5-flash-lite';
+// PA-40b: SUBJECT_MODEL is now single-sourced from subject-detect.ts so the
+// usage ledger always logs the model that actually ran the call.
 
 // POST /api/import/classify — stage two of the multi-PDF import flow.
 // The client has already uploaded the raw PDFs to temp-imports/; this

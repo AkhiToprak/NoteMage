@@ -10,15 +10,16 @@
 //
 //   Stage B — `generatePath(planId)`
 //     Reads the persisted plan, walks every slot sequentially, fires
-//     theory + flashcards + quiz AI calls in parallel per slot, persists
-//     each result, and updates `StudyPlan.generationProgress` after every
-//     slot. Per-activity retries (2 attempts) absorb transient Anthropic
-//     errors; activities that still fail mark the plan `failed` with a
-//     learner-facing `generationError` summary, and the `regenerate`
-//     endpoint re-runs generation to retry them.
+//     theory + flashcards AI calls in parallel per slot for `learning` slots,
+//     quiz calls for `review`/`assessment` slots, and persists each result
+//     while updating `StudyPlan.generationProgress` after every slot.
+//     Per-activity retries (2 attempts) absorb transient errors; activities
+//     that still fail mark the plan `failed` with a learner-facing
+//     `generationError` summary, and the `regenerate` endpoint re-runs
+//     generation to retry them.
 //
 // Slot-kind → activity mapping (the orchestrator picks this):
-//   learning   → theory + flashcards + quiz
+//   learning   → theory + flashcards
 //   review     → flashcards + quiz
 //   assessment → quiz   (becomes the section checkpoint)
 
@@ -28,18 +29,15 @@ import {
   THEORY_SECTION_TOOL,
   FLASHCARDS_FOR_SLOT_TOOL,
   QUIZ_FOR_SLOT_TOOL,
+  quizPayloadCatalogFor,
   type PathStructureToolInput,
   type TheorySectionToolInput,
   type QuizForSlotToolInput,
   type PathSlotKind,
 } from './ai-tools';
 import { repairMathLatex } from './math-latex-repair';
-import {
-  PATH_STRUCTURE_SCHEMA_GEMINI,
-  THEORY_SECTION_SCHEMA_GEMINI,
-  FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI,
-  QUIZ_FOR_SLOT_SCHEMA_GEMINI,
-} from './ai-tools-gemini';
+// ai-tools-gemini exports schema converters kept for documentation / future
+// re-enable of constrained decoding; see path-generator-routing.ts comments.
 import {
   buildPathStructurePrompt,
   buildTheoryPrompt,
@@ -506,7 +504,7 @@ export async function generatePathStructure(
             '',
             '--- RETRY NOTICE ---',
             `Your previous structure was unusable: ${lastDetail}`,
-            'Return 3–6 sections; every section MUST have a non-empty `slots` array of 3–6 slots.',
+            'Every section MUST have a non-empty `slots` array.',
           ].join('\n');
     try {
       const raw = await forcedStructuredCall<unknown>({
@@ -515,8 +513,7 @@ export async function generatePathStructure(
         staticInstructions: system,
         dynamicInstructions: attemptTail,
         anthropicTool: PATH_STRUCTURE_TOOL,
-        geminiSchema: PATH_STRUCTURE_SCHEMA_GEMINI,
-        userMessage: `Design the path "${opts.title}". Use the tool now.`,
+        userMessage: `Design the path "${opts.title}".`,
         providerOverride: opts.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(meter, u),
       });
@@ -788,7 +785,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     try {
       availableImages = await loadSourceImages(plan.userId, plan.materialIds);
       if (availableImages.length > 0) {
-        await captionMissing(availableImages);
+        await captionMissing(availableImages, { userId: plan.userId });
         const rendered = renderImageCatalog(availableImages);
         imageCatalog = rendered.length > 0 ? rendered : null;
       }
@@ -1021,7 +1018,6 @@ async function generateTheoryActivity(
         staticInstructions: system,
         dynamicInstructions: attemptTail,
         anthropicTool: THEORY_SECTION_TOOL,
-        geminiSchema: THEORY_SECTION_SCHEMA_GEMINI,
         userMessage: `Write the theory section for slot "${slot.title}".`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
@@ -1209,7 +1205,6 @@ async function generateFlashcardsActivity(
         staticInstructions: system,
         dynamicInstructions: attemptTail,
         anthropicTool: FLASHCARDS_FOR_SLOT_TOOL,
-        geminiSchema: FLASHCARDS_FOR_SLOT_SCHEMA_GEMINI,
         userMessage: `Generate flashcards for slot "${slot.title}" — only as many as the material supports. The flashcards array must not be empty.`,
         providerOverride: plan.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
@@ -1352,7 +1347,6 @@ async function callQuizDispatch(
     staticInstructions,
     dynamicInstructions,
     anthropicTool: QUIZ_FOR_SLOT_TOOL,
-    geminiSchema: QUIZ_FOR_SLOT_SCHEMA_GEMINI,
     userMessage: `Generate the quiz for slot "${slotTitle}". The questions array must not be empty.`,
     providerOverride: plan.gemini ? 'gemini' : undefined,
     onUsage: (u) => addNormalizedUsage(plan.usage, u),
@@ -1382,10 +1376,11 @@ function parseQuizInput(
 /**
  * Last-resort quiz generation (plans/path-generation-reliability.md, Phase 4).
  * When the normal attempts can't produce a valid payload, retry with a
- * deliberately SIMPLER ask — only `mc` + `true_false` (the lowest-drift kinds),
- * counts kept modest — so the checkpoint yields a valid quiz instead of a hole.
- * The model/tier is unchanged (whatever the resolver picked for the quiz stage);
- * only the request is degraded. Returns null if even the simplified ask fails.
+ * deliberately SIMPLER ask — lowest-drift kinds the subject allows, counts kept
+ * modest — so the checkpoint yields a valid quiz instead of a hole.
+ *
+ * The model/tier is unchanged; only the request is degraded. Returns null if
+ * even the simplified ask fails, or if the subject filter would zero the result.
  */
 async function tryDegradedQuiz(
   plan: PlanForGeneration,
@@ -1394,24 +1389,54 @@ async function tryDegradedQuiz(
   baseTail: string,
 ): Promise<ValidatedQuizSet | null> {
   const count = slot.kind === 'final_exam' ? '8–12 questions' : '3–5 questions';
+
+  // Prefer `mc` + `true_false` (lowest drift) but intersect with what the
+  // subject allows so the degraded output passes the post-filter. If neither
+  // is in the allowed set, fall back to the 2 lowest-drift allowed kinds.
+  const allowed = allowedKindsForSubjects(plan.subjects);
+  const allowedSet = new Set<QuestionKind>(allowed);
+  const lowDriftPreferred: QuestionKind[] = ['mc', 'true_false'];
+  const degradedKinds: QuestionKind[] = lowDriftPreferred.filter((k) => allowedSet.has(k));
+  if (degradedKinds.length === 0) {
+    // Fall back to the 2 lowest-drift allowed kinds in preference order.
+    const fallbackOrder: QuestionKind[] = ['fill_blank', 'match_pairs', ...allowed];
+    const seen = new Set<QuestionKind>();
+    for (const k of fallbackOrder) {
+      if (allowedSet.has(k) && !seen.has(k)) {
+        seen.add(k);
+        degradedKinds.push(k);
+        if (degradedKinds.length >= 2) break;
+      }
+    }
+  }
+  if (degradedKinds.length === 0) return null;
+
+  const degradedCatalog = quizPayloadCatalogFor(degradedKinds);
   const degradedTail = [
     baseTail,
     '',
     '--- SIMPLIFIED RETRY ---',
-    'The previous attempts produced an unusable quiz. Generate a SIMPLER quiz now so the learner still gets one:',
-    'Use ONLY the `mc` and `true_false` question kinds — no other kinds.',
-    `Produce ${count}. Follow the exact payload shapes from the catalog above and keep every payload minimal.`,
+    'The previous attempts produced an unusable quiz. Generate a SIMPLER quiz now so the learner still gets one.',
+    `Use ONLY these question kinds: ${degradedKinds.join(', ')} — no other kinds.`,
+    `Produce ${count}.`,
+    degradedCatalog,
   ].join('\n');
   try {
     const raw = await callQuizDispatch(plan, slot.title, system, degradedTail);
     const result = parseQuizInput(raw, slot.title);
-    if (result.ok && result.data.questions.length > 0) {
-      logTelemetry(plan.userId, 'path.quiz.degraded', {
-        planId: plan.id,
-        slotId: slot.id,
-        questions: result.data.questions.length,
-      });
-      return result.data;
+    if (result.ok) {
+      // Apply the same subject filter as the normal path.
+      const filtered = result.data.questions.filter((q) => allowedSet.has(q.kind));
+      if (filtered.length > 0) {
+        const degradedSet = { ...result.data, questions: filtered };
+        logTelemetry(plan.userId, 'path.quiz.degraded', {
+          planId: plan.id,
+          slotId: slot.id,
+          questions: filtered.length,
+          kinds: degradedKinds,
+        });
+        return degradedSet;
+      }
     }
   } catch (error) {
     logTelemetry(plan.userId, 'path.quiz.degrade_failed', {

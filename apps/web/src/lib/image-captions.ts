@@ -15,6 +15,7 @@ import * as Sentry from '@sentry/nextjs';
 import { db } from './db';
 import { readFile } from './storage';
 import { getGeminiClient, GEMINI_PATH_MODEL_LITE } from './gemini';
+import { logAiUsage } from './ai-usage';
 
 /**
  * A captionable image — the minimal shape the vision pass needs. `SourceImage`
@@ -30,6 +31,13 @@ export interface CaptionTarget {
   filePath: string;
   mimeType: string;
   caption: string | null;
+}
+
+/** Optional context for metering caption calls against the AI usage ledger. */
+export interface CaptionUsageContext {
+  /** Owning user; may be null when called from a path-generation context that
+   *  doesn't thread userId through (logged with null, still counted). */
+  userId: string | null;
 }
 
 /** Images per vision round-trip — keeps the multimodal request small. */
@@ -49,8 +57,10 @@ const SWEEP_IMAGE_CAP = 150;
  * Useless single-word captions the model sometimes emits when it has nothing
  * meaningful to say. Treated as missing so the next ladder layer retries rather
  * than storing junk that would only mislead figure selection.
+ * PA-34: extended with German/French/Spanish/Italian junk equivalents.
  */
 const PLACEHOLDER_CAPTIONS = new Set([
+  // English
   'image',
   'figure',
   'diagram',
@@ -65,6 +75,19 @@ const PLACEHOLDER_CAPTIONS = new Set([
   'na',
   'none',
   'unknown',
+  // German
+  'abbildung',
+  'diagramm',
+  'bild',
+  'grafik',
+  'schema',
+  'figur',
+  'tabelle',
+  // French / Spanish / Italian
+  'imagen',
+  'figura',
+  'schéma',
+  'schema',
 ]);
 
 /**
@@ -93,17 +116,30 @@ interface GeminiPart {
   inlineData?: { mimeType: string; data: string };
 }
 
+// PA-34: (a) language rule — caption in the language of the figure's own text,
+// else the document's language; (b) length rule — at most 120 characters
+// (storage truncates at 160; keep headroom for sanitization).
 const CAPTION_SYSTEM =
   'You caption figures for a study lesson. For each figure you are given a ' +
   '[[imageRef=…]] label followed by the image. Return ONLY JSON of the form ' +
   '{"captions":[{"imageRef":"<the id>","caption":"<one concise sentence>"}]} ' +
   'with one entry per figure. Each caption states what the figure shows AND ' +
   'the concept/topic it illustrates, so a tutor can decide which lesson it ' +
-  'fits. No markdown, no extra keys.';
+  'fits. Caption in the same language as any text visible inside the figure; ' +
+  'if the figure has no text, use the language of the surrounding document. ' +
+  'Keep each caption under 120 characters. No markdown, no extra keys.';
 
-/** One batched vision round-trip; returns id → sanitized caption for the batch. */
-async function captionBatch(batch: CaptionTarget[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
+interface BatchResult {
+  captions: Map<string, string>;
+  /** Raw token counts from usageMetadata for aggregation across batches. */
+  promptTokens: number;
+  candidatesTokens: number;
+}
+
+/** One batched vision round-trip; returns captions and raw token counts. */
+async function captionBatch(batch: CaptionTarget[]): Promise<BatchResult> {
+  const captions = new Map<string, string>();
+  const emptyResult: BatchResult = { captions, promptTokens: 0, candidatesTokens: 0 };
   const parts: GeminiPart[] = [
     { text: 'Caption every figure below. Return the JSON described in the system instruction.' },
   ];
@@ -115,11 +151,13 @@ async function captionBatch(batch: CaptionTarget[]): Promise<Map<string, string>
     } catch {
       continue; // missing blob → skip this image, caption the rest
     }
-    parts.push({ text: `[[imageRef=${img.id}]] (from page "${img.pageTitle}")` });
+    // PA-34i: sanitize pageTitle before interpolation (strip [ ] and quotes).
+    const safeTitle = img.pageTitle.replace(/[\[\]"']/g, '').slice(0, 80);
+    parts.push({ text: `[[imageRef=${img.id}]] (from page "${safeTitle}")` });
     parts.push({ inlineData: { mimeType: img.mimeType, data } });
     present.push(img.id);
   }
-  if (present.length === 0) return out;
+  if (present.length === 0) return emptyResult;
 
   const client = getGeminiClient();
   const response = await client.models.generateContent({
@@ -134,6 +172,10 @@ async function captionBatch(batch: CaptionTarget[]): Promise<Map<string, string>
     },
   });
 
+  // PA-12d: capture usage so callers can log to the AI usage ledger.
+  const promptTokens = response.usageMetadata?.promptTokenCount ?? 0;
+  const candidatesTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+
   const present_ = new Set(present);
   try {
     const parsed = JSON.parse(response.text ?? '');
@@ -141,14 +183,14 @@ async function captionBatch(batch: CaptionTarget[]): Promise<Map<string, string>
     for (const it of items) {
       if (it && typeof it.imageRef === 'string' && typeof it.caption === 'string') {
         const caption = sanitizeCaption(it.caption);
-        if (present_.has(it.imageRef) && caption) out.set(it.imageRef, caption);
+        if (present_.has(it.imageRef) && caption) captions.set(it.imageRef, caption);
       }
     }
   } catch {
     // Unparseable response → this batch stays uncaptioned; callers fall back to
     // not offering those figures. Never throws into the generation pipeline.
   }
-  return out;
+  return { captions, promptTokens, candidatesTokens };
 }
 
 /**
@@ -156,25 +198,38 @@ async function captionBatch(batch: CaptionTarget[]): Promise<Map<string, string>
  * the passed objects in place so the caller can render the catalog without a
  * reload. Best-effort: any failure (Gemini unconfigured, call error, bad
  * blob) leaves the affected images uncaptioned rather than failing the path.
+ *
+ * PA-12d: pass `usageCtx` so vision spend is logged to the AI usage ledger.
+ * Callers that don't have a userId (path-generation sweeps) may omit it —
+ * the spend is then unattributed but still counted in the ledger.
  */
-export async function captionMissing(images: CaptionTarget[]): Promise<void> {
+export async function captionMissing(
+  images: CaptionTarget[],
+  usageCtx?: CaptionUsageContext,
+): Promise<void> {
   const missing = images.filter((i) => !i.caption || i.caption.trim().length === 0);
   if (missing.length === 0) return;
   if (!process.env.GEMINI_API_KEY) return; // vision not configured → skip silently
 
+  // PA-12d: accumulate tokens across all batches for a single ledger entry.
+  let totalPromptTokens = 0;
+  let totalCandidatesTokens = 0;
+
   for (let i = 0; i < missing.length; i += CAPTION_BATCH) {
     const batch = missing.slice(i, i + CAPTION_BATCH);
-    let captions: Map<string, string>;
+    let result: BatchResult;
     try {
-      captions = await captionBatch(batch);
+      result = await captionBatch(batch);
     } catch {
       continue; // one batch failing must not strand the rest
     }
-    if (captions.size === 0) continue;
+    totalPromptTokens += result.promptTokens;
+    totalCandidatesTokens += result.candidatesTokens;
+    if (result.captions.size === 0) continue;
     const now = new Date();
     await Promise.all(
       batch.map(async (img) => {
-        const caption = captions.get(img.id);
+        const caption = result.captions.get(img.id);
         if (!caption) return;
         img.caption = caption;
         await db.pageImage
@@ -185,6 +240,18 @@ export async function captionMissing(images: CaptionTarget[]): Promise<void> {
       }),
     );
   }
+
+  // PA-12d: log accumulated vision spend after all batches complete.
+  if (totalPromptTokens + totalCandidatesTokens > 0) {
+    logAiUsage({
+      userId: usageCtx?.userId ?? null,
+      feature: 'figure-captions',
+      provider: 'gemini',
+      model: CAPTION_MODEL,
+      inputTokens: totalPromptTokens,
+      outputTokens: totalCandidatesTokens,
+    });
+  }
 }
 
 /**
@@ -194,8 +261,11 @@ export async function captionMissing(images: CaptionTarget[]): Promise<void> {
  * its try/catch and NEVER throws, so a failed or redeploy-killed sweep costs
  * nothing (layer-3 lazy captioning still heals at first generation). Idempotent:
  * only ever touches rows where `aiCaption IS NULL`, bounded to 150 images.
+ *
+ * PA-12d: `userId` threads through to `captionMissing` so vision spend is
+ * attributed to the owning user in the AI usage ledger.
  */
-export async function sweepPageCaptions(pageId: string): Promise<void> {
+export async function sweepPageCaptions(pageId: string, userId?: string | null): Promise<void> {
   try {
     if (process.env.IMPORT_FIGURE_TITLES_DISABLED === '1') return;
     if (!process.env.GEMINI_API_KEY) return;
@@ -220,7 +290,8 @@ export async function sweepPageCaptions(pageId: string): Promise<void> {
       mimeType: r.mimeType,
       caption: null,
     }));
-    await captionMissing(targets);
+    // PA-12d: pass userId so spend is attributed; null is accepted.
+    await captionMissing(targets, { userId: userId ?? null });
 
     const titled = targets.filter((t) => t.caption).length;
     Sentry.addBreadcrumb({

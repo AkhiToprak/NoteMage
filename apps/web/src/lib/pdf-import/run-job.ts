@@ -290,11 +290,16 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         const tryTextEngine =
           jobMode === 'fast' && ground.hasTextLayer && pageHasUsableTextLayer(gtPage);
 
+        // PA-21: isScanned must be per-page: a scanned page inside a mostly-digital
+        // PDF has no usable text, so it must get the transcription prompt branch —
+        // not the verbatim-copy branch with an empty text block (which the system
+        // rule "copy character-for-character" then prevents from filling in).
+        const pageIsScanned = !ground.hasTextLayer || !pageHasUsableTextLayer(gtPage);
         const describeInput: DescribePageInput = {
           pageImageBase64: pngBuffer.toString('base64'),
           mimeType: 'image/png',
-          groundTruthText: pageLinesToText(gtPage),
-          isScanned: !ground.hasTextLayer,
+          groundTruthText: pageIsScanned ? '' : pageLinesToText(gtPage),
+          isScanned: pageIsScanned,
           pageNumber: gtPage.pageNumber,
           groundTruthPage: gtPage,
           // Land each vision round trip (initial + repair, plus a second
@@ -314,10 +319,17 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
             }),
         };
 
+        // PA-40e: track whether the engine returned a result at all.
+        // A deliberate `blocks:[]` (blank page per the prompt contract) is valid
+        // and must NOT be turned into a full-page image fallback. Only an
+        // *engine failure* (throw → heuristic path) justifies the fallback when
+        // the heuristic also produces nothing.
         let resolvedBlocks: DocModelBlock[] | null = null;
+        let engineSucceeded = false;
         if (tryTextEngine) {
           try {
             resolvedBlocks = await textLayerEngine.describePage(describeInput);
+            engineSucceeded = true;
           } catch (err) {
             // Sentinel from the text engine — promote this one page to the
             // vision engine without bumping `fallbackPages` (gemini IS an
@@ -332,6 +344,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         if (resolvedBlocks === null) {
           try {
             resolvedBlocks = await visionEngine.describePage(describeInput);
+            engineSucceeded = true;
           } catch (err) {
             console.error(
               `[pdf-import] job ${jobId} page ${i + 1}: engine fell back to heuristic`,
@@ -344,9 +357,10 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
 
         blocks = resolvedBlocks;
 
-        // Engine failed and the heuristic produced nothing (a no-text-layer
-        // page) — keep the page as a full-page image so it is never dropped.
-        if (blocks.length === 0) {
+        // Full-page image fallback only when the engine FAILED (not returned)
+        // and the heuristic produced nothing (no-text-layer page). A successful
+        // `blocks:[]` means the model judged the page blank — honour that.
+        if (!engineSucceeded && blocks.length === 0) {
           blocks = [
             { type: 'image', ref: `p${gtPage.pageNumber}-full`, bbox: [0, 0, 1, 1] },
           ];
@@ -508,7 +522,8 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     // try/catch); a redeploy-killed sweep is healed by the generation-time lazy
     // pass (import failure-mode #8).
     if (figureTitlesEnabled && figuresCropped > figuresTitled) {
-      void sweepPageCaptions(page.id);
+      // PA-12d: pass userId so the sweep's vision spend is attributed.
+      void sweepPageCaptions(page.id, job.userId);
     }
 
     // Meter the pages actually imported against the user's PDF-import

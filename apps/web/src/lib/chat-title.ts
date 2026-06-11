@@ -6,7 +6,7 @@ import { generateGeminiText } from './gemini-text';
 import { logAiUsage } from './ai-usage';
 
 const SYSTEM_PROMPT =
-  'Return a 3–5 word title for this conversation in plain text. No quotes, no period. Use Title Case.';
+  'Return a 3–5 word title for this conversation in plain text. No quotes, no period. Write the title in the same language as the message. Use Title Case only when the language is English.';
 
 function sanitizeTitle(raw: string): string {
   const cleaned = raw

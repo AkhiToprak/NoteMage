@@ -75,7 +75,10 @@ const listContainerSchema = z.discriminatedUnion('type', [
 const headingBlockSchema = z
   .object({
     type: z.literal('heading'),
-    level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    // PA-40g: accept any integer — normalizeHeadingBlock clamps to 1–3 before
+    // validation, so out-of-range values (e.g. level 4) never reach zod.
+    // Accepting any int avoids a full repair cycle if normalization misses a case.
+    level: z.number().int(),
     runs: z.array(inlineRunSchema),
   })
   .strict();
@@ -116,7 +119,9 @@ const tableBlockSchema = z
 const codeBlockSchema = z
   .object({
     type: z.literal('codeBlock'),
-    lang: z.string().nullable(),
+    // PA-40f: nullable().optional() so models that omit `lang` don't trigger a
+    // full repair cycle on the Anthropic path — normalize.ts defaults to null.
+    lang: z.string().nullable().optional(),
     code: z.string(),
   })
   .strict();

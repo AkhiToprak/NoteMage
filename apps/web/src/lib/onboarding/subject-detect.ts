@@ -8,8 +8,12 @@ import { getGeminiClient } from '../gemini';
 // missing API key, a timeout, or malformed output all fall back to one
 // notebook per file, and the result always covers every input exactly once.
 
-/** Env-overridable — Google rotates model ids; mirrors the PDF engine. */
-const SUBJECT_MODEL = process.env.GEMINI_PDF_MODEL ?? 'gemini-2.5-flash-lite';
+/**
+ * Env-overridable model id for subject detection. Exported so the classify
+ * route can reference the same resolved value for usage ledger accuracy —
+ * a hardcoded default there would log a model the call never used (PA-40b).
+ */
+export const SUBJECT_MODEL = process.env.GEMINI_PDF_MODEL ?? 'gemini-2.5-flash-lite';
 const CALL_TIMEOUT_MS = 30_000;
 
 export interface SubjectDetectItem {
@@ -142,6 +146,9 @@ export async function detectSubjects(items: SubjectDetectItem[]): Promise<Subjec
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0,
+        // PA-40a: cap output so a degenerate loop on a paid route can't run
+        // forever. 2048 tokens is well above any realistic grouping response.
+        maxOutputTokens: 2048,
         responseMimeType: 'application/json',
         abortSignal: AbortSignal.timeout(CALL_TIMEOUT_MS),
       },

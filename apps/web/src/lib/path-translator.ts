@@ -89,8 +89,12 @@ const STRINGS_GEMINI_SCHEMA = {
   required: ['items'],
 };
 
-// Byte-identical so the provider prompt cache activates across the ~50 calls
-// a single path translation makes. Edits invalidate that cache.
+// Byte-identical across the ~50 sequential deep calls per path translation.
+// Edits here invalidate cross-call prefix consistency.
+// NOTE: these rubrics are short (~400 tok) — well below the Haiku 4.5 minimum
+// cacheable prefix (4096 tok) and Sonnet 4.6 minimum (2048 tok). The cache_control
+// marker in provider.ts is therefore a no-op; cross-call consistency is a
+// quality goal, not an active cache strategy.
 const DEEP_TRANSLATION_RUBRIC = [
   'You are a translation model for a learning app.',
   'You are given a list of source strings, each wrapped between an [[id:…]] and an [[end]] marker. Translate the text inside each into the target language and return it under the SAME id via the tool call.',
@@ -102,18 +106,39 @@ const DEEP_TRANSLATION_RUBRIC = [
   '- Preserve verbatim, translating only the words around them: LaTeX / math (`$…$`, `$$…$$`), inline `code` and fenced code, numbers, dates and years, URLs, and placeholder tokens such as `{{0}}`, `{{1}}`, and runs of underscores like `____`.',
   '- Preserve proper nouns, brand names, person / place names, and programming-language / library names.',
   '- Match the source register and keep roughly the same length.',
+  '- Strings that are themselves the object of language study — vocabulary items, example sentences in the studied language, acceptable answers to a language exercise — must be preserved exactly, not translated.',
+  '- Translate recurring terms exactly as shown in the TERMINOLOGY block when one is present.',
   '',
   '## Anti-patterns',
   '- Do NOT translate, reorder, or renumber placeholder tokens, blanks, or list markers.',
   '- Do NOT translate code, mathematical expressions, or expected program output.',
   '- Do NOT add explanatory parentheticals the source did not have.',
-  '- Do NOT moralise, hedge, or refuse.',
+  '- Do not add commentary; translate faithfully.',
 ].join('\n');
+
+// Sanitize a single-line labelled field value so it can't contain delimiter
+// lines that would confuse the model's structural parsing.
+function sanitizeFieldValue(text: string): string {
+  // Collapse newlines to spaces in single-line fields.
+  const flat = text.replace(/\r?\n/g, ' ');
+  // Escape lines that exactly match our structural markers so they are
+  // treated as content, not as delimiters.
+  return flat
+    .split('\n')
+    .map((line) => {
+      if (/^\[\[id:[^\]]+\]\]$/.test(line) || line === '[[end]]') {
+        return `\\${line}`;
+      }
+      return line;
+    })
+    .join('\n');
+}
 
 function buildBatchPayload(
   items: SourceString[],
   source: string,
   target: string,
+  glossary?: ReadonlyMap<string, string>,
 ): string {
   const out: string[] = [];
   out.push('# STRING TRANSLATION REQUEST');
@@ -125,11 +150,22 @@ function buildBatchPayload(
     // Re-clean pass: the content is nominally already in `target` but may hold
     // fragments left in another language. Override the rubric's "don't echo the
     // source language" rule for this case so correct strings pass through.
-    out.push('');
     out.push(
       `NOTE: these strings are nominally already in ${target}, but some may still contain text in another language (often English). Return EVERY string fully in ${target}; if a string is already entirely in ${target}, return it unchanged.`,
     );
+    out.push('');
   }
+  if (glossary && glossary.size > 0) {
+    out.push('# TERMINOLOGY');
+    out.push('Translate these recurring terms exactly as shown:');
+    for (const [src, tgt] of glossary) {
+      out.push(`  ${sanitizeFieldValue(src)} → ${sanitizeFieldValue(tgt)}`);
+    }
+    out.push('');
+  }
+  // Untrusted author content is wrapped in explicit markers so the model
+  // treats it as data, not instructions.
+  out.push('BEGIN UNTRUSTED AUTHOR CONTENT');
   out.push('');
   out.push('# SOURCE STRINGS');
   out.push('');
@@ -138,6 +174,8 @@ function buildBatchPayload(
     out.push(it.text);
     out.push('[[end]]');
   }
+  out.push('');
+  out.push('END UNTRUSTED AUTHOR CONTENT');
   out.push('');
   out.push('Return the same ids via the tool call, each text translated into the target language.');
   return out.join('\n');
@@ -148,17 +186,22 @@ function buildBatchPayload(
  * text. On any failure (call error, missing ids) the affected ids are simply
  * absent from the map, so callers fall back to the source string — a partial
  * translation never loses content.
+ *
+ * Items whose text exceeds MAX_TRANSLATABLE_CHARS are left untranslated.
+ * The remainder are chunked into sequential batches bounded by
+ * MAX_BATCH_CHARS total chars so oversized activities don't produce a
+ * truncated output that then retries identically and silently fails.
  */
-// A single translatable string is capped so one pathological node can't blow
-// the model's input budget. Over-cap items are left untranslated — callers fall
-// back to the source string, exactly as they already do for any missing id.
 const MAX_TRANSLATABLE_CHARS = 12_000;
+// Keep each individual AI call's input well below the 16K-token output limit.
+const MAX_BATCH_CHARS = 20_000;
 
 async function translateBatch(
   items: SourceString[],
   source: string,
   target: string,
   onUsage: (u: TranslationUsage) => void,
+  glossary?: ReadonlyMap<string, string>,
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (items.length === 0) return map;
@@ -166,20 +209,37 @@ async function translateBatch(
   const translatable = items.filter((it) => it.text.length <= MAX_TRANSLATABLE_CHARS);
   if (translatable.length === 0) return map;
 
-  const { result } = await translationStructuredCall<{
-    items?: Array<{ id?: unknown; text?: unknown }>;
-  }>({
-    rubric: DEEP_TRANSLATION_RUBRIC,
-    payload: buildBatchPayload(translatable, source, target),
-    anthropicTool: STRINGS_TOOL,
-    geminiSchema: STRINGS_GEMINI_SCHEMA,
-    onUsage,
-  });
+  // Chunk into batches bounded by total chars to avoid output truncation.
+  const chunks: SourceString[][] = [];
+  let current: SourceString[] = [];
+  let currentChars = 0;
+  for (const it of translatable) {
+    if (current.length > 0 && currentChars + it.text.length > MAX_BATCH_CHARS) {
+      chunks.push(current);
+      current = [];
+      currentChars = 0;
+    }
+    current.push(it);
+    currentChars += it.text.length;
+  }
+  if (current.length > 0) chunks.push(current);
 
-  const arr = Array.isArray(result?.items) ? result.items : [];
-  for (const it of arr) {
-    if (it && typeof it.id === 'string' && typeof it.text === 'string') {
-      map.set(it.id, it.text);
+  for (const chunk of chunks) {
+    const { result } = await translationStructuredCall<{
+      items?: Array<{ id?: unknown; text?: unknown }>;
+    }>({
+      rubric: DEEP_TRANSLATION_RUBRIC,
+      payload: buildBatchPayload(chunk, source, target, glossary),
+      anthropicTool: STRINGS_TOOL,
+      geminiSchema: STRINGS_GEMINI_SCHEMA,
+      onUsage,
+    });
+
+    const arr = Array.isArray(result?.items) ? result.items : [];
+    for (const it of arr) {
+      if (it && typeof it.id === 'string' && typeof it.text === 'string') {
+        map.set(it.id, it.text);
+      }
     }
   }
   return map;
@@ -353,6 +413,7 @@ function questionSlots(
   idx: number,
   q: QuizQuestionRow,
   payload: LooseObj | null,
+  isLanguagePath = false,
 ): TextSlot[] {
   const slots: TextSlot[] = [];
   const add = (
@@ -367,7 +428,11 @@ function questionSlots(
   };
   const arrAt = (v: unknown): unknown[] | null => (Array.isArray(v) ? v : null);
 
-  add('q', () => q.question, (v) => { q.question = v; });
+  // On language-study paths a `translation`-kind question text IS the phrase
+  // being studied — translating it would destroy the exercise (PA-23c).
+  if (!(isLanguagePath && q.kind === 'translation')) {
+    add('q', () => q.question, (v) => { q.question = v; });
+  }
   add('hint', () => q.hint, (v) => { q.hint = v; });
   add('ce', () => q.correctExplanation, (v) => { q.correctExplanation = v; });
   add('we', () => q.wrongExplanation, (v) => { q.wrongExplanation = v; });
@@ -392,27 +457,44 @@ function questionSlots(
         break;
       }
       case 'fill_blank': {
-        const blank = p.blank as LooseObj | undefined;
-        const aa = arrAt(blank?.acceptableAnswers);
-        if (blank && aa)
-          aa.forEach((_, j) =>
-            add(`aa${j}`, () => (blank.acceptableAnswers as unknown[])[j], (v) => { (blank.acceptableAnswers as unknown[])[j] = v; }),
-          );
+        // acceptableAnswers are the grading answer keys. On language-study
+        // paths the answer IS the thing being learned, so it must stay in the
+        // source language (PA-23b). On every other path the key must follow
+        // the question into the target language or graded answers in the
+        // user's language would be rejected.
+        if (!isLanguagePath) {
+          const acc = arrAt(p.acceptableAnswers);
+          if (acc)
+            acc.forEach((_, j) =>
+              add(`aa${j}`, () => (p.acceptableAnswers as unknown[])[j], (v) => { (p.acceptableAnswers as unknown[])[j] = v; }),
+            );
+        }
         break;
       }
       case 'word_bank': {
         add('tpl', () => p.template, (v) => { p.template = v; });
-        const wbSlots = arrAt(p.slots);
-        if (wbSlots)
-          wbSlots.forEach((s, j) => {
-            const so = s as LooseObj;
-            add(`ws${j}`, () => so.correctAnswer, (v) => { so.correctAnswer = v; });
-          });
+        // Translate only the wordBank entries. After all bank entries are
+        // translated we build a source→translated map and use it to sync
+        // the slot correctAnswers (PA-23a). Translating correctAnswer
+        // independently causes grading mismatches when the answer
+        // diverges from the bank entry.
         const bank = arrAt(p.wordBank);
-        if (bank)
+        const wbSlots = arrAt(p.slots);
+        if (bank) {
           bank.forEach((_, j) =>
             add(`wb${j}`, () => (p.wordBank as unknown[])[j], (v) => { (p.wordBank as unknown[])[j] = v; }),
           );
+        }
+        // Register a post-translation hook by attaching metadata to the slot
+        // objects. The actual sync happens in translateQuizActivity after the
+        // map is built: it iterates slots and looks up correctAnswer in the
+        // source→translated bank map.
+        if (wbSlots && bank) {
+          // Store the source bank values as a parallel array on the payload so
+          // translateQuizActivity can build the sync map without re-reading DB.
+          (p as LooseObj).__wbSourceBank = bank.map((b) => (typeof b === 'string' ? b : null));
+          (p as LooseObj).__wbSlotCount = wbSlots.length;
+        }
         break;
       }
       case 'match_pairs': {
@@ -481,6 +563,7 @@ async function translateTheoryActivity(
   source: string,
   target: string,
   onUsage: (u: TranslationUsage) => void,
+  glossary?: ReadonlyMap<string, string>,
 ): Promise<void> {
   const theory = activity.theory;
   if (!theory) return;
@@ -497,7 +580,7 @@ async function translateTheoryActivity(
     ...textNodes.map((n, i) => ({ id: `n${i}`, text: n.text as string })),
     ...visualSlots.map((s, i) => ({ id: `v${i}`, text: s.get() })),
   ];
-  const map = await translateBatch(strings, source, target, onUsage);
+  const map = await translateBatch(strings, source, target, onUsage, glossary);
 
   textNodes.forEach((n, i) => {
     n.text = map.get(`n${i}`) ?? n.text;
@@ -525,6 +608,7 @@ async function translateFlashcardsActivity(
   source: string,
   target: string,
   onUsage: (u: TranslationUsage) => void,
+  glossary?: ReadonlyMap<string, string>,
 ): Promise<void> {
   const set = activity.flashcardSet;
   if (!set) return;
@@ -543,7 +627,7 @@ async function translateFlashcardsActivity(
       if (caption) strings.push({ id: `c${i}_${j}`, text: caption });
     });
   });
-  const map = await translateBatch(strings, source, target, onUsage);
+  const map = await translateBatch(strings, source, target, onUsage, glossary);
 
   await db.$transaction([
     db.checkpointActivity.update({
@@ -582,6 +666,8 @@ async function translateQuizActivity(
   source: string,
   target: string,
   onUsage: (u: TranslationUsage) => void,
+  glossary?: ReadonlyMap<string, string>,
+  isLanguagePath = false,
 ): Promise<void> {
   const set = activity.quizSet;
   if (!set) return;
@@ -595,7 +681,7 @@ async function translateQuizActivity(
       q.payload && typeof q.payload === 'object'
         ? (JSON.parse(JSON.stringify(q.payload)) as LooseObj)
         : null;
-    const slots = questionSlots(i, q, payload);
+    const slots = questionSlots(i, q, payload, isLanguagePath);
     slots.forEach((s) => strings.push({ id: s.id, text: s.get() }));
     return { q, payload, slots };
   });
@@ -607,9 +693,65 @@ async function translateQuizActivity(
     if (caption) strings.push({ id: `cap${i}`, text: caption });
   });
 
-  const map = await translateBatch(strings, source, target, onUsage);
+  const map = await translateBatch(strings, source, target, onUsage, glossary);
   for (const { slots } of perQ) {
     slots.forEach((s) => s.set(map.get(s.id) ?? s.get()));
+  }
+
+  // PA-23a: sync word_bank correctAnswers from the translated bank.
+  // questionSlots() translated only the bank entries (wb0, wb1, …) and
+  // stashed the source bank as __wbSourceBank. Build a source→translated
+  // lookup and copy matching translations onto each slot's correctAnswer
+  // so grading never diverges from the presented bank options.
+  for (const { q, payload } of perQ) {
+    if (q.kind !== 'word_bank' || !payload) continue;
+    const sourceBank = payload.__wbSourceBank as Array<string | null> | undefined;
+    const slotCount = payload.__wbSlotCount as number | undefined;
+    if (!Array.isArray(sourceBank) || typeof slotCount !== 'number') continue;
+
+    // Build source text → translated text map from bank slot results.
+    const bankMap = new Map<string, string>();
+    sourceBank.forEach((srcText, j) => {
+      if (typeof srcText !== 'string') return;
+      const translated = map.get(`wb${j}`);
+      if (translated) bankMap.set(srcText, translated);
+    });
+
+    // Apply: find the slot's current (source) correctAnswer value and look
+    // it up in the bankMap. We read the original source value from the
+    // slots array (before translation mutated the slot's value) via the
+    // DB payload clone which still has the original correctAnswer.
+    const originalPayload = q.payload && typeof q.payload === 'object'
+      ? (q.payload as LooseObj)
+      : null;
+    const originalSlots = Array.isArray(originalPayload?.slots)
+      ? originalPayload!.slots as LooseObj[]
+      : null;
+    if (originalSlots && Array.isArray(payload.slots)) {
+      for (let j = 0; j < slotCount; j++) {
+        const origSrc = originalSlots[j]?.correctAnswer;
+        if (typeof origSrc === 'string') {
+          const synced = bankMap.get(origSrc);
+          if (synced !== undefined) {
+            (payload.slots as LooseObj[])[j].correctAnswer = synced;
+          }
+          // If origSrc not in bankMap (bank entry missing or over-cap),
+          // leave correctAnswer as-is (source fallback).
+        }
+      }
+    }
+
+    // Remove the temporary metadata keys before persisting.
+    delete payload.__wbSourceBank;
+    delete payload.__wbSlotCount;
+  }
+
+  // Clean up any remaining __wb* metadata on payloads for other kinds.
+  for (const { payload } of perQ) {
+    if (payload) {
+      delete payload.__wbSourceBank;
+      delete payload.__wbSlotCount;
+    }
   }
 
   await db.$transaction([
@@ -734,6 +876,9 @@ export async function translatePath(
     }
 
     const source = normalizePathLanguage(plan.language);
+    // PA-23: on language-study paths, quiz answer keys and translation-kind
+    // question phrases are the studied content and must not be translated.
+    const isLanguagePath = plan.subjects.includes('language');
     const totalSlots = plan.phases.reduce((n, p) => n + p.slots.length, 0);
 
     // `source === targetLanguage` is allowed: it runs a "fix mixed content"
@@ -749,13 +894,19 @@ export async function translatePath(
       currentActivity: null,
     });
 
-    const usage = { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
+    // PA-12g: include cacheWriteTokens in the accumulator.
+    const usage = { calls: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
     const onUsage = (u: TranslationUsage) => {
       usage.calls += 1;
       usage.inputTokens += u.inputTokens;
       usage.outputTokens += u.outputTokens;
       usage.cacheReadTokens += u.cacheReadTokens;
+      usage.cacheWriteTokens += u.cacheWriteTokens;
     };
+
+    // PA-36b: glossary seeded from the structural overlay result so deep
+    // batch calls use consistent terminology for plan/phase/slot titles.
+    let deepGlossary: Map<string, string> | undefined;
 
     // ── Structural overlay (plan + phase + slot titles / descriptions) ──
     // Reuses the existing community-translation rubric/tool/parser, then
@@ -785,6 +936,28 @@ export async function translatePath(
         onUsage,
       });
       const { payload } = projectTranslationOnto(snapshot, parseTranslationResponse(result));
+
+      // Build the glossary from source title → translated title for the plan,
+      // phases, and slots (titles only — compact and unambiguous).
+      deepGlossary = new Map<string, string>();
+      if (plan.title && payload.title && plan.title !== payload.title) {
+        deepGlossary.set(plan.title, payload.title);
+      }
+      for (const srcPhase of snapshot.phases) {
+        const tgtPhase = payload.phases.find((p) => p.id === srcPhase.id);
+        if (tgtPhase && srcPhase.title !== tgtPhase.title) {
+          deepGlossary.set(srcPhase.title, tgtPhase.title);
+        }
+        for (const srcSlot of srcPhase.slots) {
+          const tgtPhasePayload = payload.phases.find((p) => p.id === srcPhase.id);
+          const tgtSlot = tgtPhasePayload?.slots.find((s) => s.id === srcSlot.id);
+          if (tgtSlot && srcSlot.title !== tgtSlot.title) {
+            deepGlossary.set(srcSlot.title, tgtSlot.title);
+          }
+        }
+      }
+      if (deepGlossary.size === 0) deepGlossary = undefined;
+
       await db.$transaction([
         db.studyPlan.update({
           where: { id: plan.id },
@@ -835,11 +1008,11 @@ export async function translatePath(
           });
           try {
             if (activity.kind === 'theory') {
-              await translateTheoryActivity(activity, source, targetLanguage, onUsage);
+              await translateTheoryActivity(activity, source, targetLanguage, onUsage, deepGlossary);
             } else if (activity.kind === 'flashcards') {
-              await translateFlashcardsActivity(activity, source, targetLanguage, onUsage);
+              await translateFlashcardsActivity(activity, source, targetLanguage, onUsage, deepGlossary);
             } else if (activity.kind === 'quiz') {
-              await translateQuizActivity(activity, source, targetLanguage, onUsage);
+              await translateQuizActivity(activity, source, targetLanguage, onUsage, deepGlossary, isLanguagePath);
             }
           } catch (error) {
             logTelemetry(plan.userId, 'path.translation.activity_failed', {

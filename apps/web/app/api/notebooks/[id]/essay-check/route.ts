@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import type Anthropic from '@anthropic-ai/sdk';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { anthropic, AI_GENERATION_MODEL_LITE } from '@/lib/anthropic';
 import { resolveModel } from '@/lib/model-routing';
 import { logAiUsage } from '@/lib/ai-usage';
-import { parseJsonLoose } from '@/lib/json-util';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
@@ -15,6 +16,96 @@ import {
   tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+
+// ── Zod schemas ───────────────────────────────────────────────────────────────
+
+// Grammar mode: only spelling/grammar issue types.
+const GrammarIssueSchema = z.object({
+  type: z.enum(['spelling', 'grammar']),
+  original: z.string(),
+  suggestion: z.string(),
+  explanation: z.string(),
+});
+
+// Full mode: all four issue types.
+const FullIssueSchema = z.object({
+  type: z.enum(['spelling', 'grammar', 'clarity', 'structure']),
+  original: z.string(),
+  suggestion: z.string(),
+  explanation: z.string(),
+});
+
+const EssayResultSchema = (mode: 'grammar' | 'full') =>
+  z.object({
+    issues: z.array(mode === 'grammar' ? GrammarIssueSchema : FullIssueSchema),
+    overallScore: z.number().min(0).max(100),
+    summary: z.string(),
+  });
+
+// ── Tool definition ───────────────────────────────────────────────────────────
+
+const ESSAY_TOOL_GRAMMAR: Anthropic.Messages.Tool = {
+  name: 'report_essay_analysis',
+  description: 'Report the grammar and spelling analysis of the essay.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      issues: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['spelling', 'grammar'] },
+            original: { type: 'string', description: 'The problematic text from the essay.' },
+            suggestion: { type: 'string', description: 'The corrected text.' },
+            explanation: { type: 'string', description: 'Brief explanation of the issue.' },
+          },
+          required: ['type', 'original', 'suggestion', 'explanation'],
+        },
+      },
+      overallScore: {
+        type: 'number',
+        description:
+          'Score 0–100. 100 = publication-ready; deduct per issue weighted by severity (major grammar/spelling = −5 to −15 each, minor = −1 to −4).',
+      },
+      summary: { type: 'string', description: 'Brief overall assessment of the writing quality.' },
+    },
+    required: ['issues', 'overallScore', 'summary'],
+  },
+};
+
+const ESSAY_TOOL_FULL: Anthropic.Messages.Tool = {
+  name: 'report_essay_analysis',
+  description: 'Report the full writing analysis of the essay.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      issues: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['spelling', 'grammar', 'clarity', 'structure'],
+            },
+            original: { type: 'string', description: 'The problematic text from the essay.' },
+            suggestion: { type: 'string', description: 'The corrected or improved text.' },
+            explanation: { type: 'string', description: 'Brief explanation of the issue.' },
+          },
+          required: ['type', 'original', 'suggestion', 'explanation'],
+        },
+      },
+      overallScore: {
+        type: 'number',
+        description:
+          'Score 0–100. 100 = publication-ready; deduct per issue weighted by severity (major grammar/spelling = −5 to −15 each, clarity/structure = −2 to −8 each, minor = −1 to −3).',
+      },
+      summary: { type: 'string', description: 'Brief overall assessment of the writing quality.' },
+    },
+    required: ['issues', 'overallScore', 'summary'],
+  },
+};
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -55,36 +146,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const checkMode = mode === 'full' ? 'full' : 'grammar';
+    const essayTool = checkMode === 'grammar' ? ESSAY_TOOL_GRAMMAR : ESSAY_TOOL_FULL;
 
-    const systemPrompt = `You are an academic writing assistant. Analyze the provided text and return a JSON response.
-
-${
-  checkMode === 'grammar'
-    ? `Check for:
-1. Spelling errors (list each with correction)
-2. Grammar issues (list each with explanation and fix)`
-    : `Check for:
-1. Spelling errors (list each with correction)
-2. Grammar issues (list each with explanation and fix)
-3. Clarity improvements (suggest rewording for unclear sentences)
-4. Structure feedback (paragraph organization, transitions)`
-}
-
-You MUST respond with valid JSON only, no other text. Use this exact format:
-{
-  "issues": [
-    {
-      "type": "spelling" | "grammar" | "clarity" | "structure",
-      "original": "the problematic text",
-      "suggestion": "the corrected text",
-      "explanation": "brief explanation"
-    }
-  ],
-  "overallScore": <number 0-100>,
-  "summary": "Brief overall assessment of the writing quality"
-}
-
-If there are no issues, return { "issues": [], "overallScore": 100, "summary": "No issues found." }`;
+    const systemPrompt =
+      checkMode === 'grammar'
+        ? [
+            'You are an academic writing assistant.',
+            'Check the essay for spelling errors and grammar issues.',
+            'Write suggestion/explanation/summary in the language of the essay.',
+          ].join(' ')
+        : [
+            'You are an academic writing assistant.',
+            'Check the essay for spelling errors, grammar issues, clarity improvements, and structure feedback.',
+            'Write suggestion/explanation/summary in the language of the essay.',
+          ].join(' ');
 
     // Essay grading is Anthropic-only (a precise grader). The composition moves
     // it Sonnet → Haiku; `ESSAY_MODEL` / `ESSAY_FULL_MODEL` override, and
@@ -93,11 +168,14 @@ If there are no issues, return { "issues": [], "overallScore": 100, "summary": "
     const resolved = resolveModel('essay', { action: checkMode });
     const model = resolved.provider === 'anthropic' ? resolved.model : AI_GENERATION_MODEL_LITE;
 
+    // PA-24: forced tool call instead of prose JSON.
     const response = await anthropic.messages.create({
       model,
       max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: text }],
+      tools: [essayTool],
+      tool_choice: { type: 'tool', name: 'report_essay_analysis' },
     });
 
     // Record token usage
@@ -119,25 +197,35 @@ If there are no issues, return { "issues": [], "overallScore": 100, "summary": "
       extra: { mode: checkMode },
     });
 
-    const responseText = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('');
-
-    // Parse JSON response — G1 tolerant parse (handles fences / surrounding prose)
-    let result;
-    try {
-      result = parseJsonLoose(responseText);
-    } catch {
-      result = {
-        issues: [],
-        overallScore: 0,
-        summary: 'Failed to parse analysis results. Please try again.',
-        raw: responseText,
-      };
+    // PA-24: check for truncation before attempting to parse.
+    if (response.stop_reason === 'max_tokens') {
+      return badRequestResponse(
+        'Essay too long — analysis was truncated. Try a shorter passage or use grammar-only mode.'
+      );
     }
 
-    return successResponse(result);
+    // Extract tool input.
+    const toolBlock = response.content.find((b) => b.type === 'tool_use');
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      // Model didn't call the tool (unexpected); fail cleanly without leaking output.
+      return successResponse({
+        issues: [],
+        overallScore: null,
+        summary: 'Analysis failed. Please try again.',
+      });
+    }
+
+    // PA-24: validate with zod before returning to the client.
+    const parsed = EssayResultSchema(checkMode).safeParse(toolBlock.input);
+    if (!parsed.success) {
+      return successResponse({
+        issues: [],
+        overallScore: null,
+        summary: 'Analysis failed. Please try again.',
+      });
+    }
+
+    return successResponse(parsed.data);
   } catch (error) {
     console.error('Error checking essay:', error);
     return internalErrorResponse();

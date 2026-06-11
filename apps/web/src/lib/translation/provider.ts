@@ -8,11 +8,14 @@
 // Anthropic Haiku is the fallback (TRANSLATION_PROVIDER=anthropic) when
 // Gemini is degraded or for AB-testing translation quality.
 //
-// Per AC-Translate-3 / P0 §7.4 the rubric block must be cache-able so
-// repeat translations into the same language hit the prompt cache after
-// the warm-up call. On Anthropic the rubric carries `cache_control:
-// ephemeral`; on Gemini the rubric leads the systemInstruction so
-// implicit caching matches.
+// NOTE (PA-08): the rubric prefix is ~400 tokens, far below the Haiku 4.5
+// minimum (4096 tok) and Gemini implicit cache threshold (~1024 tok).
+// Any cache_control marker at this size is a silent no-op. Comments and
+// the previously referenced AC-Translate-3 cache gate have been corrected
+// to reflect the actual no-cache reality.
+//
+// PA-30 (injection hardening): untrusted author content (the payload)
+// now rides the USER turn, not the system role. System = rubric only.
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { AI_GENERATION_MODEL_LITE } from '../anthropic';
@@ -77,8 +80,9 @@ export interface TranslationCallCtx<T> {
 }
 
 /**
- * Dispatch a structured translation call. The rubric becomes the cached
- * leading block on both providers; the per-call payload is the tail.
+ * Dispatch a structured translation call. The rubric becomes the system
+ * instruction on both providers; the per-call payload rides the USER
+ * turn wrapped in BEGIN/END UNTRUSTED AUTHOR CONTENT markers (PA-30).
  * Anthropic returns the tool input cast to `T`; Gemini returns the
  * parsed JSON cast to `T`. The runner's parse step validates the shape
  * post-hoc so provider parity is the contract.
@@ -87,16 +91,25 @@ export async function translationStructuredCall<T>(
   ctx: TranslationCallCtx<T>,
 ): Promise<{ result: T; provider: TranslationProvider; model: string }> {
   const provider = ctx.providerOverride ?? resolveTranslationProvider();
-  const userMessage = ctx.userMessage ?? 'Translate now.';
+  // Wrap the untrusted payload in markers so the model treats it as data.
+  const userMessage = [
+    'BEGIN UNTRUSTED AUTHOR CONTENT',
+    ctx.payload,
+    'END UNTRUSTED AUTHOR CONTENT',
+    '',
+    ctx.userMessage ?? 'Translate now.',
+  ].join('\n');
 
   if (provider === 'anthropic') {
     // Haiku — matches the per-translation cost target. Sonnet would be
     // overkill for a structural overlay translation and tip past the
     // P0 §7.4 hard ceiling.
+    // System = rubric only (no untrusted content in the system role).
+    // No cache_control: the rubric is ~400 tok, below Haiku's 4096
+    // minimum cacheable prefix — the marker was a no-op.
     const model = AI_GENERATION_MODEL_LITE;
     const system: Anthropic.Messages.TextBlockParam[] = [
-      { type: 'text', text: ctx.rubric, cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: ctx.payload },
+      { type: 'text', text: ctx.rubric },
     ];
     const result = await forcedStructuredCallAnthropic<T>({
       system,
@@ -117,10 +130,9 @@ export async function translationStructuredCall<T>(
     return { result, provider, model };
   }
 
-  // Gemini branch — flat systemInstruction with byte-identical leading
-  // rubric so implicit caching matches across calls.
+  // Gemini branch — system = rubric only; user turn carries the payload.
   const model = GEMINI_PATH_MODEL;
-  const systemInstruction = `${ctx.rubric}\n\n${ctx.payload}`;
+  const systemInstruction = ctx.rubric;
   const result = await forcedStructuredCallGemini<T>({
     systemInstruction,
     responseSchema: ctx.geminiSchema,

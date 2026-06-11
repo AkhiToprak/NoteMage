@@ -12,7 +12,7 @@ interface EssayIssue {
 
 interface EssayCheckResult {
   issues: EssayIssue[];
-  overallScore: number;
+  overallScore: number | null;
   summary: string;
 }
 
@@ -81,7 +81,7 @@ export default function EssayChecker({
     setLoading(false);
   };
 
-  const scoreColor = result
+  const scoreColor = result && result.overallScore !== null
     ? result.overallScore >= 80
       ? '#4ade80'
       : result.overallScore >= 60
@@ -336,7 +336,7 @@ export default function EssayChecker({
                   }}
                 >
                   <span style={{ fontSize: '20px', fontWeight: 800, color: scoreColor }}>
-                    {result.overallScore}
+                    {result.overallScore ?? '–'}
                   </span>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -348,11 +348,13 @@ export default function EssayChecker({
                       marginBottom: '4px',
                     }}
                   >
-                    {result.overallScore >= 80
-                      ? 'Great writing!'
-                      : result.overallScore >= 60
-                        ? 'Good, with room for improvement'
-                        : 'Needs work'}
+                    {result.overallScore === null
+                      ? 'Analysis unavailable'
+                      : result.overallScore >= 80
+                        ? 'Great writing!'
+                        : result.overallScore >= 60
+                          ? 'Good, with room for improvement'
+                          : 'Needs work'}
                   </div>
                   <div
                     style={{

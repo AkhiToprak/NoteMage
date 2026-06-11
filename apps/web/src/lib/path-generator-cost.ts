@@ -40,15 +40,20 @@ interface RateCard {
  * be backfilled).
  */
 export const COSTS: Record<string, RateCard> = {
-  'claude-haiku-4-5-20251001': { input: 1.0, output: 5.0, cacheRead: 0.1, cacheWrite: 1.25 },
-  'claude-sonnet-4-6': { input: 3.0, output: 15.0, cacheRead: 0.3, cacheWrite: 3.75 },
-  // Gemini 2.5 Flash implicit caching gives a 75% discount on cache hits
-  // but doesn't surface a separate write-cost line — `cacheWrite` stays
-  // 0 unless/until we switch to explicit `CachedContent`.
-  'gemini-2.5-flash': { input: 0.3, output: 2.5, cacheRead: 0.075, cacheWrite: 0 },
-  // Flash-Lite — the cheapest tier; backs the composition's high-volume
-  // theory/flashcards/classify/title/inline/summary swaps. Same cache caveat.
-  'gemini-2.5-flash-lite': { input: 0.1, output: 0.4, cacheRead: 0.025, cacheWrite: 0 },
+  // cacheWrite is the 1h-TTL rate (2×): Haiku $2/M, Sonnet $6/M.
+  // Stage A uses ephemeral (5-min, 1.25×) writes which are slightly
+  // overcounted here — the difference is small and the 1h rate is the
+  // dominant cost since Stage B fires ~50 calls that actually read the cache.
+  'claude-haiku-4-5-20251001': { input: 1.0, output: 5.0, cacheRead: 0.1, cacheWrite: 2.0 },
+  'claude-sonnet-4-6': { input: 3.0, output: 15.0, cacheRead: 0.3, cacheWrite: 6.0 },
+  // Gemini 2.5 Flash: implicit caching gives a 75% discount on cache hits
+  // but doesn't surface a separate write-cost line. Explicit CachedContent
+  // writes (used for Stage B path prefix) are also unmetered server-side
+  // and reported separately via cacheWriteTokens from the create response.
+  'gemini-2.5-flash': { input: 0.3, output: 2.5, cacheRead: 0.075, cacheWrite: 0.075 },
+  // Flash-Lite — the cheapest tier; backs theory/flashcards/classify/title/
+  // inline/summary. Same explicit-cache caveat as Flash.
+  'gemini-2.5-flash-lite': { input: 0.1, output: 0.4, cacheRead: 0.025, cacheWrite: 0.025 },
 };
 
 function computeModelCost(usage: ModelUsage): number {

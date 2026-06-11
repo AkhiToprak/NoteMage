@@ -12,6 +12,8 @@ import {
   QUIZ_TOOL_V2_WITH_FIGURES,
   QUIZ_FOR_SLOT_TOOL,
   FLASHCARDS_FOR_SLOT_TOOL,
+  CHAT_STUDY_PLAN_TOOL,
+  STUDY_PLAN_TOOL,
 } from './ai-tools';
 import type Anthropic from '@anthropic-ai/sdk';
 
@@ -55,5 +57,28 @@ describe('figure-enabled tool variants', () => {
   it('variants keep the base tool name so chat tool-extraction is unchanged', () => {
     expect(FLASHCARD_TOOL_WITH_FIGURES.name).toBe(FLASHCARD_TOOL.name);
     expect(QUIZ_TOOL_V2_WITH_FIGURES.name).toBe(QUIZ_TOOL_V2.name);
+  });
+});
+
+describe('CHAT_STUDY_PLAN_TOOL slim variant', () => {
+   
+  const phaseProps = (tool: typeof CHAT_STUDY_PLAN_TOOL) => {
+    const schema = tool.input_schema as {
+      properties: { phases: { items: { properties: Record<string, unknown> } } };
+    };
+    return schema.properties.phases.items.properties;
+  };
+
+  it('chat variant omits materials/referenceId (no inventory injected in chat)', () => {
+    expect(phaseProps(CHAT_STUDY_PLAN_TOOL).materials).toBeUndefined();
+    expect(phaseProps(CHAT_STUDY_PLAN_TOOL).gateStrategy).toBeUndefined();
+  });
+
+  it('full STUDY_PLAN_TOOL still has materials (used by path generator)', () => {
+    expect(phaseProps(STUDY_PLAN_TOOL).materials).toBeDefined();
+  });
+
+  it('both variants share the same tool name', () => {
+    expect(CHAT_STUDY_PLAN_TOOL.name).toBe(STUDY_PLAN_TOOL.name);
   });
 });

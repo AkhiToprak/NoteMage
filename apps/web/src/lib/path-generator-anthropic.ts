@@ -7,7 +7,7 @@
 // `tool_choice` forced to a single tool, exponential backoff retries
 // (1s, 2s, …), optional model override, `onUsage` callback per attempt.
 
-import type Anthropic from '@anthropic-ai/sdk';
+import Anthropic from '@anthropic-ai/sdk';
 import { anthropic, AI_GENERATION_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
 
 type ToolUseBlock = Extract<Anthropic.Messages.ContentBlock, { type: 'tool_use' }>;
@@ -28,15 +28,35 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Errors that are deterministic — retrying byte-identical requests will
+ *  always fail. Rethrow immediately instead of burning retry budget. */
+function isNonRetryable(error: unknown): boolean {
+  return (
+    error instanceof Anthropic.BadRequestError ||
+    error instanceof Anthropic.AuthenticationError ||
+    error instanceof Anthropic.PermissionDeniedError ||
+    error instanceof Anthropic.NotFoundError
+  );
+}
+
 /**
- * Call Anthropic with `tool_choice` forced to a single tool. Retries up
- * to `maxAttempts` times with exponential backoff (1s, 2s, …) on any
- * thrown error. Returns the parsed tool input or throws after exhausting
- * retries.
+ * Call Anthropic with `tool_choice` forced to the named tool. Passes the full
+ * `tools` array so the tools render at a stable byte position across stages —
+ * changing `tool_choice` alone does not invalidate the prompt cache. Retries
+ * up to `maxAttempts` times with exponential backoff (1s, 2s, …) on
+ * transient errors (429 / 5xx / overloaded / truncation). Non-retryable
+ * 4xx errors (400 / 401 / 403 / 404) are rethrown immediately.
  */
 export async function forcedStructuredCallAnthropic<T>(opts: {
   system: string | Anthropic.Messages.TextBlockParam[];
   tool: Anthropic.Messages.Tool;
+  /**
+   * Full ordered tool array to send on every call. Keeping this array
+   * byte-identical across stages lets the prompt-cache cover the tools block.
+   * Defaults to `[tool]` for backward-compatible callers (translation,
+   * moderation) that only ever send one tool.
+   */
+  tools?: Anthropic.Messages.Tool[];
   /** Optional extra user message body. Defaults to "Generate now." */
   userMessage?: string;
   maxAttempts?: number;
@@ -48,11 +68,13 @@ export async function forcedStructuredCallAnthropic<T>(opts: {
   const {
     system,
     tool,
+    tools,
     userMessage = 'Generate now.',
     maxAttempts = 2,
     model = AI_GENERATION_MODEL,
     onUsage,
   } = opts;
+  const toolArray = tools ?? [tool];
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -61,7 +83,7 @@ export async function forcedStructuredCallAnthropic<T>(opts: {
         max_tokens: MAX_OUTPUT_TOKENS,
         system,
         messages: [{ role: 'user', content: userMessage }],
-        tools: [tool],
+        tools: toolArray,
         tool_choice: { type: 'tool', name: tool.name },
       });
       onUsage?.(response.usage);
@@ -77,6 +99,8 @@ export async function forcedStructuredCallAnthropic<T>(opts: {
       return block.input as T;
     } catch (error) {
       lastError = error;
+      // Non-retryable: a byte-identical retry will always fail.
+      if (isNonRetryable(error)) throw error;
       if (attempt < maxAttempts) {
         const delay = 1000 * Math.pow(2, attempt - 1);
         await sleep(delay);

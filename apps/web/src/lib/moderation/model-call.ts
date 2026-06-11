@@ -9,10 +9,16 @@
 // path-generation default — so a stale PATH_PROVIDER setting can't
 // silently steer moderation.
 //
-// Per AC-Moderate-9, the rubric block is byte-identical across every
-// call so Anthropic prompt-cache hits after the warm-up call. We pass
-// the rubric as a `cache_control: ephemeral` text block on Anthropic
-// and as the leading systemInstruction text on Gemini (implicit cache).
+// NOTE (PA-08): the rubric prefixes are ~470–600 tokens, far below the
+// Haiku 4.5 minimum (4096 tok) and Sonnet 4.6 minimum (2048 tok).
+// cache_control markers at these sizes are silent no-ops. The previously
+// documented AC-Moderate-9 ≥80% cache-hit gate is unmeetable at current
+// prompt sizes — it has never been satisfied. Comments below reflect
+// the actual no-cache reality.
+//
+// PA-30 (injection hardening): untrusted author content (the payload)
+// now rides the USER turn, not the system role. The system role carries
+// only the rubric. This separates harness instructions from data.
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { AI_GENERATION_MODEL, AI_GENERATION_MODEL_LITE } from '../anthropic';
@@ -90,27 +96,33 @@ export interface ModerationCallCtx<T> {
 }
 
 /**
- * Dispatch a structured moderation call. The rubric becomes the cached
- * leading block on both providers (`cache_control: ephemeral` on
- * Anthropic, leading concat on Gemini); the per-path payload is the
- * tail. Anthropic returns the tool input cast to `T`; Gemini returns
- * the parsed JSON cast to `T`. Downstream Zod validators enforce the
+ * Dispatch a structured moderation call. The rubric becomes the system
+ * instruction on both providers; the per-path payload rides the USER
+ * turn wrapped in BEGIN/END UNTRUSTED AUTHOR CONTENT markers (PA-30).
+ * Anthropic returns the tool input cast to `T`; Gemini returns the
+ * parsed JSON cast to `T`. Downstream Zod validators enforce the
  * strict shape — provider parity is the contract.
  */
 export async function moderationStructuredCall<T>(
   ctx: ModerationCallCtx<T>,
 ): Promise<{ result: T; provider: ModerationProvider; model: string }> {
   const provider = ctx.providerOverride ?? resolveModerationProvider(ctx.layer);
-  const userMessage = ctx.userMessage ?? 'Audit now.';
+  // Wrap the untrusted payload in markers so the model treats it as data.
+  const userMessage = [
+    'BEGIN UNTRUSTED AUTHOR CONTENT',
+    ctx.payload,
+    'END UNTRUSTED AUTHOR CONTENT',
+    '',
+    ctx.userMessage ?? 'Audit now.',
+  ].join('\n');
 
   if (provider === 'anthropic') {
     const model = anthropicModelFor(ctx.layer);
-    // Mirrors buildCachedSystem(): rubric is the ephemeral-cached leading
-    // block, per-path payload is the tail. Kept inline so this module
-    // doesn't depend on path-prompts internals.
+    // System = rubric only (no untrusted content in the system role).
+    // No cache_control: the rubric is ~470–600 tok, below Haiku's 4096
+    // and Sonnet's 2048 minimum cacheable prefix — the marker was a no-op.
     const system: Anthropic.Messages.TextBlockParam[] = [
-      { type: 'text', text: ctx.rubric, cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: ctx.payload },
+      { type: 'text', text: ctx.rubric },
     ];
     const result = await forcedStructuredCallAnthropic<T>({
       system,
@@ -131,10 +143,9 @@ export async function moderationStructuredCall<T>(
     return { result, provider, model };
   }
 
-  // Gemini branch — flat systemInstruction, byte-identical leading
-  // rubric so implicit caching matches across calls (per AC-Moderate-9).
+  // Gemini branch — system = rubric only; user turn carries the payload.
   const model = GEMINI_PATH_MODEL;
-  const systemInstruction = `${ctx.rubric}\n\n${ctx.payload}`;
+  const systemInstruction = ctx.rubric;
   const result = await forcedStructuredCallGemini<T>({
     systemInstruction,
     responseSchema: ctx.geminiSchema,

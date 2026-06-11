@@ -14,12 +14,11 @@ if (process.env.NODE_ENV !== 'production') globalForAnthropic.anthropic = anthro
 
 export const AI_MODEL = 'claude-haiku-4-5-20251001';
 
-// Path-generation model split. Classification, structure, theory and
-// flashcards run on Haiku — fast, cheap, and accurate enough. Quizzes are
-// the one step that benefits from Sonnet's tighter instruction following
-// (the strict per-kind payload shapes drift less), so an "ultra" path
-// upgrades only the quiz call to Sonnet. Non-ultra paths run entirely on
-// Haiku.
+// Path-generation model routing is now owned by model-routing.ts
+// (`resolveModel`). The constants below remain as base references used by
+// non-path callers (inline AI, page-generate, chat, PDF escalation).
+// Per-stage path routing (structure/theory/flashcards/quiz, basic vs ultra)
+// is resolved centrally in model-routing.ts; do not duplicate routing logic here.
 export const AI_CLASSIFIER_MODEL = 'claude-haiku-4-5-20251001';
 export const AI_GENERATION_MODEL = 'claude-sonnet-4-6';
 export const AI_GENERATION_MODEL_LITE = 'claude-haiku-4-5-20251001';

@@ -23,7 +23,7 @@ import { createHash } from 'node:crypto';
 import { getGeminiClient, GEMINI_PATH_MODEL, GEMINI_MAX_OUTPUT_TOKENS } from './gemini';
 
 export interface GeminiUsage {
-  /** Gemini `usageMetadata.promptTokenCount` — total input tokens. */
+  /** Gemini `usageMetadata.promptTokenCount` — total input tokens (includes cached). */
   promptTokens: number;
   /** Gemini `usageMetadata.candidatesTokenCount` — total output tokens. */
   candidatesTokens: number;
@@ -32,6 +32,12 @@ export interface GeminiUsage {
    *  is in effect; implicit cache hits do not surface a count (the discount is
    *  applied silently), so a low value does not mean caching is broken. */
   cachedTokens: number;
+  /**
+   * Estimated token count written to explicit CachedContent on this call.
+   * Set from the create response's usageMetadata when a new cache entry was
+   * just created; 0 on cache-hit calls and inline (uncached) calls.
+   */
+  cacheWriteTokens: number;
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -49,7 +55,7 @@ async function sleep(ms: number): Promise<void> {
 // — `getOrCreateCachedPrefix` returns null whenever the caller should just
 // send the prefix inline.
 
-const CACHE_TTL_SECONDS = 900; // 15 min — comfortably spans one path run
+const CACHE_TTL_SECONDS = 1800; // 30 min — ultra runs can exceed 15 min
 const CACHE_MIN_PREFIX_CHARS = 4096; // ~1024 tokens, Gemini 2.5 Flash's min cacheable size
 const CACHE_EXPIRY_BUFFER_MS = 30_000; // stop using an entry 30s before its TTL ends
 const CACHE_FAILURE_COOLDOWN_MS = 120_000; // after a failed create, skip this prefix for 2 min
@@ -59,8 +65,10 @@ interface PrefixCacheEntry {
   name: string | null;
   /** Epoch ms after which this entry must not be reused. */
   expiresAt: number;
+  /** Token count written when this entry was first created (for cost metering). */
+  writtenTokens: number;
   /** In-flight create, so concurrent callers share one round-trip. */
-  pending?: Promise<string | null>;
+  pending?: Promise<{ name: string | null; writtenTokens: number }>;
 }
 
 const prefixCacheRegistry = new Map<string, PrefixCacheEntry>();
@@ -80,7 +88,10 @@ function prunePrefixCache(now: number): void {
   }
 }
 
-async function createCachedPrefix(model: string, prefix: string): Promise<string | null> {
+async function createCachedPrefix(
+  model: string,
+  prefix: string,
+): Promise<{ name: string | null; writtenTokens: number }> {
   try {
     const cached = await getGeminiClient().caches.create({
       model,
@@ -90,42 +101,64 @@ async function createCachedPrefix(model: string, prefix: string): Promise<string
         displayName: 'notemage-path-prefix',
       },
     });
-    return cached.name ?? null;
+    // usageMetadata.totalTokenCount is the token count of the cached content;
+    // fall back to a char/4 estimate when the API doesn't surface it.
+    const writtenTokens =
+      (cached.usageMetadata?.totalTokenCount ?? Math.ceil(prefix.length / 4));
+    return { name: cached.name ?? null, writtenTokens };
   } catch {
-    return null;
+    return { name: null, writtenTokens: 0 };
   }
 }
 
 /**
- * Resolve a live `CachedContent` name for `prefix`, creating one on first use
- * and reusing it across the run. Returns null — meaning the caller should send
- * the prefix inline — when caching is disabled, the prefix is below Gemini's
- * minimum cacheable size, or creation fails. Never throws.
+ * Resolve a live `CachedContent` for `prefix`, creating one on first use
+ * and reusing it across the run. Returns `{ name: null, writtenTokens: 0 }`
+ * when caching is disabled, the prefix is below Gemini's minimum cacheable
+ * size, or creation fails. Never throws.
+ *
+ * `writtenTokens` is non-zero only on the call that created the entry — used
+ * by the caller to meter the cache-write cost that isn't in promptTokenCount.
  */
-async function getOrCreateCachedPrefix(model: string, prefix: string): Promise<string | null> {
-  if (pathCacheDisabled() || prefix.length < CACHE_MIN_PREFIX_CHARS) return null;
+async function getOrCreateCachedPrefix(
+  model: string,
+  prefix: string,
+): Promise<{ name: string | null; writtenTokens: number }> {
+  if (pathCacheDisabled() || prefix.length < CACHE_MIN_PREFIX_CHARS) {
+    return { name: null, writtenTokens: 0 };
+  }
 
   const now = Date.now();
   prunePrefixCache(now);
-  const key = prefixKey(prefix);
+  const key = prefixKey(prefix) + ':' + model;
 
   const existing = prefixCacheRegistry.get(key);
   if (existing && existing.expiresAt - CACHE_EXPIRY_BUFFER_MS > now) {
-    return existing.pending ? existing.pending : existing.name;
+    if (existing.pending) {
+      const result = await existing.pending;
+      return { name: result.name, writtenTokens: 0 }; // write already counted
+    }
+    return { name: existing.name, writtenTokens: 0 };
   }
 
   const pending = createCachedPrefix(model, prefix);
-  prefixCacheRegistry.set(key, { name: null, expiresAt: now + CACHE_TTL_SECONDS * 1000, pending });
-  const name = await pending;
   prefixCacheRegistry.set(key, {
-    name,
-    expiresAt: Date.now() + (name ? CACHE_TTL_SECONDS * 1000 : CACHE_FAILURE_COOLDOWN_MS),
+    name: null,
+    writtenTokens: 0,
+    expiresAt: now + CACHE_TTL_SECONDS * 1000,
+    pending,
   });
-  return name;
+  const result = await pending;
+  prefixCacheRegistry.set(key, {
+    name: result.name,
+    writtenTokens: result.writtenTokens,
+    expiresAt: Date.now() + (result.name ? CACHE_TTL_SECONDS * 1000 : CACHE_FAILURE_COOLDOWN_MS),
+  });
+  return result;
 }
 
-function dropCachedPrefix(prefix: string): void {
-  prefixCacheRegistry.delete(prefixKey(prefix));
+function dropCachedPrefix(prefix: string, model: string): void {
+  prefixCacheRegistry.delete(prefixKey(prefix) + ':' + model);
 }
 
 function joinNonEmpty(parts: string[]): string {
@@ -195,11 +228,16 @@ export async function forcedStructuredCallGemini<T>(opts: {
   const client = getGeminiClient();
   const cachingMode = typeof cacheablePrefix === 'string';
 
-  // Best-effort: back the constant prefix with an explicit cache. Null ⇒ send
-  // the prefix inline (also the path for flat-`systemInstruction` callers).
-  let activeCacheName = cachingMode
+  // Best-effort: back the constant prefix with an explicit cache. Null name
+  // means the caller should send the prefix inline (also the flat-instruction
+  // path for translation/moderation callers).
+  const cacheResult = cachingMode
     ? await getOrCreateCachedPrefix(model, cacheablePrefix as string)
-    : null;
+    : { name: null, writtenTokens: 0 };
+  let activeCacheName = cacheResult.name;
+  // Track whether we already reported the write cost for this cache entry
+  // (only the first create call in this invocation should report it).
+  let pendingWriteTokens = cacheResult.writtenTokens;
 
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -219,15 +257,18 @@ export async function forcedStructuredCallGemini<T>(opts: {
 
       let contents: Content[];
       if (usedCache) {
-        // The constant prefix lives in the cached systemInstruction; send only
-        // the dynamic tail + user turn.
+        // The constant prefix lives in the cached systemInstruction; send the
+        // dynamic tail in the user turn so it stays out of the cached block.
         config.cachedContent = activeCacheName as string;
         contents = [{ role: 'user', parts: [{ text: joinNonEmpty([dynamicTail, userMessage]) }] }];
       } else if (cachingMode) {
-        // Cache unavailable — reconstruct the original flat systemInstruction
-        // (corpus + static + dynamic), byte-identical to the pre-cache path.
-        config.systemInstruction = joinNonEmpty([cacheablePrefix as string, dynamicTail]);
-        contents = [{ role: 'user', parts: [{ text: userMessage }] }];
+        // Cache unavailable — reconstruct the full systemInstruction inline.
+        // The dynamic tail goes into the user turn so non-path callers (which
+        // pass a flat systemInstruction) are unaffected by this split.
+        config.systemInstruction = cacheablePrefix as string;
+        contents = [
+          { role: 'user', parts: [{ text: joinNonEmpty([dynamicTail, userMessage]) }] },
+        ];
       } else {
         config.systemInstruction = systemInstruction ?? '';
         contents = [{ role: 'user', parts: [{ text: userMessage }] }];
@@ -236,12 +277,28 @@ export async function forcedStructuredCallGemini<T>(opts: {
       const response = await client.models.generateContent({ model, contents, config });
 
       const usage = response.usageMetadata;
+      const candidatesTokens = usage?.candidatesTokenCount ?? 0;
+
+      // Check for output truncation before inspecting the response text.
+      const candidates = response.candidates;
+      if (candidates && candidates.length > 0) {
+        const finishReason = candidates[0].finishReason;
+        if (finishReason === 'MAX_TOKENS') {
+          throw new Error(
+            `Gemini response was truncated (finishReason: MAX_TOKENS, outputTokens: ${candidatesTokens})`,
+          );
+        }
+      }
+
       if (usage) {
         onUsage?.({
           promptTokens: usage.promptTokenCount ?? 0,
-          candidatesTokens: usage.candidatesTokenCount ?? 0,
+          candidatesTokens,
           cachedTokens: usage.cachedContentTokenCount ?? 0,
+          cacheWriteTokens: pendingWriteTokens,
         });
+        // Write cost is reported exactly once per new cache entry.
+        pendingWriteTokens = 0;
       }
 
       const text = response.text;
@@ -265,8 +322,9 @@ export async function forcedStructuredCallGemini<T>(opts: {
       // If this attempt used the cache, the cache may be stale/invalid — drop
       // it so the next attempt (and the next call) rebuilds or goes inline.
       if (usedCache) {
-        dropCachedPrefix(cacheablePrefix as string);
+        dropCachedPrefix(cacheablePrefix as string, model);
         activeCacheName = null;
+        pendingWriteTokens = 0;
       }
       if (attempt < maxAttempts) {
         const delay = 1000 * Math.pow(2, attempt - 1);

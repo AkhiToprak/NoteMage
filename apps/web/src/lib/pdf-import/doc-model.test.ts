@@ -207,9 +207,12 @@ describe('docModelSchema — rejects malformed DocModels', () => {
     expect(parse([{ type: 'spaceship', runs: [] }]).success).toBe(false);
   });
 
-  it('rejects a heading level outside 1-3', () => {
-    expect(parse([{ type: 'heading', level: 0, runs: [] }]).success).toBe(false);
-    expect(parse([{ type: 'heading', level: 4, runs: [] }]).success).toBe(false);
+  it('accepts any integer heading level (normalize.ts clamps to 1–3 before validation)', () => {
+    // PA-40g: zod now accepts any int; normalizeHeadingBlock clamps out-of-range
+    // values before parseDocModelBlocks calls safeParse, so level 0 or 4 never
+    // reaches a repair retry in the real pipeline.
+    expect(parse([{ type: 'heading', level: 0, runs: [] }]).success).toBe(true);
+    expect(parse([{ type: 'heading', level: 4, runs: [] }]).success).toBe(true);
   });
 
   it('rejects blocks missing required fields', () => {

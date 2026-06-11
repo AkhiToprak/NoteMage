@@ -63,7 +63,7 @@ export interface L3Result {
   costUsd: number;
   /** Resolved model id — useful for cost-gate sliced reporting. */
   model: string;
-  /** Accumulated normalised usage across all attempts. */
+  /** Usage from the last attempt (not aggregated across retries; see usageMeter for the aggregate). */
   usage: ModerationUsage | null;
   /** Set when an `escalate_to_human` opened a new Ticket. Null on a
    *  ticket-already-existed idempotency hit, or on auto_reject. */
