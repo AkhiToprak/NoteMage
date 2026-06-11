@@ -166,7 +166,12 @@ const silkscreen = Silkscreen({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  // No maximumScale — pinch-zoom must stay available (accessibility).
+  // Lock zoom so the app feels native on phone: no pinch-zoom, and no iOS
+  // auto-zoom when focusing a sub-16px input (the app's inputs are 12–15px).
+  // Honored fully in the iOS/Electron WebView shells; mobile Safari still
+  // permits user pinch but no longer focus-zooms.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
 };
 

@@ -1340,6 +1340,7 @@ export default function PageEditor({
             readOnly={lockedByOther}
             style={{
               flex: 1,
+              minWidth: 0,
               background: 'none',
               border: 'none',
               outline: 'none',
