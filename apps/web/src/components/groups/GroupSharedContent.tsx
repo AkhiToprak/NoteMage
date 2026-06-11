@@ -180,12 +180,15 @@ export default function GroupSharedContent({
       <div
         style={{
           display: 'flex',
+          // Phone: wrap to a second row so every filter is visible — no
+          // sideways scrolling. Desktop fits on one line anyway.
+          flexWrap: isPhone ? 'wrap' : undefined,
           gap: isPhone ? 8 : 12,
           marginBottom: isPhone ? 16 : 24,
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
+          overflowX: isPhone ? undefined : 'auto',
+          WebkitOverflowScrolling: isPhone ? undefined : 'touch',
+          scrollbarWidth: isPhone ? undefined : 'none',
+          msOverflowStyle: isPhone ? undefined : 'none',
           paddingBottom: 4,
         }}
         className="scroll-hide-scrollbar"
