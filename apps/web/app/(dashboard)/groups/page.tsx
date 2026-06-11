@@ -312,17 +312,15 @@ export default function GroupsPage() {
           )}
         </div>
 
-        {/* Tab bar */}
+        {/* Tab bar — on phone the 3 categories are equal-width (icon stacked over
+            label) so the bar fills the screen and never scrolls sideways. */}
         <div
           style={{
             display: 'flex',
-            gap: 8,
+            gap: isPhone ? 0 : 8,
             marginBottom: isPhone ? 20 : 32,
             borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
             paddingBottom: 0,
-            overflowX: isPhone ? 'auto' : undefined,
-            WebkitOverflowScrolling: isPhone ? 'touch' : undefined,
-            scrollbarWidth: isPhone ? 'none' : undefined,
           }}
         >
           {TABS.map((tab) => {
@@ -334,19 +332,23 @@ export default function GroupsPage() {
                 style={{
                   position: 'relative',
                   display: 'flex',
+                  flexDirection: isPhone ? 'column' : 'row',
                   alignItems: 'center',
-                  gap: 8,
-                  padding: isPhone ? '10px 14px' : '12px 20px',
-                  paddingBottom: isPhone ? 12 : 14,
+                  justifyContent: 'center',
+                  flex: isPhone ? 1 : undefined,
+                  minWidth: 0,
+                  gap: isPhone ? 3 : 8,
+                  padding: isPhone ? '9px 2px 11px' : '12px 20px',
+                  paddingBottom: isPhone ? 11 : 14,
                   background: 'none',
                   border: 'none',
-                  fontSize: isPhone ? 13 : 14,
+                  fontSize: isPhone ? 11 : 14,
                   fontWeight: active ? 700 : 500,
                   color: active ? COLORS.primary : COLORS.textMuted,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   transition: `color 0.2s ${EASING}`,
-                  whiteSpace: isPhone ? 'nowrap' : undefined,
+                  whiteSpace: 'nowrap',
                   flexShrink: isPhone ? 0 : undefined,
                 }}
               >
