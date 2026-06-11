@@ -174,8 +174,11 @@ export default function GroupDetailView({ groupId }: Props) {
   const isDM = group.type === 'direct';
   const otherUser = isDM ? group.members.find((m) => m.userId !== currentUserId) : null;
 
-  // Filter tabs for DMs — only Chat and Shared
-  const visibleTabs = isDM ? TABS.filter((t) => t.key === 'chat' || t.key === 'shared') : TABS;
+  // Filter tabs for DMs (Chat + Shared only) and hide Settings from non-admins
+  // up front so the phone equal-width flex weighting matches what actually renders.
+  const visibleTabs = (
+    isDM ? TABS.filter((t) => t.key === 'chat' || t.key === 'shared') : TABS
+  ).filter((t) => t.key !== 'settings' || isAdminOrOwner);
   const leftTabs = visibleTabs.filter((t) => t.align === 'left');
   const rightTabs = visibleTabs.filter((t) => t.align === 'right');
 
@@ -321,13 +324,16 @@ export default function GroupDetailView({ groupId }: Props) {
           backdropFilter: 'blur(12px)',
           borderBottom: `1px solid color-mix(in srgb, ${COLORS.border} 10%, transparent)`,
           flexShrink: 0,
-          overflowX: isPhone ? 'auto' : undefined,
-          WebkitOverflowScrolling: isPhone ? 'touch' : undefined,
-          scrollbarWidth: isPhone ? 'none' : undefined,
         }}
       >
-        {/* Left tabs */}
-        <div style={{ display: 'flex', gap: isPhone ? 16 : 32 }}>
+        {/* Left tabs — on phone every tab is equal-width so the bar never scrolls sideways */}
+        <div
+          style={{
+            display: 'flex',
+            gap: isPhone ? 0 : 32,
+            flex: isPhone ? leftTabs.length : undefined,
+          }}
+        >
           {leftTabs.map((tab) => {
             const active = activeTab === tab.key;
             return (
@@ -346,6 +352,9 @@ export default function GroupDetailView({ groupId }: Props) {
                   fontFamily: 'inherit',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: isPhone ? 1 : undefined,
+                  minWidth: 0,
                   gap: isPhone ? 4 : 8,
                   transition: `color 0.2s ${EASING}`,
                   whiteSpace: 'nowrap',
@@ -376,10 +385,18 @@ export default function GroupDetailView({ groupId }: Props) {
           })}
         </div>
 
-        <div style={{ flex: 1 }} />
+        {/* Spacer pushes the right tabs to the edge on desktop; on phone the tabs
+            fill the bar evenly instead, so it's hidden. */}
+        <div style={{ flex: isPhone ? undefined : 1, display: isPhone ? 'none' : 'block' }} />
 
         {/* Right tabs */}
-        <div style={{ display: 'flex', gap: isPhone ? 16 : 32 }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: isPhone ? 0 : 32,
+            flex: isPhone ? rightTabs.length : undefined,
+          }}
+        >
           {rightTabs.map((tab) => {
             // Hide settings from non-admin
             if (tab.key === 'settings' && !isAdminOrOwner) return null;
@@ -400,6 +417,9 @@ export default function GroupDetailView({ groupId }: Props) {
                   fontFamily: 'inherit',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: isPhone ? 1 : undefined,
+                  minWidth: 0,
                   gap: isPhone ? 4 : 8,
                   transition: `color 0.2s ${EASING}`,
                   whiteSpace: 'nowrap',
