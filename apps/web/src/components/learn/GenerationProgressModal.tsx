@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import { Mascot } from '@/components/mascot/Mascot';
 import type { MascotOneShot, MascotPose } from '@/components/mascot/poses';
 import {
@@ -213,6 +214,9 @@ export default function GenerationProgressModal({
 
   const planTitle = (stream.plan as SerializedPath | null)?.title ?? structure?.title ?? initialTitle;
 
+  // Passive status card — stays centered and compact on phones instead of full-bleed.
+  const dims = useModalDimensions(520, { fullScreenOnPhone: false });
+
   return (
     <div
       role="dialog"
@@ -234,15 +238,13 @@ export default function GenerationProgressModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '520px',
-          maxWidth: '95vw',
-          maxHeight: '88vh',
+          ...dims,
           overflowY: 'auto',
           background: 'var(--surface-container)',
           color: 'var(--on-surface)',
-          borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--outline-variant)',
           padding: '32px 28px',
+          boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

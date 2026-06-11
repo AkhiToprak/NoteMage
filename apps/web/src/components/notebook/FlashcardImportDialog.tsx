@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, type DragEvent, type ChangeEvent } from 'react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 interface FlashcardImportDialogProps {
   notebookId: string;
@@ -289,6 +290,8 @@ export default function FlashcardImportDialog({
     transition: 'background 0.12s ease, border-color 0.12s ease',
   });
 
+  const dims = useModalDimensions(520);
+
   // Placeholder text for textarea
   const termSepDisplay = termSepChar === '\t' ? '\\t' : termSepChar;
   const cardSepDisplay =
@@ -317,16 +320,15 @@ export default function FlashcardImportDialog({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '520px',
-          maxHeight: '85vh',
+          ...dims,
           background: '#1e1d35',
           border: '1px solid rgba(174,137,255,0.45)',
-          borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           fontFamily: 'inherit',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Header */}

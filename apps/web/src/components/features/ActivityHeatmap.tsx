@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface DayData {
@@ -96,6 +96,15 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
     date: '',
     count: 0,
   });
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // When the grid overflows its card (phones), land on the most recent weeks
+  // (rightmost) instead of opening on months-old history.
+  useEffect(() => {
+    if (loading) return;
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth - el.clientWidth;
+  }, [loading]);
 
   // Derive grid constants from breakpoint
   const CELL_SIZE = isPhone ? 11 : 13;
@@ -298,6 +307,7 @@ export default function ActivityHeatmap({ userId, weeks, subtitle }: ActivityHea
       ) : (
         <div data-heatmap-wrapper style={{ position: 'relative', overflow: 'visible' }}>
           <div
+            ref={scrollRef}
             style={{
               // Always 'auto' so the grid scrolls when the parent card is
               // narrower than the heatmap (e.g. the 720px-capped profile

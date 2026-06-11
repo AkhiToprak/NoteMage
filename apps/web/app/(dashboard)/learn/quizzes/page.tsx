@@ -70,7 +70,15 @@ function LearnQuizzesPageInner() {
   const effectiveHighlight = createdHighlightId ?? highlightId;
 
   return (
-    <div style={{ maxWidth: '1080px', margin: '0 auto', padding: '8px 0 48px', width: '100%', minWidth: 0 }}>
+    <div
+      style={{
+        maxWidth: '1080px',
+        margin: '0 auto',
+        padding: '8px 0 48px',
+        width: '100%',
+        minWidth: 0,
+      }}
+    >
       <header style={{ marginBottom: '24px', padding: '0 16px' }}>
         <h1
           style={{
@@ -84,16 +92,6 @@ function LearnQuizzesPageInner() {
         >
           Quizzes
         </h1>
-        <p
-          style={{
-            margin: '6px 0 0',
-            fontSize: '14px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
-          }}
-        >
-          Every quiz set you have made, grouped by the notebook it came from.
-        </p>
       </header>
 
       {sets === null ? (
@@ -234,7 +232,7 @@ function GroupHeader({
   const icon = group.kind === 'inbox' ? 'mail' : group.kind === 'cross' ? 'hub' : 'book_2';
   const swatch =
     group.kind === 'standard'
-      ? group.color ?? 'var(--primary)'
+      ? (group.color ?? 'var(--primary)')
       : group.kind === 'inbox'
         ? 'var(--tertiary)'
         : 'var(--secondary)';
@@ -428,12 +426,7 @@ function SetCard({ set, highlight }: { set: QuizSet; highlight: boolean }) {
 
   if (!canOpen) {
     return (
-      <div
-        ref={cardRef}
-        title="No home notebook"
-        aria-disabled
-        style={cardStyle}
-      >
+      <div ref={cardRef} title="No home notebook" aria-disabled style={cardStyle}>
         {inner}
       </div>
     );

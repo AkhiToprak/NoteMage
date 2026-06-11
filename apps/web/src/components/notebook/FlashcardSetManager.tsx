@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import FlashcardImportDialog from '@/components/notebook/FlashcardImportDialog';
 
 interface FlashcardSet {
@@ -214,6 +215,8 @@ export default function FlashcardSetManager({
     onUpdated,
   ]);
 
+  const dims = useModalDimensions(520);
+
   const canMerge = selectedSetIds.size >= 2;
   const canSplit =
     expandedSetId !== null &&
@@ -237,16 +240,15 @@ export default function FlashcardSetManager({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '520px',
-          maxHeight: '85vh',
+          ...dims,
           background: '#1e1d35',
           border: '1px solid rgba(174,137,255,0.45)',
-          borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           fontFamily: 'inherit',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Header */}

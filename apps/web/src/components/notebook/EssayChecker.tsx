@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 interface EssayIssue {
   type: 'spelling' | 'grammar' | 'clarity' | 'structure';
@@ -88,6 +89,8 @@ export default function EssayChecker({
         : '#fca5a5'
     : '#c4a9ff';
 
+  const dims = useModalDimensions(600);
+
   const filteredIssues = result?.issues.filter((i) => !filterType || i.type === filterType) ?? [];
 
   const issueTypeCounts =
@@ -116,15 +119,14 @@ export default function EssayChecker({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '600px',
-          maxHeight: '80vh',
+          ...dims,
           background: 'var(--background)',
           border: '1px solid rgba(174,137,255,0.45)',
-          borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Header */}

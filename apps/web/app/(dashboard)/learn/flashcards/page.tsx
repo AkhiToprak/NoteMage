@@ -41,7 +41,15 @@ export default function FlashcardsHubPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '24px 24px 48px', width: '100%', minWidth: 0 }}>
+        <div
+          style={{
+            maxWidth: '1120px',
+            margin: '0 auto',
+            padding: '24px 24px 48px',
+            width: '100%',
+            minWidth: 0,
+          }}
+        >
           <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', margin: 0 }}>
             Loading your flashcards…
           </p>
@@ -141,8 +149,7 @@ function FlashcardsHubContent() {
 
     const list = Array.from(byKey.values());
     list.sort((a, b) => {
-      const orderOf = (g: SetGroup) =>
-        g.kind === 'inbox' ? 0 : g.kind === 'standard' ? 1 : 2;
+      const orderOf = (g: SetGroup) => (g.kind === 'inbox' ? 0 : g.kind === 'standard' ? 1 : 2);
       const ao = orderOf(a);
       const bo = orderOf(b);
       if (ao !== bo) return ao - bo;
@@ -174,16 +181,6 @@ function FlashcardsHubContent() {
         >
           Flashcards
         </h1>
-        <p
-          style={{
-            margin: '6px 0 0',
-            fontSize: '14px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
-          }}
-        >
-          Every flashcard set across your notebooks.
-        </p>
       </header>
 
       {sets === null ? (
@@ -295,8 +292,8 @@ function EmptyState() {
         }}
       >
         Open a notebook page and use the header{' '}
-        <strong style={{ color: 'var(--on-surface)' }}>Generate</strong> dropdown to create
-        a flashcard set from any page.
+        <strong style={{ color: 'var(--on-surface)' }}>Generate</strong> dropdown to create a
+        flashcard set from any page.
       </p>
       <Link
         href="/notebooks"
@@ -516,12 +513,8 @@ function SetCard({
     minHeight: '96px',
     borderRadius: 'var(--radius-md)',
     background: 'var(--surface-container)',
-    border: isPulsing
-      ? '1px solid var(--primary)'
-      : '1px solid var(--outline-variant)',
-    boxShadow: isPulsing
-      ? '0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent)'
-      : 'none',
+    border: isPulsing ? '1px solid var(--primary)' : '1px solid var(--outline-variant)',
+    boxShadow: isPulsing ? '0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent)' : 'none',
     color: 'var(--on-surface)',
     textDecoration: 'none',
     cursor: canOpen ? 'pointer' : 'default',
@@ -612,4 +605,3 @@ function SetCard({
     </div>
   );
 }
-

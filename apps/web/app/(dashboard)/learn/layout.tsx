@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { trackEvent } from '@/lib/telemetry';
@@ -53,6 +53,17 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
     trackEvent('learn.tab_view', { tab: activeSlug });
   }, [activeSlug]);
 
+  // When the strip overflows (phones), keep the active tab centered so partial
+  // neighbor tabs peek out on both sides — that peek is the scroll affordance.
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || nav.scrollWidth <= nav.clientWidth) return;
+    nav
+      .querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [activeSlug]);
+
   return (
     <div
       style={{
@@ -64,6 +75,7 @@ export default function LearnLayout({ children }: { children: React.ReactNode })
       }}
     >
       <nav
+        ref={navRef}
         aria-label="Learn sections"
         data-tutorial="learn-tabs"
         style={{

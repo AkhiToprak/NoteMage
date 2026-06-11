@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AvatarEditor from '@/components/ui/AvatarEditor';
 import SubscriptionPanel from '@/components/settings/SubscriptionPanel';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -79,7 +79,50 @@ export default function SettingsPage() {
   const { isPhone } = useBreakpoint();
   const { preference: themePreference, resolved: resolvedTheme } = useTheme();
   const { restart: restartTutorial } = useTutorial();
-  const [activeSection, setActiveSection] = useState<Section>('account');
+  // Phone: null = drill-in root list (profile + section rows). Desktop always shows a section.
+  const [activeSection, setActiveSection] = useState<Section | null>(null);
+  const visibleSection: Section | null = isPhone ? activeSection : (activeSection ?? 'account');
+  const backBtnRef = useRef<HTMLButtonElement>(null);
+  const lastSectionRef = useRef<Section | null>(null);
+
+  const enterSection = (section: Section) => {
+    if (isPhone) {
+      window.history.pushState({ nmSettings: section }, '');
+      lastSectionRef.current = section;
+    }
+    setActiveSection(section);
+    if (isPhone) {
+      document.querySelector('main')?.scrollTo(0, 0);
+      window.scrollTo(0, 0);
+      requestAnimationFrame(() => backBtnRef.current?.focus({ preventScroll: true }));
+    }
+  };
+
+  const drillOut = useCallback(() => {
+    setActiveSection(null);
+    document.querySelector('main')?.scrollTo(0, 0);
+    const last = lastSectionRef.current;
+    if (last) {
+      requestAnimationFrame(() =>
+        document.getElementById(`settings-row-${last}`)?.focus({ preventScroll: true })
+      );
+    }
+  }, []);
+
+  const exitSection = () => {
+    // Prefer history.back() so the browser back button and the in-app back
+    // button share one exit path; popstate below performs the actual drill-out.
+    if (isPhone && window.history.state?.nmSettings) {
+      window.history.back();
+    } else {
+      drillOut();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('popstate', drillOut);
+    return () => window.removeEventListener('popstate', drillOut);
+  }, [drillOut]);
 
   const [notifications, setNotifications] = useState({
     studyReminders: true,
@@ -422,21 +465,35 @@ export default function SettingsPage() {
         }}
       />
 
-      {/* Page header */}
-      <header style={{ marginBottom: isPhone ? '24px' : '48px' }}>
-        <h2
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: isPhone ? '32px' : '48px',
-            fontWeight: 400,
-            color: 'var(--md-h4)',
-            margin: '0 0 8px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Settings
-        </h2>
-      </header>
+      {isPhone && (
+        <style>{`
+          .settings-view-enter { animation: settingsViewIn 0.18s cubic-bezier(0.22,1,0.36,1); }
+          .settings-view-enter-back { animation: settingsViewInBack 0.18s cubic-bezier(0.22,1,0.36,1); }
+          @keyframes settingsViewIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+          @keyframes settingsViewInBack { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) {
+            .settings-view-enter, .settings-view-enter-back { animation: none; }
+          }
+        `}</style>
+      )}
+
+      {/* Page header — on phone the detail view supplies its own back header */}
+      {(!isPhone || activeSection === null) && (
+        <header style={{ marginBottom: isPhone ? '24px' : '48px' }}>
+          <h2
+            style={{
+              fontFamily: 'var(--font-brand)',
+              fontSize: isPhone ? '32px' : '48px',
+              fontWeight: 400,
+              color: 'var(--md-h4)',
+              margin: '0 0 8px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Settings
+          </h2>
+        </header>
+      )}
 
       <div
         style={{
@@ -450,8 +507,11 @@ export default function SettingsPage() {
           overflow: 'hidden',
         }}
       >
-        {/* Left column */}
+        {/* Left column — on phone this is the drill-in root view */}
+        {(!isPhone || activeSection === null) && (
         <div
+          key={isPhone ? 'settings-root' : undefined}
+          className={isPhone ? 'settings-view-enter-back' : undefined}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -572,40 +632,41 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Settings nav */}
+            {/* Settings nav — vertical list on every breakpoint; phone rows drill in */}
             <nav
               style={{
                 display: 'flex',
-                flexDirection: isPhone ? 'row' : 'column',
-                gap: isPhone ? '8px' : '4px',
-                overflowX: isPhone ? 'auto' : undefined,
-                WebkitOverflowScrolling: isPhone ? 'touch' : undefined,
-                scrollbarWidth: isPhone ? 'none' : undefined,
-                paddingBottom: isPhone ? '4px' : undefined,
+                flexDirection: 'column',
+                gap: '4px',
               }}
             >
               {navItems.map(({ section, icon, label }) => {
-                const active = activeSection === section;
+                const active = visibleSection === section;
                 return (
                   <button
                     key={section}
-                    onClick={() => setActiveSection(section)}
+                    id={`settings-row-${section}`}
+                    onClick={() => enterSection(section)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: isPhone ? '6px' : '12px',
-                      padding: isPhone ? '8px 14px' : '12px 16px',
+                      gap: '12px',
+                      width: '100%',
+                      minHeight: isPhone ? '52px' : undefined,
+                      padding: isPhone ? '12px 8px' : '12px 16px',
                       borderRadius: '12px',
                       border: 'none',
                       background: active ? 'rgba(174,137,255,0.1)' : 'transparent',
-                      color: active ? 'var(--md-h4)' : 'var(--on-surface-variant)',
+                      color: active
+                        ? 'var(--md-h4)'
+                        : isPhone
+                          ? 'var(--on-surface)'
+                          : 'var(--on-surface-variant)',
                       fontWeight: active ? 700 : 500,
-                      fontSize: isPhone ? '13px' : '15px',
+                      fontSize: '15px',
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       textAlign: 'left',
-                      whiteSpace: isPhone ? 'nowrap' : undefined,
-                      flexShrink: isPhone ? 0 : undefined,
                       transition: 'background 0.15s, color 0.15s',
                     }}
                     onMouseEnter={(e) => {
@@ -620,22 +681,64 @@ export default function SettingsPage() {
                       }
                     }}
                   >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: isPhone ? '18px' : '20px' }}
-                    >
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
                       {icon}
                     </span>
                     {label}
+                    {isPhone && (
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: '20px',
+                          color: 'var(--on-surface-variant)',
+                          marginLeft: 'auto',
+                        }}
+                      >
+                        chevron_right
+                      </span>
+                    )}
                   </button>
                 );
               })}
+
+              {/* Phone: Delete Account lives as the danger row at the bottom of the root list */}
+              {isPhone && (
+                <button
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    minHeight: '52px',
+                    padding: '12px 8px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--error)',
+                    fontWeight: 600,
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                    delete_forever
+                  </span>
+                  Delete Account
+                </button>
+              )}
             </nav>
           </div>
         </div>
+        )}
 
-        {/* Right column */}
+        {/* Right column — on phone this is the drill-in detail view */}
+        {(!isPhone || activeSection !== null) && (
         <div
+          key={isPhone ? (activeSection ?? 'detail') : undefined}
+          className={isPhone ? 'settings-view-enter' : undefined}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -643,13 +746,54 @@ export default function SettingsPage() {
             minWidth: 0,
           }}
         >
+          {/* Phone back header */}
+          {isPhone && activeSection !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '44px' }}>
+              <button
+                ref={backBtnRef}
+                onClick={exitSection}
+                aria-label="Back to settings"
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: 'var(--on-surface)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  marginLeft: '-10px',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                  arrow_back
+                </span>
+              </button>
+              <h3
+                style={{
+                  fontFamily: 'var(--font-brand)',
+                  fontSize: '22px',
+                  fontWeight: 400,
+                  color: 'var(--md-h4)',
+                  margin: 0,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {navItems.find((n) => n.section === activeSection)?.label}
+              </h3>
+            </div>
+          )}
           {/* Account Security */}
           <section
             style={{
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'account' || activeSection === 'privacy' ? 'flex' : 'none',
+              display:
+                visibleSection === 'account' || visibleSection === 'privacy' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '32px',
             }}
@@ -866,7 +1010,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'privacy' ? 'flex' : 'none',
+              display: visibleSection === 'privacy' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '24px',
             }}
@@ -969,7 +1113,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'account' ? 'flex' : 'none',
+              display: visibleSection === 'account' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '24px',
             }}
@@ -1137,7 +1281,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'account' ? 'flex' : 'none',
+              display: visibleSection === 'account' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '24px',
             }}
@@ -1301,7 +1445,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'account' ? 'flex' : 'none',
+              display: visibleSection === 'account' ? 'flex' : 'none',
               flexDirection: isPhone ? 'column' : 'row',
               alignItems: isPhone ? 'flex-start' : 'center',
               justifyContent: 'space-between',
@@ -1394,7 +1538,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'appearance' ? 'flex' : 'none',
+              display: visibleSection === 'appearance' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '32px',
             }}
@@ -1579,7 +1723,9 @@ export default function SettingsPage() {
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
               display:
-                activeSection === 'notifications' || activeSection === 'account' ? 'flex' : 'none',
+                visibleSection === 'notifications' || visibleSection === 'account'
+                  ? 'flex'
+                  : 'none',
               flexDirection: 'column',
               gap: '32px',
             }}
@@ -1700,7 +1846,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'goals' ? 'flex' : 'none',
+              display: visibleSection === 'goals' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '32px',
             }}
@@ -1973,7 +2119,7 @@ export default function SettingsPage() {
               background: 'var(--surface-container)',
               borderRadius: isPhone ? '20px' : '32px',
               padding: isPhone ? '20px' : '32px',
-              display: activeSection === 'subscription' ? 'flex' : 'none',
+              display: visibleSection === 'subscription' ? 'flex' : 'none',
               flexDirection: 'column',
               gap: '32px',
             }}
@@ -2018,7 +2164,8 @@ export default function SettingsPage() {
             <SubscriptionPanel />
           </section>
 
-          {/* Delete Account */}
+          {/* Delete Account (desktop; the phone root list has its own danger row) */}
+          {!isPhone && (
           <button
             onClick={() => setDeleteConfirmOpen(true)}
             style={{
@@ -2052,7 +2199,9 @@ export default function SettingsPage() {
             </span>
             Delete Account
           </button>
+          )}
         </div>
+        )}
       </div>
 
       {/* Avatar Editor */}

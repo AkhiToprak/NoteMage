@@ -47,19 +47,8 @@ export default function LearnChatsIndexPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          Pick a chat from the rail
+          Start a new chat, or pick an existing one!
         </h2>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '14px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.6,
-          }}
-        >
-          Open one of your existing chats on the left, or start a new one to draw context from any
-          of your notebooks.
-        </p>
       </div>
     </div>
   );

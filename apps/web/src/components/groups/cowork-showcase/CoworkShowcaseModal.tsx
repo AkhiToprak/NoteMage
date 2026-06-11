@@ -45,22 +45,14 @@ export function CoworkShowcaseModal({ onDismiss, onCardClick }: Props) {
   const [opacity, setOpacity] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<CoworkTab | null>(null);
-  const [isWideViewport, setIsWideViewport] = useState(false);
+  // Shared breakpoint (768px) instead of a bespoke 720px media query.
+  const isWideViewport = !isPhone;
   const ctaRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- read media query once on mount
       setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-      const mq = window.matchMedia('(min-width: 720px)');
-      setIsWideViewport(mq.matches);
-      const onChange = (e: MediaQueryListEvent) => setIsWideViewport(e.matches);
-      mq.addEventListener('change', onChange);
-      const id = requestAnimationFrame(() => setOpacity(1));
-      return () => {
-        cancelAnimationFrame(id);
-        mq.removeEventListener('change', onChange);
-      };
     }
     const id = requestAnimationFrame(() => setOpacity(1));
     return () => cancelAnimationFrame(id);

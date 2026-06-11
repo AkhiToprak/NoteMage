@@ -276,8 +276,8 @@ export default function CheckpointQuizViewer({
           onClick={onClose}
           aria-label="Close quiz"
           style={{
-            width: '36px',
-            height: '36px',
+            width: '44px',
+            height: '44px',
             borderRadius: 'var(--radius-full)',
             border: '1px solid var(--outline-variant)',
             background: 'transparent',

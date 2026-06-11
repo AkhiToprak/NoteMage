@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Mascot, type MascotPose } from '@/components/mascot';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface Props {
   title: string;
@@ -153,7 +154,7 @@ export function TutorialTooltip({
 }: Props) {
   const [opacity, setOpacity] = useState(0);
   const [safeArea, setSafeArea] = useState<SafeArea>({ top: 0, right: 0, bottom: 0, left: 0 });
-  const [isPhone, setIsPhone] = useState(false);
+  const { isPhone } = useBreakpoint();
   const [reduceMotion, setReduceMotion] = useState(false);
   const [tooltipHeight, setTooltipHeight] = useState(0);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -162,12 +163,10 @@ export function TutorialTooltip({
     if (typeof window !== 'undefined' && window.matchMedia) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot media-query + safe-area read on mount; subsequent updates come from the resize listener below
       setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-      setIsPhone(window.matchMedia('(max-width: 767px)').matches);
     }
     setSafeArea(readSafeArea());
 
     const onResize = () => {
-      setIsPhone(window.matchMedia('(max-width: 767px)').matches);
       setSafeArea(readSafeArea());
     };
     window.addEventListener('resize', onResize);

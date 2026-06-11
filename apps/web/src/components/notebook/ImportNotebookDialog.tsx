@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import OneNoteImportProgressModal from './OneNoteImportProgressModal';
 import PdfImportTab from './PdfImportTab';
 
@@ -60,6 +61,8 @@ export default function ImportNotebookDialog({
     if (!locked) onClose();
   }, [locked, onClose]);
 
+  const dims = useModalDimensions(540);
+
   return (
     <div
       style={{
@@ -76,14 +79,13 @@ export default function ImportNotebookDialog({
     >
       <div
         style={{
-          width: '540px',
-          maxHeight: '80vh',
+          ...dims,
           background: '#1e1d35',
-          borderRadius: '16px',
           border: '1px solid rgba(174,137,255,0.40)',
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'inherit',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -110,7 +112,13 @@ export default function ImportNotebookDialog({
               color: 'rgba(196,169,255,0.5)',
               cursor: locked ? 'not-allowed' : 'pointer',
               opacity: locked ? 0.4 : 1,
-              padding: '4px',
+              width: '44px',
+              height: '44px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              margin: '-10px',
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>

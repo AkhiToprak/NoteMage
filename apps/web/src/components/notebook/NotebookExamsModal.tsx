@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 import ExamCountdown from '@/components/features/ExamCountdown';
 import ExamForm from '@/components/features/ExamForm';
 
@@ -32,6 +34,8 @@ export default function NotebookExamsModal({
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const { isPhone } = useBreakpoint();
+  const dims = useModalDimensions(560);
 
   const load = useCallback(() => {
     fetch('/api/user/exams')
@@ -88,7 +92,7 @@ export default function NotebookExamsModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px',
+          padding: isPhone ? 0 : '24px',
           animation: 'nm-exams-fade 0.2s ease-out',
         }}
       >
@@ -96,16 +100,15 @@ export default function NotebookExamsModal({
           onClick={(e) => e.stopPropagation()}
           className="custom-scrollbar"
           style={{
-            width: '560px',
-            maxWidth: '92vw',
-            maxHeight: '85vh',
+            ...dims,
             overflowY: 'auto',
             background: 'var(--background)',
             border: '1px solid rgba(174,137,255,0.36)',
-            borderRadius: '22px',
             boxShadow: 'inset 0 1px 0 rgba(174,137,255,0.06), 0 24px 48px rgba(0,0,0,0.4)',
             animation: 'nm-exams-rise 0.3s cubic-bezier(0.22,1,0.36,1)',
             padding: '26px',
+            paddingBottom: 'max(26px, env(safe-area-inset-bottom))',
+            boxSizing: 'border-box',
           }}
         >
           {/* Header */}

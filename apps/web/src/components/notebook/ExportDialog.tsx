@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useModalDimensions } from '@/hooks/useModalDimensions';
 
 interface SectionWithPages {
   id: string;
@@ -156,6 +157,8 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
   // Ordered list of selected pages (for split UI)
   const orderedSelectedPages = allPages.filter((p) => selectedPageIds.has(p.id));
 
+  const dims = useModalDimensions(520);
+
   return (
     <div
       style={{
@@ -173,14 +176,13 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
+          ...dims,
           background: '#13122a',
           border: '1px solid rgba(174,137,255,0.40)',
-          borderRadius: 16,
-          width: 520,
-          maxHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Header */}
@@ -212,10 +214,14 @@ export default function ExportDialog({ notebookId, sections, onClose }: ExportDi
               border: 'none',
               color: 'var(--ink-40)',
               cursor: 'pointer',
-              padding: 4,
+              padding: 0,
+              margin: -9,
               borderRadius: 6,
-              display: 'flex',
+              width: 44,
+              height: 44,
+              display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>

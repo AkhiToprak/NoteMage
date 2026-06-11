@@ -5,11 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import type { PathPlan } from '@/components/learn/PathView';
-import {
-  SUBJECT_REGISTRY,
-  isSubjectId,
-  type SubjectId,
-} from '@/lib/path-subjects';
+import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
 import {
   PATH_LANGUAGES,
   pathLanguageName,
@@ -270,7 +266,7 @@ export default function LearnPage() {
     try {
       const res = await fetch(
         `/api/learn/paths/${encodeURIComponent(cancelTarget.id)}${isTranslate ? '/cancel' : ''}`,
-        { method: isTranslate ? 'POST' : 'DELETE' },
+        { method: isTranslate ? 'POST' : 'DELETE' }
       );
       const json = await res.json();
       if (json?.success) {
@@ -278,7 +274,7 @@ export default function LearnPage() {
         await refresh();
       } else {
         setCancelError(
-          json?.error ?? 'Could not stop this path. If it just started, give it a moment.',
+          json?.error ?? 'Could not stop this path. If it just started, give it a moment.'
         );
       }
     } catch {
@@ -306,10 +302,9 @@ export default function LearnPage() {
     setResetting(true);
     setResetError(null);
     try {
-      const res = await fetch(
-        `/api/learn/paths/${encodeURIComponent(resetTarget.id)}/reset`,
-        { method: 'POST' },
-      );
+      const res = await fetch(`/api/learn/paths/${encodeURIComponent(resetTarget.id)}/reset`, {
+        method: 'POST',
+      });
       const json = await res.json();
       if (json?.success) {
         setResetTarget(null);
@@ -341,7 +336,7 @@ export default function LearnPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ language }),
-          },
+          }
         );
         const json = await res.json();
         if (json?.success) {
@@ -357,7 +352,7 @@ export default function LearnPage() {
       }
       setTranslating(false);
     },
-    [translateTarget, refresh],
+    [translateTarget, refresh]
   );
 
   const handleCancelTranslate = useCallback(() => {
@@ -372,9 +367,7 @@ export default function LearnPage() {
     // path has a publication that's still moving through moderation.
     // Either way, the next refresh swaps the card's chip / state for
     // the user.
-    const anyInFlight = plans.some(
-      (p) => isInFlight(p) || hasInFlightPublication(p),
-    );
+    const anyInFlight = plans.some((p) => isInFlight(p) || hasInFlightPublication(p));
     if (!anyInFlight) {
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
@@ -392,7 +385,15 @@ export default function LearnPage() {
   }, [plans, refresh]);
 
   return (
-    <div style={{ maxWidth: '960px', width: '100%', minWidth: 0, margin: '0 auto', padding: '24px 16px 48px' }}>
+    <div
+      style={{
+        maxWidth: '960px',
+        width: '100%',
+        minWidth: 0,
+        margin: '0 auto',
+        padding: '24px 16px 48px',
+      }}
+    >
       <header
         style={{
           marginBottom: '24px',
@@ -416,16 +417,6 @@ export default function LearnPage() {
           >
             Learning paths
           </h1>
-          <p
-            style={{
-              margin: '6px 0 0',
-              fontSize: '14px',
-              color: 'var(--on-surface-variant)',
-              lineHeight: 1.5,
-            }}
-          >
-            Pick a path to open its checkpoints. Pass a checkpoint to unlock the next phase.
-          </p>
         </div>
         {/* Path-publishing P8 — the library is the front door for the
             paths-led growth strategy (cf. project_paths_led_growth memory).
@@ -551,8 +542,8 @@ export default function LearnPage() {
                 color: 'var(--on-surface-variant)',
               }}
             >
-              Explore paths shared by the community and clone any one to your library —
-              free, instantly — to get the full experience.{' '}
+              Explore paths shared by the community and clone any one to your library — free,
+              instantly — to get the full experience.{' '}
               <Link
                 href="/learn/community?from=create"
                 style={{ color: 'var(--md-h4)', fontWeight: 700, textDecoration: 'none' }}
@@ -611,7 +602,7 @@ export default function LearnPage() {
                 onRequestReset={setResetTarget}
                 onRequestTranslate={setTranslateTarget}
               />
-            ),
+            )
           )}
         </div>
       )}
@@ -920,11 +911,7 @@ function PathCard({
             }}
             style={menuItemStyle('var(--error)')}
           >
-            <span
-              className="material-symbols-outlined"
-              aria-hidden
-              style={{ fontSize: '18px' }}
-            >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
               delete
             </span>
             Delete path
@@ -1036,7 +1023,15 @@ function PathCard({
         <span>
           {done} / {total} checkpoints
         </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: ink, fontWeight: 600 }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '2px',
+            color: ink,
+            fontWeight: 600,
+          }}
+        >
           Open
           <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
             chevron_right
@@ -1515,11 +1510,10 @@ function ResetPathDialog({
                 lineHeight: 1.5,
               }}
             >
-              Your progress on{' '}
-              <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> — completion,
-              stars, best scores, and flashcard review schedule — will be cleared so you can start
-              over. The theory, flashcards, and quizzes themselves are kept. This can&apos;t be
-              undone.
+              Your progress on <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong>{' '}
+              — completion, stars, best scores, and flashcard review schedule — will be cleared so
+              you can start over. The theory, flashcards, and quizzes themselves are kept. This
+              can&apos;t be undone.
             </p>
           </div>
         </div>
@@ -1592,7 +1586,7 @@ function TranslatePathDialog({
   // language re-translates in place to fix any text still left in another
   // language (e.g. a German path that generated with English fragments).
   const [language, setLanguage] = useState<PathLanguageCode>(() =>
-    isPathLanguage(current) ? current : 'en',
+    isPathLanguage(current) ? current : 'en'
   );
   const isReclean = language === current;
 
@@ -1671,8 +1665,8 @@ function TranslatePathDialog({
             >
               All of <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> — theory,
               flashcards, and quizzes — is translated in place and your progress is kept. It&apos;s
-              currently in {pathLanguageName(current as PathLanguageCode)}; pick that same language to
-              re-check it and fix anything still in another language.
+              currently in {pathLanguageName(current as PathLanguageCode)}; pick that same language
+              to re-check it and fix anything still in another language.
             </p>
           </div>
         </div>
@@ -1843,10 +1837,10 @@ function DeletePathDialog({
                 lineHeight: 1.5,
               }}
             >
-              <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> and
-              everything it generated — theory, flashcards, and quizzes — will be permanently
-              deleted. The flashcards and quizzes are also removed from the linked notebook.
-              This can&apos;t be undone.
+              <strong style={{ color: 'var(--on-surface)' }}>{plan.title}</strong> and everything it
+              generated — theory, flashcards, and quizzes — will be permanently deleted. The
+              flashcards and quizzes are also removed from the linked notebook. This can&apos;t be
+              undone.
             </p>
           </div>
         </div>
