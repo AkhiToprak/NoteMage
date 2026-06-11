@@ -25,13 +25,7 @@ function getInitials(name?: string | null): string {
     .slice(0, 2);
 }
 
-type Section =
-  | 'account'
-  | 'appearance'
-  | 'notifications'
-  | 'goals'
-  | 'subscription'
-  | 'privacy';
+type Section = 'account' | 'appearance' | 'notifications' | 'goals' | 'subscription' | 'privacy';
 
 function Toggle({
   checked,
@@ -145,8 +139,7 @@ export default function SettingsPage() {
           typeof saved.studyReminders === 'boolean' ? saved.studyReminders : n.studyReminders,
         productUpdates:
           typeof saved.productUpdates === 'boolean' ? saved.productUpdates : n.productUpdates,
-        weeklyReport:
-          typeof saved.weeklyReport === 'boolean' ? saved.weeklyReport : n.weeklyReport,
+        weeklyReport: typeof saved.weeklyReport === 'boolean' ? saved.weeklyReport : n.weeklyReport,
       }));
     } catch {
       /* ignore malformed or blocked storage */
@@ -229,7 +222,11 @@ export default function SettingsPage() {
       .then((res) => {
         const d = res?.data ?? res;
         if (d && typeof d === 'object') {
-          if (d.quizReactionsMode === 'all' || d.quizReactionsMode === 'minimal' || d.quizReactionsMode === 'off') {
+          if (
+            d.quizReactionsMode === 'all' ||
+            d.quizReactionsMode === 'minimal' ||
+            d.quizReactionsMode === 'off'
+          ) {
             setQuizReactionsMode(d.quizReactionsMode);
           }
           if (typeof d.quizReactionsAudio === 'boolean') {
@@ -346,7 +343,10 @@ export default function SettingsPage() {
         setPwStatus({ type: 'success', msg: 'Password updated.' });
         setPasswords({ current: '', newPass: '', confirm: '' });
       } else {
-        setPwStatus({ type: 'error', msg: json?.error ?? "Couldn't update password. Please try again." });
+        setPwStatus({
+          type: 'error',
+          msg: json?.error ?? "Couldn't update password. Please try again.",
+        });
       }
     } catch {
       setPwStatus({ type: 'error', msg: 'Network error. Please try again.' });
@@ -436,9 +436,6 @@ export default function SettingsPage() {
         >
           Settings
         </h2>
-        <p style={{ fontSize: isPhone ? '14px' : '17px', color: 'var(--on-surface-variant)', margin: 0 }}>
-          Manage your digital study sanctum and preferences.
-        </p>
       </header>
 
       <div
@@ -454,7 +451,14 @@ export default function SettingsPage() {
         }}
       >
         {/* Left column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '16px' : '24px', minWidth: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isPhone ? '16px' : '24px',
+            minWidth: 0,
+          }}
+        >
           {/* Profile card */}
           <div
             style={{
@@ -544,12 +548,24 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3
-                  style={{ fontSize: '18px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: '0 0 4px',
+                  }}
                 >
                   {session?.user?.name ?? 'Mage'}
                 </h3>
                 {session?.user?.username && (
-                  <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', fontWeight: 500, margin: 0 }}>
+                  <p
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--on-surface-variant)',
+                      fontWeight: 500,
+                      margin: 0,
+                    }}
+                  >
                     @{session.user.username}
                   </p>
                 )}
@@ -619,7 +635,14 @@ export default function SettingsPage() {
         </div>
 
         {/* Right column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '16px' : '24px', minWidth: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isPhone ? '16px' : '24px',
+            minWidth: 0,
+          }}
+        >
           {/* Account Security */}
           <section
             style={{
@@ -650,7 +673,9 @@ export default function SettingsPage() {
                   fingerprint
                 </span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
+              <h3
+                style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}
+              >
                 Account Security
               </h3>
             </div>
@@ -720,7 +745,12 @@ export default function SettingsPage() {
             {/* Change Password */}
             <div style={{ paddingTop: '24px', borderTop: '1px solid rgba(70,69,96,0.20)' }}>
               <h4
-                style={{ fontSize: '16px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 24px' }}
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: 'var(--on-surface)',
+                  margin: '0 0 24px',
+                }}
               >
                 Change Password
               </h4>
@@ -830,6 +860,109 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Legal & Policies */}
+          <section
+            style={{
+              background: 'var(--surface-container)',
+              borderRadius: isPhone ? '20px' : '32px',
+              padding: isPhone ? '20px' : '32px',
+              display: activeSection === 'privacy' ? 'flex' : 'none',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '16px',
+                  background: 'rgba(185,195,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: 'var(--secondary)', fontSize: '24px' }}
+                >
+                  gavel
+                </span>
+              </div>
+              <div>
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: 0,
+                  }}
+                >
+                  Legal &amp; Policies
+                </h3>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--on-surface-variant)',
+                    margin: '4px 0 0 0',
+                  }}
+                >
+                  Read how we handle your data and the terms you agreed to.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { href: '/privacy', icon: 'shield_person', label: 'Privacy Policy' },
+                { href: '/terms', icon: 'description', label: 'Terms of Service' },
+                { href: '/refund', icon: 'currency_exchange', label: 'Refund Policy' },
+                { href: '/legal', icon: 'balance', label: 'Legal Notice' },
+              ].map(({ href, icon, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    padding: '16px',
+                    background: 'var(--surface-container-low)',
+                    borderRadius: '16px',
+                    color: 'var(--on-surface)',
+                    textDecoration: 'none',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background =
+                      'var(--card-hover-bg-med)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background =
+                      'var(--surface-container-low)';
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: 'var(--on-surface-variant)', fontSize: '22px', flexShrink: 0 }}
+                  >
+                    {icon}
+                  </span>
+                  <span style={{ fontSize: '15px', fontWeight: 600, flex: 1 }}>{label}</span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: 'var(--on-surface-variant)', fontSize: '20px', flexShrink: 0 }}
+                  >
+                    open_in_new
+                  </span>
+                </a>
+              ))}
+            </div>
+          </section>
+
           {/* Dashboard Greeting */}
           <section
             style={{
@@ -861,10 +994,23 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: 0,
+                  }}
+                >
                   Dashboard Greeting
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--on-surface-variant)',
+                    margin: '4px 0 0 0',
+                  }}
+                >
                   Set a custom greeting. Use {'{'}
                   <span style={{ color: 'var(--md-h4)' }}>name</span>
                   {'}'} to include your name.
@@ -1016,10 +1162,23 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: 0,
+                  }}
+                >
                   Mage Name
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--on-surface-variant)',
+                    margin: '4px 0 0 0',
+                  }}
+                >
                   Give your AI study assistant a custom name.
                 </p>
               </div>
@@ -1177,10 +1336,23 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div style={{ minWidth: 0 }}>
-                <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: 0,
+                  }}
+                >
                   Welcome tour
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: '4px 0 0 0' }}>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--on-surface-variant)',
+                    margin: '4px 0 0 0',
+                  }}
+                >
                   Re-take the guided tour through your tools, notebooks, and the Learn hub.
                 </p>
               </div>
@@ -1246,7 +1418,9 @@ export default function SettingsPage() {
                   palette
                 </span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
+              <h3
+                style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}
+              >
                 Appearance
               </h3>
             </div>
@@ -1348,7 +1522,8 @@ export default function SettingsPage() {
                         fontFamily: 'var(--font-display)',
                         cursor: active ? 'default' : 'pointer',
                         textTransform: 'capitalize',
-                        transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
+                        transition:
+                          'background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
                       }}
                     >
                       {mode}
@@ -1428,7 +1603,9 @@ export default function SettingsPage() {
                   campaign
                 </span>
               </div>
-              <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
+              <h3
+                style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}
+              >
                 Notifications
               </h3>
             </div>
@@ -1464,10 +1641,12 @@ export default function SettingsPage() {
                     transition: 'background 0.15s',
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.background = 'var(--card-hover-bg-med)';
+                    (e.currentTarget as HTMLDivElement).style.background =
+                      'var(--card-hover-bg-med)';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-container-low)';
+                    (e.currentTarget as HTMLDivElement).style.background =
+                      'var(--surface-container-low)';
                   }}
                 >
                   <div>
@@ -1481,7 +1660,9 @@ export default function SettingsPage() {
                     >
                       {label}
                     </p>
-                    <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>{desc}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
+                      {desc}
+                    </p>
                   </div>
                   <Toggle
                     ariaLabel={label}
@@ -1490,10 +1671,7 @@ export default function SettingsPage() {
                       setNotifications((n) => {
                         const next = { ...n, [key]: v };
                         try {
-                          localStorage.setItem(
-                            'notemage:notification-prefs',
-                            JSON.stringify(next)
-                          );
+                          localStorage.setItem('notemage:notification-prefs', JSON.stringify(next));
                         } catch {
                           /* ignore blocked storage */
                         }
@@ -1504,7 +1682,14 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--on-surface-variant)',
+                margin: 0,
+                lineHeight: 1.6,
+              }}
+            >
               Saved on this device. Email delivery is rolling out soon.
             </p>
           </section>
@@ -1541,7 +1726,12 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3
-                  style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: '0 0 4px',
+                  }}
                 >
                   Study Goals
                 </h3>
@@ -1555,7 +1745,14 @@ export default function SettingsPage() {
               onSubmit={handleGoalSave}
               style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
             >
-              <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+              <p
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--on-surface-variant)',
+                  margin: 0,
+                  lineHeight: 1.6,
+                }}
+              >
                 Pick the targets that matter to you. Tap a card to enable or clear a goal.
               </p>
 
@@ -1593,7 +1790,9 @@ export default function SettingsPage() {
                         background: 'var(--surface-container-high)',
                         borderRadius: '20px',
                         padding: '20px',
-                        border: isSelected ? '2px solid var(--brand-purple)' : '1px solid var(--outline-variant)',
+                        border: isSelected
+                          ? '2px solid var(--brand-purple)'
+                          : '1px solid var(--outline-variant)',
                         boxShadow: isSelected ? '0 0 0 4px rgba(174,137,255,0.1)' : 'none',
                         cursor: 'pointer',
                         transition:
@@ -1640,7 +1839,13 @@ export default function SettingsPage() {
                           {target} {config.unit} / {config.cadence}
                         </p>
                       ) : (
-                        <p style={{ margin: '0 0 0', fontSize: '11px', color: 'var(--on-surface-variant)' }}>
+                        <p
+                          style={{
+                            margin: '0 0 0',
+                            fontSize: '11px',
+                            color: 'var(--on-surface-variant)',
+                          }}
+                        >
                           Tap to set goal
                         </p>
                       )}
@@ -1666,8 +1871,12 @@ export default function SettingsPage() {
                                   setStudyGoalTarget(config.key, preset);
                                 }}
                                 style={{
-                                  background: isActive ? 'var(--brand-purple)' : 'var(--surface-container-highest)',
-                                  color: isActive ? 'var(--on-primary)' : 'var(--on-surface-variant)',
+                                  background: isActive
+                                    ? 'var(--brand-purple)'
+                                    : 'var(--surface-container-highest)',
+                                  color: isActive
+                                    ? 'var(--on-primary)'
+                                    : 'var(--on-surface-variant)',
                                   border: `1px solid ${isActive ? 'var(--brand-purple)' : 'var(--outline-variant)'}`,
                                   borderRadius: '20px',
                                   padding: '4px 10px',
@@ -1790,7 +1999,12 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3
-                  style={{ fontSize: '22px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 4px' }}
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'var(--on-surface)',
+                    margin: '0 0 4px',
+                  }}
                 >
                   Subscription
                 </h3>
@@ -1802,7 +2016,6 @@ export default function SettingsPage() {
 
             {/* Current plan + actions (upgrade / manage / cancel) */}
             <SubscriptionPanel />
-
           </section>
 
           {/* Delete Account */}
