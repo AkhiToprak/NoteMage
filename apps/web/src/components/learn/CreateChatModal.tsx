@@ -6,6 +6,7 @@ import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { getMageName } from '@/lib/scholar';
 import { trackEvent } from '@/lib/telemetry';
+import VideoInputMask, { captionsUnavailableError } from '@/components/video/VideoInputMask';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,13 @@ interface DocRef {
   id: string;
   fileName: string;
   fileSize: number;
+  fileType?: string | null;
+}
+
+const VIDEO_TRANSCRIPT_TYPE = 'text/youtube-transcript';
+
+function isVideoDoc(doc: DocRef): boolean {
+  return doc.fileType === VIDEO_TRANSCRIPT_TYPE;
 }
 
 interface NotebookListItem {
@@ -392,6 +400,69 @@ export default function CreateChatModal({
     const file = e.dataTransfer.files[0];
     if (file) void uploadFile(file, target);
   };
+
+  // ── Attach a pasted YouTube URL as a transcript Document ─────────────────
+  // Mirrors ChatThread's `attachYouTubeUrl` notebook-resolution: a default
+  // notebook hits the notebook-scoped route, otherwise the learn-scoped route
+  // auto-creates/picks the Inbox notebook. The created Document is dropped into
+  // the matching list row and pre-selected so it rides into the chat's
+  // contextDocIds at create time. A 422 (no captions) re-throws the mask's
+  // CaptionsUnavailable error so the card renders the upsell inline.
+  const attachYouTubeUrl = useCallback(
+    async (url: string) => {
+      const endpoint = defaultNotebookId
+        ? `/api/notebooks/${defaultNotebookId}/documents/youtube`
+        : '/api/learn/documents/youtube';
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      if (res.status === 422) {
+        throw captionsUnavailableError();
+      }
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !json.data?.document?.id) {
+        throw new Error(json?.error ?? 'Could not add this video.');
+      }
+
+      const newDoc = json.data.document as DocRef;
+      setSelectedDocIds((prev) => new Set([...prev, newDoc.id]));
+
+      if (defaultNotebookId) {
+        setNotebooks((prev) =>
+          prev
+            ? prev.map((nb) =>
+                nb.id === defaultNotebookId
+                  ? { ...nb, documents: [newDoc, ...nb.documents], documentsLoaded: true }
+                  : nb
+              )
+            : prev
+        );
+        setExpandedNotebookIds((prev) => new Set([...prev, defaultNotebookId]));
+      } else {
+        setNotebooks((prev) => {
+          if (!prev) return prev;
+          const inboxIdx = prev.findIndex((n) => n.kind === 'inbox');
+          if (inboxIdx >= 0) {
+            const next = [...prev];
+            next[inboxIdx] = {
+              ...next[inboxIdx],
+              documents: [newDoc, ...next[inboxIdx].documents],
+              documentsLoaded: true,
+              sectionsLoaded: true,
+            };
+            setExpandedNotebookIds((p) => new Set([...p, next[inboxIdx].id]));
+            return next;
+          }
+          return prev;
+        });
+      }
+    },
+    [defaultNotebookId]
+  );
 
   // ── Submit ─────────────────────────────────────────────────────────────
   const handleCreate = async () => {
@@ -902,6 +973,29 @@ export default function CreateChatModal({
             </div>
           </div>
 
+          {/* Add a video */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--on-surface-variant)',
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+              }}
+            >
+              Add a video
+            </label>
+            <VideoInputMask dense onConfirmUrl={({ url }) => attachYouTubeUrl(url)} />
+            <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--on-surface-variant)' }}>
+              {defaultNotebookId
+                ? 'Transcripts attach to the current notebook.'
+                : 'Transcripts land in Inbox — available across all chats.'}
+            </p>
+          </div>
+
           {/* Title disclosure */}
           <div>
             {!showTitleInput ? (
@@ -1168,6 +1262,7 @@ function DocRow({
   isSelected: boolean;
   onToggle: () => void;
 }) {
+  const isVideo = isVideoDoc(doc);
   return (
     <div
       onClick={onToggle}
@@ -1198,6 +1293,13 @@ function DocRow({
         {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 10, color: 'var(--on-surface)' }} aria-hidden>check</span>}
       </div>
       <span
+        className="material-symbols-outlined"
+        aria-hidden
+        style={{ fontSize: 15, color: 'var(--on-surface-variant)', flexShrink: 0 }}
+      >
+        {isVideo ? 'smart_display' : 'description'}
+      </span>
+      <span
         style={{
           fontSize: '12px',
           color: 'var(--on-surface)',
@@ -1209,6 +1311,19 @@ function DocRow({
       >
         {doc.fileName}
       </span>
+      {isVideo && (
+        <span
+          style={{
+            fontSize: '10px',
+            fontWeight: 600,
+            color: 'var(--on-surface-variant)',
+            letterSpacing: '0.04em',
+            flexShrink: 0,
+          }}
+        >
+          Video
+        </span>
+      )}
       <span style={{ fontSize: '10px', color: 'var(--on-surface-variant)', flexShrink: 0 }}>
         {formatBytes(doc.fileSize)}
       </span>

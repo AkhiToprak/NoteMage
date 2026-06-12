@@ -82,6 +82,13 @@ const ALLOWED_TYPES = [
   'text/markdown',
 ];
 
+const VIDEO_TRANSCRIPT_TYPE = 'text/youtube-transcript';
+
+/** A document sourced from a YouTube transcript — shown with a video glyph. */
+function isVideoTranscript(doc: DocumentItem): boolean {
+  return doc.fileType === VIDEO_TRANSCRIPT_TYPE;
+}
+
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -1557,6 +1564,15 @@ function UploadAndDocsList({
                 >
                   {isSelected && <span className="material-symbols-outlined" style={{ fontSize: 10, color: 'var(--on-primary-container)' }} aria-hidden>check</span>}
                 </div>
+                {isVideoTranscript(doc) && (
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 15, color: 'var(--on-surface-variant)', flexShrink: 0 }}
+                    aria-hidden
+                  >
+                    smart_display
+                  </span>
+                )}
                 <span
                   style={{
                     fontSize: '13px',
@@ -1568,6 +1584,9 @@ function UploadAndDocsList({
                   }}
                 >
                   {doc.fileName}
+                  {isVideoTranscript(doc) ? (
+                    <span style={{ color: 'var(--on-surface-variant)' }}> · Video</span>
+                  ) : null}
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)', flexShrink: 0 }}>
                   {formatBytes(doc.fileSize)}
