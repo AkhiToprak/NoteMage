@@ -15,6 +15,7 @@ import VideoInputMask, {
   captionsUnavailableError,
   type VideoUrlConfirm,
 } from '@/components/video/VideoInputMask';
+import VideoImportMascot from '@/components/video/VideoImportMascot';
 import ImportSectionPicker, {
   type DraftSection,
   type SectionOption,
@@ -376,14 +377,8 @@ export default function VideoImportTab({
 
   if (phase === 'preparing') {
     return (
-      <div style={{ ...centeredCol, padding: '40px 0' }}>
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 26, color: 'var(--primary)', animation: 'vidSpin 1s linear infinite' }}
-          aria-hidden
-        >
-          progress_activity
-        </span>
+      <div style={{ ...centeredCol, padding: '32px 0' }}>
+        <VideoImportMascot />
         <p
           aria-live="polite"
           style={{ margin: 0, fontSize: '13.5px', color: 'var(--on-surface-variant)', textAlign: 'center' }}
@@ -393,7 +388,6 @@ export default function VideoImportTab({
         <p style={{ margin: 0, fontSize: '12px', color: 'var(--outline)', textAlign: 'center' }}>
           Keep this dialog open while your video uploads.
         </p>
-        <style>{`@keyframes vidSpin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -750,6 +744,10 @@ function VideoJobTracker({
           This keeps running in the background if you close this dialog.
         </p>
       </header>
+
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <VideoImportMascot state={isReady ? 'ready' : isFailed ? 'failed' : 'working'} />
+      </div>
 
       <div
         style={{

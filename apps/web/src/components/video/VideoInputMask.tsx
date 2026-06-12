@@ -5,6 +5,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import VideoImportMascot from './VideoImportMascot';
 
 // Inlined client-side video-id extraction (mirrors `extractVideoId` in
 // `@/lib/youtube`). Kept local so this client component does not pull the
@@ -606,7 +607,15 @@ export function VideoSourceCard({
             ) : null}
           </div>
         ) : (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: confirming ? 'space-between' : 'flex-end',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            {confirming ? <VideoImportMascot compact /> : null}
             <button
               type="button"
               className="vim-btn"
