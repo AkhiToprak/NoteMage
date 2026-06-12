@@ -68,9 +68,11 @@ import {
   TheorySectionSchema,
   PathDiagramSchema,
   TheoryFigureSchema,
+  DIAGRAM_CLOZE_MASK,
   type QuestionKind,
   type TheorySection,
   type PathDiagram,
+  type DiagramClozePayload,
 } from '@notemage/shared';
 import { randomUUID } from 'crypto';
 import { copyImage } from './storage';
@@ -973,17 +975,310 @@ export function resolveFigures(
 
 /**
  * Validate each diagram with the strict per-kind schema and drop the invalid
- * ones (never fail the theory over a bad diagram). Capped at 2.
+ * ones (never fail the theory over a bad diagram). Capped at 2. When `meta` is
+ * supplied, emits one aggregated telemetry event per slot so silent drops
+ * become visible in prod (the optional param keeps unit calls one-arg).
  */
-export function resolveDiagrams(rawDiagrams: unknown): PathDiagram[] {
+export function resolveDiagrams(
+  rawDiagrams: unknown,
+  meta?: { userId: string | null; planId: string; slotId: string },
+): PathDiagram[] {
   if (!Array.isArray(rawDiagrams)) return [];
   const out: PathDiagram[] = [];
+  let dropped = 0;
   for (const raw of rawDiagrams) {
     const parsed = PathDiagramSchema.safeParse(raw);
     if (parsed.success) out.push(parsed.data);
+    else dropped++;
     if (out.length >= 2) break;
   }
+  if (meta && (out.length > 0 || dropped > 0)) {
+    logTelemetry(meta.userId, 'path.theory.diagrams_resolved', {
+      planId: meta.planId,
+      slotId: meta.slotId,
+      emitted: out.length,
+      dropped,
+    });
+  }
   return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Diagram reuse (Phase 3) — extract theory's `pathDiagram` nodes for
+// stamping onto the slot's flashcard / quiz sets (zero AI tokens).
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Walk a persisted TheoryContent.body (TipTap doc) and collect every top-level
+ * `pathDiagram` node's diagram, validated by the strict per-kind schema. The
+ * theory generator only ever emits diagrams as direct children of the doc (see
+ * theoryInputToTipTap), so a top-level walk is sufficient and avoids matching
+ * any nested look-alike. Invalid entries are dropped, never thrown.
+ */
+export function extractDiagramsFromTheoryBody(body: unknown): PathDiagram[] {
+  if (!body || typeof body !== 'object') return [];
+  const nodes = (body as Record<string, unknown>).content;
+  if (!Array.isArray(nodes)) return [];
+  const out: PathDiagram[] = [];
+  for (const node of nodes) {
+    const n = node as Record<string, unknown>;
+    if (n?.type === 'pathDiagram' && n.attrs) {
+      const parsed = PathDiagramSchema.safeParse((n.attrs as Record<string, unknown>).diagram);
+      if (parsed.success) out.push(parsed.data);
+    }
+  }
+  return out;
+}
+
+/**
+ * Merge diagrams pulled from several covered slots' theory bodies into the set
+ * of ≤2 the viewer renders. Preserves covered-slot order, dedupes by
+ * `kind`+`title` (a review pulling from siblings that each emitted "Timeline of
+ * the Republic" shouldn't show it twice), and caps at 2 — matching
+ * `resolveDiagrams`. Pure: unit-tested directly.
+ */
+export function mergeDiagrams(lists: PathDiagram[][]): PathDiagram[] {
+  const out: PathDiagram[] = [];
+  const seen = new Set<string>();
+  for (const list of lists) {
+    for (const d of list) {
+      const key = `${d.kind}::${d.title ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(d);
+      if (out.length >= 2) return out;
+    }
+  }
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Diagram cloze (Phase 5) — deterministic "what's missing?" question
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Terse "what's missing in this diagram?" stem per language. Paths generate
+ * directly IN the plan's language, but this question is built in code — so we
+ * carry a native stem for the popular languages and fall back to English for
+ * the rest. The English stem also rides the translatable question-text slot, so
+ * `translatePath` localises it for every other language on demand.
+ */
+const DIAGRAM_CLOZE_STEMS: Partial<Record<PathLanguageCode, string>> = {
+  en: "What's missing in this diagram?",
+  de: 'Was fehlt in diesem Diagramm?',
+  fr: 'Que manque-t-il dans ce schéma ?',
+  es: '¿Qué falta en este diagrama?',
+  it: 'Cosa manca in questo diagramma?',
+  tr: 'Bu diyagramda eksik olan ne?',
+};
+
+function diagramClozeStem(language: PathLanguageCode): string {
+  return DIAGRAM_CLOZE_STEMS[language] ?? DIAGRAM_CLOZE_STEMS.en!;
+}
+
+// One maskable element of a diagram: its label string plus a function that
+// returns a deep clone of the whole diagram with THAT element replaced by the
+// mask marker. Kind-specific rules exclude the cue elements (timeline dates,
+// comparison column headers + row labels) so the masked element is always a
+// fair answer.
+interface MaskableElement {
+  label: string;
+  masked: () => PathDiagram;
+}
+
+function clone<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T;
+}
+
+/**
+ * The maskable elements of one diagram, in document order. Per kind:
+ *   timeline   → each event LABEL (never the date — the date is the cue).
+ *   steps      → each step TITLE.
+ *   comparison → each non-empty body CELL (never a column header or row label).
+ *   cycle      → each node.
+ */
+function maskableElements(diagram: PathDiagram): MaskableElement[] {
+  const out: MaskableElement[] = [];
+  switch (diagram.kind) {
+    case 'timeline':
+      diagram.events.forEach((ev, i) => {
+        out.push({
+          label: ev.label,
+          masked: () => {
+            const d = clone(diagram);
+            d.events[i].label = DIAGRAM_CLOZE_MASK;
+            return d;
+          },
+        });
+      });
+      break;
+    case 'steps':
+      diagram.steps.forEach((st, i) => {
+        out.push({
+          label: st.title,
+          masked: () => {
+            const d = clone(diagram);
+            d.steps[i].title = DIAGRAM_CLOZE_MASK;
+            return d;
+          },
+        });
+      });
+      break;
+    case 'comparison':
+      diagram.rows.forEach((row, ri) => {
+        row.cells.forEach((cell, ci) => {
+          if (typeof cell !== 'string' || cell.trim().length === 0) return;
+          out.push({
+            label: cell,
+            masked: () => {
+              const d = clone(diagram);
+              d.rows[ri].cells[ci] = DIAGRAM_CLOZE_MASK;
+              return d;
+            },
+          });
+        });
+      });
+      break;
+    case 'cycle':
+      diagram.nodes.forEach((node, i) => {
+        out.push({
+          label: node,
+          masked: () => {
+            const d = clone(diagram);
+            d.nodes[i] = DIAGRAM_CLOZE_MASK;
+            return d;
+          },
+        });
+      });
+      break;
+    default:
+      break;
+  }
+  return out;
+}
+
+/**
+ * Build ONE deterministic diagram-cloze question from a set's diagrams, or null
+ * when the rule can't be met. Zero AI tokens — the question is derived in code.
+ *
+ * Element pick (deterministic, documented): take the FIRST diagram that has any
+ * maskable element; mask its MIDDLE maskable element (`floor(n/2)`).
+ *
+ * Distractors: other maskable labels from the SAME diagram first, then sibling
+ * diagrams, deduped (case-insensitively) against the answer and each other. We
+ * need ≥3 unique non-empty distractors (4 options total) or we return null —
+ * never a degenerate question. Options are ordered by a stable rotation (no
+ * randomness) so unit output is deterministic and the answer isn't always first.
+ */
+export function buildDiagramClozeQuestion(
+  diagrams: PathDiagram[],
+  language: PathLanguageCode,
+): { kind: 'diagram_cloze'; question: string; payload: DiagramClozePayload } | null {
+  if (!Array.isArray(diagrams) || diagrams.length === 0) return null;
+
+  // First diagram with at least one maskable element is the target.
+  let targetIndex = -1;
+  let elements: MaskableElement[] = [];
+  for (let i = 0; i < diagrams.length; i++) {
+    const els = maskableElements(diagrams[i]);
+    if (els.length > 0) {
+      targetIndex = i;
+      elements = els;
+      break;
+    }
+  }
+  if (targetIndex < 0 || elements.length === 0) return null;
+
+  const pick = elements[Math.floor(elements.length / 2)];
+  const answer = pick.label;
+  const answerKey = answer.trim().toLowerCase();
+
+  // Distractor pool: same-diagram labels first (in order, minus the answer),
+  // then every other diagram's maskable labels. Dedupe case-insensitively.
+  const seen = new Set<string>([answerKey]);
+  const distractors: string[] = [];
+  const consider = (label: string) => {
+    const key = label.trim().toLowerCase();
+    if (key.length === 0 || seen.has(key)) return;
+    seen.add(key);
+    distractors.push(label);
+  };
+  for (const el of elements) consider(el.label);
+  for (let i = 0; i < diagrams.length; i++) {
+    if (i === targetIndex) continue;
+    for (const el of maskableElements(diagrams[i])) consider(el.label);
+  }
+
+  if (distractors.length < 3) return null;
+
+  // 4 options: answer + first 3 distractors, ordered by a stable rotation keyed
+  // by the answer length so the correct slot varies but is deterministic.
+  const pool = [answer, distractors[0], distractors[1], distractors[2]];
+  const shift = answer.length % 4;
+  const options = pool.map((_, i) => pool[(i + shift) % 4]);
+  const correctIndex = (0 + (4 - shift)) % 4; // where `answer` (pool[0]) landed
+
+  return {
+    kind: 'diagram_cloze',
+    question: diagramClozeStem(language),
+    payload: { diagram: pick.masked(), options, correctIndex },
+  };
+}
+
+/**
+ * Resolve the diagrams to stamp onto a slot's flashcard/quiz set, sourced from
+ * theory bodies per the slot-kind composition (path-slot-activities.ts):
+ *
+ *   learning  → the slot's OWN persisted theory body.
+ *   review    → the covered learning slots' theory bodies (flashcards + quiz).
+ *   assessment→ the covered learning slots' theory bodies (quiz).
+ *   final_exam→ none (covers the whole plan; a merged dump isn't a useful panel).
+ *
+ * Covered-slot resolution replicates makeSlotContentContext exactly: explicit
+ * `coversSlotIds` when non-empty (resolved against the same phase's slots), else
+ * every earlier slot in the same phase with a lower `sortOrder`. Theory bodies
+ * are read from the DB (not in-memory) so a fresh run (theory persists before
+ * the slot's parallel activities, and earlier slots persist before later ones in
+ * sortOrder) and a retry sweep (theory created in an earlier run) behave
+ * identically. Returns at most 2.
+ */
+async function resolveDiagramsForSet(
+  phase: PhaseForGeneration,
+  slot: SlotForGeneration,
+): Promise<PathDiagram[]> {
+  if (slot.kind === 'final_exam') return [];
+
+  if (slot.kind === 'learning') {
+    const body = await loadSlotTheoryBody(slot.id);
+    return mergeDiagrams([extractDiagramsFromTheoryBody(body)]);
+  }
+
+  // review / assessment — cross-slot resolver (same rule as makeSlotContentContext).
+  const byId = new Map(phase.slots.map((s) => [s.id, s]));
+  let covered: SlotForGeneration[];
+  if (slot.coversSlotIds.length > 0) {
+    covered = slot.coversSlotIds
+      .map((id) => byId.get(id))
+      .filter((s): s is SlotForGeneration => Boolean(s));
+  } else {
+    covered = phase.slots.filter((s) => s.id !== slot.id && s.sortOrder < slot.sortOrder);
+  }
+  if (covered.length === 0) return [];
+  const bodies = await Promise.all(covered.map((s) => loadSlotTheoryBody(s.id)));
+  return mergeDiagrams(bodies.map((b) => extractDiagramsFromTheoryBody(b)));
+}
+
+/**
+ * Read a slot's theory activity body (TipTap JSON) from the DB. Returns null
+ * when the slot has no theory activity (review/assessment slots) or it hasn't
+ * been generated yet.
+ */
+async function loadSlotTheoryBody(slotId: string): Promise<unknown> {
+  const act = await db.checkpointActivity.findFirst({
+    where: { slotId, kind: 'theory', theoryId: { not: null } },
+    select: { theory: { select: { body: true } } },
+  });
+  return act?.theory?.body ?? null;
 }
 
 async function generateTheoryActivity(
@@ -1070,7 +1365,9 @@ async function generateTheoryActivity(
     plan.theoryFiguresEnabled && plan.imageCatalog
       ? resolveFigures(resolved.figures, plan.availableImages)
       : [];
-  const diagrams = plan.diagramsEnabled ? resolveDiagrams(resolved.diagrams) : [];
+  const diagrams = plan.diagramsEnabled
+    ? resolveDiagrams(resolved.diagrams, { userId: plan.userId, planId: plan.id, slotId: slot.id })
+    : [];
 
   // Snapshot blobs OUTSIDE the DB transaction — storage I/O must not hold a DB
   // connection open. A copy failure simply drops that one figure.
@@ -1141,6 +1438,31 @@ async function generateTheoryActivity(
       },
     });
   });
+
+  // Diagram-reuse staleness (Phase 3): if this slot's flashcards were generated
+  // in a PRIOR sweep while theory was still failing, that FlashcardSet has empty
+  // diagrams. Theory is normally generated BEFORE flashcards in the same pass
+  // (so the create-time stamp covers the common case), but a retry sweep can land
+  // theory afterward — backfill the same-slot set with the diagrams we just
+  // validated. Only learning slots carry both theory and flashcards. Cross-slot
+  // copies on review/assessment sets are an accepted v1 staleness (see Non-Goals).
+  if (slot.kind === 'learning' && diagrams.length > 0) {
+    await db.flashcardSet
+      .updateMany({
+        where: {
+          sourcePathId: plan.id,
+          checkpointActivity: { slotId: slot.id, kind: 'flashcards' },
+        },
+        data: { diagrams: diagrams as unknown as Prisma.InputJsonValue },
+      })
+      .catch((error) => {
+        logTelemetry(plan.userId, 'path.theory.diagram_backfill_failed', {
+          planId: plan.id,
+          slotId: slot.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+  }
   return theoryPlainText(resolved);
 }
 
@@ -1286,6 +1608,11 @@ async function generateFlashcardsActivity(
     }
   }
 
+  // Diagram reuse (Phase 3): copy the covering theory's diagrams onto the set
+  // (zero AI tokens) so the viewer can show them as a reference panel. Source
+  // per slot kind: learning → own theory; review → covered slots' theory.
+  const diagrams = plan.diagramsEnabled ? await resolveDiagramsForSet(phase, slot) : [];
+
   await db.$transaction(async (tx) => {
     const set = await tx.flashcardSet.create({
       data: {
@@ -1296,6 +1623,9 @@ async function generateFlashcardsActivity(
         sourcePathId: plan.id,
         title: input.title || slot.title,
         source: 'ai',
+        ...(diagrams.length > 0
+          ? { diagrams: diagrams as unknown as Prisma.InputJsonValue }
+          : {}),
         flashcards: {
           create: input.flashcards.map((fc, i) => {
             const imgs = snappedByCard.get(i);
@@ -1620,6 +1950,29 @@ async function generateQuizActivity(
     }
   }
 
+  // Diagram reuse (Phase 3): copy the covering theory's diagrams onto the set
+  // (zero AI tokens). Quizzes only occur on review/assessment/final_exam slots;
+  // resolveDiagramsForSet sources review/assessment from covered learning slots
+  // and skips final_exam entirely.
+  const diagrams = plan.diagramsEnabled ? await resolveDiagramsForSet(phase, slot) : [];
+
+  // Diagram cloze (Phase 5): when the set has reference diagrams, APPEND exactly
+  // ONE deterministic "what's missing in this diagram?" question, built in code
+  // (zero AI tokens, never LLM-emitted). buildDiagramClozeQuestion returns null
+  // when no maskable element or < 3 unique distractors exist — never a degenerate
+  // question. Appended AFTER the LLM questions (and after figure snapshotting, so
+  // its index never collides with a snapped figure) at the tail sortOrder.
+  const cloze =
+    diagrams.length > 0 ? buildDiagramClozeQuestion(diagrams, plan.language) : null;
+  if (cloze) {
+    logTelemetry(plan.userId, 'path.quiz.diagram_cloze_built', {
+      planId: plan.id,
+      slotId: slot.id,
+      diagramKind: cloze.payload.diagram.kind,
+    });
+  }
+  const clozeId = randomUUID();
+
   await db.$transaction(async (tx) => {
     const quizSet = await tx.quizSet.create({
       data: {
@@ -1629,37 +1982,61 @@ async function generateQuizActivity(
         // flat lists while preserving the viewer's notebookId routing.
         sourcePathId: plan.id,
         title: finalTitle,
+        ...(diagrams.length > 0
+          ? { diagrams: diagrams as unknown as Prisma.InputJsonValue }
+          : {}),
         questions: {
-          create: finalQuestions.map((q, i) => {
-            const legacy = buildLegacyColumns(q.kind, q.payload);
-            const snap = snappedByQuestion.get(i);
-            return {
-              id: questionIds[i],
-              kind: q.kind,
-              payload: q.payload as unknown as Prisma.InputJsonValue,
-              question: q.prompt,
-              options: legacy.options,
-              correctIndex: legacy.correctIndex,
-              hint: q.hint ?? null,
-              correctExplanation: q.correctExplanation ?? null,
-              wrongExplanation: q.wrongExplanation ?? null,
-              sortOrder: i,
-              ...(snap
-                ? {
-                    image: {
-                      create: {
-                        fileName: snap.fileName,
-                        filePath: snap.filePath,
-                        fileSize: snap.fileSize,
-                        mimeType: snap.mimeType,
-                        caption: snap.caption,
-                        sourcePageImageId: snap.sourcePageImageId,
+          create: [
+            ...finalQuestions.map((q, i) => {
+              const legacy = buildLegacyColumns(q.kind, q.payload);
+              const snap = snappedByQuestion.get(i);
+              return {
+                id: questionIds[i],
+                kind: q.kind,
+                payload: q.payload as unknown as Prisma.InputJsonValue,
+                question: q.prompt,
+                options: legacy.options,
+                correctIndex: legacy.correctIndex,
+                hint: q.hint ?? null,
+                correctExplanation: q.correctExplanation ?? null,
+                wrongExplanation: q.wrongExplanation ?? null,
+                sortOrder: i,
+                ...(snap
+                  ? {
+                      image: {
+                        create: {
+                          fileName: snap.fileName,
+                          filePath: snap.filePath,
+                          fileSize: snap.fileSize,
+                          mimeType: snap.mimeType,
+                          caption: snap.caption,
+                          sourcePageImageId: snap.sourcePageImageId,
+                        },
                       },
-                    },
-                  }
-                : {}),
-            };
-          }),
+                    }
+                  : {}),
+              };
+            }),
+            ...(cloze
+              ? [
+                  {
+                    id: clozeId,
+                    kind: cloze.kind,
+                    payload: cloze.payload as unknown as Prisma.InputJsonValue,
+                    question: cloze.question,
+                    // Legacy MC columns mirror the payload's options/correctIndex
+                    // (diagram_cloze is multiple-choice at heart), so the row is
+                    // self-describing exactly like an mc row.
+                    options: cloze.payload.options,
+                    correctIndex: cloze.payload.correctIndex,
+                    hint: null,
+                    correctExplanation: null,
+                    wrongExplanation: null,
+                    sortOrder: finalQuestions.length,
+                  },
+                ]
+              : []),
+          ],
         },
       },
     });

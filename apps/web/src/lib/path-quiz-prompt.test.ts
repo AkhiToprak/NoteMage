@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { quizPayloadCatalogFor } from './ai-tools';
-import { buildQuizPrompt, type SlotContentContext } from './path-prompts';
+import { buildFlashcardsPrompt, buildQuizPrompt, type SlotContentContext } from './path-prompts';
 import { allowedKindsForSubjects, type SubjectId } from './path-subjects';
 import type { PathSlotKind } from './ai-tools';
 
@@ -74,5 +74,21 @@ describe('buildQuizPrompt — menu + catalog reflect allowed kinds', () => {
     const { system } = buildQuizPrompt(quizCtx(['general']));
     expect(system).not.toContain('one of the 11 enum values');
     expect(system).toContain('one of the allowed kinds listed below');
+  });
+});
+
+// Phase 6 (Goal B) — the math card-style steer must reach the flashcard system
+// prompt for math learning slots, and stay absent for guidance-less subjects.
+describe('buildFlashcardsPrompt — math card-style steer', () => {
+  it('injects worked-example guidance for a math path', () => {
+    const { system } = buildFlashcardsPrompt(quizCtx(['math'], 'learning'));
+    expect(system).toContain('Card style (Mathematics):');
+    expect(system).toContain('WORKED-EXAMPLE');
+  });
+
+  it('omits the card-style steer for a subject without flashcard guidance', () => {
+    const { system } = buildFlashcardsPrompt(quizCtx(['history_humanities'], 'learning'));
+    expect(system).not.toContain('Card style');
+    expect(system).not.toContain('WORKED-EXAMPLE');
   });
 });

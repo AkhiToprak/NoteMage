@@ -861,7 +861,7 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
         type: 'array',
         maxItems: 2,
         description:
-          'OPTIONAL. 0–2 structured diagrams that materially clarify the topic. Use the right kind: "timeline" for dated/historical sequences, "steps" for a process or how-to, "comparison" for contrasting things, "cycle" for a repeating loop. Fill ONLY the fields for the chosen kind. Omit entirely if no diagram helps.',
+          'Include 1–2 structured diagrams when the topic has temporal / sequential / comparative / cyclical structure; when in doubt, include one. Use the right kind: "timeline" for dated/historical sequences, "steps" for a process or how-to, "comparison" for contrasting things, "cycle" for a repeating loop. Fill ONLY the fields for the chosen kind. Omit ONLY if no kind fits the topic naturally.',
         items: {
           type: 'object',
           properties: {

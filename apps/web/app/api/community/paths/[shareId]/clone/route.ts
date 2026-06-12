@@ -184,6 +184,10 @@ export async function POST(request: NextRequest, { params }: Params) {
                           select: {
                             title: true,
                             source: true,
+                            // Path-diagrams revival (Phase 3): set-level reference
+                            // diagrams must travel with the clone, else cloned
+                            // paths silently lose card diagrams.
+                            diagrams: true,
                             flashcards: {
                               orderBy: { sortOrder: 'asc' },
                               select: {
@@ -209,6 +213,8 @@ export async function POST(request: NextRequest, { params }: Params) {
                         quizSet: {
                           select: {
                             title: true,
+                            // Path-diagrams revival (Phase 3): see flashcardSet.
+                            diagrams: true,
                             questions: {
                               orderBy: { sortOrder: 'asc' },
                               select: {
@@ -448,6 +454,7 @@ function buildActivityCreate(
       | {
           title: string;
           source: string;
+          diagrams: Prisma.JsonValue;
           flashcards: Array<{
             question: string;
             answer: string;
@@ -467,6 +474,7 @@ function buildActivityCreate(
     quizSet:
       | {
           title: string;
+          diagrams: Prisma.JsonValue;
           questions: Array<{
             kind: QuestionKind;
             payload: Prisma.JsonValue | null;
@@ -542,6 +550,11 @@ function buildActivityCreate(
         // surfaces as user-curated content in /learn/library views and
         // doesn't fight the "your AI-generated cards" cohort filters.
         source: 'manual',
+        // Path-diagrams revival (Phase 3): copy the set-level reference diagrams
+        // verbatim (loose JSON, no rewrite needed) so the clone keeps them.
+        ...(activity.flashcardSet.diagrams != null
+          ? { diagrams: activity.flashcardSet.diagrams as Prisma.InputJsonValue }
+          : {}),
         flashcards: {
           create: activity.flashcardSet.flashcards.map((card) => ({
             question: card.question,
@@ -587,6 +600,10 @@ function buildActivityCreate(
       create: {
         userId: cloneOwnerUserId,
         title: activity.quizSet.title,
+        // Path-diagrams revival (Phase 3): copy the set-level reference diagrams.
+        ...(activity.quizSet.diagrams != null
+          ? { diagrams: activity.quizSet.diagrams as Prisma.InputJsonValue }
+          : {}),
         questions: {
           create: activity.quizSet.questions.map((q) => ({
             kind: q.kind,

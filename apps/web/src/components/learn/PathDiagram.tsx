@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { PathDiagram as PathDiagramData } from '@notemage/shared';
 
 // Renders an AI-generated structured diagram inside path theory (theory-visuals
@@ -8,6 +8,42 @@ import type { PathDiagram as PathDiagramData } from '@notemage/shared';
 // PathDiagramSchema and draws it with the project's design tokens. No gradients,
 // solid theme-aware colors only, Material Symbols for markers, and vertical
 // layouts so every kind stays readable on a phone without horizontal scroll.
+//
+// Diagram cloze (Phase 5): when `maskMarker` is set, any label equal to it is
+// the masked element of a "what's missing?" question — drawn as a distinct "?"
+// chip instead of the literal marker glyph. Backward-compatible: theory and the
+// Phase 3 reference panel never pass `maskMarker`, so the chip never appears.
+
+// Renders a label string, swapping the mask marker for a "?" chip. Used by every
+// kind so the masked element reads the same everywhere it can appear.
+function Label({ value, maskMarker }: { value: string; maskMarker?: string }): ReactNode {
+  if (maskMarker && value === maskMarker) {
+    return (
+      <span
+        aria-label="missing label"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: '28px',
+          height: '24px',
+          padding: '0 8px',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px dashed var(--primary)',
+          background: 'var(--surface-container-high)',
+          color: 'var(--primary)',
+          fontWeight: 800,
+          fontSize: '14px',
+          lineHeight: 1,
+          verticalAlign: 'middle',
+        }}
+      >
+        ?
+      </span>
+    );
+  }
+  return value;
+}
 
 const KIND_ICON: Record<PathDiagramData['kind'], string> = {
   timeline: 'timeline',
@@ -59,7 +95,13 @@ function Frame({
   );
 }
 
-function Timeline({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'timeline' }> }) {
+function Timeline({
+  diagram,
+  maskMarker,
+}: {
+  diagram: Extract<PathDiagramData, { kind: 'timeline' }>;
+  maskMarker?: string;
+}) {
   return (
     <Frame kind="timeline" title={diagram.title}>
       <ol
@@ -100,7 +142,7 @@ function Timeline({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'time
               {ev.date}
             </div>
             <div style={{ color: 'var(--on-surface)', fontSize: '14px', lineHeight: 1.5 }}>
-              {ev.label}
+              <Label value={ev.label} maskMarker={maskMarker} />
             </div>
           </li>
         ))}
@@ -109,7 +151,13 @@ function Timeline({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'time
   );
 }
 
-function Steps({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'steps' }> }) {
+function Steps({
+  diagram,
+  maskMarker,
+}: {
+  diagram: Extract<PathDiagramData, { kind: 'steps' }>;
+  maskMarker?: string;
+}) {
   return (
     <Frame kind="steps" title={diagram.title}>
       <ol
@@ -144,7 +192,7 @@ function Steps({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'steps' 
             </span>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--on-surface)', fontSize: '14px', fontWeight: 700 }}>
-                {step.title}
+                <Label value={step.title} maskMarker={maskMarker} />
               </div>
               {step.detail ? (
                 <div
@@ -166,7 +214,13 @@ function Steps({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'steps' 
   );
 }
 
-function Comparison({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'comparison' }> }) {
+function Comparison({
+  diagram,
+  maskMarker,
+}: {
+  diagram: Extract<PathDiagramData, { kind: 'comparison' }>;
+  maskMarker?: string;
+}) {
   const cellStyle: CSSProperties = {
     padding: '8px 12px',
     borderBottom: '1px solid var(--outline-variant)',
@@ -204,7 +258,7 @@ function Comparison({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'co
                 </th>
                 {diagram.columns.map((_, ci) => (
                   <td key={ci} style={cellStyle}>
-                    {row.cells[ci] ?? ''}
+                    <Label value={row.cells[ci] ?? ''} maskMarker={maskMarker} />
                   </td>
                 ))}
               </tr>
@@ -216,7 +270,13 @@ function Comparison({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'co
   );
 }
 
-function Cycle({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'cycle' }> }) {
+function Cycle({
+  diagram,
+  maskMarker,
+}: {
+  diagram: Extract<PathDiagramData, { kind: 'cycle' }>;
+  maskMarker?: string;
+}) {
   return (
     <Frame kind="cycle" title={diagram.title}>
       <ol
@@ -243,7 +303,7 @@ function Cycle({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'cycle' 
                 fontWeight: 600,
               }}
             >
-              {node}
+              <Label value={node} maskMarker={maskMarker} />
             </span>
             {i < diagram.nodes.length - 1 ? (
               <span
@@ -273,7 +333,7 @@ function Cycle({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'cycle' 
                 >
                   cached
                 </span>
-                {diagram.nodes[0]}
+                <Label value={diagram.nodes[0]} maskMarker={maskMarker} />
               </span>
             )}
           </li>
@@ -283,16 +343,24 @@ function Cycle({ diagram }: { diagram: Extract<PathDiagramData, { kind: 'cycle' 
   );
 }
 
-export default function PathDiagram({ diagram }: { diagram: PathDiagramData }) {
+export default function PathDiagram({
+  diagram,
+  maskMarker,
+}: {
+  diagram: PathDiagramData;
+  // Diagram cloze (Phase 5): when set, any label equal to this marker renders as
+  // a "?" chip. Omit for theory + the Phase 3 reference panel (no masking).
+  maskMarker?: string;
+}) {
   switch (diagram.kind) {
     case 'timeline':
-      return <Timeline diagram={diagram} />;
+      return <Timeline diagram={diagram} maskMarker={maskMarker} />;
     case 'steps':
-      return <Steps diagram={diagram} />;
+      return <Steps diagram={diagram} maskMarker={maskMarker} />;
     case 'comparison':
-      return <Comparison diagram={diagram} />;
+      return <Comparison diagram={diagram} maskMarker={maskMarker} />;
     case 'cycle':
-      return <Cycle diagram={diagram} />;
+      return <Cycle diagram={diagram} maskMarker={maskMarker} />;
     default:
       return null;
   }

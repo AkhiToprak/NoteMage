@@ -25,6 +25,7 @@ const KIND_LABEL: Record<QuestionKind, string> = {
   code_output: 'Code output',
   timeline: 'Timeline',
   code_write: 'Code writing',
+  diagram_cloze: 'Diagram',
 };
 
 export async function generateFlashcardPdf(

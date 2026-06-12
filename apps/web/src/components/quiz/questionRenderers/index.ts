@@ -11,6 +11,7 @@ import EquationRenderer from './EquationRenderer';
 import CodeOutputRenderer from './CodeOutputRenderer';
 import TimelineRenderer from './TimelineRenderer';
 import CodeWriteRenderer from './CodeWriteRenderer';
+import DiagramClozeRenderer from './DiagramClozeRenderer';
 import type { QuestionProps } from './types';
 
 export type { QuestionProps, QuizQuestionForRender, QuizRenderMode, UserAnswer } from './types';
@@ -26,6 +27,7 @@ export {
   CodeOutputRenderer,
   TimelineRenderer,
   CodeWriteRenderer,
+  DiagramClozeRenderer,
 };
 
 // Registry value type: each renderer narrows `TPayload` to its own payload
@@ -37,9 +39,9 @@ export {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyQuestionRenderer = ComponentType<QuestionProps<any>>;
 
-// 11 kinds: the original 8 plus subject-native code_output (coding),
-// timeline (history/humanities), and code_write (server-graded code
-// execution via Piston).
+// 12 kinds: the original 8 plus subject-native code_output (coding),
+// timeline (history/humanities), code_write (server-graded code execution via
+// Piston), and diagram_cloze (code-generated "what's missing in this diagram?").
 export const RENDERERS: Partial<Record<QuestionKind, AnyQuestionRenderer>> = {
   mc: MCRenderer,
   true_false: TrueFalseRenderer,
@@ -52,4 +54,5 @@ export const RENDERERS: Partial<Record<QuestionKind, AnyQuestionRenderer>> = {
   code_output: CodeOutputRenderer,
   timeline: TimelineRenderer,
   code_write: CodeWriteRenderer,
+  diagram_cloze: DiagramClozeRenderer,
 };

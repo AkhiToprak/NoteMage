@@ -28,6 +28,10 @@ export interface QuizQuestionForRender {
 // which switches on this discriminator.
 export type UserAnswer =
   | { kind: 'mc'; selectedIdx: number }
+  // diagram_cloze (Phase 5): multiple-choice at heart — the learner picks the
+  // masked label from 4 options. `selectedIdx` indexes the payload's `options`,
+  // graded against `payload.correctIndex` (translation-safe, no answer string).
+  | { kind: 'diagram_cloze'; selectedIdx: number }
   | { kind: 'true_false'; value: boolean }
   | { kind: 'fill_blank'; text: string }
   | { kind: 'word_bank'; slotAnswers: (string | null)[] }

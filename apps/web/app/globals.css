@@ -1144,3 +1144,29 @@ summary:focus-visible,
 .md-renderer .hljs-meta {
   color: #ae89ff;
 }
+
+/* Path-diagrams-revival (Phase 6, Goal A) — display equations in PATH THEORY
+   only. MarkdownRenderer is shared (chat, flashcards, quiz prompts), so the
+   figure treatment is scoped under .learn-theory-viewer (the TheoryViewer
+   container) and never leaks app-wide. Only DISPLAY math (.katex-display) gets
+   the surface; inline $…$ renders as bare .katex and is untouched. The block
+   reads as a deliberate figure, visually parallel to the PathDiagram panels.
+   Tokens only — flips with [data-theme='light'] via --surface-container-low /
+   --on-surface / --outline-variant. */
+.learn-theory-viewer .katex-display {
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  /* KaTeX sets .katex-display { margin: 1em 0 } by default; keep the vertical
+     rhythm, add horizontal padding for the surface. */
+  margin: 1.25em 0;
+  padding: 1.1em 1.25em;
+  color: var(--on-surface);
+  /* Long equations scroll inside the figure instead of overflowing the page.
+     KaTeX's default .katex-display has NO overflow handling and its inner
+     .katex is white-space:nowrap, so wide formulas would push the layout wide
+     on phones — this contains them. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}

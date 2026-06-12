@@ -123,6 +123,10 @@ export async function GET(request: NextRequest, { params }: Params) {
           notebookId,
           title: activity.flashcardSet.title,
           cards: activity.flashcardSet.flashcards,
+          // Path-diagrams revival (Phase 3): set-level reference diagrams copied
+          // from the covering theory. Pass-through JSON — the client validates
+          // each entry with PathDiagramSchema before rendering.
+          diagrams: activity.flashcardSet.diagrams ?? null,
         },
       });
     }
@@ -151,6 +155,9 @@ export async function GET(request: NextRequest, { params }: Params) {
           notebookId,
           title: activity.quizSet.title,
           questions: activity.quizSet.questions,
+          // Path-diagrams revival (Phase 3): set-level reference diagrams copied
+          // from the covered theory. Pass-through JSON — the client validates.
+          diagrams: activity.quizSet.diagrams ?? null,
         },
       });
     }

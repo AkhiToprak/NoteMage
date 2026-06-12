@@ -17,6 +17,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
+import { DIAGRAM_CLOZE_MASK } from '@notemage/shared';
 import { db } from './db';
 import {
   normalizePathLanguage,
@@ -290,19 +291,23 @@ function collectTipTapTextNodes(doc: unknown): TipTapNode[] {
 }
 
 // Push a non-empty string property as a get/set slot mutating the object in
-// place (so writing the doc back persists the translation).
+// place (so writing the doc back persists the translation). The diagram-cloze
+// mask marker is NOT natural-language prose — it's a structural sentinel — so it
+// is never collected (never appears in theory; only inside a masked cloze
+// diagram, where translating it would corrupt the "?" render).
 function addStrSlot(obj: Record<string, unknown>, key: string, out: AttrSlot[]): void {
   const v = obj[key];
-  if (typeof v === 'string' && v.trim().length > 0) {
+  if (typeof v === 'string' && v.trim().length > 0 && v !== DIAGRAM_CLOZE_MASK) {
     out.push({ get: () => obj[key] as string, set: (val) => { obj[key] = val; } });
   }
 }
 
-// Push each non-empty string element of an array as a slot.
+// Push each non-empty string element of an array as a slot. Skips the
+// diagram-cloze mask marker (see addStrSlot).
 function addArrSlots(arr: unknown, out: AttrSlot[]): void {
   if (!Array.isArray(arr)) return;
   arr.forEach((el, i) => {
-    if (typeof el === 'string' && el.trim().length > 0) {
+    if (typeof el === 'string' && el.trim().length > 0 && el !== DIAGRAM_CLOZE_MASK) {
       out.push({ get: () => arr[i] as string, set: (val) => { arr[i] = val; } });
     }
   });
@@ -377,6 +382,34 @@ export function collectTheoryVisualSlots(doc: unknown): AttrSlot[] {
   return out;
 }
 
+/**
+ * Deep-clone the set-level `diagrams` JSONB column (a `PathDiagram[]`) into a
+ * mutable plain array so collectColumnDiagramSlots's set() closures can write
+ * translations back in place. Returns null for a null/non-array column (no
+ * write-back then).
+ */
+export function cloneDiagramColumn(column: unknown): Record<string, unknown>[] | null {
+  if (!Array.isArray(column)) return null;
+  return JSON.parse(JSON.stringify(column)) as Record<string, unknown>[];
+}
+
+/**
+ * Collect translatable label slots from a cloned `diagrams` column, reusing the
+ * exact per-diagram label selection (`collectDiagramSlots`) the theory walker
+ * uses — so cards/quizzes translate the same labels theory does, with timeline
+ * dates left untouched. Mutates the cloned objects in place via the slots.
+ */
+export function collectColumnDiagramSlots(
+  diagrams: Record<string, unknown>[] | null,
+): AttrSlot[] {
+  const out: AttrSlot[] = [];
+  if (!diagrams) return out;
+  for (const d of diagrams) {
+    if (d && typeof d === 'object') collectDiagramSlots(d, out);
+  }
+  return out;
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Quiz questions — kind-aware extraction of translatable leaves
 // ─────────────────────────────────────────────────────────────────────
@@ -409,7 +442,7 @@ type LooseObj = Record<string, unknown>;
  * true/false answer key and the `translation`-kind answer key are left as-is
  * so grading never breaks.
  */
-function questionSlots(
+export function questionSlots(
   idx: number,
   q: QuizQuestionRow,
   payload: LooseObj | null,
@@ -524,6 +557,28 @@ function questionSlots(
           });
         break;
       }
+      case 'diagram_cloze': {
+        // Translate the 4 options (the answer is `options[correctIndex]`, an
+        // index — left untouched, so the cloze stays answerable post-translation
+        // by construction). Then translate the embedded masked diagram's labels
+        // via the same collector the theory walker uses; addStrSlot/addArrSlots
+        // skip the mask marker, so the "?" element never gets translated. The
+        // collected AttrSlots are bridged into the id-keyed TextSlot batch.
+        const opts = arrAt(p.options);
+        if (opts)
+          opts.forEach((_, j) =>
+            add(`do${j}`, () => (p.options as unknown[])[j], (v) => { (p.options as unknown[])[j] = v; }),
+          );
+        const diagram = p.diagram;
+        if (diagram && typeof diagram === 'object') {
+          const attrSlots: AttrSlot[] = [];
+          collectDiagramSlots(diagram as Record<string, unknown>, attrSlots);
+          attrSlots.forEach((s, j) =>
+            slots.push({ id: `${idx}:dgl${j}`, get: s.get, set: s.set }),
+          );
+        }
+        break;
+      }
       // true_false (answer key only), equation / code_output / code_write
       // (code, math, expected output) and translation (answer is fixed to the
       // question's target language) carry no translatable prose in payload.
@@ -547,6 +602,10 @@ interface ActivityRow {
     | {
         id: string;
         title: string;
+        // Path-diagrams revival (Phase 3): set-level reference diagrams whose
+        // labels are translatable prose. Loose JSON — collectDiagramSlots reads
+        // each kind's strings.
+        diagrams: Prisma.JsonValue;
         flashcards: Array<{
           id: string;
           question: string;
@@ -555,7 +614,9 @@ interface ActivityRow {
         }>;
       }
     | null;
-  quizSet: { id: string; title: string; questions: QuizQuestionRow[] } | null;
+  quizSet:
+    | { id: string; title: string; diagrams: Prisma.JsonValue; questions: QuizQuestionRow[] }
+    | null;
 }
 
 async function translateTheoryActivity(
@@ -627,7 +688,18 @@ async function translateFlashcardsActivity(
       if (caption) strings.push({ id: `c${i}_${j}`, text: caption });
     });
   });
+  // Path-diagrams revival (Phase 3): the set-level reference diagrams carry
+  // translatable labels (timeline event labels, step titles, comparison cells,
+  // cycle nodes, …). Deep-clone the JSON, collect its label slots via the same
+  // helper the theory walker uses, and ride the same batch — then write the
+  // mutated clone back below. Without this a translated path shows English
+  // diagram labels on cards.
+  const diagramData = cloneDiagramColumn(set.diagrams);
+  const diagramSlots = collectColumnDiagramSlots(diagramData);
+  diagramSlots.forEach((s, i) => strings.push({ id: `dg${i}`, text: s.get() }));
+
   const map = await translateBatch(strings, source, target, onUsage, glossary);
+  diagramSlots.forEach((s, i) => s.set(map.get(`dg${i}`) ?? s.get()));
 
   await db.$transaction([
     db.checkpointActivity.update({
@@ -636,7 +708,12 @@ async function translateFlashcardsActivity(
     }),
     db.flashcardSet.update({
       where: { id: set.id },
-      data: { title: map.get('st') ?? set.title },
+      data: {
+        title: map.get('st') ?? set.title,
+        ...(diagramData !== null
+          ? { diagrams: diagramData as Prisma.InputJsonValue }
+          : {}),
+      },
     }),
     ...set.flashcards.map((fc, i) =>
       db.flashcard.update({
@@ -693,10 +770,17 @@ async function translateQuizActivity(
     if (caption) strings.push({ id: `cap${i}`, text: caption });
   });
 
+  // Path-diagrams revival (Phase 3): translate the set-level reference diagrams'
+  // labels (same helper + same batch as the flashcard pass above).
+  const diagramData = cloneDiagramColumn(set.diagrams);
+  const diagramSlots = collectColumnDiagramSlots(diagramData);
+  diagramSlots.forEach((s, i) => strings.push({ id: `dg${i}`, text: s.get() }));
+
   const map = await translateBatch(strings, source, target, onUsage, glossary);
   for (const { slots } of perQ) {
     slots.forEach((s) => s.set(map.get(s.id) ?? s.get()));
   }
+  diagramSlots.forEach((s, i) => s.set(map.get(`dg${i}`) ?? s.get()));
 
   // PA-23a: sync word_bank correctAnswers from the translated bank.
   // questionSlots() translated only the bank entries (wb0, wb1, …) and
@@ -761,7 +845,12 @@ async function translateQuizActivity(
     }),
     db.quizSet.update({
       where: { id: set.id },
-      data: { title: map.get('st') ?? set.title },
+      data: {
+        title: map.get('st') ?? set.title,
+        ...(diagramData !== null
+          ? { diagrams: diagramData as Prisma.InputJsonValue }
+          : {}),
+      },
     }),
     ...perQ.map(({ q, payload }) =>
       db.quizQuestion.update({

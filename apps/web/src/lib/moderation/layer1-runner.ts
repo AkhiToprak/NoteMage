@@ -6,7 +6,7 @@
 // Per cost-budget §7.1 L1 records zero AI cost on its audit rows.
 
 import { db } from '@/lib/db';
-import { tiptapJsonToPlainText } from '@/lib/contentConverter';
+import { tiptapJsonToPlainText, collectDiagramColumnStrings } from '@/lib/contentConverter';
 import { judgeL1, type L1Judgement, type ScannableField } from './layer1';
 
 export interface L1Result {
@@ -61,6 +61,10 @@ export async function loadSharedPathSnapshot(sharedPathId: string): Promise<{
               theory: { select: { title: true, body: true } },
               flashcardSet: {
                 select: {
+                  // Path-diagrams revival (Phase 3): set-level reference diagrams
+                  // carry author-facing labels; scan them — don't assume the
+                  // covering theory's moderation already covered this copy.
+                  diagrams: true,
                   flashcards: {
                     orderBy: { sortOrder: 'asc' },
                     select: {
@@ -75,6 +79,8 @@ export async function loadSharedPathSnapshot(sharedPathId: string): Promise<{
               },
               quizSet: {
                 select: {
+                  // Path-diagrams revival (Phase 3): see flashcardSet.diagrams.
+                  diagrams: true,
                   questions: {
                     orderBy: { sortOrder: 'asc' },
                     select: {
@@ -120,12 +126,21 @@ export async function loadSharedPathSnapshot(sharedPathId: string): Promise<{
               }
             }
           }
+          // Path-diagrams revival (Phase 3): the set-level reference diagrams are
+          // author-facing content copied from theory — scan their labels too.
+          for (const s of collectDiagramColumnStrings(activity.flashcardSet.diagrams)) {
+            fields.push({ field: `${actLabel} diagram`, text: s });
+          }
         } else if (activity.kind === 'quiz' && activity.quizSet) {
           for (const q of activity.quizSet.questions) {
             fields.push({ field: `${actLabel} question`, text: q.question });
             if (q.image?.caption) {
               fields.push({ field: `${actLabel} question figure`, text: q.image.caption });
             }
+          }
+          // Path-diagrams revival (Phase 3): see flashcards above.
+          for (const s of collectDiagramColumnStrings(activity.quizSet.diagrams)) {
+            fields.push({ field: `${actLabel} diagram`, text: s });
           }
         }
       }

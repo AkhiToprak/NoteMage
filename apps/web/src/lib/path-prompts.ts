@@ -14,6 +14,8 @@ import { quizPayloadCatalogFor, type PathSlotKind } from './ai-tools';
 import { pathLanguageName, type PathLanguageCode } from './path-languages';
 import {
   allowedKindsForSubjects,
+  subjectDiagramHint,
+  subjectFlashcardGuidanceFragment,
   subjectGuidanceFragment,
   subjectQuizGuidanceFragment,
   subjectTheoryToneFragment,
@@ -310,11 +312,19 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt
  * theory content for a single slot.
  */
 export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
+  // Computed before the shape line so its `diagrams` fragment is byte-identical
+  // across every slot in a path (prompt-cache discipline) and disappears
+  // entirely when diagrams are killed — the shape line must never name a key the
+  // guidance block below does not also describe.
+  const diagramsEnabled = ctx.diagramsEnabled !== false;
+  const diagramsShapeFragment = diagramsEnabled
+    ? ', "diagrams": [ { "kind": "timeline"|"steps"|"comparison"|"cycle", ...kind_fields } ]?'
+    : '';
   const systemLines: string[] = [
     'You are NoteMage, writing the theory section for ONE checkpoint slot inside a guided learning path.',
     '',
     'JSON shape (keys MUST match EXACTLY — camelCase, no snake_case):',
-    '{ "title": string, "introduction": string, "keyPoints": string[], "examples": [ { "label": string, "explanation": string } ], "summary": string? }',
+    `{ "title": string, "introduction": string, "keyPoints": string[], "examples": [ { "label": string, "explanation": string } ], "summary": string?${diagramsShapeFragment} }`,
     '`title` MUST be a non-empty string — reuse or refine the slot title (e.g. "Ablauf eines externen Projekts"). NEVER leave it empty, NEVER omit it. `keyPoints` MUST be a real JSON array of plain strings (never an object keyed by index, never stringified). `examples` MUST be a real array of `{label, explanation}` objects.',
     '',
     '`keyPoints` shape — WRONG: `{"0":"First point","1":"Second point"}` · CORRECT: `["First point","Second point"]`',
@@ -329,20 +339,23 @@ export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
         ]
       : []),
   ];
-  // Optional visuals — diagrams (all tiers) and source-image figures (only when
-  // a catalog is supplied). Both keys are optional in the JSON shape so the
-  // model omits them freely; we add the guidance only when each is active.
-  const diagramsEnabled = ctx.diagramsEnabled !== false;
+  // Optional visuals. `diagrams` is named in the JSON shape line above (it is
+  // near-always enabled, so advertising it there is what makes schemaless
+  // Flash-Lite actually emit it); `figures` stays out of the shape line because
+  // it is conditional on a source-image catalog. We add each guidance block only
+  // when that visual is active.
   if (diagramsEnabled) {
     systemLines.push(
       '',
-      'OPTIONAL DIAGRAMS — you may add a `"diagrams"` array (0–2 entries) when a structured graphic genuinely clarifies the topic; omit it otherwise. Each entry is an object with a `"kind"` and ONLY that kind\'s fields:',
+      'DIAGRAMS — include 1–2 entries in a `"diagrams"` array when the topic has temporal / sequential / comparative / cyclical structure; when in doubt, include one. Omit ONLY if no kind below fits the topic naturally. Each entry is an object with a `"kind"` and ONLY that kind\'s fields:',
       '- "timeline": { "kind":"timeline", "title"?: string, "events": [ { "date": string, "label": string } ] } — 3–8 dated events in order. Best for history / chronological topics.',
       '- "steps": { "kind":"steps", "title"?: string, "steps": [ { "title": string, "detail"?: string } ] } — 3–8 ordered steps. Best for a process or how-to.',
       '- "comparison": { "kind":"comparison", "title"?: string, "columns": [string], "rows": [ { "label": string, "cells": [string] } ] } — `columns` are the 2–4 things compared; each row is one aspect with one cell per column, in column order.',
       '- "cycle": { "kind":"cycle", "title"?: string, "nodes": [string] } — 3–6 stages in a repeating loop.',
       'Pick the kind that fits; never include empty or filler diagrams.',
     );
+    const diagramHint = subjectDiagramHint(ctx.subjects);
+    if (diagramHint) systemLines.push(diagramHint);
   }
   const catalog = ctx.imageCatalog?.trim();
   if (catalog) {
@@ -405,6 +418,14 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
   if (subjectFragment.length > 0) {
     systemLines.push(subjectFragment);
   }
+  // Per-subject card-STYLE steer (Phase 6, Goal B) — e.g. math gets
+  // worked-example cards instead of definition recall. Constant per path
+  // (subjects-only), so it doesn't fragment the prompt cache. No-op for
+  // subjects without flashcard guidance.
+  const flashcardStyleFragment = subjectFlashcardGuidanceFragment(ctx.subjects);
+  if (flashcardStyleFragment.length > 0) {
+    systemLines.push(flashcardStyleFragment);
+  }
   // Optional figures — only when a source-image catalog is supplied (P3). Each
   // card may embed ONE image via a `figure` object; the catalog body is the same
   // deterministic list theory uses. Capped at 4 figured cards per set; prefer
@@ -450,7 +471,14 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
 // list ONLY the kinds a subject allows — offering forbidden kinds is what makes
 // weaker models emit them and trip the kind-filter regeneration (Phase 7,
 // plans/path-generation-reliability.md).
-const QUIZ_KIND_MENU: Record<QuestionKind, string> = {
+//
+// Typed over the LLM-SELECTABLE kinds only — `diagram_cloze` is deliberately
+// EXCLUDED: it is built in code from a set's diagrams (zero AI tokens) and must
+// never be advertised to a model (it can't generate one validly). Excluding it
+// from this Record's key type both fixes the would-be exhaustiveness error AND
+// keeps it out of the `Object.keys(QUIZ_KIND_MENU)` fallback at the call site,
+// so no prompt text ever mentions it. See QUESTION_KINDS in @notemage/shared.
+const QUIZ_KIND_MENU: Record<Exclude<QuestionKind, 'diagram_cloze'>, string> = {
   mc: '- mc — factual recall with 4 plausible options.',
   true_false: '- true_false — a single declarative claim the learner judges. The prompt IS the statement.',
   fill_blank: '- fill_blank — short typed answer (single word / short phrase) where Levenshtein fuzzy-match is fine.',
@@ -474,8 +502,16 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
   // Show the model ONLY the kinds this subject permits (Phase 7) — falls back
   // to every kind if the subject yielded none.
   const allowed = allowedKindsForSubjects(ctx.subjects);
-  const menuKinds: QuestionKind[] =
-    allowed.length > 0 ? allowed : (Object.keys(QUIZ_KIND_MENU) as QuestionKind[]);
+  // The menu only carries LLM-selectable kinds; `diagram_cloze` is code-generated
+  // and must NEVER reach the prompt. Filter to the menu's own keys so the kind is
+  // excluded both by type AND at runtime even if an allowedKinds list ever leaks
+  // it (it shouldn't — see QUESTION_KINDS guard in @notemage/shared).
+  type MenuKind = Exclude<QuestionKind, 'diagram_cloze'>;
+  const isMenuKind = (k: QuestionKind): k is MenuKind => k in QUIZ_KIND_MENU;
+  const menuKinds: MenuKind[] =
+    allowed.length > 0
+      ? allowed.filter(isMenuKind)
+      : (Object.keys(QUIZ_KIND_MENU) as MenuKind[]);
   const minKinds = Math.min(3, menuKinds.length);
   const systemLines: string[] = [
     isFinalExam

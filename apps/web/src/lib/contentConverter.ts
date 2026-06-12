@@ -73,6 +73,25 @@ function collectDeepStrings(value: unknown, out: string[]): void {
 }
 
 /**
+ * Collect every human-readable string from a set-level `diagrams` JSONB column
+ * (a `PathDiagram[]` copied onto a FlashcardSet/QuizSet by the path-diagrams
+ * revival feature). Reuses the same `collectDeepStrings` walker that
+ * `tiptapJsonToPlainText` runs over an embedded `pathDiagram` node — so the
+ * moderation scanner sees card/quiz diagram labels exactly as it sees theory's.
+ * Returns a flat string array (one entry per non-empty leaf, e.g. titles, step
+ * titles/details, comparison cells, cycle nodes, and timeline event labels +
+ * dates — the generic walk doesn't distinguish, which over-scans harmlessly).
+ */
+export function collectDiagramColumnStrings(column: unknown): string[] {
+  const out: string[] = [];
+  if (!Array.isArray(column)) return out;
+  for (const diagram of column) {
+    if (diagram && typeof diagram === 'object') collectDeepStrings(diagram, out);
+  }
+  return out;
+}
+
+/**
  * Extract plain text from a TipTap JSON document.
  * Recursively walks the node tree and collects all text content.
  * Returns null if the document is empty or invalid.

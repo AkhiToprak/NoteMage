@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "pdf-import:eval": "npx tsx scripts/pdf-import-eval.ts",
+    "diagram:eval": "npx tsx scripts/diagram-eval.ts",
     "pdf-import:fixtures": "npx tsx scripts/pdf-import-fixtures.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

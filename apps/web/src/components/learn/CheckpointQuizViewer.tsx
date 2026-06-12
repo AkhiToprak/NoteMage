@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QuizViewer from '@/components/notebook/QuizViewer';
+import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { gradeForPercentage } from '@/lib/path-gating';
 import { trackEvent } from '@/lib/telemetry';
@@ -35,6 +36,9 @@ interface QuizSetPayload {
     notebookId: string | null;
     title: string;
     questions: QuizQuestion[];
+    // Path-diagrams revival (Phase 3): set-level reference diagrams (loose JSON,
+    // validated client-side by DiagramReferencePanel). Null when none apply.
+    diagrams?: unknown;
   };
 }
 
@@ -338,16 +342,22 @@ export default function CheckpointQuizViewer({
               onReviewTheory={onClose}
             />
           ) : quizSet.notebookId ? (
-            <QuizViewer
-              key={retakeCount}
-              notebookId={quizSet.notebookId}
-              setId={quizSet.id}
-              title={quizSet.title}
-              initialQuestions={quizSet.questions as never}
-              isCheckpoint={isGraded}
-              hideManagementActions
-              onComplete={(result) => void handleQuizComplete(result)}
-            />
+            <>
+              {/* Reference diagrams copied from the covered theory — collapsed
+                  by default, above the question list. Same study-aid visibility
+                  as the existing figure treatment (shown on graded slots too). */}
+              <DiagramReferencePanel diagrams={quizSet.diagrams} />
+              <QuizViewer
+                key={retakeCount}
+                notebookId={quizSet.notebookId}
+                setId={quizSet.id}
+                title={quizSet.title}
+                initialQuestions={quizSet.questions as never}
+                isCheckpoint={isGraded}
+                hideManagementActions
+                onComplete={(result) => void handleQuizComplete(result)}
+              />
+            </>
           ) : (
             <p style={{ color: 'var(--error)', fontSize: '14px' }}>
               This quiz isn&apos;t linked to a notebook yet.

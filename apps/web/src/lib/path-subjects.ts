@@ -30,6 +30,15 @@ interface SubjectDef {
   curriculumGuidance: string;
   /** Quiz-level steer appended to the kind list. */
   quizGuidance: string;
+  /**
+   * Flashcard-level steer appended to `buildFlashcardsPrompt`. Null/empty for
+   * subjects whose default Q→A recall cards already fit (no behavior change);
+   * populated only where the default card shape is a poor drill (e.g. math,
+   * where worked examples beat definition recall).
+   */
+  flashcardGuidance: string | null;
+  /** Diagram kind that fits this subject best; null = no strong preference. */
+  preferredDiagramKind: 'timeline' | 'steps' | 'comparison' | 'cycle' | null;
 }
 
 export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
@@ -47,6 +56,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Sequence by concept dependency (variables before control flow, control flow before functions, etc.). Slots should build on each other. Avoid bundling unrelated languages into one slot.',
     quizGuidance:
       'Prefer `code_write` for application-level slots (the learner writes a small program against test cases). Use `code_output` for trace/predict-the-output questions. Use `sentence_reorder` to reorder lines into the right execution order. Use `mc` for conceptual recall. Avoid `equation`, `translation`, `word_bank`.',
+    flashcardGuidance: null,
+    preferredDiagramKind: 'steps',
   },
   math: {
     name: 'Mathematics',
@@ -62,6 +73,9 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Build prerequisites bottom-up — a slot must not reference a concept the learner has not seen yet in this path. Reserve at least one slot per section for worked examples.',
     quizGuidance:
       'Prefer `equation` questions whenever the learner should produce a symbolic answer (use `variables` when the expression has free variables). Use `fill_blank` for short numeric or named-formula answers. Use LaTeX between `$...$` (inline) or `$$...$$` (block) inside prompts. Avoid `code_output`, `timeline`, `translation`.',
+    flashcardGuidance:
+      'Make these WORKED-EXAMPLE cards, not definition recall. Front: ONE small concrete problem with real numbers in `$…$` notation (e.g. "Solve $2x + 5 = 13$" or "Differentiate $f(x) = 3x^2$"). Back: the worked solution in 2–4 short steps with `$…$` math, ending with the result. Avoid pure "what is the definition of…" cards — reserve those only for naming a key theorem or formula.',
+    preferredDiagramKind: null,
   },
   science_natural: {
     name: 'Natural Sciences (physics, chemistry, biology, earth science)',
@@ -77,6 +91,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Pair each definitional slot with one applied / experiment-flavored slot. Sequence vocabulary before mechanisms.',
     quizGuidance:
       'Mix `match_pairs` for term ↔ definition, `mc` for factual recall, `equation` for quantitative items, `sentence_reorder` for ordered processes (e.g., mitosis stages). Use `$...$` LaTeX for any formula. Avoid `code_output`, `timeline`, `translation`, `word_bank`.',
+    flashcardGuidance: null,
+    preferredDiagramKind: 'cycle',
   },
   history_humanities: {
     name: 'History & Humanities',
@@ -92,6 +108,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Order slots chronologically within each section. Each section should cover one coherent era or theme.',
     quizGuidance:
       'Use `timeline` whenever the slot involves multiple dated events (3–8 events, real years). Use `sentence_reorder` for ordering causal chains or stages. Use `match_pairs` for figure ↔ contribution. Avoid `equation`, `code_output`, `translation`, `word_bank`.',
+    flashcardGuidance: null,
+    preferredDiagramKind: 'timeline',
   },
   language: {
     name: 'Foreign Language',
@@ -107,6 +125,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Sequence by tense / grammatical structure. Reuse vocabulary across slots so review slots reinforce earlier words.',
     quizGuidance:
       'Use `translation` (set `targetLanguage`) for full-sentence translation items. Use `word_bank` for grammar-fill exercises. Use `sentence_reorder` for syntax drills. Avoid `equation`, `code_output`, `timeline`.',
+    flashcardGuidance: null,
+    preferredDiagramKind: 'comparison',
   },
   social_studies: {
     name: 'Social Studies (law, economics, business, psychology, medicine)',
@@ -122,6 +142,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Define core terms in early slots; reserve later slots for application / case studies. Each section ends with a synthesis assessment.',
     quizGuidance:
       'Use `mc` for case-based items with plausible distractors. Use `match_pairs` for term ↔ definition, statute ↔ jurisdiction, etc. Avoid `equation`, `code_output`, `timeline`, `translation`.',
+    flashcardGuidance: null,
+    preferredDiagramKind: 'comparison',
   },
   general: {
     name: 'General / Mixed',
@@ -147,6 +169,8 @@ export const SUBJECT_REGISTRY: Record<SubjectId, SubjectDef> = {
       'Build a balanced curriculum that mirrors the material. Lean on the kinds of activities each section calls for.',
     quizGuidance:
       'Pick whichever kinds genuinely fit each item. Avoid an all-MC quiz — vary the kinds across the set.',
+    flashcardGuidance: null,
+    preferredDiagramKind: null,
   },
 };
 
@@ -225,6 +249,58 @@ export function subjectTheoryToneFragment(subjects: SubjectId[]): string {
     });
   }
   return lines.join('\n');
+}
+
+/**
+ * Prompt fragment injected into the Stage B flashcard prompt. Appends each
+ * subject's `flashcardGuidance` so card STYLE matches the subject (e.g. math
+ * gets worked-example cards instead of definition recall). Subjects with no
+ * guidance contribute nothing, so an all-`null` path yields '' (no behavior
+ * change). Depends only on the path's subjects → constant across the path's
+ * flashcard slots (prompt-cache discipline). Steers STYLE only; slot
+ * composition (theory + flashcards on learning slots) is unchanged.
+ */
+export function subjectFlashcardGuidanceFragment(subjects: SubjectId[]): string {
+  if (subjects.length === 0) return '';
+  const entries = subjects
+    .map((id) => SUBJECT_REGISTRY[id] ?? SUBJECT_REGISTRY.general)
+    .map((def) => ({ name: def.name, guidance: def.flashcardGuidance?.trim() }))
+    .filter((e): e is { name: string; guidance: string } => !!e.guidance);
+  if (entries.length === 0) return '';
+  const lines: string[] = [''];
+  if (entries.length === 1) {
+    lines.push(`Card style (${entries[0].name}): ${entries[0].guidance}`);
+  } else {
+    lines.push('Card styles (apply whichever matches the slot topic):');
+    entries.forEach((e) => lines.push(`- ${e.name}: ${e.guidance}`));
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Stage B theory prompt nudge: the dominant subject's preferred diagram kind
+ * plus a concrete fill-in skeleton, so schemaless Flash-Lite has a shape to
+ * copy instead of free-forming one. Depends ONLY on the path's subjects, so the
+ * line is constant across the path's theory slots (prompt-cache discipline).
+ * Returns null when the dominant subject has no preferred kind (math/general).
+ * Skeleton field names mirror `PathDiagramSchema` (packages/shared/src/quiz.ts).
+ */
+export function subjectDiagramHint(subjects: SubjectId[]): string | null {
+  const top = subjects[0];
+  if (!top) return null;
+  const kind = (SUBJECT_REGISTRY[top] ?? SUBJECT_REGISTRY.general).preferredDiagramKind;
+  if (!kind) return null;
+  const skeletons: Record<NonNullable<SubjectDef['preferredDiagramKind']>, string> = {
+    timeline:
+      '{ "kind": "timeline", "events": [ { "date": "YYYY", "label": "…" }, … ] }',
+    steps:
+      '{ "kind": "steps", "steps": [ { "title": "Step 1", "detail": "…" }, … ] }',
+    comparison:
+      '{ "kind": "comparison", "columns": ["A", "B"], "rows": [ { "label": "Aspect", "cells": ["…", "…"] }, … ] }',
+    cycle:
+      '{ "kind": "cycle", "nodes": ["Stage 1", "Stage 2", "…"] }',
+  };
+  return `Preferred diagram for this subject: ${kind}. Skeleton: ${skeletons[kind]}`;
 }
 
 /** Prompt fragment injected into the Stage B quiz prompt. Replaces the static kind list. */

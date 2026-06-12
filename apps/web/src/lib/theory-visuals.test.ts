@@ -22,9 +22,15 @@ import {
   resolveFlashcardFigures,
   resolveQuizFigures,
   resolveDiagrams,
+  extractDiagramsFromTheoryBody,
+  mergeDiagrams,
 } from '@/lib/path-generator';
-import { collectTheoryVisualSlots } from '@/lib/path-translator';
-import { tiptapJsonToPlainText } from '@/lib/contentConverter';
+import {
+  collectTheoryVisualSlots,
+  cloneDiagramColumn,
+  collectColumnDiagramSlots,
+} from '@/lib/path-translator';
+import { tiptapJsonToPlainText, collectDiagramColumnStrings } from '@/lib/contentConverter';
 import type { SourceImage } from '@/lib/path-image-catalog';
 
 const TIMELINE = {
@@ -320,5 +326,101 @@ describe('tiptapJsonToPlainText surfaces visual strings for moderation', () => {
     expect(text).toContain('Estates-General');
     expect(text).toContain('Coup of Brumaire');
     expect(text).toContain('Revolution');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Path-diagrams revival (Phase 3) — reuse theory diagrams on card/quiz sets
+// ─────────────────────────────────────────────────────────────────────
+
+describe('extractDiagramsFromTheoryBody', () => {
+  it('collects valid pathDiagram nodes from a persisted theory body', () => {
+    const body = theoryInputToTipTap(CORE, 'en', { diagrams: [TIMELINE, STEPS] });
+    const out = extractDiagramsFromTheoryBody(body);
+    expect(out.map((d) => d.kind)).toEqual(['timeline', 'steps']);
+    expect(out[0]).toMatchObject({ kind: 'timeline', title: 'Revolution' });
+  });
+
+  it('returns [] for a body with no diagrams / non-doc input', () => {
+    expect(extractDiagramsFromTheoryBody(theoryInputToTipTap(CORE, 'en'))).toEqual([]);
+    expect(extractDiagramsFromTheoryBody(null)).toEqual([]);
+    expect(extractDiagramsFromTheoryBody('nope')).toEqual([]);
+    expect(extractDiagramsFromTheoryBody({})).toEqual([]);
+  });
+
+  it('drops schema-invalid pathDiagram attrs without throwing', () => {
+    const body = {
+      type: 'doc',
+      content: [
+        { type: 'pathDiagram', attrs: { diagram: { kind: 'timeline', events: [{ date: '1' }] } } },
+        { type: 'pathDiagram', attrs: { diagram: STEPS } },
+        { type: 'pathDiagram', attrs: {} }, // no diagram → dropped
+      ],
+    };
+    const out = extractDiagramsFromTheoryBody(body);
+    expect(out.map((d) => d.kind)).toEqual(['steps']);
+  });
+});
+
+describe('mergeDiagrams', () => {
+  it('preserves covered order, dedupes by kind+title, caps at 2', () => {
+    const tA = { ...TIMELINE, title: 'A' };
+    const tADup = { ...TIMELINE, title: 'A' }; // same kind+title → deduped
+    const out = mergeDiagrams([[tA], [tADup, STEPS], [CYCLE]]);
+    expect(out).toHaveLength(2);
+    expect(out.map((d) => d.kind)).toEqual(['timeline', 'steps']);
+  });
+
+  it('treats untitled diagrams of the same kind as one (kind+empty-title key)', () => {
+    const out = mergeDiagrams([[STEPS], [STEPS]]);
+    expect(out).toHaveLength(1);
+  });
+
+  it('returns [] for empty input', () => {
+    expect(mergeDiagrams([])).toEqual([]);
+    expect(mergeDiagrams([[], []])).toEqual([]);
+  });
+});
+
+describe('diagram-column translation helpers', () => {
+  it('cloneDiagramColumn deep-copies an array and rejects non-arrays', () => {
+    const col = [{ ...TIMELINE }];
+    const clone = cloneDiagramColumn(col);
+    expect(clone).not.toBe(col);
+    expect(clone).toEqual(col);
+    expect(cloneDiagramColumn(null)).toBeNull();
+    expect(cloneDiagramColumn('x')).toBeNull();
+  });
+
+  it('collectColumnDiagramSlots round-trips labels back into the cloned column', () => {
+    const clone = cloneDiagramColumn([
+      { kind: 'timeline', title: 'orig title', events: [
+        { date: '1789', label: 'orig A' },
+        { date: '1799', label: 'orig B' },
+      ] },
+    ]);
+    const slots = collectColumnDiagramSlots(clone);
+    // title + 2 event labels (dates excluded).
+    expect(slots).toHaveLength(3);
+    slots.forEach((s, i) => s.set(`t${i}`));
+    const d = clone![0] as { title: string; events: { date: string; label: string }[] };
+    expect(d.title).toBe('t0');
+    expect(d.events[0].label).toBe('t1');
+    expect(d.events[1].label).toBe('t2');
+    expect(d.events[0].date).toBe('1789'); // untouched
+  });
+});
+
+describe('collectDiagramColumnStrings (moderation)', () => {
+  it('flattens every label string from a diagrams column', () => {
+    const strings = collectDiagramColumnStrings([TIMELINE, CYCLE]);
+    expect(strings).toContain('Revolution');
+    expect(strings).toContain('Estates-General');
+    expect(strings).toContain('Evaporation');
+  });
+
+  it('returns [] for null / non-array', () => {
+    expect(collectDiagramColumnStrings(null)).toEqual([]);
+    expect(collectDiagramColumnStrings({})).toEqual([]);
   });
 });

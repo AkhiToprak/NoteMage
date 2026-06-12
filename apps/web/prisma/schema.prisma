@@ -42,6 +42,11 @@ enum QuestionKind {
   code_output
   timeline
   code_write
+  // Path-diagrams revival (Phase 5): deterministic "what's missing in this
+  // diagram?" question built in code from a quiz set's structured `diagrams`
+  // (zero AI tokens, NEVER LLM-emitted). See QUESTION_KINDS in
+  // packages/shared/src/quiz.ts.
+  diagram_cloze
 }
 
 // Gate strategy for a StudyPhase — added in Phase 5 (Learn Path rework).
@@ -454,6 +459,11 @@ model FlashcardSet {
   // still set `notebookId` because FlashcardViewer URL-templates it into
   // every fetch and cannot run without one.
   sourcePathId String?
+  // Path-diagrams revival (Phase 3): PathDiagram[] copied (zero AI tokens) from
+  // the covering theory's body, rendered by the checkpoint viewer as a collapsed
+  // reference panel above the card stack. Set-level (slot-scoped reference
+  // graphics, not per-card illustrations). Null/absent when no diagrams apply.
+  diagrams   Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -533,6 +543,10 @@ model QuizSet {
   // See FlashcardSet.sourcePathId — same rationale (filter from notebook
   // surfaces, keep `notebookId` for QuizViewer routing).
   sourcePathId String?
+  // Path-diagrams revival (Phase 3): PathDiagram[] copied (zero AI tokens) from
+  // the covering theory's body, rendered by the checkpoint quiz viewer as a
+  // collapsed reference panel above the question list. See FlashcardSet.diagrams.
+  diagrams   Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

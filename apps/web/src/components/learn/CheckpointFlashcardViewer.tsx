@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { trackEvent } from '@/lib/telemetry';
@@ -38,6 +39,9 @@ interface FlashcardSetPayload {
     notebookId: string | null;
     title: string;
     cards: Flashcard[];
+    // Path-diagrams revival (Phase 3): set-level reference diagrams (loose JSON,
+    // validated client-side by DiagramReferencePanel). Null when none apply.
+    diagrams?: unknown;
   };
 }
 
@@ -62,6 +66,7 @@ export default function CheckpointFlashcardViewer({
   onCompleted,
 }: CheckpointFlashcardViewerProps) {
   const [cards, setCards] = useState<Flashcard[] | null>(null);
+  const [diagrams, setDiagrams] = useState<unknown>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -98,6 +103,7 @@ export default function CheckpointFlashcardViewer({
           return;
         }
         setCards(payload.flashcardSet.cards ?? []);
+        setDiagrams(payload.flashcardSet.diagrams ?? null);
       } catch {
         if (!cancelled) setLoadError('Network error. Try again.');
       }
@@ -315,6 +321,15 @@ export default function CheckpointFlashcardViewer({
           </span>
         </button>
       </header>
+
+      {/* Reference diagrams copied from the slot's theory — collapsed by
+          default, rendered above the card stack. Sits OUTSIDE the centered/
+          overflow-hidden card region so an expanded panel isn't clipped. */}
+      {cards && total > 0 ? (
+        <div style={{ padding: '12px 16px 0' }}>
+          <DiagramReferencePanel diagrams={diagrams} />
+        </div>
+      ) : null}
 
       <div
         style={{

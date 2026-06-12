@@ -6,6 +6,7 @@ import { get as levenshteinDistance } from 'fast-levenshtein';
 import { safeEvaluate, safeParse } from './safe-math';
 import {
   McPayloadSchema,
+  DiagramClozePayloadSchema,
   type QuestionKind,
 } from '@notemage/shared';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
@@ -50,6 +51,23 @@ export function grade(
       if (userAnswer.kind !== 'mc') return { isCorrect: false };
       const parsed =
         payload === null || payload === undefined ? null : McPayloadSchema.safeParse(payload);
+      const options = parsed && parsed.success ? parsed.data.options : legacyColumns.options;
+      const correctIndex =
+        parsed && parsed.success ? parsed.data.correctIndex : legacyColumns.correctIndex;
+      const selectedIdx = userAnswer.selectedIdx;
+      if (!Number.isInteger(selectedIdx) || selectedIdx < 0 || selectedIdx >= options.length) {
+        return { isCorrect: false };
+      }
+      return { isCorrect: selectedIdx === correctIndex };
+    }
+    case 'diagram_cloze': {
+      // Multiple-choice at heart: the learner picked one of the 4 options;
+      // grade against the payload's `correctIndex` (legacy columns mirror it).
+      if (userAnswer.kind !== 'diagram_cloze') return { isCorrect: false };
+      const parsed =
+        payload === null || payload === undefined
+          ? null
+          : DiagramClozePayloadSchema.safeParse(payload);
       const options = parsed && parsed.success ? parsed.data.options : legacyColumns.options;
       const correctIndex =
         parsed && parsed.success ? parsed.data.correctIndex : legacyColumns.correctIndex;
@@ -201,6 +219,15 @@ export function buildLegacyColumns(
 ): { options: string[]; correctIndex: number } {
   if (kind === 'mc') {
     const parsed = McPayloadSchema.safeParse(payload);
+    if (parsed.success) {
+      return { options: parsed.data.options, correctIndex: parsed.data.correctIndex };
+    }
+  }
+  // diagram_cloze (Phase 5): also multiple-choice at heart — mirror its payload
+  // options/correctIndex onto the legacy columns so the row is self-describing
+  // even before any payload backfill, matching the MC convention.
+  if (kind === 'diagram_cloze') {
+    const parsed = DiagramClozePayloadSchema.safeParse(payload);
     if (parsed.success) {
       return { options: parsed.data.options, correctIndex: parsed.data.correctIndex };
     }

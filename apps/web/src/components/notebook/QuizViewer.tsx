@@ -61,6 +61,7 @@ const KIND_LABEL: Record<QuestionKind, string> = {
   code_output: 'Code output',
   timeline: 'Timeline',
   code_write: 'Code writing',
+  diagram_cloze: 'Diagram',
 };
 
 interface SectionItem {
@@ -356,10 +357,12 @@ export default function QuizViewer({
       const q = questions[currentIndex];
       if (!q) return;
       const kind: QuestionKind = q.kind ?? 'mc';
-      // MC locks after the first selection. Multi-step kinds (match_pairs,
-      // word_bank, sentence_reorder) and free-text kinds need to allow
-      // re-submission while the user is still on the question.
-      if (kind === 'mc' && isAnswered) return;
+      // MC (and diagram_cloze, which is MC-at-heart) lock after the first
+      // selection. Multi-step kinds (match_pairs, word_bank, sentence_reorder)
+      // and free-text kinds need to allow re-submission while the user is still
+      // on the question.
+      const locksOnFirstPick = kind === 'mc' || kind === 'diagram_cloze';
+      if (locksOnFirstPick && isAnswered) return;
       const { isCorrect } = grade(
         kind,
         q.payload,
@@ -368,10 +371,10 @@ export default function QuizViewer({
       );
       setAnswers((prev) => new Map(prev).set(currentIndex, { answer, isCorrect }));
       setLiveAnnouncement(isCorrect ? 'Correct.' : 'Not quite. The answer is shown below.');
-      // MC auto-locks — first click *is* the commit. Non-MC kinds commit on
-      // next/finish so the streak reflects the user's final answer, not
-      // every keystroke.
-      if (kind === 'mc') commitFor(currentIndex, isCorrect, q.hint);
+      // MC / diagram_cloze auto-lock — first click *is* the commit. Other kinds
+      // commit on next/finish so the streak reflects the user's final answer,
+      // not every keystroke.
+      if (locksOnFirstPick) commitFor(currentIndex, isCorrect, q.hint);
     },
     [mode, isAnswered, currentIndex, questions, commitFor]
   );

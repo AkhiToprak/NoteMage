@@ -23,7 +23,23 @@ export const QUESTION_KINDS = [
   'code_output',
   'timeline',
   'code_write',
+  // CODE-GENERATED ONLY — never emitted by an LLM. The path generator's
+  // deterministic `buildDiagramClozeQuestion` builds this kind from a set's
+  // structured `diagrams` (zero AI tokens). It MUST NOT be added to any LLM
+  // tool schema (`QUIZ_TOOL_V2.input_schema.kind` enum, ai-tools.ts), to the
+  // `QUIZ_PAYLOAD_CATALOG_LINES`, or to any subject's `allowedKinds`
+  // (path-subjects.ts) — doing so would let a model emit an ungradeable
+  // diagram-cloze. The grader, renderer registry, translator and clone copy it
+  // because it is a persisted question like any other.
+  'diagram_cloze',
 ] as const;
+
+// Mask marker for `diagram_cloze`: the removed diagram label is replaced by
+// this single-codepoint sentinel inside the embedded (masked) diagram. The
+// renderer recognises it and draws a distinct "?" chip; the translator skips
+// it (it is not natural-language prose). Chosen to never collide with real
+// label text (a dotted square, U+2B1A).
+export const DIAGRAM_CLOZE_MASK = '⬚';
 
 export const CODE_LANGUAGES = [
   'python',
@@ -346,6 +362,21 @@ export const PathDiagramSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 export type PathDiagram = z.infer<typeof PathDiagramSchema>;
+
+// `diagram_cloze` — a deterministic "what's missing in this diagram?" question
+// built in CODE from a quiz set's structured `diagrams` (never by an LLM, see
+// the QUESTION_KINDS guard). `diagram` is the SAME diagram the learner saw in
+// theory but with ONE label replaced by `DIAGRAM_CLOZE_MASK`. The removed label
+// lives only in `options[correctIndex]` — there is no answer STRING, which
+// keeps translation safe by construction (options and diagram labels translate
+// independently with no string-equality coupling). `options` is 4 distinct
+// non-empty strings; `correctIndex` selects the missing label.
+export const DiagramClozePayloadSchema = z.object({
+  diagram: PathDiagramSchema,
+  options: z.array(z.string().min(1)).length(4),
+  correctIndex: z.number().int().min(0).max(3),
+});
+export type DiagramClozePayload = z.infer<typeof DiagramClozePayloadSchema>;
 
 // Theory section — validates the Stage B `create_theory_section` tool input
 // before it is converted to a TipTap document. Mirrors `TheorySectionToolInput`
