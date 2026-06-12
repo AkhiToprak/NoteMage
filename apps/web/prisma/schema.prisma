@@ -324,9 +324,9 @@ model ImportJob {
   notebookId     String
   sectionId      String?  // PDF target section; null for OneNote (worker creates many sections)
   userId         String
-  sourceFormat   String   @default("pdf") // "pdf" | "onenote"
+  sourceFormat   String   @default("pdf") // "pdf" | "onenote" | "video"
   fileName       String
-  engine         String   @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"
+  engine         String   @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"; video uses "gemini-flash" (model token from resolveModel)
   mode           String   @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
   pageTitle      String?  // PDF only: user-chosen title for the created page; null = derive from fileName
   pageCap        Int
@@ -336,6 +336,10 @@ model ImportJob {
   pdfPath        String?  // PDF only
   pageImagePaths Json?    // PDF only: string[] temp-imports/ paths
   oneNoteSectionIds Json? // OneNote only: string[] of selected section ids
+  videoPath        String?  // Video only: temp-imports/ path for an uploaded video file
+  videoUrl         String?  // Video only: YouTube URL ingested via Gemini fileData.fileUri
+  videoDurationSec Int?     // Video only: probed/estimated duration; drives the minutes meter
+  mediaResolution  String?  @default("low") // Video only: "low" | "default" — token-rate control
   resultPageId   String?
   resultSummary  Json?    // OneNote: { sectionsImported, pagesImported, errors[], firstSectionId?, firstPageId? }
   truncated      Boolean  @default(false)

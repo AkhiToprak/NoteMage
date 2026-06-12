@@ -117,6 +117,22 @@ export function conflictResponse(error: string = 'Conflict') {
 }
 
 /**
+ * Unprocessable entity response (422). Use when the request is well-formed and
+ * authorized but the target cannot be processed — e.g. a YouTube video has no
+ * captions to extract. Distinct from 400 (malformed) and 500 (server fault) so
+ * a UI can branch on it (the transcript → native-video upsell handoff).
+ */
+export function unprocessableEntityResponse(error: string = 'Unprocessable entity') {
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+    } as ApiResponse,
+    { status: 422 }
+  );
+}
+
+/**
  * Too many requests response (429)
  */
 export function tooManyRequestsResponse(

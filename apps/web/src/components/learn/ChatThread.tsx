@@ -8,6 +8,7 @@ import Link from 'next/link';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { useStreamingChat } from '@/hooks/useStreamingChat';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import VideoInputMask from '@/components/video/VideoInputMask';
 import dynamic from 'next/dynamic';
 
 const MindmapRenderer = dynamic(() => import('@/components/notebook/MindmapRenderer'), {
@@ -451,6 +452,54 @@ export default function ChatThread({ chatId }: { chatId: string }) {
       setIsUploading(false);
     }
   };
+
+  // Attach a pasted YouTube URL as a transcript Document, then add it to the
+  // chat context — mirrors `uploadFile`'s post-step (fetchDocs → PATCH
+  // contextDocIds). Notebook chats hit the notebook route; cross-notebook
+  // chats hit the learn-scoped route (auto-creates an Inbox notebook). A 422
+  // (no captions) is re-thrown as the mask's CaptionsUnavailable error so the
+  // card can render the Lane-2 upsell inline.
+  const attachYouTubeUrl = useCallback(
+    async (url: string) => {
+      const notebookId = chat?.notebookId ?? null;
+      const endpoint = notebookId
+        ? `/api/notebooks/${notebookId}/documents/youtube`
+        : '/api/learn/documents/youtube';
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      if (res.status === 422) {
+        const err = new Error('Captions unavailable');
+        err.name = 'CaptionsUnavailable';
+        throw err;
+      }
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !json.data?.document?.id) {
+        throw new Error(json?.error ?? 'Could not add this video.');
+      }
+
+      const newDocId = json.data.document.id as string;
+      await fetchDocs(notebookId);
+      const newDocIds = new Set([...selectedDocIds, newDocId]);
+      setSelectedDocIds(newDocIds);
+
+      try {
+        await fetch(`/api/learn/chats/${chatId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contextDocIds: [...newDocIds] }),
+        });
+        setChat((prev) => (prev ? { ...prev, contextDocIds: [...newDocIds] } : prev));
+      } catch (err) {
+        console.warn('[mage-youtube] chat context PATCH failed', err);
+      }
+    },
+    [chat?.notebookId, chatId, fetchDocs, selectedDocIds],
+  );
 
   const handleSaveContext = async () => {
     if (!chat) return;
@@ -1223,6 +1272,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                       uploadError={uploadError}
                       fileInputRef={fileInputRef}
                       uploadFile={uploadFile}
+                      onAttachYouTubeUrl={attachYouTubeUrl}
                     />
                   )}
                 </div>
@@ -1265,6 +1315,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                   uploadError={uploadError}
                   fileInputRef={fileInputRef}
                   uploadFile={uploadFile}
+                  onAttachYouTubeUrl={attachYouTubeUrl}
                 />
               </div>
             )}
@@ -1336,6 +1387,7 @@ function UploadAndDocsList({
   uploadError,
   fileInputRef,
   uploadFile,
+  onAttachYouTubeUrl,
 }: {
   documents: DocumentItem[];
   selectedDocIds: Set<string>;
@@ -1346,6 +1398,7 @@ function UploadAndDocsList({
   uploadError: string | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   uploadFile: (file: File) => Promise<void>;
+  onAttachYouTubeUrl: (url: string) => Promise<void>;
 }) {
   return (
     <div
@@ -1439,6 +1492,8 @@ function UploadAndDocsList({
           )}
         </div>
       </div>
+
+      <VideoInputMask dense onConfirmUrl={({ url }) => onAttachYouTubeUrl(url)} />
 
       {documents.length > 0 && (
         <div

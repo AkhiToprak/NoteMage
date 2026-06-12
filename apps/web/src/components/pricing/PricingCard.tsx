@@ -49,6 +49,8 @@ const FEATURE_LABELS: Record<FeatureType, string> = {
   ai_inline_edit: 'Inline AI editing',
   pdf_import: 'PDF pages',
   path_translation: 'Path translations',
+  youtube_transcript: 'Video transcripts',
+  video_ingest: 'Video notes (minutes)',
 };
 
 const ACCENT: Record<

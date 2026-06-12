@@ -1,4 +1,33 @@
-import { YoutubeTranscript } from 'youtube-transcript';
+import {
+  YoutubeTranscript,
+  YoutubeTranscriptDisabledError,
+  YoutubeTranscriptNotAvailableError,
+  YoutubeTranscriptVideoUnavailableError,
+} from 'youtube-transcript';
+
+/**
+ * Thrown when a video has no captions to extract (disabled or absent). Routes
+ * branch on this to return a distinct 422 — the handoff seam to native video
+ * notes (Lane 2) — instead of a generic 500.
+ */
+export class CaptionsUnavailableError extends Error {
+  constructor(message = 'No captions found for this video') {
+    super(message);
+    this.name = 'CaptionsUnavailableError';
+  }
+}
+
+/**
+ * Thrown when the video itself can't be reached (deleted / private / unlisted).
+ * Distinct from CaptionsUnavailableError: a missing video can't be served by the
+ * native-video fallback either, so routes return a 400 — NOT the 422 upsell.
+ */
+export class VideoUnavailableError extends Error {
+  constructor(message = "Couldn't read this video.") {
+    super(message);
+    this.name = 'VideoUnavailableError';
+  }
+}
 
 // ── YouTube video search (Data API v3) ──
 
@@ -93,8 +122,27 @@ export async function extractYouTubeTranscript(url: string) {
     // Title fetch failed — use fallback
   }
 
-  // Fetch transcript segments
-  const rawSegments = await YoutubeTranscript.fetchTranscript(videoId);
+  // Fetch transcript segments. A captionless video (disabled or no track)
+  // surfaces as a typed library error — re-throw it as the domain error so
+  // the route can distinguish it (422 → native-video upsell) from a fault.
+  let rawSegments;
+  try {
+    rawSegments = await YoutubeTranscript.fetchTranscript(videoId);
+  } catch (err) {
+    if (err instanceof YoutubeTranscriptVideoUnavailableError) {
+      throw new VideoUnavailableError();
+    }
+    if (
+      err instanceof YoutubeTranscriptDisabledError ||
+      err instanceof YoutubeTranscriptNotAvailableError
+    ) {
+      throw new CaptionsUnavailableError();
+    }
+    throw err;
+  }
+  if (rawSegments.length === 0) {
+    throw new CaptionsUnavailableError();
+  }
 
   const segments = rawSegments.map((segment) => ({
     text: segment.text,
@@ -102,7 +150,7 @@ export async function extractYouTubeTranscript(url: string) {
     duration: segment.duration,
   }));
 
-  const transcript = segments.map((s) => s.text).join(' ');
+  const transcript = assembleTimestampedTranscript(segments);
 
   return {
     title,
@@ -110,4 +158,39 @@ export async function extractYouTubeTranscript(url: string) {
     transcript,
     segments,
   };
+}
+
+/** New marker every ~15s window so the AI can cite moments without spam. */
+const MARKER_WINDOW_SEC = 15;
+
+/** Format a second offset as `MM:SS` (minutes can exceed 59 for long videos). */
+function formatTimestamp(totalSeconds: number): string {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/**
+ * Join transcript segments into one string with inline `[MM:SS]` markers so
+ * downstream AI can quote a moment. One marker is emitted per ~15s window
+ * (derived from each segment's `offset` in ms), not per segment — adjacent
+ * sub-second captions collapse under the same marker to avoid marker spam.
+ * Markers are monotonic because segments arrive in playback order.
+ */
+function assembleTimestampedTranscript(
+  segments: { text: string; offset: number }[],
+): string {
+  const parts: string[] = [];
+  // Sentinel forces the first segment to open a window and emit a marker.
+  let lastWindow = -1;
+  for (const seg of segments) {
+    const seconds = Math.max(0, Math.floor(seg.offset / 1000));
+    const windowIndex = Math.floor(seconds / MARKER_WINDOW_SEC);
+    if (windowIndex !== lastWindow) {
+      parts.push(`[${formatTimestamp(seconds)}]`);
+      lastWindow = windowIndex;
+    }
+    parts.push(seg.text);
+  }
+  return parts.join(' ');
 }

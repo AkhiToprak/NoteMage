@@ -2,21 +2,27 @@ import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { extractYouTubeTranscript, CaptionsUnavailableError, VideoUnavailableError } from '@/lib/youtube';
+import { getOrCreateInboxNotebook } from '@/lib/inbox';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
-  successResponse,
+  createdResponse,
   badRequestResponse,
   unauthorizedResponse,
-  notFoundResponse,
   tooManyRequestsResponse,
   unprocessableEntityResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 
-type Params = { params: Promise<{ id: string }> };
-
-export async function POST(request: NextRequest, { params }: Params) {
+/**
+ * POST /api/learn/documents/youtube — notebook-optional YouTube ingest for the
+ * path-create flow, where there may be no notebook yet. Resolves (or creates)
+ * the caller's Inbox notebook the way `/api/learn/uploads` does, then stores
+ * the transcript Document there. Same gate / meter / rate-limit as the
+ * notebook-scoped route. Returns the created Document id so the path material
+ * picker can add it to `materialIds`.
+ */
+export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
@@ -29,14 +35,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
 
-    const { id: notebookId } = await params;
-
-    const notebook = await db.notebook.findFirst({
-      where: { id: notebookId, userId },
-    });
-    if (!notebook) return notFoundResponse('Notebook not found');
-
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { url } = body;
 
     if (!url || typeof url !== 'string') {
@@ -47,8 +46,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       return badRequestResponse('Invalid YouTube URL');
     }
 
-    // Budget gate — abuse cap on outbound oEmbed + transcript fetches.
-    // FREE has a one-time lifetime allowance; PRO a monthly anti-abuse cap.
     const usage = await checkUsageLimit(userId, 'youtube_transcript');
     if (!usage.allowed) {
       return tooManyRequestsResponse(
@@ -72,9 +69,11 @@ export async function POST(request: NextRequest, { params }: Params) {
       throw err;
     }
 
+    const inbox = await getOrCreateInboxNotebook(userId);
+
     const document = await db.document.create({
       data: {
-        notebookId,
+        notebookId: inbox.id,
         fileName: `YouTube: ${title}`,
         filePath: url,
         fileType: 'text/youtube-transcript',
@@ -83,11 +82,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
     });
 
-    // Meter only after a successful extraction + document create, so a
-    // failure never charges the user and no refund path is needed.
     await incrementUsage(userId, 'youtube_transcript');
 
-    return successResponse({ document });
+    return createdResponse({ document });
   } catch {
     return internalErrorResponse();
   }

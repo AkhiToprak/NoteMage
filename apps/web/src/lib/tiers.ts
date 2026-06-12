@@ -14,7 +14,15 @@ export type FeatureType =
   | 'pdf_import'
   // Path-publishing (Phase 1) — counts AI-call (cache-miss) translations of
   // community paths. FREE is lifetime-capped; PRO is monthly anti-abuse.
-  | 'path_translation';
+  | 'path_translation'
+  // Video-as-context (Lane 1) — counts YouTube transcript extractions. Costs
+  // ~0 AI tokens, but oEmbed + transcript fetch are outbound calls, so an
+  // abuse cap is mandatory: FREE is lifetime-capped, PRO is monthly.
+  | 'youtube_transcript'
+  // Native video ingestion (Lane 2) — metered in MINUTES of video, not call
+  // count. Real Gemini COGS, so FREE = 0 (hard PRO gate, checkUsageLimit blocks)
+  // and PRO is a monthly minutes cap. Never -1.
+  | 'video_ingest';
 
 /** The three billing cadences a paid tier can be purchased on. */
 export type BillingInterval = 'weekly' | 'monthly' | 'yearly';
@@ -74,6 +82,8 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_inline_edit: 0,
       pdf_import: 50, // pages, not imports — a one-time lifetime allowance (see LIFETIME_LIMITS)
       path_translation: 5, // lifetime allowance — see LIFETIME_LIMITS.FREE
+      youtube_transcript: 20, // lifetime allowance — see LIFETIME_LIMITS.FREE
+      video_ingest: 0, // hard PRO gate — native video notes are PRO-only (checkUsageLimit blocks at 0)
     },
     badge: {
       label: 'Free',
@@ -95,6 +105,8 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_inline_edit: -1,
       pdf_import: 450, // pages per month
       path_translation: 50, // anti-abuse monthly cap (never shipped as -1)
+      youtube_transcript: 200, // anti-abuse monthly cap (never shipped as -1)
+      video_ingest: 1000, // MINUTES of video per month (worst-case COGS ~$1.85/mo); never -1
     },
     badge: {
       label: 'Pro',
@@ -111,7 +123,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
  * rather than read from the current month alone.
  */
 export const LIFETIME_LIMITS: Partial<Record<TierKey, readonly FeatureType[]>> = {
-  FREE: ['pdf_import', 'path_translation'],
+  FREE: ['pdf_import', 'path_translation', 'youtube_transcript'],
 };
 
 /** True when a tier's limit for a feature is a lifetime budget, not monthly. */

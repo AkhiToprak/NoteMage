@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useModalDimensions } from '@/hooks/useModalDimensions';
 import OneNoteImportProgressModal from './OneNoteImportProgressModal';
 import PdfImportTab from './PdfImportTab';
+import VideoImportTab from './VideoImportTab';
 
 interface ImportNotebookDialogProps {
   notebookId: string;
@@ -11,7 +12,7 @@ interface ImportNotebookDialogProps {
   onClose: () => void;
 }
 
-type TabType = 'onenote' | 'pdf';
+type TabType = 'onenote' | 'pdf' | 'video';
 
 interface OneNoteSection {
   id: string;
@@ -37,12 +38,13 @@ type OneNoteState = 'checking' | 'disconnected' | 'loading' | 'picker' | 'error'
 const ONENOTE_IMPORT_ENABLED: boolean = false;
 
 // Import sources in display order. OneNote is prepended only when enabled
-// (hidden by default — see ONENOTE_IMPORT_ENABLED); with it off, PDF is the
-// only source and the tab bar collapses. GoodNotes/Apple Notes were dropped —
-// both were just "export to PDF and upload", which the PDF importer does better.
+// (hidden by default — see ONENOTE_IMPORT_ENABLED). GoodNotes/Apple Notes were
+// dropped — both were just "export to PDF and upload", which the PDF importer
+// does better. Video (Lane 2 native notes) is PRO-gated inside its own tab.
 const IMPORT_TABS: [TabType, string][] = [
   ...(ONENOTE_IMPORT_ENABLED ? ([['onenote', 'OneNote']] as [TabType, string][]) : []),
   ['pdf', 'PDF'],
+  ['video', 'Video'],
 ];
 
 export default function ImportNotebookDialog({
@@ -199,6 +201,14 @@ export default function ImportNotebookDialog({
           )}
           {activeTab === 'pdf' && (
             <PdfImportTab
+              notebookId={notebookId}
+              onImported={onImported}
+              onClose={onClose}
+              onLockChange={setLocked}
+            />
+          )}
+          {activeTab === 'video' && (
+            <VideoImportTab
               notebookId={notebookId}
               onImported={onImported}
               onClose={onClose}

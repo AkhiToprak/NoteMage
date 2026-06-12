@@ -1,0 +1,251 @@
+import { NextRequest } from 'next/server';
+import { getAuthUserId } from '@/lib/auth';
+import { db } from '@/lib/db';
+import {
+  createdResponse,
+  successResponse,
+  badRequestResponse,
+  unauthorizedResponse,
+  notFoundResponse,
+  paymentRequiredResponse,
+  tooManyRequestsResponse,
+  serviceUnavailableResponse,
+  internalErrorResponse,
+} from '@/lib/api-response';
+import { validateStoragePath } from '@/lib/storage';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { resolveModel } from '@/lib/model-routing';
+import {
+  videoImportDisabled,
+  getVideoIngestMaxDurationSec,
+  getVideoIngestMediaResolution,
+} from '@/lib/video-import/config';
+import { isYouTubeUrl, minutesForDuration } from '@/lib/video-import/submit';
+import { runVideoImportJob } from '@/lib/video-import/run-job';
+
+// P3 — entry point for native video import (Lane 2). POST persists a `queued`
+// ImportJob (sourceFormat 'video'), charges the minutes meter on submit, and
+// fires `runVideoImportJob` detached (mirrors pdf-import → runPdfImportJob): the
+// request returns at once and the client watches the SSE `/progress` route. GET
+// lists recent video jobs for the notebook so the UI can re-attach after reload.
+
+type Params = { params: Promise<{ id: string }> };
+
+/** Trim the stored file name so a long upload name cannot bloat the row. */
+const MAX_FILE_NAME = 255;
+/** Matches the Section/Page title bound enforced elsewhere. */
+const MAX_PAGE_TITLE = 200;
+
+interface VideoImportBody {
+  sectionId?: unknown;
+  fileName?: unknown;
+  /** Supabase temp-imports path for an uploaded video (uploaded-file mode). */
+  videoPath?: unknown;
+  /** Public YouTube URL (URL mode, captionless fallback). */
+  videoUrl?: unknown;
+  /** Client-supplied duration in seconds — UNTRUSTED; sanity-checked below. */
+  durationSec?: unknown;
+  /** Optional user-chosen title for the created page. */
+  pageTitle?: unknown;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// GET — recent video import jobs for this notebook (resume-after-reload UX).
+// ─────────────────────────────────────────────────────────────────────
+
+export async function GET(request: NextRequest, { params }: Params) {
+  try {
+    const userId = await getAuthUserId(request);
+    if (!userId) return unauthorizedResponse();
+
+    const { id: notebookId } = await params;
+
+    const notebook = await db.notebook.findFirst({
+      where: { id: notebookId, userId },
+      select: { id: true },
+    });
+    if (!notebook) return notFoundResponse('Notebook not found');
+
+    const jobs = await db.importJob.findMany({
+      where: { notebookId, userId, sourceFormat: 'video' },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        fileName: true,
+        status: true,
+        progress: true,
+        resultPageId: true,
+        truncated: true,
+        error: true,
+        videoDurationSec: true,
+        startedAt: true,
+        updatedAt: true,
+        createdAt: true,
+      },
+    });
+    return successResponse(jobs);
+  } catch (error) {
+    console.error('[video-import GET]', error);
+    return internalErrorResponse();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// POST — create a video import job and kick off the background worker.
+// ─────────────────────────────────────────────────────────────────────
+
+export async function POST(request: NextRequest, { params }: Params) {
+  try {
+    const userId = await getAuthUserId(request);
+    if (!userId) return unauthorizedResponse();
+
+    const { id: notebookId } = await params;
+
+    // Master kill switch — Lane 2 off entirely (feature-off until tested).
+    if (videoImportDisabled()) {
+      return serviceUnavailableResponse('Video import is currently unavailable.');
+    }
+
+    // Abuse guard — bounds how often a user can spawn import workers.
+    const limit = await rateLimit(rateLimitKey('video-import', request, userId), 10, 60_000);
+    if (!limit.success) {
+      return tooManyRequestsResponse(
+        'Too many import requests. Please wait a moment and try again.',
+        limit.retryAfterMs,
+      );
+    }
+
+    const notebook = await db.notebook.findFirst({
+      where: { id: notebookId, userId },
+      select: { id: true },
+    });
+    if (!notebook) return notFoundResponse('Notebook not found');
+
+    // Gemini must be configured — D3 routes video to Gemini regardless of tier.
+    const resolved = resolveModel('video-ingest', {});
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('[video-import] GEMINI_API_KEY not set — refusing import');
+      return serviceUnavailableResponse('Video import is temporarily unavailable.');
+    }
+
+    const body = (await request.json().catch(() => ({}))) as VideoImportBody;
+
+    const sectionId = typeof body.sectionId === 'string' ? body.sectionId : '';
+    if (!sectionId) return badRequestResponse('sectionId is required');
+    const section = await db.section.findFirst({
+      where: { id: sectionId, notebookId },
+      select: { id: true },
+    });
+    if (!section) return badRequestResponse('Section not found in this notebook');
+
+    const fileName =
+      typeof body.fileName === 'string' ? body.fileName.trim().slice(0, MAX_FILE_NAME) : '';
+    if (!fileName) return badRequestResponse('fileName is required');
+
+    if (body.pageTitle !== undefined && typeof body.pageTitle !== 'string') {
+      return badRequestResponse('pageTitle must be a string');
+    }
+    const pageTitle =
+      typeof body.pageTitle === 'string' ? body.pageTitle.trim().slice(0, MAX_PAGE_TITLE) : '';
+
+    // Exactly one source mode: an uploaded file path OR a YouTube URL.
+    const videoPathRaw = typeof body.videoPath === 'string' ? body.videoPath : '';
+    const videoUrlRaw = typeof body.videoUrl === 'string' ? body.videoUrl.trim() : '';
+    if ((videoPathRaw && videoUrlRaw) || (!videoPathRaw && !videoUrlRaw)) {
+      return badRequestResponse('Provide either a video file or a YouTube URL, not both.');
+    }
+
+    let videoPath: string | null = null;
+    let videoUrl: string | null = null;
+    if (videoPathRaw) {
+      // Scope to the caller's temp-import prefix (service-role bypasses RLS).
+      if (!validateStoragePath(videoPathRaw, `temp-imports/${userId}/`)) {
+        return badRequestResponse('Invalid or missing videoPath');
+      }
+      videoPath = videoPathRaw;
+    } else {
+      // YouTube-only allowlist (D8) — SSRF safety. Same shape as the Lane-1 route.
+      if (!isYouTubeUrl(videoUrlRaw)) {
+        return badRequestResponse('Only YouTube links for now.');
+      }
+      videoUrl = videoUrlRaw;
+    }
+
+    // Duration is client-supplied and UNTRUSTED. Require a positive finite number
+    // and reject anything over the hard cap before any meter charge. The worker's
+    // post-hoc reconcile corrects under-reporting against usageMetadata.
+    const durationSec =
+      typeof body.durationSec === 'number' && Number.isFinite(body.durationSec)
+        ? Math.floor(body.durationSec)
+        : NaN;
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      return badRequestResponse('A positive video duration is required.');
+    }
+    const maxDuration = getVideoIngestMaxDurationSec();
+    if (durationSec > maxDuration) {
+      const maxMin = Math.floor(maxDuration / 60);
+      return badRequestResponse(`This video is too long — ${maxMin} minutes max.`);
+    }
+
+    // Tier gate — native video notes are PRO-only (FREE=0 → checkUsageLimit
+    // blocks). PRO is metered in minutes/month; reject if the charge would
+    // exceed the remaining balance.
+    const minutes = minutesForDuration(durationSec);
+    const usage = await checkUsageLimit(userId, 'video_ingest');
+    if (usage.limit !== -1) {
+      const remaining = usage.limit - usage.used;
+      if (remaining <= 0) {
+        return paymentRequiredResponse(
+          usage.limit === 0
+            ? 'Video notes are a Pro feature.'
+            : 'You have reached your monthly video minutes. It resets next month.',
+        );
+      }
+      if (minutes > remaining) {
+        return tooManyRequestsResponse(
+          `Not enough video minutes left this month (${remaining} remaining).`,
+        );
+      }
+    }
+
+    const mediaResolution = getVideoIngestMediaResolution();
+
+    const job = await db.importJob.create({
+      data: {
+        notebookId,
+        sectionId,
+        userId,
+        sourceFormat: 'video',
+        fileName,
+        engine: resolved.token === 'flash-lite' ? 'gemini-flash-lite' : 'gemini-flash',
+        pageTitle: pageTitle || null,
+        pageCap: 1,
+        status: 'queued',
+        videoPath,
+        videoUrl,
+        videoDurationSec: durationSec,
+        mediaResolution,
+      },
+    });
+
+    // Charge on submit; the worker refunds on fail/cancel. Best-effort meter
+    // write must not block the job — but a failed charge here is non-fatal since
+    // the gate above already confirmed the balance.
+    await incrementUsage(userId, 'video_ingest', minutes).catch((err) => {
+      console.error(`[video-import] usage increment failed for job ${job.id}`, err);
+    });
+
+    // Fire-and-forget — `runVideoImportJob` never throws; the inner catch is
+    // only here for a synchronous scheduling failure.
+    void runVideoImportJob(job.id).catch((err) => {
+      console.error(`[video-import] worker crashed for job ${job.id}`, err);
+    });
+
+    return createdResponse({ jobId: job.id, status: job.status });
+  } catch (error) {
+    console.error('[video-import POST]', error);
+    return internalErrorResponse();
+  }
+}

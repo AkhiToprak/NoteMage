@@ -46,7 +46,8 @@ export type ModelFeature =
   | 'inline-summarize'
   | 'inline-expand'
   | 'doc-summarize'
-  | 'page-generate';
+  | 'page-generate'
+  | 'video-ingest';
 
 export interface ResolveModelCtx {
   /** Billing tier — used by tier-sensitive features (chat-plain, essay). */
@@ -255,6 +256,16 @@ export function resolveModel(
       // Anthropic-only (forced-tool call). PAGE_GENERATE_MODEL env token
       // overrides; MODEL_COMPOSITION_LEGACY=1 keeps Haiku (same as default).
       return resolveStatic('PAGE_GENERATE_MODEL', 'haiku', 'haiku');
+
+    case 'video-ingest': {
+      // Gemini-ONLY (D3): Anthropic has no native video ingestion, so this is
+      // forced to a Gemini token regardless of MODEL_COMPOSITION_LEGACY or any
+      // providerOverride. VIDEO_INGEST_MODEL may pin flash/flash-lite; an
+      // Anthropic token (haiku/sonnet) is rejected and falls back to flash.
+      const override = parseToken(process.env.VIDEO_INGEST_MODEL);
+      if (override === 'flash' || override === 'flash-lite') return fromToken(override);
+      return fromToken('flash');
+    }
 
     case 'chat-plain':
       return resolveChatPlain(ctx);

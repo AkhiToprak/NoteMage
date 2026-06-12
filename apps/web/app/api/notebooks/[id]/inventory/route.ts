@@ -57,7 +57,7 @@ export async function GET(
       }),
       db.document.findMany({
         where: { notebookId },
-        select: { id: true, fileName: true },
+        select: { id: true, fileName: true, fileType: true },
       }),
     ]);
 
@@ -72,7 +72,12 @@ export async function GET(
       pages,
       flashcardSets: flashcardSets.map((f) => ({ id: f.id, type: 'flashcard_set' as const, title: f.title })),
       quizSets: quizSets.map((q) => ({ id: q.id, type: 'quiz_set' as const, title: q.title })),
-      documents: documents.map((d) => ({ id: d.id, type: 'document' as const, title: d.fileName })),
+      documents: documents.map((d) => ({
+        id: d.id,
+        type: 'document' as const,
+        title: d.fileName,
+        fileType: d.fileType,
+      })),
     });
   } catch (error) {
     console.error('Error loading notebook inventory:', error);

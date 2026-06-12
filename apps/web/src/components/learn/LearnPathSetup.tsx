@@ -35,6 +35,9 @@ type InventoryItem = {
   type: MaterialType;
   title: string;
   sectionTitle?: string;
+  // Document MIME, when this item is a document. A YouTube transcript carries
+  // `text/youtube-transcript`, which the picker labels as a video source.
+  fileType?: string | null;
   // Cross-notebook mode only — null in per-notebook mode (the parent
   // notebook is implicit there).
   notebookId: string | null;
@@ -80,6 +83,13 @@ const TYPE_LABEL: Record<MaterialType, string> = {
 };
 
 const TYPE_ORDER: MaterialType[] = ['page', 'flashcard_set', 'quiz_set', 'document'];
+
+const VIDEO_TRANSCRIPT_TYPE = 'text/youtube-transcript';
+
+/** A document sourced from a YouTube transcript — labelled with a video glyph. */
+function isVideoTranscript(item: InventoryItem): boolean {
+  return item.type === 'document' && item.fileType === VIDEO_TRANSCRIPT_TYPE;
+}
 
 const CROSS_NOTEBOOK_BUCKET_ID = '__cross-notebook__';
 
@@ -1594,7 +1604,7 @@ function InventoryRow({
         className="material-symbols-outlined"
         style={{ fontSize: '15px', color: 'var(--on-surface-variant)' }}
       >
-        {TYPE_ICON[item.type]}
+        {isVideoTranscript(item) ? 'smart_display' : TYPE_ICON[item.type]}
       </span>
       <span
         style={{
@@ -1607,6 +1617,9 @@ function InventoryRow({
         }}
       >
         {item.title}
+        {isVideoTranscript(item) ? (
+          <span style={{ color: 'var(--on-surface-variant)' }}> · Video</span>
+        ) : null}
         {showSection && item.sectionTitle ? (
           <span style={{ color: 'var(--on-surface-variant)' }}>
             {' '}
@@ -2010,7 +2023,7 @@ function PhaseCard({
                   className="material-symbols-outlined"
                   style={{ fontSize: '16px', color: 'var(--on-surface-variant)' }}
                 >
-                  {TYPE_ICON[m.type]}
+                  {isVideoTranscript(m) ? 'smart_display' : TYPE_ICON[m.type]}
                 </span>
                 <span
                   style={{
@@ -2035,7 +2048,7 @@ function PhaseCard({
                     fontWeight: 600,
                   }}
                 >
-                  {TYPE_LABEL[m.type]}
+                  {isVideoTranscript(m) ? 'Video' : TYPE_LABEL[m.type]}
                 </span>
                 <button
                   type="button"
@@ -2281,7 +2294,7 @@ function MaterialPickerRow({
         className="material-symbols-outlined"
         style={{ fontSize: '15px', color: 'var(--on-surface-variant)' }}
       >
-        {TYPE_ICON[item.type]}
+        {isVideoTranscript(item) ? 'smart_display' : TYPE_ICON[item.type]}
       </span>
       <span
         style={{
@@ -2300,7 +2313,7 @@ function MaterialPickerRow({
           fontWeight: 600,
         }}
       >
-        {TYPE_LABEL[item.type]}
+        {isVideoTranscript(item) ? 'Video' : TYPE_LABEL[item.type]}
       </span>
     </button>
   );

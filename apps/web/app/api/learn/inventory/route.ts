@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       }),
       db.document.findMany({
         where: { notebookId: { in: notebookIds } },
-        select: { id: true, fileName: true, notebookId: true },
+        select: { id: true, fileName: true, fileType: true, notebookId: true },
       }),
     ]);
 
@@ -140,6 +140,7 @@ export async function GET(request: NextRequest) {
           id: d.id,
           type: 'document' as const,
           title: d.fileName,
+          fileType: d.fileType,
           ...annotate(d.notebookId),
         }))
       ),

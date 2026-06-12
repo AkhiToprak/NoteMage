@@ -23,6 +23,7 @@ type Purpose =
   | 'flashcard-import'
   | 'pdf-import'
   | 'multi-import'
+  | 'video-import'
   | 'admin-background';
 
 interface SignedUrlRequestBody {
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
       'flashcard-import',
       'pdf-import',
       'multi-import',
+      'video-import',
       'admin-background',
     ];
     if (!validPurposes.includes(purpose)) {
@@ -264,6 +266,24 @@ export async function POST(request: NextRequest) {
         // The structured importer uploads the raw PDF plus one PNG per
         // page — the random suffix keeps those many near-simultaneous
         // uploads from colliding on a shared millisecond.
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
+        bucket = BUCKET_PRIVATE;
+        break;
+      }
+
+      case 'video-import': {
+        const { notebookId } = body;
+        if (!notebookId) {
+          return badRequestResponse('video-import requires notebookId');
+        }
+
+        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        if (!notebook) return notFoundResponse('Notebook not found');
+
+        // Native video ingest (Lane 2) downloads this temp file and forwards it
+        // to the Gemini Files API. Same per-user temp scope + random suffix as
+        // pdf-import so concurrent uploads don't collide on a shared millisecond.
         const randomSuffix = Math.random().toString(36).substring(2, 8);
         storagePath = `temp-imports/${userId}/${timestamp}-${randomSuffix}-${sanitized}`;
         bucket = BUCKET_PRIVATE;
