@@ -12,9 +12,9 @@ import {
 } from '@/lib/api-response';
 import { generatePathStructure, generatePath } from '@/lib/path-generator';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
-import { loadPathsForUser, serializePath } from '@/lib/path-loader';
+import { loadPathsForUser, serializePath, staleGenerationCutoff } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkTokenBudget } from '@/lib/token-budget';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import { classifySubjects } from '@/lib/path-classifier';
@@ -90,11 +90,32 @@ export async function POST(request: NextRequest) {
     // Bound bursts on this high-COGS AI route. checkUsageLimit/incrementUsage are
     // non-atomic (the increment lands only after the AI call), so without a limiter
     // a rapid burst could slip extra generations past the meter and run up COGS.
-    const burst = await rateLimit(rateLimitKey('path-create', request, userId), 5, 60_000);
+    // costRateLimit fails CLOSED in prod so a Redis outage can't uncap the spend.
+    const burst = await costRateLimit(rateLimitKey('path-create', request, userId), 5, 60_000);
     if (!burst.success) {
       return tooManyRequestsResponse(
         'Too many path generations in a short window. Please wait a moment and try again.',
         burst.retryAfterMs,
+      );
+    }
+
+    // Per-user concurrent-generation cap. The burst limiter above bounds the
+    // request rate, but a user could still hold many Stage-B orchestrators
+    // in flight at once (each fired fire-and-forget below), multiplying live
+    // COGS. Cap live `generating` runs at 3. Stale rows (a dead orchestrator
+    // killed mid-run by a redeploy) don't count — they're reclaimable by
+    // regenerate and would otherwise wedge the user out forever.
+    const MAX_CONCURRENT_GENERATIONS = 3;
+    const liveGenerating = await db.studyPlan.count({
+      where: {
+        userId,
+        generationStatus: 'generating',
+        updatedAt: { gte: staleGenerationCutoff() },
+      },
+    });
+    if (liveGenerating >= MAX_CONCURRENT_GENERATIONS) {
+      return tooManyRequestsResponse(
+        'You already have several paths generating. Wait for one to finish, then try again.',
       );
     }
 

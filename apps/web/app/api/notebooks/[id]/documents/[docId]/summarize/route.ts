@@ -6,7 +6,7 @@ import { resolveModel } from '@/lib/model-routing';
 import { generateGeminiText } from '@/lib/gemini-text';
 import { logAiUsage } from '@/lib/ai-usage';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
   successResponse,
   badRequestResponse,
@@ -45,7 +45,7 @@ export async function POST(
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const rl = await rateLimit(rateLimitKey('doc-summarize', request, userId), 10, 60_000);
+    const rl = await costRateLimit(rateLimitKey('doc-summarize', request, userId), 10, 60_000);
     if (!rl.success) {
       return tooManyRequestsResponse(
         'You are sending requests too fast. Please wait a moment.',

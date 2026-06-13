@@ -12,6 +12,7 @@ import {
   serviceUnavailableResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { deletePageImages } from '@/lib/storage';
 import { checkUsageLimit, incrementUsage, refundUsage } from '@/lib/usage-limits';
 import { videoImportDisabled } from '@/lib/video-import/config';
@@ -34,6 +35,20 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Abuse guard — a retry re-fires the paid Gemini video worker, so cap
+    // re-runs (cost-aware, fail-closed in prod) to stop free re-run loops.
+    const limit = await costRateLimit(
+      rateLimitKey('video-import-retry', request, userId),
+      5,
+      60_000,
+    );
+    if (!limit.success) {
+      return tooManyRequestsResponse(
+        'Too many retries. Please wait a moment and try again.',
+        limit.retryAfterMs,
+      );
+    }
 
     if (videoImportDisabled()) {
       return serviceUnavailableResponse('Video import is currently unavailable.');

@@ -5,6 +5,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import OnboardingScreen from './OnboardingScreen';
 import AccountStep from './AccountStep';
+import TurnstileWidget, { turnstileEnabled } from '@/components/auth/TurnstileWidget';
 import OAuthBirthDateStep from './OAuthBirthDateStep';
 import OAuthProviderRow from '@/components/auth/OAuthProviderRow';
 import TierSelectionStep from './TierSelectionStep';
@@ -150,6 +151,7 @@ export default function OnboardingWizard({
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [stepErrors, setStepErrors] = useState<Partial<Record<StepId, string>>>({});
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [avatarBusy, setAvatarBusy] = useState(false);
   // Peers prefetched when the user submits the school step — handed to
   // FindClassmatesStep as a prop so it renders instantly with no flash of
@@ -244,6 +246,10 @@ export default function OnboardingWizard({
   // ── Screen 1 (credentials path): register + auto-login ───────────────────
   const handleAccountNext = async () => {
     clearStepError('account');
+    if (turnstileEnabled && !turnstileToken) {
+      setStepError('account', 'Please complete the verification challenge below.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
@@ -253,6 +259,7 @@ export default function OnboardingWizard({
           email: formData.email,
           password: formData.password,
           birthDate: formData.birthDate,
+          turnstileToken,
         }),
       });
       const data = await res.json();
@@ -599,6 +606,7 @@ export default function OnboardingWizard({
             onNext={handleAccountNext}
             loading={loading}
             error={stepErrors.account || ''}
+            turnstileSlot={<TurnstileWidget onToken={setTurnstileToken} />}
           />
           {/*
             OAuth alternative — credentials path only. Sends the user through

@@ -7,12 +7,18 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   internalErrorResponse,
+  tooManyRequestsResponse,
 } from '@/lib/api-response';
 import { extractText } from '@/lib/fileProcessing';
 import { extractPdfTipTapNodes } from '@/lib/pdfjs-node';
 import { downloadFromStorage, validateStoragePath, deleteFile, saveImage } from '@/lib/storage';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 type Params = { params: Promise<{ id: string; pageId: string }> };
+
+// Hard byte cap enforced before parsing — guards against parse-bomb DoS on
+// the appended PDF.
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
 
 /**
  * Appends the contents of a PDF (text + embedded images) to the end
@@ -24,6 +30,14 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const rl = await rateLimit(rateLimitKey('file-import', request, userId), 10, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse(
+        'Too many import requests. Please try again later.',
+        rl.retryAfterMs
+      );
+    }
 
     const { id: notebookId, pageId } = await params;
 
@@ -53,6 +67,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const buffer = await downloadFromStorage(storagePath);
+
+    // Hard byte cap BEFORE parsing — guards against parse-bomb DoS.
+    if (buffer.length > MAX_PDF_BYTES) {
+      await deleteFile(storagePath).catch(() => {});
+      return badRequestResponse(
+        `File is too large. Maximum is ${Math.floor(MAX_PDF_BYTES / (1024 * 1024))}MB.`
+      );
+    }
 
     const extractedNodes = await extractPdfTipTapNodes(buffer);
     const text = await extractText(buffer, 'application/pdf');

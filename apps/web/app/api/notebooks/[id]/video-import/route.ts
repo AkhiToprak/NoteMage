@@ -13,8 +13,8 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { validateStoragePath } from '@/lib/storage';
-import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { checkUsageLimit, reserveUsage, refundUsage } from '@/lib/usage-limits';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { resolveModel } from '@/lib/model-routing';
 import {
   videoImportDisabled,
@@ -108,8 +108,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       return serviceUnavailableResponse('Video import is currently unavailable.');
     }
 
-    // Abuse guard — bounds how often a user can spawn import workers.
-    const limit = await rateLimit(rateLimitKey('video-import', request, userId), 10, 60_000);
+    // Abuse guard — bounds how often a user can spawn import workers. Cost-aware
+    // (fail-closed in prod): each import runs a paid Gemini native-video call, so
+    // a dropped cap means uncapped paid spend.
+    const limit = await costRateLimit(rateLimitKey('video-import', request, userId), 10, 60_000);
     if (!limit.success) {
       return tooManyRequestsResponse(
         'Too many import requests. Please wait a moment and try again.',
@@ -212,35 +214,52 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const mediaResolution = getVideoIngestMediaResolution();
 
-    const job = await db.importJob.create({
-      data: {
-        notebookId,
-        sectionId,
-        userId,
-        sourceFormat: 'video',
-        fileName,
-        engine: resolved.token === 'flash-lite' ? 'gemini-flash-lite' : 'gemini-flash',
-        pageTitle: pageTitle || null,
-        pageCap: 1,
-        status: 'queued',
-        videoPath,
-        videoUrl,
-        videoDurationSec: durationSec,
-        mediaResolution,
-      },
-    });
+    // Charge on submit, atomically — `reserveUsage` checks the cap and charges
+    // the minutes inside one advisory-locked transaction, closing the TOCTOU
+    // window between the read-gate above and the charge. The worker refunds on
+    // fail/cancel (same current-month row `incrementUsage`/`refundUsage` use).
+    // An `allowed:false` here means a concurrent submit consumed the balance
+    // after the gate read — reject without creating a job.
+    const reservation = await reserveUsage(userId, 'video_ingest', minutes);
+    if (!reservation.allowed) {
+      const remaining = Math.max(0, reservation.limit - reservation.used);
+      return tooManyRequestsResponse(
+        `Not enough video minutes left this month (${remaining} remaining).`,
+      );
+    }
 
-    // Charge on submit; the worker refunds on fail/cancel. Best-effort meter
-    // write must not block the job — but a failed charge here is non-fatal since
-    // the gate above already confirmed the balance.
-    await incrementUsage(userId, 'video_ingest', minutes).catch((err) => {
-      console.error(`[video-import] usage increment failed for job ${job.id}`, err);
-    });
+    let job: { id: string; status: string };
+    try {
+      job = await db.importJob.create({
+        data: {
+          notebookId,
+          sectionId,
+          userId,
+          sourceFormat: 'video',
+          fileName,
+          engine: resolved.token === 'flash-lite' ? 'gemini-flash-lite' : 'gemini-flash',
+          pageTitle: pageTitle || null,
+          pageCap: 1,
+          status: 'queued',
+          videoPath,
+          videoUrl,
+          videoDurationSec: durationSec,
+          mediaResolution,
+        },
+      });
+    } catch (err) {
+      // Could not even persist the job — refund the just-charged minutes so the
+      // failed submit doesn't burn the user's balance.
+      await refundUsage(userId, 'video_ingest', minutes).catch(() => {});
+      throw err;
+    }
 
     // Fire-and-forget — `runVideoImportJob` never throws; the inner catch is
-    // only here for a synchronous scheduling failure.
-    void runVideoImportJob(job.id).catch((err) => {
+    // only here for a synchronous scheduling failure. On such a failure refund
+    // the minutes, since the worker that would normally refund never started.
+    void runVideoImportJob(job.id).catch(async (err) => {
       console.error(`[video-import] worker crashed for job ${job.id}`, err);
+      await refundUsage(userId, 'video_ingest', minutes).catch(() => {});
     });
 
     return createdResponse({ jobId: job.id, status: job.status });

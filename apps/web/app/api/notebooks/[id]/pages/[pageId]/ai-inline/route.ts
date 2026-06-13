@@ -7,7 +7,7 @@ import { streamGeminiText } from '@/lib/gemini-text';
 import { logAiUsage } from '@/lib/ai-usage';
 import { checkTokenBudget, recordTokenUsage } from '@/lib/token-budget';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
   unauthorizedResponse,
   notFoundResponse,
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     // ── 4. Rate limit (per-user, 20/min) ──────────────────────
-    const rl = await rateLimit(rateLimitKey('ai-inline', request, userId), 20, 60_000);
+    const rl = await costRateLimit(rateLimitKey('ai-inline', request, userId), 20, 60_000);
     if (!rl.success) {
       return tooManyRequestsResponse(
         'You are sending requests too fast. Please wait a moment.',

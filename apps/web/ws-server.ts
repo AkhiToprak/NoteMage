@@ -69,6 +69,17 @@ const db = new PrismaClient();
 // The client will call a Next.js API to get a short-lived presence token,
 // and this server will verify it via a shared HMAC secret.
 
+// Constant-time secret comparison. crypto.timingSafeEqual throws on
+// unequal-length buffers, so guard the length first — that early-out is the
+// one place a non-constant-time check is unavoidable, and it only leaks the
+// length (not the contents) of the secret.
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 function verifyPresenceToken(token: string): { userId: string } | null {
   try {
     const parts = token.split('.');
@@ -78,10 +89,13 @@ function verifyPresenceToken(token: string): { userId: string } | null {
       .createHmac('sha256', NEXTAUTH_SECRET!)
       .update(`${payloadB64}.${expiresB64}`)
       .digest('base64url');
-    if (expected !== signatureB64) return null;
+    if (!safeEqual(expected, signatureB64)) return null;
     const expires = parseInt(Buffer.from(expiresB64, 'base64url').toString(), 10);
     if (Date.now() > expires) return null;
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+    // Enforce the audience claim so a token minted for another purpose can't
+    // be replayed against the presence server.
+    if (payload.aud !== 'presence') return null;
     return { userId: payload.userId };
   } catch {
     return null;
@@ -148,7 +162,7 @@ const httpServer = createServer((req, res) => {
   // /emit. Never reveals any portion of the secret value itself.
   if (req.url === '/debug') {
     const provided = req.headers['x-ws-internal-secret'];
-    if (!WS_INTERNAL_SECRET || provided !== WS_INTERNAL_SECRET) {
+    if (!WS_INTERNAL_SECRET || typeof provided !== 'string' || !safeEqual(provided, WS_INTERNAL_SECRET)) {
       console.warn(
         `[ws-server] /debug rejected: ${!WS_INTERNAL_SECRET ? 'no WS_INTERNAL_SECRET on ws-server' : 'secret mismatch with caller'}`
       );
@@ -221,7 +235,7 @@ const httpServer = createServer((req, res) => {
   // Broadcasts the event+data to every socket in the named room.
   if (req.method === 'POST' && req.url === '/emit') {
     const provided = req.headers['x-ws-internal-secret'];
-    if (!WS_INTERNAL_SECRET || provided !== WS_INTERNAL_SECRET) {
+    if (!WS_INTERNAL_SECRET || typeof provided !== 'string' || !safeEqual(provided, WS_INTERNAL_SECRET)) {
       console.warn(
         `[ws-server] /emit rejected: ${!WS_INTERNAL_SECRET ? 'no WS_INTERNAL_SECRET on ws-server' : 'secret mismatch with caller'}`
       );

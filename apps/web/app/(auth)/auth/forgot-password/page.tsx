@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
+import TurnstileWidget, { turnstileEnabled } from '@/components/auth/TurnstileWidget';
 
 export default function ForgotPasswordPage() {
   // The auth experience is always-dark (the (auth) layout paints a fixed
@@ -23,16 +24,21 @@ function ForgotPasswordFlow() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   const handleRequest = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    if (turnstileEnabled && !turnstileToken) {
+      setError('Please complete the verification challenge.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstileToken }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -209,6 +215,8 @@ function ForgotPasswordFlow() {
                   />
                 </div>
               </div>
+
+              <TurnstileWidget onToken={setTurnstileToken} />
 
               <button
                 type="submit"

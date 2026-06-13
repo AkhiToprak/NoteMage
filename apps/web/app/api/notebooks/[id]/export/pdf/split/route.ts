@@ -3,7 +3,14 @@ import { PDFDocument } from 'pdf-lib';
 import JSZip from 'jszip';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { unauthorizedResponse, notFoundResponse, internalErrorResponse } from '@/lib/api-response';
+import {
+  unauthorizedResponse,
+  notFoundResponse,
+  internalErrorResponse,
+  badRequestResponse,
+  tooManyRequestsResponse,
+} from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { generatePagesPdf } from '@/lib/pdf-generator';
 
 type Params = { params: Promise<{ id: string }> };
@@ -12,6 +19,11 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const limit = await rateLimit(rateLimitKey('export', request, userId), 10, 60_000);
+    if (!limit.success) {
+      return tooManyRequestsResponse('Too many export requests', limit.retryAfterMs);
+    }
 
     const { id: notebookId } = await params;
 
@@ -33,6 +45,12 @@ export async function POST(request: NextRequest, { params }: Params) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+    if (pageIds.length > 500) {
+      return badRequestResponse('Too many pages (max 500)');
+    }
+    if (splitAfter.length > 500) {
+      return badRequestResponse('Too many split points (max 500)');
+    }
 
     const pages = await db.page.findMany({
       where: { id: { in: pageIds }, section: { notebookId } },
@@ -52,6 +70,11 @@ export async function POST(request: NextRequest, { params }: Params) {
       title: p.title,
       textContent: p.textContent || '',
     }));
+
+    const totalContentLength = pagesData.reduce((sum, p) => sum + p.textContent.length, 0);
+    if (totalContentLength > 10_000_000) {
+      return badRequestResponse('Page content too large');
+    }
     const fullPdfBytes = await generatePagesPdf(notebook.name, pagesData);
     const fullPdf = await PDFDocument.load(fullPdfBytes);
     const totalPages = fullPdf.getPageCount();

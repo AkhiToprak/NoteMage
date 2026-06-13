@@ -29,9 +29,12 @@ const SESSION_AUTH = /\bgetAuthUserId\b|\bgetAdminUserId\b|\bgetServerSession\b|
 // session. Each entry is the path relative to app/api, posix-separated.
 const PUBLIC_ALLOWLIST = new Set<string>([
   'auth/[...nextauth]/route.ts', // NextAuth core handler
+  'auth/forgot-password/route.ts', // pre-session: starts password reset; fail-closed rate-limited (per-email + per-IP)
   'auth/native/apple/route.ts', // pre-session: verifies an Apple-JWKS-signed token
+  'auth/native/google/route.ts', // pre-session: verifies a Google-JWKS-signed id_token (aud-checked)
   'auth/register/route.ts', // pre-session: credentials signup
   'auth/resend-code/route.ts', // pre-session: resend email verification code
+  'auth/reset-password/route.ts', // pre-session: completes password reset via emailed token; fail-closed rate-limited
   'auth/verify-email/route.ts', // pre-session: token-based email verification
   'billing/lemonsqueezy/webhook/route.ts', // HMAC signature over raw body + timingSafeEqual
   'billing/revenuecat/webhook/route.ts', // constant-time auth-header check

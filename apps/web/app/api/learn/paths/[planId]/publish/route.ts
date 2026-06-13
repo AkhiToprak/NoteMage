@@ -37,11 +37,14 @@ import { logAdminAction } from '@/lib/admin-audit';
 import { runLayer1 } from '@/lib/moderation/layer1-runner';
 import { runLayer2 } from '@/lib/moderation/layer2-runner';
 import { runPretranslationFanOut } from '@/lib/translation/pretranslate';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { reserveUsage, refundUsage } from '@/lib/usage-limits';
 import {
   successResponse,
   unauthorizedResponse,
   notFoundResponse,
   conflictResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 
@@ -239,6 +242,28 @@ export async function POST(request: NextRequest, { params }: Params) {
       }
     }
 
+    // Guard the L1 → L2(Gemini) → L3(Sonnet) moderation chain that the
+    // regular publish path kicks off below. Without this, a
+    // publish/unpublish/republish loop could re-run the (paid) L2/L3 audit
+    // on every cycle without bound. The cost-aware limiter fails CLOSED in
+    // prod so a Redis outage can't uncap the moderation COGS; the
+    // moderation_audit meter is the per-user anti-abuse cap. Both sit after
+    // the admin seeded-bypass (which skips L1/L2/L3 entirely) so seeded
+    // publishes never consume a moderation credit.
+    const rl = await costRateLimit(rateLimitKey('path-publish', request, userId), 10, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse(
+        'Too many publish attempts. Please wait a moment and try again.',
+        rl.retryAfterMs,
+      );
+    }
+    const reservation = await reserveUsage(userId, 'moderation_audit');
+    if (!reservation.allowed) {
+      return tooManyRequestsResponse(
+        'Moderation review limit reached for this month. Please try again later.',
+      );
+    }
+
     let created;
     try {
       created = await db.sharedPath.create({
@@ -263,6 +288,10 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
       });
     } catch (err) {
+      // The SharedPath was never created, so moderation won't run on this
+      // request — return the reserved moderation_audit credit before exiting
+      // down either branch below.
+      await refundUsage(userId, 'moderation_audit');
       // Race with a concurrent publish — the @@unique([planId]) trips
       // P2002. Re-read and return the existing row so the second caller
       // still gets a useful 200 instead of a 500. The existing row

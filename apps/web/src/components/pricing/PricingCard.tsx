@@ -39,7 +39,11 @@ interface PricingCardProps {
   maxFeatures?: number;
 }
 
-const FEATURE_LABELS: Record<FeatureType, string> = {
+// Only features with a label here are shown on the pricing card. Internal
+// anti-abuse caps (path_regenerate, path_translate, moderation_audit,
+// code_execute) are intentionally omitted so they never surface as a "plan
+// feature" — the filter below drops any FeatureType missing from this map.
+const FEATURE_LABELS: Partial<Record<FeatureType, string>> = {
   ai_flashcards: 'AI Flashcard sets',
   ai_pptx: 'AI Presentations',
   ai_study_plan: 'AI Study Plans',
@@ -299,6 +303,7 @@ export default function PricingCard({
         }}
       >
         {(Object.entries(config.limits) as [FeatureType, number][])
+          .filter(([feature]) => feature in FEATURE_LABELS)
           .slice(0, maxFeatures ?? Infinity)
           .map(([feature, limit], idx) => {
           // Phase 12 switchover: when FREE AI paths are off, surface the curated

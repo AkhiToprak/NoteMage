@@ -13,7 +13,8 @@ import {
 import { generatePath } from '@/lib/path-generator';
 import { staleGenerationCutoff } from '@/lib/path-loader';
 import { checkTokenBudget } from '@/lib/token-budget';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { reserveUsage, refundUsage } from '@/lib/usage-limits';
 
 // Phase 10.3 — retry path-generation. `generatePath` is idempotent
 // (skips activity kinds the slot already has), so this endpoint just
@@ -30,9 +31,11 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // Anti-abuse: regenerate re-fires a full (expensive) Stage-B generation.
     // It deliberately does NOT consume an ai_study_plan credit (the plan
-    // already cost one when it was created), so guard it with a rate limit +
-    // the monthly token budget so it can't be used to burn tokens without bound.
-    const rl = await rateLimit(rateLimitKey('path-regenerate', request, userId), 10, 60_000);
+    // already cost one when it was created), so guard it with a cost-aware
+    // rate limit (fails CLOSED in prod so a Redis outage can't uncap COGS), a
+    // dedicated per-feature anti-abuse meter, and the monthly token budget so
+    // it can't be used to burn tokens without bound.
+    const rl = await costRateLimit(rateLimitKey('path-regenerate', request, userId), 10, 60_000);
     if (!rl.success) {
       return tooManyRequestsResponse(
         'Too many regeneration attempts. Please wait a moment and try again.',
@@ -40,8 +43,20 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
 
+    // Reserve a path_regenerate credit (atomic check-and-charge). Admins and
+    // unlimited tiers pass without consuming. If the run later fails to start
+    // (lost claim below), the credit is refunded so a no-op doesn't burn it.
+    const reservation = await reserveUsage(userId, 'path_regenerate');
+    if (!reservation.allowed) {
+      return tooManyRequestsResponse(
+        'Monthly regeneration limit reached. Please try again next month.',
+      );
+    }
+
     const { allowed: tokenAllowed, tokenLimit } = await checkTokenBudget(userId);
     if (!tokenAllowed) {
+      // Reservation charged above but no run started — return the credit.
+      await refundUsage(userId, 'path_regenerate');
       return tooManyRequestsResponse(
         `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`
       );
@@ -52,7 +67,11 @@ export async function POST(request: NextRequest, { params }: Params) {
       where: { id: planId, userId },
       select: { id: true },
     });
-    if (!plan) return notFoundResponse('Path not found');
+    if (!plan) {
+      // Reservation charged above but no run started — return the credit.
+      await refundUsage(userId, 'path_regenerate');
+      return notFoundResponse('Path not found');
+    }
 
     // Atomically claim the run: the conditional updateMany matches only when the
     // plan isn't actively generating — either it's idle/failed/ready, or it's a
@@ -83,9 +102,12 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
     });
     if (claimed.count === 0) {
-      // Lost the claim — almost always because a run is already in flight, but
-      // also if the plan was deleted between the lookup and the claim. Re-check
-      // (only on this rare path) so a deleted plan still reports 404, not 400.
+      // Lost the claim — no run started here, so return the reserved credit
+      // (otherwise a double-click / lost race silently burns a regeneration).
+      await refundUsage(userId, 'path_regenerate');
+      // Almost always because a run is already in flight, but also if the plan
+      // was deleted between the lookup and the claim. Re-check (only on this
+      // rare path) so a deleted plan still reports 404, not 400.
       const stillExists = await db.studyPlan.findFirst({
         where: { id: planId, userId },
         select: { id: true },

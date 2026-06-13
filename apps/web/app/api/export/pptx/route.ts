@@ -4,7 +4,9 @@ import {
   unauthorizedResponse,
   badRequestResponse,
   internalErrorResponse,
+  tooManyRequestsResponse,
 } from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { generateSlidesAsPptx, generatePresentationPptx } from '@/lib/pptx-generator';
 import type { PresentationSlide } from '@/lib/pptx-generator';
 
@@ -12,6 +14,11 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const limit = await rateLimit(rateLimitKey('export', request, userId), 10, 60_000);
+    if (!limit.success) {
+      return tooManyRequestsResponse('Too many export requests', limit.retryAfterMs);
+    }
 
     const body = await request.json();
     const { title, slides, themeColor, presentationSlides } = body as {
@@ -29,6 +36,9 @@ export async function POST(request: NextRequest) {
     if (presentationSlides && Array.isArray(presentationSlides) && presentationSlides.length > 0) {
       if (presentationSlides.length > 500) {
         return badRequestResponse('Too many slides (max 500)');
+      }
+      if (JSON.stringify(presentationSlides).length > 5_000_000) {
+        return badRequestResponse('Slide content too large');
       }
       const buffer = await generatePresentationPptx(
         title,
@@ -52,6 +62,9 @@ export async function POST(request: NextRequest) {
     }
     if (slides.length > 500) {
       return badRequestResponse('Too many slides (max 500)');
+    }
+    if (JSON.stringify(slides).length > 5_000_000) {
+      return badRequestResponse('Slide content too large');
     }
 
     const buffer = await generateSlidesAsPptx(title, slides);

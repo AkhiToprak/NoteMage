@@ -11,7 +11,7 @@ import {
   tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { startChatStream } from '@/lib/chat-stream';
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     checkAndUnlockAchievements(userId).catch(console.error);
 
-    const reqLimit = await rateLimit(rateLimitKey('ai-chat', request, userId), 20, 60_000);
+    const reqLimit = await costRateLimit(rateLimitKey('ai-chat', request, userId), 20, 60_000);
     if (!reqLimit.success) {
       return tooManyRequestsResponse('Too many requests. Please slow down.', reqLimit.retryAfterMs);
     }

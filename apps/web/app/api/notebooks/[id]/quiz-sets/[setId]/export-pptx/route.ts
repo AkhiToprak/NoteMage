@@ -1,7 +1,14 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { unauthorizedResponse, notFoundResponse, internalErrorResponse } from '@/lib/api-response';
+import {
+  unauthorizedResponse,
+  notFoundResponse,
+  internalErrorResponse,
+  badRequestResponse,
+  tooManyRequestsResponse,
+} from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { generateQuizPptx } from '@/lib/pptx-generator';
 
 type Params = { params: Promise<{ id: string; setId: string }> };
@@ -10,6 +17,11 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const limit = await rateLimit(rateLimitKey('export', request, userId), 10, 60_000);
+    if (!limit.success) {
+      return tooManyRequestsResponse('Too many export requests', limit.retryAfterMs);
+    }
 
     const { id: notebookId, setId } = await params;
 
@@ -21,6 +33,10 @@ export async function GET(request: NextRequest, { params }: Params) {
       include: { questions: { orderBy: { sortOrder: 'asc' } } },
     });
     if (!quizSet) return notFoundResponse('Quiz set not found');
+
+    if (quizSet.questions.length > 500) {
+      return badRequestResponse('Too many questions (max 500)');
+    }
 
     const buffer = await generateQuizPptx(quizSet.title, quizSet.questions);
     const filename = `${quizSet.title.replace(/[^a-zA-Z0-9]/g, '_')}_quiz.pptx`;

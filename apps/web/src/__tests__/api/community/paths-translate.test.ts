@@ -85,6 +85,7 @@ vi.mock('@/lib/rate-limit', async () => {
   return {
     ...actual,
     rateLimit: mocks.rateLimit,
+    costRateLimit: mocks.rateLimit,
   };
 });
 vi.mock('@/lib/usage-limits', () => ({

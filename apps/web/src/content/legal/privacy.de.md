@@ -71,6 +71,7 @@ Wir nutzen eine kleine Auswahl vertrauenswürdiger Dienstleister („Auftragsver
 | Zahlungsdienstleister (Merchant of Record) | Zahlungsabwicklung | EU / USA |
 | PostHog (Opt-in) | Produktanalyse | EU |
 | Resend | Transaktions- und Konto-E-Mails | USA |
+| Cloudflare (Turnstile) | Bot- und Missbrauchsschutz bei Registrierung und Passwort-Zurücksetzung | USA / weltweit |
 | Hosting-Anbieter | Betrieb der Anwendung | Deutschland (EU) |
 
 Wir können Daten auch offenlegen, soweit dies gesetzlich vorgeschrieben ist oder um unsere Rechte, unsere Nutzer oder den Dienst zu schützen. Wir verkaufen Ihre personenbezogenen Daten nicht.

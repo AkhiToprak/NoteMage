@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { createdResponse, badRequestResponse, internalErrorResponse } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { enforceIpCap, generatePlaceholderUsername, hashIp, normalizeEmail } from '@/lib/registration';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { computeAge, parseBirthDate, MIN_AGE } from '@/lib/age';
 import { issueEmailVerificationCode } from '@/lib/verification';
 import { sendVerificationCode } from '@/lib/verification-email';
@@ -32,6 +33,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { password, birthDate } = body;
     const email = normalizeEmail(body.email);
+
+    // Bot/abuse gate — verify the Turnstile token before creating anything.
+    // No-op until TURNSTILE_SECRET_KEY is set (see src/lib/turnstile.ts), so a
+    // distributed botnet can't mint free-quota accounts past the per-IP cap.
+    if (!(await verifyTurnstile(body.turnstileToken, ip))) {
+      return badRequestResponse('Verification failed. Please complete the challenge and try again.');
+    }
 
     if (!email || !password) {
       return badRequestResponse('Email and password are required');

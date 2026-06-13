@@ -7,19 +7,34 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   internalErrorResponse,
+  tooManyRequestsResponse,
 } from '@/lib/api-response';
 import { extractText, ALLOWED_MIME_TYPES } from '@/lib/fileProcessing';
 import { extractPdfTipTapNodes } from '@/lib/pdfjs-node';
 import { textToTipTapJSON, htmlToTipTapJSON } from '@/lib/contentConverter';
 import { downloadFromStorage, validateStoragePath, deleteFile, saveImage } from '@/lib/storage';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import mammoth from 'mammoth';
 
 type Params = { params: Promise<{ id: string; sectionId: string }> };
+
+// Hard byte caps enforced before parsing to prevent parse-bomb / decompression
+// DoS. PDFs run a larger budget than office/text formats.
+const MAX_PDF_BYTES = 50 * 1024 * 1024;
+const MAX_DOC_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const rl = await rateLimit(rateLimitKey('file-import', request, userId), 10, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse(
+        'Too many import requests. Please try again later.',
+        rl.retryAfterMs
+      );
+    }
 
     const { id: notebookId, sectionId } = await params;
 
@@ -53,6 +68,16 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const buffer = await downloadFromStorage(storagePath);
+
+    // Hard byte cap BEFORE any parsing — guards against parse-bomb /
+    // decompression DoS on the downloaded file.
+    const maxBytes = fileType === 'application/pdf' ? MAX_PDF_BYTES : MAX_DOC_BYTES;
+    if (buffer.length > maxBytes) {
+      await deleteFile(storagePath).catch(() => {});
+      return badRequestResponse(
+        `File is too large. Maximum is ${Math.floor(maxBytes / (1024 * 1024))}MB.`
+      );
+    }
 
     // Extract TipTap JSON content
     let content: object;

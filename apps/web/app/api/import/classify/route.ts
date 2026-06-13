@@ -9,7 +9,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { validateStoragePath, downloadFromStorage } from '@/lib/storage';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { logAiUsage } from '@/lib/ai-usage';
 import { extractGroundTruth, type GroundTruth } from '@/lib/pdf-import/ground-truth';
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const limit = await rateLimit(rateLimitKey('import-classify', request, userId), 10, 60_000);
+    const limit = await costRateLimit(rateLimitKey('import-classify', request, userId), 10, 60_000);
     if (!limit.success) {
       return tooManyRequestsResponse(
         'Too many import requests. Please wait a moment and try again.',

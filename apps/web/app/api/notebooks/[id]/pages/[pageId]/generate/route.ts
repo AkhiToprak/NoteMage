@@ -13,7 +13,7 @@ import {
   tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
-import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { FLASHCARD_TOOL, QUIZ_TOOL_V2, MINDMAP_TOOL, extractToolUses } from '@/lib/ai-tools';
 import { buildLegacyColumns } from '@/lib/quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
@@ -47,9 +47,10 @@ export async function POST(request: NextRequest, { params }: Params) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    // Rate limit: 10 req/min
-    const ip = getClientIp(request);
-    const reqLimit = await rateLimit(`generate:${ip}`, 10, 60_000);
+    // Rate limit: 10 req/min, keyed per authenticated user (cost-aware, fails
+    // closed in prod). User-keyed via rateLimitKey so shared-IP pooling and
+    // X-Forwarded-For spoofing cannot bypass the cap.
+    const reqLimit = await costRateLimit(rateLimitKey('page-generate', request, userId), 10, 60_000);
     if (!reqLimit.success) {
       return tooManyRequestsResponse('Too many requests. Please slow down.', reqLimit.retryAfterMs);
     }

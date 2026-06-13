@@ -3,6 +3,20 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { redis } from '@/lib/redis';
 import { clientIpFromHeaders } from '@/lib/client-ip';
 
+// One-time misconfig warning: in production, cost-limited AI routes fail CLOSED
+// when Redis is unreachable. If the Upstash credentials are missing, those
+// routes will reject every request, so surface it loudly at module load.
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN)
+) {
+  console.error(
+    '[rate-limit] MISCONFIGURED: UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN ' +
+      'are not set in production. Cost-limited AI routes use costRateLimit() and ' +
+      'FAIL CLOSED — they will reject every request until Redis is configured.'
+  );
+}
+
 /**
  * Cache Ratelimit instances by (maxRequests, windowMs) to avoid
  * recreating them on every request in serverless environments.
@@ -65,6 +79,27 @@ export async function rateLimit(
     console.error('Rate limiter error (failing open):', error);
     return { success: true };
   }
+}
+
+/**
+ * Cost-aware rate limiter for AI surfaces (chat, path generation, imports,
+ * page-generate, …) where a dropped cap means uncapped paid API spend.
+ *
+ * Unlike the plain `rateLimit` (default fail-OPEN), this fails CLOSED in
+ * production: if Redis is unreachable the request is BLOCKED, so a Redis
+ * outage can't turn into a runaway-cost incident. In development it fails
+ * OPEN so local work without Redis still functions.
+ *
+ * `cost` lets one request consume more than one token when it triggers
+ * multiple backend operations (mirrors `rateLimit`'s `cost` semantics).
+ */
+export async function costRateLimit(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+  cost = 1
+): Promise<{ success: boolean; retryAfterMs?: number }> {
+  return rateLimit(key, maxRequests, windowMs, process.env.NODE_ENV === 'production', cost);
 }
 
 /**

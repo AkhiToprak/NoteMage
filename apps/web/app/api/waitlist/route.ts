@@ -13,8 +13,10 @@ import { sendWaitlistConfirmation } from '@/lib/waitlist-email';
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: 5 signups per hour per IP (unauthenticated email send + row create)
-    const rl = await rateLimit(rateLimitKey('waitlist', request), 5, 60 * 60 * 1000);
+    // Rate limit: 5 signups per hour per IP (unauthenticated email send + row create).
+    // Fail CLOSED in production: this is an unauthenticated DB-write + email send,
+    // so if Redis is down we must reject rather than let a flood spam the DB/emails.
+    const rl = await rateLimit(rateLimitKey('waitlist', request), 5, 60 * 60 * 1000, true);
     if (!rl.success) return tooManyRequestsResponse('Too many requests. Please try again later.', rl.retryAfterMs);
 
     const { email } = await request.json();
