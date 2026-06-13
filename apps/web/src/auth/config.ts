@@ -9,6 +9,8 @@ import { db } from '@/lib/db';
 import { getIpFromHeaders, normalizeEmail } from '@/lib/registration';
 import { findOrCreateOAuthUser } from '@/auth/oauth-user';
 import { logSecurityEvent } from '@/lib/security-events';
+import { verifyTurnstile } from '@/lib/turnstile';
+import { loginChallengeRequired, recordLoginFailure, clearLoginChallenge } from '@/lib/login-challenge';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60 * 60 * 1000; // 1 hour
@@ -107,9 +109,25 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        turnstileToken: { label: 'Turnstile Token', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Adaptive bot gate: after repeated failed logins from this IP, require
+        // a solved Turnstile challenge before we even check the password.
+        // Dormant until TURNSTILE_SECRET_KEY is set (src/lib/login-challenge.ts).
+        let ip = 'unknown';
+        try {
+          ip = getIpFromHeaders(headers() as unknown as Headers);
+        } catch {
+          // headers() can throw outside a request context — skip the gate.
+        }
+        if (await loginChallengeRequired(ip)) {
+          if (!(await verifyTurnstile(credentials.turnstileToken, ip))) {
+            throw new Error('CAPTCHA_REQUIRED');
+          }
+        }
 
         const user = await db.user.findUnique({
           where: { email: normalizeEmail(credentials.email) },
@@ -207,6 +225,7 @@ export const authOptions: NextAuthOptions = {
               throw new Error(`ACCOUNT_LOCKED:${unlockAt.toISOString()}`);
             }
           }
+          await recordLoginFailure(ip);
           logSecurityEvent({ userId: user?.id ?? null, type: 'login.failed' });
           return null;
         }
@@ -235,6 +254,7 @@ export const authOptions: NextAuthOptions = {
             data: { failedLoginAttempts: 0, lockedAt: null },
           });
         }
+        await clearLoginChallenge(ip);
 
         logSecurityEvent({ userId: user.id, type: 'login.success' });
         return {
