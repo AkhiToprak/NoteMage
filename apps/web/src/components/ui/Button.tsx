@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { haptics } from '@/lib/haptics';
 
 /**
  * Shared button primitive — the single home for the project's button hierarchy
@@ -94,6 +95,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   /** Shows a spinner and disables interaction. */
   loading?: boolean;
   fullWidth?: boolean;
+  /**
+   * Haptic fired on press (native shell only; see @/lib/haptics). Defaults to a
+   * light `tap`. Pass `false` to silence noisy/repeated buttons, or a semantic
+   * intent (`success`/`error`) for a button whose press is itself an outcome.
+   */
+  haptic?: false | 'tap' | 'select' | 'success' | 'error';
   /** Tutorial-system target hook (passed through to the DOM button). */
   'data-tutorial'?: string;
 }
@@ -107,6 +114,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     trailingIcon,
     loading = false,
     fullWidth = false,
+    haptic = 'tap',
     disabled,
     children,
     style,
@@ -115,6 +123,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     onMouseLeave,
     onMouseDown,
     onMouseUp,
+    onPointerDown,
     ...rest
   },
   ref
@@ -148,6 +157,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       onMouseUp={(e) => {
         setPressed(false);
         onMouseUp?.(e);
+      }}
+      onPointerDown={(e) => {
+        // Fire on pointerdown (not click) so the buzz lands the instant the
+        // finger touches — the helper coalesces any synthesized mouse event.
+        if (!isDisabled && haptic) {
+          if (haptic === 'select') haptics.select();
+          else if (haptic === 'success') haptics.success();
+          else if (haptic === 'error') haptics.error();
+          else haptics.tap();
+        }
+        onPointerDown?.(e);
       }}
       style={{
         display: 'inline-flex',

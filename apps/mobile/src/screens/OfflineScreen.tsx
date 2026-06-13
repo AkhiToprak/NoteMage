@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface OfflineScreenProps {
@@ -21,7 +22,10 @@ export function OfflineScreen({ onRetry }: OfflineScreenProps) {
       </Text>
       <Pressable
         accessibilityRole="button"
-        onPress={onRetry}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onRetry();
+        }}
         style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
       >
         <Text style={styles.buttonText}>Try again</Text>

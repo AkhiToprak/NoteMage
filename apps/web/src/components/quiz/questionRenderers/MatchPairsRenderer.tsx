@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { haptics } from '@/lib/haptics';
 import type { MatchPairsPayload } from '@notemage/shared';
 import HintButton from './HintButton';
 import { shuffleByKey } from './quizShuffle';
@@ -162,6 +163,7 @@ export default function MatchPairsRenderer({
 
   const handleLeftClick = (leftIdx: number) => {
     if (mode !== 'quiz') return;
+    haptics.select();
     // If this left is already connected, clicking it removes the connection.
     const existing = connections.find((c) => c.left === leftIdx);
     if (existing) {
@@ -174,6 +176,7 @@ export default function MatchPairsRenderer({
 
   const handleRightClick = (rightSlotIdx: number) => {
     if (mode !== 'quiz') return;
+    haptics.select();
     const rightLabel = shuffledRights[rightSlotIdx];
     if (rightLabel === undefined) return;
 

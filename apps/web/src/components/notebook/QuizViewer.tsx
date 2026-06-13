@@ -16,6 +16,7 @@ import {
 import { StreakTakeover } from '@/components/streak/StreakTakeover';
 import { computeReaction, type ReactionMode } from '@/lib/quiz-reactions';
 import { trackEvent } from '@/lib/telemetry';
+import { haptics } from '@/lib/haptics';
 import type { QuestionKind } from '@notemage/shared';
 import SlideEditorModal, { SlideData } from './SlideEditorModal';
 
@@ -283,6 +284,11 @@ export default function QuizViewer({
       if (mode !== 'quiz') return false;
       if (committedRef.current.has(idx)) return false;
       committedRef.current.add(idx);
+
+      // Outcome haptic — the single authoritative spot a graded answer is
+      // finalised, so it covers every question kind exactly once.
+      if (isCorrect) haptics.success();
+      else haptics.error();
 
       const newCorrect = isCorrect ? correctStreakRef.current + 1 : 0;
       const newWrong = isCorrect ? 0 : wrongStreakRef.current + 1;

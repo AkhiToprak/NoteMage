@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DashboardIcon, NotebookIcon, CoWorkIcon } from '@/components/icons/NavIcons';
+import { haptics } from '@/lib/haptics';
 
 /**
  * Phone-only bottom tab bar. Phones are used primarily for the Learn hub +
@@ -58,6 +59,9 @@ export default function MobileBottomNav() {
               <Link
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
+                onClick={() => {
+                  if (!active) haptics.select();
+                }}
                 className="mbn-link"
                 style={{
                   display: 'flex',

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTutorial } from './TutorialContext';
 import { useCelebration, Mascot } from '@/components/mascot';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { haptics } from '@/lib/haptics';
 
 export function CompletionModal() {
   const { isPro } = useTutorial();
@@ -26,6 +27,8 @@ function ProCompletion() {
   useEffect(() => {
     if (firedRef.current) return;
     firedRef.current = true;
+
+    haptics.success();
 
     const body = showApprentice ? (
       <div

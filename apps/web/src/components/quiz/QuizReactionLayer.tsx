@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { Mascot } from '@/components/mascot/Mascot';
 import { useCelebration } from '@/components/mascot';
+import { haptics } from '@/lib/haptics';
 import type { Reaction, ReactionKind } from '@/lib/quiz-reactions';
 import styles from './QuizReactionLayer.module.css';
 
@@ -75,6 +76,10 @@ export const QuizReactionLayer = forwardRef<
     (reaction: Reaction) => {
       clearTimers();
       if (reaction.display === 'overlay') {
+        // Big-moment overlays (perfect score, checkpoint pass) fire at quiz
+        // completion — a distinct moment from the per-answer commit buzz, so a
+        // success notification here doesn't double up.
+        haptics.success();
         ownsCelebrationRef.current = true;
         celebrate({
           pose: reaction.pose,

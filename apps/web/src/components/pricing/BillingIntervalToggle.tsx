@@ -1,6 +1,7 @@
 'use client';
 
 import { useId } from 'react';
+import { haptics } from '@/lib/haptics';
 import { INTERVAL_LABEL, type BillingInterval } from '@/lib/tiers';
 
 const ORDER: readonly BillingInterval[] = ['weekly', 'monthly', 'yearly'];
@@ -76,7 +77,10 @@ export default function BillingIntervalToggle({
               role="radio"
               aria-checked={isActive}
               id={`${groupId}-${interval}`}
-              onClick={() => onChange(interval)}
+              onClick={() => {
+                if (!isActive) haptics.select();
+                onChange(interval);
+              }}
               className="bit-segment"
               data-active={isActive ? 'true' : undefined}
               style={{

@@ -314,6 +314,8 @@ export class ShellBridge {
     // Push notifications opened from the lock/notification center.
     this.notificationResponseSub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
+      // A small confirming buzz as the app opens from the notification.
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       this.emit('pushNotificationOpened', data);
       const link = typeof data?.url === 'string' ? (data.url as string) : null;
       if (link) this.handleDeepLink(link);
@@ -379,7 +381,18 @@ export class ShellBridge {
     switch (req.method) {
       case 'haptic': {
         const style = (req.args as { style?: HapticStyle } | undefined)?.style;
-        await Haptics.impactAsync(toHapticStyle(style));
+        if (style === 'selection') {
+          await Haptics.selectionAsync();
+        } else if (style === 'success') {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else if (style === 'warning') {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } else if (style === 'error') {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } else {
+          // light | medium | heavy → physical impact tap
+          await Haptics.impactAsync(toHapticStyle(style));
+        }
         return null;
       }
       case 'share': {

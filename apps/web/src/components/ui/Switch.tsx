@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { haptics } from '@/lib/haptics';
 
 /**
  * Tokenised on/off switch. 44×24 pill, knob slides 0 → 20px.
@@ -42,7 +43,10 @@ export function Switch({
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => {
-        if (!disabled) onCheckedChange(!checked);
+        if (!disabled) {
+          haptics.select();
+          onCheckedChange(!checked);
+        }
       }}
       className="hl-switch"
       data-checked={checked ? 'true' : 'false'}

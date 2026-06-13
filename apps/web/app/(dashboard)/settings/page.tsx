@@ -6,6 +6,8 @@ import AvatarEditor from '@/components/ui/AvatarEditor';
 import SubscriptionPanel from '@/components/settings/SubscriptionPanel';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
+import { haptics, hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
+import { isInsideNativeShell } from '@/lib/native-bridge';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
 import {
@@ -42,7 +44,10 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       aria-label={ariaLabel}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        haptics.select();
+        onChange(!checked);
+      }}
       style={{
         position: 'relative',
         width: '56px',
@@ -132,6 +137,18 @@ export default function SettingsPage() {
 
   const [quizReactionsMode, setQuizReactionsMode] = useState<'all' | 'minimal' | 'off'>('all');
   const [quizReactionsAudio, setQuizReactionsAudio] = useState(false);
+
+  // Haptics: a device-local on/off preference (default on). The setting is only
+  // surfaced inside the native shell — on a plain browser haptics do nothing, so
+  // the control would be a dead switch. `hapticsAvailable` is set after mount to
+  // avoid an SSR hydration mismatch (the server can't know it's in a WebView).
+  const [hapticsPref, setHapticsPref] = useState(true);
+  const [hapticsAvailable, setHapticsAvailable] = useState(false);
+
+  useEffect(() => {
+    setHapticsAvailable(isInsideNativeShell());
+    setHapticsPref(hapticsEnabled());
+  }, []);
 
   const [studyGoals, setStudyGoals] = useState<GoalValues>({ ...EMPTY_GOAL_VALUES });
   const [goalCustomInputs, setGoalCustomInputs] = useState<Record<string, string>>({});
@@ -1714,6 +1731,45 @@ export default function SettingsPage() {
                 }}
               />
             </div>
+
+            {hapticsAvailable && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: isPhone ? 'column' : 'row',
+                  alignItems: isPhone ? 'flex-start' : 'center',
+                  justifyContent: 'space-between',
+                  gap: isPhone ? '16px' : '24px',
+                  padding: '16px',
+                  background: 'var(--surface-container-low)',
+                  borderRadius: '16px',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: 'var(--on-surface)',
+                      margin: '0 0 2px',
+                    }}
+                  >
+                    Haptic feedback
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--on-surface-variant)', margin: 0 }}>
+                    Subtle vibration on taps, answers, and celebrations. On by default.
+                  </p>
+                </div>
+                <Toggle
+                  ariaLabel="Haptic feedback"
+                  checked={hapticsPref}
+                  onChange={(v) => {
+                    setHapticsPref(v);
+                    setHapticsEnabled(v);
+                  }}
+                />
+              </div>
+            )}
           </section>
 
           {/* Notifications */}

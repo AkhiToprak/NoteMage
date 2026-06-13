@@ -106,8 +106,20 @@ class WebFallbackBridge implements NativeBridge {
   haptic(style: HapticStyle): void {
     if (!isClient()) return;
     if (typeof navigator.vibrate !== 'function') return;
-    const ms = style === 'heavy' ? 30 : style === 'medium' ? 18 : 8;
-    navigator.vibrate(ms);
+    // Map every protocol style onto a vibrate duration / pattern. Impacts are a
+    // single pulse; the notification styles get a short two-pulse pattern so
+    // they feel distinct from a plain tap. (Normally unreached — the web helper
+    // gates haptics to the native shell — but kept correct + crash-free.)
+    const PATTERNS: Record<HapticStyle, number | number[]> = {
+      light: 8,
+      medium: 18,
+      heavy: 30,
+      selection: 5,
+      success: [12, 40, 12],
+      warning: [18, 50, 18],
+      error: [24, 50, 24],
+    };
+    navigator.vibrate(PATTERNS[style] ?? 8);
   }
 
   async share(content: ShareContent): Promise<void> {

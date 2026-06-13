@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { nativeBridge } from '@/lib/native-bridge';
+import { haptics } from '@/lib/haptics';
 import styles from './streak-takeover.module.css';
 
 const DUR = 4.6;
@@ -103,7 +103,7 @@ export function StreakTakeover({
   useEffect(() => {
     const timers = HAPTICS.map(({ at, style }) =>
       window.setTimeout(() => {
-        try { nativeBridge.haptic(style); } catch { /* haptics are best-effort */ }
+        haptics.impact(style);
       }, at),
     );
     return () => timers.forEach((id) => window.clearTimeout(id));

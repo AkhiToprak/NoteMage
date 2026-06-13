@@ -1,6 +1,7 @@
 'use client';
 
 import { useTheme, type ThemePreference } from '@/contexts/ThemeContext';
+import { haptics } from '@/lib/haptics';
 
 const OPTIONS: { value: ThemePreference; icon: string; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: 'Light theme' },
@@ -39,7 +40,10 @@ export default function ThemeToggle({ compact = false }: Props) {
             aria-checked={active}
             aria-label={label}
             title={label}
-            onClick={() => setPreference(value)}
+            onClick={() => {
+              if (!active) haptics.select();
+              setPreference(value);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',

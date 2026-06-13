@@ -16,7 +16,19 @@
 
 export type NativePlatform = 'ios' | 'windows' | 'web';
 
-export type HapticStyle = 'light' | 'medium' | 'heavy';
+// `light` | `medium` | `heavy` map to UIImpactFeedbackGenerator (a physical tap).
+// `selection` maps to UISelectionFeedbackGenerator (a light tick for picking among
+// options / flipping a toggle). `success` | `warning` | `error` map to
+// UINotificationFeedbackGenerator (the distinct outcome buzzes). The shell branches
+// on these in apps/mobile/src/bridge.ts; the web fallback degrades them to vibrate.
+export type HapticStyle =
+  | 'light'
+  | 'medium'
+  | 'heavy'
+  | 'selection'
+  | 'success'
+  | 'warning'
+  | 'error';
 
 export interface AppleUser {
   id: string;

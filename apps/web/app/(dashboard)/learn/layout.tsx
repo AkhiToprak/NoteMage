@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { trackEvent } from '@/lib/telemetry';
+import { haptics } from '@/lib/haptics';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 // Phase 9.3 — /learn layout. Renders a sticky horizontal tab strip across the
@@ -132,6 +133,9 @@ function TabLink({
     <Link
       href={tab.href}
       aria-current={isActive ? 'page' : undefined}
+      onClick={() => {
+        if (!isActive) haptics.select();
+      }}
       style={{
         position: 'relative',
         display: isPhone ? 'flex' : 'inline-flex',

@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface ErrorScreenProps {
@@ -23,7 +24,10 @@ export function ErrorScreen({ message, onReload }: ErrorScreenProps) {
       {message ? <Text style={styles.detail}>{message}</Text> : null}
       <Pressable
         accessibilityRole="button"
-        onPress={onReload}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onReload();
+        }}
         style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
       >
         <Text style={styles.buttonText}>Reload</Text>
