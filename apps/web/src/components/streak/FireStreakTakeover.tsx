@@ -300,11 +300,13 @@ export function FireStreakTakeover({
     if (reduced.current) { renderFrame(DUR); return; }
     let raf = 0;
     let start: number | null = null;
+    // The clock runs unbounded — past the intro (DUR) the macro beats are all
+    // clamped segs that settle, but the per-element flicker/embers/bob/pulse are
+    // sin/frac of t, so the fire keeps burning and never freezes to a static
+    // frame. It stops only when the takeover unmounts (Continue / Esc / scrim).
     const tick = (ts: number) => {
       if (start == null) start = ts;
-      let e = (ts - start) / 1000;
-      if (e > DUR) e = DUR;
-      renderFrame(e);
+      renderFrame((ts - start) / 1000);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

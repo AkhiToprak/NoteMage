@@ -49,15 +49,15 @@
 .stage[data-orient="landscape"]{width:1920px; height:1080px;}
 .stage[data-orient="landscape"] .hero{top:25px; width:1060px; height:770px; margin-left:-530px;}
 .stage[data-orient="landscape"] .headline{top:742px; font-size:204px;}
-.stage[data-orient="landscape"] .btn{top:980px; padding:22px 56px; font-size:36px;}
-.stage[data-orient="landscape"] .btn .material-symbols-outlined{font-size:40px;}
+.stage[data-orient="landscape"] .btn{top:966px; padding:26px 70px; font-size:44px;}
+.stage[data-orient="landscape"] .btn .material-symbols-outlined{font-size:50px;}
 
 /* ===== PORTRAIT 9:16 ===== */
 .stage[data-orient="portrait"]{width:1080px; height:1920px;}
 .stage[data-orient="portrait"] .hero{top:274px; width:1144px; height:831px; margin-left:-572px;}
 .stage[data-orient="portrait"] .headline{top:1190px; font-size:168px;}
-.stage[data-orient="portrait"] .btn{top:1520px; padding:26px 60px; font-size:40px;}
-.stage[data-orient="portrait"] .btn .material-symbols-outlined{font-size:46px;}
+.stage[data-orient="portrait"] .btn{top:1500px; padding:34px 84px; font-size:52px;}
+.stage[data-orient="portrait"] .btn .material-symbols-outlined{font-size:60px;}
 
 @media (prefers-reduced-motion: reduce){
   .btn{transition:none;}

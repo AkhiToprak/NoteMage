@@ -4,11 +4,11 @@
    PNG (true-black background → transparent, flame tips fade softly), so it composites
    cleanly over the scene fire AND over the app-background stage.
 
-   The stage background is the app's #0c0a1a (matching the 3-in-a-row takeover), NOT
-   black. NOTE: the orange-fire-tints-purple gotcha was about *baking* the mascot art
-   onto #0c0a1a (a lighten blend lifted the flame shadows toward the bg's blue). The
-   alpha matte sidesteps that, and the CSS flames are opaque solids drawn on top — the
-   stage colour never touches them — so the stage can match the app freely.
+   The stage background is the app's dark --background (#1a1a36), NOT black. NOTE: the
+   orange-fire-tints-purple gotcha was about *baking* the mascot art onto a dark bg (a
+   lighten blend lifted the flame shadows toward the bg's blue). The alpha matte sidesteps
+   that, and the CSS flames are opaque solids drawn on top — the stage colour never touches
+   them — so the stage matches the app freely.
 
    Authored on a fixed design canvas (landscape 1920x1080 / portrait 1080x1920) and
    scaled to *contain* the viewport — the same translate-scale centring the 3-in-a-row
@@ -20,7 +20,7 @@
   position: fixed;
   inset: 0;
   z-index: 1350;
-  background: #0c0a1a;
+  background: #1a1a36;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
@@ -204,12 +204,12 @@
   font-size: 196px;
 }
 .stage[data-orient='landscape'] .btn {
-  top: 986px;
-  padding: 22px 56px;
-  font-size: 36px;
+  top: 966px;
+  padding: 26px 70px;
+  font-size: 44px;
 }
 .stage[data-orient='landscape'] .btn .material-symbols-outlined {
-  font-size: 40px;
+  font-size: 50px;
 }
 
 /* ===== PORTRAIT 9:16 ===== */
@@ -228,12 +228,12 @@
   font-size: 166px;
 }
 .stage[data-orient='portrait'] .btn {
-  top: 1556px;
-  padding: 26px 60px;
-  font-size: 40px;
+  top: 1540px;
+  padding: 34px 84px;
+  font-size: 52px;
 }
 .stage[data-orient='portrait'] .btn .material-symbols-outlined {
-  font-size: 46px;
+  font-size: 60px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -637,6 +637,16 @@ export default function QuizViewer({
     return () => window.removeEventListener('keydown', handler);
   }, [prev, next, selectAnswer, editingId, questions, currentIndex, streakTakeover]);
 
+  // Warm the streak-takeover hero art into cache on mount, so when a 3-/5-streak
+  // fires the full-screen takeover the mascot is already loaded (no "pop in" wait
+  // on the ~650KB fire PNG over mobile data).
+  useEffect(() => {
+    ['/streak/fire-hero.png', '/streak/streak-hero.png'].forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []);
+
   // Fetch user quiz-reaction preferences (Phase 4).
   useEffect(() => {
     let cancelled = false;
