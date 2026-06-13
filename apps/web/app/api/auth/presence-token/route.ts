@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
-import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
+import {
+  successResponse,
+  unauthorizedResponse,
+  internalErrorResponse,
+  tooManyRequestsResponse,
+} from '@/lib/api-response';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import * as crypto from 'crypto';
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
@@ -14,6 +20,17 @@ export async function GET(request: NextRequest) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Abuse cap: this mints an HMAC token used to authenticate to the WS
+    // presence server, so the endpoint must not be hammerable to harvest
+    // tokens. Cap per user (fail-closed in prod via costRateLimit). Keyed per
+    // user, NOT per IP, because schools/NATs share an IP and an IP cap here
+    // would throttle a whole class of legitimate students.
+    const rl = await costRateLimit(rateLimitKey('presence-token', request, userId), 30, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse('Too many requests. Please slow down.', rl.retryAfterMs);
+    }
+
     if (!NEXTAUTH_SECRET) return internalErrorResponse('Server misconfigured');
 
     // `aud` scopes the token to the presence channel so it can't be replayed

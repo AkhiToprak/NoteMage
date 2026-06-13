@@ -8,8 +8,9 @@
 //       the threshold with no fan-out yet.
 //
 // Contract (P0 §4.10):
-//   - Auth: admin only. Non-admin → 404 (existence-leak policy, same as
-//     the other path-publishing admin endpoints — NOT 403).
+//   - Auth: admin only. Non-admin → 403 (forbiddenResponse), matching the
+//     sibling admin/paths route. No existence-leak concern here: community
+//     paths are already publicly viewable via /api/community/paths/[shareId].
 //   - Precondition: SharedPath.moderationStatus === 'approved'.
 //       missing row → 404; exists-but-not-approved → 409.
 //   - Effects: atomically set `popularityTriggeredAt = NOW()` iff
@@ -30,6 +31,7 @@ import { runPretranslationFanOut } from '@/lib/translation/pretranslate';
 import {
   successResponse,
   notFoundResponse,
+  forbiddenResponse,
   conflictResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
@@ -39,7 +41,7 @@ type Params = { params: Promise<{ shareId: string }> };
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     const adminId = await getAdminUserId(request);
-    if (!adminId) return notFoundResponse();
+    if (!adminId) return forbiddenResponse('Admin access required');
 
     const { shareId } = await params;
 
