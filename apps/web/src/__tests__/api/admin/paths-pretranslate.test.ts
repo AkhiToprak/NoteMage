@@ -2,7 +2,7 @@
 // (the admin manual pre-translation trigger, P0 §4.10).
 //
 // Mock the auth boundary, the db, the admin-audit logger, and the
-// fan-out runner. Assert the contract: admin-gate-by-404, approved-only
+// fan-out runner. Assert the contract: admin-gate-by-403, approved-only
 // precondition, atomic first-trigger flip + audit + fan-out, and the
 // idempotent no-op when popularityTriggeredAt was already set.
 
@@ -51,11 +51,11 @@ beforeEach(() => {
 });
 
 describe('POST /api/admin/paths/[shareId]/pretranslate — auth + preconditions', () => {
-  it('returns 404 for a non-admin (existence-leak guard) and touches nothing', async () => {
+  it('returns 403 for a non-admin and touches nothing', async () => {
     mocks.getAdminUserId.mockResolvedValueOnce(null);
 
     const res = await callPost('shp-1');
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(403);
     expect(mocks.db.sharedPath.findUnique).not.toHaveBeenCalled();
     expect(mocks.db.sharedPath.updateMany).not.toHaveBeenCalled();
     expect(mocks.logAdminAction).not.toHaveBeenCalled();
@@ -107,7 +107,7 @@ describe('POST /api/admin/paths/[shareId]/pretranslate — first trigger', () =>
 
     // Atomic guard: only flip when still null.
     expect(mocks.db.sharedPath.updateMany).toHaveBeenCalledWith({
-      where: { id: 'shp-1', popularityTriggeredAt: null },
+      where: { id: { equals: 'shp-1' }, popularityTriggeredAt: null },
       data: { popularityTriggeredAt: expect.any(Date) },
     });
     // Audit + fan-out fired exactly once each on the winning flip.
