@@ -11,6 +11,7 @@ import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 import { ToastProvider } from '@/components/ui/Toast';
 import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
+import { WelcomeBackGate } from '@/components/welcome-back/WelcomeBackGate';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
@@ -87,6 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 workspace, group detail, learn chats) which own the viewport. */}
               {!isFullHeight && <MobileBottomNav />}
             </div>
+            <WelcomeBackGate />
           </ToastProvider>
         </UnlockProvider>
       </TimerProvider>
