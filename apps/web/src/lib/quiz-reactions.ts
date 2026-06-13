@@ -155,14 +155,19 @@ export function computeReaction(
       });
     }
     if (input.correctStreak === 5 && isPermitted('streak_mid', mode)) {
+      // Full-screen "5 in a row!" fire takeover (FireStreakTakeover), shown
+      // instead of a corner card — the screen catches fire and the wizard-book
+      // mascot rises out of the flames. Like streak_small it owns its own
+      // sound + dismiss, so the pose/size/confetti/duration fields are inert
+      // for this display.
       return buildReaction('streak_mid', 'streakMid', input.correctStreak, {
         pose: 'celebrate',
         oneShot: 'cheer-big',
         size: 'lg',
-        display: 'corner',
+        display: 'takeover',
         confetti: false,
-        audio: 'streak-mid',
-        durationMs: CORNER_DURATION_MS,
+        audio: null,
+        durationMs: OVERLAY_DURATION_MS,
       });
     }
     if (input.correctStreak === 3 && isPermitted('streak_small', mode)) {

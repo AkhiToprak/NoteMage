@@ -14,6 +14,7 @@ import {
   type QuizReactionLayerHandle,
 } from '@/components/quiz/QuizReactionLayer';
 import { StreakTakeover } from '@/components/streak/StreakTakeover';
+import { FireStreakTakeover } from '@/components/streak/FireStreakTakeover';
 import { computeReaction, type ReactionMode } from '@/lib/quiz-reactions';
 import { trackEvent } from '@/lib/telemetry';
 import { haptics } from '@/lib/haptics';
@@ -174,8 +175,9 @@ export default function QuizViewer({
   const coarsePointer = useCoarsePointer();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
-  // Full-screen "3 in a row!" takeover gates the jump to the next question.
-  const [streakTakeover, setStreakTakeover] = useState(false);
+  // Full-screen streak takeover gates the jump to the next question. 'small' =
+  // the 3-in-a-row dash takeover, 'mid' = the 5-in-a-row fire takeover.
+  const [streakTakeover, setStreakTakeover] = useState<'small' | 'mid' | null>(null);
   const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
   // Per-set sessionStorage key for the in-progress draft (persisted below).
   const draftKey = `notemage:quiz-draft:${setId}`;
@@ -309,7 +311,7 @@ export default function QuizViewer({
           // Show the takeover only when there's a next question to advance to —
           // never on the final question (the quiz should just finish there).
           if (idx < questions.length - 1) {
-            setStreakTakeover(true);
+            setStreakTakeover(reaction.kind === 'streak_mid' ? 'mid' : 'small');
             gated = true;
           }
         } else {
@@ -354,10 +356,11 @@ export default function QuizViewer({
     }
   }, [currentIndex, questions, answers, commitFor]);
 
-  // Continue from the "3 in a row!" takeover → advance to the next question.
-  // commitFor is idempotent, so the current question won't re-trigger it.
+  // Continue from a streak takeover (3-in-a-row dash or 5-in-a-row fire) →
+  // advance to the next question. commitFor is idempotent, so the current
+  // question won't re-trigger it.
   const continueAfterStreak = useCallback(() => {
-    setStreakTakeover(false);
+    setStreakTakeover(null);
     setCurrentIndex((i) => (i < questions.length - 1 ? i + 1 : i));
     setShowHint(false);
     setLiveAnnouncement('');
@@ -373,7 +376,7 @@ export default function QuizViewer({
 
   const reset = useCallback(() => {
     setCurrentIndex(0);
-    setStreakTakeover(false);
+    setStreakTakeover(null);
     setAnswers(new Map());
     setShowHint(false);
     setMode('quiz');
@@ -408,10 +411,23 @@ export default function QuizViewer({
       );
       setAnswers((prev) => new Map(prev).set(currentIndex, { answer, isCorrect }));
       setLiveAnnouncement(isCorrect ? 'Correct.' : 'Not quite. The answer is shown below.');
-      // MC / diagram_cloze auto-lock — first click *is* the commit. Other kinds
-      // commit on next/finish so the streak reflects the user's final answer,
-      // not every keystroke.
-      if (locksOnFirstPick) commitFor(currentIndex, isCorrect, q.hint);
+      // Commit the instant the answer is *finalised*, so the streak reaction /
+      // takeover fires immediately on a correct answer — not after the learner
+      // taps Next. MC / true-false / diagram_cloze and every Submit-style kind
+      // lock on their single selection/submit; match_pairs is incremental, so
+      // it's only final once every pair is connected. commitFor is idempotent
+      // (committedRef), so next()/finish() never double-commit.
+      const pairCount =
+        kind === 'match_pairs'
+          ? (q.payload as { pairs?: unknown[] } | null)?.pairs?.length ?? 0
+          : 0;
+      const isFinalAnswer =
+        kind === 'match_pairs'
+          ? answer.kind === 'match_pairs' &&
+            pairCount > 0 &&
+            answer.connections.length >= pairCount
+          : true;
+      if (isFinalAnswer) commitFor(currentIndex, isCorrect, q.hint);
     },
     [mode, isAnswered, currentIndex, questions, commitFor]
   );
@@ -1257,8 +1273,11 @@ export default function QuizViewer({
   return (
     <>
       <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
-      {streakTakeover && (
+      {streakTakeover === 'small' && (
         <StreakTakeover audioEnabled={audioEnabled} onDismiss={continueAfterStreak} />
+      )}
+      {streakTakeover === 'mid' && (
+        <FireStreakTakeover audioEnabled={audioEnabled} onDismiss={continueAfterStreak} />
       )}
       <div
         aria-live="polite"
