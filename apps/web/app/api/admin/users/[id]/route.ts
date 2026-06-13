@@ -6,9 +6,11 @@ import {
   badRequestResponse,
   forbiddenResponse,
   notFoundResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 import { logAdminAction } from '@/lib/admin-audit';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { cancelLemonSqueezySubscription } from '@/lib/lemonsqueezy';
 
 // PATCH — ban/unban a user, or update role (admin only)
@@ -16,6 +18,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const adminId = await getAdminUserId(request);
     if (!adminId) return forbiddenResponse('Admin access required');
+
+    // Defense-in-depth: cap the rate of admin moderation actions per admin, so
+    // a compromised admin session / misconfigured internal tool can't rapidly
+    // ban/unban accounts. Admin auth remains the primary gate (fail-open).
+    const rl = await rateLimit(rateLimitKey('admin-user-moderate', request, adminId), 30, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse('Too many admin actions. Slow down a moment.', rl.retryAfterMs);
+    }
 
     const { id: targetId } = await params;
 
@@ -83,6 +93,13 @@ export async function DELETE(
   try {
     const adminId = await getAdminUserId(request);
     if (!adminId) return forbiddenResponse('Admin access required');
+
+    // Deletes are destructive and cascade (plus a Lemon Squeezy cancel call),
+    // so cap them tighter than moderation. Per-admin, fail-open.
+    const rl = await rateLimit(rateLimitKey('admin-user-delete', request, adminId), 15, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse('Too many delete actions. Slow down a moment.', rl.retryAfterMs);
+    }
 
     const { id: targetId } = await params;
 
