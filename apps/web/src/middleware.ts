@@ -76,6 +76,29 @@ function isStaticAssetPath(pathname: string): boolean {
   );
 }
 
+// Next.js speculatively prefetches <Link> targets on hover and when they scroll
+// into the viewport. Those requests represent NO user intent — just rendering a
+// list of links fires a burst of them — so counting them against the throttle
+// lets ordinary browsing drain the budget. They carry one of these markers.
+function isPrefetchRequest(request: NextRequest): boolean {
+  return (
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('purpose') === 'prefetch' ||
+    (request.headers.get('sec-purpose') ?? '').includes('prefetch')
+  );
+}
+
+// Per-subject ceiling for the coarse global throttle, in requests/minute. High
+// on purpose: a data-heavy SPA navigation fires one RSC request plus many /api
+// calls (the Learn hub alone fans out to paths + flashcards + quizzes + chats),
+// so a real user legitimately does hundreds of requests a minute. A flood does
+// orders of magnitude more and still trips it. Overridable via env so prod can
+// be retuned without a deploy.
+const GLOBAL_THROTTLE_MAX: number = (() => {
+  const n = Number.parseInt(process.env.GLOBAL_RATE_LIMIT_PER_MIN ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : 1000;
+})();
+
 function handleMaintenance(request: NextRequest, pathname: string): NextResponse {
   if (isMaintenanceAllowlisted(pathname)) {
     return withSecurityHeaders(NextResponse.next());
@@ -173,18 +196,33 @@ export async function middleware(request: NextRequest) {
     return handleMaintenance(request, pathname);
   }
 
-  // Coarse global per-IP throttle — the only DDoS shock-absorber the Coolify
-  // host has (no edge WAF). Applies to every dynamic request (static assets are
-  // skipped so a normal page load's asset fan-out doesn't drain the budget).
-  // Deliberately fails OPEN (default rateLimit behavior): a Redis blip must
-  // never take the whole site offline. Per-route cost/auth limiters downstream
-  // are the precise caps; this is just the firehose valve.
-  if (!isStaticAssetPath(pathname)) {
-    const ip = clientIpFromHeaders(
-      request.headers.get('x-forwarded-for'),
-      request.headers.get('x-real-ip')
-    );
-    const { success, retryAfterMs } = await rateLimit(`global:ip:${ip}`, 150, 60_000);
+  // Resolve the session token once, up front. It's a local JWT verify (no DB or
+  // network) and three branches below need it — the global throttle (to key the
+  // bucket per-user), the /api auth gate, and the redirect logic. Resolving it
+  // once avoids re-decoding the cookie per branch.
+  const token = await getToken({ req: request });
+
+  // Coarse global throttle — the only DDoS shock-absorber the Coolify host has
+  // (no edge WAF). Deliberately fails OPEN (default rateLimit behavior): a Redis
+  // blip must never take the whole site offline. Per-route cost/auth limiters
+  // downstream are the precise caps; this is just the firehose valve.
+  //
+  // Two guards keep it off legitimate traffic:
+  //   • Key by signed-in USER when we have one, so a whole classroom or office
+  //     behind a single NAT IP doesn't collapse into one shared bucket and
+  //     self-DoS. Only anonymous traffic — the real flood case — keys by IP.
+  //   • Skip prefetch + static-asset requests, which a single page load fans out
+  //     by the dozen and which carry no user intent.
+  // See GLOBAL_THROTTLE_MAX for why the ceiling is high.
+  if (!isStaticAssetPath(pathname) && !isPrefetchRequest(request)) {
+    const userId = token?.id ?? token?.sub;
+    const subject = userId
+      ? `user:${userId}`
+      : `ip:${clientIpFromHeaders(
+          request.headers.get('x-forwarded-for'),
+          request.headers.get('x-real-ip')
+        )}`;
+    const { success, retryAfterMs } = await rateLimit(`global:${subject}`, GLOBAL_THROTTLE_MAX, 60_000);
     if (!success) {
       // API/fetch callers get JSON they can parse; a top-level navigation gets
       // a branded "slow down" page with a live countdown instead of raw JSON.
@@ -197,13 +235,10 @@ export async function middleware(request: NextRequest) {
   // object-level (ownership) authorization — this is a uniform FIRST gate so a
   // route that forgets to authenticate can't ship reachable while anonymous.
   if (pathname.startsWith('/api/')) {
-    if (!isPublicApiRoute(pathname)) {
-      const apiToken = await getToken({ req: request });
-      if (!apiToken) {
-        return withSecurityHeaders(
-          NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-        );
-      }
+    if (!isPublicApiRoute(pathname) && !token) {
+      return withSecurityHeaders(
+        NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      );
     }
     return withSecurityHeaders(NextResponse.next());
   }
@@ -216,8 +251,6 @@ export async function middleware(request: NextRequest) {
   if (!isAuthLogicRoute(pathname)) {
     return withSecurityHeaders(NextResponse.next());
   }
-
-  const token = await getToken({ req: request });
 
   // Native shell hitting a marketing/landing route → bounce to /auth/login.
   // This runs before the token check because the redirect target is the
