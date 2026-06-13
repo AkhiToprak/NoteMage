@@ -47,14 +47,14 @@
 
 /* ===== LANDSCAPE 16:9 ===== */
 .stage[data-orient="landscape"]{width:1920px; height:1080px;}
-.stage[data-orient="landscape"] .hero{top:60px; width:965px; height:700px; margin-left:-482px;}
+.stage[data-orient="landscape"] .hero{top:25px; width:1060px; height:770px; margin-left:-530px;}
 .stage[data-orient="landscape"] .headline{top:742px; font-size:204px;}
 .stage[data-orient="landscape"] .btn{top:980px; padding:22px 56px; font-size:36px;}
 .stage[data-orient="landscape"] .btn .material-symbols-outlined{font-size:40px;}
 
 /* ===== PORTRAIT 9:16 ===== */
 .stage[data-orient="portrait"]{width:1080px; height:1920px;}
-.stage[data-orient="portrait"] .hero{top:312px; width:1040px; height:755px; margin-left:-520px;}
+.stage[data-orient="portrait"] .hero{top:274px; width:1144px; height:831px; margin-left:-572px;}
 .stage[data-orient="portrait"] .headline{top:1190px; font-size:168px;}
 .stage[data-orient="portrait"] .btn{top:1520px; padding:26px 60px; font-size:40px;}
 .stage[data-orient="portrait"] .btn .material-symbols-outlined{font-size:46px;}
