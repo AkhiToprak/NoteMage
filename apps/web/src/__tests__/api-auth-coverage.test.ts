@@ -30,6 +30,7 @@ const SESSION_AUTH = /\bgetAuthUserId\b|\bgetAdminUserId\b|\bgetServerSession\b|
 const PUBLIC_ALLOWLIST = new Set<string>([
   'auth/[...nextauth]/route.ts', // NextAuth core handler
   'auth/forgot-password/route.ts', // pre-session: starts password reset; fail-closed rate-limited (per-email + per-IP)
+  'auth/login-challenge/route.ts', // pre-session: returns only a boolean "show captcha" hint for the caller IP
   'auth/native/apple/route.ts', // pre-session: verifies an Apple-JWKS-signed token
   'auth/native/google/route.ts', // pre-session: verifies a Google-JWKS-signed id_token (aud-checked)
   'auth/register/route.ts', // pre-session: credentials signup

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import VerifyCodeForm from '@/components/auth/VerifyCodeForm';
 import OAuthProviderRow from '@/components/auth/OAuthProviderRow';
+import TurnstileWidget, { turnstileEnabled } from '@/components/auth/TurnstileWidget';
 
 export default function LoginPage() {
   // useSearchParams in a client page must be wrapped in Suspense for the
@@ -38,6 +39,12 @@ function LoginForm() {
   // login card for the inline code-entry flow (the password is still in state,
   // so we can finish signing in once the email is confirmed).
   const [needsVerification, setNeedsVerification] = useState(false);
+  // Adaptive bot gate: the widget only appears after enough failed logins from
+  // this IP (server-tracked). captchaKey re-mounts the widget for a fresh,
+  // single-use token after each failed attempt.
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [challengeRequired, setChallengeRequired] = useState(false);
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   // Surface errors redirected here by the NextAuth signIn callback —
   // the most important one is OAuthAccountExists, which fires when an
@@ -65,15 +72,52 @@ function LoginForm() {
     }
   }, [searchParams]);
 
+  // On mount, ask whether this IP already needs the challenge (e.g. after a
+  // prior burst of failures). No-op when Turnstile isn't configured.
+  useEffect(() => {
+    if (!turnstileEnabled) return;
+    let active = true;
+    fetch('/api/auth/login-challenge')
+      .then((r) => r.json())
+      .then((d) => {
+        if (active && d?.required) setChallengeRequired(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Re-check the challenge and re-mount the widget (Turnstile tokens are
+  // single-use) after a failed attempt.
+  const refreshChallenge = async () => {
+    setTurnstileToken('');
+    setCaptchaKey((k) => k + 1);
+    if (!turnstileEnabled) return;
+    try {
+      const d = await (await fetch('/api/auth/login-challenge')).json();
+      if (d?.required) setChallengeRequired(true);
+    } catch {
+      /* ignore */
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (turnstileEnabled && challengeRequired && !turnstileToken) {
+      setError('Please complete the verification challenge.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const result = await signIn('credentials', {
         email,
         password,
+        turnstileToken,
         redirect: false,
       });
 
@@ -88,8 +132,15 @@ function LoginForm() {
           // Correct password, but the email was never confirmed — swap to the
           // inline verify flow instead of showing a wrong-password error.
           setNeedsVerification(true);
+        } else if (result.error === 'CAPTCHA_REQUIRED') {
+          setChallengeRequired(true);
+          setError('Please complete the verification challenge below.');
+          await refreshChallenge();
         } else {
           setError('Invalid email or password');
+          // A failed attempt may have tripped the per-IP threshold — surface
+          // (and refresh) the challenge for the next try.
+          await refreshChallenge();
         }
       } else if (result?.ok) {
         router.push('/dashboard');
@@ -427,6 +478,8 @@ function LoginForm() {
               </Link>
             </div>
           </div>
+
+          {challengeRequired && <TurnstileWidget key={captchaKey} onToken={setTurnstileToken} />}
 
           {/* Submit */}
           <button
