@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { rateLimit } from '@/lib/rate-limit';
 import { clientIpFromHeaders } from '@/lib/client-ip';
+import { rateLimitedResponse } from '@/lib/rate-limit-response';
 
 // Content-Security-Policy. Shipped in Report-Only first so it CANNOT break the
 // app while the allowlist is tuned — violations only log to the browser console
@@ -183,20 +184,11 @@ export async function middleware(request: NextRequest) {
       request.headers.get('x-forwarded-for'),
       request.headers.get('x-real-ip')
     );
-    const { success } = await rateLimit(`global:ip:${ip}`, 150, 60_000);
+    const { success, retryAfterMs } = await rateLimit(`global:ip:${ip}`, 150, 60_000);
     if (!success) {
-      return withSecurityHeaders(
-        new NextResponse(
-          JSON.stringify({ error: 'rate_limited', message: 'Too many requests' }),
-          {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              'Retry-After': '60',
-            },
-          }
-        )
-      );
+      // API/fetch callers get JSON they can parse; a top-level navigation gets
+      // a branded "slow down" page with a live countdown instead of raw JSON.
+      return withSecurityHeaders(rateLimitedResponse(request, retryAfterMs));
     }
   }
 
