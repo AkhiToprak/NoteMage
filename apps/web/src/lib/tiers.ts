@@ -22,7 +22,17 @@ export type FeatureType =
   // Native video ingestion (Lane 2) — metered in MINUTES of video, not call
   // count. Real Gemini COGS, so FREE = 0 (hard PRO gate, checkUsageLimit blocks)
   // and PRO is a monthly minutes cap. Never -1.
-  | 'video_ingest';
+  | 'video_ingest'
+  // Path regeneration — counts re-runs of an already-generated path. Each is a
+  // full AI generation, so a monthly anti-abuse cap is mandatory (never -1).
+  | 'path_regenerate'
+  // Path translation re-trigger — counts on-demand translations of an existing
+  // path (distinct from community-library `path_translation`). Monthly anti-abuse cap.
+  | 'path_translate'
+  // Moderation audit re-runs — counts manual re-moderation passes. Monthly anti-abuse cap.
+  | 'moderation_audit'
+  // Sandboxed code execution — counts code-run invocations. Monthly anti-abuse cap.
+  | 'code_execute';
 
 /** The three billing cadences a paid tier can be purchased on. */
 export type BillingInterval = 'weekly' | 'monthly' | 'yearly';
@@ -84,6 +94,10 @@ export const TIERS: Record<TierKey, TierConfig> = {
       path_translation: 5, // lifetime allowance — see LIFETIME_LIMITS.FREE
       youtube_transcript: 20, // lifetime allowance — see LIFETIME_LIMITS.FREE
       video_ingest: 0, // hard PRO gate — native video notes are PRO-only (checkUsageLimit blocks at 0)
+      path_regenerate: 5, // monthly anti-abuse cap on path re-generations
+      path_translate: 5, // monthly anti-abuse cap on on-demand path translations
+      moderation_audit: 10, // monthly anti-abuse cap on re-moderation passes
+      code_execute: 300, // monthly anti-abuse cap on sandboxed code runs
     },
     badge: {
       label: 'Free',
@@ -107,6 +121,10 @@ export const TIERS: Record<TierKey, TierConfig> = {
       path_translation: 50, // anti-abuse monthly cap (never shipped as -1)
       youtube_transcript: 200, // anti-abuse monthly cap (never shipped as -1)
       video_ingest: 1000, // MINUTES of video per month (worst-case COGS ~$1.85/mo); never -1
+      path_regenerate: 50, // monthly anti-abuse cap on path re-generations
+      path_translate: 50, // monthly anti-abuse cap on on-demand path translations
+      moderation_audit: 30, // monthly anti-abuse cap on re-moderation passes
+      code_execute: 3000, // monthly anti-abuse cap on sandboxed code runs
     },
     badge: {
       label: 'Pro',

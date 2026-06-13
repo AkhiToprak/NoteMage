@@ -14,7 +14,7 @@ import {
 } from '@/lib/api-response';
 import { validateStoragePath } from '@/lib/storage';
 import { checkUsageLimit } from '@/lib/usage-limits';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
   engineForJob,
   engineForTier,
@@ -102,8 +102,10 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const { id: notebookId } = await params;
 
-    // Abuse guard — bounds how often a user can spawn import workers.
-    const limit = await rateLimit(rateLimitKey('pdf-import', request, userId), 10, 60_000);
+    // Abuse guard — bounds how often a user can spawn import workers. Cost-aware
+    // (fail-closed in prod): each import dispatches per-page vision calls, so a
+    // dropped cap means uncapped paid spend.
+    const limit = await costRateLimit(rateLimitKey('pdf-import', request, userId), 10, 60_000);
     if (!limit.success) {
       return tooManyRequestsResponse(
         'Too many import requests. Please wait a moment and try again.',

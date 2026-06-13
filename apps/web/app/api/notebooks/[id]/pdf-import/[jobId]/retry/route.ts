@@ -7,8 +7,10 @@ import {
   badRequestResponse,
   unauthorizedResponse,
   notFoundResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { deletePageImages } from '@/lib/storage';
 import { runPdfImportJob } from '@/lib/pdf-import/run-job';
 
@@ -26,6 +28,20 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    // Abuse guard — a retry re-fires the per-page vision worker, so cap re-runs
+    // (cost-aware, fail-closed in prod) to stop free re-run loops.
+    const limit = await costRateLimit(
+      rateLimitKey('pdf-import-retry', request, userId),
+      5,
+      60_000,
+    );
+    if (!limit.success) {
+      return tooManyRequestsResponse(
+        'Too many retries. Please wait a moment and try again.',
+        limit.retryAfterMs,
+      );
+    }
 
     const { id: notebookId, jobId } = await params;
 

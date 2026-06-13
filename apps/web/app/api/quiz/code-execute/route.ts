@@ -10,7 +10,8 @@ import {
   unauthorizedResponse,
 } from '@/lib/api-response';
 import { executeCode, isPistonConfigured } from '@/lib/piston-client';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { reserveUsage, refundUsage } from '@/lib/usage-limits';
 import { logTelemetry } from '@/lib/telemetry-server';
 
 // Phase 10.9 — code_write execution proxy.
@@ -87,6 +88,10 @@ function normalizeOutput(s: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Tracked outside the try so the catch can release a reservation whose
+  // sandbox dispatch threw before completing.
+  let reservedUserId: string | null = null;
+  let reservedAmount = 0;
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
@@ -124,11 +129,10 @@ export async function POST(request: NextRequest) {
     // per test), not a flat 1/request — otherwise 30 req/min actually permits
     // 30 × MAX_TESTS executions/min against the shared Piston backend.
     const cost = gradeMode ? tests.length : 1;
-    const limit = await rateLimit(
+    const limit = await costRateLimit(
       rateLimitKey('code-exec', request, userId),
       RATE_LIMIT_PER_MIN,
       60_000,
-      false,
       cost,
     );
     if (!limit.success) {
@@ -137,6 +141,19 @@ export async function POST(request: NextRequest) {
         limit.retryAfterMs,
       );
     }
+
+    // DB-backed backstop meter: a monthly anti-abuse cap on sandboxed runs that
+    // survives a Redis outage (the in-memory rate limiter resets on restart and
+    // fails open in dev). Charge one credit per planned execution — grade mode
+    // runs once per test, practice mode runs once.
+    const reservation = await reserveUsage(userId, 'code_execute', cost);
+    if (!reservation.allowed) {
+      return tooManyRequestsResponse(
+        'Monthly code-execution limit reached. Upgrade or try again later.',
+      );
+    }
+    reservedUserId = userId;
+    reservedAmount = cost;
 
     const language = body.language;
     const code = body.code;
@@ -168,6 +185,9 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < tests.length; i++) {
       const t = tests[i];
       if (typeof t.expectedStdout !== 'string') {
+        // Bad payload caught before any sandbox dispatch — release the reservation.
+        await refundUsage(userId, 'code_execute', cost);
+        reservedAmount = 0;
         return badRequestResponse(`tests[${i}].expectedStdout must be a string.`);
       }
       const stdin = typeof t.stdin === 'string' ? trimBytes(t.stdin, MAX_STDIO_BYTES) : '';
@@ -199,6 +219,11 @@ export async function POST(request: NextRequest) {
     return successResponse({ mode: 'grade', runs, allPassed });
   } catch (error) {
     console.error('[code-execute POST]', error);
+    // Sandbox dispatch (or another step) threw after we reserved credit — the
+    // executions did not complete, so release the reservation.
+    if (reservedUserId && reservedAmount > 0) {
+      await refundUsage(reservedUserId, 'code_execute', reservedAmount).catch(() => {});
+    }
     return internalErrorResponse();
   }
 }

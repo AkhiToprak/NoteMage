@@ -8,6 +8,7 @@ import {
 } from '@/lib/api-response';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { normalizeEmail } from '@/lib/registration';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { issuePasswordResetCode } from '@/lib/verification';
 import { sendPasswordResetCode } from '@/lib/verification-email';
 
@@ -41,6 +42,11 @@ export async function POST(request: NextRequest) {
     const ipCap = await rateLimit(`forgot-password:ip:${ip}`, 10, 60 * 60 * 1000, true);
     if (!ipCap.success) {
       return tooManyRequestsResponse('Too many requests. Please try again later.', ipCap.retryAfterMs);
+    }
+
+    // Bot gate — no-op until TURNSTILE_SECRET_KEY is set (src/lib/turnstile.ts).
+    if (!(await verifyTurnstile(body?.turnstileToken, ip))) {
+      return badRequestResponse('Verification failed. Please complete the challenge and try again.');
     }
 
     const user = await db.user.findUnique({

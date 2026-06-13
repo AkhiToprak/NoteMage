@@ -71,6 +71,7 @@ We use a small set of trusted providers ("processors", or for payments our Merch
 | Payment provider (Merchant of Record) | Payment processing and billing | EU / US |
 | PostHog (opt-in) | Product analytics | EU |
 | Resend | Transactional and account emails | US |
+| Cloudflare (Turnstile) | Bot and abuse protection on sign-up and password reset | US / global |
 | Hosting provider | Running the application | Germany (EU) |
 
 We may also disclose data where required by law or to protect our rights, our users, or the Service. We do not sell your personal data.

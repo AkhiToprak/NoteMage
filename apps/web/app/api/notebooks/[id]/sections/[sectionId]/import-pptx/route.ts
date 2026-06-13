@@ -8,17 +8,31 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   internalErrorResponse,
+  tooManyRequestsResponse,
 } from '@/lib/api-response';
 import { parsePptxFile } from '@/lib/pptx-parser';
 import { textToTipTapJSON } from '@/lib/contentConverter';
 import { saveImage, downloadFromStorage, validateStoragePath, deleteFile } from '@/lib/storage';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 type Params = { params: Promise<{ id: string; sectionId: string }> };
+
+// Hard byte cap enforced before parsing — guards against zip-bomb /
+// decompression DoS on the uploaded PPTX.
+const MAX_PPTX_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const rl = await rateLimit(rateLimitKey('file-import', request, userId), 10, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse(
+        'Too many import requests. Please try again later.',
+        rl.retryAfterMs
+      );
+    }
 
     const { id: notebookId, sectionId } = await params;
 
@@ -41,6 +55,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const buffer = await downloadFromStorage(storagePath);
+
+    // Hard byte cap BEFORE parsing — guards against zip-bomb / decompression DoS.
+    if (buffer.length > MAX_PPTX_BYTES) {
+      await deleteFile(storagePath).catch(() => {});
+      return badRequestResponse(
+        `File is too large. Maximum is ${Math.floor(MAX_PPTX_BYTES / (1024 * 1024))}MB.`
+      );
+    }
+
     const slides = await parsePptxFile(buffer);
 
     if (slides.length === 0) {

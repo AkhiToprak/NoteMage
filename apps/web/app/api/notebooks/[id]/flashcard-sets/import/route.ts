@@ -10,11 +10,17 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   internalErrorResponse,
+  tooManyRequestsResponse,
 } from '@/lib/api-response';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 
 type Params = { params: Promise<{ id: string }> };
 
 const MAX_CARDS = 20000;
+// Hard byte cap enforced before parsing — SheetJS (xlsx) and the Anki (.apkg)
+// zip parser both decompress the upload, so an oversized / zip-bombed file
+// must be rejected first.
+const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
 const QUESTION_HEADERS = ['question', 'front', 'term'];
 const ANSWER_HEADERS = ['answer', 'back', 'definition'];
 
@@ -25,6 +31,14 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
+
+    const rl = await rateLimit(rateLimitKey('file-import', request, userId), 10, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse(
+        'Too many import requests. Please try again later.',
+        rl.retryAfterMs
+      );
+    }
 
     const { id: notebookId } = await params;
 
@@ -39,6 +53,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const buffer = await downloadFromStorage(storagePath);
+
+    // Hard byte cap BEFORE parsing — guards against parse-bomb / zip-bomb DoS
+    // (xlsx and .apkg both decompress the upload).
+    if (buffer.length > MAX_IMPORT_BYTES) {
+      await deleteFile(storagePath).catch(() => {});
+      return badRequestResponse(
+        `File is too large. Maximum is ${Math.floor(MAX_IMPORT_BYTES / (1024 * 1024))}MB.`
+      );
+    }
 
     const ext = (fileName || '').split('.').pop()?.toLowerCase() || '';
 

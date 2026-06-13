@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { rateLimit } from '@/lib/rate-limit';
+import { clientIpFromHeaders } from '@/lib/client-ip';
 
 // Content-Security-Policy. Shipped in Report-Only first so it CANNOT break the
 // app while the allowlist is tuned — violations only log to the browser console
@@ -57,6 +59,19 @@ function isMaintenanceAllowlisted(pathname: string): boolean {
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.png' ||
     pathname === '/favicon.ico'
+  );
+}
+
+// Static/asset paths that must NOT be charged against the coarse global IP
+// bucket below — a single page load pulls dozens of these, so counting them
+// would burn the per-IP budget instantly. Mirrors the static prefixes the
+// matcher and maintenance allowlist already treat as non-dynamic.
+function isStaticAssetPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.png' ||
+    pathname === '/favicon.ico' ||
+    pathname === '/.well-known/apple-app-site-association'
   );
 }
 
@@ -155,6 +170,34 @@ export async function middleware(request: NextRequest) {
   // var takes the whole app offline regardless of the user's auth state.
   if (process.env.MAINTENANCE_MODE === 'true') {
     return handleMaintenance(request, pathname);
+  }
+
+  // Coarse global per-IP throttle — the only DDoS shock-absorber the Coolify
+  // host has (no edge WAF). Applies to every dynamic request (static assets are
+  // skipped so a normal page load's asset fan-out doesn't drain the budget).
+  // Deliberately fails OPEN (default rateLimit behavior): a Redis blip must
+  // never take the whole site offline. Per-route cost/auth limiters downstream
+  // are the precise caps; this is just the firehose valve.
+  if (!isStaticAssetPath(pathname)) {
+    const ip = clientIpFromHeaders(
+      request.headers.get('x-forwarded-for'),
+      request.headers.get('x-real-ip')
+    );
+    const { success } = await rateLimit(`global:ip:${ip}`, 150, 60_000);
+    if (!success) {
+      return withSecurityHeaders(
+        new NextResponse(
+          JSON.stringify({ error: 'rate_limited', message: 'Too many requests' }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': '60',
+            },
+          }
+        )
+      );
+    }
   }
 
   // Defense-in-depth for the API surface: every /api route except an explicit

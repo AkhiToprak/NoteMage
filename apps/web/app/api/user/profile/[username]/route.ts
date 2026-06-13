@@ -126,8 +126,19 @@ export async function GET(
       });
     }
 
+    // Voluntarily-public PII (age / DOB-derived age, location, school, line of
+    // work, social handles) is only returned to the profile owner or an
+    // accepted friend. Everyone else gets the public subset (username, name,
+    // avatar, bio, cosmetics). This is independent of the profilePrivate flag
+    // above — even on a non-private profile these fields stay friends-only.
+    const canSeePrivateFields = isOwnProfile || isFriend;
+    const { age, location, school, lineOfWork, instagramHandle, linkedinUrl, ...publicUser } = user;
+
     return successResponse({
-      ...user,
+      ...publicUser,
+      ...(canSeePrivateFields
+        ? { age, location, school, lineOfWork, instagramHandle, linkedinUrl }
+        : {}),
       unlockedCosmeticIds,
       friendsCount,
       friendshipStatus,

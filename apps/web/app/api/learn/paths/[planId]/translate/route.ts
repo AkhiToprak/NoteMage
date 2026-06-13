@@ -13,7 +13,8 @@ import {
 import { translatePath } from '@/lib/path-translator';
 import { isPathLanguage } from '@/lib/path-languages';
 import { checkTokenBudget } from '@/lib/token-budget';
-import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { reserveUsage, refundUsage } from '@/lib/usage-limits';
 
 // Translate an existing path IN PLACE into another language. Progress is
 // preserved because only text columns on the existing rows change (see
@@ -30,7 +31,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const rl = await rateLimit(rateLimitKey('path-translate', request, userId), 10, 60_000);
+    // Cost-aware limiter (fails CLOSED in prod so a Redis outage can't uncap
+    // the AI translation COGS).
+    const rl = await costRateLimit(rateLimitKey('path-translate', request, userId), 10, 60_000);
     if (!rl.success) {
       return tooManyRequestsResponse(
         'Too many translation attempts. Please wait a moment and try again.',
@@ -38,8 +41,19 @@ export async function POST(request: NextRequest, { params }: Params) {
       );
     }
 
+    // Reserve a path_translate credit (atomic check-and-charge). Admins and
+    // unlimited tiers pass without consuming. Every early return below aborts
+    // before translatePath fires, so each refunds the reserved credit.
+    const reservation = await reserveUsage(userId, 'path_translate');
+    if (!reservation.allowed) {
+      return tooManyRequestsResponse(
+        'Monthly translation limit reached. Please try again next month.',
+      );
+    }
+
     const { allowed: tokenAllowed, tokenLimit } = await checkTokenBudget(userId);
     if (!tokenAllowed) {
+      await refundUsage(userId, 'path_translate');
       return tooManyRequestsResponse(
         `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`,
       );
@@ -47,6 +61,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const body = (await request.json().catch(() => ({}))) as { language?: unknown };
     if (!isPathLanguage(body.language)) {
+      await refundUsage(userId, 'path_translate');
       return badRequestResponse('Unsupported or missing target language');
     }
     const language = body.language;
@@ -56,11 +71,15 @@ export async function POST(request: NextRequest, { params }: Params) {
       where: { id: planId, userId },
       select: { id: true, generationStatus: true, language: true },
     });
-    if (!plan) return notFoundResponse('Path not found');
+    if (!plan) {
+      await refundUsage(userId, 'path_translate');
+      return notFoundResponse('Path not found');
+    }
 
     // Block double-fires while a previous run (generation or translation) is
     // still in flight — translating a half-written path would corrupt it.
     if (plan.generationStatus === 'generating') {
+      await refundUsage(userId, 'path_translate');
       return badRequestResponse('This path is still being worked on. Try again in a moment.');
     }
 

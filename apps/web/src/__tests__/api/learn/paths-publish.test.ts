@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   runLayer1: vi.fn(),
   runLayer2: vi.fn(),
   runPretranslationFanOut: vi.fn(),
+  reserveUsage: vi.fn().mockResolvedValue({ allowed: true, used: 0, limit: -1 }),
+  refundUsage: vi.fn(),
   db: {
     sharedPath: {
       findUnique: vi.fn(),
@@ -39,6 +41,10 @@ vi.mock('@/lib/moderation/layer1-runner', () => ({ runLayer1: mocks.runLayer1 })
 vi.mock('@/lib/moderation/layer2-runner', () => ({ runLayer2: mocks.runLayer2 }));
 vi.mock('@/lib/translation/pretranslate', () => ({
   runPretranslationFanOut: mocks.runPretranslationFanOut,
+}));
+vi.mock('@/lib/usage-limits', () => ({
+  reserveUsage: mocks.reserveUsage,
+  refundUsage: mocks.refundUsage,
 }));
 
 import { POST } from '../../../../app/api/learn/paths/[planId]/publish/route';

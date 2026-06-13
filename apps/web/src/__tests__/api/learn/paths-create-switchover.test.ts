@@ -28,6 +28,8 @@ const mocks = vi.hoisted(() => ({
   serializePath: vi.fn(),
   db: {
     notebook: { count: vi.fn(), findFirst: vi.fn() },
+    // Concurrent-generation cap counts the user's in-flight 'generating' plans.
+    studyPlan: { count: vi.fn().mockResolvedValue(0) },
     $transaction: vi.fn(),
   },
 }));
@@ -57,6 +59,8 @@ vi.mock('@/lib/telemetry-server', () => ({ logTelemetry: mocks.logTelemetry }));
 vi.mock('@/lib/path-loader', () => ({
   loadPathsForUser: mocks.loadPathsForUser,
   serializePath: mocks.serializePath,
+  // Concurrent-generation cap reads this to exclude dead/stale 'generating' rows.
+  staleGenerationCutoff: () => new Date(0),
 }));
 
 import { POST } from '../../../../app/api/learn/paths/route';

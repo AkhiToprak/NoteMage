@@ -44,7 +44,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { logAdminAction } from '@/lib/admin-audit';
-import { rateLimit, rateLimitKey, getClientIp } from '@/lib/rate-limit';
+import { rateLimit, costRateLimit, rateLimitKey, getClientIp } from '@/lib/rate-limit';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { TIERS, isLifetimeLimit, type TierKey } from '@/lib/tiers';
 import { loadTranslatableSnapshot } from '@/lib/translation/snapshot';
@@ -367,8 +367,11 @@ async function resolveTranslation(args: {
   // Fall through to the gate stack so the retry counts against quota /
   // budget like a fresh request would.
 
-  // (2) Rate limit — per user AND per IP. Both must pass.
-  const userLimit = await rateLimit(
+  // (2) Rate limit — per user AND per IP. Both must pass. These gate the
+  // cache-miss path, which fires a paid AI translation, so use the cost-aware
+  // limiter (fails CLOSED in prod — a Redis outage blocks rather than uncaps
+  // the translation COGS).
+  const userLimit = await costRateLimit(
     rateLimitKey('translation', request, userId),
     TRANSLATION_RATE_USER_MAX,
     TRANSLATION_RATE_WINDOW_MS,
@@ -383,7 +386,7 @@ async function resolveTranslation(args: {
     };
   }
   const ipKey = `translation-ip:ip:${getClientIp(request)}`;
-  const ipLimit = await rateLimit(
+  const ipLimit = await costRateLimit(
     ipKey,
     TRANSLATION_RATE_IP_MAX,
     TRANSLATION_RATE_WINDOW_MS,
@@ -650,6 +653,17 @@ async function resolveTranslation(args: {
  *
  * Returns true when today's spend has already exceeded the cap; the
  * caller refuses the request with 429.
+ *
+ * Residual race (intentionally left as-is): this is a read-then-spend check —
+ * `costUsd` is only known AFTER the runner completes, so several concurrent
+ * cache-miss translations in the same language can each read an under-cap
+ * total and all proceed before any of their costs land. The overshoot is
+ * bounded by the per-user (6) + per-IP (12) translation rate limits and the
+ * single-flight `@@unique([sharedPathId, language])` lock (only the FIRST
+ * requester of a given path+language pays), so worst-case excess is a handful
+ * of distinct paths' translations past the daily cap, not an unbounded run.
+ * A true atomic fix would need a pre-charged reservation against an estimated
+ * cost; deferred as not worth the complexity given those bounds.
  */
 async function isDailyBudgetExceeded(language: string): Promise<boolean> {
   const envKey = `TRANSLATION_DAILY_BUDGET_${language.toUpperCase()}_USD`;

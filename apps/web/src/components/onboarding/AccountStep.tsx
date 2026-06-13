@@ -19,6 +19,8 @@ interface AccountStepProps {
   onNext: () => void;
   loading: boolean;
   error: string;
+  /** Optional bot-challenge widget rendered just above the submit button. */
+  turnstileSlot?: React.ReactNode;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,7 +43,7 @@ const scoreColor = ['#555578', '#fd6f85', '#ffde59', '#ae89ff', '#4dff91'];
  * own onboarding screens). The 13+ gate is checked here, before `onNext`
  * triggers account creation, so an under-13 user never gets a row.
  */
-export default function AccountStep({ data, onChange, onNext, loading, error }: AccountStepProps) {
+export default function AccountStep({ data, onChange, onNext, loading, error, turnstileSlot }: AccountStepProps) {
   const [confirmBlurred, setConfirmBlurred] = useState(false);
   const [localError, setLocalError] = useState('');
 
@@ -330,6 +332,8 @@ export default function AccountStep({ data, onChange, onNext, loading, error }: 
             .
           </label>
         </div>
+
+        {turnstileSlot}
 
         {/* Submit */}
         <button
