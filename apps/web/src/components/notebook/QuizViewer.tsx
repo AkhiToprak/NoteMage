@@ -13,6 +13,7 @@ import {
   QuizReactionLayer,
   type QuizReactionLayerHandle,
 } from '@/components/quiz/QuizReactionLayer';
+import { StreakTakeover } from '@/components/streak/StreakTakeover';
 import { computeReaction, type ReactionMode } from '@/lib/quiz-reactions';
 import { trackEvent } from '@/lib/telemetry';
 import type { QuestionKind } from '@notemage/shared';
@@ -172,6 +173,8 @@ export default function QuizViewer({
   const coarsePointer = useCoarsePointer();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
+  // Full-screen "3 in a row!" takeover gates the jump to the next question.
+  const [streakTakeover, setStreakTakeover] = useState(false);
   const [answers, setAnswers] = useState<Map<number, AnswerEntry>>(new Map());
   // Per-set sessionStorage key for the in-progress draft (persisted below).
   const draftKey = `notemage:quiz-draft:${setId}`;
@@ -273,10 +276,12 @@ export default function QuizViewer({
   // Idempotent per index (the committedRef guard handles re-presses and
   // prev/next round-trips). Skipped outside the active quiz mode so review
   // navigation never triggers reactions.
+  // Returns true when it opened the full-screen streak takeover, which *gates*
+  // the advance to the next question (the takeover's Continue button advances).
   const commitFor = useCallback(
-    (idx: number, isCorrect: boolean, hint: string | null) => {
-      if (mode !== 'quiz') return;
-      if (committedRef.current.has(idx)) return;
+    (idx: number, isCorrect: boolean, hint: string | null): boolean => {
+      if (mode !== 'quiz') return false;
+      if (committedRef.current.has(idx)) return false;
       committedRef.current.add(idx);
 
       const newCorrect = isCorrect ? correctStreakRef.current + 1 : 0;
@@ -292,7 +297,19 @@ export default function QuizViewer({
         },
         reactionMode,
       );
-      if (reaction) reactionLayerRef.current?.fire(reaction);
+      let gated = false;
+      if (reaction) {
+        if (reaction.display === 'takeover') {
+          // Show the takeover only when there's a next question to advance to —
+          // never on the final question (the quiz should just finish there).
+          if (idx < questions.length - 1) {
+            setStreakTakeover(true);
+            gated = true;
+          }
+        } else {
+          reactionLayerRef.current?.fire(reaction);
+        }
+      }
 
       // Telemetry — emit at the same milestones the reaction engine fires
       // on (3 / 5 / 7) plus the 10-streak achievement gate and every +5
@@ -310,8 +327,9 @@ export default function QuizViewer({
       }
 
       if (!isCorrect && newWrong === 3 && hint) setShowHint(true);
+      return gated;
     },
-    [mode, reactionMode, setId],
+    [mode, reactionMode, setId, questions.length],
   );
 
   const next = useCallback(() => {
@@ -320,12 +338,24 @@ export default function QuizViewer({
       // unanswered/skipped questions.
       const entry = answers.get(currentIndex);
       const q = questions[currentIndex];
-      if (entry && q) commitFor(currentIndex, entry.isCorrect, q.hint);
+      const gated = entry && q ? commitFor(currentIndex, entry.isCorrect, q.hint) : false;
+      // If this commit opened the streak takeover, don't advance yet — the
+      // takeover's Continue button advances (so it shows before the next question).
+      if (gated) return;
       setCurrentIndex((i) => i + 1);
       setShowHint(false);
       setLiveAnnouncement('');
     }
   }, [currentIndex, questions, answers, commitFor]);
+
+  // Continue from the "3 in a row!" takeover → advance to the next question.
+  // commitFor is idempotent, so the current question won't re-trigger it.
+  const continueAfterStreak = useCallback(() => {
+    setStreakTakeover(false);
+    setCurrentIndex((i) => (i < questions.length - 1 ? i + 1 : i));
+    setShowHint(false);
+    setLiveAnnouncement('');
+  }, [questions.length]);
 
   const prev = useCallback(() => {
     if (currentIndex > 0) {
@@ -337,6 +367,7 @@ export default function QuizViewer({
 
   const reset = useCallback(() => {
     setCurrentIndex(0);
+    setStreakTakeover(false);
     setAnswers(new Map());
     setShowHint(false);
     setMode('quiz');
@@ -540,6 +571,9 @@ export default function QuizViewer({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (editingId) return;
+      // While the streak takeover is up it owns the keyboard (Esc/Enter = Continue);
+      // don't let ←/→ advance the quiz behind it.
+      if (streakTakeover) return;
       // Don't hijack keys while the learner is typing into a text-input question
       // (fill-blank, translation, equation, code). Otherwise ←/→ would move
       // between questions instead of the caret, and A/B/C/D would be captured as
@@ -579,7 +613,7 @@ export default function QuizViewer({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [prev, next, selectAnswer, editingId, questions, currentIndex]);
+  }, [prev, next, selectAnswer, editingId, questions, currentIndex, streakTakeover]);
 
   // Fetch user quiz-reaction preferences (Phase 4).
   useEffect(() => {
@@ -1217,6 +1251,9 @@ export default function QuizViewer({
   return (
     <>
       <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
+      {streakTakeover && (
+        <StreakTakeover audioEnabled={audioEnabled} onDismiss={continueAfterStreak} />
+      )}
       <div
         aria-live="polite"
         aria-atomic="true"

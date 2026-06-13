@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import {
   Abril_Fatface,
+  Bangers,
   Bungee_Shade,
   Cinzel,
   Epilogue,
@@ -40,6 +41,17 @@ const oswald = Oswald({
   variable: '--font-oswald',
   subsets: ['latin'],
   weight: ['200', '300', '400', '500', '600', '700'],
+  display: 'swap',
+});
+
+// Comic display face — used only by the "3 in a row!" streak takeover, so it is
+// not preloaded (no <link rel=preload> on every page for a face most sessions
+// never show). It loads on demand when the takeover mounts and resolves the var.
+const bangers = Bangers({
+  variable: '--font-bangers',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400'],
   display: 'swap',
 });
 
@@ -202,6 +214,7 @@ export default function RootLayout({
       className={[
         epilogue.variable,
         oswald.variable,
+        bangers.variable,
         plusJakartaSans.variable,
         playfair.variable,
         jetbrainsMono.variable,

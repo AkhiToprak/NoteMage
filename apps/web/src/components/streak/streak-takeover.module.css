@@ -1,0 +1,64 @@
+/* Full-screen "3 in a row!" streak takeover — the NoteMage mascot dashes in like
+   the Flash (wizard hat flying off, purple speed trail, sparkles) and "3 in a row!"
+   slams in over a Continue button. The mascot is the baked hero artwork
+   (/streak/streak-hero.png) sitting on a pure-black stage, so the artwork's own
+   black background is seamless and no cut-out matting is needed.
+
+   Authored on a fixed design canvas (landscape 1920x1080 / portrait 1080x1920)
+   and scaled to *contain* the viewport. The stage is centred with
+   `position:absolute; left/top:50%; transform:translate(-50%,-50%) scale()` — NOT
+   a grid — the exact fix for the welcome-back "blank phone" bug, so 9:16 mobile
+   can't blank out. Motion runs from one rAF clock (transforms/opacity only). */
+
+.scrim{
+  position:fixed; inset:0; z-index:1350;
+  background:#0c0a1a; overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  font-family:var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  --st-lav:#ae89ff; --st-accent:#8c52ff; --st-accent-deep:#6d39dd;
+  --st-gold:#ffde59; --st-gold-shadow:#c9ab2e; --st-on-gold:#2a2200; --st-ink:#1a1430;
+  --st-head:var(--font-bangers, 'Bangers', system-ui, sans-serif);
+  --st-brand:var(--font-brand, 'Oswald', sans-serif);
+}
+.scrim *{box-sizing:border-box; margin:0; padding:0;}
+
+/* fixed design canvas — absolutely centred; width/height + translate-scale inline */
+.stage{position:absolute; left:50%; top:50%; transform-origin:center center;}
+
+/* the dashing mage hero (book + hat + trail + sparkles, baked on black) */
+.hero{position:absolute; left:50%; z-index:5;}
+.heroMove{position:absolute; inset:0; will-change:transform;}
+.hero img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block;}
+
+.headline{position:absolute; left:50%; z-index:7; text-align:center; white-space:nowrap; opacity:0;
+  transform-origin:center center; will-change:transform,opacity;
+  font-family:var(--st-head); color:var(--st-gold); letter-spacing:.02em; font-weight:400;
+  -webkit-text-stroke:9px var(--st-ink); paint-order:stroke fill;
+  text-shadow:0 6px 0 var(--st-accent-deep), 0 14px 26px rgba(0,0,0,.6);}
+
+.btn{position:absolute; left:50%; z-index:8; display:inline-flex; align-items:center; gap:14px; border:none; cursor:pointer;
+  border-radius:999px; background:var(--st-gold); color:var(--st-on-gold); font-family:var(--st-brand); font-weight:700;
+  text-transform:uppercase; letter-spacing:.08em; box-shadow:0 12px 0 var(--st-gold-shadow); white-space:nowrap; opacity:0;
+  transform-origin:center center; will-change:transform,opacity; transition:filter .15s ease;}
+.btn:hover{filter:brightness(1.05);}
+.btn:active{transform:translate(-50%,4px) !important; box-shadow:0 8px 0 var(--st-gold-shadow);}
+.btn:focus-visible{outline:4px solid var(--st-lav); outline-offset:4px;}
+.btn .material-symbols-outlined{line-height:1; display:inline-block;}
+
+/* ===== LANDSCAPE 16:9 ===== */
+.stage[data-orient="landscape"]{width:1920px; height:1080px;}
+.stage[data-orient="landscape"] .hero{top:60px; width:965px; height:700px; margin-left:-482px;}
+.stage[data-orient="landscape"] .headline{top:742px; font-size:204px;}
+.stage[data-orient="landscape"] .btn{top:980px; padding:22px 56px; font-size:36px;}
+.stage[data-orient="landscape"] .btn .material-symbols-outlined{font-size:40px;}
+
+/* ===== PORTRAIT 9:16 ===== */
+.stage[data-orient="portrait"]{width:1080px; height:1920px;}
+.stage[data-orient="portrait"] .hero{top:312px; width:1040px; height:755px; margin-left:-520px;}
+.stage[data-orient="portrait"] .headline{top:1190px; font-size:168px;}
+.stage[data-orient="portrait"] .btn{top:1520px; padding:26px 60px; font-size:40px;}
+.stage[data-orient="portrait"] .btn .material-symbols-outlined{font-size:46px;}
+
+@media (prefers-reduced-motion: reduce){
+  .btn{transition:none;}
+}

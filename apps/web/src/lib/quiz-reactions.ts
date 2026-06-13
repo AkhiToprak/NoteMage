@@ -35,7 +35,7 @@ export interface Reaction {
   pose: MascotPose;
   oneShot: MascotOneShot | null;
   size: MascotSize;
-  display: 'corner' | 'overlay';
+  display: 'corner' | 'overlay' | 'takeover';
   confetti: boolean;
   message: string;
   audio: string | null;
@@ -166,15 +166,17 @@ export function computeReaction(
       });
     }
     if (input.correctStreak === 3 && isPermitted('streak_small', mode)) {
-      const pose: MascotPose = Math.random() < 0.5 ? 'bow' : 'wink';
+      // Full-screen "3 in a row!" Flash-mage takeover (StreakTakeover), shown
+      // instead of a corner card. It owns its own sound + dismiss, so the
+      // pose/size/confetti/duration fields below are inert for this display.
       return buildReaction('streak_small', 'streakSmall', input.correctStreak, {
-        pose,
+        pose: 'wink',
         oneShot: 'cheer-small',
         size: 'md',
-        display: 'corner',
+        display: 'takeover',
         confetti: false,
-        audio: 'streak-soft',
-        durationMs: CORNER_DURATION_MS,
+        audio: null,
+        durationMs: OVERLAY_DURATION_MS,
       });
     }
   }
