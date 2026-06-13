@@ -8,7 +8,7 @@
 .scrim{
   position:fixed; inset:0; z-index:1350;
   background:#0c0a1a;
-  display:grid; place-items:center; overflow:hidden;
+  overflow:hidden;
   font-family:var(--font-sans, 'Plus Jakarta Sans', sans-serif);
   -webkit-tap-highlight-color:transparent;
   /* local design tokens (kept explicit to match the approved render exactly) */
@@ -26,8 +26,9 @@
 .dots{position:absolute; inset:0; z-index:0; pointer-events:none;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><circle cx='3' cy='3' r='1.5' fill='%23ffffff' fill-opacity='0.045'/></svg>");}
 
-/* the fixed design canvas — width/height/scale applied inline from JS */
-.stage{position:relative; transform-origin:center center; flex:none;}
+/* the fixed design canvas — absolutely centered in the viewport; width/height
+   and translate+scale (contain) applied inline from JS */
+.stage{position:absolute; left:50%; top:50%; transform-origin:center center;}
 
 /* ===== copy + CTA ===== */
 .copy{position:absolute; z-index:7;}

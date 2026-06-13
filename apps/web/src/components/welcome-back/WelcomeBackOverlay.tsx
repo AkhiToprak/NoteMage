@@ -277,7 +277,7 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
       style={{ opacity: leaving ? 0 : 1, transition: 'opacity .4s ease' }}
     >
       <div className={styles.dots} aria-hidden />
-      <div ref={stageRef} className={styles.stage} data-orient={orient} style={{ width: W, height: H, transform: `scale(${scale})` }}>
+      <div ref={stageRef} className={styles.stage} data-orient={orient} style={{ width: W, height: H, transform: `translate(-50%, -50%) scale(${scale})` }}>
         {/* poster */}
         <div className={styles.posterWrap} data-el="posterWrap">
           <div className={styles.pin} />
