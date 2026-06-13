@@ -6,9 +6,11 @@ import {
   badRequestResponse,
   forbiddenResponse,
   notFoundResponse,
+  tooManyRequestsResponse,
   internalErrorResponse,
 } from '@/lib/api-response';
 import { logAdminAction } from '@/lib/admin-audit';
+import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { COSMETICS } from '@/lib/cosmetics/catalog';
 
 /**
@@ -32,6 +34,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const adminId = await getAdminUserId(request);
     if (!adminId) return forbiddenResponse('Admin access required');
+
+    // Defense-in-depth: cap grant/revoke throughput per admin so a compromised
+    // session can't rapidly write UserCosmetic rows + notifications. Admin auth
+    // stays the primary gate (fail-open).
+    const rl = await rateLimit(rateLimitKey('admin-cosmetic-mutate', request, adminId), 30, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse('Too many cosmetic actions. Slow down a moment.', rl.retryAfterMs);
+    }
 
     const { id: targetId } = await params;
 
@@ -126,6 +136,12 @@ export async function DELETE(
   try {
     const adminId = await getAdminUserId(request);
     if (!adminId) return forbiddenResponse('Admin access required');
+
+    // Same per-admin cap as grant; revoke also unequips, so it mutates User too.
+    const rl = await rateLimit(rateLimitKey('admin-cosmetic-mutate', request, adminId), 30, 60_000);
+    if (!rl.success) {
+      return tooManyRequestsResponse('Too many cosmetic actions. Slow down a moment.', rl.retryAfterMs);
+    }
 
     const { id: targetId } = await params;
 
