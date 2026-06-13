@@ -73,6 +73,7 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [{ orient, scale }, setLayout] = useState(computeLayout);
   const [leaving, setLeaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const reduced = useRef(false);
 
   // orientation + contain-scale, recomputed on resize
@@ -94,6 +95,11 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  // render the animated stage only after mount — keeps SSR to the bare dark
+  // scrim (instant cover, no dashboard flash) and avoids an orientation
+  // hydration mismatch since computeLayout needs the real viewport.
+  useEffect(() => { setMounted(true); }, []);
 
   const dismiss = useCallback(() => {
     if (leaving) return;
@@ -262,7 +268,7 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [orient]);
+  }, [orient, mounted]);
 
   const W = orient === 'portrait' ? 1080 : 1920;
   const H = orient === 'portrait' ? 1920 : 1080;
@@ -277,9 +283,10 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
       style={{ opacity: leaving ? 0 : 1, transition: 'opacity .4s ease' }}
     >
       <div className={styles.dots} aria-hidden />
+      {mounted && (
       <div ref={stageRef} className={styles.stage} data-orient={orient} style={{ width: W, height: H, transform: `translate(-50%, -50%) scale(${scale})` }}>
         {/* poster */}
-        <div className={styles.posterWrap} data-el="posterWrap">
+        <div className={styles.posterWrap} data-el="posterWrap" style={{ opacity: 0 }}>
           <div className={styles.pin} />
           <div className={styles.poster}>
             <div className={`${styles.tape} ${styles.tapeTl}`} />
@@ -324,7 +331,6 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
         {/* copy + CTA */}
         <div className={styles.copy}>
           <div className={styles.wbHead} data-el="wbHead" style={{ opacity: 0 }}>Found <span className={styles.g}>you.</span></div>
-          <div className={styles.wbSub} data-el="wbSub" style={{ opacity: 0 }}>Missing for ages &mdash; your notes filed a report.</div>
           <button type="button" className={styles.wbBtn} data-el="wbBtn" style={{ opacity: 0, pointerEvents: 'none' }} onClick={dismiss}>
             <span className={`material-symbols-outlined ${styles.ic}`} style={{ fontVariationSettings: "'FILL' 1" }}>waving_hand</span>Welcome back
           </button>
@@ -336,7 +342,8 @@ export function WelcomeBackOverlay({ onDismiss }: { onDismiss: () => void }) {
             <span key={`${orient}-${i}`} className={styles.tw} data-tw style={{ left: s.x, top: s.y, opacity: 0 }}><Star size={s.s} /></span>
           ))}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

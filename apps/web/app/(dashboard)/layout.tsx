@@ -1,97 +1,14 @@
-'use client';
+import { DashboardChrome } from './DashboardChrome';
+import { WelcomeBackServerGate } from '@/components/welcome-back/WelcomeBackServerGate';
 
-import { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { usePathname, useRouter } from 'next/navigation';
-import HomeHeader from '@/components/layout/HomeHeader';
-import MobileBottomNav from '@/components/layout/MobileBottomNav';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
-import { TimerProvider } from '@/contexts/TimerContext';
-import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
-import { ToastProvider } from '@/components/ui/Toast';
-import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
-import { WelcomeBackGate } from '@/components/welcome-back/WelcomeBackGate';
-import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
-
-/** Matches /notebooks/<uuid-or-id> and anything nested below it */
-const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
-/** Matches /groups/<id> detail pages */
-const GROUP_DETAIL_RE = /^\/groups\/[^/]+/;
-/** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
-const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
-
+// Server component so the welcome-back takeover can be decided during SSR and
+// its cover appears in the initial HTML (no dashboard flash). All interactive
+// chrome lives in the client `DashboardChrome`.
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const { isPhone, isTablet } = useBreakpoint();
-
-  // Redirect to onboarding wizard if not completed
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user && !session.user.onboardingComplete) {
-      router.replace('/auth/register');
-    }
-  }, [status, session, router]);
-
-  // Bind the iOS in-app-purchase identity to this account (RevenueCat
-  // appUserID = User.id) so StoreKit purchases attach to the right user.
-  // No-op outside the iOS shell.
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id && isInsideNativeShell()) {
-      void nativeBridge.setAppUser?.(session.user.id);
-    }
-  }, [status, session?.user?.id]);
-
-  // Track minutes-in-app for the activity heatmap. Only runs when authed.
-  useStudyHeartbeat(status === 'authenticated');
-  const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
-  const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
-  const isLearnChats = LEARN_CHATS_RE.test(pathname);
-  const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats;
-  // /learn owns its own spacing: the tab strip is full-bleed (flush under the
-  // header, edge to edge) and every /learn page self-pads (centered maxWidth +
-  // its own horizontal padding). Drop the generic <main> padding here — it
-  // otherwise insets the tab strip with a top + side margin.
-  const isLearn = pathname === '/learn' || pathname.startsWith('/learn/');
-
   return (
-    <TutorialProvider>
-      <TimerProvider>
-        <UnlockProvider>
-          <ToastProvider>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100dvh',
-                overflow: 'hidden',
-                background: 'var(--background)',
-              }}
-            >
-              {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
-              <main
-                style={{
-                  flex: 1,
-                  minHeight: 0,
-                  overflowX: 'hidden',
-                  overflowY: isFullHeight ? 'hidden' : 'auto',
-                  padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-                  color: 'var(--on-surface)',
-                  display: isFullHeight ? 'flex' : undefined,
-                  flexDirection: isFullHeight ? 'column' : undefined,
-                }}
-              >
-                {children}
-              </main>
-              {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
-                workspace, group detail, learn chats) which own the viewport. */}
-              {!isFullHeight && <MobileBottomNav />}
-            </div>
-            <WelcomeBackGate />
-          </ToastProvider>
-        </UnlockProvider>
-      </TimerProvider>
-    </TutorialProvider>
+    <>
+      <WelcomeBackServerGate />
+      <DashboardChrome>{children}</DashboardChrome>
+    </>
   );
 }
