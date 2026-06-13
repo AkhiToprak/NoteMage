@@ -9,6 +9,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { logAdminAction } from '@/lib/admin-audit';
+import { cancelLemonSqueezySubscription } from '@/lib/lemonsqueezy';
 
 // PATCH — ban/unban a user, or update role (admin only)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -92,13 +93,33 @@ export async function DELETE(
 
     const target = await db.user.findUnique({
       where: { id: targetId },
-      select: { id: true, username: true, role: true },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        entitlementSource: true,
+        lemonSqueezySubscriptionId: true,
+      },
     });
     if (!target) return notFoundResponse('User not found');
 
     // Prevent deleting other admins
     if (target.role === 'admin') {
       return forbiddenResponse('Cannot delete another admin');
+    }
+
+    // Cancel any active Lemon Squeezy subscription BEFORE deleting the row.
+    // The User row holds the only handle to the subscription; once it's gone
+    // the billing webhook can't resolve the user, so renewals would keep
+    // charging with nothing left to cancel against. (Apple/RevenueCat subs
+    // can only be cancelled by the user in the App Store.)
+    if (target.entitlementSource === 'LEMON_SQUEEZY' && target.lemonSqueezySubscriptionId) {
+      try {
+        await cancelLemonSqueezySubscription(target.lemonSqueezySubscriptionId);
+      } catch (err) {
+        console.error('[admin delete-user] Lemon Squeezy cancel failed', err);
+        // Continue — don't block the admin deletion over a provider hiccup.
+      }
     }
 
     // Cascade delete handles all related records
