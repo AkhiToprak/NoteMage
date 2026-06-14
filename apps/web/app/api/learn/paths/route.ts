@@ -12,6 +12,7 @@ import {
 } from '@/lib/api-response';
 import { generatePathStructure, generatePath } from '@/lib/path-generator';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
+import { pathContentCap } from '@/lib/path-corpus-fit';
 import { loadPathsForUser, serializePath, staleGenerationCutoff } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
@@ -197,7 +198,10 @@ export async function POST(request: NextRequest) {
     if (!materials) {
       return badRequestResponse('One or more material IDs are invalid');
     }
-    const corpus = renderMaterialCorpus(materials);
+    // Cap the corpus by path type — Ultra gets a larger budget than Basic.
+    // Stage B re-renders from the same persisted `ultra`, so both stages
+    // build the identical corpus (prompt-cache + grounding consistency).
+    const corpus = renderMaterialCorpus(materials, pathContentCap(ultra));
 
     // Derive the full context notebook set from caller-provided IDs plus
     // every notebook the validated materials originate from.

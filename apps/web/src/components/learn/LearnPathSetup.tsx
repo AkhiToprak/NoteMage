@@ -11,6 +11,7 @@ import {
   type PathLanguageCode,
 } from '@/lib/path-languages';
 import GenerationProgressModal from '@/components/learn/GenerationProgressModal';
+import type { PathCorpusEstimate } from '@/lib/path-corpus-fit';
 
 // Phase 9.4 — unified setup for building Learn Paths. Two operating modes:
 //
@@ -55,8 +56,6 @@ type Inventory = {
 
 interface PhaseDraft {
   title: string;
-  startDate: string;
-  endDate: string;
   materials: InventoryItem[];
 }
 
@@ -92,14 +91,6 @@ function isVideoTranscript(item: InventoryItem): boolean {
 }
 
 const CROSS_NOTEBOOK_BUCKET_ID = '__cross-notebook__';
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function daysFromNow(days: number) {
-  return new Date(Date.now() + days * 86400000).toISOString().split('T')[0];
-}
 
 function isCheckpointPhase(phase: PhaseDraft): boolean {
   const last = phase.materials[phase.materials.length - 1];
@@ -197,6 +188,9 @@ export default function LearnPathSetup({
   const [ultraUsage, setUltraUsage] = useState<{ used: number; limit: number } | null>(
     null,
   );
+  // Pre-generation corpus-fit estimate (AI tab) — drives the over-cap warning
+  // so the user is told before content gets trimmed, never silently after.
+  const [estimate, setEstimate] = useState<PathCorpusEstimate | null>(null);
   // Cross-notebook AI mode requires the user to nominate a single notebook
   // scope. The selected items get filtered down to that notebook before
   // posting; without exactly one notebook represented the AI submit blocks.
@@ -208,15 +202,8 @@ export default function LearnPathSetup({
     : 'New learn path';
   const [planTitle, setPlanTitle] = useState(defaultTitle);
   const [planDescription, setPlanDescription] = useState('');
-  const [planStart, setPlanStart] = useState(todayISO());
-  const [planEnd, setPlanEnd] = useState(daysFromNow(14));
   const [phases, setPhases] = useState<PhaseDraft[]>([
-    {
-      title: 'Phase 1',
-      startDate: todayISO(),
-      endDate: daysFromNow(6),
-      materials: [],
-    },
+    { title: 'Phase 1', materials: [] },
   ]);
   const [openPicker, setOpenPicker] = useState<number | null>(null);
 
@@ -303,6 +290,52 @@ export default function LearnPathSetup({
     }
   }, [isCrossNotebookMode, selectedNotebookIds]);
 
+  // ── Pre-generation corpus-fit estimate (AI tab) ──────────────────────
+  // The picker holds only IDs, so the selection's size is measured server-side.
+  // Mirror the exact scoping submitAi posts, then debounce a call to the
+  // estimate route whenever the selection or the Ultra toggle changes.
+  const effectiveUltra = canUseUltra && ultra;
+  const ultraRemaining = ultraUsage ? Math.max(0, ultraUsage.limit - ultraUsage.used) : null;
+  const aiScopedItemIds = useMemo(() => {
+    const targetNotebookId = defaultNotebookId ?? aiNotebookId;
+    const selected = flatItems.filter((i) => selectedIds.has(i.id));
+    const scoped =
+      isCrossNotebookMode && targetNotebookId
+        ? selected.filter((i) => i.notebookId === targetNotebookId)
+        : selected;
+    return scoped.map((i) => i.id);
+  }, [defaultNotebookId, aiNotebookId, flatItems, selectedIds, isCrossNotebookMode]);
+
+  useEffect(() => {
+    if (tab !== 'ai' || aiScopedItemIds.length === 0) {
+      setEstimate(null);
+      return;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetch('/api/learn/paths/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materialIds: aiScopedItemIds, ultra: effectiveUltra }),
+        signal: controller.signal,
+      })
+        .then((r) => r.json())
+        .then((j) => {
+          if (cancelled) return;
+          setEstimate(j?.success && j.data ? (j.data as PathCorpusEstimate) : null);
+        })
+        .catch(() => {
+          // Soft-fail — show no warning rather than a wrong one.
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [tab, aiScopedItemIds, effectiveUltra]);
+
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -387,24 +420,10 @@ export default function LearnPathSetup({
   }, []);
 
   const handleAddPhase = useCallback(() => {
-    setPhases((prev) => {
-      const last = prev[prev.length - 1];
-      const newStart = last
-        ? new Date(new Date(last.endDate).getTime() + 86400000).toISOString().split('T')[0]
-        : todayISO();
-      const newEnd = new Date(new Date(newStart).getTime() + 6 * 86400000)
-        .toISOString()
-        .split('T')[0];
-      return [
-        ...prev,
-        {
-          title: `Phase ${prev.length + 1}`,
-          startDate: newStart,
-          endDate: newEnd,
-          materials: [],
-        },
-      ];
-    });
+    setPhases((prev) => [
+      ...prev,
+      { title: `Phase ${prev.length + 1}`, materials: [] },
+    ]);
   }, []);
 
   const handleRemovePhase = useCallback((idx: number) => {
@@ -993,10 +1012,6 @@ export default function LearnPathSetup({
               onPlanTitleChange={setPlanTitle}
               planDescription={planDescription}
               onPlanDescriptionChange={setPlanDescription}
-              planStart={planStart}
-              onPlanStartChange={setPlanStart}
-              planEnd={planEnd}
-              onPlanEndChange={setPlanEnd}
               phases={phases}
               onAddPhase={handleAddPhase}
               onRemovePhase={handleRemovePhase}
@@ -1011,6 +1026,76 @@ export default function LearnPathSetup({
             />
           )}
         </div>
+
+        {/* Corpus-fit warning (AI tab) — flag before silent truncation */}
+        {tab === 'ai' && estimate && (estimate.overBudget || estimate.nearBudget) ? (
+          <div
+            role={estimate.overBudget ? 'alert' : undefined}
+            style={{
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'flex-start',
+              margin: '0 20px 8px',
+              padding: '10px 12px',
+              borderRadius: 'var(--radius-md)',
+              border: `1px solid ${
+                estimate.overBudget ? 'var(--error)' : 'var(--outline-variant)'
+              }`,
+              background: 'var(--surface-container-high)',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              aria-hidden
+              style={{
+                fontSize: '18px',
+                flexShrink: 0,
+                color: estimate.overBudget ? 'var(--error)' : 'var(--on-surface-variant)',
+              }}
+            >
+              {estimate.overBudget ? 'warning' : 'lightbulb'}
+            </span>
+            <div
+              style={{
+                minWidth: 0,
+                fontSize: '12.5px',
+                lineHeight: 1.5,
+                color: 'var(--on-surface-variant)',
+              }}
+            >
+              {estimate.overBudget ? (
+                <>
+                  <span style={{ color: 'var(--on-surface)', fontWeight: 700 }}>
+                    Too much for one path — some content gets trimmed.
+                  </span>{' '}
+                  Smaller paths keep the AI focused: sharper questions, less drift.
+                  {estimate.trimmed.length > 0 ? (
+                    <div style={{ marginTop: '6px' }}>
+                      Trimmed:{' '}
+                      <span style={{ color: 'var(--on-surface)' }}>
+                        {estimate.trimmed.map((t) => t.title).join(', ')}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div style={{ marginTop: '6px', color: 'var(--on-surface)', fontWeight: 600 }}>
+                    {!ultra &&
+                    canUseUltra &&
+                    estimate.fitsUltra &&
+                    (ultraRemaining === null || ultraRemaining > 0)
+                      ? `Turn on Ultra to fit it all in one go${
+                          ultraRemaining !== null
+                            ? ` — ${ultraRemaining} of ${ultraUsage?.limit} left`
+                            : ''
+                        }.`
+                      : 'Split it into focused paths for the best results.'}
+                  </div>
+                </>
+              ) : (
+                <>Big selection. Focused paths learn better.</>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {/* Error */}
         {error ? (
@@ -1720,10 +1805,6 @@ function ManualTab({
   onPlanTitleChange,
   planDescription,
   onPlanDescriptionChange,
-  planStart,
-  onPlanStartChange,
-  planEnd,
-  onPlanEndChange,
   phases,
   onAddPhase,
   onRemovePhase,
@@ -1740,10 +1821,6 @@ function ManualTab({
   onPlanTitleChange: (s: string) => void;
   planDescription: string;
   onPlanDescriptionChange: (s: string) => void;
-  planStart: string;
-  onPlanStartChange: (s: string) => void;
-  planEnd: string;
-  onPlanEndChange: (s: string) => void;
   phases: PhaseDraft[];
   onAddPhase: () => void;
   onRemovePhase: (idx: number) => void;
@@ -1773,29 +1850,6 @@ function ManualTab({
           style={{ ...inputStyle, resize: 'vertical' }}
         />
       </Field>
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <div style={{ flex: 1 }}>
-          <Field label="Start">
-            <input
-              type="date"
-              value={planStart}
-              onChange={(e) => onPlanStartChange(e.target.value)}
-              style={inputStyle}
-            />
-          </Field>
-        </div>
-        <div style={{ flex: 1 }}>
-          <Field label="End">
-            <input
-              type="date"
-              value={planEnd}
-              onChange={(e) => onPlanEndChange(e.target.value)}
-              style={inputStyle}
-            />
-          </Field>
-        </div>
-      </div>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {phases.map((phase, idx) => (
           <PhaseCard
@@ -1925,29 +1979,6 @@ function PhaseCard({
             onClick={onRemove}
             danger
           />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <div style={{ flex: 1 }}>
-          <Field label="Start" small>
-            <input
-              type="date"
-              value={phase.startDate}
-              onChange={(e) => onUpdate({ startDate: e.target.value })}
-              style={inputStyle}
-            />
-          </Field>
-        </div>
-        <div style={{ flex: 1 }}>
-          <Field label="End" small>
-            <input
-              type="date"
-              value={phase.endDate}
-              onChange={(e) => onUpdate({ endDate: e.target.value })}
-              style={inputStyle}
-            />
-          </Field>
         </div>
       </div>
 

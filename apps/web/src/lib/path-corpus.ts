@@ -6,24 +6,12 @@
 // call share as a cached system block.
 
 import { db } from './db';
-import { MAX_CONTEXT_CHARS } from './anthropic';
+import { type MaterialCorpusEntry, type MaterialKind, corpusBudget } from './path-corpus-fit';
 
-export type MaterialKind = 'page' | 'document' | 'flashcard_set' | 'quiz_set';
-
-export interface MaterialCorpusEntry {
-  id: string;
-  kind: MaterialKind;
-  title: string;
-  /**
-   * The material's text — page/document body, or rendered Q&A for sets.
-   * Null when a page or document has no extracted text yet.
-   */
-  content: string | null;
-  /** Section title, for a page's header line. */
-  sectionTitle?: string;
-  /** The notebook this material belongs to, if any. */
-  notebookId: string | null;
-}
+// Re-export the corpus types so existing `@/lib/path-corpus` consumers keep
+// working — the shapes now live in the pure, client-safe fit module
+// (path-corpus-fit.ts) alongside the water-fill math and cap constants.
+export type { MaterialCorpusEntry, MaterialKind } from './path-corpus-fit';
 
 /**
  * Load the picked materials with their actual content, ownership-checked.
@@ -140,25 +128,17 @@ const KIND_LABELS: Record<MaterialKind, string> = {
   quiz_set: 'Quiz set',
 };
 
-const EMPTY_BODY = '(no extracted text available — only the title is known)';
-
 /**
  * Render loaded materials into one corpus string for the AI. Bodies are
- * trimmed with a fair-share water-fill so the total stays within
- * MAX_CONTEXT_CHARS and one huge document can't crowd out small pages.
- * Deterministic given the same entries — required for prompt-cache hits.
+ * trimmed with a fair-share water-fill (see corpusBudget) so the total stays
+ * within `cap` and one huge document can't crowd out small pages. The cap is
+ * path-type specific — pass `pathContentCap(ultra)`. Deterministic given the
+ * same entries + cap — required for prompt-cache hits.
  */
-export function renderMaterialCorpus(entries: MaterialCorpusEntry[]): string {
+export function renderMaterialCorpus(entries: MaterialCorpusEntry[], cap: number): string {
   if (entries.length === 0) return '';
 
-  const bodies = entries.map((e) => {
-    const text = e.content?.trim();
-    return text && text.length > 0 ? text : EMPTY_BODY;
-  });
-  const budgets = allocateBudget(
-    bodies.map((b) => b.length),
-    MAX_CONTEXT_CHARS,
-  );
+  const { bodies, budgets } = corpusBudget(entries, cap);
 
   const blocks = entries.map((e, i) => {
     const label = KIND_LABELS[e.kind];
@@ -172,27 +152,4 @@ export function renderMaterialCorpus(entries: MaterialCorpusEntry[]): string {
   });
 
   return blocks.join('\n\n');
-}
-
-/**
- * Water-fill `total` chars across items by ascending length: short items take
- * only what they need, leaving more for long ones; whatever remains is split
- * evenly among the longest. Returns a per-item char budget aligned with the
- * input order.
- */
-function allocateBudget(lengths: number[], total: number): number[] {
-  const result = new Array<number>(lengths.length).fill(0);
-  const ascending = lengths
-    .map((len, i) => ({ len, i }))
-    .sort((a, b) => a.len - b.len);
-  let remaining = total;
-  let left = ascending.length;
-  for (const { len, i } of ascending) {
-    const share = left > 0 ? Math.floor(remaining / left) : 0;
-    const give = Math.min(len, share);
-    result[i] = give;
-    remaining -= give;
-    left -= 1;
-  }
-  return result;
 }

@@ -49,6 +49,7 @@ import {
 import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
 import { computeCost, type ModelUsage } from './path-generator-cost';
 import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
+import { pathContentCap } from './path-corpus-fit';
 import {
   loadSourceImages,
   captionMissing,
@@ -767,7 +768,9 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   // since the path was created, loadMaterialCorpus returns null — generate
   // without it rather than aborting the whole path.
   const corpusEntries = await loadMaterialCorpus(plan.userId, plan.materialIds);
-  const corpus = corpusEntries ? renderMaterialCorpus(corpusEntries) : null;
+  const corpus = corpusEntries
+    ? renderMaterialCorpus(corpusEntries, pathContentCap(plan.ultra))
+    : null;
 
   // Theory visuals. Diagrams are all-tiers (no added AI cost) so they ride a
   // simple kill-switch. Figures are all-tiers too: captions are pre-warmed at
