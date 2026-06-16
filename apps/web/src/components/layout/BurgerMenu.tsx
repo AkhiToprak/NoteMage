@@ -8,7 +8,7 @@ import TierBadge from '@/components/ui/TierBadge';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
-import { DashboardIcon, NotebookIcon, CoWorkIcon } from '@/components/icons/NavIcons';
+// NavIcons kept for backward compat; new items use Material Symbols strings only
 
 interface BurgerMenuProps {
   open: boolean;
@@ -36,25 +36,18 @@ type NavItem = {
   icon: string | ((color: string) => ReactNode);
 };
 
-const NAV_ITEMS: NavItem[] = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: (color) => <DashboardIcon size={22} color={color} />,
-  },
-  // /learn is the learning dashboard — paths, notebooks, flashcards,
-  // and quizzes surfaced together as a single jump-off page.
-  { href: '/learn', label: 'Learn', icon: 'school' },
-  {
-    href: '/notebooks',
-    label: 'Notebooks',
-    icon: (color) => <NotebookIcon size={22} color={color} />,
-  },
-  {
-    href: '/groups',
-    label: 'Co-Work',
-    icon: (color) => <CoWorkIcon size={22} color={color} />,
-  },
+/** Six primary destinations — learning-path focused. */
+const PRIMARY_NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard',   label: 'Home',        icon: 'cottage' },
+  { href: '/my-path',     label: 'My Path',     icon: 'route' },
+  { href: '/study-packs', label: 'Study Packs', icon: 'auto_stories' },
+  { href: '/practice',    label: 'Practice',    icon: 'fitness_center' },
+  { href: '/learn/chats', label: 'Mage Tutor',  icon: 'auto_fix_high' },
+  { href: '/progress',    label: 'Progress',    icon: 'trending_up' },
+];
+
+/** Secondary / utility item — rendered below a divider. */
+const SECONDARY_NAV_ITEMS: NavItem[] = [
   { href: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
@@ -78,10 +71,10 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
 
   // Admin-only entry to the /admin console. `role` rides on the JWT, so this
   // surfaces only for users whose User.role === 'admin'.
-  const navItems: NavItem[] =
+  const primaryItems: NavItem[] =
     user?.role === 'admin'
-      ? [...NAV_ITEMS, { href: '/admin', label: 'Admin', icon: 'admin_panel_settings' }]
-      : NAV_ITEMS;
+      ? [...PRIMARY_NAV_ITEMS, { href: '/admin', label: 'Admin', icon: 'admin_panel_settings' }]
+      : PRIMARY_NAV_ITEMS;
 
   // Lock body scroll when open
   useEffect(() => {
@@ -200,9 +193,92 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
+            overflowY: 'auto',
           }}
         >
-          {navItems.map((item) => {
+          {/* Primary items */}
+          {primaryItems.map((item) => {
+            // /learn/chats should be active on itself and any sub-path
+            const isActive =
+              item.href === '/learn/chats'
+                ? pathname === '/learn/chats' || pathname.startsWith('/learn/chats/')
+                : pathname === item.href || pathname.startsWith(item.href + '/');
+            const isHovered = hoveredItem === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                onMouseEnter={() => setHoveredItem(item.href)}
+                onMouseLeave={() => setHoveredItem(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: isActive
+                    ? 'rgba(174,137,255,0.1)'
+                    : isHovered
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'transparent',
+                  color: isActive
+                    ? COLORS.primary
+                    : isHovered
+                      ? COLORS.textPrimary
+                      : COLORS.textSecondary,
+                  textDecoration: 'none',
+                  fontSize: 14,
+                  fontWeight: isActive ? 700 : 500,
+                  transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
+                }}
+              >
+                {typeof item.icon === 'function' ? (
+                  item.icon(
+                    isActive
+                      ? COLORS.primary
+                      : isHovered
+                        ? COLORS.textPrimary
+                        : COLORS.textSecondary
+                  )
+                ) : (
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: 22,
+                      fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+                )}
+                {item.label}
+                {isActive && (
+                  <div
+                    style={{
+                      marginLeft: 'auto',
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: COLORS.primary,
+                    }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+
+          {/* Divider before secondary items */}
+          <div
+            style={{
+              height: 1,
+              background: COLORS.border,
+              margin: '8px 2px',
+            }}
+          />
+
+          {/* Secondary items (Settings) */}
+          {SECONDARY_NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const isHovered = hoveredItem === item.href;
             return (

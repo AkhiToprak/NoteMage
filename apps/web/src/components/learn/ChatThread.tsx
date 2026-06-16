@@ -9,6 +9,7 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { useStreamingChat } from '@/hooks/useStreamingChat';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import VideoInputMask from '@/components/video/VideoInputMask';
+import { Mascot } from '@/components/mascot/Mascot';
 import dynamic from 'next/dynamic';
 
 const MindmapRenderer = dynamic(() => import('@/components/notebook/MindmapRenderer'), {
@@ -722,30 +723,12 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '16px',
+              gap: '20px',
               padding: '48px 24px',
               textAlign: 'center',
             }}
           >
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
-                background: 'rgba(140,82,255,0.2)',
-                border: '1px solid rgba(140,82,255,0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '32px', color: 'var(--md-h4)', fontVariationSettings: "'FILL' 1" }}
-              >
-                auto_fix_high
-              </span>
-            </div>
+            <Mascot pose="chatting" size="md" idle="float" />
             <div>
               <p
                 style={{
@@ -769,9 +752,79 @@ export default function ChatThread({ chatId }: { chatId: string }) {
                 }}
               >
                 {totalContext > 0
-                  ? `I have ${totalContext} context source${totalContext !== 1 ? 's' : ''} loaded. Ask me anything about your material.`
-                  : 'Feed me some documents or notebook pages to get started, then ask anything.'}
+                  ? `Ready to help with your material — ${totalContext} source${totalContext !== 1 ? 's' : ''} loaded.`
+                  : 'Upload notes or attach notebook pages, then ask away.'}
               </p>
+            </div>
+            {/* Suggestion chips */}
+            <div
+              role="list"
+              aria-label="Suggested questions"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                justifyContent: 'center',
+                maxWidth: '480px',
+              }}
+            >
+              {[
+                'Explain this simpler',
+                'Give me an example',
+                'Quiz me on this',
+                'Why was my answer wrong?',
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  role="listitem"
+                  onClick={() => {
+                    setInputValue(suggestion);
+                    setTimeout(() => textareaRef.current?.focus(), 0);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: '44px',
+                    padding: '0 14px',
+                    borderRadius: '9999px',
+                    background: 'var(--surface-container)',
+                    border: '1px solid var(--rule-hairline, rgba(140,82,255,0.18))',
+                    color: 'var(--on-surface)',
+                    fontSize: '13px',
+                    fontFamily: 'var(--font-chat)',
+                    cursor: 'pointer',
+                    transition: 'transform 0.12s cubic-bezier(.34,1.56,.64,1), opacity 0.12s',
+                    outline: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(140,82,255,0.12)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(140,82,255,0.35)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-container)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--rule-hairline, rgba(140,82,255,0.18))';
+                  }}
+                  onMouseDown={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(0.97)';
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '0.8';
+                  }}
+                  onMouseUp={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                  }}
+                  onFocus={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.outline = '3px solid var(--md-h3)';
+                    (e.currentTarget as HTMLButtonElement).style.outlineOffset = '2px';
+                  }}
+                  onBlur={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.outline = 'none';
+                  }}
+                >
+                  {suggestion}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -989,7 +1042,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Ask ${mageName} anything…`}
+            placeholder="Ask about this lesson or your uploaded material…"
             rows={1}
             disabled={isSending}
             style={{

@@ -328,6 +328,34 @@
   --scrim-modal: rgba(0, 0, 0, 0.62);
   --switch-knob: #ffffff;
   --switch-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+  /* --- NM path-semantic palette (visual rework) --- */
+  /* Brand primary (dark) */
+  --nm-primary: #9D86FF;
+  --nm-primary-rgb: 157 134 255;
+  --nm-primary-dark: #7C5CFF;
+  --nm-primary-light: #2B2550;
+  --nm-primary-on-light: #D9CCFF;
+  --nm-accent: #FFC83D;
+  --nm-accent-ink: #3A2A00;
+  --nm-lesson: #5cc4ff;
+  --nm-lesson-soft: rgb(92 196 255 / 0.14);
+  --nm-lesson-ink: #08243a;
+  --nm-quiz: var(--nm-primary);
+  --nm-quiz-soft: rgb(174 137 255 / 0.16);
+  --nm-quiz-ink: #2a0066;
+  --nm-review: #ffb454;
+  --nm-review-soft: rgb(255 167 38 / 0.16);
+  --nm-review-ink: #3a2400;
+  --nm-boss: #ff8095;
+  --nm-boss-soft: rgb(255 122 144 / 0.16);
+  --nm-boss-ink: #3a0010;
+  --nm-complete: #48ca9a;
+  --nm-complete-soft: rgb(72 202 154 / 0.16);
+  --nm-complete-ink: #082b13;
+  --nm-streak: #ffde59;
+  --nm-streak-soft: rgb(255 222 89 / 0.16);
+  --nm-streak-ink: #2a2200;
 }
 
 /* ─── Light theme overrides (data-theme="light") ──────────────────────── */
@@ -441,6 +469,34 @@
      16% violet on near-white is invisible. Everything else (brand purple,
      motion easings, heatmap alpha ramps) reads in both themes. */
   --rule-hairline: rgb(15 15 30 / 0.12);
+
+  /* --- NM path-semantic palette (visual rework) --- */
+  /* Brand primary (light) */
+  --nm-primary: #7C5CFF;
+  --nm-primary-rgb: 124 92 255;
+  --nm-primary-dark: #5A3DDB;
+  --nm-primary-light: #EDE9FF;
+  --nm-primary-on-light: #4326B8;
+  --nm-accent: #FFC83D;
+  --nm-accent-ink: #3A2A00;
+  --nm-lesson: #0284c7;
+  --nm-lesson-soft: rgb(2 132 199 / 0.10);
+  --nm-lesson-ink: #08243a;
+  --nm-quiz: var(--nm-primary);
+  --nm-quiz-soft: rgb(124 58 237 / 0.10);
+  --nm-quiz-ink: #2a0066;
+  --nm-review: #b45309;
+  --nm-review-soft: rgb(217 119 6 / 0.12);
+  --nm-review-ink: #3a2400;
+  --nm-boss: #dc2626;
+  --nm-boss-soft: rgb(220 38 38 / 0.10);
+  --nm-boss-ink: #3a0010;
+  --nm-complete: #1f7a54;
+  --nm-complete-soft: rgb(31 122 84 / 0.12);
+  --nm-complete-ink: #082b13;
+  --nm-streak: #a16207;
+  --nm-streak-soft: rgb(161 98 7 / 0.12);
+  --nm-streak-ink: #2a2200;
 }
 
 /* Light mode: every tokenized surface card gets a visible deep outline so the
@@ -480,6 +536,21 @@
 [data-theme='light'] .nm-burger {
   background: rgba(15, 15, 30, 0.06) !important;
   border-color: var(--outline) !important;
+}
+
+/* ─── Visual-rework scope (.nm-rework) ───────────────────────────────────
+   Applied to the root element of any rework surface. Re-points font tokens
+   to Poppins and the accent token to the brand primary, scoped to descendants
+   only — shared primitives (Button, NMCard, etc.) rendered inside pick up the
+   new brand without touching the global app theme. Does NOT override surface /
+   background / on-surface tokens so dark mode keeps working unchanged. */
+.nm-rework {
+  font-family: var(--font-poppins), var(--font-jakarta), system-ui, sans-serif;
+  --font-display: var(--font-poppins), var(--font-jakarta), system-ui, sans-serif;
+  --font-sans: var(--font-poppins), var(--font-jakarta), system-ui, sans-serif;
+  --accent-strong: var(--nm-primary);
+  --accent-strong-rgb: var(--nm-primary-rgb);
+  --color-focus: var(--nm-primary);
 }
 
 /* ─── Tailwind v4 @theme tokens ───────────────────────────────────────── */

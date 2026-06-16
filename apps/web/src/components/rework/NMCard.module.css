@@ -1,0 +1,47 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule-hairline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--bento-rest-shadow);
+  padding: var(--card-pad, 24px);
+  position: relative;
+  overflow: hidden;
+}
+
+.card.interactive {
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-spring);
+}
+
+.card.interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px var(--bento-hover-shadow);
+}
+
+.card.interactive:focus-visible {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+
+.card.interactive:active {
+  transform: translateY(0);
+}
+
+.accentStrip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.interactive {
+    transition: none;
+  }
+  .card.interactive:hover {
+    transform: none;
+  }
+}

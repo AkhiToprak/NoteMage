@@ -2,67 +2,24 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import ActivityHeatmap from '@/components/features/ActivityHeatmap';
-import StreakDisplay from '@/components/features/StreakDisplay';
 import ExamForm from '@/components/features/ExamForm';
-import DashboardAchievements from '@/components/features/DashboardAchievements';
 import DashboardGreeting from '@/components/features/DashboardGreeting';
-import PathHeroCard from '@/components/features/PathHeroCard';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { usePresence } from '@/hooks/usePresence';
-import { responsiveValue } from '@/lib/responsive';
+import { NMCard } from '@/components/rework/NMCard';
+import { ProgressBar } from '@/components/rework/ProgressBar';
+import { SectionHeading } from '@/components/rework/SectionHeading';
+import { Mascot } from '@/components/mascot/Mascot';
+import { Button } from '@/components/ui/Button';
 import { useTutorial } from '@/components/tutorial/TutorialContext';
 import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
-import { EmptyState } from '@/components/ui/EmptyState';
+import type { PathPhase, PathPlan } from '@/components/learn/PathView';
 
-interface RecentItem {
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface NotebookOption {
   id: string;
   name: string;
-  subject?: string | null;
-  color?: string | null;
-  updatedAt: string;
-  pageCount: number;
-}
-
-interface UserGoals {
-  dailyStudyMinutes: number | null;
-  weeklyStudyPlans: number | null;
-  weeklyNotes: number | null;
-  weeklyChats: number | null;
-}
-
-interface GoalProgress {
-  todayStudyMinutes: number;
-  weekStudyPlansCompleted: number;
-  weekNotesCreated: number;
-  weekChatsCreated: number;
-}
-
-interface DashboardData {
-  dailyGoal: number;
-  todayPages: number;
-  recentActivity: RecentItem[];
-  goals?: UserGoals;
-  progress?: GoalProgress;
-}
-
-interface GoalRow {
-  key: keyof UserGoals;
-  icon: string;
-  label: string;
-  unit: string;
-  cadence: 'today' | 'this week';
-  current: number;
-  target: number;
-}
-
-interface TodoItem {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdAt: string;
 }
 
 interface ExamItem {
@@ -73,80 +30,80 @@ interface ExamItem {
   notebookName: string;
 }
 
-interface NotebookOption {
-  id: string;
-  name: string;
+type PathFetchState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; plans: PathPlan[] }
+  | { kind: 'error' };
+
+// ─── Path hero derivation (mirrors PathHeroCard logic) ────────────────────────
+
+interface DerivedPath {
+  plan: PathPlan;
+  activePhase: PathPhase;
+  activePhaseIndex: number;
+  nextSlotIsAssessment: boolean;
+  nextSlotId: string | null;
+  percent: number;
+  pathDone: boolean;
+  ultra: boolean;
 }
 
-interface FriendItem {
-  id: string;
-  username: string | null;
-  name: string | null;
-  avatarUrl: string | null;
-  lastSeenAt: string | null;
+function deriveHero(plans: PathPlan[]): DerivedPath | null {
+  if (plans.length === 0) return null;
+  const plan = plans[0];
+  if (!plan.phases.length) return null;
+
+  let total = 0;
+  let completed = 0;
+  for (const phase of plan.phases) {
+    for (const slot of phase.slots) {
+      for (const a of slot.activities) {
+        total += 1;
+        if (a.completed) completed += 1;
+      }
+    }
+  }
+  if (total === 0) return null;
+  const percent = Math.round((completed / total) * 100);
+  const pathDone = completed === total;
+
+  let activePhaseIndex = plan.phases.findIndex(
+    (p) => p.unlocked && p.slots.some((s) => !s.completed),
+  );
+  if (activePhaseIndex === -1) activePhaseIndex = plan.phases.length - 1;
+  const activePhase = plan.phases[activePhaseIndex];
+  const nextSlot = activePhase.slots.find((s) => s.unlocked && !s.completed) ?? null;
+
+  return {
+    plan,
+    activePhase,
+    activePhaseIndex,
+    nextSlotIsAssessment:
+      nextSlot?.kind === 'assessment' || nextSlot?.kind === 'final_exam',
+    nextSlotId: nextSlot?.id ?? null,
+    percent,
+    pathDone,
+    ultra: plan.ultra === true,
+  };
 }
 
-interface StatCard {
-  label: string;
-  value: string;
-  icon: string;
-  iconFilled?: boolean;
-  iconColor: string;
-  iconBg: string;
-  badge?: React.ReactNode;
-  arrowColor: string;
-  href?: string;
-  onClick?: () => void;
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return `${Math.floor(days / 7)}w ago`;
-}
-
-function getActivityStyle(subject?: string | null) {
-  const s = (subject ?? '').toLowerCase();
-  if (s.includes('sci') || s.includes('chem') || s.includes('bio') || s.includes('phys'))
-    return { icon: 'science', iconBg: 'rgba(185,195,255,0.32)', iconColor: '#b9c3ff' };
-  if (s.includes('hist') || s.includes('social') || s.includes('geo'))
-    return { icon: 'history_edu', iconBg: 'rgba(174,137,255,0.2)', iconColor: '#ae89ff' };
-  if (s.includes('math') || s.includes('calc') || s.includes('stat'))
-    return { icon: 'calculate', iconBg: 'rgba(240,208,76,0.2)', iconColor: '#f0d04c' };
-  if (s.includes('lang') || s.includes('english') || s.includes('lit') || s.includes('writ'))
-    return { icon: 'menu_book', iconBg: 'rgba(174,137,255,0.15)', iconColor: '#ae89ff' };
-  return { icon: 'auto_stories', iconBg: 'rgba(174,137,255,0.15)', iconColor: '#ae89ff' };
-}
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
+
   const [notebookCount, setNotebookCount] = useState<number | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [todos, setTodos] = useState<TodoItem[]>([]);
-  const [todoInput, setTodoInput] = useState('');
-  const [todoLoading, setTodoLoading] = useState(false);
-  const [streakValue, setStreakValue] = useState<string>('—');
-  const [streakIsActive, setStreakIsActive] = useState(false);
-  const [freezesLeft, setFreezeesLeft] = useState(0);
-  const [friends, setFriends] = useState<FriendItem[] | null>(null);
-  const [pendingFriendRequests, setPendingFriendRequests] = useState(0);
-  const { onlineFriendIds } = usePresence();
-  const [exams, setExams] = useState<ExamItem[]>([]);
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
+  const [exams, setExams] = useState<ExamItem[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const [activeCard, setActiveCard] = useState(0);
-  const { isPhone, isTablet, isDesktop, bp } = useBreakpoint();
+  const [pathState, setPathState] = useState<PathFetchState>({ kind: 'loading' });
+
   const { step: tutorialStep } = useTutorial();
   const tutorialCtaRef = useTutorialTarget('dashboard-cta');
-  const ctaHref = tutorialStep === 'step-1-dashboard' ? '/notebooks?tutorial=1' : '/notebooks';
+  const ctaHref = tutorialStep === 'step-1-dashboard' ? '/notebooks?tutorial=1' : '/study-packs/new';
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     fetch('/api/notebooks?folderId=all')
@@ -160,45 +117,26 @@ export default function DashboardPage() {
       })
       .catch(() => {});
 
-    fetch('/api/dashboard')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (d?.dailyGoal !== undefined) setDashboard(d);
-      })
-      .catch(() => {});
-
-    fetchTodos();
-
-    fetch('/api/user/streak')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (d?.currentStreak !== undefined) {
-          setStreakValue(String(d.currentStreak));
-          setStreakIsActive(d.isActiveToday);
-          setFreezeesLeft(d.freezesLeft);
-        }
-      })
-      .catch(() => {});
-
-    fetch('/api/friends?status=accepted')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (Array.isArray(d?.friends)) setFriends(d.friends);
-      })
-      .catch(() => {});
-
-    fetch('/api/friends?status=pending&direction=incoming')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (typeof d?.count === 'number') setPendingFriendRequests(d.count);
-      })
-      .catch(() => {});
-
     fetchExams();
+
+    let cancelled = false;
+    fetch('/api/learn/paths')
+      .then((r) => r.json())
+      .then((body: { success?: boolean; data?: PathPlan[] }) => {
+        if (cancelled) return;
+        if (!body.success || !Array.isArray(body.data)) {
+          setPathState({ kind: 'error' });
+          return;
+        }
+        setPathState({ kind: 'ready', plans: body.data });
+      })
+      .catch(() => {
+        if (!cancelled) setPathState({ kind: 'error' });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fetchExams = () => {
@@ -236,1024 +174,941 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchTodos = () => {
-    fetch('/api/user/todos')
-      .then((r) => r.json())
-      .then((res) => {
-        const d = res?.data ?? res;
-        if (Array.isArray(d)) setTodos(d);
-      })
-      .catch(() => {});
-  };
+  // ── Derived state ──────────────────────────────────────────────────────────
 
-  const handleAddTodo = async () => {
-    const text = todoInput.trim();
-    if (!text) return;
-    setTodoLoading(true);
-    try {
-      const res = await fetch('/api/user/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-      if (res.ok) {
-        setTodoInput('');
-        fetchTodos();
-      }
-    } finally {
-      setTodoLoading(false);
-    }
-  };
+  const derived = useMemo(() => {
+    if (pathState.kind !== 'ready') return null;
+    return deriveHero(pathState.plans);
+  }, [pathState]);
 
-  const handleToggleTodo = async (id: string, completed: boolean) => {
-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !completed } : t)));
-    try {
-      await fetch(`/api/user/todos/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !completed }),
-      });
-      fetchTodos();
-    } catch {
-      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, completed } : t)));
-    }
-  };
+  const hasPaths = pathState.kind === 'ready' && pathState.plans.length > 0;
+  const isEmpty = notebookCount !== null && notebookCount === 0 && !hasPaths;
+  const isLoading = notebookCount === null || pathState.kind === 'loading';
 
-  const handleDeleteTodo = async (id: string) => {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
-    try {
-      await fetch(`/api/user/todos/${id}`, { method: 'DELETE' });
-    } catch {
-      fetchTodos();
-    }
-  };
+  const firstName =
+    session?.user?.name?.split(' ')[0] ||
+    (session?.user as { username?: string })?.username ||
+    'Mage';
 
-  const handleCarouselScroll = () => {
-    const el = carouselRef.current;
-    if (!el) return;
-    const cardWidth = el.scrollWidth / 3;
-    setActiveCard(Math.round(el.scrollLeft / cardWidth));
-  };
+  // Next exam (soonest future one)
+  const sortedExams = [...exams].sort(
+    (a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime(),
+  );
+  const nextExam = sortedExams[0] ?? null;
+  const nextExamDays = nextExam
+    ? Math.ceil((new Date(nextExam.examDate).getTime() - Date.now()) / 86400000)
+    : null;
 
-  const goals = dashboard?.goals;
-  const progress = dashboard?.progress;
-  const goalRows: GoalRow[] = [];
-  if (goals && progress) {
-    if (goals.dailyStudyMinutes !== null) {
-      goalRows.push({
-        key: 'dailyStudyMinutes',
-        icon: 'schedule',
-        label: 'Study Time',
-        unit: 'min',
-        cadence: 'today',
-        current: progress.todayStudyMinutes,
-        target: goals.dailyStudyMinutes,
-      });
-    }
-    if (goals.weeklyStudyPlans !== null) {
-      goalRows.push({
-        key: 'weeklyStudyPlans',
-        icon: 'event_available',
-        label: 'Study Plans',
-        unit: 'plans',
-        cadence: 'this week',
-        current: progress.weekStudyPlansCompleted,
-        target: goals.weeklyStudyPlans,
-      });
-    }
-    if (goals.weeklyNotes !== null) {
-      goalRows.push({
-        key: 'weeklyNotes',
-        icon: 'edit_note',
-        label: 'Notes',
-        unit: 'notes',
-        cadence: 'this week',
-        current: progress.weekNotesCreated,
-        target: goals.weeklyNotes,
-      });
-    }
-    if (goals.weeklyChats !== null) {
-      goalRows.push({
-        key: 'weeklyChats',
-        icon: 'auto_awesome',
-        label: 'Mage Chats',
-        unit: 'chats',
-        cadence: 'this week',
-        current: progress.weekChatsCreated,
-        target: goals.weeklyChats,
-      });
-    }
+  // CTA hrefs for the Continue Learning card
+  const pathCtaHref = derived?.nextSlotId
+    ? `/learn/paths/${encodeURIComponent(derived.plan.id)}?slot=${encodeURIComponent(derived.nextSlotId)}`
+    : derived
+      ? `/learn/paths/${encodeURIComponent(derived.plan.id)}`
+      : '/learn';
+
+  const pathCtaLabel = derived?.pathDone
+    ? 'Review Path'
+    : derived?.nextSlotIsAssessment
+      ? 'Take Checkpoint'
+      : 'Continue Lesson';
+
+  // ── Urgency color for exam countdown (no gradients, solid bg via rgba) ─────
+  function examUrgency(days: number) {
+    if (days < 7) return { bg: 'color-mix(in srgb, var(--error) 16%, transparent)', fg: 'var(--error)' };
+    if (days < 14) return { bg: 'color-mix(in srgb, var(--warning) 16%, transparent)', fg: 'var(--warning)' };
+    return { bg: 'var(--nm-lesson-soft)', fg: 'var(--nm-lesson)' };
   }
-  const hasStudyGoals = goalRows.length > 0;
-  const goalProgress = dashboard
-    ? Math.min(100, Math.round((dashboard.todayPages / dashboard.dailyGoal) * 100))
-    : 0;
 
-  const statCards: StatCard[] = [
-    {
-      label: 'Day Streak',
-      value: streakValue,
-      icon: 'local_fire_department',
-      iconFilled: true,
-      iconColor: '#fd6f85',
-      iconBg: 'rgba(253,111,133,0.1)',
-      arrowColor: 'var(--on-surface-variant)',
-      badge: streakIsActive ? (
-        <div
-          style={{
-            padding: '2px 8px',
-            background: 'rgba(138,22,50,0.2)',
-            borderRadius: '8px',
-            fontSize: '10px',
-            fontWeight: 700,
-            color: '#fd6f85',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-          }}
-        >
-          Hot
-        </div>
-      ) : freezesLeft > 0 ? (
-        <div
-          style={{
-            padding: '2px 8px',
-            background: 'rgba(74,222,128,0.1)',
-            borderRadius: '8px',
-            fontSize: '10px',
-            fontWeight: 700,
-            color: '#4ade80',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-          }}
-        >
-          {freezesLeft} freeze{freezesLeft !== 1 ? 's' : ''}
-        </div>
-      ) : undefined,
-    },
-    {
-      label: 'Todos',
-      value: String(todos.filter((t) => !t.completed).length),
-      icon: 'checklist',
-      iconColor: 'var(--warning)',
-      iconBg: 'rgba(240,208,76,0.1)',
-      arrowColor: 'var(--on-surface-variant)',
-    },
-    {
-      label: 'Friends',
-      value: friends !== null ? String(friends.length) : '—',
-      icon: 'group',
-      iconColor: 'var(--accent-strong)',
-      iconBg: 'rgba(185,195,255,0.12)',
-      arrowColor: 'var(--on-surface-variant)',
-      href: '/profile',
-      badge:
-        pendingFriendRequests > 0 ? (
-          <div
-            style={{
-              padding: '2px 8px',
-              background: 'rgba(185,195,255,0.15)',
-              borderRadius: '8px',
-              fontSize: '10px',
-              fontWeight: 700,
-              color: 'var(--primary-container)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}
-          >
-            {pendingFriendRequests} new
-          </div>
-        ) : undefined,
-    },
-  ];
-
-  const recentActivity = dashboard?.recentActivity ?? [];
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div
+      className="nm-rework"
       style={{
-        maxWidth: '1280px',
+        maxWidth: 1180,
         margin: '0 auto',
+        width: '100%',
+        padding: 'clamp(16px, 4vw, 32px)',
         display: 'flex',
         flexDirection: 'column',
-        gap: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
+        gap: 'var(--space-8)',
       }}
     >
-      {/* Greeting */}
-      <DashboardGreeting userName={session?.user?.name || session?.user?.username || 'Mage'} />
+      {/* A) Greeting */}
+      <DashboardGreeting userName={firstName} />
 
-      {/* Stats Row — carousel on phone, grid on tablet/desktop */}
-      {isPhone && <style>{`.stat-carousel::-webkit-scrollbar { display: none; }`}</style>}
-      <section
-        data-tutorial="dashboard"
-        ref={isPhone ? carouselRef : undefined}
-        className={isPhone ? 'stat-carousel' : undefined}
-        onScroll={isPhone ? handleCarouselScroll : undefined}
-        style={
-          isPhone
-            ? {
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      {/* EMPTY STATE */}
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      {!isLoading && isEmpty && (
+        <section
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: 'var(--space-6)',
+            padding: 'clamp(32px, 6vw, 64px) 0',
+          }}
+        >
+          <Mascot pose="holding-pen" size="lg" idle="float" priority />
+
+          <div style={{ maxWidth: 520 }}>
+            <h1
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(var(--fs-xl), 4vw, var(--fs-2xl))',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                margin: '0 0 var(--space-3)',
+                letterSpacing: '-0.03em',
+                lineHeight: 1.15,
+              }}
+            >
+              Turn your study material into a learning path
+            </h1>
+            <p
+              style={{
+                fontSize: 'var(--fs-base)',
+                color: 'var(--on-surface-variant)',
+                lineHeight: 1.7,
+                margin: '0 0 var(--space-6)',
+              }}
+            >
+              Upload your notes, slides, PDFs, or textbook pages. NoteMage will create lessons,
+              flashcards, quizzes, and a final exam simulation.
+            </p>
+
+            <div
+              style={{
                 display: 'flex',
-                overflowX: 'auto',
-                scrollSnapType: 'x mandatory',
-                WebkitOverflowScrolling: 'touch',
-                gap: '18px',
-                paddingBottom: '4px',
-                scrollbarWidth: 'none',
-              }
-            : {
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '24px',
-                // Size each card to its content so the short stat cards don't
-                // stretch to match the taller Todos card (dead-space fix,
-                // audit item 3b).
-                alignItems: 'start',
-              }
-        }
-      >
-        {statCards.map(
-          ({ label, value, icon, iconFilled, iconColor, iconBg, badge, arrowColor, href }) => {
-            const isTodo = label === 'Todos';
-            const pendingTodos = todos.filter((t) => !t.completed);
-            const isFriends = label === 'Friends';
-            const sortedFriends =
-              isFriends && friends
-                ? [...friends].sort((a, b) => {
-                    const aOnline = onlineFriendIds.has(a.id) ? 1 : 0;
-                    const bOnline = onlineFriendIds.has(b.id) ? 1 : 0;
-                    if (aOnline !== bOnline) return bOnline - aOnline;
-                    const aSeen = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
-                    const bSeen = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
-                    return bSeen - aSeen;
-                  })
-                : [];
-
-            const headerTrailing = badge || (
-              <span
-                className="material-symbols-outlined stat-arrow"
+                flexWrap: 'wrap',
+                gap: 'var(--space-3)',
+                justifyContent: 'center',
+                marginBottom: 'var(--space-4)',
+              }}
+            >
+              <Link
+                ref={tutorialCtaRef}
+                href={ctaHref}
                 style={{
-                  color: arrowColor,
-                  fontSize: '22px',
-                  transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 28px',
+                  minHeight: 48,
+                  background: 'var(--accent-strong)',
+                  color: 'var(--on-primary-container)',
+                  borderRadius: 'var(--radius-full)',
+                  fontFamily: 'var(--font-sans)',
+                  fontWeight: 700,
+                  fontSize: 'var(--fs-base)',
+                  textDecoration: 'none',
+                  transition: 'transform var(--dur-fast) var(--ease-spring)',
                 }}
-              >
-                arrow_forward
-              </span>
-            );
-
-            const cardContent = (
-              <div
-                style={{
-                  background: 'var(--surface-container-low)',
-                  padding: 'var(--card-pad)',
-                  borderRadius: 'var(--radius-xl)',
-                  border: '1px solid var(--ink-08)',
-                  boxShadow: 'inset 0 1px 0 var(--ink-06), 0 1px 2px rgba(0,0,0,0.18)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  cursor: href ? 'pointer' : 'default',
-                  transition: 'background 0.3s cubic-bezier(0.22,1,0.36,1)',
-                  height: '100%',
-                }}
-                onClick={href ? () => router.push(href) : undefined}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background =
-                    'var(--card-hover-bg-soft)';
-                  const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
-                    '.stat-arrow'
-                  );
-                  if (arrow) arrow.style.transform = 'translateX(4px)';
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background =
-                    'var(--surface-container-low)';
-                  const arrow = (e.currentTarget as HTMLDivElement).querySelector<HTMLSpanElement>(
-                    '.stat-arrow'
-                  );
-                  if (arrow) arrow.style.transform = 'translateX(0)';
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+                }}
+                onMouseDown={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
                 }}
               >
-                {/* Card header */}
-                <div
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 20 }}>
+                  upload_file
+                </span>
+                Upload Material
+              </Link>
+            </div>
+
+            <p
+              style={{
+                fontSize: 'var(--fs-sm)',
+                color: 'var(--on-surface-variant)',
+                margin: '0 0 var(--space-3)',
+              }}
+            >
+              Or try an example:
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+                justifyContent: 'center',
+              }}
+            >
+              {['Biology PDF', 'History Notes', 'Java OOP'].map((label) => (
+                <Link
+                  key={label}
+                  href="/study-packs/new"
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '16px',
+                    gap: 6,
+                    padding: '8px 16px',
+                    minHeight: 44,
+                    background: 'var(--surface-container)',
+                    color: 'var(--on-surface)',
+                    border: '1px solid var(--ink-08)',
+                    borderRadius: 'var(--radius-full)',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 'var(--fs-sm)',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    transition: 'background var(--dur-fast) var(--ease-spring)',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background =
+                      'var(--surface-container-high)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background =
+                      'var(--surface-container)';
                   }}
                 >
-                  <div
+                  <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 16 }}>
+                    auto_fix_high
+                  </span>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      {/* POPULATED STATE */}
+      {/* ───────────────────────────────────────────────────────────────────── */}
+      {!isLoading && !isEmpty && (
+        <>
+          {/* B) Continue Learning hero card */}
+          <section>
+            <NMCard
+              accent="lesson"
+              style={{
+                padding: 'clamp(20px, 3vw, 32px)',
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 'var(--space-6)',
+                minHeight: 160,
+              }}
+            >
+              {/* Left content */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div>
+                  <p
                     style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '16px',
-                      background: iconBg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      fontSize: 'var(--fs-sm)',
+                      fontWeight: 700,
+                      color: 'var(--nm-lesson)',
+                      margin: '0 0 6px',
+                      letterSpacing: '0',
+                      textTransform: 'none',
                     }}
                   >
-                    <span
-                      className="material-symbols-outlined"
+                    Continue learning
+                  </p>
+
+                  {derived && (
+                    <h2
                       style={{
-                        fontSize: '28px',
-                        color: iconColor,
-                        fontVariationSettings: iconFilled
-                          ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                          : undefined,
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--fs-xl)',
+                        fontWeight: 700,
+                        color: 'var(--on-surface)',
+                        margin: '0 0 4px',
+                        letterSpacing: '-0.02em',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {icon}
-                    </span>
-                  </div>
-                  {href ? (
-                    <Link
-                      href={href}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Open ${label}`}
+                      {derived.plan.title}
+                    </h2>
+                  )}
+
+                  {!derived && hasPaths && (
+                    <h2
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        borderRadius: '8px',
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--fs-xl)',
+                        fontWeight: 700,
+                        color: 'var(--on-surface)',
+                        margin: '0 0 4px',
                       }}
                     >
-                      {headerTrailing}
-                    </Link>
-                  ) : (
-                    headerTrailing
+                      Your learning path
+                    </h2>
+                  )}
+
+                  {!hasPaths && (
+                    <h2
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--fs-xl)',
+                        fontWeight: 700,
+                        color: 'var(--on-surface)',
+                        margin: '0 0 4px',
+                      }}
+                    >
+                      {notebooks[0]?.name ?? 'Get started'}
+                    </h2>
+                  )}
+
+                  {derived && (
+                    <p
+                      style={{
+                        fontSize: 'var(--fs-sm)',
+                        color: 'var(--on-surface-variant)',
+                        margin: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Section {derived.activePhaseIndex + 1} · {derived.activePhase.title}
+                    </p>
                   )}
                 </div>
 
-                {/* Value + label */}
-                <h3
-                  className="tabular-nums"
+                {derived && (
+                  <ProgressBar
+                    value={derived.percent}
+                    color="var(--nm-lesson)"
+                    height={8}
+                    label="Progress"
+                    showPercent
+                  />
+                )}
+
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                  {derived ? (
+                    <Link
+                      href={pathCtaHref}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '10px 20px',
+                        minHeight: 44,
+                        background: 'var(--nm-lesson)',
+                        color: 'var(--nm-lesson-ink)',
+                        borderRadius: 'var(--radius-full)',
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        transition: 'transform var(--dur-fast) var(--ease-spring)',
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 18 }}>
+                        {derived.pathDone ? 'replay' : derived.nextSlotIsAssessment ? 'school' : 'arrow_forward'}
+                      </span>
+                      {pathCtaLabel}
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/study-packs/new"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '10px 20px',
+                        minHeight: 44,
+                        background: 'var(--nm-lesson)',
+                        color: 'var(--nm-lesson-ink)',
+                        borderRadius: 'var(--radius-full)',
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        transition: 'transform var(--dur-fast) var(--ease-spring)',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 18 }}>
+                        auto_fix_high
+                      </span>
+                      Generate Learning Path
+                    </Link>
+                  )}
+
+                  {derived && (
+                    <Link
+                      href={`/learn/paths/${encodeURIComponent(derived.plan.id)}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '10px 16px',
+                        minHeight: 44,
+                        background: 'var(--surface-container)',
+                        color: 'var(--on-surface-variant)',
+                        border: '1px solid var(--ink-08)',
+                        borderRadius: 'var(--radius-full)',
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        transition: 'background var(--dur-fast) var(--ease-spring)',
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.background =
+                          'var(--surface-container-high)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLAnchorElement).style.background =
+                          'var(--surface-container)';
+                      }}
+                    >
+                      View path
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: mascot — hidden on narrow */}
+              <div
+                aria-hidden
+                style={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  // Hide when viewport is narrow (no JS breakpoint hook needed,
+                  // use CSS via inline media — we embed a <style> tag below)
+                }}
+                className="hero-mascot"
+              >
+                <Mascot pose="default" size="md" idle="float" />
+              </div>
+            </NMCard>
+          </section>
+
+          {/* Hide mascot on narrow viewports */}
+          <style>{`
+            @media (max-width: 600px) { .hero-mascot { display: none !important; } }
+            @keyframes nmPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+            @media (prefers-reduced-motion: reduce) {
+              .hero-mascot * { animation: none !important; }
+              * { transition-duration: 0.01ms !important; }
+            }
+          `}</style>
+
+          {/* C) Three supporting cards */}
+          <section
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+              gap: 'var(--space-5)',
+              alignItems: 'start',
+            }}
+          >
+            {/* 1. Today's Goal */}
+            <NMCard style={{ padding: 'clamp(16px, 2.5vw, 24px)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <SectionHeading title="Today's Goal" icon="flag" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {[
+                  { label: 'Complete 2 lessons', icon: 'menu_book' },
+                  { label: 'Do 20 flashcards', icon: 'style' },
+                  { label: 'Score 80%+ on a quiz', icon: 'quiz' },
+                ].map(({ label, icon }) => (
+                  <div
+                    key={label}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-3)',
+                      minHeight: 44,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        border: '2px solid var(--ink-12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        background: 'transparent',
+                      }}
+                      aria-hidden
+                    />
+                    <span
+                      className="material-symbols-outlined"
+                      aria-hidden
+                      style={{ fontSize: 18, color: 'var(--on-surface-variant)', flexShrink: 0 }}
+                    >
+                      {icon}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 'var(--fs-sm)',
+                        color: 'var(--on-surface)',
+                        fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {derived && (
+                <Link
+                  href={pathCtaHref}
                   style={{
-                    fontFamily: 'var(--font-brand)',
-                    fontSize: 'var(--fs-2xl)',
-                    fontWeight: 400,
-                    color: 'var(--on-surface)',
-                    margin: '0 0 4px',
-                    lineHeight: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    minHeight: 44,
+                    marginTop: 'var(--space-2)',
+                    background: 'var(--surface-container)',
+                    color: 'var(--on-surface-variant)',
+                    border: '1px solid var(--ink-08)',
+                    borderRadius: 'var(--radius-full)',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 'var(--fs-xs)',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    alignSelf: 'flex-start',
+                    transition: 'background var(--dur-fast) var(--ease-spring)',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background = 'var(--surface-container-high)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.background = 'var(--surface-container)';
                   }}
                 >
-                  {value}
-                </h3>
+                  <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 14 }}>
+                    arrow_forward
+                  </span>
+                  Start studying
+                </Link>
+              )}
+            </NMCard>
+
+            {/* 2. Exam Countdown */}
+            <NMCard
+              accent="boss"
+              style={{ padding: 'clamp(16px, 2.5vw, 24px)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+            >
+              <SectionHeading
+                title="Exam Countdown"
+                icon="event"
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setShowExamForm(true)}
+                    aria-label="Add exam"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 10px',
+                      minHeight: 32,
+                      background: 'var(--surface-container)',
+                      border: '1px solid var(--ink-08)',
+                      borderRadius: 'var(--radius-full)',
+                      color: 'var(--on-surface-variant)',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'background var(--dur-fast) var(--ease-spring)',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        'var(--surface-container-high)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        'var(--surface-container)';
+                    }}
+                  >
+                    <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 14 }}>
+                      add
+                    </span>
+                    Add
+                  </button>
+                }
+              />
+
+              {nextExam && nextExamDays !== null ? (
+                <>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-3)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        background: examUrgency(nextExamDays).bg,
+                        color: examUrgency(nextExamDays).fg,
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--fs-xl)',
+                        fontWeight: 700,
+                        letterSpacing: '-0.02em',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {nextExamDays <= 0 ? 'Today!' : `${nextExamDays}d`}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <p
+                        style={{
+                          fontSize: 'var(--fs-sm)',
+                          fontWeight: 700,
+                          color: 'var(--on-surface)',
+                          margin: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {nextExam.title}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 'var(--fs-xs)',
+                          color: 'var(--on-surface-variant)',
+                          margin: '2px 0 0',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {nextExam.notebookName}
+                      </p>
+                    </div>
+                  </div>
+
+                  {sortedExams.length > 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {sortedExams.slice(1, 3).map((exam) => {
+                        const days = Math.ceil(
+                          (new Date(exam.examDate).getTime() - Date.now()) / 86400000,
+                        );
+                        return (
+                          <div
+                            key={exam.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 'var(--space-2)',
+                              padding: '6px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: examUrgency(days).fg,
+                                flexShrink: 0,
+                              }}
+                              aria-hidden
+                            />
+                            <span
+                              style={{
+                                fontSize: 'var(--fs-xs)',
+                                color: 'var(--on-surface)',
+                                flex: 1,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {exam.title}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 'var(--fs-xs)',
+                                fontWeight: 700,
+                                color: 'var(--on-surface-variant)',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {days <= 0 ? 'today' : `${days}d`}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteExam(exam.id)}
+                              aria-label={`Delete ${exam.title}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 24,
+                                height: 24,
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                                color: 'var(--outline)',
+                                opacity: 0.5,
+                                transition: 'opacity var(--dur-fast) var(--ease-spring)',
+                                flexShrink: 0,
+                                padding: 0,
+                              }}
+                              onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                              }}
+                              onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.opacity = '0.5';
+                              }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                                close
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExam(nextExam.id)}
+                    aria-label={`Delete ${nextExam.title}`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: 0,
+                      minHeight: 'auto',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--on-surface-variant)',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 'var(--fs-xs)',
+                      opacity: 0.6,
+                      transition: 'opacity var(--dur-fast) var(--ease-spring)',
+                      alignSelf: 'flex-start',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.opacity = '0.6';
+                    }}
+                  >
+                    <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 14 }}>
+                      close
+                    </span>
+                    Remove next exam
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  <p
+                    style={{
+                      fontSize: 'var(--fs-sm)',
+                      color: 'var(--on-surface-variant)',
+                      margin: 0,
+                    }}
+                  >
+                    No exam scheduled.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowExamForm(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 14px',
+                      minHeight: 44,
+                      background: 'var(--surface-container)',
+                      border: '1px solid var(--ink-08)',
+                      borderRadius: 'var(--radius-full)',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      color: 'var(--on-surface)',
+                      alignSelf: 'flex-start',
+                      transition: 'background var(--dur-fast) var(--ease-spring)',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        'var(--surface-container-high)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background =
+                        'var(--surface-container)';
+                    }}
+                  >
+                    <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 14 }}>
+                      add
+                    </span>
+                    Add exam
+                  </button>
+                </div>
+              )}
+            </NMCard>
+
+            {/* 3. Weak Topics */}
+            <NMCard
+              accent="review"
+              style={{ padding: 'clamp(16px, 2.5vw, 24px)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}
+            >
+              <SectionHeading title="Weak Topics" icon="priority_high" />
+              {/* Weak topics surface only after real quiz/mistake data exists —
+                  there is no weak-topic API on the dashboard yet, so we show the
+                  honest empty state rather than placeholder chips. When the data
+                  is wired up, render WeakTopicChip rows from it here. The
+                  Progress page already derives real weak topics from path data. */}
+              <p
+                style={{
+                  fontSize: 'var(--fs-sm)',
+                  color: 'var(--on-surface-variant)',
+                  margin: 0,
+                  lineHeight: 1.6,
+                }}
+              >
+                Weak topics appear here after your first quiz. Until then, follow
+                your path and Notemage will flag what needs review.
+              </p>
+            </NMCard>
+          </section>
+
+          {/* D) Upload card — always visible */}
+          <section>
+            <NMCard
+              style={{
+                padding: 'clamp(16px, 2.5vw, 24px)',
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 'var(--space-5)',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span
+                    className="material-symbols-outlined"
+                    aria-hidden
+                    style={{ fontSize: 22, color: 'var(--on-surface-variant)' }}
+                  >
+                    upload_file
+                  </span>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 'var(--fs-base)',
+                      fontWeight: 700,
+                      color: 'var(--on-surface)',
+                      margin: 0,
+                    }}
+                  >
+                    Upload new material
+                  </h3>
+                </div>
                 <p
                   style={{
-                    fontSize: 'var(--fs-base)',
-                    fontWeight: 500,
+                    fontSize: 'var(--fs-sm)',
                     color: 'var(--on-surface-variant)',
                     margin: 0,
                   }}
                 >
-                  {label}
+                  PDF, PowerPoint, images, or text
                 </p>
-
-                {/* Todo mini-list (only on Todos card) */}
-                {isTodo && (
-                  <div
-                    style={{
-                      marginTop: '16px',
-                      borderTop: '1px solid rgba(174,137,255,0.16)',
-                      paddingTop: '12px',
-                    }}
-                  >
-                    {/* Todo items */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px',
-                        maxHeight: '140px',
-                        overflowY: 'auto',
-                        scrollbarWidth: 'none',
-                      }}
-                    >
-                      {pendingTodos.length === 0 && (
-                        <p
-                          style={{
-                            fontSize: '12px',
-                            color: 'var(--outline-variant)',
-                            margin: 0,
-                            textAlign: 'center',
-                            padding: '8px 0',
-                          }}
-                        >
-                          No pending todos
-                        </p>
-                      )}
-                      {pendingTodos.slice(0, 4).map((todo) => (
-                        <div
-                          key={todo.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '4px 0',
-                            position: 'relative',
-                          }}
-                          className="todo-row"
-                        >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleTodo(todo.id, todo.completed);
-                            }}
-                            style={{
-                              width: '18px',
-                              height: '18px',
-                              borderRadius: '6px',
-                              border: '2px solid #555578',
-                              background: 'transparent',
-                              cursor: 'pointer',
-                              padding: 0,
-                              flexShrink: 0,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'border-color 0.2s cubic-bezier(0.22,1,0.36,1)',
-                            }}
-                            onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.borderColor = '#ae89ff';
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.borderColor = '#555578';
-                            }}
-                          >
-                            &nbsp;
-                          </button>
-                          <span
-                            style={{
-                              fontSize: '13px',
-                              color: 'var(--on-surface-variant)',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              flex: 1,
-                              minWidth: 0,
-                            }}
-                          >
-                            {todo.text}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTodo(todo.id);
-                            }}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: 0,
-                              opacity: 0.4,
-                              transition: 'opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              flexShrink: 0,
-                            }}
-                            onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.opacity = '0.4';
-                            }}
-                          >
-                            <span
-                              className="material-symbols-outlined"
-                              style={{ fontSize: '16px', color: '#fd6f85' }}
-                            >
-                              close
-                            </span>
-                          </button>
-                        </div>
-                      ))}
-                      {pendingTodos.length > 4 && (
-                        <p
-                          style={{
-                            fontSize: '11px',
-                            color: 'var(--outline-variant)',
-                            margin: '2px 0 0',
-                          }}
-                        >
-                          +{pendingTodos.length - 4} more
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Add todo input */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginTop: '10px',
-                      }}
-                    >
-                      <input
-                        type="text"
-                        value={todoInput}
-                        onChange={(e) => setTodoInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddTodo();
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="Add a todo..."
-                        maxLength={200}
-                        style={{
-                          flex: 1,
-                          background: 'var(--surface-container)',
-                          border: '1px solid rgba(174,137,255,0.1)',
-                          borderRadius: '10px',
-                          padding: '8px 12px',
-                          fontSize: '12px',
-                          color: 'var(--on-surface)',
-                          outline: 'none',
-                          minWidth: 0,
-                        }}
-                        onFocus={(e) => {
-                          (e.currentTarget as HTMLInputElement).style.borderColor =
-                            'rgba(174,137,255,0.3)';
-                        }}
-                        onBlur={(e) => {
-                          (e.currentTarget as HTMLInputElement).style.borderColor =
-                            'rgba(174,137,255,0.1)';
-                        }}
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddTodo();
-                        }}
-                        disabled={todoLoading || !todoInput.trim()}
-                        style={{
-                          background: 'rgba(174,137,255,0.15)',
-                          border: 'none',
-                          borderRadius: '10px',
-                          width: '36px',
-                          height: '36px',
-                          cursor: todoLoading || !todoInput.trim() ? 'default' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          opacity: todoLoading || !todoInput.trim() ? 0.4 : 1,
-                          transition: 'opacity 0.2s cubic-bezier(0.22,1,0.36,1)',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ fontSize: '18px', color: 'var(--md-h4)' }}
-                        >
-                          add
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Friends mini-list (only on Friends card) */}
-                {isFriends && (
-                  <div
-                    style={{
-                      marginTop: '16px',
-                      borderTop: '1px solid rgba(185,195,255,0.16)',
-                      paddingTop: '12px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px',
-                        maxHeight: '160px',
-                        overflowY: 'auto',
-                        scrollbarWidth: 'none',
-                      }}
-                    >
-                      {friends !== null && sortedFriends.length === 0 && (
-                        <p
-                          style={{
-                            fontSize: '12px',
-                            color: 'var(--outline-variant)',
-                            margin: 0,
-                            textAlign: 'center',
-                            padding: '8px 0',
-                          }}
-                        >
-                          No friends yet — add some on your profile
-                        </p>
-                      )}
-                      {sortedFriends.slice(0, 4).map((friend) => {
-                        const isOnline = onlineFriendIds.has(friend.id);
-                        const displayName = friend.name || friend.username || 'Friend';
-                        const initials = displayName
-                          .split(' ')
-                          .map((p) => p[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase();
-                        const lastSeenMs = friend.lastSeenAt
-                          ? new Date(friend.lastSeenAt).getTime()
-                          : 0;
-                        const diffMin = lastSeenMs
-                          ? Math.floor((Date.now() - lastSeenMs) / 60000)
-                          : -1;
-                        // Threshold: anything older than 7 days (or null) reads
-                        // "Offline" — until study-heartbeat had a chance to bump
-                        // lastSeenAt across the user base, the historical data
-                        // is stale (only set by cowork sessions before today).
-                        const status = isOnline
-                          ? 'Studying now'
-                          : diffMin < 0
-                            ? 'Offline'
-                            : diffMin < 1
-                              ? 'Just now'
-                              : diffMin < 60
-                                ? `Last seen ${diffMin}m ago`
-                                : diffMin < 1440
-                                  ? `Last seen ${Math.floor(diffMin / 60)}h ago`
-                                  : diffMin < 10_080
-                                    ? `Last seen ${Math.floor(diffMin / 1440)}d ago`
-                                    : 'Offline';
-                        return (
-                          <Link
-                            key={friend.id}
-                            href={friend.username ? `/profile/${friend.username}` : '/profile'}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              padding: '6px 4px',
-                              borderRadius: '8px',
-                              textDecoration: 'none',
-                              color: 'inherit',
-                              transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                            }}
-                            onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLAnchorElement).style.background =
-                                'rgba(255,255,255,0.04)';
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLAnchorElement).style.background =
-                                'transparent';
-                            }}
-                          >
-                            <div
-                              style={{
-                                position: 'relative',
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '50%',
-                                background: friend.avatarUrl
-                                  ? `url(${friend.avatarUrl}) center/cover`
-                                  : 'rgba(185,195,255,0.18)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: 'var(--accent-strong)',
-                                flexShrink: 0,
-                              }}
-                              aria-hidden
-                            >
-                              {!friend.avatarUrl && initials}
-                              {isOnline && (
-                                <span
-                                  style={{
-                                    position: 'absolute',
-                                    right: '-1px',
-                                    bottom: '-1px',
-                                    width: '9px',
-                                    height: '9px',
-                                    borderRadius: '50%',
-                                    background: '#4ade80',
-                                    border: '2px solid var(--surface-container-low)',
-                                  }}
-                                />
-                              )}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p
-                                style={{
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  color: 'var(--on-surface)',
-                                  margin: 0,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {displayName}
-                              </p>
-                              <p
-                                style={{
-                                  fontSize: '10px',
-                                  color: isOnline ? '#4ade80' : 'var(--outline)',
-                                  margin: 0,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {status}
-                              </p>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
-            );
 
-            const wrapper = (child: React.ReactNode) => (
               <div
-                key={label}
-                style={
-                  isPhone ? { flex: '0 0 85%', scrollSnapAlign: 'center', minWidth: 0 } : undefined
-                }
-              >
-                {child}
-              </div>
-            );
-
-            return wrapper(cardContent);
-          }
-        )}
-      </section>
-
-      {/* Carousel dot indicators (phone only) */}
-      {isPhone && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '-20px' }}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: i === activeCard ? '24px' : '8px',
-                height: '8px',
-                borderRadius: '4px',
-                background: i === activeCard ? '#ae89ff' : 'rgba(174,137,255,0.2)',
-                transition:
-                  'width 0.3s cubic-bezier(0.22,1,0.36,1), background 0.3s cubic-bezier(0.22,1,0.36,1)',
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Activity Heatmap */}
-      <section>
-        <ActivityHeatmap />
-      </section>
-
-      {/* Achievements */}
-      <section>
-        <DashboardAchievements />
-      </section>
-
-      {/* Upcoming Exams — compact card */}
-      <section
-        style={{
-          background: 'var(--surface-container-low)',
-          borderRadius: '20px',
-          padding: responsiveValue(bp, { phone: '14px', tablet: '14px', desktop: '16px' }),
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: exams.length === 0 ? '4px' : '10px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '20px', color: 'var(--md-h4)' }}
-            >
-              event
-            </span>
-            <h2
-              style={{
-                fontSize: '15px',
-                fontWeight: 700,
-                color: 'var(--on-surface)',
-                margin: 0,
-              }}
-            >
-              Upcoming Exams
-            </h2>
-            {exams.length > 0 && (
-              <span
                 style={{
-                  padding: '1px 8px',
-                  background: 'rgba(174,137,255,0.12)',
-                  borderRadius: '999px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--md-h4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                  flexWrap: 'wrap',
                 }}
               >
-                {exams.length}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setShowExamForm(true)}
-            aria-label="Add exam"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '6px 12px',
-              background: 'rgba(174,137,255,0.12)',
-              border: '1px solid rgba(174,137,255,0.2)',
-              borderRadius: '8px',
-              color: 'var(--md-h4)',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition:
-                'background 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.2)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(174,137,255,0.12)';
-              (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-              add
-            </span>
-            Add
-          </button>
-        </div>
-
-        {exams.length === 0 ? (
-          <p style={{ fontSize: '13px', margin: 0, color: 'var(--on-surface-variant)' }}>
-            No exams yet — add one to start planning.
-          </p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {[...exams]
-              .sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime())
-              .slice(0, 3)
-              .map((exam) => {
-                const daysUntil = Math.ceil(
-                  (new Date(exam.examDate).getTime() - Date.now()) / 86400000
-                );
-                const urgency =
-                  daysUntil < 7
-                    ? { bg: 'rgba(253,111,133,0.15)', fg: '#fd6f85' }
-                    : daysUntil < 14
-                      ? { bg: 'rgba(240,208,76,0.15)', fg: '#f0d04c' }
-                      : { bg: 'rgba(185,195,255,0.12)', fg: '#b9c3ff' };
-                return (
-                  <div
-                    key={exam.id}
+                <p
+                  style={{
+                    fontSize: 'var(--fs-xs)',
+                    color: 'var(--on-surface-variant)',
+                    margin: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Try an example:
+                </p>
+                {['Biology PDF', 'History Notes', 'Java OOP'].map((label) => (
+                  <Link
+                    key={label}
+                    href="/study-packs/new"
                     style={{
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '12px',
-                      padding: '8px 10px',
-                      borderRadius: '12px',
-                      background: 'rgba(255,255,255,0.02)',
-                      transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
+                      padding: '6px 12px',
+                      minHeight: 44,
+                      background: 'var(--surface-container)',
+                      color: 'var(--on-surface-variant)',
+                      border: '1px solid var(--ink-08)',
+                      borderRadius: 'var(--radius-full)',
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      whiteSpace: 'nowrap',
+                      transition: 'background var(--dur-fast) var(--ease-spring)',
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background =
-                        'rgba(255,255,255,0.04)';
+                      (e.currentTarget as HTMLAnchorElement).style.background =
+                        'var(--surface-container-high)';
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background =
-                        'rgba(255,255,255,0.02)';
+                      (e.currentTarget as HTMLAnchorElement).style.background =
+                        'var(--surface-container)';
                     }}
                   >
-                    <div
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        background: urgency.fg,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Link
-                      href={`/notebooks/${exam.notebookId}`}
-                      style={{
-                        display: 'block',
-                        flex: 1,
-                        minWidth: 0,
-                        textDecoration: 'none',
-                        color: 'var(--on-surface)',
-                        borderRadius: '6px',
-                        transition: 'color 0.2s cubic-bezier(0.22,1,0.36,1)',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLAnchorElement).style.color = '#ae89ff';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLAnchorElement).style.color = 'var(--on-surface)';
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: 'inherit',
-                          margin: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {exam.title}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: '11px',
-                          color: 'var(--outline)',
-                          margin: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {exam.notebookName}
-                      </p>
-                    </Link>
-                    <span
-                      style={{
-                        padding: '3px 10px',
-                        background: urgency.bg,
-                        color: urgency.fg,
-                        borderRadius: '999px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {daysUntil <= 0 ? 'today' : `${daysUntil}d`}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteExam(exam.id)}
-                      aria-label="Delete exam"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '24px',
-                        height: '24px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: 'var(--outline)',
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                        opacity: 0.5,
-                        transition:
-                          'opacity 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
-                        flexShrink: 0,
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-                        (e.currentTarget as HTMLButtonElement).style.color = '#fd6f85';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.opacity = '0.5';
-                        (e.currentTarget as HTMLButtonElement).style.color = 'var(--outline)';
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                        close
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
-            {exams.length > 3 && (
-              <p
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--outline)',
-                  margin: '4px 4px 0',
-                }}
-              >
-                +{exams.length - 3} more upcoming
-              </p>
-            )}
-          </div>
-        )}
-      </section>
+                    {label}
+                  </Link>
+                ))}
+
+                <Button
+                  variant="primary"
+                  size="md"
+                  shape="pill"
+                  leadingIcon="upload_file"
+                  onClick={() => router.push('/study-packs/new')}
+                >
+                  Upload
+                </Button>
+              </div>
+            </NMCard>
+          </section>
+        </>
+      )}
 
       {/* Exam Form Modal */}
       {showExamForm && (
@@ -1262,489 +1117,6 @@ export default function DashboardPage() {
           onSubmit={handleCreateExam}
           onClose={() => setShowExamForm(false)}
         />
-      )}
-
-      {/* Learn Path hero */}
-      <PathHeroCard />
-
-      {/* Bento grid */}
-      <section>
-        <div className="bento-3-1">
-          {/* Recent Activity */}
-          <div
-            style={{
-              background: 'var(--surface-container)',
-              borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
-              padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                marginBottom: responsiveValue(bp, {
-                  phone: '18px',
-                  tablet: '20px',
-                  desktop: '32px',
-                }),
-              }}
-            >
-              <div>
-                <h2
-                  style={{
-                    fontSize: responsiveValue(bp, {
-                      phone: '18px',
-                      tablet: '17px',
-                      desktop: '18px',
-                    }),
-                    fontWeight: 700,
-                    color: 'var(--on-surface)',
-                    margin: '0 0 4px',
-                  }}
-                >
-                  Recent Activity
-                </h2>
-                <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
-                  Pick up where you left off
-                </p>
-              </div>
-              <Link
-                href="/notebooks"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--md-h4)',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  textDecoration: 'none',
-                }}
-              >
-                View all
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                  chevron_right
-                </span>
-              </Link>
-            </div>
-
-            {recentActivity.length === 0 ? (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '32px 0',
-                  color: 'var(--on-surface-variant)',
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '48px', display: 'block', marginBottom: '12px', opacity: 0.4 }}
-                >
-                  history
-                </span>
-                <p style={{ fontSize: '14px', margin: 0 }}>
-                  {dashboard === null
-                    ? 'Loading…'
-                    : 'No notebooks yet — create one to get started.'}
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {recentActivity.map((item) => {
-                  const style = getActivityStyle(item.subject);
-                  return (
-                    <Link
-                      key={item.id}
-                      href={`/notebooks/${item.id}`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '16px',
-                          borderRadius: '16px',
-                          background: 'var(--surface-container-low)',
-                          transition: 'background 0.2s cubic-bezier(0.22,1,0.36,1)',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background =
-                            'var(--card-hover-bg-strong)';
-                          const btn = (
-                            e.currentTarget as HTMLDivElement
-                          ).querySelector<HTMLButtonElement>('.activity-btn');
-                          if (btn) {
-                            btn.style.background = '#ae89ff';
-                            btn.style.color = '#2a0066';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.background =
-                            'var(--surface-container-low)';
-                          const btn = (
-                            e.currentTarget as HTMLDivElement
-                          ).querySelector<HTMLButtonElement>('.activity-btn');
-                          if (btn) {
-                            btn.style.background = 'var(--card-hover-bg-strong)';
-                            btn.style.color = '#ae89ff';
-                          }
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '16px',
-                            minWidth: 0,
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: '48px',
-                              height: '48px',
-                              borderRadius: '14px',
-                              background: style.iconBg,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                              color: style.iconColor,
-                            }}
-                          >
-                            <span
-                              className="material-symbols-outlined"
-                              style={{ fontSize: '22px' }}
-                            >
-                              {style.icon}
-                            </span>
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <h4
-                              style={{
-                                fontSize: '14px',
-                                fontWeight: 700,
-                                color: 'var(--on-surface)',
-                                margin: '0 0 2px',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {item.name}
-                            </h4>
-                            <p
-                              style={{
-                                fontSize: '12px',
-                                color: 'var(--on-surface-variant)',
-                                margin: 0,
-                              }}
-                            >
-                              {timeAgo(item.updatedAt)} · {item.pageCount}{' '}
-                              {item.pageCount === 1 ? 'page' : 'pages'}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          className="activity-btn"
-                          style={{
-                            padding: '8px 16px',
-                            background: 'var(--surface-container-highest)',
-                            borderRadius: '12px',
-                            border: 'none',
-                            color: 'var(--md-h4)',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            flexShrink: 0,
-                            marginLeft: '16px',
-                            transition:
-                              'background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
-                          }}
-                        >
-                          Open
-                        </button>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Study Goals */}
-          <div
-            style={{
-              background: '#8348f6',
-              borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
-              padding: responsiveValue(bp, { phone: '18px', tablet: '20px', desktop: '32px' }),
-              color: '#ffffff',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ marginBottom: 'auto' }}>
-              <span
-                style={{
-                  display: 'inline-block',
-                  padding: '4px 12px',
-                  background: 'rgba(255,255,255,0.2)',
-                  borderRadius: '9999px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  marginBottom: '16px',
-                }}
-              >
-                {hasStudyGoals ? 'Your Goals' : 'No Goals Set'}
-              </span>
-              <h2
-                style={{
-                  fontFamily: 'var(--font-brand)',
-                  fontSize: responsiveValue(bp, { phone: '24px', tablet: '26px', desktop: '30px' }),
-                  fontWeight: 400,
-                  margin: '0 0 16px',
-                  lineHeight: 1.1,
-                }}
-              >
-                {!hasStudyGoals
-                  ? 'Set Your First Goal'
-                  : goalRows.every((g) => g.current >= g.target)
-                    ? 'All Goals Complete!'
-                    : 'Keep Going'}
-              </h2>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: 'rgba(255,255,255,0.8)',
-                  lineHeight: '1.7',
-                  margin: '0 0 32px',
-                }}
-              >
-                {dashboard === null
-                  ? 'Loading your progress…'
-                  : hasStudyGoals
-                    ? 'Track your daily and weekly targets below.'
-                    : 'Head to Settings to pick the targets that matter to you.'}
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {hasStudyGoals && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {goalRows.map((row) => {
-                    const pct = Math.min(100, Math.round((row.current / row.target) * 100));
-                    return (
-                      <div
-                        key={row.key}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                      >
-                        <span
-                          className="material-symbols-outlined"
-                          style={{
-                            fontSize: '20px',
-                            color: pct >= 100 ? '#ffde59' : 'rgba(255,255,255,0.7)',
-                            flexShrink: 0,
-                            fontVariationSettings: pct >= 100 ? "'FILL' 1" : "'FILL' 0",
-                          }}
-                        >
-                          {pct >= 100 ? 'check_circle' : row.icon}
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              marginBottom: '4px',
-                            }}
-                          >
-                            <span style={{ color: 'rgba(255,255,255,0.9)' }}>
-                              {row.label} ({row.cadence})
-                            </span>
-                            <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                              {row.current}/{row.target} {row.unit}
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              height: '8px',
-                              background: 'rgba(255,255,255,0.1)',
-                              borderRadius: '9999px',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <div
-                              style={{
-                                height: '100%',
-                                width: '100%',
-                                transform: `scaleX(${pct / 100})`,
-                                transformOrigin: 'left',
-                                background: '#ffde59',
-                                borderRadius: '9999px',
-                                boxShadow: pct > 0 ? '0 0 10px rgba(255,222,89,0.4)' : 'none',
-                                transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {!hasStudyGoals && dashboard !== null && (
-                <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    <span>Pages today</span>
-                    <span>{goalProgress}%</span>
-                  </div>
-                  <div
-                    style={{
-                      height: '12px',
-                      width: '100%',
-                      background: 'rgba(255,255,255,0.1)',
-                      borderRadius: '9999px',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: '100%',
-                        transform: `scaleX(${goalProgress / 100})`,
-                        transformOrigin: 'left',
-                        background: '#ffde59',
-                        borderRadius: '9999px',
-                        boxShadow: goalProgress > 0 ? '0 0 15px rgba(255,222,89,0.5)' : 'none',
-                        transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)',
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <Link
-                href={hasStudyGoals ? '/notebooks' : '/settings'}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '16px',
-                  background: '#ffffff',
-                  color: '#8348f6',
-                  borderRadius: '16px',
-                  border: 'none',
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  textAlign: 'center',
-                  textDecoration: 'none',
-                  boxSizing: 'border-box',
-                  transition:
-                    'background 0.2s cubic-bezier(0.22,1,0.36,1), color 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.background = '#ffde59';
-                  (e.currentTarget as HTMLAnchorElement).style.color = '#5f4f00';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.background = '#ffffff';
-                  (e.currentTarget as HTMLAnchorElement).style.color = '#8348f6';
-                }}
-              >
-                {hasStudyGoals
-                  ? goalRows.every((g) => g.current >= g.target)
-                    ? 'Keep Going'
-                    : 'Start Studying'
-                  : 'Set Goals'}
-              </Link>
-              <p
-                style={{
-                  fontSize: '11px',
-                  color: 'rgba(255,255,255,0.5)',
-                  margin: 0,
-                  textAlign: 'center',
-                }}
-              >
-                Change targets in{' '}
-                <Link
-                  href="/settings"
-                  style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}
-                >
-                  Settings
-                </Link>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Empty state / CTA — only show if no notebooks */}
-      {dashboard !== null && notebookCount === 0 && (
-        <section
-          style={{
-            border: '2px dashed var(--ink-12)',
-            borderRadius: responsiveValue(bp, { phone: '22px', tablet: '24px', desktop: '32px' }),
-            padding: responsiveValue(bp, { phone: '12px', tablet: '16px', desktop: '24px' }),
-          }}
-        >
-          <EmptyState
-            mascot="holding-pen"
-            title="Feeling Inspired?"
-            description="No notebooks yet. Create your first one to get started on your notemage journey."
-            action={
-              <Link
-                ref={tutorialCtaRef}
-                href={ctaHref}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '12px 32px',
-                  background: 'var(--accent-strong)',
-                  color: 'var(--on-primary-container)',
-                  borderRadius: 'var(--radius-md)',
-                  fontWeight: 700,
-                  fontSize: 'var(--fs-base)',
-                  textDecoration: 'none',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                  add
-                </span>
-                Create Notebook
-              </Link>
-            }
-          />
-        </section>
       )}
     </div>
   );

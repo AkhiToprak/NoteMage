@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { haptics } from '@/lib/haptics';
 
 /**
@@ -103,31 +104,44 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   haptic?: false | 'tap' | 'select' | 'success' | 'error';
   /** Tutorial-system target hook (passed through to the DOM button). */
   'data-tutorial'?: string;
+  /**
+   * When set, the button renders as a navigable anchor (Next `Link`) instead of
+   * a `<button>` — so callers never need to wrap it in `<Link>` (which would
+   * produce invalid `<a><button>` nesting). Disabled + href renders a disabled
+   * `<button>` (non-navigable, correctly greyed).
+   */
+  href?: string;
+  target?: string;
+  rel?: string;
 }
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  {
-    variant = 'secondary',
-    size = 'md',
-    shape = 'rounded',
-    leadingIcon,
-    trailingIcon,
-    loading = false,
-    fullWidth = false,
-    haptic = 'tap',
-    disabled,
-    children,
-    style,
-    type = 'button',
-    onMouseEnter,
-    onMouseLeave,
-    onMouseDown,
-    onMouseUp,
-    onPointerDown,
-    ...rest
-  },
-  ref
-) {
+export const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
+  function Button(
+    {
+      variant = 'secondary',
+      size = 'md',
+      shape = 'rounded',
+      leadingIcon,
+      trailingIcon,
+      loading = false,
+      fullWidth = false,
+      haptic = 'tap',
+      disabled,
+      children,
+      style,
+      type = 'button',
+      href,
+      target,
+      rel,
+      onMouseEnter,
+      onMouseLeave,
+      onMouseDown,
+      onMouseUp,
+      onPointerDown,
+      ...rest
+    },
+    ref
+  ) {
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
   const sz = SIZES[size];
@@ -135,65 +149,62 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
   const isDisabled = disabled || loading;
   const lifted = !isDisabled && hover && !pressed;
 
-  return (
-    <button
-      ref={ref}
-      type={type}
-      disabled={isDisabled}
-      aria-busy={loading || undefined}
-      onMouseEnter={(e) => {
-        setHover(true);
-        onMouseEnter?.(e);
-      }}
-      onMouseLeave={(e) => {
-        setHover(false);
-        setPressed(false);
-        onMouseLeave?.(e);
-      }}
-      onMouseDown={(e) => {
-        setPressed(true);
-        onMouseDown?.(e);
-      }}
-      onMouseUp={(e) => {
-        setPressed(false);
-        onMouseUp?.(e);
-      }}
-      onPointerDown={(e) => {
-        // Fire on pointerdown (not click) so the buzz lands the instant the
-        // finger touches — the helper coalesces any synthesized mouse event.
-        if (!isDisabled && haptic) {
-          if (haptic === 'select') haptics.select();
-          else if (haptic === 'success') haptics.success();
-          else if (haptic === 'error') haptics.error();
-          else haptics.tap();
-        }
-        onPointerDown?.(e);
-      }}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: sz.gap,
-        padding: sz.padding,
-        minHeight: sz.minHeight,
-        width: fullWidth ? '100%' : undefined,
-        borderRadius: shape === 'pill' ? '999px' : 'var(--radius-md)',
-        fontFamily: 'var(--font-sans)',
-        fontSize: sz.fontSize,
-        fontWeight: 600,
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
-        cursor: isDisabled ? 'not-allowed' : 'pointer',
-        opacity: isDisabled ? 0.55 : 1,
-        transform: lifted ? 'translateY(-1px)' : 'translateY(0)',
-        transition:
-          'transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring)',
-        ...vs.rest,
-        ...(hover && !isDisabled ? vs.hover : null),
-        ...style,
-      }}
-      {...rest}
-    >
+  const sharedStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: sz.gap,
+    padding: sz.padding,
+    minHeight: sz.minHeight,
+    width: fullWidth ? '100%' : undefined,
+    borderRadius: shape === 'pill' ? '999px' : 'var(--radius-md)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: sz.fontSize,
+    fontWeight: 600,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+    textDecoration: 'none',
+    cursor: isDisabled ? 'not-allowed' : 'pointer',
+    opacity: isDisabled ? 0.55 : 1,
+    transform: lifted ? 'translateY(-1px)' : 'translateY(0)',
+    transition:
+      'transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring)',
+    ...vs.rest,
+    ...(hover && !isDisabled ? vs.hover : null),
+    ...style,
+  };
+
+  const handleEnter = (e: React.MouseEvent) => {
+    setHover(true);
+    (onMouseEnter as ((ev: React.MouseEvent) => void) | undefined)?.(e);
+  };
+  const handleLeave = (e: React.MouseEvent) => {
+    setHover(false);
+    setPressed(false);
+    (onMouseLeave as ((ev: React.MouseEvent) => void) | undefined)?.(e);
+  };
+  const handleDown = (e: React.MouseEvent) => {
+    setPressed(true);
+    (onMouseDown as ((ev: React.MouseEvent) => void) | undefined)?.(e);
+  };
+  const handleUp = (e: React.MouseEvent) => {
+    setPressed(false);
+    (onMouseUp as ((ev: React.MouseEvent) => void) | undefined)?.(e);
+  };
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Fire on pointerdown (not click) so the buzz lands the instant the
+    // finger touches — the helper coalesces any synthesized mouse event.
+    if (!isDisabled && haptic) {
+      if (haptic === 'select') haptics.select();
+      else if (haptic === 'success') haptics.success();
+      else if (haptic === 'error') haptics.error();
+      else haptics.tap();
+    }
+    (onPointerDown as ((ev: React.PointerEvent) => void) | undefined)?.(e);
+  };
+
+  const inner = (
+    <>
       {loading ? (
         <span
           className="material-symbols-outlined nm-spin"
@@ -213,6 +224,47 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
           {trailingIcon}
         </span>
       ) : null}
+    </>
+  );
+
+  // Navigable anchor when an href is supplied (and not disabled) — avoids the
+  // invalid <a><button> nesting that wrapping a <button> in <Link> would create.
+  if (href != null && !isDisabled) {
+    return (
+      <Link
+        ref={ref as React.ComponentProps<typeof Link>['ref']}
+        href={href}
+        target={target}
+        rel={rel ?? (target === '_blank' ? 'noopener noreferrer' : undefined)}
+        aria-busy={loading || undefined}
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+        onMouseDown={handleDown}
+        onMouseUp={handleUp}
+        onPointerDown={handlePointerDown}
+        style={sharedStyle}
+        {...(rest as React.HTMLAttributes<HTMLAnchorElement>)}
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      ref={ref as React.Ref<HTMLButtonElement>}
+      type={type}
+      disabled={isDisabled}
+      aria-busy={loading || undefined}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      onMouseDown={handleDown}
+      onMouseUp={handleUp}
+      onPointerDown={handlePointerDown}
+      style={sharedStyle}
+      {...rest}
+    >
+      {inner}
     </button>
   );
 });

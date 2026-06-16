@@ -14,6 +14,7 @@ import {
   Permanent_Marker,
   Playfair_Display,
   Plus_Jakarta_Sans,
+  Poppins,
   Press_Start_2P,
   Silkscreen,
   UnifrakturMaguntia,
@@ -52,6 +53,17 @@ const bangers = Bangers({
   preload: false,
   subsets: ['latin'],
   weight: ['400'],
+  display: 'swap',
+});
+
+// Rework surface font — Poppins is loaded for the .nm-rework scope only.
+// preload: false so the face doesn't ship a <link rel=preload> on every page
+// that never renders a .nm-rework surface; the CSS var resolves on demand.
+const poppins = Poppins({
+  variable: '--font-poppins',
+  preload: false,
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
 });
 
@@ -215,6 +227,7 @@ export default function RootLayout({
         epilogue.variable,
         oswald.variable,
         bangers.variable,
+        poppins.variable,
         plusJakartaSans.variable,
         playfair.variable,
         jetbrainsMono.variable,
@@ -230,7 +243,7 @@ export default function RootLayout({
         orbitron.variable,
         silkscreen.variable,
       ].join(' ')}
-      style={{ colorScheme: 'dark' }}
+      style={{ colorScheme: 'dark light' }}
       suppressHydrationWarning
     >
       <head>

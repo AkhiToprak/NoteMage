@@ -19,6 +19,10 @@ const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
 const GROUP_DETAIL_RE = /^\/groups\/[^/]+/;
 /** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
 const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
+/** Matches /study-packs/new — upload wizard is immersive, owns the viewport */
+const STUDY_PACKS_NEW_RE = /^\/study-packs\/new(\/|$)/;
+/** Matches /lesson and any nested lesson route — lesson screen is immersive */
+const LESSON_RE = /^\/lesson(\/|$)/;
 
 export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -47,7 +51,9 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
   const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
   const isLearnChats = LEARN_CHATS_RE.test(pathname);
-  const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats;
+  const isStudyPacksNew = STUDY_PACKS_NEW_RE.test(pathname);
+  const isLesson = LESSON_RE.test(pathname);
+  const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats || isStudyPacksNew || isLesson;
   // /learn owns its own spacing: the tab strip is full-bleed (flush under the
   // header, edge to edge) and every /learn page self-pads (centered maxWidth +
   // its own horizontal padding). Drop the generic <main> padding here — it
@@ -68,7 +74,7 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
                 background: 'var(--background)',
               }}
             >
-              {!isNotebookWorkspace && !isGroupDetail && <HomeHeader />}
+              {!isNotebookWorkspace && !isGroupDetail && !isStudyPacksNew && !isLesson && <HomeHeader />}
               <main
                 style={{
                   flex: 1,

@@ -3,16 +3,13 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { DashboardIcon, NotebookIcon, CoWorkIcon } from '@/components/icons/NavIcons';
 import { haptics } from '@/lib/haptics';
 
 /**
- * Phone-only bottom tab bar. Phones are used primarily for the Learn hub +
- * paths, so the four most-used destinations get thumb-reachable tabs; Settings
- * and Profile stay on the header avatar menu. Rendered as a flex sibling after
- * <main> in the dashboard layout, so it takes its own height and never overlaps
- * the scroll area. Hidden ≥768px via the co-located media query (SSR-safe — no
- * useBreakpoint, so no desktop-flash).
+ * Phone-only bottom tab bar. Five tabs: four icon+label destinations plus a
+ * center circular Upload FAB. Rendered as a flex sibling after <main> in the
+ * dashboard layout so it never overlaps the scroll area. Hidden ≥768px via
+ * the co-located media query (SSR-safe — no useBreakpoint, so no desktop flash).
  */
 type Tab = {
   href: string;
@@ -20,13 +17,16 @@ type Tab = {
   icon: string | ((color: string) => ReactNode);
   /** Active when the path starts with this prefix (defaults to the href). */
   prefix?: string;
+  /** Renders as a prominent center FAB instead of a standard tab. */
+  isPrimary?: boolean;
 };
 
 const TABS: Tab[] = [
-  { href: '/dashboard', label: 'Home', icon: (c) => <DashboardIcon size={22} color={c} /> },
-  { href: '/learn', label: 'Learn', icon: 'school' },
-  { href: '/notebooks', label: 'Notebooks', icon: (c) => <NotebookIcon size={22} color={c} /> },
-  { href: '/groups', label: 'Co-Work', icon: (c) => <CoWorkIcon size={22} color={c} /> },
+  { href: '/dashboard',      label: 'Home',     icon: 'cottage' },
+  { href: '/my-path',        label: 'My Path',  icon: 'route' },
+  { href: '/study-packs/new', label: 'Upload',  icon: 'add', isPrimary: true },
+  { href: '/practice',       label: 'Practice', icon: 'fitness_center' },
+  { href: '/learn/chats',    label: 'Mage',     icon: 'auto_fix_high', prefix: '/learn/chats' },
 ];
 
 const ACTIVE = '#ae89ff';
@@ -36,6 +36,7 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
 
   const isActive = (tab: Tab) => {
+    if (tab.isPrimary) return false; // FAB never shows as active
     const prefix = tab.prefix ?? tab.href;
     return pathname === tab.href || pathname.startsWith(prefix + '/') || pathname.startsWith(prefix);
   };
@@ -49,11 +50,59 @@ export default function MobileBottomNav() {
           padding: 0,
           display: 'grid',
           gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))`,
+          alignItems: 'center',
         }}
       >
         {TABS.map((tab) => {
           const active = isActive(tab);
           const color = active ? ACTIVE : INACTIVE;
+
+          if (tab.isPrimary) {
+            // Center Upload FAB — floats above the bar with a circle button
+            return (
+              <li
+                key={tab.href}
+                style={{
+                  minWidth: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  // Lift above the bar so the circle peeks over the top edge
+                  position: 'relative',
+                  top: -14,
+                }}
+              >
+                <Link
+                  href={tab.href}
+                  aria-label={tab.label}
+                  onClick={() => haptics.select()}
+                  className="mbn-fab"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: 'var(--accent-strong, #884efb)',
+                    color: '#ffffff',
+                    textDecoration: 'none',
+                    boxShadow:
+                      '0 4px 12px rgba(136,78,251,0.45), 0 1px 3px rgba(0,0,0,0.3)',
+                    transition: 'transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.18s cubic-bezier(0.22,1,0.36,1)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 28, fontVariationSettings: '"FILL" 1' }}
+                  >
+                    {tab.icon as string}
+                  </span>
+                </Link>
+              </li>
+            );
+          }
+
           return (
             <li key={tab.href} style={{ minWidth: 0 }}>
               <Link
@@ -116,6 +165,8 @@ export default function MobileBottomNav() {
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           padding-bottom: env(safe-area-inset-bottom, 0px);
+          /* Extra top room so the FAB circle doesn't get clipped */
+          overflow: visible;
         }
         @media (max-width: 767px) {
           .mobile-bottom-nav { display: block; }
@@ -125,6 +176,15 @@ export default function MobileBottomNav() {
           outline: 2px solid var(--color-focus);
           outline-offset: -2px;
           border-radius: 8px;
+        }
+        .mbn-fab:active { transform: scale(0.91); }
+        .mbn-fab:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 3px;
+        }
+        .mbn-fab:hover {
+          box-shadow: 0 6px 16px rgba(136,78,251,0.55), 0 2px 4px rgba(0,0,0,0.3);
+          transform: translateY(-1px);
         }
       `}</style>
     </nav>
