@@ -153,19 +153,6 @@ export default function HomeHeader() {
               idle={mascotContext.idle}
               alt="NoteMage mascot"
             />
-            <span
-              style={{
-                fontFamily: 'var(--font-brand)',
-                fontSize: isTablet ? 18 : 20,
-                fontWeight: 500,
-                letterSpacing: '0.02em',
-                color: COLORS.primary,
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              NoteMage
-            </span>
           </Link>
 
           {/* Search bar */}

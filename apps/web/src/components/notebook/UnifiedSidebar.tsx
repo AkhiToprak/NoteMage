@@ -132,19 +132,6 @@ export default function UnifiedSidebar() {
             idle={mascotContext.idle}
             alt="NoteMage mascot"
           />
-          <span
-            style={{
-              fontFamily: 'var(--font-brand)',
-              fontSize: 20,
-              fontWeight: 500,
-              letterSpacing: '0.02em',
-              color: 'var(--md-h4)',
-              lineHeight: 1,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            NoteMage
-          </span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Link
