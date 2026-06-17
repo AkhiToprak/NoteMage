@@ -49,6 +49,49 @@ export default function HomeHeader() {
   const { isPhone, isTablet, isDesktop } = useBreakpoint();
   const mascotContext = useMascotContextPose();
 
+  // Topbar sizing — scaled up ~2x on desktop/tablet so the bar reads at the
+  // same visual weight as the (now wider, spacious) page content. Phone stays
+  // compact so the header doesn't dominate the small viewport.
+  const tb = isPhone
+    ? {
+        h: 80,
+        gap: 12,
+        burger: 46,
+        burgerIcon: 30,
+        burgerRadius: 12,
+        mascot: 'xs' as const,
+        searchMax: undefined as number | undefined,
+        searchPad: '13px 16px 13px 46px',
+        searchFont: 16,
+        searchRadius: 14,
+        searchIconLeft: 15,
+        searchIcon: 24,
+        rightGap: 6,
+        widget: 46,
+        avatar: 44,
+        avatarRadius: 11,
+        avatarPad: 3,
+      }
+    : {
+        h: 144,
+        gap: 28,
+        burger: 76,
+        burgerIcon: 44,
+        burgerRadius: 20,
+        mascot: 96,
+        searchMax: isTablet ? 640 : 900,
+        searchPad: '24px 24px 24px 64px',
+        searchFont: 20,
+        searchRadius: 20,
+        searchIconLeft: 24,
+        searchIcon: 30,
+        rightGap: 16,
+        widget: 68,
+        avatar: 72,
+        avatarRadius: 16,
+        avatarPad: 4,
+      };
+
   const [burgerOpen, setBurgerOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -101,13 +144,16 @@ export default function HomeHeader() {
       >
         <div
           style={{
-            maxWidth: 1400,
+            // Track the same width as the page content below, so the header's
+            // burger/avatar line up with the content edges and the bar grows
+            // with the screen instead of sitting in a narrow centered strip.
+            maxWidth: 'var(--nm-page-max)',
             margin: '0 auto',
-            padding: isPhone ? '0 14px' : isTablet ? '0 16px' : '0 20px',
-            height: isPhone ? 60 : 64,
+            padding: '0 clamp(16px, 4vw, 32px)',
+            height: tb.h,
             display: 'flex',
             alignItems: 'center',
-            gap: isPhone ? 10 : 16,
+            gap: tb.gap,
           }}
         >
           {/* Burger button */}
@@ -116,12 +162,11 @@ export default function HomeHeader() {
             onClick={() => setBurgerOpen(true)}
             onMouseEnter={() => setHoveredBurger(true)}
             onMouseLeave={() => setHoveredBurger(false)}
-            data-tutorial="nav-menu"
             aria-label="Open menu"
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
+              width: tb.burger,
+              height: tb.burger,
+              borderRadius: tb.burgerRadius,
               border: 'none',
               background: hoveredBurger ? COLORS.elevated : 'transparent',
               color: hoveredBurger ? COLORS.textPrimary : COLORS.textSecondary,
@@ -133,7 +178,7 @@ export default function HomeHeader() {
               transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: tb.burgerIcon }}>
               menu
             </span>
           </button>
@@ -151,16 +196,16 @@ export default function HomeHeader() {
             <ContextualMascot
               pose={mascotContext.pose}
               idle={mascotContext.idle}
+              size={tb.mascot}
               alt="NoteMage mascot"
             />
           </Link>
 
           {/* Search bar */}
           <div
-            data-tutorial="search"
             style={{
               flex: 1,
-              maxWidth: isPhone ? undefined : isTablet ? 400 : 500,
+              maxWidth: tb.searchMax,
               margin: '0 auto',
               position: 'relative',
             }}
@@ -169,10 +214,10 @@ export default function HomeHeader() {
               className="material-symbols-outlined"
               style={{
                 position: 'absolute',
-                left: 14,
+                left: tb.searchIconLeft,
                 top: '50%',
                 transform: 'translateY(-50%)',
-                fontSize: 20,
+                fontSize: tb.searchIcon,
                 color: searchFocused ? COLORS.primary : COLORS.textSecondary,
                 transition: `color 0.2s ${EASING}`,
                 pointerEvents: 'none',
@@ -195,12 +240,12 @@ export default function HomeHeader() {
               }}
               style={{
                 width: '100%',
-                padding: '9px 16px 9px 44px',
-                borderRadius: 12,
+                padding: tb.searchPad,
+                borderRadius: tb.searchRadius,
                 border: `1.5px solid ${searchFocused ? COLORS.primary : COLORS.border}`,
                 background: COLORS.inputBg,
                 color: COLORS.textPrimary,
-                fontSize: 13,
+                fontSize: tb.searchFont,
                 outline: 'none',
                 transition: `border-color 0.2s ${EASING}`,
                 boxSizing: 'border-box',
@@ -229,13 +274,13 @@ export default function HomeHeader() {
           </div>
 
           {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: tb.rightGap, flexShrink: 0 }}>
             {/* Timer */}
-            <div data-tutorial="timer" style={{ display: 'flex', alignItems: 'center' }}>
-              <TimerWidget />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <TimerWidget size={tb.widget} />
             </div>
             {/* Notification bell */}
-            <NotificationBell />
+            <NotificationBell size={tb.widget} />
 
             {/* User avatar */}
             <div ref={avatarMenuRef} style={{ position: 'relative' }}>
@@ -253,12 +298,12 @@ export default function HomeHeader() {
                   border: 'none',
                   background: 'transparent',
                   cursor: 'pointer',
-                  padding: 2,
+                  padding: tb.avatarPad,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  borderRadius: user?.equippedFrameId ? 9999 : 10,
+                  borderRadius: user?.equippedFrameId ? 9999 : tb.avatarRadius,
                   outline:
                     hoveredAvatar || avatarMenuOpen
                       ? `2px solid ${COLORS.primary}`
@@ -267,7 +312,7 @@ export default function HomeHeader() {
                   transition: `outline-color 0.2s ${EASING}`,
                 }}
               >
-                <UserAvatar user={user} size={36} radius={8} />
+                <UserAvatar user={user} size={tb.avatar} radius={tb.avatarRadius} />
               </button>
 
               {/* Avatar dropdown menu */}

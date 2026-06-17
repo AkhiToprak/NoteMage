@@ -210,7 +210,7 @@ export default function CommunityLibraryPage() {
           flexWrap: 'wrap',
         }}
       >
-        <div data-tutorial="learn-community" style={{ minWidth: 0, flex: '1 1 260px' }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
           <h1
             style={{
               margin: 0,

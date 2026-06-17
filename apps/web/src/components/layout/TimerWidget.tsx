@@ -37,11 +37,19 @@ const TABS: { key: TabKey; label: string; icon: string }[] = [
 
 interface Props {
   compact?: boolean;
+  /** Square px size of the trigger button. Defaults to the compact 36px used
+   *  in the sidebar; the topbar passes a larger value to scale the control. */
+  size?: number;
 }
 
-export default function TimerWidget({ compact }: Props) {
+export default function TimerWidget({ compact, size = 36 }: Props) {
   const timer = useTimer();
   const { isPhone } = useBreakpoint();
+  // Trigger sizing derived from `size` so the topbar can scale the control up
+  // without touching the compact sidebar instance (which keeps the 36px default).
+  const triggerIconPx = Math.round(size * 0.56);
+  const triggerRadiusPx = Math.round(size * 0.28);
+  const triggerTimeFontPx = Math.max(12, Math.round(size * 0.33));
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
@@ -94,10 +102,10 @@ export default function TimerWidget({ compact }: Props) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
-          height: 36,
-          minWidth: 36,
+          height: size,
+          minWidth: size,
           padding: showTimeInButton ? '0 12px 0 8px' : 0,
-          borderRadius: 10,
+          borderRadius: triggerRadiusPx,
           border: `1px solid ${
             timer.isRunning
               ? `${accent}33`
@@ -130,7 +138,7 @@ export default function TimerWidget({ compact }: Props) {
         <span
           className="material-symbols-outlined"
           style={{
-            fontSize: 20,
+            fontSize: triggerIconPx,
             transition: `transform 0.2s ${EASING}`,
             transform: hovered ? 'scale(1.08)' : 'scale(1)',
           }}
@@ -140,7 +148,7 @@ export default function TimerWidget({ compact }: Props) {
         {showTimeInButton && (
           <span
             style={{
-              fontSize: 12,
+              fontSize: triggerTimeFontPx,
               fontWeight: 700,
               fontFamily: 'var(--font-display), monospace',
               letterSpacing: '-0.01em',

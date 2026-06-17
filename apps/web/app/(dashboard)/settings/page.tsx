@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import AvatarEditor from '@/components/ui/AvatarEditor';
 import SubscriptionPanel from '@/components/settings/SubscriptionPanel';
@@ -9,7 +10,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { haptics, hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
 import { isInsideNativeShell } from '@/lib/native-bridge';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { useTutorial } from '@/components/tutorial/TutorialContext';
 import {
   GOAL_CONFIGS,
   EMPTY_GOAL_VALUES,
@@ -83,7 +83,7 @@ export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
   const { isPhone } = useBreakpoint();
   const { preference: themePreference, resolved: resolvedTheme } = useTheme();
-  const { restart: restartTutorial } = useTutorial();
+  const router = useRouter();
   // Phone: null = drill-in root list (profile + section rows). Desktop always shows a section.
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const visibleSection: Section | null = isPhone ? activeSection : (activeSection ?? 'account');
@@ -1456,7 +1456,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Welcome tour */}
+          {/* Guided tutorial */}
           <section
             style={{
               background: 'var(--surface-container)',
@@ -1493,7 +1493,7 @@ export default function SettingsPage() {
                   className="material-symbols-outlined"
                   style={{ color: 'var(--md-h4)', fontSize: '24px' }}
                 >
-                  tour
+                  school
                 </span>
               </div>
               <div style={{ minWidth: 0 }}>
@@ -1505,7 +1505,7 @@ export default function SettingsPage() {
                     margin: 0,
                   }}
                 >
-                  Welcome tour
+                  Guided tutorial
                 </h3>
                 <p
                   style={{
@@ -1514,13 +1514,13 @@ export default function SettingsPage() {
                     margin: '4px 0 0 0',
                   }}
                 >
-                  Re-take the guided tour through your tools, notebooks, and the Learn hub.
+                  Build and study a path with a sample subject. The whole flow in two minutes.
                 </p>
               </div>
             </div>
             <button
               onClick={() => {
-                restartTutorial();
+                router.push('/tutorial');
               }}
               style={{
                 padding: '12px 22px',
@@ -1545,7 +1545,7 @@ export default function SettingsPage() {
                 (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
               }}
             >
-              Re-take tour
+              Start tutorial
             </button>
           </section>
 

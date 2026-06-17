@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { TutorialContext } from '@/components/tutorial/TutorialContext';
 
 const STORAGE_PREFIX = 'notemage-cowork-showcase';
 const SHOWCASE_KEY = 'cowork';
@@ -47,12 +46,10 @@ async function patchServer() {
 export function useCoworkShowcase(): { isOpen: boolean; dismiss: () => void } {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const tutorial = useContext(TutorialContext);
 
   const userId = session?.user?.id ?? null;
   const onboardingComplete = session?.user?.onboardingComplete === true;
   const serverSeen = session?.user?.tutorialState?.seenShowcases?.includes(SHOWCASE_KEY) === true;
-  const tourActive = tutorial !== null && tutorial.step !== 'idle';
 
   const [hydrated, setHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -94,7 +91,6 @@ export function useCoworkShowcase(): { isOpen: boolean; dismiss: () => void } {
     if (status !== 'authenticated' || !userId) return;
     if (!onboardingComplete) return;
     if (serverSeen) return;
-    if (tourActive) return;
     if (pathname !== '/groups') return;
 
     setIsOpen(true);
@@ -106,7 +102,6 @@ export function useCoworkShowcase(): { isOpen: boolean; dismiss: () => void } {
     userId,
     onboardingComplete,
     serverSeen,
-    tourActive,
     pathname,
   ]);
 

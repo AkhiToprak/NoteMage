@@ -13,6 +13,8 @@ import CheckpointFlashcardViewer from '@/components/learn/CheckpointFlashcardVie
 import CheckpointTheoryViewer from '@/components/learn/CheckpointTheoryViewer';
 import CheckpointQuizViewer from '@/components/learn/CheckpointQuizViewer';
 import GenerationProgressModal from '@/components/learn/GenerationProgressModal';
+import { CheckpointSkeletonOverlay } from '@/components/learn/CheckpointSkeleton';
+import { TutorialPathPlayer } from '@/components/learn/TutorialPathPlayer';
 
 // Phase 10.6 — path detail page.
 //
@@ -75,6 +77,10 @@ function PathDetailInner({ planId }: { planId: string }) {
   const searchParams = useSearchParams();
   const slotId = searchParams.get('slot');
   const activityId = searchParams.get('activity');
+  // Tutorial handoff flag — only in this mode does a completion fire the
+  // full-screen celebration (elsewhere the unlock surfaces via the subtle
+  // cosmetic toast + notification bell, on their own cadence).
+  const isTutorial = searchParams.get('tutorial') === '1';
 
   const [plan, setPlan] = useState<DetailPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -196,6 +202,14 @@ function PathDetailInner({ planId }: { planId: string }) {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  // Completing an activity refreshes the path and closes back to the slot's
+  // activity list. (The guided tutorial uses its own player — TutorialPathPlayer
+  // — which auto-advances and celebrates; this page only handles real paths.)
+  const handleActivityCompleted = useCallback(() => {
+    handleSlotChanged();
+    setUrlSlot({ activity: null });
+  }, [handleSlotChanged, setUrlSlot]);
+
   // Retry failed activities for the whole path. The endpoint is
   // idempotent (regenerates only missing activities); the progress
   // modal streams the run and a refetch picks up the filled-in tree.
@@ -218,7 +232,7 @@ function PathDetailInner({ planId }: { planId: string }) {
         setRegenError(json?.error ?? 'Could not start regeneration. Please try again.');
       }
     } catch {
-      setRegenError('Network error — check your connection and try again.');
+      setRegenError('Network error. Check your connection and try again.');
     } finally {
       setRegenStarting(false);
     }
@@ -251,7 +265,7 @@ function PathDetailInner({ planId }: { planId: string }) {
         );
       }
     } catch {
-      setStopError('Network error — check your connection and try again.');
+      setStopError('Network error. Check your connection and try again.');
     } finally {
       setStopping(false);
     }
@@ -267,7 +281,14 @@ function PathDetailInner({ planId }: { planId: string }) {
       </div>
     );
   }
-  if (!plan) return <LoadingShell />;
+  // On a tutorial deep-link the entry activity is the learning slot's theory.
+  // Show its skeleton while the plan loads so the path never flashes first.
+  if (!plan)
+    return isTutorial && activityId ? <CheckpointSkeletonOverlay kind="theory" /> : <LoadingShell />;
+
+  // Guided tutorial gets its own linear, state-driven player (no path map, no
+  // URL hops) so nothing flashes between checkpoints. Real paths fall through.
+  if (isTutorial) return <TutorialPathPlayer plan={plan} startActivityId={activityId} />;
 
   const incompleteCount = plan.phases.reduce(
     (n, ph) => n + ph.slots.filter((s) => s.incompleteGeneration).length,
@@ -399,8 +420,8 @@ function PathDetailInner({ planId }: { planId: string }) {
                       ? "The translation didn't finish, but your path is intact. Restore it to bring it back to normal."
                       : "It stopped responding and won't finish. Stop it to remove the path and create a fresh one."
                     : isTranslate
-                      ? "Your path is being translated — this updates automatically when it's done."
-                      : "Your path is still being built — this updates automatically when it's done."}
+                      ? "Your path is being translated. This updates automatically when it's done."
+                      : "Your path is still being built. This updates automatically when it's done."}
                 </p>
                 {stopError ? (
                   <p
@@ -581,7 +602,7 @@ function PathDetailInner({ planId }: { planId: string }) {
                     lineHeight: 1.4,
                   }}
                 >
-                  They won&apos;t block your progress — regenerate to fill in the missing
+                  They won&apos;t block your progress. Regenerate to fill in the missing
                   content.
                 </p>
                 {regenError ? (
@@ -663,10 +684,7 @@ function PathDetailInner({ planId }: { planId: string }) {
           slot={openSlot}
           activity={activeActivity}
           onClose={() => setUrlSlot({ activity: null })}
-          onCompleted={() => {
-            handleSlotChanged();
-            setUrlSlot({ activity: null });
-          }}
+          onCompleted={handleActivityCompleted}
         />
       ) : openSlot && activeActivity?.kind === 'theory' ? (
         <CheckpointTheoryViewer
@@ -674,10 +692,7 @@ function PathDetailInner({ planId }: { planId: string }) {
           slot={openSlot}
           activity={activeActivity}
           onClose={() => setUrlSlot({ activity: null })}
-          onCompleted={() => {
-            handleSlotChanged();
-            setUrlSlot({ activity: null });
-          }}
+          onCompleted={handleActivityCompleted}
         />
       ) : openSlot && activeActivity?.kind === 'quiz' ? (
         <CheckpointQuizViewer
@@ -685,10 +700,7 @@ function PathDetailInner({ planId }: { planId: string }) {
           slot={openSlot}
           activity={activeActivity}
           onClose={() => setUrlSlot({ activity: null })}
-          onCompleted={() => {
-            handleSlotChanged();
-            setUrlSlot({ activity: null });
-          }}
+          onCompleted={handleActivityCompleted}
           onProgress={handleSlotChanged}
         />
       ) : openSlot ? (

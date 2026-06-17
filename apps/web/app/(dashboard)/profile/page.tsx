@@ -433,7 +433,6 @@ export default function ProfilePage() {
 
   return (
     <div
-      data-tutorial="profile"
       style={{
         maxWidth: '720px',
         margin: '0 auto',

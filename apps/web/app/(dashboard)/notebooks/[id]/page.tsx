@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useNotebookWorkspace } from '@/components/notebook/NotebookWorkspaceContext';
 import CreateChatModal from '@/components/learn/CreateChatModal';
-import { useTutorial } from '@/components/tutorial/TutorialContext';
 
 function ContentSkeleton() {
   const bar = (
@@ -44,7 +43,6 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [skipRedirect, setSkipRedirect] = useState(false);
   const skipRedirectRef = useRef(false);
-  const { step: tutorialStep, advance: tutorialAdvance, skip: tutorialSkip } = useTutorial();
 
   // Auto-open modal when ?new=1 is in URL (e.g. from "New chat" sidebar button)
   useEffect(() => {
@@ -53,12 +51,9 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSkipRedirect(true);
       setShowCreateModal(true);
-      if (tutorialStep === 'step-3-workspace') {
-        tutorialAdvance('step-4-chat-modal');
-      }
       router.replace(`/notebooks/${id}`);
     }
-  }, [searchParams, id, router, tutorialStep, tutorialAdvance]);
+  }, [searchParams, id, router]);
 
   // Redirect to last-opened page or first page
   useEffect(() => {
@@ -90,18 +85,12 @@ export default function NotebookDetailPage({ params }: { params: Promise<{ id: s
 
   const handleChatCreated = (chatId: string) => {
     setShowCreateModal(false);
-    if (tutorialStep === 'step-4-chat-modal') {
-      tutorialAdvance('complete');
-    }
     refreshChats();
     router.push(`/notebooks/${id}/chats/${chatId}`);
   };
 
   const handleCreateModalClose = () => {
     setShowCreateModal(false);
-    if (tutorialStep === 'step-4-chat-modal') {
-      tutorialSkip();
-    }
   };
 
   const hasPages = sectionsLoaded && flatSections.some((s) => s.pages.length > 0);

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import TheoryViewer from '@/components/learn/TheoryViewer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
+import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
+import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
 import { trackEvent } from '@/lib/telemetry';
 
 // Full-screen viewer for checkpoint theory activities. Mirrors the
@@ -27,7 +29,7 @@ interface CheckpointTheoryViewerProps {
   slot: PathSlot;
   activity: PathActivity;
   onClose: () => void;
-  onCompleted: () => void;
+  onCompleted: (unlocked?: PathUnlock[]) => void;
 }
 
 export default function CheckpointTheoryViewer({
@@ -100,7 +102,8 @@ export default function CheckpointTheoryViewer({
         },
       );
       if (res.ok) {
-        onCompleted();
+        const json = await res.json().catch(() => null);
+        onCompleted(readUnlocked(json));
       } else {
         setSubmitting(false);
       }
@@ -250,9 +253,7 @@ export default function CheckpointTheoryViewer({
               {loadError}
             </p>
           ) : !theory ? (
-            <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
-              Loading theory…
-            </p>
+            <CheckpointSkeletonBody kind="theory" />
           ) : (
             <TheoryViewer body={theory.body} theoryId={theory.id} />
           )}

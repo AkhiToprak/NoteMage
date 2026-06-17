@@ -1,112 +1,67 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import PathView, { type PathPlan, type PathSlot } from '@/components/learn/PathView';
 import { NMCard } from '@/components/rework/NMCard';
 import { SectionHeading } from '@/components/rework/SectionHeading';
 import { ProgressBar } from '@/components/rework/ProgressBar';
+import { ReadinessRing } from '@/components/rework/ReadinessRing';
+import { readinessColor } from '@/components/rework/tokens';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
+import { UltraBadge } from '@/components/learn/UltraBadge';
+import PublishDialog from '@/components/path-publish/PublishDialog';
+import { DeletePathDialog } from '@/components/learn/DeletePathDialog';
+import type { PathPlan } from '@/components/learn/PathView';
+import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
+import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
 
-// /my-path — Duolingo-style "My active path" surface.
+// /my-path — "My Paths".
 //
-// Picks the most-recent in-progress path (else most-recent) and renders
-// its progression map via the existing PathView component. When the
-// user has multiple paths a compact chip-row switcher is rendered above
-// so they can flip between them without going to the list page.
+// Two separated stages:
+//   1. SELECTION — a grid of the user's paths (the same card style as the
+//      Learn paths list). Skipped when the user has exactly one path.
+//   2. OVERVIEW  — a path-specific progress dashboard (the analogue of the
+//      global Progress page, scoped to one path): readiness, subject,
+//      checkpoint counts, topic mastery, and weak spots — topped by a big
+//      "Continue path" button that drops into the study experience at the
+//      next checkpoint.
 //
-// Clicking a slot opens a detail panel (right rail on desktop, bottom
-// card on phone) showing node info and a CTA that links to the real
-// path detail route with the slot pre-opened.
-//
-// Data source: GET /api/learn/paths (list) + GET /api/learn/paths/[id]
-// (full plan with slot.activities).
+// Data: GET /api/learn/paths (list, drives selection + header chrome) and
+// GET /api/learn/paths/[id] (full plan with slot.activities, drives the
+// overview stats + the resume deep-link).
 
 // ── types ──────────────────────────────────────────────────────────────
 
 type PathListItem = PathPlan & {
   generationStatus?: string;
+  subjects?: string[];
   updatedAt?: string;
+  /** Set once the path has been published to the community library. */
+  publication?: { shareId: string; moderationStatus: string } | null;
 };
 
-// Detail plan returned by /api/learn/paths/[id] — superset of PathPlan.
-type DetailPlan = PathPlan;
-
-// ── helpers ────────────────────────────────────────────────────────────
-
-function overallProgress(plan: PathPlan): { done: number; total: number; pct: number } {
-  const slots = plan.phases.flatMap((p) => p.slots);
-  const total = slots.length;
-  const done = slots.filter((s) => s.completed).length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-  return { done, total, pct };
-}
-
-function pickActivePath(plans: PathListItem[]): PathListItem | null {
-  if (plans.length === 0) return null;
-  // Prefer most-recent path that has at least one incomplete slot (in-progress).
-  const ready = plans.filter((p) => p.generationStatus === 'ready' || !p.generationStatus);
-  const inProgress = ready.filter((p) => {
-    const slots = p.phases.flatMap((ph) => ph.slots);
-    return slots.some((s) => !s.completed);
-  });
-  if (inProgress.length > 0) return inProgress[0];
-  if (ready.length > 0) return ready[0];
-  return plans[0];
-}
-
-// Kind label from PathSlot.kind (the path system uses "learning" / "review" /
-// "assessment" / "final_exam"). Map to friendly names shown in the detail panel.
-const SLOT_KIND_LABEL: Record<string, string> = {
-  learning: 'Learning',
-  review: 'Review',
-  assessment: 'Assessment',
-  final_exam: 'Final Exam',
-};
-
-// Estimated reading time per activity kind (minutes).
-const ACTIVITY_TIME: Record<string, number> = {
-  theory: 5,
-  flashcards: 4,
-  quiz: 5,
-};
-
-function estimatedMinutes(slot: PathSlot): number {
-  return slot.activities.reduce((sum, a) => sum + (ACTIVITY_TIME[a.kind] ?? 5), 0) || 10;
-}
+// Fill the screen like the dashboard / progress pages.
+const PAGE_MAX = 'var(--nm-page-max)';
 
 // ── root page component ────────────────────────────────────────────────
 
-export default function MyPathPage() {
-  return (
-    <Suspense fallback={<LoadingState />}>
-      <MyPathInner />
-    </Suspense>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className={wrapClass} style={wrapStyle}>
-      <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', textAlign: 'center', padding: '48px 0' }}>
-        Loading your path…
-      </p>
-    </div>
-  );
-}
-
-function MyPathInner() {
+export default function MyPathsPage() {
   const [listItems, setListItems] = useState<PathListItem[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
-  // The planId the user has actively selected (or null = auto-pick).
+  // The path the user has chosen to view (null = selection grid / auto).
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  // Full plan detail (with activities) for the selected path.
-  const [plan, setPlan] = useState<DetailPlan | null>(null);
-  const [planError, setPlanError] = useState<string | null>(null);
-  // The slot currently selected for the detail panel.
-  const [activeSlot, setActiveSlot] = useState<PathSlot | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  // Full plan detail (with activities) for the active path.
+  const [plan, setPlan] = useState<PathPlan | null>(null);
+
+  // Keep the browser tab title (page metadata) in sync with the page name.
+  useEffect(() => {
+    const previous = document.title;
+    document.title = 'My Paths';
+    return () => {
+      document.title = previous;
+    };
+  }, []);
 
   // Fetch the path list once on mount.
   useEffect(() => {
@@ -118,646 +73,819 @@ function MyPathInner() {
         if (j?.success) {
           setListItems((j.data ?? []) as PathListItem[]);
         } else {
-          setListError(j?.error ?? 'Could not load paths');
+          setListError(j?.error ?? 'Could not load your paths');
           setListItems([]);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setListError('Could not load paths');
+          setListError('Could not load your paths');
           setListItems([]);
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Derive the "active" list item based on selectedPlanId or auto-pick.
   const readyItems = useMemo(() => {
     if (!listItems) return [];
     return listItems.filter((p) => p.generationStatus === 'ready' || !p.generationStatus);
   }, [listItems]);
 
+  // The path whose overview is shown. A single ready path opens directly;
+  // with several, the grid leads and a click selects one.
   const activePlanMeta = useMemo<PathListItem | null>(() => {
     if (readyItems.length === 0) return null;
-    if (selectedPlanId) {
-      return readyItems.find((p) => p.id === selectedPlanId) ?? null;
-    }
-    return pickActivePath(readyItems);
+    if (readyItems.length === 1) return readyItems[0];
+    if (selectedPlanId) return readyItems.find((p) => p.id === selectedPlanId) ?? null;
+    return null; // grid mode
   }, [readyItems, selectedPlanId]);
 
-  // Fetch full detail plan whenever the selected plan changes.
+  // Fetch the full detail plan for the active path. Guarded by id rather than
+  // a synchronous reset so we never call setState directly in the effect body
+  // (and never flash a stale path's stats).
   useEffect(() => {
     if (!activePlanMeta) return;
     let cancelled = false;
-    setPlan(null);
-    setPlanError(null);
-    setActiveSlot(null);
-    fetch(`/api/learn/paths/${encodeURIComponent(activePlanMeta.id)}`)
+    const id = activePlanMeta.id;
+    fetch(`/api/learn/paths/${encodeURIComponent(id)}`)
       .then((r) => r.json())
       .then((j) => {
-        if (cancelled) return;
-        if (j?.success && j.data) {
-          setPlan(j.data as DetailPlan);
-        } else {
-          setPlanError(j?.error ?? 'Could not load path details');
-        }
+        if (!cancelled && j?.success && j.data) setPlan(j.data as PathPlan);
       })
       .catch(() => {
-        if (!cancelled) setPlanError('Could not load path details');
+        /* overview falls back to its loading state */
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activePlanMeta]);
 
-  // Dismiss the panel on Escape.
-  useEffect(() => {
-    if (!activeSlot) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveSlot(null);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [activeSlot]);
+  // Only treat the detail plan as usable when it matches the active path.
+  const detailPlan = plan && activePlanMeta && plan.id === activePlanMeta.id ? plan : null;
 
-  // Focus the panel when it opens so keyboard/SR users land inside.
-  useEffect(() => {
-    if (activeSlot) {
-      panelRef.current?.focus();
-    }
-  }, [activeSlot]);
+  // Drop a deleted path from the list and fall back to the grid / empty state.
+  const handleDeleted = (planId: string) => {
+    setListItems((prev) => (prev ? prev.filter((p) => p.id !== planId) : prev));
+    setSelectedPlanId(null);
+    setPlan(null);
+  };
 
-  const handleSlotClick = useCallback((slot: PathSlot) => {
-    setActiveSlot((prev) => (prev?.id === slot.id ? null : slot));
-  }, []);
+  // Stamp the publication onto the path so the action toolbar flips from
+  // "Publish" to "Publication status".
+  const handlePublished = (planId: string, shareId: string, moderationStatus: string) => {
+    setListItems((prev) =>
+      prev
+        ? prev.map((p) =>
+            p.id === planId ? { ...p, publication: { shareId, moderationStatus } } : p,
+          )
+        : prev,
+    );
+  };
 
   // Still loading the list.
-  if (listItems === null) return <LoadingState />;
+  if (listItems === null) return <Shell><LoadingLine label="Loading your paths…" /></Shell>;
 
-  // No paths at all (including generating ones).
+  // No paths at all.
   if (listItems.length === 0) {
     return (
-      <div className={wrapClass} style={wrapStyle}>
+      <Shell>
+        <SectionHeading title="My Paths" icon="route" action={<CommunityLink />} />
         <EmptyState />
-      </div>
+      </Shell>
     );
   }
 
-  // List loaded but no ready paths exist yet (all generating).
+  // Paths exist but none are ready yet (all generating).
   if (readyItems.length === 0) {
     return (
-      <div className={wrapClass} style={wrapStyle}>
+      <Shell>
+        <SectionHeading title="My Paths" icon="route" action={<CommunityLink />} />
         <GeneratingState />
-      </div>
+      </Shell>
     );
   }
 
-  const { pct, done, total } = activePlanMeta ? overallProgress(activePlanMeta) : { pct: 0, done: 0, total: 0 };
-
-  return (
-    <div className={wrapClass} style={wrapStyle}>
-      {/* ── Header ───────────────────────────────────── */}
-      <header style={{ marginBottom: '24px' }}>
-        <SectionHeading
-          title="My Path"
-          subtitle={activePlanMeta?.title ?? undefined}
-          icon="route"
+  // OVERVIEW — a path is active (single path, or one was chosen from the grid).
+  if (activePlanMeta) {
+    return (
+      <Shell>
+        <PathOverview
+          meta={activePlanMeta}
+          detailPlan={detailPlan}
+          showBack={readyItems.length > 1}
+          onBack={() => setSelectedPlanId(null)}
+          onDeleted={handleDeleted}
+          onPublished={handlePublished}
         />
+      </Shell>
+    );
+  }
 
-        {activePlanMeta && (
-          <div style={{ marginTop: '16px' }}>
-            <ProgressBar
-              value={pct}
-              label={`${done} / ${total} checkpoints`}
-              showPercent
-              height={8}
-              color="var(--primary)"
-            />
-          </div>
-        )}
-
-        {/* Path switcher — only when the user has more than one ready path. */}
-        {readyItems.length > 1 && (
-          <PathSwitcher
-            items={readyItems}
-            activePlanId={activePlanMeta?.id ?? null}
-            onSelect={setSelectedPlanId}
-          />
-        )}
-      </header>
-
+  // SELECTION — several paths, none chosen yet.
+  return (
+    <Shell>
+      <SectionHeading
+        title="My Paths"
+        subtitle={`${readyItems.length} active paths · pick one to see your progress`}
+        icon="route"
+        action={<CommunityLink />}
+      />
       {listError && (
-        <p role="alert" style={{ fontSize: '13px', color: 'var(--error)', marginBottom: '16px' }}>
+        <p role="alert" style={{ fontSize: '13px', color: 'var(--error)' }}>
           {listError}
         </p>
       )}
-
-      {/* ── Main content: map + optional detail panel ── */}
       <div
+        role="group"
+        aria-label="Choose a path"
         style={{
           display: 'grid',
-          gridTemplateColumns: activeSlot ? 'minmax(0,1fr) 360px' : '1fr',
-          gap: '24px',
-          alignItems: 'start',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
+          gap: 'var(--space-4)',
         }}
       >
-        {/* Map column */}
-        <div style={{ minWidth: 0 }}>
-          {planError && (
-            <p role="alert" style={{ fontSize: '13px', color: 'var(--error)', margin: '0 0 16px' }}>
-              {planError}
-            </p>
-          )}
-          {plan ? (
-            <PathView plan={plan} onSlotClick={handleSlotClick} />
-          ) : activePlanMeta && !planError ? (
-            <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', textAlign: 'center', padding: '48px 0' }}>
-              Loading map…
-            </p>
-          ) : null}
-        </div>
-
-        {/* Detail panel — desktop right rail */}
-        {activeSlot && (
-          <div
-            ref={panelRef}
-            tabIndex={-1}
-            role="region"
-            aria-label="Node details"
-            style={{
-              position: 'sticky',
-              top: '72px',
-              outline: 'none',
-            }}
-          >
-            <SlotDetailPanel
-              slot={activeSlot}
-              planId={activePlanMeta?.id ?? ''}
-              onClose={() => setActiveSlot(null)}
-            />
-          </div>
-        )}
+        {readyItems.map((item) => (
+          <PathSelectCard key={item.id} plan={item} onSelect={() => setSelectedPlanId(item.id)} />
+        ))}
       </div>
+    </Shell>
+  );
+}
 
-      {/* Detail panel — phone bottom card */}
-      {activeSlot && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1100,
-            display: 'none',
-          }}
-          className="my-path-phone-overlay"
-        >
-          <div
-            aria-hidden
-            onClick={() => setActiveSlot(null)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.5)',
-            }}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Node details"
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: 'var(--surface-container)',
-              borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
-              padding: 'clamp(20px, 5vw, 28px)',
-              maxHeight: '75dvh',
-              overflowY: 'auto',
-            }}
-          >
-            {/* drag handle */}
-            <div
-              aria-hidden
-              style={{
-                width: '36px',
-                height: '4px',
-                background: 'var(--outline-variant)',
-                borderRadius: '999px',
-                margin: '0 auto 20px',
-              }}
-            />
-            <SlotDetailPanel
-              slot={activeSlot}
-              planId={activePlanMeta?.id ?? ''}
-              onClose={() => setActiveSlot(null)}
-            />
-          </div>
-        </div>
-      )}
+// ── Layout shell ─────────────────────────────────────────────────────────
 
-      <style>{`
-        @media (max-width: 720px) {
-          .my-path-phone-overlay { display: block !important; }
-          .my-path-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .my-path-phone-overlay * { transition: none !important; animation: none !important; }
-        }
-      `}</style>
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="nm-rework"
+      style={{
+        maxWidth: PAGE_MAX,
+        margin: '0 auto',
+        width: '100%',
+        padding: 'clamp(16px, 4vw, 32px)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-8)',
+      }}
+    >
+      {children}
+      <PageStyles />
     </div>
   );
 }
 
-// ── Path switcher chip row ─────────────────────────────────────────────
-
-function PathSwitcher({
-  items,
-  activePlanId,
-  onSelect,
-}: {
-  items: PathListItem[];
-  activePlanId: string | null;
-  onSelect: (id: string) => void;
-}) {
+function LoadingLine({ label }: { label: string }) {
   return (
-    <nav
-      aria-label="Switch path"
+    <div
       style={{
-        marginTop: '16px',
         display: 'flex',
-        flexWrap: 'wrap',
-        gap: '8px',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        color: 'var(--on-surface-variant)',
+        fontSize: 'var(--fs-sm)',
+        padding: 'var(--space-8) 0',
       }}
     >
-      {items.map((item) => {
-        const isActive = item.id === activePlanId;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelect(item.id)}
-            aria-pressed={isActive}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-full)',
-              border: `1px solid ${isActive ? 'var(--primary)' : 'var(--outline-variant)'}`,
-              background: isActive ? 'var(--primary)' : 'var(--surface-container)',
-              color: isActive ? 'var(--on-primary)' : 'var(--on-surface-variant)',
-              fontFamily: 'inherit',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              minHeight: '36px',
-              maxWidth: '220px',
-              transition: 'opacity 0.15s ease',
-            }}
-            className="my-path-switcher-chip"
-          >
-            <span
-              className="material-symbols-outlined"
-              aria-hidden
-              style={{ fontSize: '16px', flexShrink: 0 }}
-            >
-              route
-            </span>
-            <span
-              style={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {item.title}
-            </span>
-          </button>
-        );
-      })}
-      <style>{`
-        .my-path-switcher-chip:hover:not([aria-pressed="true"]) {
-          border-color: var(--outline);
-          color: var(--on-surface);
-        }
-        .my-path-switcher-chip:focus-visible {
-          outline: 3px solid var(--primary);
-          outline-offset: 2px;
-        }
-        .my-path-switcher-chip:active {
-          opacity: 0.8;
-        }
-      `}</style>
-    </nav>
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 20 }}>
+        hourglass_empty
+      </span>
+      {label}
+    </div>
   );
 }
 
-// ── Slot detail panel ──────────────────────────────────────────────────
+// ── Selection card ─────────────────────────────────────────────────────
+// The Learn-paths card style, as an entry into the path overview. Hover-lift,
+// focus ring, and the gold Ultra treatment mirror the Learn paths list.
 
-function SlotDetailPanel({
-  slot,
-  planId,
-  onClose,
-}: {
-  slot: PathSlot;
-  planId: string;
-  onClose: () => void;
-}) {
-  const kindLabel = SLOT_KIND_LABEL[slot.kind] ?? slot.kind;
-  const estMin = estimatedMinutes(slot);
-  const isLocked = !slot.unlocked;
-  const isCompleted = slot.completed;
-
-  // Derive the first incomplete activity to link the primary CTA to.
-  const firstIncomplete = slot.activities.find((a) => !a.completed);
-  const ctaActivity = firstIncomplete ?? slot.activities[0] ?? null;
-
-  // Build the URL for the "Start / Review" CTA.
-  const ctaHref = planId && ctaActivity
-    ? `/learn/paths/${encodeURIComponent(planId)}?slot=${encodeURIComponent(slot.id)}&activity=${encodeURIComponent(ctaActivity.id)}`
-    : planId
-      ? `/learn/paths/${encodeURIComponent(planId)}?slot=${encodeURIComponent(slot.id)}`
-      : '/learn/paths';
-
-  const ctaLabel = isCompleted
-    ? 'Review'
-    : isLocked
-      ? 'Locked'
-      : firstIncomplete
-        ? (firstIncomplete.kind === 'quiz' ? 'Start Quiz' : firstIncomplete.kind === 'flashcards' ? 'Start Flashcards' : 'Start Lesson')
-        : 'Open';
-
-  const activityRows = slot.activities.slice(0, 6);
+function PathSelectCard({ plan, onSelect }: { plan: PathListItem; onSelect: () => void }) {
+  const allSlots = plan.phases.flatMap((p) => p.slots);
+  const total = allSlots.length;
+  const done = allSlots.filter((s) => s.completed).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const ultra = plan.ultra === true;
+  const ink = ultra ? 'var(--ultra-ink)' : 'var(--md-h4)';
+  const accent = ultra ? 'var(--brand-gold)' : 'var(--primary)';
 
   return (
-    <NMCard
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-label={`Open ${plan.title}`}
+      className={ultra ? 'my-path-select-card my-path-select-card--gold' : 'my-path-select-card'}
       style={{
-        padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: '18px',
+        padding: 'clamp(20px, 1.6vw, 26px)',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        background: 'var(--surface-container)',
+        border: `${ultra ? '1.5px' : '1px'} solid ${ultra ? 'var(--brand-gold)' : 'var(--outline-variant)'}`,
+        borderRadius: 'var(--radius-lg)',
+        color: 'var(--on-surface)',
       }}
     >
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          {/* Kind badge */}
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--surface-container-high)',
-              color: 'var(--on-surface-variant)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              marginBottom: '6px',
-            }}
-          >
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '13px' }}>
-              {slot.kind === 'assessment' || slot.kind === 'final_exam'
-                ? 'flag'
-                : slot.kind === 'review'
-                  ? 'repeat'
-                  : 'menu_book'}
-            </span>
-            {kindLabel}
-          </span>
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: '17px',
-              fontWeight: 800,
-              color: 'var(--on-surface)',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.3,
-            }}
-          >
-            {slot.title}
-          </h3>
-          {slot.description && (
-            <p
-              style={{
-                margin: '6px 0 0',
-                fontSize: '13px',
-                color: 'var(--on-surface-variant)',
-                lineHeight: 1.5,
-              }}
-            >
-              {slot.description}
-            </p>
-          )}
-        </div>
-
-        {/* Close */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close panel"
+      <span style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <span
+          aria-hidden
           style={{
-            flexShrink: 0,
-            width: '32px',
-            height: '32px',
+            width: '56px',
+            height: '56px',
+            borderRadius: 'var(--radius-lg)',
+            background: 'var(--surface-container-high)',
+            color: ink,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: 'var(--radius-full)',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--on-surface-variant)',
-            cursor: 'pointer',
+            flexShrink: 0,
           }}
-          className="my-path-close-btn"
         >
-          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
-            close
+          <span className="material-symbols-outlined" style={{ fontSize: '30px' }}>
+            school
           </span>
-        </button>
-      </div>
-
-      {/* Meta row */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '16px',
-          flexWrap: 'wrap',
-          fontSize: '13px',
-          color: 'var(--on-surface-variant)',
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '15px' }}>
-            schedule
-          </span>
-          Est. {estMin} min
         </span>
-        {isCompleted && slot.bestPercentage !== null && (
+        <span style={{ display: 'block', minWidth: 0, flex: 1 }}>
           <span
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              color: 'var(--primary)',
-              fontWeight: 600,
-            }}
-          >
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '15px' }}>
-              check_circle
-            </span>
-            Best: {Math.round(slot.bestPercentage)}%
-          </span>
-        )}
-        {isLocked && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--on-surface-variant)' }}>
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '15px' }}>
-              lock
-            </span>
-            Locked
-          </span>
-        )}
-      </div>
-
-      {/* Activity list */}
-      {activityRows.length > 0 && (
-        <div>
-          <p
-            style={{
-              margin: '0 0 8px',
-              fontSize: '11px',
+              display: 'block',
+              fontSize: '18px',
               fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--on-surface-variant)',
+              color: 'var(--on-surface)',
+              letterSpacing: '-0.01em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            Activities
-          </p>
-          <ul
+            {plan.title}
+          </span>
+          <span
             style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
+              display: 'block',
+              marginTop: '3px',
+              fontSize: '13px',
+              color: 'var(--on-surface-variant)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            {activityRows.map((activity) => {
-              const iconMap: Record<string, string> = {
-                theory: 'auto_stories',
-                flashcards: 'style',
-                quiz: 'quiz',
-              };
-              const labelMap: Record<string, string> = {
-                theory: 'Theory',
-                flashcards: 'Flashcards',
-                quiz: 'Quiz',
-              };
-              const icon = iconMap[activity.kind] ?? 'task';
-              const label = labelMap[activity.kind] ?? activity.kind;
-              const actHref = planId
-                ? `/learn/paths/${encodeURIComponent(planId)}?slot=${encodeURIComponent(slot.id)}&activity=${encodeURIComponent(activity.id)}`
-                : '/learn/paths';
-              return (
-                <li key={activity.id}>
-                  <Link
-                    href={isLocked ? '#' : actHref}
-                    aria-disabled={isLocked}
-                    onClick={isLocked ? (e) => e.preventDefault() : undefined}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '9px 12px',
-                      borderRadius: 'var(--radius-md)',
-                      background: activity.completed
-                        ? 'var(--surface-container-high)'
-                        : 'var(--surface-container)',
-                      border: '1px solid var(--outline-variant)',
-                      textDecoration: 'none',
-                      color: 'var(--on-surface)',
-                      opacity: isLocked ? 0.55 : 1,
-                      cursor: isLocked ? 'default' : 'pointer',
-                    }}
-                    className="my-path-activity-link"
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden
-                      style={{
-                        fontSize: '18px',
-                        color: activity.completed ? 'var(--primary)' : 'var(--on-surface-variant)',
-                      }}
-                    >
-                      {activity.completed ? 'check_circle' : icon}
-                    </span>
-                    <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>
-                      {label}
-                    </span>
-                    {activity.completed && (
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          color: 'var(--on-surface-variant)',
-                          fontWeight: 600,
-                        }}
-                      >
-                        Done
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* Primary CTA */}
-      {!isLocked ? (
-        <Button href={ctaHref} variant="primary" size="lg" style={{ width: '100%', justifyContent: 'center' }}>
-          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
-            {isCompleted ? 'replay' : 'play_arrow'}
+            {plan.notebookTitle ?? 'Cross-notebook path'}
           </span>
-          {ctaLabel}
-        </Button>
-      ) : (
-        <Button
-          variant="secondary"
-          size="lg"
-          disabled
-          style={{ width: '100%', justifyContent: 'center', cursor: 'not-allowed' }}
+        </span>
+      </span>
+
+      {ultra ? (
+        <span style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+          <UltraBadge fontSize={13} iconSize={15} />
+        </span>
+      ) : null}
+
+      <span
+        aria-hidden
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '10px',
+          background: 'var(--surface-container-high)',
+          borderRadius: '999px',
+          overflow: 'hidden',
+        }}
+      >
+        <span
+          style={{
+            display: 'block',
+            width: `${pct}%`,
+            height: '100%',
+            background: accent,
+            borderRadius: '999px',
+          }}
+        />
+      </span>
+
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '13px',
+          color: 'var(--on-surface-variant)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        <span>
+          {done} / {total} checkpoints
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: ink, fontWeight: 700 }}>
+          View
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+            chevron_right
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// ── Subject chip ─────────────────────────────────────────────────────────
+
+function SubjectChip({ subject }: { subject: SubjectId }) {
+  const def = SUBJECT_REGISTRY[subject];
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '4px 10px',
+        borderRadius: 'var(--radius-full)',
+        background: 'var(--surface-container-high)',
+        color: 'var(--on-surface-variant)',
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+      }}
+    >
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px' }}>
+        {def.icon}
+      </span>
+      {def.shortLabel}
+    </span>
+  );
+}
+
+// ── Community link (shared toolbar/header action) ────────────────────────
+
+function CommunityLink() {
+  return (
+    <Link href="/learn/community" className="my-path-toolbtn">
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+        explore
+      </span>
+      Browse community
+    </Link>
+  );
+}
+
+// ── Stat tile ──────────────────────────────────────────────────────────
+
+function StatCard({
+  icon,
+  value,
+  label,
+  accent,
+}: {
+  icon: string;
+  value: string | number;
+  label: string;
+  accent?: string;
+}) {
+  return (
+    <NMCard
+      style={{
+        padding: 'clamp(14px, 2vw, 20px)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-2)',
+        minWidth: 0,
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <span
+          className="material-symbols-outlined"
+          aria-hidden
+          style={{ fontSize: 18, color: accent ?? 'var(--primary)' }}
         >
-          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
-            lock
-          </span>
-          Locked
-        </Button>
-      )}
-
-      <style>{`
-        .my-path-close-btn:hover { background: var(--surface-container-high); }
-        .my-path-close-btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
-        .my-path-close-btn:active { opacity: 0.7; }
-        .my-path-activity-link:hover:not([aria-disabled="true"]) { border-color: var(--outline); background: var(--surface-container-high); }
-        .my-path-activity-link:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
-        .my-path-activity-link:active { opacity: 0.85; }
-      `}</style>
+          {icon}
+        </span>
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--on-surface-variant)', fontWeight: 600 }}>
+          {label}
+        </span>
+      </span>
+      <p
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(var(--fs-2xl), 4vw, 32px)',
+          fontWeight: 800,
+          color: 'var(--on-surface)',
+          margin: 0,
+          letterSpacing: '-0.03em',
+        }}
+      >
+        {value}
+      </p>
     </NMCard>
   );
 }
 
-// ── Empty states ───────────────────────────────────────────────────────
+// ── Path overview (progress-style, scoped to one path) ───────────────────
+
+function PathOverview({
+  meta,
+  detailPlan,
+  showBack,
+  onBack,
+  onDeleted,
+  onPublished,
+}: {
+  meta: PathListItem;
+  detailPlan: PathPlan | null;
+  showBack: boolean;
+  onBack: () => void;
+  onDeleted: (planId: string) => void;
+  onPublished: (planId: string, shareId: string, moderationStatus: string) => void;
+}) {
+  const ultra = meta.ultra === true;
+  const subjects = (meta.subjects ?? []).filter(isSubjectId) as SubjectId[];
+  const stats = detailPlan ? derivePathStats(detailPlan) : null;
+
+  // Per-path actions (publish / publication status / delete) live in the
+  // toolbar below. A path can be published once it is ready and not already
+  // shared; the OVERVIEW only renders for ready paths, so eligibility is just
+  // "not yet published".
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const publication = meta.publication ?? null;
+
+  // The first unlocked, incomplete checkpoint — drives both the resume
+  // deep-link and the "up next" line. The study page honours `?slot=&activity=`.
+  const nextSlot = detailPlan ? findContinueSlot(detailPlan) : null;
+  let continueHref = `/learn/paths/${encodeURIComponent(meta.id)}`;
+  if (nextSlot) {
+    const params = new URLSearchParams({ slot: nextSlot.id });
+    const nextActivity = nextSlot.activities.find((a) => !a.completed) ?? nextSlot.activities[0];
+    if (nextActivity) params.set('activity', nextActivity.id);
+    continueHref += `?${params.toString()}`;
+  }
+
+  const allDone = stats !== null && stats.totalCheckpoints > 0 && stats.doneCheckpoints === stats.totalCheckpoints;
+  const noneStarted = stats !== null && stats.doneCheckpoints === 0;
+  const continueLabel = allDone ? 'Review path' : noneStarted ? 'Start path' : 'Continue path';
+  const continueIcon = allDone ? 'replay' : 'play_arrow';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+      {/* Top toolbar: back (when several paths) on the left; per-path actions
+          (community, publish / publication status, delete) on the right. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-3)',
+          flexWrap: 'wrap',
+        }}
+      >
+        {showBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="my-path-back"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--on-surface-variant)',
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              arrow_back
+            </span>
+            All paths
+          </button>
+        ) : (
+          <span aria-hidden />
+        )}
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <CommunityLink />
+          {publication ? (
+            <Link
+              href={`/learn/paths/${encodeURIComponent(meta.id)}/publication`}
+              className="my-path-toolbtn"
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                fact_check
+              </span>
+              Publication status
+            </Link>
+          ) : (
+            <button type="button" className="my-path-toolbtn" onClick={() => setPublishOpen(true)}>
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                rocket_launch
+              </span>
+              Publish
+            </button>
+          )}
+          <button
+            type="button"
+            className="my-path-toolbtn my-path-toolbtn--danger"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              delete
+            </span>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* ── Header: identity + the big Continue CTA ── */}
+      <NMCard
+        style={{
+          padding: 'clamp(18px, 3vw, 28px)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-5)',
+        }}
+      >
+        <div style={{ minWidth: 0, flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(var(--fs-xl), 4vw, var(--fs-3xl))',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                overflowWrap: 'anywhere',
+                minWidth: 0,
+              }}
+            >
+              {meta.title}
+            </h1>
+            {ultra && <UltraBadge />}
+          </div>
+          {(subjects.length > 0 || meta.notebookTitle) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+              {subjects.map((s) => (
+                <SubjectChip key={s} subject={s} />
+              ))}
+              {meta.notebookTitle && (
+                <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)' }}>
+                  {meta.notebookTitle}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {stats && (
+          <div className="my-path-continue-wrap">
+            <Link
+              href={continueHref}
+              className="my-path-continue-btn"
+              aria-label={`${continueLabel}: ${meta.title}`}
+            >
+              <span className="my-path-continue-ico" aria-hidden>
+                <span className="material-symbols-outlined filled" style={{ fontSize: 18 }}>
+                  {continueIcon}
+                </span>
+              </span>
+              {continueLabel}
+            </Link>
+          </div>
+        )}
+      </NMCard>
+
+      {!stats ? (
+        <LoadingLine label="Loading this path…" />
+      ) : (
+        <>
+          {/* ── Readiness ── */}
+          <NMCard
+            style={{
+              padding: 'clamp(20px, 3vw, 32px)',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 'var(--space-8)',
+              flexWrap: 'wrap',
+            }}
+          >
+            <ReadinessRing
+              value={stats.progressPct}
+              size={180}
+              strokeWidth={16}
+              label="done"
+              color="var(--accent-strong)"
+            />
+            <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <p
+                style={{
+                  fontSize: 'var(--fs-xs)',
+                  fontWeight: 700,
+                  color: 'var(--on-surface-variant)',
+                  margin: 0,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                {allDone ? 'Progress' : 'Up next'}
+              </p>
+              <h2
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(var(--fs-2xl), 4vw, var(--fs-3xl))',
+                  fontWeight: 800,
+                  color: 'var(--on-surface)',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.15,
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {allDone ? 'Path complete' : (nextSlot?.title ?? 'Keep going')}
+              </h2>
+              <p style={{ fontSize: 'var(--fs-base)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6, maxWidth: 460 }}>
+                {allDone
+                  ? 'Every checkpoint cleared. Revisit any time to stay sharp.'
+                  : 'Pick up right where you left off.'}
+              </p>
+            </div>
+          </NMCard>
+
+          {/* ── Overview tiles ── */}
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <SectionHeading title="Overview" icon="bar_chart" />
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
+                gap: 'var(--space-4)',
+              }}
+            >
+              <StatCard icon="flag" value={`${stats.doneCheckpoints}/${stats.totalCheckpoints}`} label="Checkpoints done" />
+              <StatCard icon="layers" value={stats.sections} label="Sections" />
+              <StatCard icon="menu_book" value={stats.lessonsCompleted} label="Lessons completed" />
+              <StatCard icon="quiz" value={stats.quizzesTaken} label="Quizzes taken" />
+              <StatCard icon="fort" value={stats.bossTestsPassed} label="Boss tests passed" />
+              <StatCard icon="star" value={stats.starsEarned} label="Stars earned" accent="var(--brand-gold)" />
+            </div>
+          </section>
+
+          {/* ── Topic mastery ── */}
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <SectionHeading title="Topic mastery" icon="workspace_premium" />
+            <NMCard style={{ padding: 'clamp(16px, 2.5vw, 24px)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+                {stats.topics.map((topic, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <span
+                      style={{
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: 600,
+                        color: 'var(--on-surface)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {topic.title}
+                    </span>
+                    <ProgressBar value={topic.pct} color={readinessColor(topic.pct)} height={8} showPercent />
+                  </div>
+                ))}
+              </div>
+            </NMCard>
+          </section>
+
+          {/* ── Weak spots ── */}
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <SectionHeading title="Weak spots" icon="priority_high" />
+            <NMCard accent="review" style={{ padding: 'clamp(16px, 2.5vw, 24px)' }}>
+              {stats.weakCheckpoints.length === 0 && stats.weakTopicName === null ? (
+                <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+                  {allDone
+                    ? 'No weak spots. Every checkpoint is cleared. Revisit any time to stay sharp.'
+                    : 'No weak spots yet. They appear after assessments reveal gaps.'}
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+                    {stats.weakCheckpoints.map((wc, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          minHeight: 40,
+                          padding: '8px 14px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--nm-review-soft)',
+                          border: '1px solid var(--nm-review)',
+                          color: 'var(--nm-review)',
+                          fontSize: 'var(--fs-sm)',
+                          fontWeight: 600,
+                          maxWidth: '100%',
+                        }}
+                      >
+                        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 16 }}>
+                          priority_high
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {wc.title}
+                        </span>
+                        <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{wc.pct}%</span>
+                      </span>
+                    ))}
+                    {stats.weakCheckpoints.length === 0 && stats.weakTopicName && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          minHeight: 40,
+                          padding: '8px 14px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--nm-review-soft)',
+                          border: '1px solid var(--nm-review)',
+                          color: 'var(--nm-review)',
+                          fontSize: 'var(--fs-sm)',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 16 }}>
+                          priority_high
+                        </span>
+                        {stats.weakTopicName}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.5 }}>
+                    {stats.weakCheckpoints.length > 0
+                      ? 'Assessments you scored below the 70% pass mark. Retake them from the path to raise your readiness.'
+                      : 'Your lowest-progress section so far. Keep going to close the gap.'}
+                  </p>
+                </div>
+              )}
+            </NMCard>
+          </section>
+        </>
+      )}
+
+      {publishOpen ? (
+        <PublishDialog
+          planId={meta.id}
+          defaultTitle={meta.title}
+          defaultDescription={meta.description ?? null}
+          onClose={() => setPublishOpen(false)}
+          onPublished={(shareId, moderationStatus) => {
+            setPublishOpen(false);
+            onPublished(meta.id, shareId, moderationStatus);
+          }}
+        />
+      ) : null}
+
+      {deleteOpen ? (
+        <DeletePathDialog
+          planId={meta.id}
+          planTitle={meta.title}
+          onClose={() => setDeleteOpen(false)}
+          onDeleted={() => {
+            setDeleteOpen(false);
+            onDeleted(meta.id);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+// ── Empty / generating states ────────────────────────────────────────────
 
 function EmptyState() {
   return (
     <NMCard
       style={{
         maxWidth: '480px',
-        margin: '48px auto 0',
+        margin: '24px auto 0',
         padding: '40px 32px',
         display: 'flex',
         flexDirection: 'column',
@@ -778,16 +906,9 @@ function EmptyState() {
             letterSpacing: '-0.01em',
           }}
         >
-          No path yet
+          No paths yet
         </h2>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '14px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.65,
-          }}
-        >
+        <p style={{ margin: 0, fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.65 }}>
           Upload your material and Notemage builds a step-by-step path: lessons, quizzes, reviews,
           and a final boss test.
         </p>
@@ -807,7 +928,7 @@ function GeneratingState() {
     <NMCard
       style={{
         maxWidth: '480px',
-        margin: '48px auto 0',
+        margin: '24px auto 0',
         padding: '40px 32px',
         display: 'flex',
         flexDirection: 'column',
@@ -850,26 +971,102 @@ function GeneratingState() {
         </span>
         Back to paths
       </Button>
-      <style>{`
-        @keyframes myPathSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .my-path-spinner { animation: none !important; }
-        }
-      `}</style>
     </NMCard>
   );
 }
 
-// ── Layout constant ────────────────────────────────────────────────────
+// ── Shared page styles ─────────────────────────────────────────────────
 
-const wrapStyle: React.CSSProperties = {
-  maxWidth: '1180px',
-  margin: '0 auto',
-  padding: 'clamp(16px, 4vw, 32px)',
-  width: '100%',
-};
-
-const wrapClass = 'nm-rework';
+function PageStyles() {
+  return (
+    <style>{`
+      @keyframes myPathSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      .my-path-select-card {
+        transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .my-path-select-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+      .my-path-select-card:active { transform: translateY(0); }
+      .my-path-select-card:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+      .my-path-select-card--gold:hover { border-color: var(--brand-gold); }
+      .my-path-select-card--gold:focus-visible { outline-color: var(--brand-gold); }
+      .my-path-back:hover { background: var(--surface-container); color: var(--on-surface); }
+      .my-path-back:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+      /* Per-path action toolbar buttons (community / publish / status / delete). */
+      .my-path-toolbtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 8px 14px;
+        border-radius: var(--radius-md);
+        background: var(--surface-container);
+        color: var(--on-surface);
+        border: 1px solid var(--outline-variant);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-spring);
+      }
+      .my-path-toolbtn:hover { border-color: var(--primary); transform: translateY(-1px); }
+      .my-path-toolbtn:active { transform: translateY(0); }
+      .my-path-toolbtn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+      .my-path-toolbtn--danger { color: var(--error); }
+      .my-path-toolbtn--danger:hover { border-color: var(--error); }
+      .my-path-toolbtn--danger:focus-visible { outline-color: var(--error); }
+      /* Continue CTA — comfortably sized on desktop, full-width on phones. */
+      .my-path-continue-wrap { width: 280px; max-width: 100%; flex-shrink: 0; }
+      @media (max-width: 640px) { .my-path-continue-wrap { width: 100%; } }
+      .my-path-continue-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+        padding: 16px 26px;
+        background: var(--accent-strong);
+        color: var(--on-primary-container);
+        border: none;
+        border-radius: 999px;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 17px;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+        cursor: pointer;
+        box-shadow: 0 4px 0 var(--primary-container, var(--outline)), 0 10px 24px rgb(var(--accent-strong-rgb) / 0.35);
+        transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      }
+      .my-path-continue-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 var(--primary-container, var(--outline)), 0 16px 34px rgb(var(--accent-strong-rgb) / 0.5);
+      }
+      .my-path-continue-btn:active {
+        transform: translateY(2px);
+        box-shadow: 0 1px 0 var(--primary-container, var(--outline)), 0 4px 12px rgb(var(--accent-strong-rgb) / 0.4);
+      }
+      .my-path-continue-btn:focus-visible { outline: 3px solid var(--accent-strong); outline-offset: 3px; }
+      .my-path-continue-ico {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        animation: myPathPulse 2.4s var(--ease-spring) infinite;
+      }
+      @keyframes myPathPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.14); } }
+      @media (prefers-reduced-motion: reduce) {
+        .my-path-select-card { transition: none; }
+        .my-path-select-card:hover { transform: none; }
+        .my-path-spinner { animation: none !important; }
+        .my-path-continue-btn { transition: none; }
+        .my-path-continue-ico { animation: none !important; }
+        .my-path-toolbtn { transition: none; }
+        .my-path-toolbtn:hover { transform: none; }
+      }
+    `}</style>
+  );
+}

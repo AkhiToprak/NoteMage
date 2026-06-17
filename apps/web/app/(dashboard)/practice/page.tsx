@@ -731,7 +731,7 @@ function EmptyState() {
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const pageWrap: React.CSSProperties = {
-  maxWidth: '1180px',
+  maxWidth: 'var(--nm-page-max)',
   margin: '0 auto',
   padding: 'clamp(16px, 4vw, 32px)',
   width: '100%',

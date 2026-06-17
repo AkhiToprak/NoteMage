@@ -139,8 +139,9 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   const [
     perfectQuizRow,
     phaseComplete,
-    pathComplete,
+    pathCompleteCount,
     checkpointAceRow,
+    sectionComplete,
   ] = await Promise.all([
     db.$queryRaw<{ ok: boolean }[]>(Prisma.sql`
       SELECT EXISTS (
@@ -169,8 +170,9 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       select: { id: true },
     }),
 
-    // Phase 10 — any plan whose every phase has every slot fully completed.
-    db.studyPlan.findFirst({
+    // Phase 10 — count of plans whose every phase has every slot fully
+    // completed (drives both `path_complete` (≥1) and `two_paths` (≥2)).
+    db.studyPlan.count({
       where: {
         userId,
         phases: {
@@ -185,7 +187,6 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
           },
         },
       },
-      select: { id: true },
     }),
 
     // Phase 10 — first attempt per slot that scored 100%. ROW_NUMBER gives
@@ -202,11 +203,21 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
         WHERE t.rn = 1 AND t.percentage = 100
       ) AS ok
     `),
+
+    // Any single checkpoint slot with every activity completed → "first steps".
+    db.checkpointSlot.findFirst({
+      where: {
+        phase: { plan: { userId } },
+        activities: { some: {}, every: { completed: true } },
+      },
+      select: { id: true },
+    }),
   ]);
   const hasPerfectQuiz = perfectQuizRow[0]?.ok === true;
   const hasPhaseComplete = !!phaseComplete;
-  const hasPathComplete = !!pathComplete;
+  const hasPathComplete = pathCompleteCount >= 1;
   const hasCheckpointAce = checkpointAceRow[0]?.ok === true;
+  const hasAnySectionComplete = !!sectionComplete;
 
   // ── Perfect first try ───────────────────────────────────────────────
   // A "perfect first try" is a 100% attempt with no earlier attempt on the
@@ -283,6 +294,8 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     hasPhaseComplete,
     hasPathComplete,
     hasCheckpointAce,
+    hasAnySectionComplete,
+    pathCompleteCount,
   };
 }
 

@@ -7,7 +7,7 @@ import type { MascotIdle, MascotPose, MascotSize } from './poses';
 
 interface ContextualMascotProps {
   pose: MascotPose;
-  size?: MascotSize;
+  size?: MascotSize | number;
   idle?: MascotIdle;
   alt?: string;
   className?: string;

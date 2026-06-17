@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NMCard } from '@/components/rework/NMCard';
 import { ProgressBar } from '@/components/rework/ProgressBar';
@@ -327,22 +328,10 @@ function Step1Upload({
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit_note</span>
           Paste text
         </button>
-        <button
-          type="button"
-          style={linkButtonStyle}
-          onClick={() =>
-            onChange({
-              usingSample: true,
-              file: null,
-              showPaste: false,
-              pasteText: '',
-              topics: SAMPLE_TOPICS,
-            })
-          }
-        >
+        <Link href="/tutorial" style={{ ...linkButtonStyle, textDecoration: 'none' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>science</span>
-          Try sample material
-        </button>
+          Try a guided sample
+        </Link>
       </div>
 
       <Button

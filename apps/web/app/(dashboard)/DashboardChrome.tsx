@@ -10,7 +10,6 @@ import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 import { ToastProvider } from '@/components/ui/Toast';
-import { TutorialProvider } from '@/components/tutorial/TutorialProvider';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
 /** Matches /notebooks/<uuid-or-id> and anything nested below it */
@@ -23,6 +22,8 @@ const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
 const STUDY_PACKS_NEW_RE = /^\/study-packs\/new(\/|$)/;
 /** Matches /lesson and any nested lesson route — lesson screen is immersive */
 const LESSON_RE = /^\/lesson(\/|$)/;
+/** Matches /tutorial — guided sample tutorial owns the viewport, no chrome */
+const TUTORIAL_RE = /^\/tutorial(\/|$)/;
 
 export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -53,7 +54,9 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const isLearnChats = LEARN_CHATS_RE.test(pathname);
   const isStudyPacksNew = STUDY_PACKS_NEW_RE.test(pathname);
   const isLesson = LESSON_RE.test(pathname);
-  const isFullHeight = isNotebookWorkspace || isGroupDetail || isLearnChats || isStudyPacksNew || isLesson;
+  const isTutorial = TUTORIAL_RE.test(pathname);
+  const isFullHeight =
+    isNotebookWorkspace || isGroupDetail || isLearnChats || isStudyPacksNew || isLesson || isTutorial;
   // /learn owns its own spacing: the tab strip is full-bleed (flush under the
   // header, edge to edge) and every /learn page self-pads (centered maxWidth +
   // its own horizontal padding). Drop the generic <main> padding here — it
@@ -61,42 +64,40 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const isLearn = pathname === '/learn' || pathname.startsWith('/learn/');
 
   return (
-    <TutorialProvider>
-      <TimerProvider>
-        <UnlockProvider>
-          <ToastProvider>
-            <div
+    <TimerProvider>
+      <UnlockProvider>
+        <ToastProvider>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100dvh',
+              overflow: 'hidden',
+              background: 'var(--background)',
+            }}
+          >
+            {!isNotebookWorkspace && !isGroupDetail && !isStudyPacksNew && !isLesson && !isTutorial && <HomeHeader />}
+            <main
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100dvh',
-                overflow: 'hidden',
-                background: 'var(--background)',
+                flex: 1,
+                minHeight: 0,
+                overflowX: 'hidden',
+                overflowY: isFullHeight ? 'hidden' : 'auto',
+                padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
+                color: 'var(--on-surface)',
+                display: isFullHeight ? 'flex' : undefined,
+                flexDirection: isFullHeight ? 'column' : undefined,
               }}
             >
-              {!isNotebookWorkspace && !isGroupDetail && !isStudyPacksNew && !isLesson && <HomeHeader />}
-              <main
-                style={{
-                  flex: 1,
-                  minHeight: 0,
-                  overflowX: 'hidden',
-                  overflowY: isFullHeight ? 'hidden' : 'auto',
-                  padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-                  color: 'var(--on-surface)',
-                  display: isFullHeight ? 'flex' : undefined,
-                  flexDirection: isFullHeight ? 'column' : undefined,
-                }}
-              >
-                {children}
-              </main>
-              {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
-                workspace, group detail, learn chats) which own the viewport. */}
-              {!isFullHeight && <MobileBottomNav />}
-            </div>
-          </ToastProvider>
-        </UnlockProvider>
-      </TimerProvider>
-    </TutorialProvider>
+              {children}
+            </main>
+            {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
+              workspace, group detail, learn chats) which own the viewport. */}
+            {!isFullHeight && <MobileBottomNav />}
+          </div>
+        </ToastProvider>
+      </UnlockProvider>
+    </TimerProvider>
   );
 }
 

@@ -102,8 +102,6 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
    * intent (`success`/`error`) for a button whose press is itself an outcome.
    */
   haptic?: false | 'tap' | 'select' | 'success' | 'error';
-  /** Tutorial-system target hook (passed through to the DOM button). */
-  'data-tutorial'?: string;
   /**
    * When set, the button renders as a navigable anchor (Next `Link`) instead of
    * a `<button>` — so callers never need to wrap it in `<Link>` (which would

@@ -167,6 +167,17 @@ export const COSMETICS: Record<string, Cosmetic> = {
     type: 'title',
     label: 'comeback kid',
   },
+  // Guided-tutorial + path-progress rewards.
+  'title.first-steps': {
+    id: 'title.first-steps',
+    type: 'title',
+    label: 'first steps',
+  },
+  'title.trailblazer': {
+    id: 'title.trailblazer',
+    type: 'title',
+    label: 'trailblazer',
+  },
   // Admin-granted titles. The `adminOnly` flag blocks auto-unlocks.
   'title.og-noter': {
     id: 'title.og-noter',

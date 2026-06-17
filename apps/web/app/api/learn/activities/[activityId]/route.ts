@@ -11,6 +11,17 @@ import {
 } from '@/lib/api-response';
 import { isSlotUnlocked } from '@/lib/path-gating';
 import { logTelemetry } from '@/lib/telemetry-server';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
+import { getAchievementDef } from '@/lib/achievements';
+
+/** Map newly-unlocked badges to the shape the client celebrates with. */
+function toUnlockedPayload(newly: { badge: string; name: string }[]) {
+  return newly.map((b) => ({
+    badge: b.badge,
+    name: b.name,
+    cosmetics: getAchievementDef(b.badge)?.unlocks ?? [],
+  }));
+}
 
 // Phase 10.6 — mark one CheckpointActivity complete.
 //
@@ -80,6 +91,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       return forbiddenResponse(`Slot is locked (${gate.reason ?? 'unknown'})`);
     }
 
+    // Achievements newly unlocked by this completion (e.g. "first steps" when
+    // a learning slot's last activity lands). Only evaluated on a real flip.
+    let unlocked: ReturnType<typeof toUnlockedPayload> = [];
     if (!activity.completed) {
       await db.checkpointActivity.update({
         where: { id: activityId },
@@ -92,6 +106,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         activityId,
         activityKind: activity.kind,
       });
+      unlocked = toUnlockedPayload(await checkAndUnlockAchievements(userId));
     }
 
     // Return the updated slot so the drawer can refresh in-place
@@ -100,7 +115,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       where: { id: activity.slotId },
       include: { activities: { orderBy: { sortOrder: 'asc' } } },
     });
-    return successResponse({ slot });
+    return successResponse({ slot, unlocked });
   } catch (error) {
     console.error('[learn/activities PATCH]', error);
     return internalErrorResponse();

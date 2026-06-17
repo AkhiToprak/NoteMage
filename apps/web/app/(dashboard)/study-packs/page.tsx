@@ -55,7 +55,7 @@ export default function StudyPacksPage() {
       <div
         className="nm-rework"
         style={{
-          maxWidth: 1180,
+          maxWidth: 'var(--nm-page-max)',
           margin: '0 auto',
           padding: 'clamp(16px,4vw,32px)',
           width: '100%',

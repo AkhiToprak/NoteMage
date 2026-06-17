@@ -5,6 +5,8 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
+import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
+import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
 import { trackEvent } from '@/lib/telemetry';
 
 // Full-screen viewer for checkpoint flashcards. Replaces the in-drawer
@@ -56,7 +58,7 @@ interface CheckpointFlashcardViewerProps {
   slot: PathSlot;
   activity: PathActivity;
   onClose: () => void;
-  onCompleted: () => void;
+  onCompleted: (unlocked?: PathUnlock[]) => void;
 }
 
 export default function CheckpointFlashcardViewer({
@@ -156,7 +158,8 @@ export default function CheckpointFlashcardViewer({
         },
       );
       if (res.ok) {
-        onCompleted();
+        const json = await res.json().catch(() => null);
+        onCompleted(readUnlocked(json));
       } else {
         setSubmitting(false);
       }
@@ -348,9 +351,7 @@ export default function CheckpointFlashcardViewer({
             {loadError}
           </p>
         ) : !cards ? (
-          <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
-            Loading flashcards…
-          </p>
+          <CheckpointSkeletonBody kind="flashcards" />
         ) : total === 0 ? (
           <div
             style={{

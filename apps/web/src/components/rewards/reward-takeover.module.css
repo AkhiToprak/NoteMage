@@ -1,0 +1,128 @@
+/* Full-screen reward celebration. Always-dark stage (a "dark island"), so text
+ * colours are hardcoded light — never theme vars, which would flip to dark text
+ * in light mode and vanish on the dark stage. Transform/opacity only, no
+ * gradients. Reduced-motion jumps to the settled frame. */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0c0a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.confettiLayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.confetti {
+  position: absolute;
+  border-radius: 2px;
+  opacity: 0;
+  transform: translate(0, 0) rotate(0deg);
+}
+
+.confettiGo {
+  composes: confetti;
+  animation: confettiOut 900ms cubic-bezier(0.22, 1, 0.36, 1) var(--delay) forwards;
+}
+
+@keyframes confettiOut {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  transition:
+    opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.contentIn {
+  opacity: 1;
+  transform: none;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 800;
+  color: #eeecff;
+  margin: 0;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #c0bed8;
+  margin: 0;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(174, 137, 255, 0.12);
+  border: 1px solid rgba(174, 137, 255, 0.3);
+  color: #ae89ff;
+}
+
+.chipType {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.chipLabel {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: #eeecff;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+  .confettiGo {
+    animation: none;
+    opacity: 0;
+  }
+}

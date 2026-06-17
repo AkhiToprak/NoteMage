@@ -544,6 +544,18 @@
    only — shared primitives (Button, NMCard, etc.) rendered inside pick up the
    new brand without touching the global app theme. Does NOT override surface /
    background / on-surface tokens so dark mode keeps working unchanged. */
+
+/* Shared content width for the centered rework pages (Home, My Path, Practice,
+   Progress, Study Packs) AND the app top bar, so the header tracks the same
+   width as the page content below it. Fluid: tracks the viewport (small side
+   margin), caps at 1760px on large displays. One value to tune. Defined at
+   :root so surfaces outside the .nm-rework scope (the header) can read it too;
+   immersive surfaces (lesson, upload wizard) simply don't reference it, so they
+   stay full-bleed. */
+:root {
+  --nm-page-max: min(2100px, 92vw);
+}
+
 .nm-rework {
   font-family: var(--font-poppins), var(--font-jakarta), system-ui, sans-serif;
   --font-display: var(--font-poppins), var(--font-jakarta), system-ui, sans-serif;

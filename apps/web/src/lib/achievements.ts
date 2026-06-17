@@ -39,6 +39,10 @@ export interface UserStats {
    * on the first attempt (queried from `assessment_attempts`).
    */
   hasCheckpointAce: boolean;
+  /** True if any single checkpoint slot has every activity completed. */
+  hasAnySectionComplete: boolean;
+  /** Number of StudyPlans with every phase fully completed. */
+  pathCompleteCount: number;
 }
 
 export interface AchievementDef {
@@ -342,6 +346,26 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     getProgress: (s) => ({ current: s.everHadComeback ? 1 : 0, target: 1 }),
     unlocks: ['title.comeback-kid'],
   },
+  {
+    badge: 'first_section',
+    name: 'first steps',
+    description: 'Finish your first lesson section',
+    icon: 'directions_walk',
+    category: 'study',
+    checkCondition: (s) => s.hasAnySectionComplete,
+    getProgress: (s) => ({ current: s.hasAnySectionComplete ? 1 : 0, target: 1 }),
+    unlocks: ['title.first-steps'],
+  },
+  {
+    badge: 'two_paths',
+    name: 'trailblazer',
+    description: 'Finish two full learning paths',
+    icon: 'explore',
+    category: 'special',
+    checkCondition: (s) => s.pathCompleteCount >= 2,
+    getProgress: (s) => ({ current: Math.min(s.pathCompleteCount, 2), target: 2 }),
+    unlocks: ['title.trailblazer'],
+  },
 
   // ── Special ─────────────────────────────────────────────────────────
   {
@@ -350,9 +374,10 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: 'Get all achievements',
     icon: 'auto_awesome',
     category: 'special',
-    // Bump when adding a non-meta achievement.
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 28,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 28), target: 28 }),
+    // Bump when adding a non-meta achievement. (Unlock logic uses the dynamic
+    // NON_META_BADGES.length in achievement-checker; this drives the progress UI.)
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 30,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 30), target: 30 }),
     unlocks: [
       'title.archmage',
       'font.unifraktur',

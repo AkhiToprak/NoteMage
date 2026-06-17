@@ -11,6 +11,8 @@ import {
 } from '@/lib/api-response';
 import { isSlotUnlocked, starsForPercentage } from '@/lib/path-gating';
 import { logTelemetry } from '@/lib/telemetry-server';
+import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
+import { getAchievementDef } from '@/lib/achievements';
 
 // Phase 10.6 — record an assessment attempt + roll up the slot.
 //
@@ -149,11 +151,24 @@ export async function POST(request: NextRequest, { params }: Params) {
       passed: stars >= 1,
     });
 
+    // A fresh pass may complete this slot → its phase → the whole path,
+    // unlocking pathfinder / master / trailblazer / first-steps. Only evaluate
+    // when this attempt actually flipped the quiz activity to completed.
+    const justCompleted = stars >= 1 && !quizActivity.completed;
+    const unlocked = justCompleted
+      ? (await checkAndUnlockAchievements(userId)).map((b) => ({
+          badge: b.badge,
+          name: b.name,
+          cosmetics: getAchievementDef(b.badge)?.unlocks ?? [],
+        }))
+      : [];
+
     return successResponse({
       starsEarned: stars,
       percentage,
       passed: stars >= 1,
       slot: updatedSlot,
+      unlocked,
     });
   } catch (error) {
     console.error('[learn/slots/assessment POST]', error);

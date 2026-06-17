@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import QuizViewer from '@/components/notebook/QuizViewer';
 import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
+import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
+import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
 import { gradeForPercentage } from '@/lib/path-gating';
 import { trackEvent } from '@/lib/telemetry';
 
@@ -59,11 +61,16 @@ interface CheckpointQuizViewerProps {
   slot: PathSlot;
   activity: PathActivity;
   onClose: () => void;
-  onCompleted: () => void;
+  onCompleted: (unlocked?: PathUnlock[]) => void;
   // Refresh path progress WITHOUT closing the viewer. Used when an ungraded
   // review quiz finishes so the eval screen stays up until the learner closes
   // it themselves, while the path behind reflects the completion.
   onProgress: () => void;
+  // Tutorial mode: let the learner continue past a failed graded quiz instead
+  // of being stranded on the retake screen. The guided sample is a demo, not a
+  // real gate, so the fail panel gains a "Continue anyway" action that advances
+  // the flow (fires onCompleted) without requiring a pass.
+  allowContinueOnFail?: boolean;
 }
 
 export default function CheckpointQuizViewer({
@@ -72,6 +79,7 @@ export default function CheckpointQuizViewer({
   onClose,
   onCompleted,
   onProgress,
+  allowContinueOnFail = false,
 }: CheckpointQuizViewerProps) {
   const [quizSet, setQuizSet] = useState<QuizSetPayload['quizSet'] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -80,6 +88,9 @@ export default function CheckpointQuizViewer({
   const [retakeCount, setRetakeCount] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  // Achievements unlocked by passing this checkpoint (e.g. path_complete);
+  // surfaced when the learner clicks back-to-list.
+  const unlockedRef = useRef<PathUnlock[]>([]);
 
   const isGraded = slot.kind === 'assessment' || slot.kind === 'final_exam';
 
@@ -162,6 +173,7 @@ export default function CheckpointQuizViewer({
               percentage: json.data.percentage,
               passed: json.data.passed,
             });
+            unlockedRef.current = readUnlocked(json);
           }
         } catch (err) {
           console.error('[CheckpointQuizViewer] submitAssessment', err);
@@ -330,16 +342,17 @@ export default function CheckpointQuizViewer({
               {loadError}
             </p>
           ) : !quizSet ? (
-            <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>
-              Loading quiz…
-            </p>
+            <CheckpointSkeletonBody kind="quiz" />
           ) : assessmentResult ? (
             <AssessmentResultPanel
               result={assessmentResult}
               slotKind={slot.kind}
-              onBackToList={onCompleted}
+              onBackToList={() => onCompleted(unlockedRef.current)}
               onRetake={handleRetake}
               onReviewTheory={onClose}
+              onContinueAnyway={
+                allowContinueOnFail ? () => onCompleted(unlockedRef.current) : undefined
+              }
             />
           ) : quizSet.notebookId ? (
             <>
@@ -375,12 +388,15 @@ function AssessmentResultPanel({
   onBackToList,
   onRetake,
   onReviewTheory,
+  onContinueAnyway,
 }: {
   result: AssessmentResult;
   slotKind: string;
   onBackToList: () => void;
   onRetake: () => void;
   onReviewTheory: () => void;
+  /** Tutorial only: advance past a fail without passing. Omitted elsewhere. */
+  onContinueAnyway?: () => void;
 }) {
   const isGraded = slotKind === 'assessment' || slotKind === 'final_exam';
   const letterGrade = gradeForPercentage(result.percentage);
@@ -508,6 +524,11 @@ function AssessmentResultPanel({
           <button type="button" onClick={onReviewTheory} style={ghostBtnStyle}>
             Review the theory
           </button>
+          {onContinueAnyway ? (
+            <button type="button" onClick={onContinueAnyway} style={ghostBtnStyle}>
+              Continue anyway
+            </button>
+          ) : null}
         </div>
       ) : (
         <button type="button" onClick={onRetake} style={primaryBtnStyle}>

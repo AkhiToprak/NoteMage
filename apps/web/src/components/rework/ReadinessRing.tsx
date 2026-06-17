@@ -10,6 +10,12 @@ export interface ReadinessRingProps {
   strokeWidth?: number;
   label?: string;
   sublabel?: string;
+  /**
+   * Progress stroke color. Defaults to the readiness scale (red→amber→green
+   * by value). Pass a fixed token (e.g. the accent) when the ring shows neutral
+   * completion rather than a graded score.
+   */
+  color?: string;
 }
 
 export function ReadinessRing({
@@ -18,6 +24,7 @@ export function ReadinessRing({
   strokeWidth = 12,
   label = 'Exam Ready',
   sublabel,
+  color,
 }: ReadinessRingProps) {
   const clamped = Math.min(100, Math.max(0, value));
   const radius = (size - strokeWidth) / 2;
@@ -49,7 +56,7 @@ export function ReadinessRing({
         cy={center}
         r={radius}
         fill="none"
-        stroke={readinessColor(clamped)}
+        stroke={color ?? readinessColor(clamped)}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={circumference}

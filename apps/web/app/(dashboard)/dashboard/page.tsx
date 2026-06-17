@@ -9,10 +9,9 @@ import DashboardGreeting from '@/components/features/DashboardGreeting';
 import { NMCard } from '@/components/rework/NMCard';
 import { ProgressBar } from '@/components/rework/ProgressBar';
 import { SectionHeading } from '@/components/rework/SectionHeading';
+import { StudyStats } from '@/components/rework/StudyStats';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
-import { useTutorial } from '@/components/tutorial/TutorialContext';
-import { useTutorialTarget } from '@/components/tutorial/useTutorialTarget';
 import type { PathPhase, PathPlan } from '@/components/learn/PathView';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -98,10 +97,12 @@ export default function DashboardPage() {
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [showExamForm, setShowExamForm] = useState(false);
   const [pathState, setPathState] = useState<PathFetchState>({ kind: 'loading' });
+  // One-shot "you finished the guided tour" nudge. Read client-side (avoids the
+  // useSearchParams prerender bailout) and stripped from the URL so a refresh
+  // doesn't re-show it.
+  const [showPostTutorial, setShowPostTutorial] = useState(false);
 
-  const { step: tutorialStep } = useTutorial();
-  const tutorialCtaRef = useTutorialTarget('dashboard-cta');
-  const ctaHref = tutorialStep === 'step-1-dashboard' ? '/notebooks?tutorial=1' : '/study-packs/new';
+  const ctaHref = '/study-packs/new';
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -138,6 +139,16 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('postTutorial') === '1') {
+      setShowPostTutorial(true);
+      // Strip the query through the Next router. Using window.history.replaceState
+      // here desyncs the App Router after the tutorial's router.push, leaving the
+      // dashboard unpainted until a manual reload.
+      router.replace('/dashboard', { scroll: false });
+    }
+  }, [router]);
 
   const fetchExams = () => {
     fetch('/api/user/exams')
@@ -225,7 +236,7 @@ export default function DashboardPage() {
     <div
       className="nm-rework"
       style={{
-        maxWidth: 1180,
+        maxWidth: 'var(--nm-page-max)',
         margin: '0 auto',
         width: '100%',
         padding: 'clamp(16px, 4vw, 32px)',
@@ -236,6 +247,54 @@ export default function DashboardPage() {
     >
       {/* A) Greeting */}
       <DashboardGreeting userName={firstName} />
+
+      {/* Post-tutorial nudge — steer the user from the sample to their own material */}
+      {showPostTutorial && (
+        <NMCard
+          accent="lesson"
+          style={{
+            padding: 'clamp(16px, 2.5vw, 24px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-4)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div aria-hidden style={{ flexShrink: 0 }}>
+            <Mascot pose="graduation" size="md" idle="float" />
+          </div>
+          <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <h3
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--fs-lg)',
+                fontWeight: 800,
+                color: 'var(--on-surface)',
+                margin: 0,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              You finished the tour!
+            </h3>
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.6 }}>
+              That&apos;s the whole flow. Now turn your own notes into a path just like that.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <Button
+              variant="primary"
+              shape="pill"
+              leadingIcon="upload_file"
+              onClick={() => router.push('/study-packs/new')}
+            >
+              Upload my notes
+            </Button>
+            <Button variant="ghost" shape="pill" onClick={() => setShowPostTutorial(false)}>
+              Maybe later
+            </Button>
+          </div>
+        </NMCard>
+      )}
 
       {/* ───────────────────────────────────────────────────────────────────── */}
       {/* EMPTY STATE */}
@@ -289,7 +348,6 @@ export default function DashboardPage() {
               }}
             >
               <Link
-                ref={tutorialCtaRef}
                 href={ctaHref}
                 style={{
                   display: 'inline-flex',
@@ -321,6 +379,38 @@ export default function DashboardPage() {
                 </span>
                 Upload Material
               </Link>
+
+              <Link
+                href="/tutorial"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 24px',
+                  minHeight: 48,
+                  background: 'var(--surface-container)',
+                  color: 'var(--on-surface)',
+                  border: '1px solid var(--ink-08)',
+                  borderRadius: 'var(--radius-full)',
+                  fontFamily: 'var(--font-sans)',
+                  fontWeight: 700,
+                  fontSize: 'var(--fs-base)',
+                  textDecoration: 'none',
+                  transition: 'background var(--dur-fast) var(--ease-spring)',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.background =
+                    'var(--surface-container-high)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.background = 'var(--surface-container)';
+                }}
+              >
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 20 }}>
+                  auto_awesome
+                </span>
+                Take a 2-min tour
+              </Link>
             </div>
 
             <p
@@ -330,7 +420,7 @@ export default function DashboardPage() {
                 margin: '0 0 var(--space-3)',
               }}
             >
-              Or try an example:
+              New here? Explore a ready-made sample:
             </p>
             <div
               style={{
@@ -340,10 +430,14 @@ export default function DashboardPage() {
                 justifyContent: 'center',
               }}
             >
-              {['Biology PDF', 'History Notes', 'Java OOP'].map((label) => (
+              {[
+                { label: 'Biology', sample: 'biology' },
+                { label: 'History', sample: 'history' },
+                { label: 'Computer Science', sample: 'computer-science' },
+              ].map(({ label, sample }) => (
                 <Link
-                  key={label}
-                  href="/study-packs/new"
+                  key={sample}
+                  href={`/tutorial?sample=${sample}`}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -617,7 +711,10 @@ export default function DashboardPage() {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-              gap: 'var(--space-5)',
+              // --space-5 is undefined in the scale (jumps 4→6), so the prior
+              // `var(--space-5)` silently collapsed to a 0 gap. Use a defined
+              // token; 32px matches the vertical rhythm between sections.
+              gap: 'var(--space-8)',
               alignItems: 'start',
             }}
           >
@@ -1000,6 +1097,9 @@ export default function DashboardPage() {
             </NMCard>
           </section>
 
+          {/* C2) Streak · This week · Overview — moved from the old Progress page */}
+          <StudyStats plans={pathState.kind === 'ready' ? pathState.plans : []} />
+
           {/* D) Upload card — always visible */}
           <section>
             <NMCard
@@ -1033,15 +1133,6 @@ export default function DashboardPage() {
                     Upload new material
                   </h3>
                 </div>
-                <p
-                  style={{
-                    fontSize: 'var(--fs-sm)',
-                    color: 'var(--on-surface-variant)',
-                    margin: 0,
-                  }}
-                >
-                  PDF, PowerPoint, images, or text
-                </p>
               </div>
 
               <div
@@ -1052,49 +1143,6 @@ export default function DashboardPage() {
                   flexWrap: 'wrap',
                 }}
               >
-                <p
-                  style={{
-                    fontSize: 'var(--fs-xs)',
-                    color: 'var(--on-surface-variant)',
-                    margin: 0,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Try an example:
-                </p>
-                {['Biology PDF', 'History Notes', 'Java OOP'].map((label) => (
-                  <Link
-                    key={label}
-                    href="/study-packs/new"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '6px 12px',
-                      minHeight: 44,
-                      background: 'var(--surface-container)',
-                      color: 'var(--on-surface-variant)',
-                      border: '1px solid var(--ink-08)',
-                      borderRadius: 'var(--radius-full)',
-                      fontFamily: 'var(--font-sans)',
-                      fontSize: 'var(--fs-xs)',
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                      whiteSpace: 'nowrap',
-                      transition: 'background var(--dur-fast) var(--ease-spring)',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background =
-                        'var(--surface-container-high)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background =
-                        'var(--surface-container)';
-                    }}
-                  >
-                    {label}
-                  </Link>
-                ))}
-
                 <Button
                   variant="primary"
                   size="md"

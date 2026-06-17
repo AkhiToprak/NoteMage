@@ -14,7 +14,8 @@ import {
 
 export interface MascotProps {
   pose: MascotPose;
-  size?: MascotSize;
+  /** Named size token, or an exact pixel size for fine-grained control. */
+  size?: MascotSize | number;
   idle?: MascotIdle;
   oneShot?: MascotOneShot | null;
   onOneShotEnd?: () => void;
@@ -69,7 +70,7 @@ export function Mascot({
   alt = '',
   className,
 }: MascotProps) {
-  const px = SIZE_PX[size];
+  const px = typeof size === 'number' ? size : SIZE_PX[size];
   const { src, blinkSrc } = POSES[pose];
   const showPulse = pointerPulse && (pose === 'pointing-left' || pose === 'pointing-right');
   const showWandSparkle = (wandSparkle ?? pose === 'holding-wand') && pose === 'holding-wand';

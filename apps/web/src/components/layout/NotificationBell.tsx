@@ -16,8 +16,16 @@ const COLORS = {
   error: '#fd6f85',
 } as const;
 
-export default function NotificationBell() {
+interface Props {
+  /** Square px size of the bell button. Defaults to 38px (sidebar/compact);
+   *  the topbar passes a larger value to scale the control. */
+  size?: number;
+}
+
+export default function NotificationBell({ size = 38 }: Props) {
   const router = useRouter();
+  const bellIconPx = Math.round(size * 0.58);
+  const bellRadiusPx = Math.round(size * 0.26);
   const [unreadCount, setUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -134,9 +142,9 @@ export default function NotificationBell() {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
+          width: size,
+          height: size,
+          borderRadius: bellRadiusPx,
           border: 'none',
           background: hovered || dropdownOpen ? COLORS.elevated : 'transparent',
           color: hovered || dropdownOpen ? COLORS.textPrimary : 'var(--on-surface-variant)',
@@ -148,7 +156,7 @@ export default function NotificationBell() {
           transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: bellIconPx }}>
           notifications
         </span>
         {unreadCount > 0 && (

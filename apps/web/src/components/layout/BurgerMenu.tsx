@@ -39,11 +39,10 @@ type NavItem = {
 /** Six primary destinations — learning-path focused. */
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',   label: 'Home',        icon: 'cottage' },
-  { href: '/my-path',     label: 'My Path',     icon: 'route' },
+  { href: '/my-path',     label: 'My Paths',    icon: 'route' },
   { href: '/study-packs', label: 'Study Packs', icon: 'auto_stories' },
   { href: '/practice',    label: 'Practice',    icon: 'fitness_center' },
   { href: '/learn/chats', label: 'Mage Tutor',  icon: 'auto_fix_high' },
-  { href: '/progress',    label: 'Progress',    icon: 'trending_up' },
 ];
 
 /** Secondary / utility item — rendered below a divider. */
@@ -68,6 +67,47 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [hoveredLogout, setHoveredLogout] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sidebar sizing — scaled up ~2x on desktop to match the enlarged top bar
+  // and give every row room to breathe. Phone keeps a full-bleed panel with
+  // gentler sizing so the drawer stays usable on a small viewport.
+  const sb = isPhone
+    ? {
+        width: '100vw' as number | string,
+        userPad: '32px 24px 24px',
+        avatar: 88,
+        userGap: 14,
+        nameFont: 19,
+        userFont: 15,
+        navPad: '14px 14px',
+        itemGap: 4,
+        itemPad: '15px 16px',
+        itemIconGap: 14,
+        itemRadius: 14,
+        itemIcon: 28,
+        itemFont: 17,
+        dot: 7,
+        dividerMargin: '10px 2px',
+        logoutPad: '14px 14px 28px',
+      }
+    : {
+        width: 520 as number | string,
+        userPad: '44px 32px 32px',
+        avatar: 120,
+        userGap: 20,
+        nameFont: 28,
+        userFont: 22,
+        navPad: '20px 18px',
+        itemGap: 6,
+        itemPad: '18px 22px',
+        itemIconGap: 18,
+        itemRadius: 18,
+        itemIcon: 40,
+        itemFont: 25,
+        dot: 10,
+        dividerMargin: '14px 4px',
+        logoutPad: '18px 18px 40px',
+      };
 
   // Admin-only entry to the /admin console. `role` rides on the JWT, so this
   // surfaces only for users whose User.role === 'admin'.
@@ -97,6 +137,70 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
+
+  // Shared row renderer — used for both the primary and secondary nav groups so
+  // their styling stays in lockstep with the `sb` sizing object.
+  const renderNavItem = (item: NavItem) => {
+    // /learn/chats should be active on itself and any sub-path
+    const isActive =
+      item.href === '/learn/chats'
+        ? pathname === '/learn/chats' || pathname.startsWith('/learn/chats/')
+        : pathname === item.href || pathname.startsWith(item.href + '/');
+    const isHovered = hoveredItem === item.href;
+    const tint = isActive ? COLORS.primary : isHovered ? COLORS.textPrimary : COLORS.textSecondary;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onClose}
+        onMouseEnter={() => setHoveredItem(item.href)}
+        onMouseLeave={() => setHoveredItem(null)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: sb.itemIconGap,
+          padding: sb.itemPad,
+          borderRadius: sb.itemRadius,
+          background: isActive
+            ? 'rgba(174,137,255,0.1)'
+            : isHovered
+              ? 'rgba(255,255,255,0.06)'
+              : 'transparent',
+          color: tint,
+          textDecoration: 'none',
+          fontSize: sb.itemFont,
+          fontWeight: isActive ? 700 : 500,
+          transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
+        }}
+      >
+        {typeof item.icon === 'function' ? (
+          item.icon(tint)
+        ) : (
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontSize: sb.itemIcon,
+              fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
+            }}
+          >
+            {item.icon}
+          </span>
+        )}
+        {item.label}
+        {isActive && (
+          <div
+            style={{
+              marginLeft: 'auto',
+              width: sb.dot,
+              height: sb.dot,
+              borderRadius: '50%',
+              background: COLORS.primary,
+            }}
+          />
+        )}
+      </Link>
+    );
+  };
 
   if (!open) return null;
 
@@ -135,7 +239,8 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
           top: 0,
           left: 0,
           bottom: 0,
-          width: isPhone ? '100vw' : 280,
+          width: sb.width,
+          maxWidth: '100vw',
           background: COLORS.cardBg,
           borderRight: `1px solid ${COLORS.border}`,
           zIndex: 201,
@@ -148,24 +253,24 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
         {/* User info */}
         <div
           style={{
-            padding: '28px 24px 20px',
+            padding: sb.userPad,
             borderBottom: `1px solid ${COLORS.border}`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 12,
+            gap: sb.userGap,
           }}
         >
           <UserAvatar
             user={user}
-            size={64}
+            size={sb.avatar}
             radius="50%"
             style={{ border: '2px solid rgba(174,137,255,0.3)' }}
           />
           <div style={{ textAlign: 'center' }}>
             <div
               style={{
-                fontSize: 15,
+                fontSize: sb.nameFont,
                 fontWeight: 700,
                 color: COLORS.textPrimary,
                 display: 'flex',
@@ -178,7 +283,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
               <TierBadge tier={user?.tier || 'FREE'} role={user?.role} />
             </div>
             {user?.username && (
-              <div style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 2 }}>
+              <div style={{ fontSize: sb.userFont, color: COLORS.textMuted, marginTop: 2 }}>
                 @{user.username}
               </div>
             )}
@@ -189,165 +294,31 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
         <nav
           style={{
             flex: 1,
-            padding: '12px 12px',
+            padding: sb.navPad,
             display: 'flex',
             flexDirection: 'column',
-            gap: 2,
+            gap: sb.itemGap,
             overflowY: 'auto',
           }}
         >
           {/* Primary items */}
-          {primaryItems.map((item) => {
-            // /learn/chats should be active on itself and any sub-path
-            const isActive =
-              item.href === '/learn/chats'
-                ? pathname === '/learn/chats' || pathname.startsWith('/learn/chats/')
-                : pathname === item.href || pathname.startsWith(item.href + '/');
-            const isHovered = hoveredItem === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                onMouseEnter={() => setHoveredItem(item.href)}
-                onMouseLeave={() => setHoveredItem(null)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: isActive
-                    ? 'rgba(174,137,255,0.1)'
-                    : isHovered
-                      ? 'rgba(255,255,255,0.06)'
-                      : 'transparent',
-                  color: isActive
-                    ? COLORS.primary
-                    : isHovered
-                      ? COLORS.textPrimary
-                      : COLORS.textSecondary,
-                  textDecoration: 'none',
-                  fontSize: 14,
-                  fontWeight: isActive ? 700 : 500,
-                  transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
-                }}
-              >
-                {typeof item.icon === 'function' ? (
-                  item.icon(
-                    isActive
-                      ? COLORS.primary
-                      : isHovered
-                        ? COLORS.textPrimary
-                        : COLORS.textSecondary
-                  )
-                ) : (
-                  <span
-                    className="material-symbols-outlined"
-                    style={{
-                      fontSize: 22,
-                      fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
-                    }}
-                  >
-                    {item.icon}
-                  </span>
-                )}
-                {item.label}
-                {isActive && (
-                  <div
-                    style={{
-                      marginLeft: 'auto',
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: COLORS.primary,
-                    }}
-                  />
-                )}
-              </Link>
-            );
-          })}
+          {primaryItems.map(renderNavItem)}
 
           {/* Divider before secondary items */}
           <div
             style={{
               height: 1,
               background: COLORS.border,
-              margin: '8px 2px',
+              margin: sb.dividerMargin,
             }}
           />
 
           {/* Secondary items (Settings) */}
-          {SECONDARY_NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            const isHovered = hoveredItem === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                onMouseEnter={() => setHoveredItem(item.href)}
-                onMouseLeave={() => setHoveredItem(null)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: isActive
-                    ? 'rgba(174,137,255,0.1)'
-                    : isHovered
-                      ? 'rgba(255,255,255,0.06)'
-                      : 'transparent',
-                  color: isActive
-                    ? COLORS.primary
-                    : isHovered
-                      ? COLORS.textPrimary
-                      : COLORS.textSecondary,
-                  textDecoration: 'none',
-                  fontSize: 14,
-                  fontWeight: isActive ? 700 : 500,
-                  transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
-                }}
-              >
-                {typeof item.icon === 'function' ? (
-                  item.icon(
-                    isActive
-                      ? COLORS.primary
-                      : isHovered
-                        ? COLORS.textPrimary
-                        : COLORS.textSecondary
-                  )
-                ) : (
-                  <span
-                    className="material-symbols-outlined"
-                    style={{
-                      fontSize: 22,
-                      fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
-                    }}
-                  >
-                    {item.icon}
-                  </span>
-                )}
-                {item.label}
-                {isActive && (
-                  <div
-                    style={{
-                      marginLeft: 'auto',
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: COLORS.primary,
-                    }}
-                  />
-                )}
-              </Link>
-            );
-          })}
+          {SECONDARY_NAV_ITEMS.map(renderNavItem)}
         </nav>
 
         {/* Logout */}
-        <div style={{ padding: '12px 12px 24px' }}>
+        <div style={{ padding: sb.logoutPad }}>
           <button
             onClick={() => signOut({ callbackUrl: '/auth/login' })}
             onMouseEnter={() => setHoveredLogout(true)}
@@ -356,20 +327,20 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
               width: '100%',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '12px 14px',
-              borderRadius: 12,
+              gap: sb.itemIconGap,
+              padding: sb.itemPad,
+              borderRadius: sb.itemRadius,
               border: 'none',
               background: hoveredLogout ? 'rgba(253,111,133,0.08)' : 'transparent',
               color: hoveredLogout ? COLORS.error : COLORS.textMuted,
-              fontSize: 14,
+              fontSize: sb.itemFont,
               fontWeight: 500,
               cursor: 'pointer',
               transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
               textAlign: 'left',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: sb.itemIcon }}>
               logout
             </span>
             Log Out

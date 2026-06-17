@@ -292,7 +292,6 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
               <button
                 type="button"
                 onClick={() => setShowCreate(true)}
-                data-tutorial="learn-new-chat"
                 style={{
                   flex: 1,
                   display: 'inline-flex',
