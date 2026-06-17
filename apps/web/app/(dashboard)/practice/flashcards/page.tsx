@@ -7,15 +7,13 @@ import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
 import FlashcardSetManager from '@/components/notebook/FlashcardSetManager';
 import { formatRelativeTime } from '@/lib/relative-time';
 
-// Phase 9.4 — /learn/flashcards. Grouped grid of every flashcard set the
-// user owns, grouped by source notebook. Inbox first, then standard
-// notebooks alphabetically, then a Cross-notebook bucket last. The Learn-
-// level tab strip lives in the parent /learn/layout.tsx, so we just render
-// the panel body here.
+// /practice/flashcards. Grouped grid of every flashcard set the user owns,
+// grouped by source notebook. Inbox first, then standard notebooks
+// alphabetically, then a Cross-notebook bucket last. Reached from the Practice
+// page's "All flashcards" link.
 //
 // Opening a set still routes to the existing per-notebook player view
-// (/notebooks/[id]/flashcards/[setId]); the set listing/creation moves
-// here in v1 but the player itself is out of scope for this phase.
+// (/notebooks/[id]/flashcards/[setId]).
 
 interface FlashcardSetRow {
   id: string;
@@ -296,7 +294,7 @@ function EmptyState() {
         flashcard set from any page.
       </p>
       <Link
-        href="/notebooks"
+        href="/study-packs"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -314,7 +312,7 @@ function EmptyState() {
         <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
           arrow_forward
         </span>
-        Go to notebooks
+        Go to study packs
       </Link>
     </section>
   );

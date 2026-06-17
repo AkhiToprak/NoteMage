@@ -135,8 +135,8 @@ export default function UnifiedSidebar() {
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Link
-            href="/notebooks"
-            title="Back to notebooks"
+            href="/study-packs"
+            title="Back to study packs"
             style={{
               display: 'flex',
               alignItems: 'center',

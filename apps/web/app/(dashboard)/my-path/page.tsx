@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { NMCard } from '@/components/rework/NMCard';
 import { SectionHeading } from '@/components/rework/SectionHeading';
 import { ProgressBar } from '@/components/rework/ProgressBar';
@@ -10,8 +11,12 @@ import { readinessColor } from '@/components/rework/tokens';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
 import { UltraBadge } from '@/components/learn/UltraBadge';
+import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import PublishDialog from '@/components/path-publish/PublishDialog';
 import { DeletePathDialog } from '@/components/learn/DeletePathDialog';
+import { ResetPathDialog } from '@/components/learn/ResetPathDialog';
+import { TranslatePathDialog } from '@/components/learn/TranslatePathDialog';
+import { CancelPathDialog } from '@/components/learn/CancelPathDialog';
 import type { PathPlan } from '@/components/learn/PathView';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
@@ -37,6 +42,12 @@ type PathListItem = PathPlan & {
   generationStatus?: string;
   subjects?: string[];
   updatedAt?: string;
+  /** Ultra (Pro-tier) path — drives the gold accent + badge. */
+  ultra?: boolean;
+  /** Current content language (BCP-47). Defaults to 'en' when absent. */
+  language?: string;
+  /** 'translate' while an in-place translation is running; else absent. */
+  generationMode?: string | null;
   /** Set once the path has been published to the community library. */
   publication?: { shareId: string; moderationStatus: string } | null;
 };
@@ -44,15 +55,47 @@ type PathListItem = PathPlan & {
 // Fill the screen like the dashboard / progress pages.
 const PAGE_MAX = 'var(--nm-page-max)';
 
+// Poll the list while any path is still generating / translating.
+const POLL_INTERVAL_MS = 3000;
+
+// Mirrors STALE_GENERATION_MS in src/lib/path-loader.ts. A `generating` path
+// with no heartbeat for this long has a dead orchestrator (e.g. a redeploy
+// killed the detached worker) and is safe to force-stop. The server DELETE
+// enforces the same window — this only gates whether the Stop affordance shows.
+const STALE_GENERATION_MS = 15 * 60 * 1000;
+
+function isInFlight(plan: PathListItem): boolean {
+  const status = plan.generationStatus;
+  return status === 'queued' || status === 'generating' || status === 'cancelling';
+}
+
+function isStuckGenerating(plan: PathListItem): boolean {
+  const s = plan.generationStatus;
+  if ((s !== 'generating' && s !== 'cancelling') || !plan.updatedAt) return false;
+  return Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
+}
+
 // ── root page component ────────────────────────────────────────────────
 
 export default function MyPathsPage() {
+  const router = useRouter();
   const [listItems, setListItems] = useState<PathListItem[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   // The path the user has chosen to view (null = selection grid / auto).
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   // Full plan detail (with activities) for the active path.
   const [plan, setPlan] = useState<PathPlan | null>(null);
+
+  // Create flow (moved here from the retired /learn/paths list page). The
+  // generator (LearnPathSetup) is a shared, self-contained component.
+  const [createOpen, setCreateOpen] = useState(false);
+  const [pendingCreate, setPendingCreate] = useState(false);
+  // null until the capability probe resolves. false = FREE-tier switchover is
+  // on for this user → the create CTA routes to the community library instead.
+  const [canGenerate, setCanGenerate] = useState<boolean | null>(null);
+  // The in-flight path the user is stopping / restoring (null = no dialog).
+  const [cancelTarget, setCancelTarget] = useState<PathListItem | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep the browser tab title (page metadata) in sync with the page name.
   useEffect(() => {
@@ -63,44 +106,123 @@ export default function MyPathsPage() {
     };
   }, []);
 
-  // Fetch the path list once on mount.
+  // Load (and re-load) the path list. Reused by the poll loop and after every
+  // create / cancel / reset / translate so the grid reflects the new state.
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/learn/paths');
+      const j = await res.json();
+      if (j?.success) {
+        setListItems((j.data ?? []) as PathListItem[]);
+        setListError(null);
+      } else {
+        setListError(j?.error ?? 'Could not load your paths');
+        setListItems([]);
+      }
+    } catch {
+      setListError('Could not load your paths');
+      setListItems([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // Honour `?create=1` (from the dashboard CTA / Upload FAB / Study Packs).
+  // Read from window (not useSearchParams) to keep the route statically
+  // rendered, and strip the param so a refresh doesn't re-open the generator.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('create') !== '1') return;
+    setPendingCreate(true);
+    params.delete('create');
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+  }, []);
+
+  // Resolve whether this user may still generate AI paths. Fail open to the
+  // generator on error — the modal's own gate + the server-side 402 still
+  // protect against a blocked generation.
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/learn/paths')
+    fetch('/api/learn/paths/access')
       .then((r) => r.json())
       .then((j) => {
-        if (cancelled) return;
-        if (j?.success) {
-          setListItems((j.data ?? []) as PathListItem[]);
-        } else {
-          setListError(j?.error ?? 'Could not load your paths');
-          setListItems([]);
-        }
+        if (!cancelled && j?.success) setCanGenerate(Boolean(j.data?.canGenerate));
       })
       .catch(() => {
-        if (!cancelled) {
-          setListError('Could not load your paths');
-          setListItems([]);
-        }
+        if (!cancelled) setCanGenerate(true);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // The create CTA: PRO / admins (and FREE pre-switchover) open the generator;
+  // a blocked FREE user lands on the community library with the explainer.
+  const handleCreateClick = useCallback(() => {
+    if (canGenerate === false) {
+      router.push('/learn/community?from=create');
+      return;
+    }
+    setCreateOpen(true);
+  }, [canGenerate, router]);
+
+  // Once the capability probe resolves, run a pending `?create=1` through the
+  // same gate as a manual click (FREE → community, else open the generator).
+  useEffect(() => {
+    if (!pendingCreate || canGenerate === null) return;
+    setPendingCreate(false);
+    handleCreateClick();
+  }, [pendingCreate, canGenerate, handleCreateClick]);
+
+  // LearnPathSetup auto-closes once Stage A returns (before generation finishes);
+  // refresh picks up the new `generating` row so the poll loop takes over.
+  const handleCreateClose = useCallback(() => {
+    setCreateOpen(false);
+    void refresh();
+  }, [refresh]);
+
   const readyItems = useMemo(() => {
     if (!listItems) return [];
     return listItems.filter((p) => p.generationStatus === 'ready' || !p.generationStatus);
   }, [listItems]);
 
-  // The path whose overview is shown. A single ready path opens directly;
-  // with several, the grid leads and a click selects one.
+  // Paths still generating / translating — rendered as Stop/Restore cards in the
+  // grid so an in-flight (or stuck) path is never hidden behind a ready one.
+  const inFlightItems = useMemo(
+    () => (listItems ? listItems.filter(isInFlight) : []),
+    [listItems],
+  );
+
+  // Re-fetch every 3s while anything is in flight; stop once it settles.
+  useEffect(() => {
+    if (!listItems) return;
+    if (!listItems.some(isInFlight)) {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      return;
+    }
+    const t = setTimeout(() => {
+      void refresh();
+    }, POLL_INTERVAL_MS);
+    pollTimerRef.current = t;
+    return () => clearTimeout(t);
+  }, [listItems, refresh]);
+
+  // The path whose overview is shown. A lone ready path opens directly — but
+  // only when nothing else is in flight, so a generating sibling stays visible
+  // in the grid (and its Stop control reachable).
   const activePlanMeta = useMemo<PathListItem | null>(() => {
     if (readyItems.length === 0) return null;
-    if (readyItems.length === 1) return readyItems[0];
     if (selectedPlanId) return readyItems.find((p) => p.id === selectedPlanId) ?? null;
+    if (readyItems.length === 1 && inFlightItems.length === 0) return readyItems[0];
     return null; // grid mode
-  }, [readyItems, selectedPlanId]);
+  }, [readyItems, inFlightItems, selectedPlanId]);
 
   // Fetch the full detail plan for the active path. Guarded by id rather than
   // a synchronous reset so we never call setState directly in the effect body
@@ -144,72 +266,96 @@ export default function MyPathsPage() {
     );
   };
 
-  // Still loading the list.
-  if (listItems === null) return <Shell><LoadingLine label="Loading your paths…" /></Shell>;
+  // ── Body: one of loading / empty / overview / selection-grid ──
+  let body: React.ReactNode;
 
-  // No paths at all.
-  if (listItems.length === 0) {
-    return (
-      <Shell>
+  if (listItems === null) {
+    body = <LoadingLine label="Loading your paths…" />;
+  } else if (listItems.length === 0) {
+    body = (
+      <>
         <SectionHeading title="My Paths" icon="route" action={<CommunityLink />} />
-        <EmptyState />
-      </Shell>
+        <EmptyState onCreate={handleCreateClick} />
+      </>
     );
-  }
-
-  // Paths exist but none are ready yet (all generating).
-  if (readyItems.length === 0) {
-    return (
-      <Shell>
-        <SectionHeading title="My Paths" icon="route" action={<CommunityLink />} />
-        <GeneratingState />
-      </Shell>
+  } else if (activePlanMeta) {
+    // OVERVIEW — a path is active (lone ready path, or one chosen from the grid).
+    body = (
+      <PathOverview
+        meta={activePlanMeta}
+        detailPlan={detailPlan}
+        showBack={readyItems.length > 1 || inFlightItems.length > 0}
+        onBack={() => setSelectedPlanId(null)}
+        onCreate={handleCreateClick}
+        onDeleted={handleDeleted}
+        onPublished={handlePublished}
+        onRefresh={refresh}
+      />
     );
-  }
-
-  // OVERVIEW — a path is active (single path, or one was chosen from the grid).
-  if (activePlanMeta) {
-    return (
-      <Shell>
-        <PathOverview
-          meta={activePlanMeta}
-          detailPlan={detailPlan}
-          showBack={readyItems.length > 1}
-          onBack={() => setSelectedPlanId(null)}
-          onDeleted={handleDeleted}
-          onPublished={handlePublished}
+  } else {
+    // SELECTION — several ready paths and/or in-flight paths; none chosen yet.
+    const subtitle =
+      readyItems.length === 0
+        ? `Generating your ${inFlightItems.length === 1 ? 'path' : 'paths'}…`
+        : inFlightItems.length > 0
+          ? `${readyItems.length} ready · ${inFlightItems.length} generating`
+          : `${readyItems.length} active paths · pick one to see your progress`;
+    body = (
+      <>
+        <SectionHeading
+          title="My Paths"
+          subtitle={subtitle}
+          icon="route"
+          action={<HeaderActions onCreate={handleCreateClick} />}
         />
-      </Shell>
+        {listError && (
+          <p role="alert" style={{ fontSize: '13px', color: 'var(--error)' }}>
+            {listError}
+          </p>
+        )}
+        <div
+          role="group"
+          aria-label="Choose a path"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
+            gap: 'var(--space-4)',
+          }}
+        >
+          {inFlightItems.map((item) => (
+            <GeneratingCard
+              key={item.id}
+              plan={item}
+              stuck={isStuckGenerating(item)}
+              onRequestCancel={setCancelTarget}
+            />
+          ))}
+          {readyItems.map((item) => (
+            <PathSelectCard key={item.id} plan={item} onSelect={() => setSelectedPlanId(item.id)} />
+          ))}
+        </div>
+      </>
     );
   }
 
-  // SELECTION — several paths, none chosen yet.
   return (
     <Shell>
-      <SectionHeading
-        title="My Paths"
-        subtitle={`${readyItems.length} active paths · pick one to see your progress`}
-        icon="route"
-        action={<CommunityLink />}
-      />
-      {listError && (
-        <p role="alert" style={{ fontSize: '13px', color: 'var(--error)' }}>
-          {listError}
-        </p>
-      )}
-      <div
-        role="group"
-        aria-label="Choose a path"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
-          gap: 'var(--space-4)',
-        }}
-      >
-        {readyItems.map((item) => (
-          <PathSelectCard key={item.id} plan={item} onSelect={() => setSelectedPlanId(item.id)} />
-        ))}
-      </div>
+      {body}
+      {createOpen ? <LearnPathSetup onClose={handleCreateClose} /> : null}
+      {cancelTarget ? (
+        <CancelPathDialog
+          planId={cancelTarget.id}
+          planTitle={cancelTarget.title}
+          generationMode={cancelTarget.generationMode}
+          stuck={isStuckGenerating(cancelTarget)}
+          ultra={cancelTarget.ultra === true}
+          onClose={() => setCancelTarget(null)}
+          onCancelled={() => {
+            setCancelTarget(null);
+            void refresh();
+          }}
+        />
+      ) : null}
     </Shell>
   );
 }
@@ -490,26 +636,32 @@ function PathOverview({
   detailPlan,
   showBack,
   onBack,
+  onCreate,
   onDeleted,
   onPublished,
+  onRefresh,
 }: {
   meta: PathListItem;
   detailPlan: PathPlan | null;
   showBack: boolean;
   onBack: () => void;
+  onCreate: () => void;
   onDeleted: (planId: string) => void;
   onPublished: (planId: string, shareId: string, moderationStatus: string) => void;
+  onRefresh: () => void;
 }) {
   const ultra = meta.ultra === true;
   const subjects = (meta.subjects ?? []).filter(isSubjectId) as SubjectId[];
   const stats = detailPlan ? derivePathStats(detailPlan) : null;
 
-  // Per-path actions (publish / publication status / delete) live in the
-  // toolbar below. A path can be published once it is ready and not already
+  // Per-path actions (new path / publish / translate / reset / delete) live in
+  // the toolbar below. A path can be published once it is ready and not already
   // shared; the OVERVIEW only renders for ready paths, so eligibility is just
   // "not yet published".
   const [publishOpen, setPublishOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [translateOpen, setTranslateOpen] = useState(false);
   const publication = meta.publication ?? null;
 
   // The first unlocked, incomplete checkpoint — drives both the resume
@@ -579,6 +731,16 @@ function PathOverview({
             justifyContent: 'flex-end',
           }}
         >
+          <button
+            type="button"
+            className="my-path-toolbtn my-path-toolbtn--primary"
+            onClick={onCreate}
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              add
+            </span>
+            New path
+          </button>
           <CommunityLink />
           {publication ? (
             <Link
@@ -598,6 +760,18 @@ function PathOverview({
               Publish
             </button>
           )}
+          <button type="button" className="my-path-toolbtn" onClick={() => setTranslateOpen(true)}>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              translate
+            </span>
+            Translate
+          </button>
+          <button type="button" className="my-path-toolbtn" onClick={() => setResetOpen(true)}>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+              restart_alt
+            </span>
+            Reset
+          </button>
           <button
             type="button"
             className="my-path-toolbtn my-path-toolbtn--danger"
@@ -874,13 +1048,38 @@ function PathOverview({
           }}
         />
       ) : null}
+
+      {resetOpen ? (
+        <ResetPathDialog
+          planId={meta.id}
+          planTitle={meta.title}
+          onClose={() => setResetOpen(false)}
+          onReset={() => {
+            setResetOpen(false);
+            onRefresh();
+          }}
+        />
+      ) : null}
+
+      {translateOpen ? (
+        <TranslatePathDialog
+          planId={meta.id}
+          planTitle={meta.title}
+          currentLanguage={meta.language ?? 'en'}
+          onClose={() => setTranslateOpen(false)}
+          onTranslated={() => {
+            setTranslateOpen(false);
+            onRefresh();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
 // ── Empty / generating states ────────────────────────────────────────────
 
-function EmptyState() {
+function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <NMCard
       style={{
@@ -909,69 +1108,186 @@ function EmptyState() {
           No paths yet
         </h2>
         <p style={{ margin: 0, fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.65 }}>
-          Upload your material and Notemage builds a step-by-step path: lessons, quizzes, reviews,
+          Pick your material and Notemage builds a step-by-step path: lessons, quizzes, reviews,
           and a final boss test.
         </p>
       </div>
-      <Button href="/study-packs/new" variant="primary" size="lg">
+      <Button onClick={onCreate} variant="primary" size="lg">
         <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
-          upload_file
+          add
         </span>
-        Upload material
+        New path
       </Button>
     </NMCard>
   );
 }
 
-function GeneratingState() {
+// Header action cluster for the selection grid — a primary "New path" plus the
+// community link. Mirrors the OVERVIEW toolbar.
+function HeaderActions({ onCreate }: { onCreate: () => void }) {
   return (
-    <NMCard
+    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      <button type="button" className="my-path-toolbtn my-path-toolbtn--primary" onClick={onCreate}>
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+          add
+        </span>
+        New path
+      </button>
+      <CommunityLink />
+    </div>
+  );
+}
+
+// In-flight card for a generating / translating (or stuck) path. Offers a
+// Cancel / Stop / Restore affordance so a wedged generation is never a dead-end.
+function GeneratingCard({
+  plan,
+  stuck,
+  onRequestCancel,
+}: {
+  plan: PathListItem;
+  stuck: boolean;
+  onRequestCancel: (plan: PathListItem) => void;
+}) {
+  const isTranslate = plan.generationMode === 'translate';
+  // A cancel is already in flight — show a passive "Cancelling…" pill, unless it
+  // has gone stale (writer died mid-cancel), which routes to the force-stop.
+  const cancelling = plan.generationStatus === 'cancelling' && !stuck;
+  // Generations always get a stop/cancel affordance; a translation only gets
+  // Restore once stuck (a live translation is non-destructive and self-finishes).
+  const showButton = !cancelling && (stuck || !isTranslate);
+  const buttonLabel = isTranslate ? 'Restore' : stuck ? 'Stop' : 'Cancel';
+  const buttonAria = isTranslate
+    ? `Restore ${plan.title}`
+    : stuck
+      ? `Stop generating ${plan.title}`
+      : `Cancel generating ${plan.title}`;
+  return (
+    <section
       style={{
-        maxWidth: '480px',
-        margin: '24px auto 0',
-        padding: '40px 32px',
+        background: 'var(--surface-container)',
+        border: '1px solid var(--outline-variant)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        textAlign: 'center',
-        gap: '16px',
+        gap: '12px',
+        minHeight: '108px',
       }}
     >
-      <span
-        aria-hidden
-        className="my-path-spinner"
-        style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          border: '3px solid var(--outline-variant)',
-          borderTopColor: 'var(--primary)',
-          animation: 'myPathSpin 0.9s linear infinite',
-        }}
-      />
-      <div>
-        <h2
+      {stuck ? (
+        <span
+          aria-hidden
           style={{
-            margin: '0 0 8px',
-            fontFamily: 'var(--font-display)',
-            fontSize: '20px',
-            fontWeight: 800,
-            color: 'var(--on-surface)',
+            width: '32px',
+            height: '32px',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--tertiary-container)',
+            color: 'var(--on-tertiary-container)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
-          Generating your path…
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+            sync_problem
+          </span>
+        </span>
+      ) : (
+        <span
+          aria-hidden
+          className="my-path-spinner"
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            border: '3px solid var(--outline-variant)',
+            borderTopColor: 'var(--primary)',
+            animation: 'myPathSpin 0.9s linear infinite',
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h2
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-display)',
+            fontSize: '15px',
+            fontWeight: 700,
+            color: 'var(--on-surface)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {plan.title}
         </h2>
-        <p style={{ margin: 0, fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
-          This usually takes a minute. It will appear here when ready.
+        <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.4 }}>
+          {cancelling
+            ? 'Cancelling…'
+            : stuck
+              ? isTranslate
+                ? 'Translation stalled — your path is intact.'
+                : "This path got stuck and won't finish. Stop it to start fresh."
+              : isTranslate
+                ? 'Translating your path…'
+                : 'Generating your path…'}
         </p>
       </div>
-      <Button href="/learn/paths" variant="secondary" size="md">
-        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-          arrow_back
+      {cancelling ? (
+        <span
+          aria-live="polite"
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--on-surface-variant)',
+            border: '1px solid var(--outline-variant)',
+            fontSize: '12px',
+            fontWeight: 700,
+            opacity: 0.7,
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+            hourglass_empty
+          </span>
+          Cancelling…
         </span>
-        Back to paths
-      </Button>
-    </NMCard>
+      ) : showButton ? (
+        <button
+          type="button"
+          className="my-path-stop-btn"
+          onClick={() => onRequestCancel(plan)}
+          aria-label={buttonAria}
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-container-high)',
+            color: 'var(--on-surface-variant)',
+            border: '1px solid var(--outline-variant)',
+            fontFamily: 'inherit',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+            {isTranslate ? 'restart_alt' : 'close'}
+          </span>
+          {buttonLabel}
+        </button>
+      ) : null}
+    </section>
   );
 }
 
@@ -1015,6 +1331,20 @@ function PageStyles() {
       .my-path-toolbtn--danger { color: var(--error); }
       .my-path-toolbtn--danger:hover { border-color: var(--error); }
       .my-path-toolbtn--danger:focus-visible { outline-color: var(--error); }
+      /* Primary toolbar button — the "New path" create CTA. */
+      .my-path-toolbtn--primary {
+        background: var(--accent-strong);
+        color: var(--on-primary-container);
+        border-color: var(--accent-strong);
+      }
+      .my-path-toolbtn--primary:hover { border-color: var(--accent-strong); }
+      .my-path-toolbtn--primary:focus-visible { outline-color: var(--accent-strong); }
+      /* Stop/Cancel/Restore control on in-flight cards. */
+      .my-path-stop-btn {
+        transition: border-color var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring);
+      }
+      .my-path-stop-btn:hover { border-color: var(--primary); color: var(--on-surface); }
+      .my-path-stop-btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
       /* Continue CTA — comfortably sized on desktop, full-width on phones. */
       .my-path-continue-wrap { width: 280px; max-width: 100%; flex-shrink: 0; }
       @media (max-width: 640px) { .my-path-continue-wrap { width: 100%; } }

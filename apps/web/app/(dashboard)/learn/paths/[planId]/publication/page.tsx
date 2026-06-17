@@ -188,7 +188,7 @@ export default function PublicationStatusPage() {
         method: 'DELETE',
       });
       if (res.status === 204 || res.ok) {
-        router.push('/learn/paths');
+        router.push('/my-path');
         return;
       }
       const json = await res.json().catch(() => ({}));
@@ -517,7 +517,7 @@ function Page({ children }: { children: React.ReactNode }) {
 function BackLink({ planId }: { planId: string | undefined }) {
   return (
     <Link
-      href={planId ? `/learn/paths/${encodeURIComponent(planId)}` : '/learn/paths'}
+      href={planId ? `/learn/paths/${encodeURIComponent(planId)}` : '/my-path'}
       className="hallmark-pub-backlink"
       style={{
         display: 'inline-flex',

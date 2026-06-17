@@ -66,7 +66,7 @@ function derivePose(
     return 'default';
   }
 
-  if (pathname === '/notebooks') return 'holding-pen';
+  if (pathname === '/study-packs') return 'holding-pen';
   if (pathname.startsWith('/profile')) return 'holding-scroll';
   if (pathname.startsWith('/groups')) return 'chatting';
   if (pathname.startsWith('/settings')) return 'thinking';

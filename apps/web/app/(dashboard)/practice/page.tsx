@@ -2,7 +2,7 @@
 
 // /practice — quick-access review hub.
 // Data: fetches /api/flashcard-sets and /api/quiz-sets (same endpoints used by
-// /learn/flashcards and /learn/quizzes). Everything else (weak topics, mistakes,
+// /practice/flashcards and /practice/quizzes). Everything else (weak topics, mistakes,
 // exam unlocks) is representative — no backing data yet.
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
@@ -119,7 +119,7 @@ function PracticeContent() {
   const nextUpDesc = hasFc
     ? `You have ${fcSets.length} flashcard ${fcSets.length === 1 ? 'set' : 'sets'} ready.`
     : `You have ${qSets.length} quiz ${qSets.length === 1 ? 'set' : 'sets'} ready.`;
-  const nextUpHref = hasFc ? '/learn/flashcards' : '/learn/quizzes';
+  const nextUpHref = hasFc ? '/practice/flashcards' : '/practice/quizzes';
 
   // Preview sets (up to 4, most recently updated)
   const previewFc = fcSets
@@ -223,7 +223,7 @@ function PracticeContent() {
             accent="review"
             title="Weak-topic review"
             desc="Unlocks after your first quiz."
-            href="/learn/quizzes"
+            href="/practice/quizzes"
             muted
           />
 
@@ -233,7 +233,7 @@ function PracticeContent() {
             accent="lesson"
             title="Flashcards"
             desc="Flip through your cards."
-            href="/learn/flashcards"
+            href="/practice/flashcards"
             badge={
               flashcardSets.status === 'ready'
                 ? `${fcSets.length} ${fcSets.length === 1 ? 'set' : 'sets'}`
@@ -247,7 +247,7 @@ function PracticeContent() {
             accent="quiz"
             title="Quizzes"
             desc="Test yourself and track your score."
-            href="/learn/quizzes"
+            href="/practice/quizzes"
             badge={
               quizSets.status === 'ready'
                 ? `${qSets.length} ${qSets.length === 1 ? 'set' : 'sets'}`
@@ -261,7 +261,7 @@ function PracticeContent() {
             accent="boss"
             title="Mistake practice"
             desc="No mistakes yet — they'll collect here automatically."
-            href="/learn/quizzes"
+            href="/practice/quizzes"
             muted
           />
 
@@ -271,7 +271,7 @@ function PracticeContent() {
             accent="boss"
             title="Exam simulation"
             desc="Unlocks when you finish your path."
-            href="/learn/paths"
+            href="/my-path"
             muted
           />
         </div>
@@ -304,7 +304,7 @@ function PracticeContent() {
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
               {fcSets.length > 0 && (
                 <Link
-                  href="/learn/flashcards"
+                  href="/practice/flashcards"
                   style={seeAllLink}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = 'var(--on-surface)';
@@ -325,7 +325,7 @@ function PracticeContent() {
               )}
               {qSets.length > 0 && (
                 <Link
-                  href="/learn/quizzes"
+                  href="/practice/quizzes"
                   style={seeAllLink}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = 'var(--on-surface)';
@@ -719,7 +719,7 @@ function EmptyState() {
             Complete your first lesson and Notemage will create flashcards, quizzes, and mistake
             reviews.
           </p>
-          <Button href="/learn/paths" variant="primary" size="md" leadingIcon="stacks">
+          <Button href="/my-path" variant="primary" size="md" leadingIcon="stacks">
             Start a lesson
           </Button>
         </div>

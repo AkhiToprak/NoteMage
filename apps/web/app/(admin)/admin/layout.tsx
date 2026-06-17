@@ -156,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           </Link>
           <Link
-            href="/learn"
+            href="/my-path"
             aria-label="Back to NoteMage"
             style={{
               display: 'inline-flex',

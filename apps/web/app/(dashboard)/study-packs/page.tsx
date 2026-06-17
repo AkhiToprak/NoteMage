@@ -66,7 +66,7 @@ export default function StudyPacksPage() {
           title="Study Packs"
           subtitle="Everything generated from your material."
           action={
-            <Button href="/study-packs/new" variant="primary" shape="pill" leadingIcon="add">
+            <Button href="/my-path?create=1" variant="primary" shape="pill" leadingIcon="add">
               Create Study Pack
             </Button>
           }
@@ -133,7 +133,7 @@ export default function StudyPacksPage() {
                 A Study Pack contains everything generated from your material: lessons, flashcards,
                 quizzes, and a personalized path.
               </p>
-              <Button href="/study-packs/new" variant="primary" shape="pill" leadingIcon="add">
+              <Button href="/my-path?create=1" variant="primary" shape="pill" leadingIcon="add">
                 Create Study Pack
               </Button>
             </NMCard>

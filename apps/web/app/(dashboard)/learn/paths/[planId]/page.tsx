@@ -257,7 +257,7 @@ function PathDetailInner({ planId }: { planId: string }) {
           setStopConfirm(false);
           setRefreshKey((k) => k + 1);
         } else {
-          router.push('/learn/paths');
+          router.push('/my-path');
         }
       } else {
         setStopError(
@@ -275,7 +275,7 @@ function PathDetailInner({ planId }: { planId: string }) {
     return (
       <div style={{ maxWidth: '760px', margin: '32px auto', padding: '0 16px' }}>
         <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>{error}</p>
-        <Link href="/learn/paths" style={{ color: 'var(--primary)', fontSize: '14px' }}>
+        <Link href="/my-path" style={{ color: 'var(--primary)', fontSize: '14px' }}>
           ← Back to paths
         </Link>
       </div>
@@ -309,7 +309,7 @@ function PathDetailInner({ planId }: { planId: string }) {
       <div style={{ paddingBottom: '64px' }}>
         <nav style={{ maxWidth: '640px', margin: '0 auto', padding: '8px 16px 0' }}>
           <Link
-            href="/learn/paths"
+            href="/my-path"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -102,7 +102,7 @@ export default function DashboardPage() {
   // doesn't re-show it.
   const [showPostTutorial, setShowPostTutorial] = useState(false);
 
-  const ctaHref = '/study-packs/new';
+  const ctaHref = '/my-path?create=1';
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -215,7 +215,7 @@ export default function DashboardPage() {
     ? `/learn/paths/${encodeURIComponent(derived.plan.id)}?slot=${encodeURIComponent(derived.nextSlotId)}`
     : derived
       ? `/learn/paths/${encodeURIComponent(derived.plan.id)}`
-      : '/learn';
+      : '/my-path';
 
   const pathCtaLabel = derived?.pathDone
     ? 'Review Path'
@@ -285,7 +285,7 @@ export default function DashboardPage() {
               variant="primary"
               shape="pill"
               leadingIcon="upload_file"
-              onClick={() => router.push('/study-packs/new')}
+              onClick={() => router.push('/my-path?create=1')}
             >
               Upload my notes
             </Button>
@@ -614,7 +614,7 @@ export default function DashboardPage() {
                     </Link>
                   ) : (
                     <Link
-                      href="/study-packs/new"
+                      href="/my-path?create=1"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1148,7 +1148,7 @@ export default function DashboardPage() {
                   size="md"
                   shape="pill"
                   leadingIcon="upload_file"
-                  onClick={() => router.push('/study-packs/new')}
+                  onClick={() => router.push('/my-path?create=1')}
                 >
                   Upload
                 </Button>

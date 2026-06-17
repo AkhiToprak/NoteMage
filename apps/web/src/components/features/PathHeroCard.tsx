@@ -128,7 +128,7 @@ function NoPathCard({ hasPlans }: { hasPlans: boolean }) {
       </div>
       <div>
         <Link
-          href="/notebooks"
+          href="/study-packs"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -154,7 +154,7 @@ function NoPathCard({ hasPlans }: { hasPlans: boolean }) {
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
             auto_fix_high
           </span>
-          {hasPlans ? 'Open a notebook' : 'Generate a learn path'}
+          {hasPlans ? 'Open study packs' : 'Generate a learn path'}
         </Link>
       </div>
     </div>

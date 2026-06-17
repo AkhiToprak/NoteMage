@@ -6,12 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import QuizSetCreator from '@/components/notebook/QuizSetCreator';
 import { formatRelativeTime } from '@/lib/relative-time';
 
-// Phase 9.4 (Agent C) — /learn/quizzes hub. Grouped grid of every quiz set
-// the current user owns, grouped by source notebook (Inbox first, standard
-// notebooks alphabetical, Cross-notebook last). Whole card links to the
-// existing per-notebook player URL: /notebooks/[notebookId]/quizzes/[id].
-// ?highlight=<id> scrolls and pulses a freshly created set after a redirect
-// from the future "Generate quiz from this page" affordance (Phase 9.5).
+// /practice/quizzes hub. Grouped grid of every quiz set the current user owns,
+// grouped by source notebook (Inbox first, standard notebooks alphabetical,
+// Cross-notebook last). Whole card links to the existing per-notebook player
+// URL: /notebooks/[notebookId]/quizzes/[id]. Reached from the Practice page's
+// "All quizzes" link. ?highlight=<id> scrolls and pulses a freshly created set.
 
 interface QuizSet {
   id: string;
@@ -512,7 +511,7 @@ function EmptyState({ error }: { error: string | null }) {
           : 'Open a notebook page and use the header Generate dropdown to create a quiz from any page.'}
       </p>
       <Link
-        href="/notebooks"
+        href="/study-packs"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -529,7 +528,7 @@ function EmptyState({ error }: { error: string | null }) {
         <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
           arrow_forward
         </span>
-        Go to notebooks
+        Go to study packs
       </Link>
     </section>
   );

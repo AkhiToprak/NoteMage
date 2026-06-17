@@ -57,7 +57,7 @@ export default function LearnChatsIndexPage() {
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
           <Link
-            href="/study-packs/new"
+            href="/my-path?create=1"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

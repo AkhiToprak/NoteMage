@@ -10,13 +10,9 @@ import { trackEvent } from '@/lib/telemetry';
 // flex-column wrapper (the /learn/chats sub-tree needs the full viewport) and
 // still fires the `learn.tab_view` telemetry as the active surface changes.
 
-type LearnSlug = 'overview' | 'paths' | 'flashcards' | 'quizzes' | 'chats' | 'community';
+type LearnSlug = 'chats' | 'community';
 
 const SURFACES: ReadonlyArray<{ href: string; slug: LearnSlug; exact?: boolean }> = [
-  { href: '/learn', slug: 'overview', exact: true },
-  { href: '/learn/paths', slug: 'paths' },
-  { href: '/learn/flashcards', slug: 'flashcards' },
-  { href: '/learn/quizzes', slug: 'quizzes' },
   { href: '/learn/chats', slug: 'chats' },
   { href: '/learn/community', slug: 'community' },
 ];

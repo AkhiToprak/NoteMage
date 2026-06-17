@@ -142,7 +142,7 @@ export function getNotificationLink(n: Notification): string | null {
     case 'path_flagged_for_review':
       // Author needs to land on their own publication-status surface, not
       // the public listing (which won't show non-approved paths).
-      return typeof data.shareId === 'string' ? `/learn/paths?status=${data.shareId}` : null;
+      return typeof data.shareId === 'string' ? `/my-path?status=${data.shareId}` : null;
     default:
       return null;
   }

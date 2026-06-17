@@ -235,7 +235,7 @@ export default function CommunityLibraryPage() {
           </p>
         </div>
         <Link
-          href="/learn/paths"
+          href="/my-path"
           style={{
             flexShrink: 0,
             display: 'inline-flex',
