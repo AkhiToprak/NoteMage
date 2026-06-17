@@ -615,8 +615,11 @@
 @media (max-width: 767px) {
   .root :global(.pl-path) { padding: 4px 16px 40px; }
   .root :global(.pl-track) { width: 100%; max-width: 500px; }
-  /* drop the desktop segment spacing; nodes + content flow naturally instead */
-  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 24px 0; }
+  /* Drop the desktop segment spacing; nodes + content flow naturally. The
+     stacked trail goes straight down, so this padding is the ONLY gap between
+     checkpoints — keep it generous so the path breathes instead of feeling
+     packed. */
+  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 60px 0; }
 
   /* gutters leave the side rails and flow in-document, centred under the node */
   .root :global(.pl-node-wrap) :global(.pl-gutter) {
