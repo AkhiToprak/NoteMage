@@ -79,6 +79,12 @@
      glow spreads ~24px on top of that. 52px keeps real separation without
      letting cards clip the viewport at the 1025px two-column breakpoint. */
   --gutter-gap: 52px;
+  /* Card sizing is token-driven so each responsive tier only re-points these,
+     not the whole rule. --rail-reserve = how much of each viewport half the
+     track + gutter + breathing eat up, so the card = min(cap, 50vw - reserve). */
+  --card-max: 440px;
+  --card-active-max: 456px;
+  --rail-reserve: 144px;
 
   font-family: var(--font-body);
   color: var(--ink);
@@ -480,14 +486,14 @@
 .root :global(.pl-card) {
   /* fluid so the card always fits in its side rail — never clips the viewport
      edge between the desktop breakpoint and the single-column stack */
-  width: min(440px, calc(50vw - 160px));
+  width: min(var(--card-max), calc(50vw - var(--rail-reserve)));
   background: var(--card);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   padding: 22px 24px;
 }
 .root :global(.pl-card.pl-active) {
-  width: min(456px, calc(50vw - 150px));
+  width: min(var(--card-active-max), calc(50vw - var(--rail-reserve)));
   background: var(--card-active);
   border: 1.5px solid var(--accent);
   box-shadow: 0 0 0 4px rgba(140, 82, 255, 0.10), 0 24px 50px rgba(140, 82, 255, 0.12);
@@ -572,18 +578,50 @@
 .root :global(.pl-reveal.pl-in) { opacity: 1; transform: none; }
 
 /* ─────────────────────────  RESPONSIVE  ─────────────────────────
-   The two-sided gutter layout needs ~1080px+ to seat a card on each side of
-   the track without clipping. Below that everything collapses into ONE centred
-   column so nothing overlaps, clips, or stacks on top of anything else. */
+   Three tiers, so the page never just "shrinks the desktop":
+   · Desktop  ≥ 1025px — full two-sided path, generous cards + mascots.
+   · Tablet   768–1024px — the SAME two-sided path; only the rails tighten
+     (track width, gutter gap, card + mascot widths) so it stays roomy and
+     never clips. The desktop layout deliberately lives all the way to 768px.
+   · Phone    ≤ 767px — one centred column, re-spaced and re-sized for touch.
+   Collapsing to the stack only at 767px keeps tablets on the real layout
+   instead of the squeezed-desktop look. */
+
+/* Tablet + phone share these hero / magic / carousel down-scales. */
 @media (max-width: 1024px) {
-  .root :global(.pl-path) { padding: 6px 16px 48px; }
-  .root :global(.pl-track) { width: 100%; max-width: 540px; }
-  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 32px 0; }
+  .root :global(.pl-hero) { padding: 112px 18px 6px; }
+  .root :global(.pl-hero-stage) { margin-top: 28px; }
+  .root :global(.pl-hero-card) { padding: 22px; }
+  .root :global(.pl-magic-wrap) { padding: 100px 18px 136px; }
+  .root :global(.pl-magic) { font-size: 21px; padding: 18px 40px; }
+}
+
+/* ── Tablet (768–1024): keep both rails — only the geometry tightens. ── */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .root {
+    --track: 104px;
+    --gutter-gap: 36px;
+    --mascot-w: 142px;
+    --card-max: 384px;
+    --card-active-max: 396px;
+    --rail-reserve: 112px;
+  }
+  /* the 4-up "study together" cluster has its own width — shrink it to match */
+  .root :global(.pl-mascot-grid) { width: 252px; gap: 12px 18px; }
+  .root :global(.pl-mascot-grid img) { width: 106px; }
+}
+
+/* ── Phone (≤767): collapse to one centred, touch-spaced column. ── */
+@media (max-width: 767px) {
+  .root :global(.pl-path) { padding: 4px 16px 40px; }
+  .root :global(.pl-track) { width: 100%; max-width: 500px; }
+  /* drop the desktop segment spacing; nodes + content flow naturally instead */
+  .root :global(.pl-seg) { min-height: 0 !important; height: auto !important; padding: 24px 0; }
 
   /* gutters leave the side rails and flow in-document, centred under the node */
   .root :global(.pl-node-wrap) :global(.pl-gutter) {
     position: relative; top: auto; right: auto; left: auto;
-    width: auto; z-index: 2; margin: 16px auto 0;
+    width: auto; max-width: 100%; z-index: 2; margin: 16px auto 0;
   }
   /* the node renders first (the trail's anchor); its card + mascot read directly
      below it — so each checkpoint is node → its card → its mascot, in order */
@@ -592,39 +630,64 @@
   /* reveal rises straight up — no horizontal slide, so no overflow */
   .root :global(.pl-node-wrap) :global(.pl-gutter),
   .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-left),
-  .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translateY(20px); }
+  .root :global(.pl-node-wrap) :global(.pl-gutter.pl-from-right) { transform: translateY(18px); }
   .root :global(.pl-node-wrap.pl-lit) :global(.pl-gutter) { transform: none; }
 
   .root :global(.pl-card),
-  .root :global(.pl-card.pl-active) { width: 100%; max-width: 460px; margin: 0 auto; }
-  .root :global(.pl-mascot) { width: 132px; margin: 0 auto; }
-  .root :global(.pl-mascot-grid) { width: 100%; max-width: 300px; margin: 4px auto 0; justify-items: center; }
-  .root :global(.pl-mascot-grid img) { width: 116px; }
+  .root :global(.pl-card.pl-active) { width: 100%; max-width: 440px; margin: 0 auto; padding: 20px; }
+  .root :global(.pl-mascot) { width: 120px; margin: 0 auto; }
+  .root :global(.pl-mascot-grid) { width: 100%; max-width: 272px; gap: 12px 16px; margin: 4px auto 0; justify-items: center; }
+  .root :global(.pl-mascot-grid img) { width: 108px; }
 
   .root :global(.pl-node-shift) { transform: none !important; } /* drop the desktop zig-zag nudge */
-  .root :global(.pl-magic) { font-size: 21px; padding: 19px 40px; }
-}
 
-/* ≤720px — hero / carousel / footer tidy-ups */
-@media (max-width: 720px) {
-  .root :global(.pl-magic) { font-size: 20px; padding: 18px 38px; }
-  .root :global(.pl-carousel) { --car-peek: 26px; --car-gap: 12px; }
+  /* hero + carousel tuned for a single narrow column */
+  .root :global(.pl-hero) { padding: 96px 16px 4px; }
+  .root :global(.pl-hero h1) { font-size: clamp(2.1rem, 8.5vw, 3rem); }
+  .root :global(.pl-hero-stage) { margin-top: 22px; padding: 0 16px; }
+  .root :global(.pl-hero-card) { padding: 16px; border-radius: var(--radius-lg); }
+  .root :global(.pl-carousel) { --car-peek: 22px; --car-gap: 12px; }
+  .root :global(.pl-car-arrow) { width: 36px; height: 36px; }
+  .root :global(.pl-car-arrow.pl-prev) { left: -4px; }
+  .root :global(.pl-car-arrow.pl-next) { right: -4px; }
   .root :global(.pl-mini-banner) { flex-wrap: wrap; }
   .root :global(.pl-mb-desc) { white-space: normal; }
+
+  .root :global(.pl-magic-wrap) { padding: 72px 16px 104px; }
+  .root :global(.pl-magic) { font-size: 19px; padding: 16px 34px; gap: 10px; }
+
+  /* CTA + footer */
+  .root :global(.pl-cta) { padding: 44px 16px 64px; }
+  .root :global(.pl-cta h2) { margin-bottom: 26px; }
+  .root :global(.pl-footer) { padding: 36px 16px 52px; }
   .root :global(.pl-footer-top) { flex-direction: column; align-items: flex-start; }
 }
 
-/* ≤560px — drop the decorative mascots (gutters without a card) so the cards
-   own the full column on small phones. Card gutters carry .pl-from-*; mascot
-   gutters don't, so :not() targets exactly the mascots. */
+/* ── Drop the decorative mascots (gutters without a card) ≤560px so the cards
+   own the full column. Card gutters carry .pl-from-*; mascot gutters don't, so
+   :not() targets exactly the mascots. ── */
 @media (max-width: 560px) {
   .root :global(.pl-node-wrap) :global(.pl-gutter:not(.pl-from-left):not(.pl-from-right)) { display: none; }
 }
 
-/* ≤420px — tighten the hero + flatten the carousel mini-path preview */
+/* ── Small phones (≤480): tighten the column and give the CTA confident,
+   full-width tap targets instead of a cramped side-by-side row. ── */
+@media (max-width: 480px) {
+  .root :global(.pl-hero) { padding-top: 88px; }
+  .root :global(.pl-hero-card) { padding: 13px; }
+  .root :global(.pl-card),
+  .root :global(.pl-card.pl-active) { padding: 18px 16px; }
+  .root :global(.pl-card h3) { font-size: 21px; }
+  .root :global(.pl-magic) { font-size: 18px; padding: 15px 28px; }
+
+  .root :global(.pl-cta-row) { flex-direction: column; align-items: stretch; max-width: 320px; margin: 0 auto; }
+  .root :global(.pl-cta-row) :global(.pl-btn-gold),
+  .root :global(.pl-cta-row) :global(.pl-btn-ghost) { justify-content: center; width: 100%; }
+}
+
+/* ── Narrowest phones (≤420): flatten the carousel mini-path preview. ── */
 @media (max-width: 420px) {
-  .root :global(.pl-hero) { padding-top: 104px; }
-  .root :global(.pl-mini-row) { grid-template-columns: 1fr; gap: 18px; }
+  .root :global(.pl-mini-row) { grid-template-columns: 1fr; gap: 16px; }
   .root :global(.pl-mini-slot.pl-left),
   .root :global(.pl-mini-slot.pl-center),
   .root :global(.pl-mini-slot.pl-right) { grid-column: 1; }
