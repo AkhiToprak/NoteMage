@@ -6,6 +6,8 @@ interface UsageLimitResult {
   allowed: boolean;
   used: number;
   limit: number; // -1 = unlimited
+  /** True when this tier's budget for the feature is lifetime, not monthly. */
+  lifetime: boolean;
 }
 
 export async function checkUsageLimit(
@@ -19,7 +21,7 @@ export async function checkUsageLimit(
 
   // Admins have unlimited everything
   if (user.role === 'admin') {
-    return { allowed: true, used: 0, limit: -1 };
+    return { allowed: true, used: 0, limit: -1, lifetime: false };
   }
 
   const tier = user.tier as TierKey;
@@ -27,11 +29,12 @@ export async function checkUsageLimit(
 
   // Unlimited
   if (limit === -1) {
-    return { allowed: true, used: 0, limit: -1 };
+    return { allowed: true, used: 0, limit: -1, lifetime: false };
   }
 
+  const lifetime = isLifetimeLimit(tier, featureType);
   let used: number;
-  if (isLifetimeLimit(tier, featureType)) {
+  if (lifetime) {
     // Lifetime allowance — sum every month's usage; it never resets.
     const agg = await db.usageRecord.aggregate({
       where: { userId, featureType },
@@ -47,7 +50,7 @@ export async function checkUsageLimit(
     used = record?.count ?? 0;
   }
 
-  return { allowed: used < limit, used, limit };
+  return { allowed: used < limit, used, limit, lifetime };
 }
 
 /**
@@ -88,7 +91,7 @@ export async function reserveUsage(
 
   // Admins have unlimited everything — never charge the meter.
   if (user.role === 'admin') {
-    return { allowed: true, used: 0, limit: -1 };
+    return { allowed: true, used: 0, limit: -1, lifetime: false };
   }
 
   const tier = user.tier as TierKey;
@@ -96,8 +99,10 @@ export async function reserveUsage(
 
   // Unlimited — never charge the meter.
   if (limit === -1) {
-    return { allowed: true, used: 0, limit: -1 };
+    return { allowed: true, used: 0, limit: -1, lifetime: false };
   }
+
+  const lifetime = isLifetimeLimit(tier, featureType);
 
   return db.$transaction(async (tx) => {
     // Serialize concurrent reservations for this exact (user, feature). The
@@ -107,7 +112,7 @@ export async function reserveUsage(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${userId}:${featureType}`}))`;
 
     let used: number;
-    if (isLifetimeLimit(tier, featureType)) {
+    if (lifetime) {
       // Lifetime allowance — sum every month's usage; it never resets.
       const agg = await tx.usageRecord.aggregate({
         where: { userId, featureType },
@@ -125,7 +130,7 @@ export async function reserveUsage(
 
     // Would exceed the cap — reject without charging.
     if (used + amount > limit) {
-      return { allowed: false, used, limit };
+      return { allowed: false, used, limit, lifetime };
     }
 
     // Commit the reservation by incrementing the current month's row.
@@ -138,7 +143,7 @@ export async function reserveUsage(
       update: { count: { increment: amount } },
     });
 
-    return { allowed: true, used: used + amount, limit };
+    return { allowed: true, used: used + amount, limit, lifetime };
   });
 }
 
@@ -213,13 +218,14 @@ export async function getUserUsageSummary(userId: string) {
   );
 
   return (Object.entries(limits) as [FeatureType, number][]).map(([feature, limit]) => {
+    const lifetime = isLifetimeLimit(tier, feature);
     let used: number;
-    if (isLifetimeLimit(tier, feature)) {
+    if (lifetime) {
       // Lifetime allowance — sum every month, not just the current one.
       used = lifetimeByFeature.get(feature) ?? 0;
     } else {
       used = monthRecords.find((r) => r.featureType === feature)?.count ?? 0;
     }
-    return { featureType: feature, used, limit };
+    return { featureType: feature, used, limit, lifetime };
   });
 }

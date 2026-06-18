@@ -12,6 +12,7 @@ import { Mascot } from '@/components/mascot/Mascot';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { usePathGenerationStream } from '@/hooks/usePathGenerationStream';
 import VideoMaterialPicker, { type AddedVideo } from '@/components/study-packs/VideoMaterialPicker';
+import { readYouTubeDuration } from '@/lib/youtube-duration';
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -181,6 +182,29 @@ const ACCEPTED_UPLOAD_TYPES = [
   'text/markdown',
 ];
 
+/** Title of the Inbox section that captionless videos' native notes land in. */
+const VIDEO_SECTION_TITLE = 'Video notes';
+
+/** A signal-aware delay used while polling a native video job. Rejects with an
+ *  AbortError the moment the user cancels, so polling stops promptly. */
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const t = setTimeout(resolve, ms);
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(t);
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true },
+    );
+  });
+}
+
 function Step1Upload({
   state,
   onChange,
@@ -201,6 +225,9 @@ function Step1Upload({
     { label: '', current: 0, total: 0 },
   );
   const [processError, setProcessError] = React.useState<string | null>(null);
+  // Set when a captionless video can't be imported because the user's free
+  // native video minutes are spent — rendered as a special upsell, not an error.
+  const [minutesUpsell, setMinutesUpsell] = React.useState<string | null>(null);
   const abortRef = React.useRef<AbortController | null>(null);
   const cancelledRef = React.useRef(false);
 
@@ -267,11 +294,109 @@ function Step1Upload({
       signal,
     });
     const json = await res.json().catch(() => null);
-    if (res.status === 422) throw new Error('One of your videos has no captions to transcribe.');
+    if (res.status === 422) {
+      // Captionless — the caller falls back to the native pipeline.
+      const e = new Error('No captions');
+      e.name = 'CaptionsMissing';
+      throw e;
+    }
     if (!res.ok || !json?.success || !json.data?.document?.id) {
       throw new Error(json?.error || 'Could not transcribe a video.');
     }
     return json.data.document.id as string;
+  }
+
+  // Find or create the Inbox "Video notes" section captionless videos land in.
+  async function resolveVideoSection(inboxId: string, signal: AbortSignal): Promise<string> {
+    const listRes = await fetch(`/api/notebooks/${encodeURIComponent(inboxId)}/sections`, { signal });
+    const listJson = await listRes.json().catch(() => null);
+    if (listJson?.success && Array.isArray(listJson.data)) {
+      const existing = listJson.data.find(
+        (s: { id: string; title: string }) => s.title === VIDEO_SECTION_TITLE,
+      );
+      if (existing) return existing.id as string;
+    }
+    const createRes = await fetch(`/api/notebooks/${encodeURIComponent(inboxId)}/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: VIDEO_SECTION_TITLE }),
+      signal,
+    });
+    const createJson = await createRes.json().catch(() => null);
+    if (!createJson?.success || !createJson.data?.id) {
+      throw new Error('Could not prepare video processing. Try again.');
+    }
+    return createJson.data.id as string;
+  }
+
+  // Read a captionless video with the native (Gemini) pipeline, returning the id
+  // of the Page it produces. Submits a job, then polls to completion; the abort
+  // signal cancels both the wait and the in-flight fetches.
+  async function ingestVideoNatively(
+    v: AddedVideo,
+    inboxId: string,
+    sectionId: string,
+    onPhase: (msg: string) => void,
+    signal: AbortSignal,
+  ): Promise<string> {
+    let durationSec = v.durationSec;
+    if (!durationSec || durationSec <= 0) {
+      try {
+        durationSec = Math.floor(await readYouTubeDuration(v.videoId));
+      } catch {
+        durationSec = 0;
+      }
+    }
+    if (!durationSec || durationSec <= 0) {
+      throw new Error(`Couldn’t read “${v.title}”. Try another video.`);
+    }
+
+    const submitRes = await fetch(`/api/notebooks/${encodeURIComponent(inboxId)}/video-import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sectionId,
+        fileName: v.title,
+        videoUrl: v.url,
+        durationSec,
+        pageTitle: v.title,
+      }),
+      signal,
+    });
+    const submitJson = await submitRes.json().catch(() => null);
+    if (submitRes.status === 503) {
+      throw new Error('Video notes are temporarily unavailable. Try again later.');
+    }
+    if (submitRes.status === 402 || submitJson?.code === 'video_minutes_exhausted') {
+      // Out of native video minutes — special, server-enforced wall. Tag it so
+      // the wizard renders the upsell instead of a generic error.
+      const e = new Error(submitJson?.error || 'You’ve used all your free video minutes.');
+      e.name = 'VideoMinutesExhausted';
+      throw e;
+    }
+    if (!submitRes.ok || !submitJson?.success || !submitJson.data?.jobId) {
+      throw new Error(submitJson?.error || `Couldn’t read “${v.title}”.`);
+    }
+    const jobId = submitJson.data.jobId as string;
+
+    // Poll the job list for this job until it's ready or failed. The server
+    // self-fails stale jobs (~20min); the loop cap is just a backstop.
+    for (let attempt = 0; attempt < 240; attempt++) {
+      await delay(3000, signal);
+      const pollRes = await fetch(`/api/notebooks/${encodeURIComponent(inboxId)}/video-import`, {
+        signal,
+      });
+      const pollJson = await pollRes.json().catch(() => null);
+      if (!pollJson?.success || !Array.isArray(pollJson.data)) continue;
+      const row = pollJson.data.find((j: { id: string }) => j.id === jobId) as
+        | { status: string; progress?: { message?: string }; resultPageId?: string; error?: string }
+        | undefined;
+      if (!row) continue;
+      if (row.status === 'ready' && row.resultPageId) return row.resultPageId;
+      if (row.status === 'failed') throw new Error(row.error || `Couldn’t read “${v.title}”.`);
+      onPhase(row.progress?.message || `Reading ${v.title}…`);
+    }
+    throw new Error(`“${v.title}” is taking too long. Try again.`);
   }
 
   function cancelProcessing() {
@@ -286,6 +411,7 @@ function Step1Upload({
   // re-continuing is cheap.
   async function handleContinue() {
     setProcessError(null);
+    setMinutesUpsell(null);
 
     // Sample stays mock — seed topics, skip detection, jump straight to Step 3.
     if (state.usingSample) {
@@ -348,8 +474,12 @@ function Step1Upload({
         }
       }
 
-      // YouTube videos → transcripts (one after the other)
+      // YouTube videos → transcript first; when a video has no captions, fall
+      // back to the native (Gemini) pipeline. The Inbox + its "Video notes"
+      // section are resolved once and reused across captionless videos.
       const nextVideos = [...state.youtubeVideos];
+      let videoInboxId: string | null = null;
+      let videoSectionId: string | null = null;
       for (let i = 0; i < nextVideos.length; i++) {
         if (cancelledRef.current) return;
         const v = nextVideos[i];
@@ -358,9 +488,30 @@ function Step1Upload({
           continue;
         }
         setProgress({ label: `Transcribing ${v.title}`, current: done, total });
-        const docId = await transcribeVideo(v.url, ctrl.signal);
-        nextVideos[i] = { ...v, docId };
-        ids.push(docId);
+        let materialId: string;
+        try {
+          materialId = await transcribeVideo(v.url, ctrl.signal);
+        } catch (err) {
+          if (!(err instanceof Error) || err.name !== 'CaptionsMissing') throw err;
+          // No captions — read the full video natively instead.
+          setProgress({ label: `Reading ${v.title}`, current: done, total });
+          if (!videoInboxId) {
+            videoInboxId = await resolveInboxId(ctrl.signal);
+            if (!videoInboxId) throw new Error('Could not prepare video processing. Try again.');
+          }
+          if (!videoSectionId) {
+            videoSectionId = await resolveVideoSection(videoInboxId, ctrl.signal);
+          }
+          materialId = await ingestVideoNatively(
+            v,
+            videoInboxId,
+            videoSectionId,
+            (msg) => setProgress({ label: msg, current: done, total }),
+            ctrl.signal,
+          );
+        }
+        nextVideos[i] = { ...v, docId: materialId };
+        ids.push(materialId);
         done += 1;
       }
       if (nextVideos.some((v, i) => v.docId !== state.youtubeVideos[i]?.docId)) {
@@ -373,6 +524,12 @@ function Step1Upload({
       onContinue();
     } catch (err) {
       if (cancelledRef.current || (err instanceof Error && err.name === 'AbortError')) {
+        setProcessing(false);
+        return;
+      }
+      if (err instanceof Error && err.name === 'VideoMinutesExhausted') {
+        // Special, server-enforced wall — show the upsell, not a generic error.
+        setMinutesUpsell(err.message);
         setProcessing(false);
         return;
       }
@@ -610,6 +767,49 @@ function Step1Upload({
         </div>
       )}
 
+      {minutesUpsell && (
+        <NMCard
+          style={{
+            padding: 'var(--card-pad)',
+            background: 'var(--surface-container)',
+            border: '1px solid var(--accent-strong)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            textAlign: 'center',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            aria-hidden
+            style={{ fontSize: 28, color: 'var(--accent-strong)', alignSelf: 'center' }}
+          >
+            workspace_premium
+          </span>
+          <p
+            role="alert"
+            style={{ margin: 0, fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--on-surface)' }}
+          >
+            You’re out of free video minutes
+          </p>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--fs-sm)',
+              color: 'var(--on-surface-variant)',
+              lineHeight: 'var(--lh-relaxed)',
+            }}
+          >
+            That video has no captions, so it needs the full-video reader — and your free minutes are
+            spent. Remove it to build with your other material, or go Pro for 1,000 minutes a month.
+            Videos with captions are still free.
+          </p>
+          <Button href="/pricing" variant="primary" size="md" leadingIcon="bolt">
+            Upgrade to Pro
+          </Button>
+        </NMCard>
+      )}
+
       {processError && (
         <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--error)', textAlign: 'center' }}>
           {processError}
@@ -641,7 +841,8 @@ function Step1Upload({
         </Link>
       </div>
 
-      {/* YouTube material picker — collect only; transcription happens on Continue. */}
+      {/* YouTube material picker — collect only; transcript (with native fallback
+          for captionless videos) runs on Continue. */}
       {(showYoutube || state.youtubeVideos.length > 0) && (
         <VideoMaterialPicker
           videos={state.youtubeVideos}

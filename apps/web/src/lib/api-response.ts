@@ -5,6 +5,8 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   message?: string;
+  /** Stable machine-readable failure code for client branching (e.g. an upsell). */
+  code?: string;
 }
 
 /**
@@ -93,11 +95,12 @@ export function notFoundResponse(error: string = 'Not found') {
  * switchover routes FREE users away from AI path generation toward the
  * community library. Distinct from 429 (quota exhausted, retry later).
  */
-export function paymentRequiredResponse(error: string = 'Payment required') {
+export function paymentRequiredResponse(error: string = 'Payment required', code?: string) {
   return NextResponse.json(
     {
       success: false,
       error,
+      code,
     } as ApiResponse,
     { status: 402 }
   );

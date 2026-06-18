@@ -191,9 +191,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       return badRequestResponse(`This video is too long — ${maxMin} minutes max.`);
     }
 
-    // Tier gate — native video notes are PRO-only (FREE=0 → checkUsageLimit
-    // blocks). PRO is metered in minutes/month; reject if the charge would
-    // exceed the remaining balance.
+    // Budget gate — native video notes are metered in MINUTES. FREE gets a small
+    // LIFETIME trial budget; PRO a monthly minutes cap; admins are unlimited
+    // (limit === -1, skipped here). Reject if the charge exceeds the balance.
     const minutes = minutesForDuration(durationSec);
     const usage = await checkUsageLimit(userId, 'video_ingest');
     if (usage.limit !== -1) {
@@ -202,12 +202,17 @@ export async function POST(request: NextRequest, { params }: Params) {
         return paymentRequiredResponse(
           usage.limit === 0
             ? 'Video notes are a Pro feature.'
-            : 'You have reached your monthly video minutes. It resets next month.',
+            : usage.lifetime
+              ? 'You’ve used all your free video minutes. Upgrade to Pro for more.'
+              : 'You’ve reached your monthly video minutes. They reset next month.',
+          'video_minutes_exhausted',
         );
       }
       if (minutes > remaining) {
         return tooManyRequestsResponse(
-          `Not enough video minutes left this month (${remaining} remaining).`,
+          usage.lifetime
+            ? `Not enough free video minutes left (${remaining} remaining).`
+            : `Not enough video minutes left this month (${remaining} remaining).`,
         );
       }
     }
@@ -224,7 +229,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!reservation.allowed) {
       const remaining = Math.max(0, reservation.limit - reservation.used);
       return tooManyRequestsResponse(
-        `Not enough video minutes left this month (${remaining} remaining).`,
+        reservation.lifetime
+          ? `Not enough free video minutes left (${remaining} remaining).`
+          : `Not enough video minutes left this month (${remaining} remaining).`,
       );
     }
 

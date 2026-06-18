@@ -590,7 +590,9 @@ export function VideoSourceCard({
             }}
           >
             <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
-              Captions unavailable — generate notes with PRO.
+              {hasNotesAction
+                ? 'No captions found — generate notes from the video instead.'
+                : 'Captions unavailable for this video.'}
             </span>
             {hasNotesAction ? (
               <button

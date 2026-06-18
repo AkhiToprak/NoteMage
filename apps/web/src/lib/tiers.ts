@@ -20,8 +20,9 @@ export type FeatureType =
   // abuse cap is mandatory: FREE is lifetime-capped, PRO is monthly.
   | 'youtube_transcript'
   // Native video ingestion (Lane 2) — metered in MINUTES of video, not call
-  // count. Real Gemini COGS, so FREE = 0 (hard PRO gate, checkUsageLimit blocks)
-  // and PRO is a monthly minutes cap. Never -1.
+  // count. Real Gemini COGS, so FREE gets a small LIFETIME trial budget (summed
+  // across all months — see LIFETIME_LIMITS.FREE) and PRO a monthly minutes
+  // cap. Never -1.
   | 'video_ingest'
   // Path regeneration — counts re-runs of an already-generated path. Each is a
   // full AI generation, so a monthly anti-abuse cap is mandatory (never -1).
@@ -93,7 +94,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       pdf_import: 50, // pages, not imports — a one-time lifetime allowance (see LIFETIME_LIMITS)
       path_translation: 5, // lifetime allowance — see LIFETIME_LIMITS.FREE
       youtube_transcript: 120, // ⚠️ MINUTES of video (lifetime) — placeholder, set final number
-      video_ingest: 0, // hard PRO gate — native video notes are PRO-only (checkUsageLimit blocks at 0)
+      video_ingest: 15, // MINUTES — one-time lifetime trial of native video notes (see LIFETIME_LIMITS.FREE)
       path_regenerate: 5, // monthly anti-abuse cap on path re-generations
       path_translate: 5, // monthly anti-abuse cap on on-demand path translations
       moderation_audit: 10, // monthly anti-abuse cap on re-moderation passes
@@ -141,7 +142,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
  * rather than read from the current month alone.
  */
 export const LIFETIME_LIMITS: Partial<Record<TierKey, readonly FeatureType[]>> = {
-  FREE: ['pdf_import', 'path_translation', 'youtube_transcript'],
+  FREE: ['pdf_import', 'path_translation', 'youtube_transcript', 'video_ingest'],
 };
 
 /** True when a tier's limit for a feature is a lifetime budget, not monthly. */

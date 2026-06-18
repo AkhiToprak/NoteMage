@@ -5,7 +5,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { useImportJobStream } from '@/hooks/useImportJobStream';
@@ -22,9 +21,10 @@ import ImportSectionPicker, {
   type SectionOption,
 } from './ImportSectionPicker';
 
-// Video tab of ImportNotebookDialog (Lane 2 — native video notes). PRO-only:
-// FREE users see a PRO upsell and cannot submit. A single job per import lands
-// one Page of chaptered, timestamped notes.
+// Video tab of ImportNotebookDialog (Lane 2 — native video notes). Available to
+// every tier, metered in minutes: FREE gets a lifetime trial budget, PRO a
+// monthly cap, admins unlimited. Once FREE spends its trial the upsell shows. A
+// single job per import lands one Page of chaptered, timestamped notes.
 //
 // Flow: pick → preparing (read duration + upload + POST, dialog locked)
 // → tracking (one SSE stream, cancel/retry/stale escape hatch). On mount the
@@ -57,6 +57,8 @@ interface VideoImportTabProps {
 interface UsageEntry {
   used: number;
   limit: number;
+  /** True when the budget is a lifetime trial (FREE), not a monthly cap (PRO). */
+  lifetime: boolean;
 }
 
 interface ActiveJob {
@@ -70,13 +72,7 @@ export default function VideoImportTab({
   onClose,
   onLockChange,
 }: VideoImportTabProps) {
-  const { data: session } = useSession();
   const { upload } = useDirectUpload();
-
-  // Instant client-side tier read; the server gate is authoritative. Admins
-  // bypass like every other PRO surface (mirrors the Study Pack creation wizard).
-  const isAdmin = session?.user?.role === 'admin';
-  const isPro = session?.user?.tier === 'PRO' || isAdmin;
 
   const [phase, setPhase] = useState<Phase>('pick');
   const [error, setError] = useState('');
@@ -87,7 +83,7 @@ export default function VideoImportTab({
   const [trackerGeneration, setTrackerGeneration] = useState(0);
 
   // Remaining video_ingest balance (minutes). null until the usage probe
-  // resolves; limit === 0 means FREE / hard-gated.
+  // resolves; limit === -1 means admin/unlimited, lifetime flags FREE's trial.
   const [usage, setUsage] = useState<UsageEntry | null>(null);
 
   // Section selection — same draft model as PdfImportTab.
@@ -108,7 +104,6 @@ export default function VideoImportTab({
   // Re-attach: on mount, resume tracking the most recent unfinished job so a
   // reload mid-import picks up where it left off (mirrors PdfImportTab GET).
   useEffect(() => {
-    if (!isPro) return;
     let cancelled = false;
     (async () => {
       try {
@@ -131,7 +126,7 @@ export default function VideoImportTab({
     return () => {
       cancelled = true;
     };
-  }, [notebookId, isPro]);
+  }, [notebookId]);
 
   // Usage probe — drives the remaining-minutes estimate. Sourced from the
   // existing /api/user/usage endpoint (it already returns every feature).
@@ -142,10 +137,10 @@ export default function VideoImportTab({
       .then((j) => {
         if (cancelled || !j?.success) return;
         const features = j.data?.features as
-          | Array<{ featureType: string; used: number; limit: number }>
+          | Array<{ featureType: string; used: number; limit: number; lifetime: boolean }>
           | undefined;
         const entry = features?.find((f) => f.featureType === 'video_ingest');
-        if (entry) setUsage({ used: entry.used, limit: entry.limit });
+        if (entry) setUsage({ used: entry.used, limit: entry.limit, lifetime: entry.lifetime });
       })
       .catch(() => {
         /* soft-fail — the form still renders without the balance line */
@@ -156,13 +151,11 @@ export default function VideoImportTab({
   }, []);
 
   useEffect(() => {
-    if (!isPro) return;
     return loadUsage();
-  }, [isPro, loadUsage]);
+  }, [loadUsage]);
 
   // Section list for the destination picker.
   useEffect(() => {
-    if (!isPro) return;
     let cancelled = false;
     setSectionsError('');
     (async () => {
@@ -188,7 +181,7 @@ export default function VideoImportTab({
     return () => {
       cancelled = true;
     };
-  }, [notebookId, sectionsAttempt, isPro]);
+  }, [notebookId, sectionsAttempt]);
 
   // A notebook with no sections still needs a destination — seed a draft.
   useEffect(() => {
@@ -354,8 +347,19 @@ export default function VideoImportTab({
 
   // ── Render ──
 
-  if (!isPro) {
-    return <ProUpsell />;
+  // FREE gets a lifetime trial of native video notes; once it's spent (or a
+  // hard 0-gate is configured) show the upsell instead of the pick form. Gated
+  // to the pick phase so an in-flight/preparing job (which may have just spent
+  // the last minutes) still shows its tracker. PRO's monthly cap is enforced by
+  // the server 402 on submit, so PRO/admin keep seeing the form.
+  const trialSpent =
+    phase === 'pick' &&
+    usage !== null &&
+    usage.lifetime &&
+    usage.limit !== -1 &&
+    usage.used >= usage.limit;
+  if (trialSpent) {
+    return <ProUpsell gated={usage.limit === 0} />;
   }
 
   if (sectionsError) {
@@ -445,7 +449,11 @@ export default function VideoImportTab({
         maxFileBytes={VIDEO_IMPORT_MAX_BYTES}
         placeholder="Paste a YouTube link"
         fileEstimate={
-          <EstimateNote remaining={remaining} limit={usage?.limit ?? null} />
+          <EstimateNote
+            remaining={remaining}
+            limit={usage?.limit ?? null}
+            lifetime={usage?.lifetime ?? false}
+          />
         }
       />
 
@@ -507,7 +515,15 @@ export default function VideoImportTab({
 // picked; before a pick we show the standing balance.
 // ─────────────────────────────────────────────────────────────────────
 
-function EstimateNote({ remaining, limit }: { remaining: number | null; limit: number | null }) {
+function EstimateNote({
+  remaining,
+  limit,
+  lifetime,
+}: {
+  remaining: number | null;
+  limit: number | null;
+  lifetime: boolean;
+}) {
   if (limit === -1) return null;
   return (
     <div
@@ -525,6 +541,10 @@ function EstimateNote({ remaining, limit }: { remaining: number | null; limit: n
       </span>
       {remaining === null ? (
         <span>Metered in minutes.</span>
+      ) : lifetime ? (
+        <span>
+          {remaining} free video {remaining === 1 ? 'minute' : 'minutes'} left
+        </span>
       ) : (
         <span>
           {remaining} {remaining === 1 ? 'minute' : 'minutes'} left this month
@@ -564,10 +584,11 @@ function ResolutionNote() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// PRO upsell — shown to FREE users. Intentional surface, not a dead form.
+// PRO upsell — shown to FREE users who have spent their lifetime trial (or are
+// hard-gated at 0). Intentional surface, not a dead form.
 // ─────────────────────────────────────────────────────────────────────
 
-function ProUpsell() {
+function ProUpsell({ gated = false }: { gated?: boolean }) {
   return (
     <div
       style={{
@@ -596,10 +617,12 @@ function ProUpsell() {
       </div>
       <div style={{ maxWidth: '320px' }}>
         <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 6px' }}>
-          Video notes are a PRO feature.
+          {gated ? 'Video notes are a PRO feature.' : 'You’ve used your free video notes.'}
         </p>
         <p style={{ fontSize: '12.5px', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.5 }}>
-          Turn any video into chaptered, timestamped study notes. Upgrade to PRO to unlock it.
+          {gated
+            ? 'Turn any video into chaptered, timestamped study notes. Upgrade to PRO to unlock it.'
+            : 'Upgrade to PRO for 1,000 minutes of video notes every month — or keep adding videos with captions for free.'}
         </p>
       </div>
       <Link href="/pricing" className="nm-vidtab-btn nm-vidtab-btn--primary" style={{ textDecoration: 'none' }}>

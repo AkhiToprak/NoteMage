@@ -89,12 +89,17 @@ export async function POST(request: NextRequest, { params }: Params) {
         return paymentRequiredResponse(
           usage.limit === 0
             ? 'Video notes are a Pro feature.'
-            : 'You have reached your monthly video minutes. It resets next month.',
+            : usage.lifetime
+              ? 'You’ve used all your free video minutes. Upgrade to Pro for more.'
+              : 'You’ve reached your monthly video minutes. They reset next month.',
+          'video_minutes_exhausted',
         );
       }
       if (minutes > remaining) {
         return tooManyRequestsResponse(
-          `Not enough video minutes left this month (${remaining} remaining).`,
+          usage.lifetime
+            ? `Not enough free video minutes left (${remaining} remaining).`
+            : `Not enough video minutes left this month (${remaining} remaining).`,
         );
       }
     }
