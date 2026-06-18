@@ -463,7 +463,7 @@ function FlashcardSetItem({
 
   return (
     <Link
-      href={`/notebooks/${notebookId}/flashcards/${fc.id}`}
+      href={`/study-packs/${notebookId}/flashcards/${fc.id}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -518,7 +518,7 @@ function QuizSetItem({
 
   return (
     <Link
-      href={`/notebooks/${notebookId}/quizzes/${qs.id}`}
+      href={`/study-packs/${notebookId}/quizzes/${qs.id}`}
       style={{
         display: 'flex',
         alignItems: 'center',

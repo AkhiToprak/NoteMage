@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Docs · Notemage',
   description:
-    'How to use Notemage — notebooks, infinite canvas, Mage Chat, flashcards, quizzes, presentations, cowork, and more.',
+    'How to use Notemage — study packs, Mage Chat, flashcards, quizzes, learning paths, presentations, and more.',
 };
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {

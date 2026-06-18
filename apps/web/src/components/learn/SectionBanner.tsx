@@ -168,8 +168,8 @@ export default function SectionBanner({
 
         {unlocked && notebookId ? (
           <Link
-            href={`/notebooks/${notebookId}`}
-            aria-label={`Open notebook ${notebookTitle ?? ''}`.trim()}
+            href={`/study-packs/${notebookId}`}
+            aria-label={`Open study pack ${notebookTitle ?? ''}`.trim()}
             style={{
               width: '36px',
               height: '36px',

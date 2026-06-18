@@ -16,7 +16,6 @@ type Purpose =
   | 'flashcard-image'
   | 'shared-image'
   | 'avatar'
-  | 'group-avatar'
   | 'post-image'
   | 'document'
   | 'section-import'
@@ -37,7 +36,6 @@ interface SignedUrlRequestBody {
   cardId?: string;
   setId?: string;
   shareId?: string;
-  groupId?: string;
 }
 
 /**
@@ -91,7 +89,6 @@ export async function POST(request: NextRequest) {
       'flashcard-image',
       'shared-image',
       'avatar',
-      'group-avatar',
       'post-image',
       'document',
       'section-import',
@@ -173,30 +170,6 @@ export async function POST(request: NextRequest) {
       case 'avatar': {
         const ext = getExtensionFromContentType(contentType);
         storagePath = `avatars/${userId}-${Date.now()}.${ext}`;
-        bucket = BUCKET_PUBLIC;
-        break;
-      }
-
-      case 'group-avatar': {
-        const { groupId } = body as SignedUrlRequestBody & { groupId: string };
-        if (!groupId) {
-          return badRequestResponse('group-avatar requires groupId');
-        }
-        // Only an accepted owner/admin/teacher may mint an avatar-upload token for
-        // the group (mirrors app/api/groups/[id]/avatar). Without this, the public
-        // bucket key is writable by any authenticated user.
-        const membership = await db.studyGroupMember.findUnique({
-          where: { groupId_userId: { groupId, userId } },
-        });
-        if (
-          !membership ||
-          !['owner', 'admin', 'teacher'].includes(membership.role) ||
-          membership.status !== 'accepted'
-        ) {
-          return forbiddenResponse('Only group owners, admins, or teachers can change the avatar');
-        }
-        const ext = getExtensionFromContentType(contentType);
-        storagePath = `avatars/group-${groupId}-${Date.now()}.${ext}`;
         bucket = BUCKET_PUBLIC;
         break;
       }

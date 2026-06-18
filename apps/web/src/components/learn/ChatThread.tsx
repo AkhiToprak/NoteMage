@@ -2075,8 +2075,8 @@ function MessageContent({
             key={`${markerType}-${partKey++}`}
             href={
               isQuiz
-                ? `/notebooks/${resolvedNotebookId}/quizzes/${setId}`
-                : `/notebooks/${resolvedNotebookId}/flashcards/${setId}`
+                ? `/study-packs/${resolvedNotebookId}/quizzes/${setId}`
+                : `/study-packs/${resolvedNotebookId}/flashcards/${setId}`
             }
             onClick={(e) => e.stopPropagation()}
             style={{

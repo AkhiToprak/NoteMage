@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
-import type { SectionData } from '@/components/notebook/SectionTree';
 import { POSES, type MascotIdle, type MascotPose } from './poses';
 
 const WAVED_FLAG_KEY = 'notemage:mascot:dashboard-waved';
@@ -16,7 +14,6 @@ export interface MascotContextPose {
 
 export function useMascotContextPose(): MascotContextPose {
   const pathname = usePathname();
-  const workspace = useNotebookWorkspaceOptional();
 
   const [showFirstWave, setShowFirstWave] = useState(false);
 
@@ -40,46 +37,20 @@ export function useMascotContextPose(): MascotContextPose {
     };
   }, [pathname]);
 
-  const pose = derivePose(pathname, workspace, showFirstWave);
+  const pose = derivePose(pathname, showFirstWave);
   return { pose, idle: POSES[pose].recommendedIdle };
 }
 
-function derivePose(
-  pathname: string,
-  workspace: ReturnType<typeof useNotebookWorkspaceOptional>,
-  showFirstWave: boolean
-): MascotPose {
+function derivePose(pathname: string, showFirstWave: boolean): MascotPose {
   if (pathname === '/dashboard') {
     return showFirstWave ? 'wave' : 'default';
   }
 
-  if (pathname.startsWith('/notebooks/')) {
-    if (workspace?.activeFlashcardSetId) return 'holding-flashcards';
-    if (workspace?.activeQuizSetId) return 'quizzing';
-    if (workspace?.activeChatId) return 'chatting';
-    // Phase 9.4 moved /notebooks/[id]/study-plan/[planId] → /learn/paths/[planId];
-    // the activeStudyPlanId branch is unreachable from notebook URLs now.
-    if (workspace?.activePageId) {
-      const pageType = findPageType(workspace.flatSections, workspace.activePageId);
-      return pageType === 'canvas' ? 'painting' : 'writing';
-    }
-    return 'default';
-  }
-
-  if (pathname === '/study-packs') return 'holding-pen';
+  if (pathname === '/study-packs' || pathname.startsWith('/study-packs/')) return 'holding-pen';
   if (pathname.startsWith('/profile')) return 'holding-scroll';
-  if (pathname.startsWith('/groups')) return 'chatting';
   if (pathname.startsWith('/settings')) return 'thinking';
   if (pathname.startsWith('/pricing')) return 'holding-scroll';
   if (pathname.startsWith('/docs')) return 'holding-scroll';
 
   return 'default';
-}
-
-function findPageType(sections: SectionData[], pageId: string): string | undefined {
-  for (const section of sections) {
-    const page = section.pages.find((p) => p.id === pageId);
-    if (page) return page.pageType;
-  }
-  return undefined;
 }

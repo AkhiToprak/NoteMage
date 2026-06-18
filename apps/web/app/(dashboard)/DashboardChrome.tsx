@@ -12,10 +12,6 @@ import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 import { ToastProvider } from '@/components/ui/Toast';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
-/** Matches /notebooks/<uuid-or-id> and anything nested below it */
-const NOTEBOOK_WORKSPACE_RE = /^\/notebooks\/[^/]+/;
-/** Matches /groups/<id> detail pages */
-const GROUP_DETAIL_RE = /^\/groups\/[^/]+/;
 /** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
 const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
 /** Matches /study-packs/new — upload wizard is immersive, owns the viewport */
@@ -49,14 +45,12 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
 
   // Track minutes-in-app for the activity heatmap. Only runs when authed.
   useStudyHeartbeat(status === 'authenticated');
-  const isNotebookWorkspace = NOTEBOOK_WORKSPACE_RE.test(pathname);
-  const isGroupDetail = GROUP_DETAIL_RE.test(pathname);
   const isLearnChats = LEARN_CHATS_RE.test(pathname);
   const isStudyPacksNew = STUDY_PACKS_NEW_RE.test(pathname);
   const isLesson = LESSON_RE.test(pathname);
   const isTutorial = TUTORIAL_RE.test(pathname);
   const isFullHeight =
-    isNotebookWorkspace || isGroupDetail || isLearnChats || isStudyPacksNew || isLesson || isTutorial;
+    isLearnChats || isStudyPacksNew || isLesson || isTutorial;
   // /learn owns its own spacing: the tab strip is full-bleed (flush under the
   // header, edge to edge) and every /learn page self-pads (centered maxWidth +
   // its own horizontal padding). Drop the generic <main> padding here — it
@@ -76,7 +70,7 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
               background: 'var(--background)',
             }}
           >
-            {!isNotebookWorkspace && !isGroupDetail && !isStudyPacksNew && !isLesson && !isTutorial && <HomeHeader />}
+            {!isStudyPacksNew && !isLesson && !isTutorial && <HomeHeader />}
             <main
               style={{
                 flex: 1,
@@ -91,8 +85,8 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
             >
               {children}
             </main>
-            {/* Phone-only thumb nav. Hidden on full-height surfaces (notebook
-              workspace, group detail, learn chats) which own the viewport. */}
+            {/* Phone-only thumb nav. Hidden on full-height surfaces (learn
+              chats, study-pack wizard, lesson, tutorial) which own the viewport. */}
             {!isFullHeight && <MobileBottomNav />}
           </div>
         </ToastProvider>

@@ -733,7 +733,7 @@ export default function QuizViewer({
       await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
       refreshSections();
       refreshChats();
-      router.push(`/notebooks/${notebookId}`);
+      router.push(`/study-packs/${notebookId}`);
     } catch {
       /* silent */
     }

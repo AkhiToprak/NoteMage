@@ -546,14 +546,14 @@ export default function SearchDropdown({
 
       {hasNotebooks && (
         <div style={{ padding: '4px 0', borderTop: hasUsers ? `1px solid ${C.border}` : 'none' }}>
-          <CategoryHeader icon="book" label="My Notebooks" count={results!.notebooks!.length} />
+          <CategoryHeader icon="auto_stories" label="Study Packs" count={results!.notebooks!.length} />
           {results!.notebooks!.map((nb) => (
             <div key={nb.id} className="search-item" style={{ borderRadius: 8, margin: '0 6px' }}>
               <NotebookItem
                 nb={nb}
                 query={query}
                 onClick={() => {
-                  router.push(`/notebooks/${nb.id}`);
+                  router.push(`/study-packs/${nb.id}`);
                   onClose();
                 }}
               />
@@ -607,9 +607,7 @@ export default function SearchDropdown({
                 page={p}
                 query={query}
                 onClick={() => {
-                  router.push(
-                    `/notebooks/${p.notebookId}/pages/${p.id}?highlight=${encodeURIComponent(query)}`
-                  );
+                  router.push(`/study-packs/${p.notebookId}`);
                   onClose();
                 }}
               />

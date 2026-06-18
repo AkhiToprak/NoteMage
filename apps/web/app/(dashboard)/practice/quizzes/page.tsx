@@ -8,9 +8,9 @@ import { formatRelativeTime } from '@/lib/relative-time';
 
 // /practice/quizzes hub. Grouped grid of every quiz set the current user owns,
 // grouped by source notebook (Inbox first, standard notebooks alphabetical,
-// Cross-notebook last). Whole card links to the existing per-notebook player
-// URL: /notebooks/[notebookId]/quizzes/[id]. Reached from the Practice page's
-// "All quizzes" link. ?highlight=<id> scrolls and pulses a freshly created set.
+// Cross-notebook last). Whole card links to the standalone study-pack quiz
+// player: /study-packs/[notebookId]/quizzes/[id]. Reached from the Practice
+// page's "All quizzes" link. ?highlight=<id> scrolls and pulses a fresh set.
 
 interface QuizSet {
   id: string;
@@ -433,7 +433,7 @@ function SetCard({ set, highlight }: { set: QuizSet; highlight: boolean }) {
 
   return (
     <Link
-      href={`/notebooks/${set.notebookId}/quizzes/${set.id}`}
+      href={`/study-packs/${set.notebookId}/quizzes/${set.id}`}
       ref={cardRef as unknown as React.RefObject<HTMLAnchorElement>}
       style={cardStyle}
       onMouseEnter={(e) => {

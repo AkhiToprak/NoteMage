@@ -8,8 +8,7 @@ import { UserAvatar } from '@/components/user/UserAvatar';
 
 function getPageTitle(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard';
-  if (pathname.startsWith('/notebooks') && pathname.split('/').length === 3) return 'Notebook';
-  if (pathname.startsWith('/notebooks')) return 'Notebooks';
+  if (pathname.startsWith('/study-packs')) return 'Study Packs';
   if (pathname.startsWith('/settings')) return 'Settings';
   return 'Notemage';
 }

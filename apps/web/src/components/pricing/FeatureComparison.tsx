@@ -103,15 +103,6 @@ const COMPARISON_DATA: FeatureCategory[] = [
       { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
-  {
-    category: 'Collaboration',
-    features: [
-      { name: 'Study Groups', icon: 'groups', free: '✓', pro: '✓' },
-      { name: 'Classes', icon: 'school', free: '✓', pro: '✓' },
-      { name: 'Direct Messages', icon: 'chat', free: '✓', pro: '✓' },
-      { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
-    ],
-  },
 ];
 
 function buildComparisonData(freeAiPathsDisabled: boolean): FeatureCategory[] {

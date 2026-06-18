@@ -500,10 +500,10 @@ export default function OnboardingWizard({
     }
   };
 
-  // Completed the import finale — land on the first imported notebook if
+  // Completed the import finale — land on the first imported study pack if
   // one was created, otherwise the dashboard.
   const handleImportComplete = (firstNotebookId: string | null) => {
-    submitOnboarding(firstNotebookId ? `/notebooks/${firstNotebookId}` : '/dashboard');
+    submitOnboarding(firstNotebookId ? `/study-packs/${firstNotebookId}` : '/dashboard');
   };
   const handleImportSkip = () => submitOnboarding('/dashboard');
 

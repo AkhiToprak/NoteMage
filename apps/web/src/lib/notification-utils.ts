@@ -13,15 +13,9 @@ export const NOTIFICATION_ICONS: Record<string, string> = {
   post_upvote: 'arrow_upward',
   post_comment: 'chat_bubble',
   comment_reply: 'reply',
-  co_work_invite: 'group_work',
   achievement_unlocked: 'emoji_events',
   cosmetic_unlocked: 'auto_awesome',
   exam_reminder: 'alarm',
-  group_invitation: 'group_add',
-  group_member_joined: 'groups',
-  group_message: 'chat',
-  dm_message: 'chat_bubble',
-  group_content_shared: 'share',
   // Path-publishing moderation lifecycle (Phase 1 of path-publishing plan).
   path_published: 'rocket_launch',
   path_rejected: 'block',
@@ -83,8 +77,6 @@ export function getNotificationText(n: Notification): string {
       return `${safeStr(data.fromUsername, 'Someone')} commented on your post`;
     case 'comment_reply':
       return `${safeStr(data.fromUsername, 'Someone')} replied to your comment`;
-    case 'co_work_invite':
-      return `${safeStr(data.username, 'Someone')} invited you to co-work on "${safeStr(data.notebookName, 'a notebook')}"`;
     case 'achievement_unlocked':
       return `Achievement unlocked: ${safeStr(data.name, 'New achievement')}`;
     case 'cosmetic_unlocked':
@@ -96,16 +88,6 @@ export function getNotificationText(n: Notification): string {
       if (days === 1) return `${title} is tomorrow!`;
       return days !== null ? `${title} is in ${days} days` : `Upcoming exam: ${title}`;
     }
-    case 'group_invitation':
-      return `${safeStr(data.inviterName, 'Someone')} invited you to join "${safeStr(data.groupName, 'a study group')}"`;
-    case 'group_member_joined':
-      return `${safeStr(data.userName, 'Someone')} joined "${safeStr(data.groupName, 'a study group')}"`;
-    case 'group_message':
-      return `${safeStr(data.senderName, 'Someone')} sent a message in "${safeStr(data.groupName, 'a group')}"`;
-    case 'dm_message':
-      return `${safeStr(data.senderName, 'Someone')} sent you a message`;
-    case 'group_content_shared':
-      return `${safeStr(data.sharerName, 'Someone')} shared "${safeStr(data.contentTitle, 'content')}"`;
     case 'path_published':
       return `Your path "${safeStr(data.title, 'Untitled')}" was approved and is live in the community library`;
     case 'path_rejected':
@@ -127,15 +109,8 @@ export function getNotificationLink(n: Notification): string | null {
     case 'post_comment':
     case 'comment_reply':
       return typeof data.postId === 'string' ? `/community/post/${data.postId}` : null;
-    case 'group_invitation':
-      return '/groups';
     case 'cosmetic_unlocked':
       return '/profile';
-    case 'group_member_joined':
-    case 'group_message':
-    case 'dm_message':
-    case 'group_content_shared':
-      return typeof data.groupId === 'string' ? `/groups/${data.groupId}` : null;
     case 'path_published':
       return typeof data.shareId === 'string' ? `/learn/community/${data.shareId}` : null;
     case 'path_rejected':

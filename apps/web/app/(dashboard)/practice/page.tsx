@@ -384,7 +384,7 @@ function PracticeContent() {
             {previewFc.map((set) => (
               <SetPreviewCard
                 key={`fc-${set.id}`}
-                href={`/notebooks/${set.notebookId}/flashcards/${set.id}`}
+                href={`/study-packs/${set.notebookId}/flashcards/${set.id}`}
                 title={set.title || 'Untitled set'}
                 icon="style"
                 meta={`${set._count.flashcards} ${set._count.flashcards === 1 ? 'card' : 'cards'} · ${formatRelativeTime(set.updatedAt)}`}
@@ -394,7 +394,7 @@ function PracticeContent() {
             {previewQuiz.map((set) => (
               <SetPreviewCard
                 key={`q-${set.id}`}
-                href={`/notebooks/${set.notebookId}/quizzes/${set.id}`}
+                href={`/study-packs/${set.notebookId}/quizzes/${set.id}`}
                 title={set.title || 'Untitled quiz'}
                 icon="quiz"
                 meta={`${set._count.questions} ${set._count.questions === 1 ? 'question' : 'questions'} · ${formatRelativeTime(set.updatedAt)}`}

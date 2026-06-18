@@ -3,13 +3,11 @@ export interface UserStats {
   currentStreak: number;
   friendCount: number;
   sharedNotebookCount: number;
-  groupCount: number;
   hasAllWrongQuiz: boolean;
   hasPerfectFirstTry: boolean;
   usernameChanged: boolean;
   examCount: number;
   folderCount: number;
-  sharedStudyMaterialCount: number;
   canvasPageCount: number;
   allTodosDone: boolean;
   scholarNameSet: boolean;
@@ -225,16 +223,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     unlocks: ['frame.pulse-rose'],
   },
   {
-    badge: 'first_group',
-    name: 'in this together',
-    description: 'Start your first study group',
-    icon: 'group',
-    category: 'social',
-    checkCondition: (s) => s.groupCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.groupCount, 1), target: 1 }),
-    unlocks: ['font.abril'],
-  },
-  {
     badge: 'username_changed',
     name: 'McLovin',
     description: 'Change your username',
@@ -253,16 +241,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     checkCondition: (s) => s.sharedNotebookCount >= 1,
     getProgress: (s) => ({ current: Math.min(s.sharedNotebookCount, 1), target: 1 }),
     unlocks: ['font.pressstart'],
-  },
-  {
-    badge: 'share_study_material',
-    name: 'plug',
-    description: 'Share a flashcard set or quiz',
-    icon: 'send',
-    category: 'social',
-    checkCondition: (s) => s.sharedStudyMaterialCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.sharedStudyMaterialCount, 1), target: 1 }),
-    unlocks: ['font.medieval'],
   },
   {
     badge: '20_friends',

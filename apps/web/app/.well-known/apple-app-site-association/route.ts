@@ -32,11 +32,9 @@ export function GET(): NextResponse {
         {
           appID: APP_ID,
           paths: [
-            '/notebook/*',
-            '/notebooks/*',
+            '/study-packs/*',
             '/auth/*',
             '/share/*',
-            '/cowork/*',
             'NOT /api/*',
             'NOT /admin/*',
           ],

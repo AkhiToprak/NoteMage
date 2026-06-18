@@ -43,7 +43,7 @@ export default function PageItem({
 
   return (
     <Link
-      href={`/notebooks/${notebookId}/pages/${page.id}`}
+      href={`/study-packs/${notebookId}`}
       style={{
         display: 'flex',
         alignItems: 'center',

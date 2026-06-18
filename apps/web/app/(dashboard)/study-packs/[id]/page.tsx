@@ -8,6 +8,7 @@ import { ProgressBar } from '@/components/rework/ProgressBar';
 import { RTabs } from '@/components/rework/RTabs';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/mascot/Mascot';
+import MaterialBrowser from '@/components/study-packs/MaterialBrowser';
 
 interface NotebookData {
   id: string;
@@ -89,7 +90,7 @@ function TabPanel({ tab, notebook }: { tab: Tab; notebook: NotebookData }) {
                 Spaced repetition for this pack
               </p>
             </div>
-            <Button href={`/notebooks/${id}/flashcards`} variant="secondary" shape="pill" size="sm" trailingIcon="arrow_forward" style={{ flexShrink: 0 }}>
+            <Button href={`/study-packs/${id}/flashcards`} variant="secondary" shape="pill" size="sm" trailingIcon="arrow_forward" style={{ flexShrink: 0 }}>
               Study
             </Button>
           </NMCard>
@@ -122,7 +123,7 @@ function TabPanel({ tab, notebook }: { tab: Tab; notebook: NotebookData }) {
                 Test your knowledge with AI-generated questions
               </p>
             </div>
-            <Button href={`/notebooks/${id}/quizzes`} variant="secondary" shape="pill" size="sm" trailingIcon="arrow_forward" style={{ flexShrink: 0 }}>
+            <Button href={`/study-packs/${id}/quizzes`} variant="secondary" shape="pill" size="sm" trailingIcon="arrow_forward" style={{ flexShrink: 0 }}>
               Practice
             </Button>
           </NMCard>
@@ -130,24 +131,7 @@ function TabPanel({ tab, notebook }: { tab: Tab; notebook: NotebookData }) {
       );
 
     case 'material':
-      return (
-        <NMCard style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4, 16px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 24, color: 'var(--on-surface-variant)' }}>
-              folder_open
-            </span>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--on-surface)', margin: 0 }}>
-              Source Material
-            </h3>
-          </div>
-          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.65 }}>
-            Open the notebook workspace to view pages, documents, and annotations.
-          </p>
-          <Button href={`/notebooks/${id}`} variant="primary" shape="pill" leadingIcon="folder_open" style={{ alignSelf: 'flex-start' }}>
-            Open material
-          </Button>
-        </NMCard>
-      );
+      return <MaterialBrowser notebookId={id} />;
 
     case 'mage':
       return (

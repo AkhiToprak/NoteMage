@@ -13,7 +13,7 @@ import { formatRelativeTime } from '@/lib/relative-time';
 // page's "All flashcards" link.
 //
 // Opening a set still routes to the existing per-notebook player view
-// (/notebooks/[id]/flashcards/[setId]).
+// (/study-packs/[id]/flashcards/[setId]).
 
 interface FlashcardSetRow {
   id: string;
@@ -497,11 +497,11 @@ function SetCard({
   const cardCountLabel = `${cardCount} ${cardCount === 1 ? 'card' : 'cards'}`;
   const updatedLabel = formatRelativeTime(set.updatedAt);
 
-  // The card is clickable only when we have a home notebook to route to.
+  // The card is clickable only when we have a home pack to route to.
   // Cross-notebook sets (notebookId null) sit at this page until a future
   // phase introduces a hub-level player.
   const canOpen = Boolean(set.notebookId);
-  const href = canOpen ? `/notebooks/${set.notebookId}/flashcards/${set.id}` : null;
+  const href = canOpen ? `/study-packs/${set.notebookId}/flashcards/${set.id}` : null;
 
   const cardStyle: React.CSSProperties = {
     display: 'flex',

@@ -26,14 +26,10 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     notebookCount,
     streak,
     friendCount,
-    sharedNotebookCount,
-    groupCount,
-    allWrongAttempt,
+    sharedNotebookCount,    allWrongAttempt,
     userRecord,
     examCount,
-    folderCount,
-    sharedStudyMaterialCount,
-    canvasPageCount,
+    folderCount,    canvasPageCount,
     totalTodos,
     incompleteTodos,
     unlockedCount,
@@ -60,9 +56,6 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
       where: { sharedById: userId, sharedWithId: null },
     }),
 
-    // Study group memberships
-    db.studyGroupMember.count({ where: { userId } }),
-
     // Any quiz attempt with all wrong answers
     db.quizAttempt.findFirst({
       where: { userId, score: 0, total: { gt: 0 } },
@@ -88,14 +81,6 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
 
     // Folder count
     db.notebookFolder.count({ where: { userId } }),
-
-    // Shared flashcard sets or quizzes in groups
-    db.groupSharedContent.count({
-      where: {
-        sharedById: userId,
-        contentType: { in: ['flashcard_set', 'quiz_set'] },
-      },
-    }),
 
     // Canvas pages in user's notebooks
     db.page.count({
@@ -270,15 +255,11 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
     notebookCount,
     currentStreak: streak?.currentStreak ?? 0,
     friendCount,
-    sharedNotebookCount,
-    groupCount,
-    hasAllWrongQuiz: !!allWrongAttempt,
+    sharedNotebookCount,    hasAllWrongQuiz: !!allWrongAttempt,
     hasPerfectFirstTry,
     usernameChanged: userRecord?.usernameChanged ?? false,
     examCount,
-    folderCount,
-    sharedStudyMaterialCount,
-    canvasPageCount,
+    folderCount,    canvasPageCount,
     allTodosDone: totalTodos > 0 && incompleteTodos === 0,
     scholarNameSet: !!userRecord?.scholarName,
     dailyGoalHit,

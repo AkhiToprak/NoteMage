@@ -134,7 +134,7 @@ const AUTH_LOGIC_PATTERNS: RegExp[] = [
   /^\/$/,
   /^\/auth\/(login|register)(\/|$)/,
   /^\/dashboard(\/|$)/,
-  /^\/notebooks\//,
+  /^\/study-packs(\/|$)/,
   /^\/settings(\/|$)/,
   /^\/(pricing|about|contact|waitlist)$/,
   /^\/legal(\/|$)/,

@@ -358,8 +358,8 @@ function DocsIndex({ categories }: { categories: { name: string; docs: DocSummar
           fontFamily: 'var(--font-sans)',
         }}
       >
-        Notebooks, the infinite canvas, Mage Chat, flashcards, quizzes, AI-generated presentations,
-        real-time cowork, gamification — every feature, with the steps to get there. Pick a topic on
+        Study packs, Mage Chat, flashcards, quizzes, learning paths, AI-generated presentations,
+        gamification — every feature, with the steps to get there. Pick a topic on
         the left, or start with the basics below.
       </p>
 

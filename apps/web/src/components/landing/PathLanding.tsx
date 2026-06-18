@@ -66,14 +66,7 @@ const CP: Checkpoint[] = [
     bullets: ['Phased units & sections', 'Graded checkpoint exams', 'Resume where you left off'],
   },
   {
-    id: 'study', icon: 'group', nudge: -26, side: 'left', mascotSide: 'right', mascot: ['holding-scroll', 'default', 'writing', 'thinking'],
-    eyebrow: 'CO-WORK',
-    title: <>Study <span className="pl-g-purple">Together</span>.</>,
-    body: ['Create study groups, share your files, and work on them together in live sessions!'],
-    bullets: ['Live edits', 'Live chat', 'No time limits'],
-  },
-  {
-    id: 'habit', icon: 'local_fire_department', nudge: 24, side: 'right', mascotSide: 'left', mascot: ['graduation'],
+    id: 'habit', icon: 'local_fire_department', nudge: -24, side: 'left', mascotSide: 'right', mascot: ['graduation'],
     grade: 'A', stars: 3,
     eyebrow: 'HABIT BUILDING',
     title: <>Make studying into a habit</>,
@@ -84,7 +77,7 @@ const CP: Checkpoint[] = [
 ];
 
 /* vertical span of the connector BETWEEN node i and node i+1 */
-const SEG_H = [240, 480, 480, 480, 480, 520, 320];
+const SEG_H = [240, 480, 480, 480, 480, 320];
 
 /* ─────────  hero preview carousel data  ───────── */
 type SectionSlide = { eyebrow: string; title: ReactNode; grade: string; desc: ReactNode; nodes: string[] };

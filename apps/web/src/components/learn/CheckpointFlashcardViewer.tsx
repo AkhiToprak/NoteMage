@@ -55,10 +55,19 @@ const SLOT_KIND_LABEL: Record<string, string> = {
 };
 
 interface CheckpointFlashcardViewerProps {
-  slot: PathSlot;
-  activity: PathActivity;
+  slot?: PathSlot;
+  activity?: PathActivity;
   onClose: () => void;
-  onCompleted: (unlocked?: PathUnlock[]) => void;
+  onCompleted?: (unlocked?: PathUnlock[]) => void;
+  // Standalone (Study Pack) mode: render the deck directly from a pre-fetched
+  // set, with no path slot/activity — no content fetch, no completion PATCH, no
+  // path telemetry. The "Done" button simply closes the viewer.
+  standalone?: {
+    title: string;
+    cards: Flashcard[];
+    diagrams?: unknown;
+    kindLabel?: string;
+  };
 }
 
 export default function CheckpointFlashcardViewer({
@@ -66,9 +75,15 @@ export default function CheckpointFlashcardViewer({
   activity,
   onClose,
   onCompleted,
+  standalone,
 }: CheckpointFlashcardViewerProps) {
-  const [cards, setCards] = useState<Flashcard[] | null>(null);
-  const [diagrams, setDiagrams] = useState<unknown>(null);
+  const [cards, setCards] = useState<Flashcard[] | null>(standalone?.cards ?? null);
+  const [diagrams, setDiagrams] = useState<unknown>(standalone?.diagrams ?? null);
+
+  const titleText = slot?.title ?? standalone?.title ?? 'Flashcards';
+  const kindLabel = slot
+    ? (SLOT_KIND_LABEL[slot.kind] ?? slot.kind)
+    : (standalone?.kindLabel ?? 'Study');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -78,15 +93,18 @@ export default function CheckpointFlashcardViewer({
   const coarsePointer = useCoarsePointer();
 
   useEffect(() => {
+    if (!slot || !activity) return;
     trackEvent('path.activity.opened', {
       slotId: slot.id,
       slotKind: slot.kind,
       activityId: activity.id,
       activityKind: activity.kind,
     });
-  }, [slot.id, slot.kind, activity.id, activity.kind]);
+  }, [slot, activity]);
 
   useEffect(() => {
+    // Standalone mode seeds cards from props — no content fetch.
+    if (standalone || !activity) return;
     let cancelled = false;
     (async () => {
       try {
@@ -113,7 +131,7 @@ export default function CheckpointFlashcardViewer({
     return () => {
       cancelled = true;
     };
-  }, [activity.id]);
+  }, [activity?.id, standalone]);
 
   useEffect(() => {
     previousFocusRef.current = (document.activeElement as HTMLElement) ?? null;
@@ -147,6 +165,11 @@ export default function CheckpointFlashcardViewer({
 
   const handleDone = useCallback(async () => {
     if (submitting) return;
+    // Standalone (Study Pack): no path activity to complete — just close.
+    if (standalone || !activity) {
+      onClose();
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(
@@ -159,14 +182,14 @@ export default function CheckpointFlashcardViewer({
       );
       if (res.ok) {
         const json = await res.json().catch(() => null);
-        onCompleted(readUnlocked(json));
+        onCompleted?.(readUnlocked(json));
       } else {
         setSubmitting(false);
       }
     } catch {
       setSubmitting(false);
     }
-  }, [activity.id, submitting, onCompleted]);
+  }, [activity, submitting, onCompleted, standalone, onClose]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -195,7 +218,7 @@ export default function CheckpointFlashcardViewer({
       ref={containerRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`${slot.title} flashcards`}
+      aria-label={`${titleText} flashcards`}
       tabIndex={-1}
       className="checkpoint-flashcards"
       style={{
@@ -257,7 +280,7 @@ export default function CheckpointFlashcardViewer({
               textTransform: 'uppercase',
             }}
           >
-            {SLOT_KIND_LABEL[slot.kind] ?? slot.kind}
+            {kindLabel}
           </span>
           <h2
             style={{
@@ -272,7 +295,7 @@ export default function CheckpointFlashcardViewer({
               whiteSpace: 'nowrap',
             }}
           >
-            {slot.title}
+            {titleText}
           </h2>
         </div>
         {total > 0 && (

@@ -157,22 +157,12 @@ model User {
   notebookRatings        NotebookRating[]
   notebookViews          NotebookView[]
   friendActivities       FriendActivity[]
-  hostedSessions         CoWorkSession[]       @relation("HostedSessions")
-  coWorkJoined           CoWorkParticipant[]
-  pageLocks              PageLock[]
-  coWorkMessages         CoWorkMessage[]
   lastSeenAt             DateTime?
   notebookComments       NotebookComment[]
   notebookCommentVotes   NotebookCommentVote[]
   microsoftConnection    MicrosoftConnection?
   studyMinutes           StudyMinute[]
   streak                 UserStreak?
-  ownedGroups            StudyGroup[]          @relation("OwnedGroups")
-  groupMemberships       StudyGroupMember[]
-  sentGroupMessages      GroupMessage[]        @relation("SentGroupMessages")
-  sentInvitations        GroupInvitation[]     @relation("SentInvitations")
-  receivedInvitations    GroupInvitation[]     @relation("ReceivedInvitations")
-  sharedGroupContent     GroupSharedContent[]  @relation("SharedGroupContent")
   achievements           Achievement[]
   // Cosmetics — see src/lib/cosmetics/catalog.ts for the canonical list.
   // nameStyle is denormalized so username rendering never needs a join.
@@ -306,11 +296,9 @@ model Notebook {
   chats          NotebookChat[]
   sections       Section[]
   shares         SharedNotebook[]
-  coWorkSessions CoWorkSession[]
   flashcardSets  FlashcardSet[]
   quizSets       QuizSet[]
   studyPlans     StudyPlan[]
-  studyGroups    StudyGroupNotebook[]
   exams          Exam[]
   importJobs     ImportJob[]
 
@@ -700,7 +688,6 @@ model Page {
   // Relations
   section       Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   images        PageImage[]
-  locks         PageLock[]
   revisions     PageRevision[]
   contentAudits PageContentAudit[]
 
@@ -1254,71 +1241,6 @@ model SharedNotebookImage {
   @@map("shared_notebook_images")
 }
 
-// --- 1.7 Co-Work Sessions ---
-
-model CoWorkSession {
-  id         String    @id @default(cuid())
-  notebookId String
-  hostId     String
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  endedAt    DateTime?
-
-  notebook     Notebook            @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  host         User                @relation("HostedSessions", fields: [hostId], references: [id], onDelete: Cascade)
-  participants CoWorkParticipant[]
-  pageLocks    PageLock[]
-  messages     CoWorkMessage[]
-
-  @@index([notebookId, isActive])
-  @@map("co_work_sessions")
-}
-
-model CoWorkParticipant {
-  id        String    @id @default(cuid())
-  sessionId String
-  userId    String
-  isActive  Boolean   @default(true)
-  joinedAt  DateTime  @default(now())
-  leftAt    DateTime?
-
-  session CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, userId])
-  @@map("co_work_participants")
-}
-
-model PageLock {
-  id         String   @id @default(cuid())
-  sessionId  String
-  pageId     String
-  lockedById String
-  lockedAt   DateTime @default(now())
-  expiresAt  DateTime // lockedAt + 5 minutes — auto-expire stale locks
-
-  session  CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  page     Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  lockedBy User          @relation(fields: [lockedById], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, pageId])
-  @@map("page_locks")
-}
-
-model CoWorkMessage {
-  id        String   @id @default(cuid())
-  sessionId String
-  userId    String
-  text      String   @db.Text
-  createdAt DateTime @default(now())
-
-  session CoWorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([sessionId, createdAt])
-  @@map("co_work_messages")
-}
-
 // ============================================================================
 // COMMUNITY METRICS & TAGS
 // ============================================================================
@@ -1453,127 +1375,6 @@ model StudyMinute {
   @@id([userId, minute])
   @@index([userId, minute])
   @@map("study_minutes")
-}
-
-// ============================================================================
-// STUDY GROUPS
-// ============================================================================
-
-model StudyGroup {
-  id                 String   @id @default(cuid())
-  name               String
-  description        String?  @db.VarChar(500)
-  ownerId            String
-  avatarUrl          String?
-  type               String   @default("study_group") // "study_group" | "class" | "direct"
-  allowMemberChat    Boolean  @default(true) // Can members (students) send messages?
-  allowMemberSharing Boolean  @default(true) // Can members (students) share content?
-  allowMemberInvites Boolean  @default(true) // Can members (students) invite others?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  owner         User                 @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
-  members       StudyGroupMember[]
-  notebooks     StudyGroupNotebook[]
-  messages      GroupMessage[]
-  invitations   GroupInvitation[]
-  sharedContent GroupSharedContent[]
-
-  @@index([ownerId])
-  @@index([type])
-  @@map("study_groups")
-}
-
-model StudyGroupMember {
-  id         String    @id @default(cuid())
-  groupId    String
-  userId     String
-  role       String    @default("member") // "owner" | "admin" | "member"
-  status     String    @default("accepted") // "pending" | "accepted" | "declined"
-  joinedAt   DateTime  @default(now())
-  lastReadAt DateTime? // null = never read; set when user opens the group
-
-  group StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, userId])
-  @@index([userId, status])
-  @@map("study_group_members")
-}
-
-model StudyGroupNotebook {
-  id         String   @id @default(cuid())
-  groupId    String
-  notebookId String
-  addedById  String
-  addedAt    DateTime @default(now())
-
-  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  notebook Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, notebookId])
-  @@map("study_group_notebooks")
-}
-
-// --- Group Invitations ---
-
-model GroupInvitation {
-  id        String   @id @default(cuid())
-  groupId   String
-  inviterId String
-  inviteeId String
-  status    String   @default("pending") // "pending" | "accepted" | "declined"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  group   StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  inviter User       @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
-  invitee User       @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, inviteeId])
-  @@index([inviteeId, status])
-  @@map("group_invitations")
-}
-
-// --- Group Messages (Chat) ---
-
-model GroupMessage {
-  id        String   @id @default(cuid())
-  groupId   String
-  senderId  String? // null for system messages
-  type      String   @default("text") // "text" | "system" | "content_share"
-  content   String   @db.Text
-  metadata  Json? // { contentType, contentId, contentTitle, fileName, fileUrl, ... }
-  createdAt DateTime @default(now())
-
-  group  StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sender User?      @relation("SentGroupMessages", fields: [senderId], references: [id], onDelete: SetNull)
-
-  @@index([groupId, createdAt])
-  @@index([senderId])
-  @@map("group_messages")
-}
-
-// --- Group Shared Content ---
-
-model GroupSharedContent {
-  id          String   @id @default(cuid())
-  groupId     String
-  sharedById  String
-  contentType String // "notebook" | "folder" | "document" | "flashcard_set" | "quiz_set"
-  contentId   String // ID of the referenced resource
-  title       String // denormalized for display
-  description String?
-  metadata    Json? // { color, subject, cardCount, questionCount, etc. }
-  createdAt   DateTime @default(now())
-
-  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sharedBy User       @relation("SharedGroupContent", fields: [sharedById], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, contentType, contentId])
-  @@index([groupId, createdAt])
-  @@index([sharedById])
-  @@map("group_shared_content")
 }
 
 // ============================================================================
