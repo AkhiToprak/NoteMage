@@ -160,6 +160,22 @@ export async function extractYouTubeTranscript(url: string) {
   };
 }
 
+/**
+ * Approximate a video's length (seconds) from its caption segments — the latest
+ * caption end. Server-side and trustworthy (derived from the track we just
+ * fetched), so it can meter video minutes without trusting a client value.
+ */
+export function transcriptDurationSec(
+  segments: { offset: number; duration?: number }[],
+): number {
+  let maxMs = 0;
+  for (const s of segments) {
+    const end = s.offset + (s.duration ?? 0); // offsets/durations are in ms
+    if (end > maxMs) maxMs = end;
+  }
+  return Math.ceil(maxMs / 1000);
+}
+
 /** New marker every ~15s window so the AI can cite moments without spam. */
 const MARKER_WINDOW_SEC = 15;
 

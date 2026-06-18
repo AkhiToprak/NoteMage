@@ -8,6 +8,8 @@
 import * as React from 'react';
 import VideoInputMask, { type VideoUrlConfirm } from '@/components/video/VideoInputMask';
 import { readYouTubeDuration } from '@/lib/youtube-duration';
+import { minutesForDuration } from '@/lib/video-import/submit';
+import { YOUTUBE_TRANSCRIPT_MAX_DURATION_SEC } from '@/lib/youtube-transcript-limits';
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -92,7 +94,12 @@ export default function VideoMaterialPicker({ videos, onChange }: VideoMaterialP
       try {
         durationSec = Math.floor(await readYouTubeDuration(confirm.videoId));
       } catch {
-        durationSec = 0; // length unknown — still addable (informational only)
+        durationSec = 0; // length unknown — still addable; server meters on Build
+      }
+      if (durationSec > YOUTUBE_TRANSCRIPT_MAX_DURATION_SEC) {
+        const maxMin = Math.floor(YOUTUBE_TRANSCRIPT_MAX_DURATION_SEC / 60);
+        setError(`That video is too long — ${maxMin} minutes max.`);
+        return;
       }
       onChange([
         ...videos,
@@ -120,10 +127,10 @@ export default function VideoMaterialPicker({ videos, onChange }: VideoMaterialP
     limit !== null && !unlimited ? Math.max(0, limit - (usage?.used ?? 0)) : null;
   // Only not-yet-transcribed videos project against the budget — once a video
   // has a docId it's already counted in `used` (so baseline already reflects it).
+  // The meter is MINUTES of video, so each pending video costs its length.
   const pending = videos.filter((v) => !v.docId);
-  const delta = pending.length; // each video = one transcript
-  const heroValue = baseline !== null ? Math.max(0, baseline - delta) : (liveRemaining ?? 0);
-  const totalMinutes = pending.reduce((s, v) => s + Math.round(v.durationSec / 60), 0);
+  const deltaMinutes = pending.reduce((s, v) => s + minutesForDuration(v.durationSec), 0);
+  const heroValue = baseline !== null ? Math.max(0, baseline - deltaMinutes) : (liveRemaining ?? 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -132,8 +139,8 @@ export default function VideoMaterialPicker({ videos, onChange }: VideoMaterialP
         unlimited={unlimited}
         limit={limit}
         heroValue={heroValue}
-        delta={delta}
-        totalMinutes={totalMinutes}
+        deltaMinutes={deltaMinutes}
+        pendingCount={pending.length}
       />
 
       <VideoInputMask
@@ -229,27 +236,26 @@ export default function VideoMaterialPicker({ videos, onChange }: VideoMaterialP
   );
 }
 
-// ── Limit reader — projected "videos left after upload" ───────────────────────
+// ── Limit reader — projected "min left after upload" ──────────────────────────
 
 function LimitReader({
   loaded,
   unlimited,
   limit,
   heroValue,
-  delta,
-  totalMinutes,
+  deltaMinutes,
+  pendingCount,
 }: {
   loaded: boolean;
   unlimited: boolean;
   limit: number | null;
   heroValue: number;
-  delta: number;
-  totalMinutes: number;
+  deltaMinutes: number;
+  pendingCount: number;
 }) {
-  const unit = (n: number) => (n === 1 ? 'video' : 'videos');
   const empty = loaded && !unlimited && heroValue <= 0;
   const heroColor = empty ? 'var(--error)' : 'var(--accent-strong, var(--primary))';
-  const labelText = delta > 0 ? 'left after upload' : 'left';
+  const labelText = deltaMinutes > 0 ? 'left after upload' : 'left';
   const barUsed = limit !== null ? Math.min(limit, Math.max(0, limit - heroValue)) : 0;
   const pct = limit && limit > 0 && !unlimited ? Math.min(100, Math.round((barUsed / limit) * 100)) : 0;
 
@@ -319,12 +325,12 @@ function LimitReader({
             {heroValue}
           </span>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-base)', fontWeight: 700, color: heroColor }}>
-            {unit(heroValue)}
+            min
           </span>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-sm)', fontWeight: 500, color: 'var(--on-surface-variant)' }}>
             {labelText}
           </span>
-          {delta > 0 && (
+          {deltaMinutes > 0 && (
             <span
               style={{
                 display: 'inline-flex',
@@ -339,7 +345,7 @@ function LimitReader({
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              −{delta} {unit(delta)}
+              −{deltaMinutes} min
             </span>
           )}
         </div>
@@ -351,7 +357,7 @@ function LimitReader({
           aria-valuemin={0}
           aria-valuemax={limit}
           aria-valuenow={barUsed}
-          aria-label="video transcripts used"
+          aria-label="video minutes used"
           style={{
             height: 8,
             borderRadius: 'var(--radius-full)',
@@ -372,8 +378,8 @@ function LimitReader({
       )}
 
       <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
-        {delta > 0
-          ? `${delta} ${unit(delta)} queued${totalMinutes > 0 ? ` · ${totalMinutes} min of video` : ''}`
+        {pendingCount > 0
+          ? `${pendingCount} ${pendingCount === 1 ? 'video' : 'videos'} queued · ${deltaMinutes} min of video`
           : 'Captions become source material for your pack.'}
       </p>
     </div>

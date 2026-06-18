@@ -53,7 +53,7 @@ const FEATURE_LABELS: Partial<Record<FeatureType, string>> = {
   ai_inline_edit: 'Inline AI editing',
   pdf_import: 'PDF pages',
   path_translation: 'Path translations',
-  youtube_transcript: 'Video transcripts',
+  youtube_transcript: 'Video transcript minutes',
   video_ingest: 'Video notes (minutes)',
 };
 

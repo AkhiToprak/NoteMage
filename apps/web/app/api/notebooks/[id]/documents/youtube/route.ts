@@ -1,7 +1,14 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { extractYouTubeTranscript, CaptionsUnavailableError, VideoUnavailableError } from '@/lib/youtube';
+import {
+  extractYouTubeTranscript,
+  transcriptDurationSec,
+  CaptionsUnavailableError,
+  VideoUnavailableError,
+} from '@/lib/youtube';
+import { minutesForDuration } from '@/lib/video-import/submit';
+import { YOUTUBE_TRANSCRIPT_MAX_DURATION_SEC } from '@/lib/youtube-transcript-limits';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
 import {
@@ -47,21 +54,23 @@ export async function POST(request: NextRequest, { params }: Params) {
       return badRequestResponse('Invalid YouTube URL');
     }
 
-    // Budget gate — abuse cap on outbound oEmbed + transcript fetches.
-    // FREE has a one-time lifetime allowance; PRO a monthly anti-abuse cap.
+    // Budget gate — `youtube_transcript` is metered in MINUTES of video. First
+    // reject anyone already out of balance; the exact minutes charge happens
+    // after we know the video's length.
     const usage = await checkUsageLimit(userId, 'youtube_transcript');
     if (!usage.allowed) {
       return tooManyRequestsResponse(
         usage.limit === -1
           ? 'Too many transcript requests.'
-          : 'You have reached your video transcript limit.',
+          : 'You have reached your video minutes limit.',
       );
     }
 
     let title: string;
     let transcript: string;
+    let segments: { offset: number; duration?: number }[];
     try {
-      ({ title, transcript } = await extractYouTubeTranscript(url));
+      ({ title, transcript, segments } = await extractYouTubeTranscript(url));
     } catch (err) {
       if (err instanceof VideoUnavailableError) {
         return badRequestResponse("Couldn't read this video.");
@@ -70,6 +79,18 @@ export async function POST(request: NextRequest, { params }: Params) {
         return unprocessableEntityResponse('No captions found.');
       }
       throw err;
+    }
+
+    // Length from the captions we just pulled — trustworthy, no client value.
+    const durationSec = transcriptDurationSec(segments);
+    if (durationSec > YOUTUBE_TRANSCRIPT_MAX_DURATION_SEC) {
+      const maxMin = Math.floor(YOUTUBE_TRANSCRIPT_MAX_DURATION_SEC / 60);
+      return badRequestResponse(`This video is too long — ${maxMin} minutes max.`);
+    }
+    const minutes = minutesForDuration(durationSec);
+    if (usage.limit !== -1 && minutes > usage.limit - usage.used) {
+      const remaining = Math.max(0, usage.limit - usage.used);
+      return tooManyRequestsResponse(`Not enough video minutes left (${remaining} remaining).`);
     }
 
     const document = await db.document.create({
@@ -83,9 +104,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
     });
 
-    // Meter only after a successful extraction + document create, so a
-    // failure never charges the user and no refund path is needed.
-    await incrementUsage(userId, 'youtube_transcript');
+    // Charge the video's minutes only after a successful create, so a failure
+    // never bills the user and no refund path is needed.
+    await incrementUsage(userId, 'youtube_transcript', minutes);
 
     return successResponse({ document });
   } catch {

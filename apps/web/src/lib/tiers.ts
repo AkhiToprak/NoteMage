@@ -92,7 +92,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_inline_edit: 0,
       pdf_import: 50, // pages, not imports — a one-time lifetime allowance (see LIFETIME_LIMITS)
       path_translation: 5, // lifetime allowance — see LIFETIME_LIMITS.FREE
-      youtube_transcript: 20, // lifetime allowance — see LIFETIME_LIMITS.FREE
+      youtube_transcript: 120, // ⚠️ MINUTES of video (lifetime) — placeholder, set final number
       video_ingest: 0, // hard PRO gate — native video notes are PRO-only (checkUsageLimit blocks at 0)
       path_regenerate: 5, // monthly anti-abuse cap on path re-generations
       path_translate: 5, // monthly anti-abuse cap on on-demand path translations
@@ -119,7 +119,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_inline_edit: -1,
       pdf_import: 450, // pages per month
       path_translation: 50, // anti-abuse monthly cap (never shipped as -1)
-      youtube_transcript: 200, // anti-abuse monthly cap (never shipped as -1)
+      youtube_transcript: 1000, // ⚠️ MINUTES of video per month — placeholder, set final number
       video_ingest: 1000, // MINUTES of video per month (worst-case COGS ~$1.85/mo); never -1
       path_regenerate: 50, // monthly anti-abuse cap on path re-generations
       path_translate: 50, // monthly anti-abuse cap on on-demand path translations
