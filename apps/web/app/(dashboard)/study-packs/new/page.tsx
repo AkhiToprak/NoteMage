@@ -17,16 +17,25 @@ import VideoMaterialPicker, { type AddedVideo } from '@/components/study-packs/V
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
+// A file the user has queued in Step 1. `docId` is filled once it's uploaded on
+// Continue, so going back and re-continuing skips already-uploaded files.
+interface PendingFile {
+  key: string;
+  file: File;
+  docId?: string;
+}
+
 interface WizardState {
-  // Step 1
-  file: File | null;
+  // Step 1 — collected (not yet processed) material.
+  files: PendingFile[];
   usingSample: boolean;
   pasteText: string;
+  pasteDocId: string | null;
   showPaste: boolean;
-  // YouTube videos added as material — transcript docs (free) or native video
-  // notes pages (PRO). Their ready material ids merge into `materialIds`.
+  // YouTube videos queued as material; transcribed on Continue.
   youtubeVideos: AddedVideo[];
-  // Uploaded/loaded material — the real handles the backend works from.
+  // Uploaded/loaded material ids — the handles the backend works from. Filled
+  // by the Continue ingest step; topic detection + generation read these.
   materialIds: string[];
   // Existing-pack mode (?packId): skip Step 1, generate into this pack.
   packId: string | null;
@@ -80,16 +89,16 @@ function WizardHeader({
   step,
   onBack,
   onClose,
+  hideBack,
 }: {
   step: Step;
   onBack: () => void;
   onClose: () => void;
+  // Hidden only once a build is under way — before that, Back stays available on
+  // every step (including Step 5's "ready to build" screen) so the user can edit.
+  hideBack: boolean;
 }) {
   const pct = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
-  // Step 5 is terminal — generation starts the moment it mounts. Hide Back so
-  // a back→forward round-trip can't remount the generator and double-create the
-  // pack / re-charge the generation meter. Close still leaves cleanly.
-  const hideBack = step >= TOTAL_STEPS;
 
   return (
     <div
@@ -176,57 +185,62 @@ function Step1Upload({
   state,
   onChange,
   onContinue,
-  isPro,
 }: {
   state: WizardState;
   onChange: (patch: Partial<WizardState>) => void;
   onContinue: () => void;
-  isPro: boolean;
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [showYoutube, setShowYoutube] = React.useState(state.youtubeVideos.length > 0);
   const { upload } = useDirectUpload();
 
-  // Ready YouTube material ids (transcript Document or notes Page) to fold in.
-  const readyVideoIds = state.youtubeVideos
-    .filter((v) => v.status === 'ready' && v.materialId)
-    .map((v) => v.materialId as string);
-  // A queued or in-flight video blocks Continue — its material isn't ready yet,
-  // and topic detection needs every chosen source ready.
-  const videosProcessing = state.youtubeVideos.some(
-    (v) => v.status === 'processing' || v.status === 'queued',
+  // ── Processing (Continue) state — nothing is ingested until Continue ────────
+  const [processing, setProcessing] = React.useState(false);
+  const [progress, setProgress] = React.useState<{ label: string; current: number; total: number }>(
+    { label: '', current: 0, total: 0 },
   );
+  const [processError, setProcessError] = React.useState<string | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
+  const cancelledRef = React.useRef(false);
 
-  const canContinue =
-    !uploading &&
-    !videosProcessing &&
-    (state.file !== null ||
-      state.usingSample ||
-      state.pasteText.trim().length > 0 ||
-      readyVideoIds.length > 0);
+  const hasMaterial =
+    state.files.length > 0 ||
+    state.usingSample ||
+    state.pasteText.trim().length > 0 ||
+    state.youtubeVideos.length > 0;
+  const canContinue = !processing && hasMaterial;
 
-  // Resolve the user's Inbox notebook id (creating it if this is their first
-  // upload), which the signed-url 'document' purpose needs to scope the storage
-  // path. The Inbox is otherwise created lazily by the first upload, so most
-  // users reaching this flow have none yet — the ensure endpoint get-or-creates
-  // it so the client path and the /api/learn/uploads validation agree.
-  async function resolveInboxId(): Promise<string | null> {
-    try {
-      const res = await fetch('/api/learn/uploads/inbox', { method: 'POST' });
-      const json = await res.json();
-      if (!json?.success) return null;
-      return (json.data?.id as string) ?? null;
-    } catch {
-      return null;
+  // ── File add/remove (multiple files — PDFs, docs, etc.) ─────────────────────
+  function addFiles(list: FileList | File[]) {
+    const incoming = Array.from(list);
+    if (incoming.length === 0) return;
+    const existing = new Set(state.files.map((f) => `${f.file.name}:${f.file.size}`));
+    const next: PendingFile[] = [...state.files];
+    for (const file of incoming) {
+      const id = `${file.name}:${file.size}`;
+      if (existing.has(id)) continue;
+      existing.add(id);
+      next.push({ key: id, file });
     }
+    // Adding material invalidates any previously-built ids.
+    onChange({ files: next, usingSample: false, materialIds: [] });
+  }
+
+  function removeFile(key: string) {
+    onChange({ files: state.files.filter((f) => f.key !== key), materialIds: [] });
+  }
+
+  function resolveInboxId(signal: AbortSignal): Promise<string | null> {
+    return fetch('/api/learn/uploads/inbox', { method: 'POST', signal })
+      .then((r) => r.json())
+      .then((json) => (json?.success ? ((json.data?.id as string) ?? null) : null))
+      .catch(() => null);
   }
 
   // Upload one File to the Inbox as a Document, returning its id.
-  async function uploadAsDocument(file: File): Promise<string | null> {
-    const inboxId = await resolveInboxId();
+  async function uploadAsDocument(file: File, signal: AbortSignal): Promise<string> {
+    const inboxId = await resolveInboxId(signal);
     if (!inboxId) throw new Error('Could not prepare the upload. Try again.');
     const { storagePath } = await upload(file, 'document', { notebookId: inboxId });
     const res = await fetch('/api/learn/uploads', {
@@ -237,69 +251,179 @@ function Step1Upload({
         fileName: file.name,
         fileType: file.type || 'text/plain',
       }),
+      signal,
     });
     const json = await res.json();
-    if (!json?.success || !json.data?.id) {
-      throw new Error(json?.error || 'Upload failed');
-    }
+    if (!json?.success || !json.data?.id) throw new Error(json?.error || 'Upload failed');
     return json.data.id as string;
   }
 
+  // Transcribe one YouTube video into a Document, returning its id.
+  async function transcribeVideo(url: string, signal: AbortSignal): Promise<string> {
+    const res = await fetch('/api/learn/documents/youtube', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+      signal,
+    });
+    const json = await res.json().catch(() => null);
+    if (res.status === 422) throw new Error('One of your videos has no captions to transcribe.');
+    if (!res.ok || !json?.success || !json.data?.document?.id) {
+      throw new Error(json?.error || 'Could not transcribe a video.');
+    }
+    return json.data.document.id as string;
+  }
+
+  function cancelProcessing() {
+    cancelledRef.current = true;
+    abortRef.current?.abort();
+    setProcessing(false);
+    setProgress({ label: '', current: 0, total: 0 });
+  }
+
+  // Build all material ids, then advance. Files + videos + paste are processed
+  // here (never on add); already-resolved items are skipped so going back and
+  // re-continuing is cheap.
   async function handleContinue() {
-    setUploadError(null);
+    setProcessError(null);
 
     // Sample stays mock — seed topics, skip detection, jump straight to Step 3.
     if (state.usingSample) {
-      onChange({
-        topics: SAMPLE_TOPICS,
-        suggestedTitle: 'Cell Biology — Transport',
-        materialIds: [],
-      });
+      onChange({ topics: SAMPLE_TOPICS, suggestedTitle: 'Cell Biology — Transport', materialIds: [] });
       onContinue();
       return;
     }
 
-    setUploading(true);
+    // Validate file types up front.
+    const bad = state.files.find((f) => !ACCEPTED_UPLOAD_TYPES.includes(f.file.type));
+    if (bad) {
+      setProcessError(`Unsupported file: ${bad.file.name}. Use PDF, Word, text, or Markdown.`);
+      return;
+    }
+
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    cancelledRef.current = false;
+    const paste = state.pasteText.trim();
+    const total =
+      state.files.filter((f) => !f.docId).length +
+      state.youtubeVideos.filter((v) => !v.docId).length +
+      (paste && !state.pasteDocId ? 1 : 0);
+    setProgress({ label: 'Preparing…', current: 0, total });
+    setProcessing(true);
+
     try {
       const ids: string[] = [];
+      let done = 0;
 
-      if (state.file) {
-        if (!ACCEPTED_UPLOAD_TYPES.includes(state.file.type)) {
-          setUploadError('Unsupported file type. Use PDF, Word, text, or Markdown.');
-          setUploading(false);
-          return;
+      // Files
+      const nextFiles = [...state.files];
+      for (let i = 0; i < nextFiles.length; i++) {
+        if (cancelledRef.current) return;
+        const pf = nextFiles[i];
+        if (pf.docId) {
+          ids.push(pf.docId);
+          continue;
         }
-        ids.push((await uploadAsDocument(state.file))!);
+        setProgress({ label: `Uploading ${pf.file.name}`, current: done, total });
+        const docId = await uploadAsDocument(pf.file, ctrl.signal);
+        nextFiles[i] = { ...pf, docId };
+        ids.push(docId);
+        done += 1;
+      }
+      if (nextFiles.some((f, i) => f.docId !== state.files[i]?.docId)) onChange({ files: nextFiles });
+
+      // Pasted text
+      if (paste) {
+        if (state.pasteDocId) {
+          ids.push(state.pasteDocId);
+        } else {
+          if (cancelledRef.current) return;
+          setProgress({ label: 'Saving your notes', current: done, total });
+          const blob = new File([paste], 'Pasted notes.txt', { type: 'text/plain' });
+          const docId = await uploadAsDocument(blob, ctrl.signal);
+          onChange({ pasteDocId: docId });
+          ids.push(docId);
+          done += 1;
+        }
       }
 
-      const paste = state.pasteText.trim();
-      if (!state.file && paste) {
-        const blob = new File([paste], 'Pasted notes.txt', { type: 'text/plain' });
-        ids.push((await uploadAsDocument(blob))!);
+      // YouTube videos → transcripts (one after the other)
+      const nextVideos = [...state.youtubeVideos];
+      for (let i = 0; i < nextVideos.length; i++) {
+        if (cancelledRef.current) return;
+        const v = nextVideos[i];
+        if (v.docId) {
+          ids.push(v.docId);
+          continue;
+        }
+        setProgress({ label: `Transcribing ${v.title}`, current: done, total });
+        const docId = await transcribeVideo(v.url, ctrl.signal);
+        nextVideos[i] = { ...v, docId };
+        ids.push(docId);
+        done += 1;
+      }
+      if (nextVideos.some((v, i) => v.docId !== state.youtubeVideos[i]?.docId)) {
+        onChange({ youtubeVideos: nextVideos });
       }
 
-      // Already-ingested YouTube videos (transcript Documents / notes Pages).
-      ids.push(...readyVideoIds);
-
+      if (cancelledRef.current) return;
       onChange({ materialIds: ids });
-      setUploading(false);
+      setProcessing(false);
       onContinue();
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed. Try again.');
-      setUploading(false);
+      if (cancelledRef.current || (err instanceof Error && err.name === 'AbortError')) {
+        setProcessing(false);
+        return;
+      }
+      setProcessError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+      setProcessing(false);
     }
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f) onChange({ file: f, usingSample: false, showPaste: false, pasteText: '' });
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    if (f) onChange({ file: f, usingSample: false, showPaste: false, pasteText: '' });
+    if (e.target.files?.length) addFiles(e.target.files);
+    e.target.value = ''; // allow re-picking the same file
+  }
+
+  // ── Processing view — shown while Continue ingests, with a real Cancel ──────
+  if (processing) {
+    return (
+      <StepWrapper>
+        <div style={{ textAlign: 'center', marginBottom: 4 }}>
+          <Mascot pose="thinking" size="lg" idle="float" />
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--fs-2xl)',
+            fontWeight: 700,
+            color: 'var(--on-surface)',
+            margin: 0,
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Preparing your material…
+        </h2>
+        <NMCard style={{ padding: 'var(--card-pad)', background: 'var(--surface-container)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <ProgressBar value={progress.total > 0 ? (progress.current / progress.total) * 100 : 8} height={8} />
+          <p aria-live="polite" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', textAlign: 'center' }}>
+            {progress.total > 0 ? `${Math.min(progress.current + 1, progress.total)} of ${progress.total} · ` : ''}
+            {progress.label || 'Working…'}
+          </p>
+        </NMCard>
+        <Button variant="ghost" size="md" fullWidth leadingIcon="close" onClick={cancelProcessing}>
+          Cancel
+        </Button>
+      </StepWrapper>
+    );
   }
 
   return (
@@ -332,14 +456,14 @@ function Step1Upload({
           lineHeight: 'var(--lh-relaxed)',
         }}
       >
-        Upload your material. Mage will build a path from this material.
+        Add your material — files, notes, and YouTube videos. Mage builds the path when you’re ready.
       </p>
 
       {/* Drop zone */}
       <div
         role="button"
         tabIndex={0}
-        aria-label="Upload area — click to choose file or drag and drop"
+        aria-label="Upload area — click to choose files or drag and drop"
         style={{
           padding: 'var(--card-pad)',
           border: `2px dashed ${dragging ? 'var(--accent-strong)' : 'var(--ink-20)'}`,
@@ -351,7 +475,7 @@ function Step1Upload({
           flexDirection: 'column',
           alignItems: 'center',
           gap: 12,
-          minHeight: 180,
+          minHeight: 160,
           justifyContent: 'center',
           outline: 'none',
         }}
@@ -368,66 +492,35 @@ function Step1Upload({
           aria-hidden
           style={{
             fontSize: 40,
-            color: state.file || state.usingSample ? 'var(--accent-strong)' : 'var(--on-surface-variant)',
+            color: state.files.length > 0 || state.usingSample ? 'var(--accent-strong)' : 'var(--on-surface-variant)',
             transition: 'color var(--dur-fast) var(--ease-spring)',
           }}
         >
-          {state.file || state.usingSample ? 'task' : 'upload_file'}
+          {state.usingSample ? 'task' : 'upload_file'}
         </span>
 
-        {state.file ? (
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 'var(--fs-sm)',
-              color: 'var(--on-surface)',
-              fontWeight: 600,
-              textAlign: 'center',
-              wordBreak: 'break-all',
-            }}
-          >
-            {state.file.name}
-          </span>
-        ) : state.usingSample ? (
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 'var(--fs-sm)',
-              color: 'var(--on-surface)',
-              fontWeight: 600,
-              textAlign: 'center',
-            }}
-          >
+        {state.usingSample ? (
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-sm)', color: 'var(--on-surface)', fontWeight: 600, textAlign: 'center' }}>
             {SAMPLE_FILE_NAME}
           </span>
         ) : (
-          <>
-            <p
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 'var(--fs-sm)',
-                color: 'var(--on-surface-variant)',
-                margin: 0,
-                textAlign: 'center',
-                lineHeight: 1.5,
-              }}
-            >
-              Upload your material
-              <br />
-              <span style={{ color: 'var(--ink-50)', fontSize: 'var(--fs-xs)' }}>
-                PDFs, slides, images, text, or documents
-              </span>
-            </p>
-          </>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', margin: 0, textAlign: 'center', lineHeight: 1.5 }}>
+            Drop files or click to add
+            <br />
+            <span style={{ color: 'var(--ink-50)', fontSize: 'var(--fs-xs)' }}>
+              PDFs, Word, text, or Markdown — add as many as you like
+            </span>
+          </p>
         )}
 
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.docx,.doc,.txt,.md"
+          multiple
           style={{ display: 'none' }}
           onChange={handleFileChange}
-          aria-label="Choose file to upload"
+          aria-label="Choose files to upload"
         />
 
         <Button
@@ -436,9 +529,58 @@ function Step1Upload({
           leadingIcon="folder_open"
           onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
         >
-          Choose file
+          Choose files
         </Button>
       </div>
+
+      {/* Added files list */}
+      {state.files.length > 0 && (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {state.files.map((pf) => (
+            <li
+              key={pf.key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-container-high)',
+                border: '1px solid var(--ink-12, var(--outline-variant))',
+              }}
+            >
+              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 18, flexShrink: 0, color: 'var(--accent-strong)' }}>
+                description
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 600,
+                  color: 'var(--on-surface)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={pf.file.name}
+              >
+                {pf.file.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => removeFile(pf.key)}
+                aria-label={`Remove ${pf.file.name}`}
+                style={iconButtonStyle}
+                onMouseEnter={(e) => applyHover(e, true)}
+                onMouseLeave={(e) => applyHover(e, false)}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* Paste text panel */}
       {state.showPaste && (
@@ -446,7 +588,7 @@ function Step1Upload({
           <textarea
             placeholder="Paste your notes or text here…"
             value={state.pasteText}
-            onChange={(e) => onChange({ pasteText: e.target.value, usingSample: false, file: null })}
+            onChange={(e) => onChange({ pasteText: e.target.value, usingSample: false, pasteDocId: null, materialIds: [] })}
             rows={6}
             style={{
               width: '100%',
@@ -468,9 +610,9 @@ function Step1Upload({
         </div>
       )}
 
-      {uploadError && (
+      {processError && (
         <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--error)', textAlign: 'center' }}>
-          {uploadError}
+          {processError}
         </p>
       )}
 
@@ -486,15 +628,9 @@ function Step1Upload({
         </button>
         <button
           type="button"
-          style={{
-            ...linkButtonStyle,
-            color: showYoutube ? 'var(--accent-strong)' : linkButtonStyle.color,
-          }}
+          style={{ ...linkButtonStyle, color: showYoutube ? 'var(--accent-strong)' : linkButtonStyle.color }}
           aria-pressed={showYoutube}
-          onClick={() => {
-            setShowYoutube((v) => !v);
-            onChange({ usingSample: false });
-          }}
+          onClick={() => { setShowYoutube((v) => !v); onChange({ usingSample: false }); }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>smart_display</span>
           Add YouTube
@@ -505,12 +641,11 @@ function Step1Upload({
         </Link>
       </div>
 
-      {/* YouTube material picker — both lanes (free transcript / PRO native). */}
+      {/* YouTube material picker — collect only; transcription happens on Continue. */}
       {(showYoutube || state.youtubeVideos.length > 0) && (
         <VideoMaterialPicker
-          isPro={isPro}
           videos={state.youtubeVideos}
-          onChange={(v) => onChange({ youtubeVideos: v, usingSample: false })}
+          onChange={(v) => onChange({ youtubeVideos: v, usingSample: false, materialIds: [] })}
         />
       )}
 
@@ -519,12 +654,11 @@ function Step1Upload({
         size="lg"
         fullWidth
         disabled={!canContinue}
-        loading={uploading}
-        trailingIcon={uploading || videosProcessing ? undefined : 'arrow_forward'}
+        trailingIcon="arrow_forward"
         onClick={handleContinue}
         haptic="select"
       >
-        {uploading ? 'Uploading…' : videosProcessing ? 'Waiting for your video…' : 'Continue'}
+        Continue
       </Button>
     </StepWrapper>
   );
@@ -1167,8 +1301,6 @@ function Step5Generate({
   onStartLesson: (planId: string, firstSlotId: string | null) => void;
   onViewPack: (notebookId: string | null) => void;
 }) {
-  const startedRef = React.useRef(false);
-
   // POST the path itself. Split out so the initial kickoff AND the in-place
   // "Try again" share it — a retry re-runs ONLY generation, never re-creating
   // the Study Pack or re-posting the exam.
@@ -1264,13 +1396,6 @@ function Step5Generate({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.planId, state.packId, state.notebookId, state.suggestedTitle, state.hasExamDate, state.examDate, runPathGeneration]);
 
-  React.useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    void startGeneration();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // In-place retry after a client-side failure (no plan created yet). Reuses the
   // already-created Study Pack and re-runs only path generation — no duplicate
   // pack, no re-posted exam, no extra back→forward round-trip.
@@ -1307,6 +1432,98 @@ function Step5Generate({
 
   const plan = stream.plan as PlanTree | null;
   const counts = countActivities(plan);
+
+  // ── IDLE — ready to build. Nothing runs until the user clicks Build; they can
+  //    go back to edit anything first.
+  if (!state.generating && !state.planId && !failed) {
+    return (
+      <StepWrapper>
+        <div style={{ textAlign: 'center', marginBottom: 4 }}>
+          <Mascot pose="holding-wand" size="lg" idle="float" />
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--fs-2xl)',
+            fontWeight: 700,
+            color: 'var(--on-surface)',
+            margin: 0,
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Ready to build
+        </h2>
+        <p
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--on-surface-variant)',
+            margin: '4px 0 0',
+            textAlign: 'center',
+            lineHeight: 1.6,
+          }}
+        >
+          Go back to change anything — Mage only builds when you say so.
+        </p>
+
+        <NMCard
+          style={{
+            padding: 'var(--card-pad)',
+            background: 'var(--surface-container)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--accent-strong)', flexShrink: 0 }}>
+              auto_stories
+            </span>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--on-surface)', margin: 0, lineHeight: 1.3 }}>
+              {state.suggestedTitle || 'My Study Pack'}
+            </h3>
+          </div>
+          <div style={{ height: 1, background: 'var(--ink-12)' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+            <StatCell icon="topic" label="Topics" value={String(state.topics.length)} />
+            <StatCell
+              icon={state.intensity === 'easy' ? 'spa' : state.intensity === 'intense' ? 'local_fire_department' : 'balance'}
+              label="Pace"
+              value={state.intensity[0].toUpperCase() + state.intensity.slice(1)}
+            />
+          </div>
+          {(state.ultra || state.hasExamDate) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {state.ultra && (
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent-strong)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>bolt</span>
+                  Ultra
+                </span>
+              )}
+              {state.hasExamDate && state.examDate && (
+                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--on-surface-variant)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>event</span>
+                  Exam {new Date(state.examDate + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                </span>
+              )}
+            </div>
+          )}
+        </NMCard>
+
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          leadingIcon="auto_awesome"
+          onClick={() => void startGeneration()}
+          haptic="success"
+        >
+          Build my Study Pack
+        </Button>
+      </StepWrapper>
+    );
+  }
 
   // ── READY ──
   if (isReady) {
@@ -1708,9 +1925,10 @@ function AnimatedStep({ step, children }: { step: number; children: React.ReactN
 // ── Root wizard component ─────────────────────────────────────────────────────
 
 const DEFAULT_STATE: WizardState = {
-  file: null,
+  files: [],
   usingSample: false,
   pasteText: '',
+  pasteDocId: null,
   showPaste: false,
   youtubeVideos: [],
   materialIds: [],
@@ -1804,7 +2022,9 @@ export default function StudyPackNewPage() {
   }, []);
 
   function goBack() {
-    if (step >= TOTAL_STEPS) return; // terminal step — Back is hidden while generating
+    // On Step 5, Back is allowed until a build starts — then it's locked so a
+    // back→forward remount can't double-create the pack / re-charge generation.
+    if (step >= TOTAL_STEPS && (state.generating || state.planId !== null)) return;
     if (step === 1) {
       router.push('/study-packs');
     } else if (step === 2 && state.packId) {
@@ -1831,7 +2051,6 @@ export default function StudyPackNewPage() {
             state={state}
             onChange={(p) => setState(p)}
             onContinue={advance}
-            isPro={canUseUltra}
           />
         );
       case 2:
@@ -1893,7 +2112,12 @@ export default function StudyPackNewPage() {
       }}
     >
       {/* Progress header */}
-      <WizardHeader step={step} onBack={goBack} onClose={goClose} />
+      <WizardHeader
+        step={step}
+        onBack={goBack}
+        onClose={goClose}
+        hideBack={step >= TOTAL_STEPS && (state.generating || state.planId !== null)}
+      />
 
       {/* Scrollable step body */}
       <div
