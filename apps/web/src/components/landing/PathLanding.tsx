@@ -435,11 +435,27 @@ export default function PathLanding() {
         if (!cancelled) setTimeout(build, 60);
       });
     }
+    // In the stacked (phone) layout the mascots flow in-document, so their
+    // lazy-loaded images grow the track as they decode mid-scroll — pushing
+    // nodes down out from under the already-built trail, which then lags behind
+    // the checkpoints. (On desktop the mascots are absolutely positioned, so
+    // the track never reflows and this can't happen.) Rebuild whenever the
+    // track's measured height changes so the line stays pinned to the nodes.
+    // The spine is position:absolute, so build() never feeds its own resize.
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        clearTimeout(rt);
+        rt = setTimeout(build, 120);
+      });
+      ro.observe(track);
+    }
 
     return () => {
       cancelled = true;
       if (rafId != null) cancelAnimationFrame(rafId);
       clearTimeout(rt);
+      ro?.disconnect();
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('load', onLoad);
