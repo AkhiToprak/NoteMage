@@ -99,6 +99,19 @@ export interface VideoInputMaskProps {
    * Only consulted when `allowFile` is true.
    */
   maxFileBytes?: number;
+
+  // ── URL preview estimate (live, pre-confirm) ───────────────────────────
+  /**
+   * Fires as soon as a pasted/typed link resolves to a preview card (and with
+   * `null` when the card is cleared). Lets the parent read the video's length
+   * up-front and feed an estimate back via `urlEstimate`. Pass a stable ref.
+   */
+  onUrlPreview?: (preview: { videoId: string; url: string } | null) => void;
+  /**
+   * Node rendered inside the URL preview card (e.g. a live minutes estimate),
+   * shown the moment a link resolves — before the user confirms.
+   */
+  urlEstimate?: React.ReactNode;
 }
 
 /**
@@ -124,6 +137,8 @@ export default function VideoInputMask({
   onFilePicked,
   fileEstimate,
   maxFileBytes,
+  onUrlPreview,
+  urlEstimate,
 }: VideoInputMaskProps) {
   const [raw, setRaw] = useState('');
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -175,6 +190,18 @@ export default function VideoInputMask({
     return () => {
       cancelled = true;
     };
+  }, [videoId, url]);
+
+  // Surface the resolved (or cleared) preview to the parent so it can read the
+  // video's length up-front. The callback is held on a ref (synced in an
+  // effect, not during render) so an inline parent callback doesn't re-fire the
+  // preview effect every render.
+  const onUrlPreviewRef = useRef(onUrlPreview);
+  useEffect(() => {
+    onUrlPreviewRef.current = onUrlPreview;
+  });
+  useEffect(() => {
+    onUrlPreviewRef.current?.(videoId ? { videoId, url } : null);
   }, [videoId, url]);
 
   const reset = useCallback(() => {
@@ -326,6 +353,8 @@ export default function VideoInputMask({
           onGenerateNotes={handleGenerateNotes}
         />
       )}
+
+      {showCard && urlEstimate ? <div>{urlEstimate}</div> : null}
 
       {fileEstimate ? <div>{fileEstimate}</div> : null}
 

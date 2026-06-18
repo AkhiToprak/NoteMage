@@ -115,6 +115,47 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
 
   React.useEffect(() => loadUsage(), [loadUsage]);
 
+  // ── Live link preview — read length the moment a link resolves ─────────────
+  // The mask fires `onUrlPreview` as soon as a pasted/typed link resolves to a
+  // card, so the minutes show up-front (not only after the user confirms).
+  const [preview, setPreview] = React.useState<{
+    videoId: string;
+    durationSec: number | null;
+    loading: boolean;
+  } | null>(null);
+  // Cache durations by videoId so confirm reuses the up-front read (no second
+  // hidden-player load).
+  const durationCacheRef = React.useRef<Map<string, number>>(new Map());
+
+  const handleUrlPreview = React.useCallback(
+    (p: { videoId: string; url: string } | null) => {
+      if (!p) {
+        setPreview(null);
+        return;
+      }
+      const cached = durationCacheRef.current.get(p.videoId);
+      if (cached != null) {
+        setPreview({ videoId: p.videoId, durationSec: cached, loading: false });
+        return;
+      }
+      setPreview({ videoId: p.videoId, durationSec: null, loading: true });
+      readYouTubeDuration(p.videoId)
+        .then((d) => {
+          const secs = Math.floor(d);
+          durationCacheRef.current.set(p.videoId, secs);
+          setPreview((cur) =>
+            cur && cur.videoId === p.videoId ? { ...cur, durationSec: secs, loading: false } : cur,
+          );
+        })
+        .catch(() => {
+          setPreview((cur) =>
+            cur && cur.videoId === p.videoId ? { ...cur, durationSec: null, loading: false } : cur,
+          );
+        });
+    },
+    [],
+  );
+
   // ── Native lane: resolve Inbox notebook + a section to land the job's page ──
   const resolveInboxTarget = React.useCallback(async () => {
     if (inboxRef.current) return inboxRef.current;
@@ -162,16 +203,20 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
 
       setAdding(true);
       try {
-        // Read length client-side — needed for the minutes meter (PRO) and the
-        // per-video chip. The server reconciles any under-report for the charge.
-        let durationSec = 0;
-        try {
-          durationSec = await readYouTubeDuration(confirm.videoId);
-        } catch {
-          // Embedding blocked — for the transcript lane we can still proceed
-          // (duration is informational); for native we need it to charge.
-          if (isPro) {
-            throw captionsUnavailableError();
+        // Length is usually already read by the live preview — reuse it. Only
+        // read here if the user confirmed before the preview resolved. The
+        // server reconciles any under-report for the charge.
+        let durationSec = durationCacheRef.current.get(confirm.videoId) ?? 0;
+        if (!durationSec) {
+          try {
+            durationSec = await readYouTubeDuration(confirm.videoId);
+            durationCacheRef.current.set(confirm.videoId, Math.floor(durationSec));
+          } catch {
+            // Embedding blocked — for the transcript lane we can still proceed
+            // (duration is informational); for native we need it to charge.
+            if (isPro) {
+              throw captionsUnavailableError();
+            }
           }
         }
         if (durationSec > MAX_DURATION_SEC) {
@@ -339,6 +384,8 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
         disabled={adding}
         dense
         placeholder="Paste a YouTube link"
+        onUrlPreview={handleUrlPreview}
+        urlEstimate={preview ? <UrlEstimate preview={preview} isPro={isPro} /> : null}
       />
 
       {error && (
@@ -420,25 +467,31 @@ function LimitReader({
   sessionCount: number;
 }) {
   const unit = isPro ? 'min' : 'videos';
+  const period = isPro ? 'left this month' : 'left';
   const noun = isPro ? 'video minutes' : 'video transcripts';
 
   // Fill fraction of the already-consumed budget (PRO native charges on submit,
   // so `used` already reflects this session's videos after the usage refetch).
   const pct =
     limit !== null && limit > 0 && !unlimited ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const empty = remaining !== null && remaining <= 0;
+  // The hero number + bar carry the colour. Accent normally, error when spent —
+  // both theme-aware tokens so light mode stays legible (no light-on-light).
+  const heroColor = empty ? 'var(--error)' : 'var(--accent-strong, var(--primary))';
 
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        padding: '12px 14px',
+        gap: 10,
+        padding: '14px 16px',
         borderRadius: 'var(--radius-lg)',
-        background: 'var(--surface-container)',
-        border: '1px solid var(--ink-12, var(--outline-variant))',
+        background: 'rgba(140,82,255,0.06)',
+        border: '1px solid rgba(174,137,255,0.22)',
       }}
     >
+      {/* Header — feature label */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span
           className="material-symbols-outlined"
@@ -450,28 +503,70 @@ function LimitReader({
         <span
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 'var(--fs-sm)',
+            fontSize: 'var(--fs-xs)',
             fontWeight: 700,
-            color: 'var(--on-surface)',
-          }}
-        >
-          YouTube
-        </span>
-        <span style={{ flex: 1 }} />
-        <span
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: 'var(--fs-sm)',
-            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
             color: 'var(--on-surface-variant)',
           }}
         >
-          {unlimited || limit === null
-            ? 'Unlimited'
-            : `${remaining ?? 0} ${unit} left${isPro ? ' this month' : ''}`}
+          YouTube budget
         </span>
       </div>
 
+      {/* Hero number — the remaining balance, big + coloured */}
+      {unlimited || limit === null ? (
+        <span
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--fs-2xl)',
+            fontWeight: 800,
+            color: 'var(--accent-strong, var(--primary))',
+            lineHeight: 1,
+          }}
+        >
+          Unlimited
+        </span>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <span
+            aria-hidden
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--fs-4xl, 2.5rem)',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              color: heroColor,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {remaining ?? 0}
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 'var(--fs-base)',
+              fontWeight: 700,
+              color: heroColor,
+            }}
+          >
+            {unit}
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 'var(--fs-sm)',
+              fontWeight: 500,
+              color: 'var(--on-surface-variant)',
+            }}
+          >
+            {period}
+          </span>
+        </div>
+      )}
+
+      {/* Bar */}
       {!unlimited && limit !== null && (
         <div
           role="progressbar"
@@ -480,7 +575,7 @@ function LimitReader({
           aria-valuenow={Math.min(used, limit)}
           aria-label={`${noun} used`}
           style={{
-            height: 6,
+            height: 8,
             borderRadius: 'var(--radius-full)',
             background: 'var(--ink-12, var(--surface-container-highest))',
             overflow: 'hidden',
@@ -491,42 +586,126 @@ function LimitReader({
               height: '100%',
               width: `${pct}%`,
               borderRadius: 'var(--radius-full)',
-              background:
-                remaining !== null && remaining <= 0
-                  ? 'var(--error)'
-                  : 'var(--accent-strong, var(--primary))',
+              background: heroColor,
               transition: 'width var(--dur-med, 0.35s) var(--ease-spring, cubic-bezier(0.22,1,0.36,1))',
             }}
           />
         </div>
       )}
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: 'var(--fs-xs)',
-          color: 'var(--on-surface-variant)',
-          lineHeight: 1.5,
-        }}
+      {/* Session tally (only once videos are added) / free-tier hint */}
+      {sessionCount > 0 ? (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          <strong style={{ color: 'var(--on-surface)' }}>{sessionCount}</strong>{' '}
+          {sessionCount === 1 ? 'video' : 'videos'} ·{' '}
+          <strong style={{ color: 'var(--accent-strong, var(--primary))' }}>
+            {sessionMinutes} min
+          </strong>{' '}
+          {isPro ? 'of video' : 'total'}
+        </p>
+      ) : !isPro ? (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--fs-xs)',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          Captions become source material for your pack.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Live length estimate shown in the input's preview card (pre-confirm) ──────
+
+function UrlEstimate({
+  preview,
+  isPro,
+}: {
+  preview: { videoId: string; durationSec: number | null; loading: boolean };
+  isPro: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '8px 12px',
+        borderRadius: 'var(--radius-md)',
+        background: 'rgba(140,82,255,0.06)',
+        border: '1px solid rgba(174,137,255,0.22)',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        aria-hidden
+        style={{ fontSize: 16, color: 'var(--accent-strong, var(--primary))', flexShrink: 0 }}
       >
-        {sessionCount === 0 ? (
-          isPro ? (
-            'Add lecture videos — Mage watches them and folds them into your pack. Charged in minutes.'
-          ) : (
-            'Add YouTube videos — their captions become source material for your pack.'
-          )
-        ) : isPro ? (
-          <>
-            {sessionCount} {sessionCount === 1 ? 'video' : 'videos'} added ·{' '}
-            <strong style={{ color: 'var(--on-surface)' }}>{sessionMinutes} min</strong> of video
-          </>
-        ) : (
-          <>
-            {sessionCount} {sessionCount === 1 ? 'video' : 'videos'} added ·{' '}
-            <strong style={{ color: 'var(--on-surface)' }}>{sessionMinutes} min</strong> total
-          </>
-        )}
-      </p>
+        schedule
+      </span>
+      {preview.loading ? (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 7,
+            fontSize: 'var(--fs-xs)',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          <span className="vmp-spin-sm" aria-hidden />
+          Reading length…
+        </span>
+      ) : preview.durationSec != null && preview.durationSec > 0 ? (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            gap: 6,
+            flexWrap: 'wrap',
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--on-surface-variant)',
+          }}
+        >
+          <strong
+            style={{
+              color: 'var(--on-surface)',
+              fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {formatDuration(preview.durationSec)}
+          </strong>
+          {isPro && (
+            <>
+              <span aria-hidden style={{ color: 'var(--outline-variant)' }}>
+                ·
+              </span>
+              <span>
+                uses{' '}
+                <strong style={{ color: 'var(--accent-strong, var(--primary))', fontWeight: 800 }}>
+                  {minutesForDuration(preview.durationSec)} min
+                </strong>
+              </span>
+            </>
+          )}
+        </span>
+      ) : (
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--on-surface-variant)' }}>
+          Length unavailable
+        </span>
+      )}
     </div>
   );
 }
@@ -624,6 +803,16 @@ function VideoPickerStyles() {
   return (
     <style>{`
       @keyframes vmpSpin { to { transform: rotate(360deg); } }
+      .vmp-spin-sm {
+        flex-shrink: 0;
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 2px solid var(--ink-12, var(--surface-container-highest));
+        border-top-color: var(--accent-strong, var(--primary));
+        animation: vmpSpin 0.8s linear infinite;
+      }
       .vmp-remove {
         flex-shrink: 0;
         display: inline-flex;
@@ -645,6 +834,7 @@ function VideoPickerStyles() {
       .vmp-remove:active { transform: scale(0.92); }
       @media (prefers-reduced-motion: reduce) {
         .vmp-remove { transition-duration: 0.05s; }
+        .vmp-spin-sm { animation: none !important; }
         [style*="vmpSpin"] { animation: none !important; }
       }
     `}</style>
