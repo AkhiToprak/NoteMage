@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/mascot/Mascot';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import { usePathGenerationStream } from '@/hooks/usePathGenerationStream';
+import VideoMaterialPicker, { type AddedVideo } from '@/components/study-packs/VideoMaterialPicker';
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,9 @@ interface WizardState {
   usingSample: boolean;
   pasteText: string;
   showPaste: boolean;
+  // YouTube videos added as material — transcript docs (free) or native video
+  // notes pages (PRO). Their ready material ids merge into `materialIds`.
+  youtubeVideos: AddedVideo[];
   // Uploaded/loaded material — the real handles the backend works from.
   materialIds: string[];
   // Existing-pack mode (?packId): skip Step 1, generate into this pack.
@@ -172,20 +176,35 @@ function Step1Upload({
   state,
   onChange,
   onContinue,
+  isPro,
 }: {
   state: WizardState;
   onChange: (patch: Partial<WizardState>) => void;
   onContinue: () => void;
+  isPro: boolean;
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [showYoutube, setShowYoutube] = React.useState(state.youtubeVideos.length > 0);
   const { upload } = useDirectUpload();
+
+  // Ready YouTube material ids (transcript Document or notes Page) to fold in.
+  const readyVideoIds = state.youtubeVideos
+    .filter((v) => v.status === 'ready' && v.materialId)
+    .map((v) => v.materialId as string);
+  // A native (PRO) video still being watched blocks Continue — its page isn't
+  // material yet, and topic detection needs every chosen source ready.
+  const videosProcessing = state.youtubeVideos.some((v) => v.status === 'processing');
 
   const canContinue =
     !uploading &&
-    (state.file !== null || state.usingSample || state.pasteText.trim().length > 0);
+    !videosProcessing &&
+    (state.file !== null ||
+      state.usingSample ||
+      state.pasteText.trim().length > 0 ||
+      readyVideoIds.length > 0);
 
   // Resolve the user's Inbox notebook id (creating it if this is their first
   // upload), which the signed-url 'document' purpose needs to scope the storage
@@ -256,6 +275,9 @@ function Step1Upload({
         const blob = new File([paste], 'Pasted notes.txt', { type: 'text/plain' });
         ids.push((await uploadAsDocument(blob))!);
       }
+
+      // Already-ingested YouTube videos (transcript Documents / notes Pages).
+      ids.push(...readyVideoIds);
 
       onChange({ materialIds: ids });
       setUploading(false);
@@ -460,11 +482,35 @@ function Step1Upload({
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit_note</span>
           Paste text
         </button>
+        <button
+          type="button"
+          style={{
+            ...linkButtonStyle,
+            color: showYoutube ? 'var(--accent-strong)' : linkButtonStyle.color,
+          }}
+          aria-pressed={showYoutube}
+          onClick={() => {
+            setShowYoutube((v) => !v);
+            onChange({ usingSample: false });
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>smart_display</span>
+          Add YouTube
+        </button>
         <Link href="/tutorial" style={{ ...linkButtonStyle, textDecoration: 'none' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>science</span>
           Try a guided sample
         </Link>
       </div>
+
+      {/* YouTube material picker — both lanes (free transcript / PRO native). */}
+      {(showYoutube || state.youtubeVideos.length > 0) && (
+        <VideoMaterialPicker
+          isPro={isPro}
+          videos={state.youtubeVideos}
+          onChange={(v) => onChange({ youtubeVideos: v, usingSample: false })}
+        />
+      )}
 
       <Button
         variant="primary"
@@ -472,11 +518,11 @@ function Step1Upload({
         fullWidth
         disabled={!canContinue}
         loading={uploading}
-        trailingIcon={uploading ? undefined : 'arrow_forward'}
+        trailingIcon={uploading || videosProcessing ? undefined : 'arrow_forward'}
         onClick={handleContinue}
         haptic="select"
       >
-        {uploading ? 'Uploading…' : 'Continue'}
+        {uploading ? 'Uploading…' : videosProcessing ? 'Waiting for your video…' : 'Continue'}
       </Button>
     </StepWrapper>
   );
@@ -1664,6 +1710,7 @@ const DEFAULT_STATE: WizardState = {
   usingSample: false,
   pasteText: '',
   showPaste: false,
+  youtubeVideos: [],
   materialIds: [],
   packId: null,
   detecting: false,
@@ -1782,6 +1829,7 @@ export default function StudyPackNewPage() {
             state={state}
             onChange={(p) => setState(p)}
             onContinue={advance}
+            isPro={canUseUltra}
           />
         );
       case 2:
