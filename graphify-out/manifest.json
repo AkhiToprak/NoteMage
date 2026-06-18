@@ -1,0 +1,4002 @@
+{
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api-auth-coverage.test.ts": {
+    "mtime": 1781367856.4138043,
+    "ast_hash": "d791c3611929e7a01d0625c081f315d8",
+    "semantic_hash": "d791c3611929e7a01d0625c081f315d8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/admin/paths-pretranslate.test.ts": {
+    "mtime": 1781375807.6111448,
+    "ast_hash": "8a1a2eafb8b2e3013bcc7ffbb8a33ca3",
+    "semantic_hash": "8a1a2eafb8b2e3013bcc7ffbb8a33ca3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/admin/tickets-action.test.ts": {
+    "mtime": 1781083371.0237553,
+    "ast_hash": "521b6826bb3d8a5498492540badf77c5",
+    "semantic_hash": "521b6826bb3d8a5498492540badf77c5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/admin/tickets-detail.test.ts": {
+    "mtime": 1781083371.0239117,
+    "ast_hash": "08fcb09f780c15fbd970ceb696390098",
+    "semantic_hash": "08fcb09f780c15fbd970ceb696390098"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/admin/tickets-list.test.ts": {
+    "mtime": 1781083371.0240474,
+    "ast_hash": "4d8e41d3a42ada70e8299df4014ac0ff",
+    "semantic_hash": "4d8e41d3a42ada70e8299df4014ac0ff"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/billing/lemonsqueezy-webhook-hmac.test.ts": {
+    "mtime": 1781083371.0242474,
+    "ast_hash": "75c261c619056584e7e74f2c351437db",
+    "semantic_hash": "75c261c619056584e7e74f2c351437db"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/community/paths-clone.test.ts": {
+    "mtime": 1781083371.024406,
+    "ast_hash": "3d65ce67b0cdcd3b39b78fa025ed79ab",
+    "semantic_hash": "3d65ce67b0cdcd3b39b78fa025ed79ab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/community/paths-detail.test.ts": {
+    "mtime": 1781083371.024609,
+    "ast_hash": "615b9cbcf252eee40e1a0aecf0965bb0",
+    "semantic_hash": "615b9cbcf252eee40e1a0aecf0965bb0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/community/paths-list.test.ts": {
+    "mtime": 1781083371.0247245,
+    "ast_hash": "c358da152120fe8bc61d998f05e33f33",
+    "semantic_hash": "c358da152120fe8bc61d998f05e33f33"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/community/paths-report.test.ts": {
+    "mtime": 1781083371.024885,
+    "ast_hash": "e9027258d0f0fd5f60ad3ca3228c3498",
+    "semantic_hash": "e9027258d0f0fd5f60ad3ca3228c3498"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/community/paths-translate.test.ts": {
+    "mtime": 1781367804.7317486,
+    "ast_hash": "53f0e6b216f984d1fb7d12caea3808c4",
+    "semantic_hash": "53f0e6b216f984d1fb7d12caea3808c4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/learn/paths-access.test.ts": {
+    "mtime": 1781083371.0253727,
+    "ast_hash": "3bd8e06ff07c72cde1e22de54077a3d6",
+    "semantic_hash": "3bd8e06ff07c72cde1e22de54077a3d6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/learn/paths-create-switchover.test.ts": {
+    "mtime": 1781367804.7320404,
+    "ast_hash": "eabd049a4f2fe0c181297df1c6ac5355",
+    "semantic_hash": "eabd049a4f2fe0c181297df1c6ac5355"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/learn/paths-publish.test.ts": {
+    "mtime": 1781367804.732329,
+    "ast_hash": "e8acb38937254e20b1b68ee343e7791a",
+    "semantic_hash": "e8acb38937254e20b1b68ee343e7791a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/api/user/activity-heatmap-privacy.test.ts": {
+    "mtime": 1781083371.026307,
+    "ast_hash": "3b8f78aec96ec2e643e81ae9a77d3110",
+    "semantic_hash": "3b8f78aec96ec2e643e81ae9a77d3110"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/lib/popular-languages.test.ts": {
+    "mtime": 1781083371.0264392,
+    "ast_hash": "dc53d6e2ccfb385c931088225f06b8b0",
+    "semantic_hash": "dc53d6e2ccfb385c931088225f06b8b0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/lib/pretranslate.test.ts": {
+    "mtime": 1781083371.0265708,
+    "ast_hash": "1eef0211e21173e7d784a15caf35f791",
+    "semantic_hash": "1eef0211e21173e7d784a15caf35f791"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/lib/telemetry-switchover.test.ts": {
+    "mtime": 1781083371.0267253,
+    "ast_hash": "e0e1f3c7a2a3f150c9037594161e24ea",
+    "semantic_hash": "e0e1f3c7a2a3f150c9037594161e24ea"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/lib/tiers-switchover.test.ts": {
+    "mtime": 1781083371.0268588,
+    "ast_hash": "87401f02686ef12bf798bf909ccad922",
+    "semantic_hash": "87401f02686ef12bf798bf909ccad922"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/__tests__/lib/translation-prompt.test.ts": {
+    "mtime": 1781083371.0269969,
+    "ast_hash": "d7378be817ab854badc44a8b6168623c",
+    "semantic_hash": "d7378be817ab854badc44a8b6168623c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/auth/config.ts": {
+    "mtime": 1781367856.4140725,
+    "ast_hash": "10ca016beebe2d6186b74ec309dfd249",
+    "semantic_hash": "10ca016beebe2d6186b74ec309dfd249"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/auth/oauth-user.ts": {
+    "mtime": 1781083371.0276296,
+    "ast_hash": "c11b1c37e632bbea9df4fa67c0a249e4",
+    "semantic_hash": "c11b1c37e632bbea9df4fa67c0a249e4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/analytics/AnalyticsConsentBanner.tsx": {
+    "mtime": 1781083371.0279336,
+    "ast_hash": "70d11610c0edc47fb5593790cc5e8773",
+    "semantic_hash": "70d11610c0edc47fb5593790cc5e8773"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/analytics/PostHogIdentify.tsx": {
+    "mtime": 1781083371.0280588,
+    "ast_hash": "e43ba17114e3595a915a60ce4db14596",
+    "semantic_hash": "e43ba17114e3595a915a60ce4db14596"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/analytics/PostHogProvider.tsx": {
+    "mtime": 1781083371.0281742,
+    "ast_hash": "102cf791ecf5921f9c4d59c33e1084df",
+    "semantic_hash": "102cf791ecf5921f9c4d59c33e1084df"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/auth/OAuthProviderRow.tsx": {
+    "mtime": 1781095735.502005,
+    "ast_hash": "04c1a4729131c22c2c5b93935c82aeea",
+    "semantic_hash": "04c1a4729131c22c2c5b93935c82aeea"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/auth/ResetPasswordForm.tsx": {
+    "mtime": 1781083371.028525,
+    "ast_hash": "3494390d994867bc554f5286e2390858",
+    "semantic_hash": "3494390d994867bc554f5286e2390858"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/auth/TurnstileWidget.tsx": {
+    "mtime": 1781367804.7325876,
+    "ast_hash": "b8682fc1ea7dbfcefd477530018eba32",
+    "semantic_hash": "b8682fc1ea7dbfcefd477530018eba32"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/auth/VerifyCodeForm.tsx": {
+    "mtime": 1781083371.028683,
+    "ast_hash": "06a8697b2072269e18c206333fd0f030",
+    "semantic_hash": "06a8697b2072269e18c206333fd0f030"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/cosmetics/CosmeticsPanel.tsx": {
+    "mtime": 1781083371.0289981,
+    "ast_hash": "4a0fe86aa219ed77734e47fa62424e92",
+    "semantic_hash": "4a0fe86aa219ed77734e47fa62424e92"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/cosmetics/CosmeticsShowcase.tsx": {
+    "mtime": 1781083371.0293574,
+    "ast_hash": "eb57547952f7767de5c121e4df30ddba",
+    "semantic_hash": "eb57547952f7767de5c121e4df30ddba"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/cosmetics/ProfileBackground.tsx": {
+    "mtime": 1778491734.7182782,
+    "ast_hash": "973c3043740c51df1c8dc04eb6b9c9b1",
+    "semantic_hash": "973c3043740c51df1c8dc04eb6b9c9b1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/cosmetics/UnlockToast.tsx": {
+    "mtime": 1781083371.02956,
+    "ast_hash": "9af65fdce045a8337a107bd960f58b9e",
+    "semantic_hash": "9af65fdce045a8337a107bd960f58b9e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/cowork/CoworkInviteCard.tsx": {
+    "mtime": 1781083371.0297089,
+    "ast_hash": "159fd85f52e4be917757e3efdb5179dc",
+    "semantic_hash": "159fd85f52e4be917757e3efdb5179dc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/cowork/StartCoworkModal.tsx": {
+    "mtime": 1781083371.0299032,
+    "ast_hash": "499046daa21a7ee6807d7928d9e419ca",
+    "semantic_hash": "499046daa21a7ee6807d7928d9e419ca"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/docs/DocsMarkdown.tsx": {
+    "mtime": 1778491734.721402,
+    "ast_hash": "d0544622b0b2d412678620d2575685ab",
+    "semantic_hash": "d0544622b0b2d412678620d2575685ab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/AchievementToast.tsx": {
+    "mtime": 1781083371.0301147,
+    "ast_hash": "bd7bacb8252fa2304b4f8a3a90ace35f",
+    "semantic_hash": "bd7bacb8252fa2304b4f8a3a90ace35f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/AchievementsError.tsx": {
+    "mtime": 1781083371.03022,
+    "ast_hash": "caadd9d91b39c2372777c85921c4ebd0",
+    "semantic_hash": "caadd9d91b39c2372777c85921c4ebd0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/ActivityHeatmap.tsx": {
+    "mtime": 1781158491.4669394,
+    "ast_hash": "0f1d83bec5fdb44447141c7887c47521",
+    "semantic_hash": "0f1d83bec5fdb44447141c7887c47521"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/DashboardAchievements.tsx": {
+    "mtime": 1781083371.0307245,
+    "ast_hash": "35a9bdea6dea4b5925482181c4dd06fe",
+    "semantic_hash": "35a9bdea6dea4b5925482181c4dd06fe"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/DashboardGreeting.tsx": {
+    "mtime": 1778491734.7019887,
+    "ast_hash": "31ff9efd1cb65d9627bc9057d2c9509f",
+    "semantic_hash": "31ff9efd1cb65d9627bc9057d2c9509f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/DocumentList.tsx": {
+    "mtime": 1781083371.0309153,
+    "ast_hash": "f91f4e435697c5fa47acd3034e48108e",
+    "semantic_hash": "f91f4e435697c5fa47acd3034e48108e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/ExamCountdown.tsx": {
+    "mtime": 1781083371.0311055,
+    "ast_hash": "907807b654fedd4851c835fb7191ce2a",
+    "semantic_hash": "907807b654fedd4851c835fb7191ce2a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/ExamForm.tsx": {
+    "mtime": 1781083371.0313034,
+    "ast_hash": "d88c4d739eb438930fbc5fa82ccba02b",
+    "semantic_hash": "d88c4d739eb438930fbc5fa82ccba02b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/FileUpload.tsx": {
+    "mtime": 1781083371.0316496,
+    "ast_hash": "3365fa698b0e585ad91e9e69a1f678d7",
+    "semantic_hash": "3365fa698b0e585ad91e9e69a1f678d7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/FolderBreadcrumbs.tsx": {
+    "mtime": 1781083371.031869,
+    "ast_hash": "df31bed7bc853e89f7a1b5168d5cfeb8",
+    "semantic_hash": "df31bed7bc853e89f7a1b5168d5cfeb8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/FolderCard.tsx": {
+    "mtime": 1781083371.0320318,
+    "ast_hash": "7087969598c25e0de52b82c9cb07ea00",
+    "semantic_hash": "7087969598c25e0de52b82c9cb07ea00"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/FolderForm.tsx": {
+    "mtime": 1781083371.0322318,
+    "ast_hash": "0fd457850ea2c71dfc495e4504b4d500",
+    "semantic_hash": "0fd457850ea2c71dfc495e4504b4d500"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/NotebookCard.tsx": {
+    "mtime": 1781083371.0324087,
+    "ast_hash": "0a0b2f7b6dc32b168539d44db4b465f2",
+    "semantic_hash": "0a0b2f7b6dc32b168539d44db4b465f2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/NotebookForm.tsx": {
+    "mtime": 1781083371.0326002,
+    "ast_hash": "397b2ec56a40090d7913a12dbc827b45",
+    "semantic_hash": "397b2ec56a40090d7913a12dbc827b45"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/PathHeroCard.tsx": {
+    "mtime": 1781732115.2776756,
+    "ast_hash": "3d7cb8d36a2f5fa993f82e8e54375bd5",
+    "semantic_hash": "3d7cb8d36a2f5fa993f82e8e54375bd5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/RecentTrophies.tsx": {
+    "mtime": 1781083371.0329647,
+    "ast_hash": "5cc34d7643fa264615d99aaabd003370",
+    "semantic_hash": "5cc34d7643fa264615d99aaabd003370"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/SocialsCard.tsx": {
+    "mtime": 1781083371.0331793,
+    "ast_hash": "245a3a969461d4becbf1b1cb39fb40af",
+    "semantic_hash": "245a3a969461d4becbf1b1cb39fb40af"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/StreakDisplay.tsx": {
+    "mtime": 1781083371.0335412,
+    "ast_hash": "d625fb43911c2aad415023b8f711bbf9",
+    "semantic_hash": "d625fb43911c2aad415023b8f711bbf9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/features/TrophyShelf.tsx": {
+    "mtime": 1781083371.0337229,
+    "ast_hash": "3ab61a2843ba3f55ca978d84930e7465",
+    "semantic_hash": "3ab61a2843ba3f55ca978d84930e7465"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/DMCard.tsx": {
+    "mtime": 1781083371.033876,
+    "ast_hash": "f4062885170551908bad636ae762a85a",
+    "semantic_hash": "f4062885170551908bad636ae762a85a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupChat.tsx": {
+    "mtime": 1781083371.0340905,
+    "ast_hash": "aab14e78b8f04f607ce4077e83b48c74",
+    "semantic_hash": "aab14e78b8f04f607ce4077e83b48c74"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupChatInput.tsx": {
+    "mtime": 1781083371.0342941,
+    "ast_hash": "10eb732632b4c9fcf89fa799d6ed8a44",
+    "semantic_hash": "10eb732632b4c9fcf89fa799d6ed8a44"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupChatMessage.tsx": {
+    "mtime": 1781083371.034498,
+    "ast_hash": "58dd7a1b9f2e51bf5b165ed86cb7f233",
+    "semantic_hash": "58dd7a1b9f2e51bf5b165ed86cb7f233"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupDetailView.tsx": {
+    "mtime": 1781211213.1762471,
+    "ast_hash": "0f846463bbc188b2033b369164e9c53a",
+    "semantic_hash": "0f846463bbc188b2033b369164e9c53a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupInvitationCard.tsx": {
+    "mtime": 1781083371.0350459,
+    "ast_hash": "c9347ce7018cb4cbf8f613a3ed2a4c68",
+    "semantic_hash": "c9347ce7018cb4cbf8f613a3ed2a4c68"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupMemberList.tsx": {
+    "mtime": 1781083371.035245,
+    "ast_hash": "94b7f6125bcf0d0ce7f04620e099f24c",
+    "semantic_hash": "94b7f6125bcf0d0ce7f04620e099f24c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupSettings.tsx": {
+    "mtime": 1781083371.0354524,
+    "ast_hash": "9f269f4ef6966fc1fdc4ac504f273db5",
+    "semantic_hash": "9f269f4ef6966fc1fdc4ac504f273db5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupSharedContent.tsx": {
+    "mtime": 1781159916.5655525,
+    "ast_hash": "10d3b0e9f6cfca9ddd43c07da19283f2",
+    "semantic_hash": "10d3b0e9f6cfca9ddd43c07da19283f2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/GroupSharedContentCard.tsx": {
+    "mtime": 1781083371.0358589,
+    "ast_hash": "1ad8deaeadb9eb5e8cb2aff0086f6c0c",
+    "semantic_hash": "1ad8deaeadb9eb5e8cb2aff0086f6c0c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/InviteMemberModal.tsx": {
+    "mtime": 1781083371.0360367,
+    "ast_hash": "d5dd5376dcbe001f9cf665a4eb6ac5f2",
+    "semantic_hash": "d5dd5376dcbe001f9cf665a4eb6ac5f2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/SaveDestinationModal.tsx": {
+    "mtime": 1781083371.0362105,
+    "ast_hash": "6c230a172aa8a3909b1e9f2c167c1365",
+    "semantic_hash": "6c230a172aa8a3909b1e9f2c167c1365"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/ShareContentModal.tsx": {
+    "mtime": 1781083371.0363982,
+    "ast_hash": "4b5de27386258b7135fa2ed2ebf3afa6",
+    "semantic_hash": "4b5de27386258b7135fa2ed2ebf3afa6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/StartDMModal.tsx": {
+    "mtime": 1781083371.0368078,
+    "ast_hash": "b2cea59939910ed53ca81df8854eca56",
+    "semantic_hash": "b2cea59939910ed53ca81df8854eca56"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/cowork-showcase/CoworkShowcaseModal.tsx": {
+    "mtime": 1781158520.82652,
+    "ast_hash": "6f1428fb3e00d1aad55812b87e831f6a",
+    "semantic_hash": "6f1428fb3e00d1aad55812b87e831f6a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/groups/cowork-showcase/useCoworkShowcase.ts": {
+    "mtime": 1781732115.2779527,
+    "ast_hash": "4aff81f871ac21450acfd06519db6393",
+    "semantic_hash": "4aff81f871ac21450acfd06519db6393"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/icons/CheckpointIcons.tsx": {
+    "mtime": 1781083371.0369792,
+    "ast_hash": "da1456f57b6a7a7c352c9e775b132e3b",
+    "semantic_hash": "da1456f57b6a7a7c352c9e775b132e3b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/icons/NavIcons.tsx": {
+    "mtime": 1778491734.7271144,
+    "ast_hash": "f8f61e89f8aff9ae8af06172251c1a08",
+    "semantic_hash": "f8f61e89f8aff9ae8af06172251c1a08"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/import/ImportCreatingStep.tsx": {
+    "mtime": 1781083371.0373328,
+    "ast_hash": "e9c3241a6b7625965116177929601142",
+    "semantic_hash": "e9c3241a6b7625965116177929601142"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/import/ImportOrganizeStep.tsx": {
+    "mtime": 1781083371.0374756,
+    "ast_hash": "c5107d2710981fc319e8d5d5d3674326",
+    "semantic_hash": "c5107d2710981fc319e8d5d5d3674326"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/import/ImportPreparingStep.tsx": {
+    "mtime": 1781083371.0376823,
+    "ast_hash": "64a0d6e68e8b8575b0783a74013d8878",
+    "semantic_hash": "64a0d6e68e8b8575b0783a74013d8878"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/import/ImportSourceStep.tsx": {
+    "mtime": 1781155991.169501,
+    "ast_hash": "7b4b160aab17bcc18b847c9f8c14ea6a",
+    "semantic_hash": "7b4b160aab17bcc18b847c9f8c14ea6a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/import/MultiPdfImportModal.tsx": {
+    "mtime": 1781083371.0382407,
+    "ast_hash": "6294e854eda763230e2e2ed36419d98c",
+    "semantic_hash": "6294e854eda763230e2e2ed36419d98c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/landing/LandingFooter.tsx": {
+    "mtime": 1781083371.0384748,
+    "ast_hash": "2781b27413e347b079ea6415b10f2177",
+    "semantic_hash": "2781b27413e347b079ea6415b10f2177"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/landing/LandingNavbar.tsx": {
+    "mtime": 1781083371.0386443,
+    "ast_hash": "bce28ed953098f8f43be25d02546c7cb",
+    "semantic_hash": "bce28ed953098f8f43be25d02546c7cb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/landing/MarketingHeroBackdrop.tsx": {
+    "mtime": 1781083371.0388262,
+    "ast_hash": "19dcdea6e3ea077bdf1a830cb26e9537",
+    "semantic_hash": "19dcdea6e3ea077bdf1a830cb26e9537"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/landing/MockFrame.tsx": {
+    "mtime": 1781083371.0390868,
+    "ast_hash": "582209f4e5fe3533c13f43b7ac01a514",
+    "semantic_hash": "582209f4e5fe3533c13f43b7ac01a514"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/landing/PathLanding.tsx": {
+    "mtime": 1781734396.98525,
+    "ast_hash": "666d8fb6bb10c1881bdd067bb26c3cd5",
+    "semantic_hash": "666d8fb6bb10c1881bdd067bb26c3cd5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/BurgerMenu.tsx": {
+    "mtime": 1781732115.2782915,
+    "ast_hash": "14450788172c7306c8c5e70a3fa48c00",
+    "semantic_hash": "14450788172c7306c8c5e70a3fa48c00"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/Header.tsx": {
+    "mtime": 1781083371.0398154,
+    "ast_hash": "1d8bae4d58ff59ec5885d07483bc76ee",
+    "semantic_hash": "1d8bae4d58ff59ec5885d07483bc76ee"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/HomeHeader.tsx": {
+    "mtime": 1781732115.278593,
+    "ast_hash": "07754ce100e8dbcf03b23d94243a64cd",
+    "semantic_hash": "07754ce100e8dbcf03b23d94243a64cd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/MobileBottomNav.tsx": {
+    "mtime": 1781737735.5521038,
+    "ast_hash": "4bc42a712970d607533c5a7f5e8320a4",
+    "semantic_hash": "4bc42a712970d607533c5a7f5e8320a4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/NotificationBell.tsx": {
+    "mtime": 1781732115.279135,
+    "ast_hash": "f2a856e729deebc18d0e7293f1ab358e",
+    "semantic_hash": "f2a856e729deebc18d0e7293f1ab358e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/NotificationDropdown.tsx": {
+    "mtime": 1781083371.0408595,
+    "ast_hash": "39bb5decfee294c109cf5b6d0e247312",
+    "semantic_hash": "39bb5decfee294c109cf5b6d0e247312"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/NotificationToast.tsx": {
+    "mtime": 1778491734.6951299,
+    "ast_hash": "1c59be5582a98ddc2e0a10c994622a0a",
+    "semantic_hash": "1c59be5582a98ddc2e0a10c994622a0a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/layout/TimerWidget.tsx": {
+    "mtime": 1781732115.279332,
+    "ast_hash": "c1a41755039a7211fc24422d70d52fc5",
+    "semantic_hash": "c1a41755039a7211fc24422d70d52fc5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/ActivityList.tsx": {
+    "mtime": 1781083371.0412352,
+    "ast_hash": "7414b24273ffedc9fef45945c16f84b7",
+    "semantic_hash": "7414b24273ffedc9fef45945c16f84b7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/AskMageButton.tsx": {
+    "mtime": 1781741325.0424995,
+    "ast_hash": "ead1e5473bd598f15367fae6f4d84f70",
+    "semantic_hash": "ead1e5473bd598f15367fae6f4d84f70"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CancelPathDialog.tsx": {
+    "mtime": 1781732115.2796235,
+    "ast_hash": "97f1f72134fb2b3336e0aac12f57f7a9",
+    "semantic_hash": "97f1f72134fb2b3336e0aac12f57f7a9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/ChatThread.tsx": {
+    "mtime": 1781739202.6132078,
+    "ast_hash": "a9e10ab15d149771d9aabdb1b254617b",
+    "semantic_hash": "a9e10ab15d149771d9aabdb1b254617b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CheckpointDrawer.tsx": {
+    "mtime": 1781739173.736252,
+    "ast_hash": "40e7c1dbb75e6474c87529a859c3df54",
+    "semantic_hash": "40e7c1dbb75e6474c87529a859c3df54"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CheckpointFlashcardViewer.tsx": {
+    "mtime": 1781732115.280386,
+    "ast_hash": "d01b508eb2e181dd743ddf5aa053c176",
+    "semantic_hash": "d01b508eb2e181dd743ddf5aa053c176"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CheckpointQuizViewer.tsx": {
+    "mtime": 1781732115.2806187,
+    "ast_hash": "383916649e7208bbc91657b10acf1f85",
+    "semantic_hash": "383916649e7208bbc91657b10acf1f85"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CheckpointSkeleton.tsx": {
+    "mtime": 1781732115.2809145,
+    "ast_hash": "8ffcf2cc71a6d67feaf1c734b978f2a3",
+    "semantic_hash": "8ffcf2cc71a6d67feaf1c734b978f2a3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CheckpointTheoryViewer.tsx": {
+    "mtime": 1781739189.36412,
+    "ast_hash": "fe03688590046eba7bd43e4cba306144",
+    "semantic_hash": "fe03688590046eba7bd43e4cba306144"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/CreateChatModal.tsx": {
+    "mtime": 1781739124.6780548,
+    "ast_hash": "2c33e27efca50b2fe9aa4b0405d7b35d",
+    "semantic_hash": "2c33e27efca50b2fe9aa4b0405d7b35d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/DeletePathDialog.tsx": {
+    "mtime": 1781732115.2816904,
+    "ast_hash": "96dc5979f381b91bd3eb5407b19d3ff4",
+    "semantic_hash": "96dc5979f381b91bd3eb5407b19d3ff4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/DiagramReferencePanel.tsx": {
+    "mtime": 1781244387.4540007,
+    "ast_hash": "208a85f58e44025f52ceaf072ba643e0",
+    "semantic_hash": "208a85f58e44025f52ceaf072ba643e0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/GenerationProgressModal.tsx": {
+    "mtime": 1781158412.8775706,
+    "ast_hash": "f3a6ae1c97921c436015af6cbbd3e646",
+    "semantic_hash": "f3a6ae1c97921c436015af6cbbd3e646"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/PathConnector.tsx": {
+    "mtime": 1781646630.7726772,
+    "ast_hash": "09522d274857ee5d1557dc81c76f2943",
+    "semantic_hash": "09522d274857ee5d1557dc81c76f2943"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/PathDecorations.tsx": {
+    "mtime": 1781083371.0428603,
+    "ast_hash": "b6e39a4679693552ca7e2dca17a012d3",
+    "semantic_hash": "b6e39a4679693552ca7e2dca17a012d3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/PathDiagram.tsx": {
+    "mtime": 1781248555.9017358,
+    "ast_hash": "05ab861e43a954a605cd8cad3f847385",
+    "semantic_hash": "05ab861e43a954a605cd8cad3f847385"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/PathView.tsx": {
+    "mtime": 1781646630.7730753,
+    "ast_hash": "06d690593f75a42f8fa6a34bd38b66d6",
+    "semantic_hash": "06d690593f75a42f8fa6a34bd38b66d6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/ResetPathDialog.tsx": {
+    "mtime": 1781732115.2818224,
+    "ast_hash": "8076edeee9b4123502493b9119c04758",
+    "semantic_hash": "8076edeee9b4123502493b9119c04758"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/SectionBanner.tsx": {
+    "mtime": 1781646630.773345,
+    "ast_hash": "e3904839a8a78acea1398669c55fdd9b",
+    "semantic_hash": "e3904839a8a78acea1398669c55fdd9b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/SlotNode.tsx": {
+    "mtime": 1781646630.7735991,
+    "ast_hash": "033d2fcf7ce04e3881c3ce7a3dd8d982",
+    "semantic_hash": "033d2fcf7ce04e3881c3ce7a3dd8d982"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/TheoryViewer.tsx": {
+    "mtime": 1781083371.0437543,
+    "ast_hash": "2f324e0c8f927c5048c2afe3123d69f4",
+    "semantic_hash": "2f324e0c8f927c5048c2afe3123d69f4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/TranslatePathDialog.tsx": {
+    "mtime": 1781732115.281963,
+    "ast_hash": "26c190fceb42230b4a263c235e4705dc",
+    "semantic_hash": "26c190fceb42230b4a263c235e4705dc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/TutorialPathPlayer.tsx": {
+    "mtime": 1781738559.7146287,
+    "ast_hash": "327896499c8f029f93a48620f54c6a0d",
+    "semantic_hash": "327896499c8f029f93a48620f54c6a0d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/UltraBadge.tsx": {
+    "mtime": 1781083371.0438468,
+    "ast_hash": "f31e328b5554d5da3af0c26b2303ad71",
+    "semantic_hash": "f31e328b5554d5da3af0c26b2303ad71"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/learn/path-rewards.ts": {
+    "mtime": 1781732115.282223,
+    "ast_hash": "4fbd9c564ca55f7af34d574a3a151c03",
+    "semantic_hash": "4fbd9c564ca55f7af34d574a3a151c03"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/legal/LegalPageShell.tsx": {
+    "mtime": 1781083371.0440183,
+    "ast_hash": "dd7757c5cd79bea4263c1d87866b38aa",
+    "semantic_hash": "dd7757c5cd79bea4263c1d87866b38aa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/CelebrationOverlay.tsx": {
+    "mtime": 1781083371.044183,
+    "ast_hash": "c60790ee8964752c22e4caecd61e479a",
+    "semantic_hash": "c60790ee8964752c22e4caecd61e479a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/CelebrationProvider.tsx": {
+    "mtime": 1781083371.0445106,
+    "ast_hash": "3ad0d7cd99c5b11648255bf00d371c78",
+    "semantic_hash": "3ad0d7cd99c5b11648255bf00d371c78"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/ContextualMascot.tsx": {
+    "mtime": 1781732115.2823894,
+    "ast_hash": "595bb939e7bcfac3606fb4b8157d641f",
+    "semantic_hash": "595bb939e7bcfac3606fb4b8157d641f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/Mascot.tsx": {
+    "mtime": 1781732115.282555,
+    "ast_hash": "3e209dc60b8f1254ec309c68b6900275",
+    "semantic_hash": "3e209dc60b8f1254ec309c68b6900275"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/confetti.ts": {
+    "mtime": 1778198674.5610313,
+    "ast_hash": "4b298c3de1ffab4adab00660b0e8503d",
+    "semantic_hash": "4b298c3de1ffab4adab00660b0e8503d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/index.ts": {
+    "mtime": 1781083371.0450065,
+    "ast_hash": "ae41a11220678ccbcbd4fd2f419fe12d",
+    "semantic_hash": "ae41a11220678ccbcbd4fd2f419fe12d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/poses.ts": {
+    "mtime": 1781083371.045339,
+    "ast_hash": "d25567bbe7d15dfe07cc29ee3d945721",
+    "semantic_hash": "d25567bbe7d15dfe07cc29ee3d945721"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/mascot/useMascotContextPose.ts": {
+    "mtime": 1781732115.2827153,
+    "ast_hash": "1c8e4e67bb77a659f38e643579ce02a5",
+    "semantic_hash": "1c8e4e67bb77a659f38e643579ce02a5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/AiTaskContext.tsx": {
+    "mtime": 1781083371.0456316,
+    "ast_hash": "ce40ff4f3ac6692feb9d608a782e20c4",
+    "semantic_hash": "ce40ff4f3ac6692feb9d608a782e20c4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CalloutView.tsx": {
+    "mtime": 1781083371.0458617,
+    "ast_hash": "603e1942f6c21c68ceb5893c2bbd20dd",
+    "semantic_hash": "603e1942f6c21c68ceb5893c2bbd20dd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CoWorkBar.tsx": {
+    "mtime": 1781083371.0460851,
+    "ast_hash": "47e8bd85477e33edc102f9360526479b",
+    "semantic_hash": "47e8bd85477e33edc102f9360526479b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CoWorkButton.tsx": {
+    "mtime": 1781083371.0463116,
+    "ast_hash": "7c94e0ce91133a05cbf1b27e39891253",
+    "semantic_hash": "7c94e0ce91133a05cbf1b27e39891253"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CoWorkChat.tsx": {
+    "mtime": 1781083371.04653,
+    "ast_hash": "78c598f2f1529238040611ba8cde70ce",
+    "semantic_hash": "78c598f2f1529238040611ba8cde70ce"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CoWorkInviteModal.tsx": {
+    "mtime": 1781083371.0468285,
+    "ast_hash": "ed4703a09ad933545aa347461df927b3",
+    "semantic_hash": "ed4703a09ad933545aa347461df927b3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CodeBlockView.tsx": {
+    "mtime": 1781083371.046972,
+    "ast_hash": "54ee7666662da2b28f37c312add50d08",
+    "semantic_hash": "54ee7666662da2b28f37c312add50d08"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/CreateSectionDialog.tsx": {
+    "mtime": 1781083371.0471196,
+    "ast_hash": "3d24efab51740cfc62b809704e98f9e3",
+    "semantic_hash": "3d24efab51740cfc62b809704e98f9e3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/DrawingCanvas.tsx": {
+    "mtime": 1781083371.0472794,
+    "ast_hash": "acf7c58253f30b51bf712ada0505c078",
+    "semantic_hash": "acf7c58253f30b51bf712ada0505c078"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/DrawingOverlay.tsx": {
+    "mtime": 1781086902.8898423,
+    "ast_hash": "2a4f8e0684aec9a5f660f4c48ad6555e",
+    "semantic_hash": "2a4f8e0684aec9a5f660f4c48ad6555e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/EditorToolbar.tsx": {
+    "mtime": 1781086902.8902762,
+    "ast_hash": "91bb2b5f813e2cf8af68c844a37ed4e2",
+    "semantic_hash": "91bb2b5f813e2cf8af68c844a37ed4e2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/EquationModal.tsx": {
+    "mtime": 1781086902.8905258,
+    "ast_hash": "0fa46f72883b2553af219169de6d1f78",
+    "semantic_hash": "0fa46f72883b2553af219169de6d1f78"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/EssayChecker.tsx": {
+    "mtime": 1781210114.708776,
+    "ast_hash": "6d479d902551365bedd9da60459a0578",
+    "semantic_hash": "6d479d902551365bedd9da60459a0578"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ExportDialog.tsx": {
+    "mtime": 1781158423.2166245,
+    "ast_hash": "1e4e6ec821e8371e4c3ada98af3509a9",
+    "semantic_hash": "1e4e6ec821e8371e4c3ada98af3509a9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/FileImportDialog.tsx": {
+    "mtime": 1781083371.0485203,
+    "ast_hash": "0527c8d195de3034e9deb81e9402993b",
+    "semantic_hash": "0527c8d195de3034e9deb81e9402993b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/FlashcardImportDialog.tsx": {
+    "mtime": 1781158399.9911647,
+    "ast_hash": "c6f028df3a7d07d218fda11f5b35202c",
+    "semantic_hash": "c6f028df3a7d07d218fda11f5b35202c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/FlashcardSetCreator.tsx": {
+    "mtime": 1781083371.0489774,
+    "ast_hash": "89cfa090094f91212df9369c42f29061",
+    "semantic_hash": "89cfa090094f91212df9369c42f29061"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/FlashcardSetManager.tsx": {
+    "mtime": 1781158392.1039689,
+    "ast_hash": "a3972b329597ea6f5e6574c7ae50af74",
+    "semantic_hash": "a3972b329597ea6f5e6574c7ae50af74"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/FlashcardViewer.tsx": {
+    "mtime": 1781738360.611926,
+    "ast_hash": "aed55daadbda5734872315653bf4a232",
+    "semantic_hash": "aed55daadbda5734872315653bf4a232"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/GenerateDropdown.tsx": {
+    "mtime": 1781738365.2025173,
+    "ast_hash": "08d3e3a8370dbe72ed92d81e790b17e1",
+    "semantic_hash": "08d3e3a8370dbe72ed92d81e790b17e1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ImagePlaceholderView.tsx": {
+    "mtime": 1781083371.0499392,
+    "ast_hash": "d1b8e9eef230c09903514ebb2c3632ad",
+    "semantic_hash": "d1b8e9eef230c09903514ebb2c3632ad"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ImageUploadButton.tsx": {
+    "mtime": 1781083371.0501924,
+    "ast_hash": "aedaea7ec55b308fd9f1632cfaf70a4f",
+    "semantic_hash": "aedaea7ec55b308fd9f1632cfaf70a4f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ImportNotebookDialog.tsx": {
+    "mtime": 1781260608.339534,
+    "ast_hash": "7faf623a557e25671bf138cb6979d293",
+    "semantic_hash": "7faf623a557e25671bf138cb6979d293"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ImportSectionPicker.tsx": {
+    "mtime": 1781083371.0505278,
+    "ast_hash": "754f5f1c3bd23c0dd4dd18897d953195",
+    "semantic_hash": "754f5f1c3bd23c0dd4dd18897d953195"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/InfiniteCanvas.tsx": {
+    "mtime": 1781083371.0507784,
+    "ast_hash": "ec024b219bbe521b079372ebdc446cf1",
+    "semantic_hash": "ec024b219bbe521b079372ebdc446cf1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/InlineAIToolbar.tsx": {
+    "mtime": 1781083371.050955,
+    "ast_hash": "9d5c5ac4fc1efd5ceb8f7d1eb2107081",
+    "semantic_hash": "9d5c5ac4fc1efd5ceb8f7d1eb2107081"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/MaterialPicker.tsx": {
+    "mtime": 1781083371.0511458,
+    "ast_hash": "0e85907464a08f5eba040a5268313028",
+    "semantic_hash": "0e85907464a08f5eba040a5268313028"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/MathView.tsx": {
+    "mtime": 1781086902.8909976,
+    "ast_hash": "2264f3649336ae4a04eff01ea1ee78b4",
+    "semantic_hash": "2264f3649336ae4a04eff01ea1ee78b4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/MindmapRenderer.tsx": {
+    "mtime": 1781083371.051477,
+    "ast_hash": "d99a353415e42d915fa2080b76361aa1",
+    "semantic_hash": "d99a353415e42d915fa2080b76361aa1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/NotebookExamsModal.tsx": {
+    "mtime": 1781158371.0472238,
+    "ast_hash": "479b790c62b83e4c311c6db91cc562ce",
+    "semantic_hash": "479b790c62b83e4c311c6db91cc562ce"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/NotebookWorkspaceContext.tsx": {
+    "mtime": 1781083371.0518103,
+    "ast_hash": "93b5c12e6b20a3b6c4f58d66c192546b",
+    "semantic_hash": "93b5c12e6b20a3b6c4f58d66c192546b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/OneNoteImportProgressModal.tsx": {
+    "mtime": 1781083371.052012,
+    "ast_hash": "4c0d6b09c554d75c592453a29ca081a2",
+    "semantic_hash": "4c0d6b09c554d75c592453a29ca081a2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PageAppendPdfButton.tsx": {
+    "mtime": 1781083371.052206,
+    "ast_hash": "238d7ced2d2a02f9aa75589326a41e22",
+    "semantic_hash": "238d7ced2d2a02f9aa75589326a41e22"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PageEditor.tsx": {
+    "mtime": 1781212045.8889318,
+    "ast_hash": "e9cad4df9319c13c51163693a810c52c",
+    "semantic_hash": "e9cad4df9319c13c51163693a810c52c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PageItem.tsx": {
+    "mtime": 1781083371.0526273,
+    "ast_hash": "430c6bb91761c1d95e321341ffc32a3a",
+    "semantic_hash": "430c6bb91761c1d95e321341ffc32a3a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PageLockIndicator.tsx": {
+    "mtime": 1781083371.0527523,
+    "ast_hash": "a4504955539095a4ae7569349115a889",
+    "semantic_hash": "a4504955539095a4ae7569349115a889"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PagePanel.tsx": {
+    "mtime": 1781083371.0530276,
+    "ast_hash": "4b8796675093a7744a1f1aa1966a7c5d",
+    "semantic_hash": "4b8796675093a7744a1f1aa1966a7c5d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PageTypeSelector.tsx": {
+    "mtime": 1781083371.0532656,
+    "ast_hash": "5b8f34140c868427b7ae40a168bd11ec",
+    "semantic_hash": "5b8f34140c868427b7ae40a168bd11ec"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PdfImportProgressModal.tsx": {
+    "mtime": 1781083371.053425,
+    "ast_hash": "1bc191be133138ff8874c856fbe11816",
+    "semantic_hash": "1bc191be133138ff8874c856fbe11816"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PdfImportSkeleton.tsx": {
+    "mtime": 1781083371.0535154,
+    "ast_hash": "cf12124559700393828d23501dfea3ef",
+    "semantic_hash": "cf12124559700393828d23501dfea3ef"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/PdfImportTab.tsx": {
+    "mtime": 1781083371.0536542,
+    "ast_hash": "173cbd1cdfb5d207312646a160408f80",
+    "semantic_hash": "173cbd1cdfb5d207312646a160408f80"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/QuizSetCreator.tsx": {
+    "mtime": 1781083371.0538301,
+    "ast_hash": "235a4576429a20afe823eaa66a55d570",
+    "semantic_hash": "235a4576429a20afe823eaa66a55d570"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/QuizViewer.tsx": {
+    "mtime": 1781738357.0805147,
+    "ast_hash": "dba12d582cd4ef832f1b0894256602fb",
+    "semantic_hash": "dba12d582cd4ef832f1b0894256602fb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/RemoteCursor.tsx": {
+    "mtime": 1778491734.7334206,
+    "ast_hash": "d1c6397e73fc926ccc90e3944a359b8f",
+    "semantic_hash": "d1c6397e73fc926ccc90e3944a359b8f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ResizableImage.tsx": {
+    "mtime": 1778491734.7313952,
+    "ast_hash": "2d3e67a165188e9e6e339cf2f722061b",
+    "semantic_hash": "2d3e67a165188e9e6e339cf2f722061b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SectionItem.tsx": {
+    "mtime": 1781083371.0542674,
+    "ast_hash": "4ac04d704ffa42e60bfff7ec7561a964",
+    "semantic_hash": "4ac04d704ffa42e60bfff7ec7561a964"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SectionListItem.tsx": {
+    "mtime": 1781083371.054441,
+    "ast_hash": "dc1599b0e712b7eda8cb8e946c01ce45",
+    "semantic_hash": "dc1599b0e712b7eda8cb8e946c01ce45"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SectionPanel.tsx": {
+    "mtime": 1781732115.282946,
+    "ast_hash": "bfecfad4641ceb191db8e9afc8ce62a5",
+    "semantic_hash": "bfecfad4641ceb191db8e9afc8ce62a5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SectionTree.tsx": {
+    "mtime": 1781083371.0547333,
+    "ast_hash": "5f2e531e1b59eff9897944a2df7236fd",
+    "semantic_hash": "5f2e531e1b59eff9897944a2df7236fd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/ShareNotebookModal.tsx": {
+    "mtime": 1781083371.0549192,
+    "ast_hash": "a466af884cac7ade52628f31b29dce5d",
+    "semantic_hash": "a466af884cac7ade52628f31b29dce5d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SlashMenu.tsx": {
+    "mtime": 1781083371.0551012,
+    "ast_hash": "9de70cd5110700afdd39b025af4d260e",
+    "semantic_hash": "9de70cd5110700afdd39b025af4d260e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SlideEditorModal.tsx": {
+    "mtime": 1781083371.0552673,
+    "ast_hash": "d71cd8ce45b9a695ef4e3cf9f6a23b07",
+    "semantic_hash": "d71cd8ce45b9a695ef4e3cf9f6a23b07"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/SlidePreview.tsx": {
+    "mtime": 1781083371.0553858,
+    "ast_hash": "ac5ca21b08131c932be0e08f48609110",
+    "semantic_hash": "ac5ca21b08131c932be0e08f48609110"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/UnifiedSidebar.tsx": {
+    "mtime": 1781738371.1958299,
+    "ast_hash": "2287c1c1d9e2ac9c72c554ad1d5f7891",
+    "semantic_hash": "2287c1c1d9e2ac9c72c554ad1d5f7891"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/UrlImportDialog.tsx": {
+    "mtime": 1781083371.05584,
+    "ast_hash": "2bd7ccf2432f0214fac7941a753099ae",
+    "semantic_hash": "2bd7ccf2432f0214fac7941a753099ae"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/VideoImportTab.tsx": {
+    "mtime": 1781738380.8063226,
+    "ast_hash": "aaeffd5a15f7e4374c60e27a4fe4b5e1",
+    "semantic_hash": "aaeffd5a15f7e4374c60e27a4fe4b5e1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/notebook/math-modal-context.tsx": {
+    "mtime": 1781086902.8915288,
+    "ast_hash": "2ddb2b36000e1e8ce6901fc7d8b66aab",
+    "semantic_hash": "2ddb2b36000e1e8ce6901fc7d8b66aab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/AccountStep.tsx": {
+    "mtime": 1781367804.7328603,
+    "ast_hash": "38339e28760837be342ceb0ae25287e0",
+    "semantic_hash": "38339e28760837be342ceb0ae25287e0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/AvatarStep.tsx": {
+    "mtime": 1781083371.0562685,
+    "ast_hash": "0df91b8aab8a97bb01eb3196d8e543a8",
+    "semantic_hash": "0df91b8aab8a97bb01eb3196d8e543a8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/ContextStep.tsx": {
+    "mtime": 1781083371.0563786,
+    "ast_hash": "c1a324dd681f12eeb75573bb164d6221",
+    "semantic_hash": "c1a324dd681f12eeb75573bb164d6221"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/DateOfBirthField.tsx": {
+    "mtime": 1781083371.0565488,
+    "ast_hash": "9f1d50186f21fa98e9f2a832d5dab0d4",
+    "semantic_hash": "9f1d50186f21fa98e9f2a832d5dab0d4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/FieldOfStudyStep.tsx": {
+    "mtime": 1781083371.056712,
+    "ast_hash": "210d359e81479af7395d41e7418fdb14",
+    "semantic_hash": "210d359e81479af7395d41e7418fdb14"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/FindClassmatesStep.tsx": {
+    "mtime": 1781083371.056869,
+    "ast_hash": "d6f2dd53361b0e28509e792c89c658b6",
+    "semantic_hash": "d6f2dd53361b0e28509e792c89c658b6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/FirstNameStep.tsx": {
+    "mtime": 1781083371.05696,
+    "ast_hash": "bc14c918df56d17a049014121fe2c3ad",
+    "semantic_hash": "bc14c918df56d17a049014121fe2c3ad"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/LastNameStep.tsx": {
+    "mtime": 1781083371.0570467,
+    "ast_hash": "43837600e19ed1484ccd8b7ba97c7474",
+    "semantic_hash": "43837600e19ed1484ccd8b7ba97c7474"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/OAuthBirthDateStep.tsx": {
+    "mtime": 1781083371.0572524,
+    "ast_hash": "5220686168b26c68440b441fafb4a0cf",
+    "semantic_hash": "5220686168b26c68440b441fafb4a0cf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/OnboardingImportStep.tsx": {
+    "mtime": 1781083371.0573397,
+    "ast_hash": "0ea51efbb256c604cccaba197aa93c12",
+    "semantic_hash": "0ea51efbb256c604cccaba197aa93c12"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/OnboardingOptionCard.tsx": {
+    "mtime": 1781083371.057435,
+    "ast_hash": "f2f4a4dfb853616d79be30d95a6056a1",
+    "semantic_hash": "f2f4a4dfb853616d79be30d95a6056a1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/OnboardingProgressBar.tsx": {
+    "mtime": 1781083371.0577,
+    "ast_hash": "792153053f2af7fbfa6ca8517d9b1665",
+    "semantic_hash": "792153053f2af7fbfa6ca8517d9b1665"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/OnboardingScreen.tsx": {
+    "mtime": 1781083371.0578334,
+    "ast_hash": "eea1350e9bae075cdd55504f883aa1e3",
+    "semantic_hash": "eea1350e9bae075cdd55504f883aa1e3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/OnboardingWizard.tsx": {
+    "mtime": 1781367804.7332084,
+    "ast_hash": "71d2ffe52378c6bc45459ac024e36be5",
+    "semantic_hash": "71d2ffe52378c6bc45459ac024e36be5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/ScholarNameStep.tsx": {
+    "mtime": 1781083371.0582104,
+    "ast_hash": "ca5e7bb93a68f044e4ade9975d0fb6a5",
+    "semantic_hash": "ca5e7bb93a68f044e4ade9975d0fb6a5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/SchoolStep.tsx": {
+    "mtime": 1781083371.0583873,
+    "ast_hash": "d28653c59d88df12fc3e93fafa41ad0b",
+    "semantic_hash": "d28653c59d88df12fc3e93fafa41ad0b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/StudyGoalsStep.tsx": {
+    "mtime": 1781083371.0586016,
+    "ast_hash": "2490eeb8b7bc9cff7d1b9cbacc2632a8",
+    "semantic_hash": "2490eeb8b7bc9cff7d1b9cbacc2632a8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/TierSelectionStep.tsx": {
+    "mtime": 1781083371.0588617,
+    "ast_hash": "6099532a3d98d00a10c274cd17128a23",
+    "semantic_hash": "6099532a3d98d00a10c274cd17128a23"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/onboarding/UsernameStep.tsx": {
+    "mtime": 1781083371.0590663,
+    "ast_hash": "21ac5dc4600bcc30c97d6a2ea56b7e46",
+    "semantic_hash": "21ac5dc4600bcc30c97d6a2ea56b7e46"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/path-publish/PublishDialog.tsx": {
+    "mtime": 1781083371.0593467,
+    "ast_hash": "e1c9da1ebd3bb61416167e2210e4dd26",
+    "semantic_hash": "e1c9da1ebd3bb61416167e2210e4dd26"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/path-publish/PublishStatusChip.tsx": {
+    "mtime": 1781083371.059492,
+    "ast_hash": "d390285c77bb931c963b6682e16d8aca",
+    "semantic_hash": "d390285c77bb931c963b6682e16d8aca"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/pricing/BillingIntervalToggle.tsx": {
+    "mtime": 1781386403.8739724,
+    "ast_hash": "31f985d270e17fc1f71618926cedac33",
+    "semantic_hash": "31f985d270e17fc1f71618926cedac33"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/pricing/FAQ.tsx": {
+    "mtime": 1781083371.059967,
+    "ast_hash": "ebac73a2c6f1c155fc83d1f49c9811b9",
+    "semantic_hash": "ebac73a2c6f1c155fc83d1f49c9811b9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/pricing/FeatureComparison.tsx": {
+    "mtime": 1781083371.0601256,
+    "ast_hash": "3aa5b31c7f0b2f91a9bdb28e3355eee4",
+    "semantic_hash": "3aa5b31c7f0b2f91a9bdb28e3355eee4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/pricing/PricingCard.tsx": {
+    "mtime": 1781367804.7335253,
+    "ast_hash": "300dcbc79b9396707b632bc92f06349b",
+    "semantic_hash": "300dcbc79b9396707b632bc92f06349b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/pricing/PricingHero.tsx": {
+    "mtime": 1778491734.7651088,
+    "ast_hash": "179149bd30c9e347e6943aa9e1489771",
+    "semantic_hash": "179149bd30c9e347e6943aa9e1489771"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/profile/AboutLadder.tsx": {
+    "mtime": 1781083371.060675,
+    "ast_hash": "cd5a60e8d8ac398d25b3a4f35e1524c2",
+    "semantic_hash": "cd5a60e8d8ac398d25b3a4f35e1524c2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/profile/ProfileHero.tsx": {
+    "mtime": 1781083371.0608013,
+    "ast_hash": "e80ea18e9d0f706a396ee29329adac68",
+    "semantic_hash": "e80ea18e9d0f706a396ee29329adac68"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/profile/ProfileStatsStrip.tsx": {
+    "mtime": 1781083371.0609622,
+    "ast_hash": "f7d33fea440b139749104ca52c4af6c4",
+    "semantic_hash": "f7d33fea440b139749104ca52c4af6c4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/publish/PublishRichEditor.tsx": {
+    "mtime": 1781083371.0612423,
+    "ast_hash": "39785cde8f759d7f79a1df75441d4849",
+    "semantic_hash": "39785cde8f759d7f79a1df75441d4849"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/publish/TagInput.tsx": {
+    "mtime": 1778491734.7263358,
+    "ast_hash": "f7666cb54959013274f8bc9db127bc66",
+    "semantic_hash": "f7666cb54959013274f8bc9db127bc66"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/CodeMirrorEditor.tsx": {
+    "mtime": 1781083371.0615492,
+    "ast_hash": "868132d3965d27c8e85961156603c5c5",
+    "semantic_hash": "868132d3965d27c8e85961156603c5c5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/PlayerBottomBar.tsx": {
+    "mtime": 1781083371.0617802,
+    "ast_hash": "3c7fcbe158eb1e272513a309f657119d",
+    "semantic_hash": "3c7fcbe158eb1e272513a309f657119d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/QuizReactionLayer.tsx": {
+    "mtime": 1781386537.889043,
+    "ast_hash": "0a52415f4aad34166a15eadc4f61f80c",
+    "semantic_hash": "0a52415f4aad34166a15eadc4f61f80c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/CodeOutputRenderer.tsx": {
+    "mtime": 1781083371.0622714,
+    "ast_hash": "bcececff301f2fd060f049b796e89cda",
+    "semantic_hash": "bcececff301f2fd060f049b796e89cda"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/CodeWriteRenderer.tsx": {
+    "mtime": 1781083371.0624352,
+    "ast_hash": "a1090875f1b4de3d76a9435ef4b28145",
+    "semantic_hash": "a1090875f1b4de3d76a9435ef4b28145"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/DiagramClozeRenderer.tsx": {
+    "mtime": 1781248600.6308756,
+    "ast_hash": "091fd3fdefbc7f429246bcca6262decc",
+    "semantic_hash": "091fd3fdefbc7f429246bcca6262decc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/EquationRenderer.tsx": {
+    "mtime": 1781124379.3168766,
+    "ast_hash": "55501021301171101cc133217b71d28c",
+    "semantic_hash": "55501021301171101cc133217b71d28c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/FillBlankRenderer.tsx": {
+    "mtime": 1781083371.0628562,
+    "ast_hash": "f668c671602f94a2bf235ec64f41e1c5",
+    "semantic_hash": "f668c671602f94a2bf235ec64f41e1c5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/HintButton.tsx": {
+    "mtime": 1781083371.0629733,
+    "ast_hash": "5c4ae28f95a785b238fa2023b62950c0",
+    "semantic_hash": "5c4ae28f95a785b238fa2023b62950c0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/MCRenderer.tsx": {
+    "mtime": 1781083371.0631824,
+    "ast_hash": "de4bf7781cf63e500dc11f690bda5d80",
+    "semantic_hash": "de4bf7781cf63e500dc11f690bda5d80"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/MatchPairsRenderer.tsx": {
+    "mtime": 1781386610.7510693,
+    "ast_hash": "0b8bf09f80a878187a5244617a831d80",
+    "semantic_hash": "0b8bf09f80a878187a5244617a831d80"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/SentenceReorderRenderer.tsx": {
+    "mtime": 1781083371.0635097,
+    "ast_hash": "7ada7be7edbbeb6c90b7657a2ede0059",
+    "semantic_hash": "7ada7be7edbbeb6c90b7657a2ede0059"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/SubmitBar.tsx": {
+    "mtime": 1781083371.0636196,
+    "ast_hash": "8311ba3e5b71bc4206282203178627bd",
+    "semantic_hash": "8311ba3e5b71bc4206282203178627bd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/TimelineRenderer.tsx": {
+    "mtime": 1781083371.063751,
+    "ast_hash": "0028ffdf47dc7754855bee29ce3d9331",
+    "semantic_hash": "0028ffdf47dc7754855bee29ce3d9331"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/TranslationRenderer.tsx": {
+    "mtime": 1781083371.0639431,
+    "ast_hash": "e4da413e8523541148f0815162f8eba2",
+    "semantic_hash": "e4da413e8523541148f0815162f8eba2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/TrueFalseRenderer.tsx": {
+    "mtime": 1781083371.0640845,
+    "ast_hash": "64daf91d4a2424110bdd17a850174490",
+    "semantic_hash": "64daf91d4a2424110bdd17a850174490"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/WordBankRenderer.tsx": {
+    "mtime": 1781083371.0642164,
+    "ast_hash": "997b921fba4a57d136a420fe25dfb0fa",
+    "semantic_hash": "997b921fba4a57d136a420fe25dfb0fa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/blankPlaceholder.ts": {
+    "mtime": 1781083371.0643246,
+    "ast_hash": "a3e32ee8a22fa38bb9f948a1c789d288",
+    "semantic_hash": "a3e32ee8a22fa38bb9f948a1c789d288"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/index.ts": {
+    "mtime": 1781248628.7780697,
+    "ast_hash": "bd3a8bca28554b69e9aeecc36d2952f9",
+    "semantic_hash": "bd3a8bca28554b69e9aeecc36d2952f9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/quizShuffle.ts": {
+    "mtime": 1781083371.064579,
+    "ast_hash": "040e8fcd1f9a146c45b9d11a4818f099",
+    "semantic_hash": "040e8fcd1f9a146c45b9d11a4818f099"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/quiz/questionRenderers/types.ts": {
+    "mtime": 1781248384.9227686,
+    "ast_hash": "df575383870787eaad9ec30905d97aa7",
+    "semantic_hash": "df575383870787eaad9ec30905d97aa7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rewards/RewardTakeover.tsx": {
+    "mtime": 1781738537.6971672,
+    "ast_hash": "031813a5945735db3f599191a8cb0536",
+    "semantic_hash": "031813a5945735db3f599191a8cb0536"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/CelebrationToast.tsx": {
+    "mtime": 1781732115.284052,
+    "ast_hash": "f2336e49709173301174ec3dd1be76e1",
+    "semantic_hash": "f2336e49709173301174ec3dd1be76e1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/DifficultyBadge.tsx": {
+    "mtime": 1781732115.2842536,
+    "ast_hash": "fae007822fec47687e00975655eafe13",
+    "semantic_hash": "fae007822fec47687e00975655eafe13"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/LessonView.tsx": {
+    "mtime": 1781732115.2847648,
+    "ast_hash": "05d5c20db7cacf090ee83e684dc3f20b",
+    "semantic_hash": "05d5c20db7cacf090ee83e684dc3f20b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/NMCard.tsx": {
+    "mtime": 1781732115.2851682,
+    "ast_hash": "13d0d366288d89a2b3c6cbafbb819fe0",
+    "semantic_hash": "13d0d366288d89a2b3c6cbafbb819fe0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/ProgressBar.tsx": {
+    "mtime": 1781732115.285318,
+    "ast_hash": "8068b4515d34564f8f903bfc34487c0f",
+    "semantic_hash": "8068b4515d34564f8f903bfc34487c0f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/RTabs.tsx": {
+    "mtime": 1781732115.285465,
+    "ast_hash": "29a275e9f9791e6676bc0ded66abcd4a",
+    "semantic_hash": "29a275e9f9791e6676bc0ded66abcd4a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/ReadinessRing.tsx": {
+    "mtime": 1781732115.2856104,
+    "ast_hash": "608106a919c13e5ed6f727075b6044e4",
+    "semantic_hash": "608106a919c13e5ed6f727075b6044e4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/SectionHeading.tsx": {
+    "mtime": 1781732115.2858648,
+    "ast_hash": "94bba122d797baf184e31c76018837d6",
+    "semantic_hash": "94bba122d797baf184e31c76018837d6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/StudyPackCard.tsx": {
+    "mtime": 1781732115.2861784,
+    "ast_hash": "7b35f2b6b23ef12caeab7e77b5c3ba24",
+    "semantic_hash": "7b35f2b6b23ef12caeab7e77b5c3ba24"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/StudyStats.tsx": {
+    "mtime": 1781732115.286385,
+    "ast_hash": "d4e701887d6615a2143cd3eb3fbbf7c6",
+    "semantic_hash": "d4e701887d6615a2143cd3eb3fbbf7c6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/TopicChip.tsx": {
+    "mtime": 1781732115.2866402,
+    "ast_hash": "63c1561a6790298a24f655b528983802",
+    "semantic_hash": "63c1561a6790298a24f655b528983802"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/rework/WeakTopicChip.tsx": {
+    "mtime": 1781732115.286839,
+    "ast_hash": "2e4a862ed9c12fa1670ae2b3923b14ab",
+    "semantic_hash": "2e4a862ed9c12fa1670ae2b3923b14ab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/search/SearchDropdown.tsx": {
+    "mtime": 1778491734.7229457,
+    "ast_hash": "72edcb615736cb73193a1443d8abc0a9",
+    "semantic_hash": "72edcb615736cb73193a1443d8abc0a9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/settings/IosUpgradeSheet.tsx": {
+    "mtime": 1781083371.064887,
+    "ast_hash": "3787f301f90f16ba8fa3ded54148961a",
+    "semantic_hash": "3787f301f90f16ba8fa3ded54148961a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/settings/SubscriptionPanel.tsx": {
+    "mtime": 1781095440.9341598,
+    "ast_hash": "c9c1d94540116608230026284def0275",
+    "semantic_hash": "c9c1d94540116608230026284def0275"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/social/AddFriendModal.tsx": {
+    "mtime": 1781083371.0652854,
+    "ast_hash": "5a5dbcd312adafaf01f3da618135e088",
+    "semantic_hash": "5a5dbcd312adafaf01f3da618135e088"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/social/CreateGroupModal.tsx": {
+    "mtime": 1781083371.0654829,
+    "ast_hash": "0f2e9287b51fb7d5f916fae3a2572fae",
+    "semantic_hash": "0f2e9287b51fb7d5f916fae3a2572fae"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/social/FriendRequestCard.tsx": {
+    "mtime": 1781083371.065828,
+    "ast_hash": "ebc7b42e998549c3780722c313c23cd5",
+    "semantic_hash": "ebc7b42e998549c3780722c313c23cd5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/social/FriendsList.tsx": {
+    "mtime": 1781083371.0659747,
+    "ast_hash": "15d44ca42f424f53b00d76c594331769",
+    "semantic_hash": "15d44ca42f424f53b00d76c594331769"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/social/StudyGroupCard.tsx": {
+    "mtime": 1781083371.066188,
+    "ast_hash": "f5786a1b62f671fb679f9fd44da5b89c",
+    "semantic_hash": "f5786a1b62f671fb679f9fd44da5b89c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/streak/FireStreakTakeover.tsx": {
+    "mtime": 1781393279.1078722,
+    "ast_hash": "dc38e64e379990a7606f33cc34a6e5e8",
+    "semantic_hash": "dc38e64e379990a7606f33cc34a6e5e8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/streak/StreakTakeover.tsx": {
+    "mtime": 1781386547.0814116,
+    "ast_hash": "a0d85725496a00673097ebecdca50689",
+    "semantic_hash": "a0d85725496a00673097ebecdca50689"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/tutorial2/TutorialNarrator.tsx": {
+    "mtime": 1781732115.287209,
+    "ast_hash": "f571cd9823e2d93f9da1fef99e854368",
+    "semantic_hash": "f571cd9823e2d93f9da1fef99e854368"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/AvatarEditor.tsx": {
+    "mtime": 1781083371.0695682,
+    "ast_hash": "152b6887dadeab02f0020bbdea86a012",
+    "semantic_hash": "152b6887dadeab02f0020bbdea86a012"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/Button.tsx": {
+    "mtime": 1781732115.2875016,
+    "ast_hash": "c9b9514bdf0c80f05a1c41665495b58d",
+    "semantic_hash": "c9b9514bdf0c80f05a1c41665495b58d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/Card.tsx": {
+    "mtime": 1781083371.0699568,
+    "ast_hash": "46a9aec05ca7aad512afd40a3fd70f47",
+    "semantic_hash": "46a9aec05ca7aad512afd40a3fd70f47"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/EmptyState.tsx": {
+    "mtime": 1781083371.0700538,
+    "ast_hash": "0c59d93701a9759b1ee29b358b3f199a",
+    "semantic_hash": "0c59d93701a9759b1ee29b358b3f199a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/MarkdownRenderer.tsx": {
+    "mtime": 1781083371.0702386,
+    "ast_hash": "3c4c72896a71342a42e153221942512e",
+    "semantic_hash": "3c4c72896a71342a42e153221942512e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/Switch.tsx": {
+    "mtime": 1781386365.1466136,
+    "ast_hash": "2ebe37df32813b311d3db12f7c566bc7",
+    "semantic_hash": "2ebe37df32813b311d3db12f7c566bc7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/ThemeToggle.tsx": {
+    "mtime": 1781386396.662771,
+    "ast_hash": "a6fe6c6befd0f08093914f0dac846d68",
+    "semantic_hash": "a6fe6c6befd0f08093914f0dac846d68"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/TierBadge.tsx": {
+    "mtime": 1778491734.6836543,
+    "ast_hash": "35298fbb8bd8f0b9d4a3ab3e8522ed4d",
+    "semantic_hash": "35298fbb8bd8f0b9d4a3ab3e8522ed4d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/Toast.tsx": {
+    "mtime": 1781083371.0706644,
+    "ast_hash": "e2124e30717898f877af7e00ee171656",
+    "semantic_hash": "e2124e30717898f877af7e00ee171656"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/ui/UpsellToast.tsx": {
+    "mtime": 1778491734.6833162,
+    "ast_hash": "a1db5e325a1812886aa0372fe4f32974",
+    "semantic_hash": "a1db5e325a1812886aa0372fe4f32974"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/user/UserAvatar.tsx": {
+    "mtime": 1781083371.0708969,
+    "ast_hash": "7a8d04510376b2a514ffdbfe02e74e36",
+    "semantic_hash": "7a8d04510376b2a514ffdbfe02e74e36"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/user/UserName.tsx": {
+    "mtime": 1778491734.7076747,
+    "ast_hash": "b54aa8278bb1128a4b35583e5613cfac",
+    "semantic_hash": "b54aa8278bb1128a4b35583e5613cfac"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/video/VideoImportMascot.tsx": {
+    "mtime": 1781262437.235616,
+    "ast_hash": "4f2ecf8a4dab3c9b73b306e194cc44b2",
+    "semantic_hash": "4f2ecf8a4dab3c9b73b306e194cc44b2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/video/VideoInputMask.tsx": {
+    "mtime": 1781262475.4217827,
+    "ast_hash": "0661446e5caa444443e9106d86908dc2",
+    "semantic_hash": "0661446e5caa444443e9106d86908dc2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/welcome-back/WelcomeBackClient.tsx": {
+    "mtime": 1781375123.969015,
+    "ast_hash": "78f169418d970e976ce8e494ab6ad3ff",
+    "semantic_hash": "78f169418d970e976ce8e494ab6ad3ff"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/welcome-back/WelcomeBackOverlay.tsx": {
+    "mtime": 1781375123.9691877,
+    "ast_hash": "e33f0d3c3468d8b9cc35939661475867",
+    "semantic_hash": "e33f0d3c3468d8b9cc35939661475867"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/components/welcome-back/WelcomeBackServerGate.tsx": {
+    "mtime": 1781375123.9693062,
+    "ast_hash": "058f9c52979c3207ebd215e0ad88accd",
+    "semantic_hash": "058f9c52979c3207ebd215e0ad88accd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/contexts/ThemeContext.tsx": {
+    "mtime": 1778491734.6628532,
+    "ast_hash": "55059c9bf727cad2b14dbc073339ca6d",
+    "semantic_hash": "55059c9bf727cad2b14dbc073339ca6d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/contexts/TimerContext.tsx": {
+    "mtime": 1778491734.663464,
+    "ast_hash": "c0cfeb5b221d845b28ed9f1375d587f9",
+    "semantic_hash": "c0cfeb5b221d845b28ed9f1375d587f9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useBreakpoint.ts": {
+    "mtime": 1775955652.3701344,
+    "ast_hash": "7977d0a63eb6379ce4bce3692a769a1e",
+    "semantic_hash": "7977d0a63eb6379ce4bce3692a769a1e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useCoarsePointer.ts": {
+    "mtime": 1781083371.0725186,
+    "ast_hash": "7a7a4488a088962fa724aef5fbfb4c6a",
+    "semantic_hash": "7a7a4488a088962fa724aef5fbfb4c6a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useCurrency.ts": {
+    "mtime": 1781083371.0726812,
+    "ast_hash": "7ddf7a4e4b1f38814a7185c6edace8df",
+    "semantic_hash": "7ddf7a4e4b1f38814a7185c6edace8df"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useDirectUpload.ts": {
+    "mtime": 1775866867.774951,
+    "ast_hash": "9c5760f5e84387498377245ed1bbda2f",
+    "semantic_hash": "9c5760f5e84387498377245ed1bbda2f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useGroupChat.ts": {
+    "mtime": 1775963807.6701565,
+    "ast_hash": "6ebc6e63b670666757f4ab210822d093",
+    "semantic_hash": "6ebc6e63b670666757f4ab210822d093"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useImportJobStream.ts": {
+    "mtime": 1781083371.0729177,
+    "ast_hash": "c22cba697062b70af032a1f578ae4f31",
+    "semantic_hash": "c22cba697062b70af032a1f578ae4f31"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useModalDimensions.ts": {
+    "mtime": 1781083371.0730212,
+    "ast_hash": "ee0c935f8b6cf543bc4745162a2c71a9",
+    "semantic_hash": "ee0c935f8b6cf543bc4745162a2c71a9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useMultiImport.ts": {
+    "mtime": 1781083371.0732992,
+    "ast_hash": "2366596c41c372ad96eb39d92f0edab0",
+    "semantic_hash": "2366596c41c372ad96eb39d92f0edab0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/usePathGenerationStream.ts": {
+    "mtime": 1781083371.0734656,
+    "ast_hash": "287319219bc73ca31b749288a37b4159",
+    "semantic_hash": "287319219bc73ca31b749288a37b4159"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/usePresence.ts": {
+    "mtime": 1775866867.771003,
+    "ast_hash": "ba28918b0603180d13bc2d554a9aeb1a",
+    "semantic_hash": "ba28918b0603180d13bc2d554a9aeb1a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useScrollReveal.ts": {
+    "mtime": 1775866867.7720723,
+    "ast_hash": "3f0b91954edd84302acf89ec4fb36117",
+    "semantic_hash": "3f0b91954edd84302acf89ec4fb36117"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useSearch.ts": {
+    "mtime": 1775866867.7734425,
+    "ast_hash": "79073a59352d319944c63d04ea241e37",
+    "semantic_hash": "79073a59352d319944c63d04ea241e37"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useStreamingChat.ts": {
+    "mtime": 1781083371.0739174,
+    "ast_hash": "a89b20dda96f38a6076b8066fb1b3f08",
+    "semantic_hash": "a89b20dda96f38a6076b8066fb1b3f08"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useStudyHeartbeat.ts": {
+    "mtime": 1775921169.8192616,
+    "ast_hash": "9446e3199f91d0b371d04ae04f745978",
+    "semantic_hash": "9446e3199f91d0b371d04ae04f745978"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/hooks/useUpgrade.ts": {
+    "mtime": 1781083371.0740175,
+    "ast_hash": "745c4354e76fe75a3f9c3b7be3876586",
+    "semantic_hash": "745c4354e76fe75a3f9c3b7be3876586"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/achievement-checker.ts": {
+    "mtime": 1781732115.287728,
+    "ast_hash": "ffdcdc785d664bcb2789986d332f4efa",
+    "semantic_hash": "ffdcdc785d664bcb2789986d332f4efa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/achievement-format.ts": {
+    "mtime": 1781083371.0744884,
+    "ast_hash": "014d1b6f6b4c71c5771485dd4ea9ec61",
+    "semantic_hash": "014d1b6f6b4c71c5771485dd4ea9ec61"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/achievements.ts": {
+    "mtime": 1781732115.2879167,
+    "ast_hash": "1351b56c74384620c2245174a7f21e75",
+    "semantic_hash": "1351b56c74384620c2245174a7f21e75"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/admin-audit.ts": {
+    "mtime": 1781083371.0750856,
+    "ast_hash": "519627f7bc507f9a9bcfd6d6b4abbd77",
+    "semantic_hash": "519627f7bc507f9a9bcfd6d6b4abbd77"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/age.ts": {
+    "mtime": 1781083371.075188,
+    "ast_hash": "59c3557a41f52b09828dd9b4f3e64f99",
+    "semantic_hash": "59c3557a41f52b09828dd9b4f3e64f99"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/ai-tools-figures.test.ts": {
+    "mtime": 1781210167.9406404,
+    "ast_hash": "cf7fc71eb32e4bdbc082bf2f268850b7",
+    "semantic_hash": "cf7fc71eb32e4bdbc082bf2f268850b7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/ai-tools-gemini.ts": {
+    "mtime": 1781083371.0752885,
+    "ast_hash": "7b3c5544da43000fcd4f04047f6beb59",
+    "semantic_hash": "7b3c5544da43000fcd4f04047f6beb59"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/ai-tools.ts": {
+    "mtime": 1781243297.3430712,
+    "ast_hash": "414be24d6df79d3f326169541d213b61",
+    "semantic_hash": "414be24d6df79d3f326169541d213b61"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/ai-usage.ts": {
+    "mtime": 1781083371.07565,
+    "ast_hash": "c7da32769ee9306c756bba5558dc387d",
+    "semantic_hash": "c7da32769ee9306c756bba5558dc387d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/analytics/consent.ts": {
+    "mtime": 1781083371.0757897,
+    "ast_hash": "d00b3e3ced390c5e731b869b60ac7c9d",
+    "semantic_hash": "d00b3e3ced390c5e731b869b60ac7c9d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/analytics/posthog-server.ts": {
+    "mtime": 1781083371.0758893,
+    "ast_hash": "b7979e5a12700180523bcc2792a1b1dd",
+    "semantic_hash": "b7979e5a12700180523bcc2792a1b1dd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/anki-parser.ts": {
+    "mtime": 1775866867.7824886,
+    "ast_hash": "d7d3ead7823405537f768b341bee3d6a",
+    "semantic_hash": "d7d3ead7823405537f768b341bee3d6a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/anthropic.ts": {
+    "mtime": 1781209106.8008237,
+    "ast_hash": "fbd22070fab3cfd1e8f3d0774ead00d3",
+    "semantic_hash": "fbd22070fab3cfd1e8f3d0774ead00d3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/api-response.ts": {
+    "mtime": 1781260608.3398168,
+    "ast_hash": "4409e091fbbcca50b1337a0db0205576",
+    "semantic_hash": "4409e091fbbcca50b1337a0db0205576"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/auth.ts": {
+    "mtime": 1775866867.8052535,
+    "ast_hash": "dbe906cc8bc62915f56d35a99b731233",
+    "semantic_hash": "dbe906cc8bc62915f56d35a99b731233"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/biometric-guard.ts": {
+    "mtime": 1775963807.7060196,
+    "ast_hash": "6ba23886a3c28c448ff9ee7bd3b8545a",
+    "semantic_hash": "6ba23886a3c28c448ff9ee7bd3b8545a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/callout-markers.ts": {
+    "mtime": 1781083371.0762784,
+    "ast_hash": "a4d3ba6ce8f14259835e734426414371",
+    "semantic_hash": "a4d3ba6ce8f14259835e734426414371"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/chat-guidance.ts": {
+    "mtime": 1781210076.7593188,
+    "ast_hash": "782c3e2dc1b01eecec1a67d844840500",
+    "semantic_hash": "782c3e2dc1b01eecec1a67d844840500"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/chat-intent.ts": {
+    "mtime": 1781209106.8012667,
+    "ast_hash": "7ad5da7b62ede78abd1052b9435265d7",
+    "semantic_hash": "7ad5da7b62ede78abd1052b9435265d7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/chat-stream-gemini.ts": {
+    "mtime": 1781083371.0768373,
+    "ast_hash": "7af6bd11ab95c877eb015160eac5ef6c",
+    "semantic_hash": "7af6bd11ab95c877eb015160eac5ef6c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/chat-stream.ts": {
+    "mtime": 1781209106.8014793,
+    "ast_hash": "e59a443335942da78069b776af898943",
+    "semantic_hash": "e59a443335942da78069b776af898943"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/chat-title.ts": {
+    "mtime": 1781209106.8021712,
+    "ast_hash": "1b8b1aaeb679c5680b4f888e2e5b47ef",
+    "semantic_hash": "1b8b1aaeb679c5680b4f888e2e5b47ef"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/client-ip.ts": {
+    "mtime": 1781083371.0772002,
+    "ast_hash": "caecde78874425897820f87c8fd79987",
+    "semantic_hash": "caecde78874425897820f87c8fd79987"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/community-paths.ts": {
+    "mtime": 1781083371.0772946,
+    "ast_hash": "61f8fd07986837c49741b34283489395",
+    "semantic_hash": "61f8fd07986837c49741b34283489395"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/contentConverter.ts": {
+    "mtime": 1781244017.9862263,
+    "ast_hash": "47cfa8d0a322f8cae643e624342bafee",
+    "semantic_hash": "47cfa8d0a322f8cae643e624342bafee"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/cosmetics/catalog.ts": {
+    "mtime": 1781732115.2882226,
+    "ast_hash": "b24bd8e2382bd65ef3687851ea655b05",
+    "semantic_hash": "b24bd8e2382bd65ef3687851ea655b05"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/cosmetics/unlock.ts": {
+    "mtime": 1778453582.1910279,
+    "ast_hash": "36ecc9ea5807ddc900c6a360f2908c89",
+    "semantic_hash": "36ecc9ea5807ddc900c6a360f2908c89"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/cowork-join.ts": {
+    "mtime": 1775963807.7283618,
+    "ast_hash": "60a7c08f42a9c5610590c112525fd067",
+    "semantic_hash": "60a7c08f42a9c5610590c112525fd067"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/cowork-socket.ts": {
+    "mtime": 1775963807.7323985,
+    "ast_hash": "2ac28b5591ac5a7edebcd2bfe681043b",
+    "semantic_hash": "2ac28b5591ac5a7edebcd2bfe681043b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/currency.ts": {
+    "mtime": 1781083371.0778522,
+    "ast_hash": "25b8c79b1de3dbc877ba8fe6a7eb7672",
+    "semantic_hash": "25b8c79b1de3dbc877ba8fe6a7eb7672"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/db.ts": {
+    "mtime": 1775866867.8046732,
+    "ast_hash": "fb6dfe44e72ce91f3398e1e6e8a0e8d5",
+    "semantic_hash": "fb6dfe44e72ce91f3398e1e6e8a0e8d5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/diagram-cloze.test.ts": {
+    "mtime": 1781248933.4493215,
+    "ast_hash": "79eb881d84fa2e0b3efc963e571a946f",
+    "semantic_hash": "79eb881d84fa2e0b3efc963e571a946f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/docs.ts": {
+    "mtime": 1775866867.7974072,
+    "ast_hash": "fed2ec391ec75b391abe4e28455cbcea",
+    "semantic_hash": "fed2ec391ec75b391abe4e28455cbcea"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/email.ts": {
+    "mtime": 1775866867.785809,
+    "ast_hash": "279b085cafa80868940aa0c60046d38a",
+    "semantic_hash": "279b085cafa80868940aa0c60046d38a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/entitlement.ts": {
+    "mtime": 1781083371.0780604,
+    "ast_hash": "23e017b48ec2853c792a60d0762e8806",
+    "semantic_hash": "23e017b48ec2853c792a60d0762e8806"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/exam-reminders.ts": {
+    "mtime": 1775866867.8020003,
+    "ast_hash": "88d0f69627007506d48c2ee668d9521a",
+    "semantic_hash": "88d0f69627007506d48c2ee668d9521a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/exchange-rates.ts": {
+    "mtime": 1781083371.078153,
+    "ast_hash": "a7864c324b338e07c2e8b4c0ec4825f1",
+    "semantic_hash": "a7864c324b338e07c2e8b4c0ec4825f1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/feature-flags.ts": {
+    "mtime": 1781083371.0783682,
+    "ast_hash": "698064999d070ef642f5926811cd0895",
+    "semantic_hash": "698064999d070ef642f5926811cd0895"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/file-validation.ts": {
+    "mtime": 1781260608.3399386,
+    "ast_hash": "b621327712a6a587bb5418ff8f1600a5",
+    "semantic_hash": "b621327712a6a587bb5418ff8f1600a5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/fileProcessing.ts": {
+    "mtime": 1781083371.078643,
+    "ast_hash": "99e04c3db9ebcea8242ee830969d4355",
+    "semantic_hash": "99e04c3db9ebcea8242ee830969d4355"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/gemini-structured.ts": {
+    "mtime": 1781083371.0787992,
+    "ast_hash": "a2d467d99899f1edef9b748931b889b8",
+    "semantic_hash": "a2d467d99899f1edef9b748931b889b8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/gemini-text.ts": {
+    "mtime": 1781083371.0789578,
+    "ast_hash": "c2dc183b58e30ce445b04c3a5ca1cff2",
+    "semantic_hash": "c2dc183b58e30ce445b04c3a5ca1cff2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/gemini.test.ts": {
+    "mtime": 1781083371.0790493,
+    "ast_hash": "828392442e7b9ee293e3ab785902865c",
+    "semantic_hash": "828392442e7b9ee293e3ab785902865c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/gemini.ts": {
+    "mtime": 1781083371.079221,
+    "ast_hash": "e862cbe72e1694ac45cd6a0216c0976f",
+    "semantic_hash": "e862cbe72e1694ac45cd6a0216c0976f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/geo-currency.ts": {
+    "mtime": 1781083371.079326,
+    "ast_hash": "c8321ff39cc9f97f295876d969aa6309",
+    "semantic_hash": "c8321ff39cc9f97f295876d969aa6309"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/greetings.ts": {
+    "mtime": 1778430989.2718048,
+    "ast_hash": "15da3d3cea2227d1e6c66704236472f1",
+    "semantic_hash": "15da3d3cea2227d1e6c66704236472f1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/group-messages.ts": {
+    "mtime": 1775866867.7820523,
+    "ast_hash": "80c78efaed229519c2759868a148b310",
+    "semantic_hash": "80c78efaed229519c2759868a148b310"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/group-permissions.ts": {
+    "mtime": 1775866867.7985666,
+    "ast_hash": "b833b4b1afebc23fff3dc767a7260860",
+    "semantic_hash": "b833b4b1afebc23fff3dc767a7260860"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/haptics.ts": {
+    "mtime": 1781386279.9845915,
+    "ast_hash": "10082932b3e3f294772efeb63c8a49a2",
+    "semantic_hash": "10082932b3e3f294772efeb63c8a49a2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/image-captions.test.ts": {
+    "mtime": 1781123786.4280636,
+    "ast_hash": "30ed9ed8e42a9f1e1306be32d56200dd",
+    "semantic_hash": "30ed9ed8e42a9f1e1306be32d56200dd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/image-captions.ts": {
+    "mtime": 1781209106.8024647,
+    "ast_hash": "39a42e739509d7960367a4fb057cfdaf",
+    "semantic_hash": "39a42e739509d7960367a4fb057cfdaf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/inbox.ts": {
+    "mtime": 1781083371.0794191,
+    "ast_hash": "0bcfa2b8670bb960297ee778dd7f8fa3",
+    "semantic_hash": "0bcfa2b8670bb960297ee778dd7f8fa3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/json-util.test.ts": {
+    "mtime": 1781083371.0795164,
+    "ast_hash": "2cc80963dd24d3164f8442e07e7cedbd",
+    "semantic_hash": "2cc80963dd24d3164f8442e07e7cedbd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/json-util.ts": {
+    "mtime": 1781083371.079603,
+    "ast_hash": "f5f8140331350aa6a793b11eab3228b7",
+    "semantic_hash": "f5f8140331350aa6a793b11eab3228b7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/legal-content.ts": {
+    "mtime": 1781083371.0797422,
+    "ast_hash": "3e63d3492d1de819c1ed6cd434b7b05c",
+    "semantic_hash": "3e63d3492d1de819c1ed6cd434b7b05c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/lemonsqueezy-client.ts": {
+    "mtime": 1781083371.0799048,
+    "ast_hash": "fb9979568bede2afd7d3cd3078f2d8dd",
+    "semantic_hash": "fb9979568bede2afd7d3cd3078f2d8dd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/lemonsqueezy.ts": {
+    "mtime": 1781083371.080047,
+    "ast_hash": "729d2f278a14103e2324749550e06c32",
+    "semantic_hash": "729d2f278a14103e2324749550e06c32"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/login-challenge.ts": {
+    "mtime": 1781367856.4143445,
+    "ast_hash": "d556953b711fb1a89ef6214775dfcb56",
+    "semantic_hash": "d556953b711fb1a89ef6214775dfcb56"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/markdown-to-html.ts": {
+    "mtime": 1781083371.0802412,
+    "ast_hash": "9cd1f1f021d6c82dca27e812ab6a7b1e",
+    "semantic_hash": "9cd1f1f021d6c82dca27e812ab6a7b1e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/math-latex-repair.ts": {
+    "mtime": 1781083371.0803328,
+    "ast_hash": "dd9d04aa70ba9f13bde14f611d48f4fa",
+    "semantic_hash": "dd9d04aa70ba9f13bde14f611d48f4fa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/microsoftAuth.ts": {
+    "mtime": 1781083371.0805163,
+    "ast_hash": "90d03347cdeee24d84a80d28af103468",
+    "semantic_hash": "90d03347cdeee24d84a80d28af103468"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/microsoftTokenCrypto.test.ts": {
+    "mtime": 1781083371.080612,
+    "ast_hash": "87e11ac135b1fffa827f34d14f7b9960",
+    "semantic_hash": "87e11ac135b1fffa827f34d14f7b9960"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/microsoftTokenCrypto.ts": {
+    "mtime": 1781083371.0807147,
+    "ast_hash": "7aec5a2d1702b910235030116c9aa000",
+    "semantic_hash": "7aec5a2d1702b910235030116c9aa000"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/model-routing.ts": {
+    "mtime": 1781260608.3401008,
+    "ast_hash": "d1614a0c0fa21a34898085c73bc4a171",
+    "semantic_hash": "d1614a0c0fa21a34898085c73bc4a171"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer1-runner.ts": {
+    "mtime": 1781244042.535121,
+    "ast_hash": "78a50ff082caedf862e6d8fca2808bd8",
+    "semantic_hash": "78a50ff082caedf862e6d8fca2808bd8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer1.test.ts": {
+    "mtime": 1781083371.081276,
+    "ast_hash": "acef29d4af86187b5965adfe79a4e3be",
+    "semantic_hash": "acef29d4af86187b5965adfe79a4e3be"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer1.ts": {
+    "mtime": 1781083371.0815728,
+    "ast_hash": "37d29d63ff4c0d6b8063d41a575d98af",
+    "semantic_hash": "37d29d63ff4c0d6b8063d41a575d98af"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer2-runner.test.ts": {
+    "mtime": 1781083371.0817094,
+    "ast_hash": "5efbd558df36f2507ca5d2a5f64428c9",
+    "semantic_hash": "5efbd558df36f2507ca5d2a5f64428c9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer2-runner.ts": {
+    "mtime": 1781209106.8029964,
+    "ast_hash": "ab9f2c0a436c529da7ebfae039c6c82a",
+    "semantic_hash": "ab9f2c0a436c529da7ebfae039c6c82a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer2.test.ts": {
+    "mtime": 1781209106.8031805,
+    "ast_hash": "c6cbe9dd5f794bc35e1b532be026eec8",
+    "semantic_hash": "c6cbe9dd5f794bc35e1b532be026eec8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer2.ts": {
+    "mtime": 1781209106.8033817,
+    "ast_hash": "13aaf34164b5216072f580aa85bc6c87",
+    "semantic_hash": "13aaf34164b5216072f580aa85bc6c87"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer3-runner.test.ts": {
+    "mtime": 1781083371.0823607,
+    "ast_hash": "8bfb20d6ddcd7108fce864bc7925744f",
+    "semantic_hash": "8bfb20d6ddcd7108fce864bc7925744f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer3-runner.ts": {
+    "mtime": 1781209106.8036323,
+    "ast_hash": "0b124a327c554a1ac0398ddf0675fe86",
+    "semantic_hash": "0b124a327c554a1ac0398ddf0675fe86"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer3.test.ts": {
+    "mtime": 1781209106.8038504,
+    "ast_hash": "dc796386aaa66baf6562f36b4bd52535",
+    "semantic_hash": "dc796386aaa66baf6562f36b4bd52535"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer3.ts": {
+    "mtime": 1781209106.8040137,
+    "ast_hash": "d9664b31cfbc62da7b24cc4c2097e1a4",
+    "semantic_hash": "d9664b31cfbc62da7b24cc4c2097e1a4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer4-runner.test.ts": {
+    "mtime": 1781083371.083254,
+    "ast_hash": "ea635b1da273d5d1fe1b67a31ba36fa7",
+    "semantic_hash": "ea635b1da273d5d1fe1b67a31ba36fa7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer4-runner.ts": {
+    "mtime": 1781083371.0834212,
+    "ast_hash": "e280d16aef299f51b7d57d1f8b455a55",
+    "semantic_hash": "e280d16aef299f51b7d57d1f8b455a55"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer4.test.ts": {
+    "mtime": 1781083371.0836077,
+    "ast_hash": "5d0f614c8b67015f49040f6c32534c08",
+    "semantic_hash": "5d0f614c8b67015f49040f6c32534c08"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer4.ts": {
+    "mtime": 1781083371.0837433,
+    "ast_hash": "1c1c02bddeae4891ad1dd0fbcc39387a",
+    "semantic_hash": "1c1c02bddeae4891ad1dd0fbcc39387a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer5-runner.test.ts": {
+    "mtime": 1781083371.08386,
+    "ast_hash": "db75f3eee40b06b1bb88632539323faf",
+    "semantic_hash": "db75f3eee40b06b1bb88632539323faf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer5-runner.ts": {
+    "mtime": 1781083371.0840182,
+    "ast_hash": "b4c128d4dcf266d1e9e812692b64dc03",
+    "semantic_hash": "b4c128d4dcf266d1e9e812692b64dc03"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer5.test.ts": {
+    "mtime": 1781083371.0842845,
+    "ast_hash": "1ab65297736a0bd794b9848eccb2cfcf",
+    "semantic_hash": "1ab65297736a0bd794b9848eccb2cfcf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/layer5.ts": {
+    "mtime": 1781083371.0844853,
+    "ast_hash": "6f564edf732b8e952b1b6770019ff00d",
+    "semantic_hash": "6f564edf732b8e952b1b6770019ff00d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/model-call.ts": {
+    "mtime": 1781209106.8044589,
+    "ast_hash": "cff6b217daaec8b4af7dabe534a63bcc",
+    "semantic_hash": "cff6b217daaec8b4af7dabe534a63bcc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/moderation-email.ts": {
+    "mtime": 1781083371.0850132,
+    "ast_hash": "166819b9fd06d39e2b139c002e3cc5fd",
+    "semantic_hash": "166819b9fd06d39e2b139c002e3cc5fd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/scanner.test.ts": {
+    "mtime": 1781083371.085264,
+    "ast_hash": "cb855602210e31368abbb5bbf891fd56",
+    "semantic_hash": "cb855602210e31368abbb5bbf891fd56"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/scanner.ts": {
+    "mtime": 1781083371.0854387,
+    "ast_hash": "f94afe1ceb69ed4045ebcabba822da1d",
+    "semantic_hash": "f94afe1ceb69ed4045ebcabba822da1d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists.test.ts": {
+    "mtime": 1781083371.0855372,
+    "ast_hash": "7c49df517ac1c63272706244f95d93de",
+    "semantic_hash": "7c49df517ac1c63272706244f95d93de"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/de.ts": {
+    "mtime": 1781083371.0856698,
+    "ast_hash": "b4f28654c488e20899a91e5647358cf7",
+    "semantic_hash": "b4f28654c488e20899a91e5647358cf7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/en.ts": {
+    "mtime": 1781083371.0858855,
+    "ast_hash": "781c8863f8c0482359162baa9d4e359a",
+    "semantic_hash": "781c8863f8c0482359162baa9d4e359a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/es.ts": {
+    "mtime": 1781083371.0860426,
+    "ast_hash": "607d6d978aef0d4d6fb1aab1b2e0a128",
+    "semantic_hash": "607d6d978aef0d4d6fb1aab1b2e0a128"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/fr.ts": {
+    "mtime": 1781083371.086151,
+    "ast_hash": "7b44bd062a1548d0bcef8df9e111c908",
+    "semantic_hash": "7b44bd062a1548d0bcef8df9e111c908"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/index.ts": {
+    "mtime": 1781083371.0862482,
+    "ast_hash": "e0b09534e041a7d72488f257c314c73b",
+    "semantic_hash": "e0b09534e041a7d72488f257c314c73b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/it.ts": {
+    "mtime": 1781083371.0863457,
+    "ast_hash": "835f66c3e54d731f45cbbab6b134f761",
+    "semantic_hash": "835f66c3e54d731f45cbbab6b134f761"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/tr.ts": {
+    "mtime": 1781083371.0864367,
+    "ast_hash": "479d676edc45ed8f35035b52c836e7d5",
+    "semantic_hash": "479d676edc45ed8f35035b52c836e7d5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/moderation/wordlists/types.ts": {
+    "mtime": 1781083371.0865521,
+    "ast_hash": "4d9de16b0e5884247b21de7ceabe5453",
+    "semantic_hash": "4d9de16b0e5884247b21de7ceabe5453"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/native-bridge.ts": {
+    "mtime": 1781386253.421138,
+    "ast_hash": "f2947085bdeb454faeac45ee7921b9c4",
+    "semantic_hash": "f2947085bdeb454faeac45ee7921b9c4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/notification-utils.ts": {
+    "mtime": 1781732115.2884789,
+    "ast_hash": "849d3bfc0b044fbfaae5185e24f4c5d1",
+    "semantic_hash": "849d3bfc0b044fbfaae5185e24f4c5d1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/onboarding/fields-of-study.ts": {
+    "mtime": 1781083371.0873063,
+    "ast_hash": "55a97eef06df7c1999a3f3b40a7d4000",
+    "semantic_hash": "55a97eef06df7c1999a3f3b40a7d4000"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/onboarding/import-orchestrator.ts": {
+    "mtime": 1781083371.0875082,
+    "ast_hash": "4c355e4a36ae48f05d7b4c546c5a7997",
+    "semantic_hash": "4c355e4a36ae48f05d7b4c546c5a7997"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/onboarding/subject-detect.ts": {
+    "mtime": 1781209106.8047264,
+    "ast_hash": "8358096609c9deca0c8b6c019af88882",
+    "semantic_hash": "8358096609c9deca0c8b6c019af88882"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/onenote-import/run-job.ts": {
+    "mtime": 1781083371.0878787,
+    "ast_hash": "6c80a8258a5aad1c67a4382fc0e1f90b",
+    "semantic_hash": "6c80a8258a5aad1c67a4382fc0e1f90b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/onenoteConverter.ts": {
+    "mtime": 1781083371.0881379,
+    "ast_hash": "66077e972dd5b8e9004a0b76e6fa2347",
+    "semantic_hash": "66077e972dd5b8e9004a0b76e6fa2347"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-classifier.ts": {
+    "mtime": 1781083371.0883346,
+    "ast_hash": "e2a441e2351948e79cb1379ce8f281a2",
+    "semantic_hash": "e2a441e2351948e79cb1379ce8f281a2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-clone.ts": {
+    "mtime": 1781732115.288655,
+    "ast_hash": "d40e70044102d404adaa84f43c598836",
+    "semantic_hash": "d40e70044102d404adaa84f43c598836"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-corpus-fit.ts": {
+    "mtime": 1781446962.5648694,
+    "ast_hash": "c476f42597f0c90d0d156f9a5c026b88",
+    "semantic_hash": "c476f42597f0c90d0d156f9a5c026b88"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-corpus.ts": {
+    "mtime": 1781447004.233503,
+    "ast_hash": "913f90c1fc79200762711097bc0787b5",
+    "semantic_hash": "913f90c1fc79200762711097bc0787b5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-gating.test.ts": {
+    "mtime": 1781083371.0886464,
+    "ast_hash": "2a6ecd058a5f6f2544919b74ff50e9d3",
+    "semantic_hash": "2a6ecd058a5f6f2544919b74ff50e9d3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-gating.ts": {
+    "mtime": 1781083371.0888052,
+    "ast_hash": "eb66148a42629cf48053c0df12ebbf7c",
+    "semantic_hash": "eb66148a42629cf48053c0df12ebbf7c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator-anthropic.ts": {
+    "mtime": 1781209106.8050196,
+    "ast_hash": "a327a8ac952aad1f5cc2e43479784594",
+    "semantic_hash": "a327a8ac952aad1f5cc2e43479784594"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator-cost.ts": {
+    "mtime": 1781209106.805375,
+    "ast_hash": "8128408d24a4c7f2be411fe09aed2c29",
+    "semantic_hash": "8128408d24a4c7f2be411fe09aed2c29"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator-gemini.ts": {
+    "mtime": 1781210151.4034762,
+    "ast_hash": "bdab0b86471def0dd8c6373b4b8f23ba",
+    "semantic_hash": "bdab0b86471def0dd8c6373b4b8f23ba"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator-normalize.test.ts": {
+    "mtime": 1781157378.0375235,
+    "ast_hash": "dee96df61be9fe458d087e06d2a3d9ed",
+    "semantic_hash": "dee96df61be9fe458d087e06d2a3d9ed"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator-normalize.ts": {
+    "mtime": 1781156987.9042585,
+    "ast_hash": "6e7ca4eac45f53b6a49ec7319a8a7dbf",
+    "semantic_hash": "6e7ca4eac45f53b6a49ec7319a8a7dbf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator-routing.ts": {
+    "mtime": 1781210191.89532,
+    "ast_hash": "7ad966f1883781d525e1dc8a65ca0acc",
+    "semantic_hash": "7ad966f1883781d525e1dc8a65ca0acc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-generator.ts": {
+    "mtime": 1781447025.7582443,
+    "ast_hash": "40866809ce1d33c51552a3a2de33254d",
+    "semantic_hash": "40866809ce1d33c51552a3a2de33254d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-image-catalog.ts": {
+    "mtime": 1781158715.1076374,
+    "ast_hash": "1dd525997c924f123fb4cbf49e27df49",
+    "semantic_hash": "1dd525997c924f123fb4cbf49e27df49"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-languages.ts": {
+    "mtime": 1781083371.0902133,
+    "ast_hash": "68d55fd84ea0b0f77a52b38310fb627a",
+    "semantic_hash": "68d55fd84ea0b0f77a52b38310fb627a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-loader.ts": {
+    "mtime": 1781215351.7549317,
+    "ast_hash": "4c3512959ae84b35f11b3be6c28d0673",
+    "semantic_hash": "4c3512959ae84b35f11b3be6c28d0673"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-prompts.ts": {
+    "mtime": 1781248477.7401068,
+    "ast_hash": "7f1981560826912fb93e01e58fb5c8c5",
+    "semantic_hash": "7f1981560826912fb93e01e58fb5c8c5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-quiz-prompt.test.ts": {
+    "mtime": 1781247728.1109643,
+    "ast_hash": "4805ca3064287d1f2189cee3e01e24b6",
+    "semantic_hash": "4805ca3064287d1f2189cee3e01e24b6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-slot-activities.test.ts": {
+    "mtime": 1781083371.0906715,
+    "ast_hash": "5d691ae1e1e025f28c8e4869bb33c975",
+    "semantic_hash": "5d691ae1e1e025f28c8e4869bb33c975"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-slot-activities.ts": {
+    "mtime": 1781083371.0908856,
+    "ast_hash": "003678f2418f3fb3f5209d5ded80cb1c",
+    "semantic_hash": "003678f2418f3fb3f5209d5ded80cb1c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-stats.ts": {
+    "mtime": 1781732115.2887928,
+    "ast_hash": "81dabaa5c7899be8fb9b69e9acf31802",
+    "semantic_hash": "81dabaa5c7899be8fb9b69e9acf31802"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-subjects.test.ts": {
+    "mtime": 1781247784.697477,
+    "ast_hash": "aaa4764a3949f61371edfde2a1782e61",
+    "semantic_hash": "aaa4764a3949f61371edfde2a1782e61"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-subjects.ts": {
+    "mtime": 1781247661.154541,
+    "ast_hash": "9f3f616a838100313321534bbda630c3",
+    "semantic_hash": "9f3f616a838100313321534bbda630c3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/path-translator.ts": {
+    "mtime": 1781248943.49033,
+    "ast_hash": "c78396999f0bbd6de52df6dcaf0e7657",
+    "semantic_hash": "c78396999f0bbd6de52df6dcaf0e7657"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-client-render.ts": {
+    "mtime": 1776461942.93296,
+    "ast_hash": "2c518adb41bdd5cf233dbe44ba5f4a12",
+    "semantic_hash": "2c518adb41bdd5cf233dbe44ba5f4a12"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-generator.ts": {
+    "mtime": 1781248439.5071132,
+    "ast_hash": "aafe8b4e308382395ff50bc4e0edcb7c",
+    "semantic_hash": "aafe8b4e308382395ff50bc4e0edcb7c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-image-extractor.ts": {
+    "mtime": 1776460513.7015903,
+    "ast_hash": "6a79fd563329eb8f7411900ba84af83f",
+    "semantic_hash": "6a79fd563329eb8f7411900ba84af83f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/assemble.test.ts": {
+    "mtime": 1781083371.0947447,
+    "ast_hash": "33e363d03d6fbd25ca8b9adc292fa3f0",
+    "semantic_hash": "33e363d03d6fbd25ca8b9adc292fa3f0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/assemble.ts": {
+    "mtime": 1781083371.0948977,
+    "ast_hash": "72c6218f80e9c3d3a944385a73d30c64",
+    "semantic_hash": "72c6218f80e9c3d3a944385a73d30c64"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/doc-model-json-schema.ts": {
+    "mtime": 1781209106.8081152,
+    "ast_hash": "ebad930b11fd46747bc7edae5506ba5b",
+    "semantic_hash": "ebad930b11fd46747bc7edae5506ba5b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/doc-model.test.ts": {
+    "mtime": 1781209106.8083444,
+    "ast_hash": "32f7a9066e095a71bb83093aea600431",
+    "semantic_hash": "32f7a9066e095a71bb83093aea600431"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/doc-model.ts": {
+    "mtime": 1781209106.8089073,
+    "ast_hash": "893f29226a12cf505d7ea92738bd37cb",
+    "semantic_hash": "893f29226a12cf505d7ea92738bd37cb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/engine-anthropic.ts": {
+    "mtime": 1781209106.8090835,
+    "ast_hash": "d373b776ca8b3831ea37690ed1be9f8e",
+    "semantic_hash": "d373b776ca8b3831ea37690ed1be9f8e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/engine-gemini.ts": {
+    "mtime": 1781083371.0957663,
+    "ast_hash": "c1813035de40d62ce2fd3c5ac81e88f0",
+    "semantic_hash": "c1813035de40d62ce2fd3c5ac81e88f0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/engine-text.test.ts": {
+    "mtime": 1781083371.095948,
+    "ast_hash": "2db6d5fb164e91eec3f53d706c612e5b",
+    "semantic_hash": "2db6d5fb164e91eec3f53d706c612e5b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/engine-text.ts": {
+    "mtime": 1781083371.0960672,
+    "ast_hash": "81f0574325a160f9600eeec75d9084d0",
+    "semantic_hash": "81f0574325a160f9600eeec75d9084d0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/engine.test.ts": {
+    "mtime": 1781083371.0965316,
+    "ast_hash": "f63503392f0058fec04ec78d49a00892",
+    "semantic_hash": "f63503392f0058fec04ec78d49a00892"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/engine.ts": {
+    "mtime": 1781083371.0967078,
+    "ast_hash": "973cb423ef493ae9cb701fe2b808d97c",
+    "semantic_hash": "973cb423ef493ae9cb701fe2b808d97c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/figure-crop.test.ts": {
+    "mtime": 1781083371.096815,
+    "ast_hash": "f1e89cd806c60fd84ec6f7265f9599a4",
+    "semantic_hash": "f1e89cd806c60fd84ec6f7265f9599a4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/figure-crop.ts": {
+    "mtime": 1781083371.0969067,
+    "ast_hash": "b735413d52dd364783e27cbf667c42e5",
+    "semantic_hash": "b735413d52dd364783e27cbf667c42e5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/golden.test.ts": {
+    "mtime": 1781083371.097065,
+    "ast_hash": "1ae9bc4d566b62bff2eee7e16a212579",
+    "semantic_hash": "1ae9bc4d566b62bff2eee7e16a212579"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/ground-truth.test.ts": {
+    "mtime": 1781083371.0973315,
+    "ast_hash": "ff95d2c9dcad29aaf98f1835ae9cf77d",
+    "semantic_hash": "ff95d2c9dcad29aaf98f1835ae9cf77d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/ground-truth.ts": {
+    "mtime": 1781083371.0974443,
+    "ast_hash": "6d8569bcb38f9ca2531277bd43e58222",
+    "semantic_hash": "6d8569bcb38f9ca2531277bd43e58222"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/heuristic-fallback.test.ts": {
+    "mtime": 1781083371.0976725,
+    "ast_hash": "6250453da6383516be4d8a47ba9c72d5",
+    "semantic_hash": "6250453da6383516be4d8a47ba9c72d5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/heuristic-fallback.ts": {
+    "mtime": 1781083371.0978003,
+    "ast_hash": "53034eb1c71e20669dc94b7186c0d5be",
+    "semantic_hash": "53034eb1c71e20669dc94b7186c0d5be"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/normalize.test.ts": {
+    "mtime": 1781123802.06152,
+    "ast_hash": "4f103abf0cff07ba02f96ab839e6f5c8",
+    "semantic_hash": "4f103abf0cff07ba02f96ab839e6f5c8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/normalize.ts": {
+    "mtime": 1781123514.2362945,
+    "ast_hash": "44360f136b9aabafde9a26419766631b",
+    "semantic_hash": "44360f136b9aabafde9a26419766631b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/pdf-table-escalate.test.ts": {
+    "mtime": 1781083371.0982804,
+    "ast_hash": "10c4d0f4829a470cf9c0e33cb6763890",
+    "semantic_hash": "10c4d0f4829a470cf9c0e33cb6763890"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/pdf-table-escalate.ts": {
+    "mtime": 1781083371.0983775,
+    "ast_hash": "bc1f367bf1b67a1c92349a7ddf5d6529",
+    "semantic_hash": "bc1f367bf1b67a1c92349a7ddf5d6529"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/pdfjs-geometry.ts": {
+    "mtime": 1781083371.0985053,
+    "ast_hash": "6752ffd3e19fdaf61177707b2287ec6e",
+    "semantic_hash": "6752ffd3e19fdaf61177707b2287ec6e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/prompt.ts": {
+    "mtime": 1781209106.8093414,
+    "ast_hash": "701836f51a06dd0948fa780b8dcd7907",
+    "semantic_hash": "701836f51a06dd0948fa780b8dcd7907"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/run-job.ts": {
+    "mtime": 1781209106.809618,
+    "ast_hash": "f53fa78b027da8234f76f72456758e1e",
+    "semantic_hash": "f53fa78b027da8234f76f72456758e1e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/validate.test.ts": {
+    "mtime": 1781083371.0989327,
+    "ast_hash": "958d32d8663fff584923ff61945bc163",
+    "semantic_hash": "958d32d8663fff584923ff61945bc163"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdf-import/validate.ts": {
+    "mtime": 1781083371.0991135,
+    "ast_hash": "ed305f42a6d3134f1cb658907968e43e",
+    "semantic_hash": "ed305f42a6d3134f1cb658907968e43e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pdfjs-node.ts": {
+    "mtime": 1781083371.0994232,
+    "ast_hash": "35e308ab71e0b319c92d79baf8903b25",
+    "semantic_hash": "35e308ab71e0b319c92d79baf8903b25"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/piston-client.ts": {
+    "mtime": 1781083371.0995965,
+    "ast_hash": "8d1a91cf092204b72d29278ae5508b80",
+    "semantic_hash": "8d1a91cf092204b72d29278ae5508b80"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pptx-generator.ts": {
+    "mtime": 1781248448.8051326,
+    "ast_hash": "87d663a6053ab9870a74385afe1fdb58",
+    "semantic_hash": "87d663a6053ab9870a74385afe1fdb58"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pptx-parser.ts": {
+    "mtime": 1775866867.785376,
+    "ast_hash": "64aa58122544e233ebe47e3a10167fe4",
+    "semantic_hash": "64aa58122544e233ebe47e3a10167fe4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/presets.ts": {
+    "mtime": 1781083371.0999138,
+    "ast_hash": "ed95dd4d065a0a35794a34803de76957",
+    "semantic_hash": "ed95dd4d065a0a35794a34803de76957"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/pro-access.ts": {
+    "mtime": 1781083371.1000178,
+    "ast_hash": "fb324ac9cd58b3916c3a297552c653f8",
+    "semantic_hash": "fb324ac9cd58b3916c3a297552c653f8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/quiz-grading.test.ts": {
+    "mtime": 1781119349.0385687,
+    "ast_hash": "aba967a1f0fc8c4f07a0080a9d5938f4",
+    "semantic_hash": "aba967a1f0fc8c4f07a0080a9d5938f4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/quiz-grading.ts": {
+    "mtime": 1781248393.4069808,
+    "ast_hash": "1d65cd2566042333def293f2fc70993a",
+    "semantic_hash": "1d65cd2566042333def293f2fc70993a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/quiz-reactions-copy.ts": {
+    "mtime": 1781083371.1004858,
+    "ast_hash": "9471602761b8756ec81c3ff1d853388b",
+    "semantic_hash": "9471602761b8756ec81c3ff1d853388b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/quiz-reactions.ts": {
+    "mtime": 1781389090.0548866,
+    "ast_hash": "0bc6418b02d7f65393e89842474264c8",
+    "semantic_hash": "0bc6418b02d7f65393e89842474264c8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/rate-limit-response.ts": {
+    "mtime": 1781368227.2985826,
+    "ast_hash": "3c8a7ba4b14cfbb9531e6fec20ee30d7",
+    "semantic_hash": "3c8a7ba4b14cfbb9531e6fec20ee30d7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/rate-limit.ts": {
+    "mtime": 1781367804.7343385,
+    "ast_hash": "e3ba1b3eb60905ff0874de2a1a87b60f",
+    "semantic_hash": "e3ba1b3eb60905ff0874de2a1a87b60f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/redis.ts": {
+    "mtime": 1775866867.7861931,
+    "ast_hash": "1d0f19bd77d63214172c8599b75e710d",
+    "semantic_hash": "1d0f19bd77d63214172c8599b75e710d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/registration.ts": {
+    "mtime": 1781083371.1010156,
+    "ast_hash": "fb945fab1d805c84bc9ee60f35824b68",
+    "semantic_hash": "fb945fab1d805c84bc9ee60f35824b68"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/relative-time.ts": {
+    "mtime": 1781083371.101118,
+    "ast_hash": "954c5337401aa7307c7f49cfa2798db5",
+    "semantic_hash": "954c5337401aa7307c7f49cfa2798db5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/responsive.ts": {
+    "mtime": 1775963807.8107173,
+    "ast_hash": "4227c748438aa99ff4d8abed7bf2a55e",
+    "semantic_hash": "4227c748438aa99ff4d8abed7bf2a55e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/safe-math.test.ts": {
+    "mtime": 1781083371.1012142,
+    "ast_hash": "31c13caa5a7149a12fc737e76cbf851a",
+    "semantic_hash": "31c13caa5a7149a12fc737e76cbf851a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/safe-math.ts": {
+    "mtime": 1781083371.1013079,
+    "ast_hash": "c126a920b8b42a388f8973a44c56ac6d",
+    "semantic_hash": "c126a920b8b42a388f8973a44c56ac6d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/sample-paths/catalog.ts": {
+    "mtime": 1781732115.2890012,
+    "ast_hash": "0156f612d7ee5464b13b4f28f4632c0f",
+    "semantic_hash": "0156f612d7ee5464b13b4f28f4632c0f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/sample-paths/fixtures.ts": {
+    "mtime": 1781732115.2891815,
+    "ast_hash": "6eae133e9bf8f9b26e86b12fa732d92c",
+    "semantic_hash": "6eae133e9bf8f9b26e86b12fa732d92c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/sample-paths/materialize.ts": {
+    "mtime": 1781732115.2893898,
+    "ast_hash": "bbcde8acee9293875cabd55394e59b6d",
+    "semantic_hash": "bbcde8acee9293875cabd55394e59b6d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/scholar.ts": {
+    "mtime": 1775866867.7989593,
+    "ast_hash": "edda488aff0cc94a983a2a3ddf49ddc4",
+    "semantic_hash": "edda488aff0cc94a983a2a3ddf49ddc4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/security-events.ts": {
+    "mtime": 1781083371.1013978,
+    "ast_hash": "53eff243cc1591e22a9a556df2b603ee",
+    "semantic_hash": "53eff243cc1591e22a9a556df2b603ee"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/signup-bypass.ts": {
+    "mtime": 1781083371.1015592,
+    "ast_hash": "13aa7b71db69b0e3243675543b0d663c",
+    "semantic_hash": "13aa7b71db69b0e3243675543b0d663c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/spaced-repetition.ts": {
+    "mtime": 1775866867.7953835,
+    "ast_hash": "9823d66eaad9c9c7c4085a10ca959c8b",
+    "semantic_hash": "9823d66eaad9c9c7c4085a10ca959c8b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/storage.ts": {
+    "mtime": 1781083371.1017792,
+    "ast_hash": "c2dd1ac4d965306755cca1828717e658",
+    "semantic_hash": "c2dd1ac4d965306755cca1828717e658"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/streaks.ts": {
+    "mtime": 1778430898.3339958,
+    "ast_hash": "d1c44e4e68a1023765850c3cb353f33a",
+    "semantic_hash": "d1c44e4e68a1023765850c3cb353f33a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/study-goals.ts": {
+    "mtime": 1781083371.1018896,
+    "ast_hash": "06023f1cf3b7b33932b1fcab4c6c5583",
+    "semantic_hash": "06023f1cf3b7b33932b1fcab4c6c5583"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/supabase.ts": {
+    "mtime": 1775866867.8036032,
+    "ast_hash": "5248efeba717f0dbb6cc925ee1debe44",
+    "semantic_hash": "5248efeba717f0dbb6cc925ee1debe44"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/telemetry-server.ts": {
+    "mtime": 1781083371.1020067,
+    "ast_hash": "ae426ce339349ef6d9f17c47e3080cf0",
+    "semantic_hash": "ae426ce339349ef6d9f17c47e3080cf0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/telemetry-switchover.ts": {
+    "mtime": 1781083371.1021957,
+    "ast_hash": "972d8c5ef862d8787cfb98b718f4db5e",
+    "semantic_hash": "972d8c5ef862d8787cfb98b718f4db5e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/telemetry.ts": {
+    "mtime": 1781083371.1023073,
+    "ast_hash": "205e52b52eab0a8952e038c112d06558",
+    "semantic_hash": "205e52b52eab0a8952e038c112d06558"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/theory-visuals.test.ts": {
+    "mtime": 1781244169.186873,
+    "ast_hash": "e10972cdf669cca7468e2de290dc09aa",
+    "semantic_hash": "e10972cdf669cca7468e2de290dc09aa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiers.ts": {
+    "mtime": 1781367804.7346158,
+    "ast_hash": "56471da35ff5cd5198ea9104d82538a8",
+    "semantic_hash": "56471da35ff5cd5198ea9104d82538a8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/timeline-sort.ts": {
+    "mtime": 1781083371.1027932,
+    "ast_hash": "c06d073e536c4dee75eecf5dc9ba048f",
+    "semantic_hash": "c06d073e536c4dee75eecf5dc9ba048f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-block-format.ts": {
+    "mtime": 1781083371.1029718,
+    "ast_hash": "50d6636101bd6040ab35c268e7aaf041",
+    "semantic_hash": "50d6636101bd6040ab35c268e7aaf041"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-callout.ts": {
+    "mtime": 1781083371.1031044,
+    "ast_hash": "36ece1a8bb51cb5d2065556f64816c15",
+    "semantic_hash": "36ece1a8bb51cb5d2065556f64816c15"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-code-block.ts": {
+    "mtime": 1781083371.103307,
+    "ast_hash": "bb9d8b389dabe727062064bb06dd53d7",
+    "semantic_hash": "bb9d8b389dabe727062064bb06dd53d7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-font-size.ts": {
+    "mtime": 1775866867.780868,
+    "ast_hash": "d6bf435638dff84a205cb9994c58d05e",
+    "semantic_hash": "d6bf435638dff84a205cb9994c58d05e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-heading.ts": {
+    "mtime": 1781083371.1035063,
+    "ast_hash": "c197fd204952e301850f342bfc430d31",
+    "semantic_hash": "c197fd204952e301850f342bfc430d31"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-image-placeholder.ts": {
+    "mtime": 1781083371.1036022,
+    "ast_hash": "e3d89ee4b06bd61edacb09f9aa8a4df3",
+    "semantic_hash": "e3d89ee4b06bd61edacb09f9aa8a4df3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-inline-heading.ts": {
+    "mtime": 1775866867.7874658,
+    "ast_hash": "0e65ed24ba2249d09051fc4250277fcf",
+    "semantic_hash": "0e65ed24ba2249d09051fc4250277fcf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-is-empty.ts": {
+    "mtime": 1775963807.853015,
+    "ast_hash": "3786b95702477f22a02c51e1aa89ba61",
+    "semantic_hash": "3786b95702477f22a02c51e1aa89ba61"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-math.ts": {
+    "mtime": 1781083371.103794,
+    "ast_hash": "065c9002c0d3ef5397ec87366620e383",
+    "semantic_hash": "065c9002c0d3ef5397ec87366620e383"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/tiptap-slash-command.ts": {
+    "mtime": 1775963807.8566887,
+    "ast_hash": "ea7ab33232296d32b33d25a229d3f6a3",
+    "semantic_hash": "ea7ab33232296d32b33d25a229d3f6a3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/translation/popular-languages.ts": {
+    "mtime": 1781083371.104147,
+    "ast_hash": "27789d829b3a4cf0ff04a116e434d96b",
+    "semantic_hash": "27789d829b3a4cf0ff04a116e434d96b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/translation/pretranslate.ts": {
+    "mtime": 1781083371.104387,
+    "ast_hash": "ba8eeb9ec5bcdd7098f635c47df30747",
+    "semantic_hash": "ba8eeb9ec5bcdd7098f635c47df30747"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/translation/prompt.ts": {
+    "mtime": 1781209106.809873,
+    "ast_hash": "d7c8804f2ba114bdbdf1c0c2d580955c",
+    "semantic_hash": "d7c8804f2ba114bdbdf1c0c2d580955c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/translation/provider.ts": {
+    "mtime": 1781209106.8101268,
+    "ast_hash": "4d0afe38513ce4950fd565916ca62ff6",
+    "semantic_hash": "4d0afe38513ce4950fd565916ca62ff6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/translation/runner.ts": {
+    "mtime": 1781209106.8103745,
+    "ast_hash": "5d877cfae4645c40f7f6c52e71c1ede3",
+    "semantic_hash": "5d877cfae4645c40f7f6c52e71c1ede3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/translation/snapshot.ts": {
+    "mtime": 1781083371.1050224,
+    "ast_hash": "17315a5954d43b806153f6d2426cb274",
+    "semantic_hash": "17315a5954d43b806153f6d2426cb274"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/turnstile.ts": {
+    "mtime": 1781367804.7355008,
+    "ast_hash": "a744c62b4a92c79d783edb5fbacb8702",
+    "semantic_hash": "a744c62b4a92c79d783edb5fbacb8702"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/url-import.ts": {
+    "mtime": 1781083371.1051996,
+    "ast_hash": "f62395d40ce55475068efc79b1eae3d2",
+    "semantic_hash": "f62395d40ce55475068efc79b1eae3d2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/usage-limits.test.ts": {
+    "mtime": 1781083371.1053064,
+    "ast_hash": "13e972d862c42f319b22968c2483e2ad",
+    "semantic_hash": "13e972d862c42f319b22968c2483e2ad"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/usage-limits.ts": {
+    "mtime": 1781367804.735744,
+    "ast_hash": "e9c8ce7d107174a4f0bed71a0900ed97",
+    "semantic_hash": "e9c8ce7d107174a4f0bed71a0900ed97"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/utils.ts": {
+    "mtime": 1775866867.7876523,
+    "ast_hash": "a40ab276f43a0e0a273926a9fa5055cc",
+    "semantic_hash": "a40ab276f43a0e0a273926a9fa5055cc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/verification-email.ts": {
+    "mtime": 1781083371.105691,
+    "ast_hash": "0c3615d0d6adc936bcfe52ed66074067",
+    "semantic_hash": "0c3615d0d6adc936bcfe52ed66074067"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/verification.ts": {
+    "mtime": 1781083371.105871,
+    "ast_hash": "eac7deb1c77a6d1b121ab176b1768828",
+    "semantic_hash": "eac7deb1c77a6d1b121ab176b1768828"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/video-import/config.ts": {
+    "mtime": 1781259277.2593715,
+    "ast_hash": "83a42c6f984d41a44146206e0b251c4d",
+    "semantic_hash": "83a42c6f984d41a44146206e0b251c4d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/video-import/gemini-ingest.ts": {
+    "mtime": 1781261240.6728024,
+    "ast_hash": "0c9e1bfe139da70313a3744f8d064b75",
+    "semantic_hash": "0c9e1bfe139da70313a3744f8d064b75"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/video-import/notes-to-page.ts": {
+    "mtime": 1781259717.8223405,
+    "ast_hash": "df52f94fef8ce7ec48e25adbf3871ad4",
+    "semantic_hash": "df52f94fef8ce7ec48e25adbf3871ad4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/video-import/run-job.ts": {
+    "mtime": 1781261253.223236,
+    "ast_hash": "9f37ebf8ef8f8e0750f3508380982e84",
+    "semantic_hash": "9f37ebf8ef8f8e0750f3508380982e84"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/video-import/staleness.ts": {
+    "mtime": 1781259870.9416046,
+    "ast_hash": "5aaca75cee3cc8fb70bb2f88bfa9052d",
+    "semantic_hash": "5aaca75cee3cc8fb70bb2f88bfa9052d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/video-import/submit.ts": {
+    "mtime": 1781260043.3701334,
+    "ast_hash": "a038df62e77e501bc40a98e1f893addd",
+    "semantic_hash": "a038df62e77e501bc40a98e1f893addd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/waitlist-email.ts": {
+    "mtime": 1781083371.1061087,
+    "ast_hash": "2bf00ebf4169a8ee54b1f2a0d3890656",
+    "semantic_hash": "2bf00ebf4169a8ee54b1f2a0d3890656"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/ws-emit.ts": {
+    "mtime": 1775963807.8804286,
+    "ast_hash": "495b6f21c4e2e2a8a4340f7d3c8fc59d",
+    "semantic_hash": "495b6f21c4e2e2a8a4340f7d3c8fc59d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/lib/youtube.ts": {
+    "mtime": 1781261206.7385607,
+    "ast_hash": "a246ce975b1bdeb3e0a2d2651278f119",
+    "semantic_hash": "a246ce975b1bdeb3e0a2d2651278f119"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/middleware.ts": {
+    "mtime": 1781387968.760854,
+    "ast_hash": "516ba1b3841ea8fe3aa4759e749c9fcf",
+    "semantic_hash": "516ba1b3841ea8fe3aa4759e749c9fcf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/types/next-auth.d.ts": {
+    "mtime": 1781083371.1065443,
+    "ast_hash": "d355374028f46ab2c8dc8167b649fff7",
+    "semantic_hash": "d355374028f46ab2c8dc8167b649fff7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/types/search.ts": {
+    "mtime": 1775873337.84957,
+    "ast_hash": "3cc9ed7de0deda0d701736f2d9482db7",
+    "semantic_hash": "3cc9ed7de0deda0d701736f2d9482db7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/_components/ui.tsx": {
+    "mtime": 1781083370.9583058,
+    "ast_hash": "ed9e26f5ca694bf814995fff8fbbfeab",
+    "semantic_hash": "ed9e26f5ca694bf814995fff8fbbfeab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/layout.tsx": {
+    "mtime": 1781732115.2679954,
+    "ast_hash": "118920dfe35a01a4203f2dab1ef1dfff",
+    "semantic_hash": "118920dfe35a01a4203f2dab1ef1dfff"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/page.tsx": {
+    "mtime": 1781083370.9585955,
+    "ast_hash": "6a4bfadab8f4b385588a3210ec722cff",
+    "semantic_hash": "6a4bfadab8f4b385588a3210ec722cff"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/paths/page.tsx": {
+    "mtime": 1781083370.95876,
+    "ast_hash": "36d1063be798a60898fd0ec6efd25585",
+    "semantic_hash": "36d1063be798a60898fd0ec6efd25585"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/stats/page.tsx": {
+    "mtime": 1781083370.958945,
+    "ast_hash": "02dcf3565714b611b1ea549fe03dfafd",
+    "semantic_hash": "02dcf3565714b611b1ea549fe03dfafd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/tickets/[id]/page.tsx": {
+    "mtime": 1781083370.959293,
+    "ast_hash": "ba4f8434b7466fa77417f1a3b4bcb533",
+    "semantic_hash": "ba4f8434b7466fa77417f1a3b4bcb533"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/tickets/page.tsx": {
+    "mtime": 1781083370.9594295,
+    "ast_hash": "adbc7d8b2cba4327a09239ee80fac909",
+    "semantic_hash": "adbc7d8b2cba4327a09239ee80fac909"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/users/page.tsx": {
+    "mtime": 1781083370.9596016,
+    "ast_hash": "6a4c4c404030bcc747554f58625dcf1c",
+    "semantic_hash": "6a4c4c404030bcc747554f58625dcf1c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(admin)/admin/waitlist/page.tsx": {
+    "mtime": 1781083370.959796,
+    "ast_hash": "8ea8f309c1c1c9ad496a53e6401e2010",
+    "semantic_hash": "8ea8f309c1c1c9ad496a53e6401e2010"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(auth)/auth/forgot-password/page.tsx": {
+    "mtime": 1781367804.7216759,
+    "ast_hash": "0c94ea7c879960469119201ab35c63f4",
+    "semantic_hash": "0c94ea7c879960469119201ab35c63f4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(auth)/auth/login/page.tsx": {
+    "mtime": 1781367856.413038,
+    "ast_hash": "5400bc93e1838e2b0369dbd42926e36b",
+    "semantic_hash": "5400bc93e1838e2b0369dbd42926e36b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(auth)/auth/register/page.tsx": {
+    "mtime": 1781083370.960549,
+    "ast_hash": "44e5c4f0df8af072596ccbddcd0aecfd",
+    "semantic_hash": "44e5c4f0df8af072596ccbddcd0aecfd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(auth)/layout.tsx": {
+    "mtime": 1781083370.9607155,
+    "ast_hash": "53dd9a550cf3df0a8797e2739c0f8e53",
+    "semantic_hash": "53dd9a550cf3df0a8797e2739c0f8e53"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/DashboardChrome.tsx": {
+    "mtime": 1781732115.2683353,
+    "ast_hash": "3254e2df10d573ebdacaefdae4a67b2b",
+    "semantic_hash": "3254e2df10d573ebdacaefdae4a67b2b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/dashboard/page.tsx": {
+    "mtime": 1781737735.5513875,
+    "ast_hash": "f7714fc684cd3353a1358c5a67960ea0",
+    "semantic_hash": "f7714fc684cd3353a1358c5a67960ea0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/groups/[id]/page.tsx": {
+    "mtime": 1778491734.681145,
+    "ast_hash": "f4f3562654ac25eeaecabf9bf7aa1398",
+    "semantic_hash": "f4f3562654ac25eeaecabf9bf7aa1398"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/groups/invite/[groupId]/page.tsx": {
+    "mtime": 1781083370.9615462,
+    "ast_hash": "18fc3bd1e925006241ce82292f609acf",
+    "semantic_hash": "18fc3bd1e925006241ce82292f609acf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/groups/page.tsx": {
+    "mtime": 1781732115.2689302,
+    "ast_hash": "00defe69df2b51e17df32bc23f46fcf2",
+    "semantic_hash": "00defe69df2b51e17df32bc23f46fcf2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/layout.tsx": {
+    "mtime": 1781375123.9688873,
+    "ast_hash": "bad4fd206319330f28878fd684458661",
+    "semantic_hash": "bad4fd206319330f28878fd684458661"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/chats/[chatId]/page.tsx": {
+    "mtime": 1781083370.962474,
+    "ast_hash": "3c9f955fef3f3a94c680e5874bbdeb2f",
+    "semantic_hash": "3c9f955fef3f3a94c680e5874bbdeb2f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/chats/layout.tsx": {
+    "mtime": 1781738333.627243,
+    "ast_hash": "f9a062a24ac2e7e1c499058bfb0d8e32",
+    "semantic_hash": "f9a062a24ac2e7e1c499058bfb0d8e32"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/chats/page.tsx": {
+    "mtime": 1781737735.5517638,
+    "ast_hash": "6e0ab1ee00db49e409592a9d75878ce1",
+    "semantic_hash": "6e0ab1ee00db49e409592a9d75878ce1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/community/[shareId]/page.tsx": {
+    "mtime": 1781083370.963034,
+    "ast_hash": "36e93f56c137ca23a13f67ce95c95be3",
+    "semantic_hash": "36e93f56c137ca23a13f67ce95c95be3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/community/page.tsx": {
+    "mtime": 1781732115.2699647,
+    "ast_hash": "a840262ea0a029e78916efcff4e961d2",
+    "semantic_hash": "a840262ea0a029e78916efcff4e961d2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/layout.tsx": {
+    "mtime": 1781732115.2702656,
+    "ast_hash": "580c3b2847763c472acef09581772f5a",
+    "semantic_hash": "580c3b2847763c472acef09581772f5a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/paths/[planId]/page.tsx": {
+    "mtime": 1781739199.0090995,
+    "ast_hash": "5db97979d1438be9f2e7fef336089e6a",
+    "semantic_hash": "5db97979d1438be9f2e7fef336089e6a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/learn/paths/[planId]/publication/page.tsx": {
+    "mtime": 1781732115.270826,
+    "ast_hash": "d60f317a5301e83d975d9d1dfff0f2c5",
+    "semantic_hash": "d60f317a5301e83d975d9d1dfff0f2c5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/lesson/[id]/page.tsx": {
+    "mtime": 1781732115.2711446,
+    "ast_hash": "f77d4c0167caf34f9eebc8af1a432b86",
+    "semantic_hash": "f77d4c0167caf34f9eebc8af1a432b86"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/my-path/page.tsx": {
+    "mtime": 1781738349.1541128,
+    "ast_hash": "eb16009932dbb68c1961917ad92d9f20",
+    "semantic_hash": "eb16009932dbb68c1961917ad92d9f20"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/chats/[chatId]/page.tsx": {
+    "mtime": 1781083370.9653182,
+    "ast_hash": "c0fc308f5853ffe212595e1a3f9bf16d",
+    "semantic_hash": "c0fc308f5853ffe212595e1a3f9bf16d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/chats/page.tsx": {
+    "mtime": 1781083370.9654372,
+    "ast_hash": "3b317361b749d053e1b7daa6c7fdce29",
+    "semantic_hash": "3b317361b749d053e1b7daa6c7fdce29"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/flashcards/[setId]/page.tsx": {
+    "mtime": 1781158926.4603224,
+    "ast_hash": "d1986f7b6e51721e3832d08132e320a3",
+    "semantic_hash": "d1986f7b6e51721e3832d08132e320a3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/layout.tsx": {
+    "mtime": 1781094136.9831092,
+    "ast_hash": "d542d425af0048b959176c161cf14663",
+    "semantic_hash": "d542d425af0048b959176c161cf14663"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/page.tsx": {
+    "mtime": 1781732115.2717693,
+    "ast_hash": "b25e9c4545b08d829305795323467aa0",
+    "semantic_hash": "b25e9c4545b08d829305795323467aa0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/pages/[pageId]/page.tsx": {
+    "mtime": 1781083370.9664867,
+    "ast_hash": "d7ddf5ebe0416f7382940f5cb77b5a42",
+    "semantic_hash": "d7ddf5ebe0416f7382940f5cb77b5a42"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/quizzes/[setId]/page.tsx": {
+    "mtime": 1781158915.6578343,
+    "ast_hash": "2e25e171e813aa9697c72b154b1f7fc7",
+    "semantic_hash": "2e25e171e813aa9697c72b154b1f7fc7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/notebooks/[id]/study-plan/[planId]/page.tsx": {
+    "mtime": 1781083370.966847,
+    "ast_hash": "e88ee3aec17f182dbb53c77b6c017391",
+    "semantic_hash": "e88ee3aec17f182dbb53c77b6c017391"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/practice/flashcards/page.tsx": {
+    "mtime": 1781732115.272056,
+    "ast_hash": "8dd688794dd0a954e3961ac9c369a6db",
+    "semantic_hash": "8dd688794dd0a954e3961ac9c369a6db"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/practice/page.tsx": {
+    "mtime": 1781738631.946105,
+    "ast_hash": "853db98980f3e2b37cc0190b2341fa2e",
+    "semantic_hash": "853db98980f3e2b37cc0190b2341fa2e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/practice/quizzes/page.tsx": {
+    "mtime": 1781732115.2725914,
+    "ast_hash": "49e1b61392935b3c2f9996d045032367",
+    "semantic_hash": "49e1b61392935b3c2f9996d045032367"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/profile/[username]/page.tsx": {
+    "mtime": 1781083370.9674027,
+    "ast_hash": "57b7f721ca4e7508d41327eb1c4d8e4f",
+    "semantic_hash": "57b7f721ca4e7508d41327eb1c4d8e4f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/profile/page.tsx": {
+    "mtime": 1781732115.272944,
+    "ast_hash": "dccf848e2beab7892429fe62ce0dc9a4",
+    "semantic_hash": "dccf848e2beab7892429fe62ce0dc9a4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/settings/page.tsx": {
+    "mtime": 1781732115.2733684,
+    "ast_hash": "f8a35877ab9604c9e34a0c8a80866325",
+    "semantic_hash": "f8a35877ab9604c9e34a0c8a80866325"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/study-packs/[id]/page.tsx": {
+    "mtime": 1781737730.4398024,
+    "ast_hash": "0a099d56764f4ed556b3b5384c06334a",
+    "semantic_hash": "0a099d56764f4ed556b3b5384c06334a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/study-packs/new/page.tsx": {
+    "mtime": 1781741387.7936478,
+    "ast_hash": "e029fefe6a5d53eb648689927eb6f35c",
+    "semantic_hash": "e029fefe6a5d53eb648689927eb6f35c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/study-packs/page.tsx": {
+    "mtime": 1781737723.1183357,
+    "ast_hash": "f2a9c96bca44fc66bc92324becab6e08",
+    "semantic_hash": "f2a9c96bca44fc66bc92324becab6e08"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/(dashboard)/tutorial/page.tsx": {
+    "mtime": 1781732115.274875,
+    "ast_hash": "5aa76bba7db83f129aab39649bb87213",
+    "semantic_hash": "5aa76bba7db83f129aab39649bb87213"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/.well-known/apple-app-site-association/route.ts": {
+    "mtime": 1777276253.8516138,
+    "ast_hash": "8f5a8692ec159c1edce6385ad840f376",
+    "semantic_hash": "8f5a8692ec159c1edce6385ad840f376"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/about/page.tsx": {
+    "mtime": 1781083370.968179,
+    "ast_hash": "953cd1cd5de788749e2c56cfee715f9b",
+    "semantic_hash": "953cd1cd5de788749e2c56cfee715f9b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/comments/[id]/route.ts": {
+    "mtime": 1775866867.4902751,
+    "ast_hash": "8e3600af9a16966689b3f191afd96316",
+    "semantic_hash": "8e3600af9a16966689b3f191afd96316"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/paths/[shareId]/pretranslate/route.ts": {
+    "mtime": 1781375807.6106398,
+    "ast_hash": "7291e388492794fcecfd69256ed8d2b4",
+    "semantic_hash": "7291e388492794fcecfd69256ed8d2b4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/paths/route.ts": {
+    "mtime": 1781083370.9687076,
+    "ast_hash": "af49fc22f0d0ff6a7615cee5fa21d6b3",
+    "semantic_hash": "af49fc22f0d0ff6a7615cee5fa21d6b3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/stats/route.ts": {
+    "mtime": 1781083370.9689405,
+    "ast_hash": "fa3040ea5e2c7ffece3b6a860be54c1a",
+    "semantic_hash": "fa3040ea5e2c7ffece3b6a860be54c1a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/tickets/[id]/approve/route.ts": {
+    "mtime": 1781083370.9692018,
+    "ast_hash": "9979f16e30e777f96ec970eaea013325",
+    "semantic_hash": "9979f16e30e777f96ec970eaea013325"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/tickets/[id]/reject/route.ts": {
+    "mtime": 1781083370.9693928,
+    "ast_hash": "e3e0af4b496b1d3a1bece676f492d6e2",
+    "semantic_hash": "e3e0af4b496b1d3a1bece676f492d6e2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/tickets/[id]/route.ts": {
+    "mtime": 1781083370.9695888,
+    "ast_hash": "ccd696beb8a944ad1e98ed9ba0b63425",
+    "semantic_hash": "ccd696beb8a944ad1e98ed9ba0b63425"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/tickets/route.ts": {
+    "mtime": 1781083370.969708,
+    "ast_hash": "b173bf9ae35122774e38fe9b985d0c5c",
+    "semantic_hash": "b173bf9ae35122774e38fe9b985d0c5c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/users/[id]/cosmetics/route.ts": {
+    "mtime": 1781376216.4135172,
+    "ast_hash": "89d85aa18e6e1ae785f8845180f111a8",
+    "semantic_hash": "89d85aa18e6e1ae785f8845180f111a8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/users/[id]/route.ts": {
+    "mtime": 1781376195.5315418,
+    "ast_hash": "6164dfbe8366d417e7f397f1cae066da",
+    "semantic_hash": "6164dfbe8366d417e7f397f1cae066da"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/users/route.ts": {
+    "mtime": 1781083370.970305,
+    "ast_hash": "f3662b81653df8ecd57bb8e6640c0867",
+    "semantic_hash": "f3662b81653df8ecd57bb8e6640c0867"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/admin/waitlist/route.ts": {
+    "mtime": 1775866867.48988,
+    "ast_hash": "85dbf94e278bb13497f4197957b34ddd",
+    "semantic_hash": "85dbf94e278bb13497f4197957b34ddd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/[...nextauth]/route.ts": {
+    "mtime": 1781083370.9705071,
+    "ast_hash": "c647238a218df6dd939659a7ebd2bb3c",
+    "semantic_hash": "c647238a218df6dd939659a7ebd2bb3c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/forgot-password/route.ts": {
+    "mtime": 1781367804.7220254,
+    "ast_hash": "edb411f31a6f954633ec76acd724067d",
+    "semantic_hash": "edb411f31a6f954633ec76acd724067d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/login-challenge/route.ts": {
+    "mtime": 1781367856.4134998,
+    "ast_hash": "af1728b671445d73fedeba9ecfc6e98b",
+    "semantic_hash": "af1728b671445d73fedeba9ecfc6e98b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/native/apple/route.ts": {
+    "mtime": 1781083370.9709013,
+    "ast_hash": "15fbb00b17a314835bba6a3c904a29c4",
+    "semantic_hash": "15fbb00b17a314835bba6a3c904a29c4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/native/google/route.ts": {
+    "mtime": 1781095714.0360172,
+    "ast_hash": "518c59cb65833fd7d603f6f46151b2fc",
+    "semantic_hash": "518c59cb65833fd7d603f6f46151b2fc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/presence-token/route.ts": {
+    "mtime": 1781375807.6108782,
+    "ast_hash": "6e113d2e3e48a55780dc69a6819a0ba4",
+    "semantic_hash": "6e113d2e3e48a55780dc69a6819a0ba4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/register/route.ts": {
+    "mtime": 1781367804.7228167,
+    "ast_hash": "083251bd422d73c7a32daaa0bbe80456",
+    "semantic_hash": "083251bd422d73c7a32daaa0bbe80456"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/resend-code/route.ts": {
+    "mtime": 1781083370.9713595,
+    "ast_hash": "3cfba85d3f9a929b5e94deffec6ddb94",
+    "semantic_hash": "3cfba85d3f9a929b5e94deffec6ddb94"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/reset-password/route.ts": {
+    "mtime": 1781083370.9715376,
+    "ast_hash": "72fc2ee2e00c5d15a82fcb77137668b8",
+    "semantic_hash": "72fc2ee2e00c5d15a82fcb77137668b8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/auth/verify-email/route.ts": {
+    "mtime": 1781083370.9717078,
+    "ast_hash": "9dce8b31ea31f477e60d36ed84cfbf4e",
+    "semantic_hash": "9dce8b31ea31f477e60d36ed84cfbf4e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/billing/lemonsqueezy/portal/route.ts": {
+    "mtime": 1781083370.9720514,
+    "ast_hash": "99a6a9f57c705bb58eace5800436139e",
+    "semantic_hash": "99a6a9f57c705bb58eace5800436139e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/billing/lemonsqueezy/sync/route.ts": {
+    "mtime": 1781083370.9722228,
+    "ast_hash": "c67950967e7e522e958bdad745109850",
+    "semantic_hash": "c67950967e7e522e958bdad745109850"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/billing/lemonsqueezy/webhook/route.ts": {
+    "mtime": 1781083370.9724247,
+    "ast_hash": "68d219bf6ba309853606353969a45690",
+    "semantic_hash": "68d219bf6ba309853606353969a45690"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/billing/revenuecat/webhook/route.ts": {
+    "mtime": 1781083370.9726822,
+    "ast_hash": "4a6c2829f26218c1d35ce5b3e8070a06",
+    "semantic_hash": "4a6c2829f26218c1d35ce5b3e8070a06"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/community/notebooks/route.ts": {
+    "mtime": 1780734132.7128253,
+    "ast_hash": "8caf35d3ed0b30cd9b996f7c4a5c8f6a",
+    "semantic_hash": "8caf35d3ed0b30cd9b996f7c4a5c8f6a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/community/paths/[shareId]/clone/route.ts": {
+    "mtime": 1781732115.275286,
+    "ast_hash": "28ee636738dba41237bb4264155cf91c",
+    "semantic_hash": "28ee636738dba41237bb4264155cf91c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/community/paths/[shareId]/report/route.ts": {
+    "mtime": 1781083370.97394,
+    "ast_hash": "7f5f19446a61dbf448cb88c8c31f2c58",
+    "semantic_hash": "7f5f19446a61dbf448cb88c8c31f2c58"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/community/paths/[shareId]/route.ts": {
+    "mtime": 1781367804.7231848,
+    "ast_hash": "0a1d32c8c85fbac2b84a1b0ed7f4ae87",
+    "semantic_hash": "0a1d32c8c85fbac2b84a1b0ed7f4ae87"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/community/paths/route.ts": {
+    "mtime": 1781083370.9743776,
+    "ast_hash": "8b4a3fcc4099d6a142256ba3158b90aa",
+    "semantic_hash": "8b4a3fcc4099d6a142256ba3158b90aa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/currency/route.ts": {
+    "mtime": 1781083370.974604,
+    "ast_hash": "00ef3ae548f9d124bb9a230778bf4e00",
+    "semantic_hash": "00ef3ae548f9d124bb9a230778bf4e00"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/dashboard/route.ts": {
+    "mtime": 1781083370.9748116,
+    "ast_hash": "197e707a4129667d66d144d5dc047b00",
+    "semantic_hash": "197e707a4129667d66d144d5dc047b00"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/debug/cowork-emit-test/route.ts": {
+    "mtime": 1781083370.9750988,
+    "ast_hash": "e05dd773670dc606fa4414886b5a87a1",
+    "semantic_hash": "e05dd773670dc606fa4414886b5a87a1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/documents/route.ts": {
+    "mtime": 1775866867.5254567,
+    "ast_hash": "ea653d5dfc761c6bb164b73e3da02d30",
+    "semantic_hash": "ea653d5dfc761c6bb164b73e3da02d30"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/export/pptx/route.ts": {
+    "mtime": 1781367804.7234302,
+    "ast_hash": "7c12183a27afdbcc4f2d0ce98803fbab",
+    "semantic_hash": "7c12183a27afdbcc4f2d0ce98803fbab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/flashcard-sets/route.ts": {
+    "mtime": 1781083370.9752378,
+    "ast_hash": "368f91ff54835293115ab20f7406cee5",
+    "semantic_hash": "368f91ff54835293115ab20f7406cee5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/friends/[id]/route.ts": {
+    "mtime": 1775866867.527931,
+    "ast_hash": "e21a76fd29ec20d713ad9e600f4cfe8f",
+    "semantic_hash": "e21a76fd29ec20d713ad9e600f4cfe8f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/friends/request/[id]/route.ts": {
+    "mtime": 1775963805.9211795,
+    "ast_hash": "b612500e7a3fe9f83fa4b2f9c91ffad1",
+    "semantic_hash": "b612500e7a3fe9f83fa4b2f9c91ffad1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/friends/request/route.ts": {
+    "mtime": 1775963805.9264803,
+    "ast_hash": "3fd8ae12bc19ecd727e327671d91bf09",
+    "semantic_hash": "3fd8ae12bc19ecd727e327671d91bf09"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/friends/route.ts": {
+    "mtime": 1781083370.9753892,
+    "ast_hash": "1f037c6d02ecda8d885c8c2002189c58",
+    "semantic_hash": "1f037c6d02ecda8d885c8c2002189c58"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/avatar/route.ts": {
+    "mtime": 1775963805.9338102,
+    "ast_hash": "911313ca289fe9762c9b89bd376fed5b",
+    "semantic_hash": "911313ca289fe9762c9b89bd376fed5b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/invitations/[invitationId]/route.ts": {
+    "mtime": 1775866867.522125,
+    "ast_hash": "5c9c1a2b8baece524efd16fe48177d7a",
+    "semantic_hash": "5c9c1a2b8baece524efd16fe48177d7a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/invitations/route.ts": {
+    "mtime": 1775963805.941054,
+    "ast_hash": "35b1e1f71b5827d4642a73e69ab3de2b",
+    "semantic_hash": "35b1e1f71b5827d4642a73e69ab3de2b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/members/route.ts": {
+    "mtime": 1775963805.9450474,
+    "ast_hash": "c2d60bf0a9fe0e6b26bcc9bc90cde699",
+    "semantic_hash": "c2d60bf0a9fe0e6b26bcc9bc90cde699"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/messages/route.ts": {
+    "mtime": 1775963805.9507012,
+    "ast_hash": "bff116415e7aba8231657467164fbf00",
+    "semantic_hash": "bff116415e7aba8231657467164fbf00"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/notebooks/route.ts": {
+    "mtime": 1781083370.975577,
+    "ast_hash": "53e7de2fecf5a46c5d225eb2c1a910bb",
+    "semantic_hash": "53e7de2fecf5a46c5d225eb2c1a910bb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/read/route.ts": {
+    "mtime": 1781083370.9757497,
+    "ast_hash": "09e518ab419f889edebfc82c26023de2",
+    "semantic_hash": "09e518ab419f889edebfc82c26023de2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/role/route.ts": {
+    "mtime": 1781083370.975951,
+    "ast_hash": "0793380d28d62a81abfe004b0d5f1a8f",
+    "semantic_hash": "0793380d28d62a81abfe004b0d5f1a8f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/route.ts": {
+    "mtime": 1781083370.9762719,
+    "ast_hash": "c0d6931be0f3767b5598c4ee25fa4db9",
+    "semantic_hash": "c0d6931be0f3767b5598c4ee25fa4db9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/shared/[sharedId]/csv/route.ts": {
+    "mtime": 1781083370.9765277,
+    "ast_hash": "8fd7d995e6333c05271f94695f6049de",
+    "semantic_hash": "8fd7d995e6333c05271f94695f6049de"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/shared/[sharedId]/route.ts": {
+    "mtime": 1775963805.9700367,
+    "ast_hash": "e264d002dc5aaf9f265434e0318ddceb",
+    "semantic_hash": "e264d002dc5aaf9f265434e0318ddceb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/shared/[sharedId]/save/route.ts": {
+    "mtime": 1781083370.9767122,
+    "ast_hash": "c391dafe0e42ef04d3c70ff10ce9d760",
+    "semantic_hash": "c391dafe0e42ef04d3c70ff10ce9d760"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/shared/route.ts": {
+    "mtime": 1775963805.984752,
+    "ast_hash": "19de198b045b6a9f5fe192da3622d7b0",
+    "semantic_hash": "19de198b045b6a9f5fe192da3622d7b0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/[id]/transfer/route.ts": {
+    "mtime": 1775866867.5092387,
+    "ast_hash": "fc703284f11d280f2dd725ba6453c3ea",
+    "semantic_hash": "fc703284f11d280f2dd725ba6453c3ea"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/invitations/route.ts": {
+    "mtime": 1775963805.9905207,
+    "ast_hash": "9cc7065e4c0e523ef103ebd685c73591",
+    "semantic_hash": "9cc7065e4c0e523ef103ebd685c73591"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/groups/route.ts": {
+    "mtime": 1775963805.9951968,
+    "ast_hash": "2d960d1d574e1f5ded7e03a9d3b28093",
+    "semantic_hash": "2d960d1d574e1f5ded7e03a9d3b28093"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/classify/route.ts": {
+    "mtime": 1781367804.723708,
+    "ast_hash": "ac8cbb12c2b5e00dcf1bd736df06caf9",
+    "semantic_hash": "ac8cbb12c2b5e00dcf1bd736df06caf9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/commit/route.ts": {
+    "mtime": 1781083370.9773602,
+    "ast_hash": "d73c7b9142e7eaa9ddec6d89a7dba2be",
+    "semantic_hash": "d73c7b9142e7eaa9ddec6d89a7dba2be"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/jobs/[jobId]/progress/route.ts": {
+    "mtime": 1781083370.977871,
+    "ast_hash": "775e3b1896685c14de0024b916911ebb",
+    "semantic_hash": "775e3b1896685c14de0024b916911ebb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/onenote/auth/route.ts": {
+    "mtime": 1775866867.528735,
+    "ast_hash": "7abce83710557f9d77e3025a9c314728",
+    "semantic_hash": "7abce83710557f9d77e3025a9c314728"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/onenote/callback/route.ts": {
+    "mtime": 1781083370.9780686,
+    "ast_hash": "52963fb575065f1383d368be882bb8b8",
+    "semantic_hash": "52963fb575065f1383d368be882bb8b8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/onenote/disconnect/route.ts": {
+    "mtime": 1775866867.530233,
+    "ast_hash": "85b756015094a9a8d0ea4478c097b1e8",
+    "semantic_hash": "85b756015094a9a8d0ea4478c097b1e8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/onenote/import/route.ts": {
+    "mtime": 1781083370.9783118,
+    "ast_hash": "d186dab1cc3b67fd519e4b96d8266924",
+    "semantic_hash": "d186dab1cc3b67fd519e4b96d8266924"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/onenote/notebooks/route.ts": {
+    "mtime": 1775866867.5317636,
+    "ast_hash": "f716464d0be6784121db5002881cfe87",
+    "semantic_hash": "f716464d0be6784121db5002881cfe87"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/onenote/status/route.ts": {
+    "mtime": 1775866867.5292854,
+    "ast_hash": "61a1ebe0f215b78a7d7d760823f749f2",
+    "semantic_hash": "61a1ebe0f215b78a7d7d760823f749f2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/import/status/route.ts": {
+    "mtime": 1781083370.9784727,
+    "ast_hash": "34626137b6e15586e23a5defd1bc6430",
+    "semantic_hash": "34626137b6e15586e23a5defd1bc6430"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/activities/[activityId]/content/route.ts": {
+    "mtime": 1781243902.3653245,
+    "ast_hash": "19f9ec6c86ec0eccb54f5b31e3b5db57",
+    "semantic_hash": "19f9ec6c86ec0eccb54f5b31e3b5db57"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/activities/[activityId]/route.ts": {
+    "mtime": 1781732115.2761612,
+    "ast_hash": "f4ad2cacb870dd08e4c9e7a0b38ddaaa",
+    "semantic_hash": "f4ad2cacb870dd08e4c9e7a0b38ddaaa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/chats/[chatId]/messages/route.ts": {
+    "mtime": 1781367804.7242668,
+    "ast_hash": "c3e9a0b0cf2e1fdeb35d350dfd48fbe0",
+    "semantic_hash": "c3e9a0b0cf2e1fdeb35d350dfd48fbe0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/chats/[chatId]/route.ts": {
+    "mtime": 1781083370.9794881,
+    "ast_hash": "346ebb6cbeb477fcc1115dd2d1bd5571",
+    "semantic_hash": "346ebb6cbeb477fcc1115dd2d1bd5571"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/chats/route.ts": {
+    "mtime": 1781739106.2306623,
+    "ast_hash": "cce58427c472371877e0cce52a08fb90",
+    "semantic_hash": "cce58427c472371877e0cce52a08fb90"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/documents/youtube/route.ts": {
+    "mtime": 1781261224.3807695,
+    "ast_hash": "0752c92717d6c2c3db7db0b7177db0d2",
+    "semantic_hash": "0752c92717d6c2c3db7db0b7177db0d2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/inventory/route.ts": {
+    "mtime": 1781738376.53047,
+    "ast_hash": "c89835eec434806803e7d16630caac51",
+    "semantic_hash": "c89835eec434806803e7d16630caac51"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/cancel/route.ts": {
+    "mtime": 1781083370.9802356,
+    "ast_hash": "8e78ad10d3451681acd6abf518b6a323",
+    "semantic_hash": "8e78ad10d3451681acd6abf518b6a323"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/generation/route.ts": {
+    "mtime": 1781083370.9804635,
+    "ast_hash": "5e0f9de676f63d044074db71cc45675b",
+    "semantic_hash": "5e0f9de676f63d044074db71cc45675b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/publication-status/route.ts": {
+    "mtime": 1781083370.980635,
+    "ast_hash": "2176af82904044e6b1537dfe4f407e7d",
+    "semantic_hash": "2176af82904044e6b1537dfe4f407e7d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/publish/route.ts": {
+    "mtime": 1781367804.724562,
+    "ast_hash": "b56bbce2d6b5bdc685d61a94131d8366",
+    "semantic_hash": "b56bbce2d6b5bdc685d61a94131d8366"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/regenerate/route.ts": {
+    "mtime": 1781367804.7248015,
+    "ast_hash": "36d1c5ba95141b3d2c6471e7fdc8238b",
+    "semantic_hash": "36d1c5ba95141b3d2c6471e7fdc8238b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/reset/route.ts": {
+    "mtime": 1781083370.9812903,
+    "ast_hash": "68528566b66d19bf1c22094618ba3523",
+    "semantic_hash": "68528566b66d19bf1c22094618ba3523"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/route.ts": {
+    "mtime": 1781215373.8677526,
+    "ast_hash": "e2843d7c66f94b05d16cf3b705a90c65",
+    "semantic_hash": "e2843d7c66f94b05d16cf3b705a90c65"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/[planId]/translate/route.ts": {
+    "mtime": 1781367804.7250454,
+    "ast_hash": "7655a504cb957b4d1d01376849740729",
+    "semantic_hash": "7655a504cb957b4d1d01376849740729"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/access/route.ts": {
+    "mtime": 1781083370.9818294,
+    "ast_hash": "74c9bf6a4786b52de4d3acef67ba1800",
+    "semantic_hash": "74c9bf6a4786b52de4d3acef67ba1800"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/detect-topics/route.ts": {
+    "mtime": 1781737513.1011388,
+    "ast_hash": "2c1c533c5065e1aa8c6ee7c0079eff91",
+    "semantic_hash": "2c1c533c5065e1aa8c6ee7c0079eff91"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/estimate/route.ts": {
+    "mtime": 1781447077.4527493,
+    "ast_hash": "c10492eb7bbebfe802a0e4e2ea91ff1d",
+    "semantic_hash": "c10492eb7bbebfe802a0e4e2ea91ff1d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/paths/route.ts": {
+    "mtime": 1781447016.7249181,
+    "ast_hash": "ce163f91a7cf4bdd0d3045083c3fcbc2",
+    "semantic_hash": "ce163f91a7cf4bdd0d3045083c3fcbc2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/slots/[slotId]/assessment/route.ts": {
+    "mtime": 1781732115.2764182,
+    "ast_hash": "e8eb57cf4c25deae1605dc814fdcbe19",
+    "semantic_hash": "e8eb57cf4c25deae1605dc814fdcbe19"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/uploads/inbox/route.ts": {
+    "mtime": 1781738101.3215554,
+    "ast_hash": "fe606abe03c9bebd4feaf401d7605649",
+    "semantic_hash": "fe606abe03c9bebd4feaf401d7605649"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/learn/uploads/route.ts": {
+    "mtime": 1781083370.9825995,
+    "ast_hash": "d7abbebc99e6bda5aea40bebc1ecf40d",
+    "semantic_hash": "d7abbebc99e6bda5aea40bebc1ecf40d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/me/entitlement/route.ts": {
+    "mtime": 1781083370.9828355,
+    "ast_hash": "26d594f35a69b3448b613f95288cc1fe",
+    "semantic_hash": "26d594f35a69b3448b613f95288cc1fe"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebook-folders/[id]/route.ts": {
+    "mtime": 1775866867.486858,
+    "ast_hash": "02810772c5a081dde9d7e6f35f893db1",
+    "semantic_hash": "02810772c5a081dde9d7e6f35f893db1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebook-folders/route.ts": {
+    "mtime": 1778075830.555565,
+    "ast_hash": "cc49521a8ec37ea670bf81e44b3ca8b9",
+    "semantic_hash": "cc49521a8ec37ea670bf81e44b3ca8b9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/chats/[chatId]/messages/route.ts": {
+    "mtime": 1781367804.7255533,
+    "ast_hash": "0b3f91624e73dae59cf67cb730905dbd",
+    "semantic_hash": "0b3f91624e73dae59cf67cb730905dbd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/chats/[chatId]/route.ts": {
+    "mtime": 1775866867.5545993,
+    "ast_hash": "7d5200145a08c7b4465588b47c9b1afa",
+    "semantic_hash": "7d5200145a08c7b4465588b47c9b1afa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/chats/route.ts": {
+    "mtime": 1781083370.9833367,
+    "ast_hash": "f2da263ea408000ec2cc981e39c3877f",
+    "semantic_hash": "f2da263ea408000ec2cc981e39c3877f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/cowork/[sessionId]/join/route.ts": {
+    "mtime": 1775963806.0552762,
+    "ast_hash": "00775258392869978601b4a9daaf3593",
+    "semantic_hash": "00775258392869978601b4a9daaf3593"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/cowork/[sessionId]/leave/route.ts": {
+    "mtime": 1781083370.9836056,
+    "ast_hash": "98e207806add87d72e18e154435b2722",
+    "semantic_hash": "98e207806add87d72e18e154435b2722"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/cowork/[sessionId]/lock/[pageId]/route.ts": {
+    "mtime": 1781083370.983819,
+    "ast_hash": "7899440cf7e0a9d96b45b5e457957ba1",
+    "semantic_hash": "7899440cf7e0a9d96b45b5e457957ba1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/cowork/[sessionId]/messages/route.ts": {
+    "mtime": 1775963806.0659087,
+    "ast_hash": "d622823fb65f78264f2721419ce0a373",
+    "semantic_hash": "d622823fb65f78264f2721419ce0a373"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/cowork/[sessionId]/route.ts": {
+    "mtime": 1781083370.9839725,
+    "ast_hash": "fd6e0cc4e48e6d0bbd07a24d73b64889",
+    "semantic_hash": "fd6e0cc4e48e6d0bbd07a24d73b64889"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/cowork/route.ts": {
+    "mtime": 1775963806.0723479,
+    "ast_hash": "d45ec1a36495d6af3f94518600cd35fa",
+    "semantic_hash": "d45ec1a36495d6af3f94518600cd35fa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/documents/[docId]/route.ts": {
+    "mtime": 1775866867.556129,
+    "ast_hash": "b26dd1beb2dcca23b93f9c5a384f31d4",
+    "semantic_hash": "b26dd1beb2dcca23b93f9c5a384f31d4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/documents/[docId]/summarize/route.ts": {
+    "mtime": 1781367804.725743,
+    "ast_hash": "0270ed99bcc716cba32ee595694ee7ba",
+    "semantic_hash": "0270ed99bcc716cba32ee595694ee7ba"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/documents/route.ts": {
+    "mtime": 1781083370.9844863,
+    "ast_hash": "4ef53261571ebf27477b561087cbb013",
+    "semantic_hash": "4ef53261571ebf27477b561087cbb013"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/documents/youtube/route.ts": {
+    "mtime": 1781261215.382274,
+    "ast_hash": "0af3c2d6a4bd5c47169316705c7e29b2",
+    "semantic_hash": "0af3c2d6a4bd5c47169316705c7e29b2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/essay-check/route.ts": {
+    "mtime": 1781367804.7259338,
+    "ast_hash": "f9a47bace02f04617bf93164d9929694",
+    "semantic_hash": "f9a47bace02f04617bf93164d9929694"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/export/pages/pdf/route.ts": {
+    "mtime": 1781367804.7261157,
+    "ast_hash": "f9570aefad54ce5f3106684f3ab7ba50",
+    "semantic_hash": "f9570aefad54ce5f3106684f3ab7ba50"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/export/pages/pptx/route.ts": {
+    "mtime": 1781367804.7262757,
+    "ast_hash": "82d014689435d57f893bb3a4e8440243",
+    "semantic_hash": "82d014689435d57f893bb3a4e8440243"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/export/pdf/split/route.ts": {
+    "mtime": 1781367804.7264552,
+    "ast_hash": "aca4511b8e567af2c37924c9a3758793",
+    "semantic_hash": "aca4511b8e567af2c37924c9a3758793"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/export-pdf/route.ts": {
+    "mtime": 1781367804.7266207,
+    "ast_hash": "24c30a092264ce1d7917a76f6530f605",
+    "semantic_hash": "24c30a092264ce1d7917a76f6530f605"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/export-pptx/route.ts": {
+    "mtime": 1781367804.7267766,
+    "ast_hash": "b4e65f4bd1ac993e42e471f82c29d89a",
+    "semantic_hash": "b4e65f4bd1ac993e42e471f82c29d89a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/flashcards/[cardId]/images/[imageId]/route.ts": {
+    "mtime": 1775866867.5432522,
+    "ast_hash": "a3fa0d477e17ddbf3e1bc854f5e71454",
+    "semantic_hash": "a3fa0d477e17ddbf3e1bc854f5e71454"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/flashcards/[cardId]/images/route.ts": {
+    "mtime": 1781083370.9851046,
+    "ast_hash": "c9390d5a246871bf2db06dab0875488d",
+    "semantic_hash": "c9390d5a246871bf2db06dab0875488d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/flashcards/[cardId]/route.ts": {
+    "mtime": 1775866867.5445151,
+    "ast_hash": "3e2283f9d2e1ab4a5754355ab56ca293",
+    "semantic_hash": "3e2283f9d2e1ab4a5754355ab56ca293"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/flashcards/route.ts": {
+    "mtime": 1775866867.544856,
+    "ast_hash": "7586d487fac0a917b8a28a94350f4668",
+    "semantic_hash": "7586d487fac0a917b8a28a94350f4668"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/review/route.ts": {
+    "mtime": 1781083370.9852495,
+    "ast_hash": "fb531ed8a55eceaf67a9d31926b88f29",
+    "semantic_hash": "fb531ed8a55eceaf67a9d31926b88f29"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/route.ts": {
+    "mtime": 1775866867.5452957,
+    "ast_hash": "c996c5b429ee0dfaacfe6b7aa44c613b",
+    "semantic_hash": "c996c5b429ee0dfaacfe6b7aa44c613b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/split/route.ts": {
+    "mtime": 1781083370.9854822,
+    "ast_hash": "080ef838c09f7ab610232466461ed424",
+    "semantic_hash": "080ef838c09f7ab610232466461ed424"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/[setId]/study-session/route.ts": {
+    "mtime": 1776545976.1413903,
+    "ast_hash": "904cf050b2f594f2c1a40b2e04a3cec9",
+    "semantic_hash": "904cf050b2f594f2c1a40b2e04a3cec9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/import/route.ts": {
+    "mtime": 1781367804.72696,
+    "ast_hash": "feba8576863c6210c1bab85c4e423143",
+    "semantic_hash": "feba8576863c6210c1bab85c4e423143"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/merge/route.ts": {
+    "mtime": 1781083370.9859738,
+    "ast_hash": "9623869e8af27134ed75f423c1c32261",
+    "semantic_hash": "9623869e8af27134ed75f423c1c32261"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/flashcard-sets/route.ts": {
+    "mtime": 1781083370.9863346,
+    "ast_hash": "bcf7a9c84e39782ec467595202d36205",
+    "semantic_hash": "bcf7a9c84e39782ec467595202d36205"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/inventory/route.ts": {
+    "mtime": 1781738379.3217213,
+    "ast_hash": "dea1a46b6edee5a9a19649d60b428ae0",
+    "semantic_hash": "dea1a46b6edee5a9a19649d60b428ae0"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pages/[pageId]/ai-inline/route.ts": {
+    "mtime": 1781367804.7272367,
+    "ast_hash": "d372c89304bfef3d0531f93723244397",
+    "semantic_hash": "d372c89304bfef3d0531f93723244397"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pages/[pageId]/append-pdf/route.ts": {
+    "mtime": 1781367804.727462,
+    "ast_hash": "b537b64bb7f4ea9d11e6ef03609a6b56",
+    "semantic_hash": "b537b64bb7f4ea9d11e6ef03609a6b56"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pages/[pageId]/drawing/route.ts": {
+    "mtime": 1775866867.55937,
+    "ast_hash": "1950b4a18eca7c47e14503dd64c07828",
+    "semantic_hash": "1950b4a18eca7c47e14503dd64c07828"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pages/[pageId]/generate/route.ts": {
+    "mtime": 1781367804.7277362,
+    "ast_hash": "b74139fe5062c689052d8f1288129965",
+    "semantic_hash": "b74139fe5062c689052d8f1288129965"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pages/[pageId]/images/route.ts": {
+    "mtime": 1781083370.9876828,
+    "ast_hash": "ca2b381f1897b43c77a515ec312010d5",
+    "semantic_hash": "ca2b381f1897b43c77a515ec312010d5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pages/[pageId]/route.ts": {
+    "mtime": 1778430898.3325412,
+    "ast_hash": "f2d1000053b703c10f1874f568b90374",
+    "semantic_hash": "f2d1000053b703c10f1874f568b90374"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pdf-import/[jobId]/progress/route.ts": {
+    "mtime": 1781083370.9880297,
+    "ast_hash": "cbc3b4caaf6163552955ac57ac6de2f5",
+    "semantic_hash": "cbc3b4caaf6163552955ac57ac6de2f5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pdf-import/[jobId]/retry/route.ts": {
+    "mtime": 1781367804.7279167,
+    "ast_hash": "38fe2d362619504ca37c666f3107f7ed",
+    "semantic_hash": "38fe2d362619504ca37c666f3107f7ed"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/pdf-import/route.ts": {
+    "mtime": 1781367804.7281032,
+    "ast_hash": "052294ac792be26b81ca9c37979e883e",
+    "semantic_hash": "052294ac792be26b81ca9c37979e883e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/[setId]/attempts/[attemptId]/route.ts": {
+    "mtime": 1775866867.5494227,
+    "ast_hash": "bb7c5d3463ab72511152638994e68a26",
+    "semantic_hash": "bb7c5d3463ab72511152638994e68a26"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/[setId]/attempts/route.ts": {
+    "mtime": 1781083370.9886255,
+    "ast_hash": "264d2c3083294b48e140910b86f62181",
+    "semantic_hash": "264d2c3083294b48e140910b86f62181"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/[setId]/export-pdf/route.ts": {
+    "mtime": 1781367804.7282748,
+    "ast_hash": "75bf5f748c93349cc89dd1d4c0b1795c",
+    "semantic_hash": "75bf5f748c93349cc89dd1d4c0b1795c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/[setId]/export-pptx/route.ts": {
+    "mtime": 1781367804.7284467,
+    "ast_hash": "b1cfa56abcf8205cda9bbb0529535675",
+    "semantic_hash": "b1cfa56abcf8205cda9bbb0529535675"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/[setId]/questions/[questionId]/route.ts": {
+    "mtime": 1775866867.5500162,
+    "ast_hash": "a9dde08fc2d46f3f6052bc5193304765",
+    "semantic_hash": "a9dde08fc2d46f3f6052bc5193304765"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/[setId]/route.ts": {
+    "mtime": 1781158909.1321676,
+    "ast_hash": "de8ede7b33cb08cdd8fdff3956add64d",
+    "semantic_hash": "de8ede7b33cb08cdd8fdff3956add64d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/quiz-sets/route.ts": {
+    "mtime": 1781083370.9889638,
+    "ast_hash": "0c3bf8bb7d8ddc3929d016f4626b6a1e",
+    "semantic_hash": "0c3bf8bb7d8ddc3929d016f4626b6a1e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/route.ts": {
+    "mtime": 1781083370.9891932,
+    "ast_hash": "48cadc3abb3d0dcb913bb17165bb381d",
+    "semantic_hash": "48cadc3abb3d0dcb913bb17165bb381d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/[sectionId]/import-pptx/route.ts": {
+    "mtime": 1781367804.728623,
+    "ast_hash": "9c263f71059b19a676d93d67e211e751",
+    "semantic_hash": "9c263f71059b19a676d93d67e211e751"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/[sectionId]/import-url/route.ts": {
+    "mtime": 1781083370.9895446,
+    "ast_hash": "1da7849964461efd05687992102e7a83",
+    "semantic_hash": "1da7849964461efd05687992102e7a83"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/[sectionId]/import-xlsx/route.ts": {
+    "mtime": 1781367804.7288604,
+    "ast_hash": "8da6fa994be84974ca648339b48c4314",
+    "semantic_hash": "8da6fa994be84974ca648339b48c4314"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/[sectionId]/import/route.ts": {
+    "mtime": 1781367804.729044,
+    "ast_hash": "5e777acf5e4b401a05edec9677dc217c",
+    "semantic_hash": "5e777acf5e4b401a05edec9677dc217c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/[sectionId]/pages/route.ts": {
+    "mtime": 1778430898.3328097,
+    "ast_hash": "c109e14f0cc35aad0f07716545bf851b",
+    "semantic_hash": "c109e14f0cc35aad0f07716545bf851b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/[sectionId]/route.ts": {
+    "mtime": 1775866867.5352871,
+    "ast_hash": "a7a9115834f58fef2f99b77f71fe897c",
+    "semantic_hash": "a7a9115834f58fef2f99b77f71fe897c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/sections/route.ts": {
+    "mtime": 1781083370.9902182,
+    "ast_hash": "6f32054f8025836470c351a84e75c5bd",
+    "semantic_hash": "6f32054f8025836470c351a84e75c5bd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/share/copy/route.ts": {
+    "mtime": 1775866867.568152,
+    "ast_hash": "c18244bcf15722e01cc3a1c5035d6b20",
+    "semantic_hash": "c18244bcf15722e01cc3a1c5035d6b20"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/share/route.ts": {
+    "mtime": 1781083370.9905415,
+    "ast_hash": "1abf50ef85e8576dcb2dc478f70a1adf",
+    "semantic_hash": "1abf50ef85e8576dcb2dc478f70a1adf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/study-plans/route.ts": {
+    "mtime": 1781083370.991137,
+    "ast_hash": "6509880a02852976a57249be08bff0dd",
+    "semantic_hash": "6509880a02852976a57249be08bff0dd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/video-import/[jobId]/cancel/route.ts": {
+    "mtime": 1781259911.3370688,
+    "ast_hash": "2c4d447328b331f898c634690381f9d8",
+    "semantic_hash": "2c4d447328b331f898c634690381f9d8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/video-import/[jobId]/progress/route.ts": {
+    "mtime": 1781260036.3593447,
+    "ast_hash": "71ebb0ac1e570ce09f93ae3f652bdc62",
+    "semantic_hash": "71ebb0ac1e570ce09f93ae3f652bdc62"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/video-import/[jobId]/retry/route.ts": {
+    "mtime": 1781367804.7293098,
+    "ast_hash": "9142bdaefa151f857bda33a7acc5019f",
+    "semantic_hash": "9142bdaefa151f857bda33a7acc5019f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/[id]/video-import/route.ts": {
+    "mtime": 1781367804.7295964,
+    "ast_hash": "3af774ef5617b79a8cb148f2725e0b90",
+    "semantic_hash": "3af774ef5617b79a8cb148f2725e0b90"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notebooks/route.ts": {
+    "mtime": 1781083370.9913142,
+    "ast_hash": "99ca663fb3dc066d7f21bb441c2ea85b",
+    "semantic_hash": "99ca663fb3dc066d7f21bb441c2ea85b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notifications/[id]/route.ts": {
+    "mtime": 1775866867.569352,
+    "ast_hash": "cf5af2e65a858d05de5bbab8a3d1af11",
+    "semantic_hash": "cf5af2e65a858d05de5bbab8a3d1af11"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notifications/read-all/route.ts": {
+    "mtime": 1781083370.9914694,
+    "ast_hash": "5eb4810e10a78520b51bcc2e8bb35f9e",
+    "semantic_hash": "5eb4810e10a78520b51bcc2e8bb35f9e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/notifications/route.ts": {
+    "mtime": 1775963806.2474902,
+    "ast_hash": "6d5e7fa1267a3c67ed632eebeb8e372d",
+    "semantic_hash": "6d5e7fa1267a3c67ed632eebeb8e372d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/path-images/[theoryId]/[ref]/route.ts": {
+    "mtime": 1781083370.9917762,
+    "ast_hash": "68f696c4fb5e26835d585ab2c8dac145",
+    "semantic_hash": "68f696c4fb5e26835d585ab2c8dac145"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/quiz-sets/route.ts": {
+    "mtime": 1781083370.9919405,
+    "ast_hash": "0315d475358f9bf35225e96fad0b2bae",
+    "semantic_hash": "0315d475358f9bf35225e96fad0b2bae"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/quiz/code-execute/route.ts": {
+    "mtime": 1781367804.729838,
+    "ast_hash": "ce2af97687ebdb1ac87468936032bc04",
+    "semantic_hash": "ce2af97687ebdb1ac87468936032bc04"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/schools/peers/route.ts": {
+    "mtime": 1781083370.992492,
+    "ast_hash": "897ea6ec393d812d48f5ece636645fe4",
+    "semantic_hash": "897ea6ec393d812d48f5ece636645fe4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/schools/search/route.ts": {
+    "mtime": 1781083370.9926386,
+    "ast_hash": "bce8e3ac01934fdf68d141eee26e88dc",
+    "semantic_hash": "bce8e3ac01934fdf68d141eee26e88dc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/search/route.ts": {
+    "mtime": 1781083370.9928606,
+    "ast_hash": "2d138c903dd05c14e38b3aa6dc806439",
+    "semantic_hash": "2d138c903dd05c14e38b3aa6dc806439"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/telemetry/route.ts": {
+    "mtime": 1781083370.9929996,
+    "ast_hash": "43b01f8410221d9148d4c32b52d9ed9f",
+    "semantic_hash": "43b01f8410221d9148d4c32b52d9ed9f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/tutorial/sample/route.ts": {
+    "mtime": 1781732115.2767427,
+    "ast_hash": "9eb1220e5bf640e7e8434e1b8a02dcd6",
+    "semantic_hash": "9eb1220e5bf640e7e8434e1b8a02dcd6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/uploads/flashcard-images/[imageId]/route.ts": {
+    "mtime": 1775866867.4921486,
+    "ast_hash": "f861991b8f62cfe6141b79a8b7eea3f7",
+    "semantic_hash": "f861991b8f62cfe6141b79a8b7eea3f7"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/uploads/images/[imageId]/route.ts": {
+    "mtime": 1775866867.4933875,
+    "ast_hash": "8f92aeb175aa07d3dcbdfd5f0376c625",
+    "semantic_hash": "8f92aeb175aa07d3dcbdfd5f0376c625"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/uploads/quiz-images/[imageId]/route.ts": {
+    "mtime": 1781157105.2721186,
+    "ast_hash": "fdd50dec18db544ca86a00210bf38bc1",
+    "semantic_hash": "fdd50dec18db544ca86a00210bf38bc1"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/uploads/shared-images/[imageId]/route.ts": {
+    "mtime": 1781083370.9931786,
+    "ast_hash": "429bd1bd186dd1af33e9e62f8ac7e356",
+    "semantic_hash": "429bd1bd186dd1af33e9e62f8ac7e356"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/uploads/signed-url/route.ts": {
+    "mtime": 1781260608.338714,
+    "ast_hash": "8953eafbe270b9a7a101da9cbab6558f",
+    "semantic_hash": "8953eafbe270b9a7a101da9cbab6558f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/achievements/route.ts": {
+    "mtime": 1781083370.99381,
+    "ast_hash": "ad105e971ac48c3ca93ab87f0ce76804",
+    "semantic_hash": "ad105e971ac48c3ca93ab87f0ce76804"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/activity-heatmap/route.ts": {
+    "mtime": 1781083370.9939585,
+    "ast_hash": "ccf2ad73f69d1ba82bbfbb82ec4230eb",
+    "semantic_hash": "ccf2ad73f69d1ba82bbfbb82ec4230eb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/avatar/route.ts": {
+    "mtime": 1775866867.5017374,
+    "ast_hash": "4097ab0a7140ccf4a57b347167be8137",
+    "semantic_hash": "4097ab0a7140ccf4a57b347167be8137"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/birth-date/route.ts": {
+    "mtime": 1781083370.9940908,
+    "ast_hash": "87429450d526927fdf83664146206d1e",
+    "semantic_hash": "87429450d526927fdf83664146206d1e"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/check-username/route.ts": {
+    "mtime": 1781083370.9942207,
+    "ast_hash": "4d094aaaf3567a23345f42aa77d2e1cf",
+    "semantic_hash": "4d094aaaf3567a23345f42aa77d2e1cf"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/cosmetics/pending-unlocks/route.ts": {
+    "mtime": 1781083370.9944115,
+    "ast_hash": "2fd75aee3e1b0e0c9ae7d23d65165297",
+    "semantic_hash": "2fd75aee3e1b0e0c9ae7d23d65165297"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/cosmetics/route.ts": {
+    "mtime": 1778430898.3331647,
+    "ast_hash": "845a462f19884972de38961afcb61b24",
+    "semantic_hash": "845a462f19884972de38961afcb61b24"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/delete-account/route.ts": {
+    "mtime": 1781083370.9947493,
+    "ast_hash": "8ec69c5c556700c6d0f9b3cc539a27b9",
+    "semantic_hash": "8ec69c5c556700c6d0f9b3cc539a27b9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/exams/[id]/route.ts": {
+    "mtime": 1781083370.995017,
+    "ast_hash": "4706d6f3df06a0d0cb19428447658749",
+    "semantic_hash": "4706d6f3df06a0d0cb19428447658749"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/exams/route.ts": {
+    "mtime": 1781083370.9952812,
+    "ast_hash": "1cb1e0bb10cc1198cea364789675128b",
+    "semantic_hash": "1cb1e0bb10cc1198cea364789675128b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/export/route.ts": {
+    "mtime": 1781083370.9956965,
+    "ast_hash": "c5a64ad4e3e8426e810351d7adbe9506",
+    "semantic_hash": "c5a64ad4e3e8426e810351d7adbe9506"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/onboarding/route.ts": {
+    "mtime": 1781083370.995854,
+    "ast_hash": "92a2878e71974c87c4f9d66f344ff52f",
+    "semantic_hash": "92a2878e71974c87c4f9d66f344ff52f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/password/route.ts": {
+    "mtime": 1781083370.996013,
+    "ast_hash": "a68c10c6e2fc49fe2b0a34059b72cffc",
+    "semantic_hash": "a68c10c6e2fc49fe2b0a34059b72cffc"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/profile/[username]/route.ts": {
+    "mtime": 1781367804.730187,
+    "ast_hash": "5ccaea2dc10be8370bf87bcab178fee9",
+    "semantic_hash": "5ccaea2dc10be8370bf87bcab178fee9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/profile/route.ts": {
+    "mtime": 1781083370.9962292,
+    "ast_hash": "88536967e0913aa51edcba0fdf3128f2",
+    "semantic_hash": "88536967e0913aa51edcba0fdf3128f2"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/settings/route.ts": {
+    "mtime": 1781083370.9964464,
+    "ast_hash": "ff595712835031acdb4976b917ff2240",
+    "semantic_hash": "ff595712835031acdb4976b917ff2240"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/streak/freeze/route.ts": {
+    "mtime": 1775866867.4968922,
+    "ast_hash": "6154ff3907b74c21c27a72037cd5b93b",
+    "semantic_hash": "6154ff3907b74c21c27a72037cd5b93b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/streak/route.ts": {
+    "mtime": 1775866867.4972355,
+    "ast_hash": "ce666f2ef8c37b86e7018e88fa9ae765",
+    "semantic_hash": "ce666f2ef8c37b86e7018e88fa9ae765"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/study-goals/route.ts": {
+    "mtime": 1781083370.9966056,
+    "ast_hash": "b076bf03bffc59a55b317d105dad54fe",
+    "semantic_hash": "b076bf03bffc59a55b317d105dad54fe"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/study-heartbeat/route.ts": {
+    "mtime": 1781083370.9968364,
+    "ast_hash": "8b6c46774ca6c930b5efac16ce52c4e6",
+    "semantic_hash": "8b6c46774ca6c930b5efac16ce52c4e6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/subscription/route.ts": {
+    "mtime": 1781083370.9969869,
+    "ast_hash": "e8fc7a6e8f9898ffbcca09cb09b7a588",
+    "semantic_hash": "e8fc7a6e8f9898ffbcca09cb09b7a588"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/tier/route.ts": {
+    "mtime": 1781083370.997143,
+    "ast_hash": "96afab3502741e118c8dc7c78acfd3cb",
+    "semantic_hash": "96afab3502741e118c8dc7c78acfd3cb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/todos/[id]/route.ts": {
+    "mtime": 1775866867.5047753,
+    "ast_hash": "d08bcfeaa07d0cf42681d291685414cd",
+    "semantic_hash": "d08bcfeaa07d0cf42681d291685414cd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/todos/route.ts": {
+    "mtime": 1781083370.997291,
+    "ast_hash": "3884ec46a17c011aa3f39e23b2569cd4",
+    "semantic_hash": "3884ec46a17c011aa3f39e23b2569cd4"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/tutorial/complete/route.ts": {
+    "mtime": 1778453582.1768928,
+    "ast_hash": "5aedcd78e91e7498df9838537463246a",
+    "semantic_hash": "5aedcd78e91e7498df9838537463246a"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/tutorial/route.ts": {
+    "mtime": 1781083370.9975586,
+    "ast_hash": "357049286e8dcb2ddc97fd5cb45dc256",
+    "semantic_hash": "357049286e8dcb2ddc97fd5cb45dc256"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/usage/route.ts": {
+    "mtime": 1775866867.4978995,
+    "ast_hash": "4b825aa80b8bb2700eab18a0e3c02397",
+    "semantic_hash": "4b825aa80b8bb2700eab18a0e3c02397"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/user/username/route.ts": {
+    "mtime": 1775963806.3484192,
+    "ast_hash": "2c2767ca79251b18580d186db1c22e1d",
+    "semantic_hash": "2c2767ca79251b18580d186db1c22e1d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/users/search/route.ts": {
+    "mtime": 1775963806.3528097,
+    "ast_hash": "fa56b9943d94a3ef848e3137622cd3ab",
+    "semantic_hash": "fa56b9943d94a3ef848e3137622cd3ab"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/api/waitlist/route.ts": {
+    "mtime": 1781367804.7304182,
+    "ast_hash": "e0825d9e1b3c9bde7dd32b98d0383b71",
+    "semantic_hash": "e0825d9e1b3c9bde7dd32b98d0383b71"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/contact/page.tsx": {
+    "mtime": 1781083370.9979446,
+    "ast_hash": "4f5fa05582046a628dcfeff963120e10",
+    "semantic_hash": "4f5fa05582046a628dcfeff963120e10"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/docs/[[...slug]]/page.tsx": {
+    "mtime": 1781083370.9981794,
+    "ast_hash": "65fdb246a73c9864acf025dacea7103f",
+    "semantic_hash": "65fdb246a73c9864acf025dacea7103f"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/docs/layout.tsx": {
+    "mtime": 1781083370.9983573,
+    "ast_hash": "8f9c368e464eabc2c76bd14595a64f05",
+    "semantic_hash": "8f9c368e464eabc2c76bd14595a64f05"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/error.tsx": {
+    "mtime": 1778491734.661344,
+    "ast_hash": "cf95df63333d4f9385b033d517e80a48",
+    "semantic_hash": "cf95df63333d4f9385b033d517e80a48"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/global-error.tsx": {
+    "mtime": 1778491734.6619256,
+    "ast_hash": "fa0189754799c8be556db100454d44ba",
+    "semantic_hash": "fa0189754799c8be556db100454d44ba"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/i/[token]/route.ts": {
+    "mtime": 1781083370.9989123,
+    "ast_hash": "9570febc0687ef7282d91c1b9a9a0675",
+    "semantic_hash": "9570febc0687ef7282d91c1b9a9a0675"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/layout.tsx": {
+    "mtime": 1781732115.2773402,
+    "ast_hash": "5da10413ab8f8cfaab507e80ea612314",
+    "semantic_hash": "5da10413ab8f8cfaab507e80ea612314"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/legal/page.tsx": {
+    "mtime": 1778491734.668688,
+    "ast_hash": "4d9c7773f46a7479ffa61cf22d1f52ef",
+    "semantic_hash": "4d9c7773f46a7479ffa61cf22d1f52ef"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/maintenance/page.tsx": {
+    "mtime": 1781083370.9995718,
+    "ast_hash": "2dd0f2586bd01a09028eb2373ae777c5",
+    "semantic_hash": "2dd0f2586bd01a09028eb2373ae777c5"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/not-found.tsx": {
+    "mtime": 1778491734.662196,
+    "ast_hash": "c6fd3ec3c21ed27dee28c211c517f25d",
+    "semantic_hash": "c6fd3ec3c21ed27dee28c211c517f25d"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/page.tsx": {
+    "mtime": 1781083370.9998007,
+    "ast_hash": "e7d00e4997bbd0ee41cb2f5edf21fdfd",
+    "semantic_hash": "e7d00e4997bbd0ee41cb2f5edf21fdfd"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/pricing/PricingPageClient.tsx": {
+    "mtime": 1781083370.9999304,
+    "ast_hash": "1776995c857e7a6ae0af2a925b46eb80",
+    "semantic_hash": "1776995c857e7a6ae0af2a925b46eb80"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/pricing/page.tsx": {
+    "mtime": 1781083371.0000875,
+    "ast_hash": "0319657babddff521ee9c6f08b0b16bb",
+    "semantic_hash": "0319657babddff521ee9c6f08b0b16bb"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/privacy/page.tsx": {
+    "mtime": 1781083371.0003285,
+    "ast_hash": "cd3cc2739d69366515abf9d352827b66",
+    "semantic_hash": "cd3cc2739d69366515abf9d352827b66"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/providers.tsx": {
+    "mtime": 1781083371.0005999,
+    "ast_hash": "2284271e3b8b7b496109e42827b4ad38",
+    "semantic_hash": "2284271e3b8b7b496109e42827b4ad38"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/refund/page.tsx": {
+    "mtime": 1781083371.0007539,
+    "ast_hash": "3199812454c2de2b16338cd36aabb98c",
+    "semantic_hash": "3199812454c2de2b16338cd36aabb98c"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/terms/page.tsx": {
+    "mtime": 1781083371.000918,
+    "ast_hash": "2fec270287e08e44f894c52fe68211a3",
+    "semantic_hash": "2fec270287e08e44f894c52fe68211a3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/app/waitlist/page.tsx": {
+    "mtime": 1781083371.0011022,
+    "ast_hash": "8bfbbf61ea6f3abff1d04e6002510558",
+    "semantic_hash": "8bfbbf61ea6f3abff1d04e6002510558"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/packages/shared/package.json": {
+    "mtime": 1778453358.5203743,
+    "ast_hash": "3a27219c06d1c008c936572b21b9b5e8",
+    "semantic_hash": "3a27219c06d1c008c936572b21b9b5e8"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/packages/shared/src/bridge.ts": {
+    "mtime": 1781386233.943165,
+    "ast_hash": "de41d75c0f51312f33b52ca26c3c3855",
+    "semantic_hash": "de41d75c0f51312f33b52ca26c3c3855"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/packages/shared/src/index.ts": {
+    "mtime": 1781083371.123197,
+    "ast_hash": "b7369de79149307492cc08b7d8139181",
+    "semantic_hash": "b7369de79149307492cc08b7d8139181"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/packages/shared/src/path.ts": {
+    "mtime": 1781083371.1233618,
+    "ast_hash": "4a29c5a327dad1cfede16dac269e031b",
+    "semantic_hash": "4a29c5a327dad1cfede16dac269e031b"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/packages/shared/src/quiz.ts": {
+    "mtime": 1781247747.5595012,
+    "ast_hash": "ddd2df7a6c1eda6a34a65e42b6576812",
+    "semantic_hash": "ddd2df7a6c1eda6a34a65e42b6576812"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/legal-notice.de.md": {
+    "mtime": 1781083371.0710585,
+    "ast_hash": "0f6e895ca24c29a276ebaf481d7f4469",
+    "semantic_hash": "0f6e895ca24c29a276ebaf481d7f4469"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/legal-notice.en.md": {
+    "mtime": 1781083371.0712104,
+    "ast_hash": "d00ee01eef909fbf7ff8f0f68d9074f6",
+    "semantic_hash": "d00ee01eef909fbf7ff8f0f68d9074f6"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/privacy.de.md": {
+    "mtime": 1781367804.733797,
+    "ast_hash": "77be06b0e5ccecd29b98859156af43b9",
+    "semantic_hash": "77be06b0e5ccecd29b98859156af43b9"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/privacy.en.md": {
+    "mtime": 1781367804.734064,
+    "ast_hash": "e7f8e7ee4ff1a441df9e5293acc62015",
+    "semantic_hash": "e7f8e7ee4ff1a441df9e5293acc62015"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/refund.de.md": {
+    "mtime": 1781083371.0717597,
+    "ast_hash": "72131462d3e2de9875b342d2330d9dfa",
+    "semantic_hash": "72131462d3e2de9875b342d2330d9dfa"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/refund.en.md": {
+    "mtime": 1781083371.0719373,
+    "ast_hash": "ac95fa6f2a637dbf31b348bbb53c1f43",
+    "semantic_hash": "ac95fa6f2a637dbf31b348bbb53c1f43"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/terms.de.md": {
+    "mtime": 1781083371.072119,
+    "ast_hash": "7d81527f8ed8d380930a0621f0c0fee3",
+    "semantic_hash": "7d81527f8ed8d380930a0621f0c0fee3"
+  },
+  "/Users/toprakdemirel/Entwicklung/Quizzard/apps/web/src/content/legal/terms.en.md": {
+    "mtime": 1781083371.0723283,
+    "ast_hash": "7a3527b66353b78c9aa56643c279e55f",
+    "semantic_hash": "7a3527b66353b78c9aa56643c279e55f"
+  }
+}

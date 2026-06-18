@@ -26,5 +26,3 @@ skills-lock.json
 
 # brand promo videos + render workspace (local-only, not product)
 brand_video/
-# graphify knowledge graph (generated locally, contains machine-specific paths)
-graphify-out/
