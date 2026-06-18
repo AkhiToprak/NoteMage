@@ -194,9 +194,11 @@ function Step1Upload({
   const readyVideoIds = state.youtubeVideos
     .filter((v) => v.status === 'ready' && v.materialId)
     .map((v) => v.materialId as string);
-  // A native (PRO) video still being watched blocks Continue — its page isn't
-  // material yet, and topic detection needs every chosen source ready.
-  const videosProcessing = state.youtubeVideos.some((v) => v.status === 'processing');
+  // A queued or in-flight video blocks Continue — its material isn't ready yet,
+  // and topic detection needs every chosen source ready.
+  const videosProcessing = state.youtubeVideos.some(
+    (v) => v.status === 'processing' || v.status === 'queued',
+  );
 
   const canContinue =
     !uploading &&

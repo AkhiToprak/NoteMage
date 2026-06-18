@@ -6,10 +6,6 @@
 'use client';
 
 import * as React from 'react';
-import VideoInputMask, {
-  captionsUnavailableError,
-  type VideoUrlConfirm,
-} from '@/components/video/VideoInputMask';
 import { readYouTubeDuration } from '@/lib/youtube-duration';
 import { minutesForDuration } from '@/lib/video-import/submit';
 
@@ -19,7 +15,8 @@ import { minutesForDuration } from '@/lib/video-import/submit';
  *  users get native video notes (minutes). */
 export type VideoLane = 'transcript' | 'native';
 
-export type VideoStatus = 'processing' | 'ready' | 'error';
+/** queued → waiting its turn; processing → being read/ingested; then ready/error. */
+export type VideoStatus = 'queued' | 'processing' | 'ready' | 'error';
 
 /** One YouTube video added as study-pack material. Lives in the wizard's
  *  WizardState so it survives step navigation; the picker is controlled. */
@@ -44,9 +41,11 @@ interface UsageEntry {
   limit: number;
 }
 
-// Hard cap mirrored from VIDEO_INGEST_MAX_DURATION_SEC (60 min) — same client
-// guard the notebook import tab uses.
+// Hard cap mirrored from VIDEO_INGEST_MAX_DURATION_SEC (60 min).
 const MAX_DURATION_SEC = 3600;
+// How many links one "Add" accepts — keeps the sequential queue sane and within
+// the per-minute ingest rate limits.
+const MAX_BATCH = 20;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -61,10 +60,35 @@ function formatDuration(sec: number): string {
     : `${mm}:${String(s).padStart(2, '0')}`;
 }
 
-function makeKey(videoId: string): string {
-  // Stable-ish local key without Date.now()/Math.random() (banned in some
-  // contexts) — videoId plus a short counter handled by the caller's array.
-  return `yt_${videoId}`;
+// Pull every distinct YouTube video id out of a blob of pasted text (one per
+// line, space/comma separated — all tolerated).
+const YT_RE =
+  /(?:youtube\.com\/(?:watch\?(?:[^\s]*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/g;
+
+function parseYouTubeLinks(text: string): { videoId: string; url: string }[] {
+  const seen = new Set<string>();
+  const out: { videoId: string; url: string }[] = [];
+  for (const m of text.matchAll(YT_RE)) {
+    const id = m[1];
+    if (!seen.has(id)) {
+      seen.add(id);
+      out.push({ videoId: id, url: `https://www.youtube.com/watch?v=${id}` });
+    }
+  }
+  return out;
+}
+
+async function fetchOEmbedTitle(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data?.title === 'string' ? data.title : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -76,20 +100,53 @@ interface VideoMaterialPickerProps {
 }
 
 export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMaterialPickerProps) {
+  const [draft, setDraft] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
-  const [adding, setAdding] = React.useState(false);
   const [usage, setUsage] = React.useState<UsageEntry | null>(null);
 
   // Inbox notebook + a destination section for the native lane. Resolved lazily
   // (and cached) the first time a PRO user submits a video.
   const inboxRef = React.useRef<{ notebookId: string; sectionId: string } | null>(null);
 
-  // Keep live refs of the videos array and the (often inline) onChange so the
-  // polling loop reads the latest without re-subscribing every render.
+  // The video list is mutated from async loops (the sequential processor, the
+  // native poller). Keep it on a ref that patch() updates synchronously so
+  // back-to-back updates between renders don't clobber each other.
   const videosRef = React.useRef(videos);
   videosRef.current = videos;
   const onChangeRef = React.useRef(onChange);
   onChangeRef.current = onChange;
+
+  const setVideos = React.useCallback((next: AddedVideo[]) => {
+    videosRef.current = next;
+    onChangeRef.current(next);
+  }, []);
+  const patch = React.useCallback(
+    (key: string, p: Partial<AddedVideo>) =>
+      setVideos(videosRef.current.map((v) => (v.key === key ? { ...v, ...p } : v))),
+    [setVideos],
+  );
+
+  const durationCacheRef = React.useRef<Map<string, number>>(new Map());
+  const processingRef = React.useRef(false);
+  // Both ingest routes rate-limit at 10/min. On a rate-limit hit we re-queue the
+  // video and pause the whole queue until this timestamp before retrying.
+  const cooldownUntilRef = React.useRef(0);
+  const retryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRetry = React.useCallback((ms: number) => {
+    if (retryTimerRef.current) return; // one pending wake-up is enough
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      void processNextRef.current?.();
+    }, ms);
+  }, []);
+  // Hold the latest processNext so scheduleRetry (stable) can reach it.
+  const processNextRef = React.useRef<(() => Promise<void>) | null>(null);
+  React.useEffect(() => () => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+  }, []);
+  // Frozen balance from before this session's videos — the baseline the "after
+  // upload" projection subtracts from. Captured on the first usage load.
+  const baselineRef = React.useRef<number | null>(null);
 
   const meterFeature = isPro ? 'video_ingest' : 'youtube_transcript';
 
@@ -103,7 +160,12 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
           | Array<{ featureType: string; used: number; limit: number }>
           | undefined;
         const entry = features?.find((f) => f.featureType === meterFeature);
-        if (entry) setUsage({ used: entry.used, limit: entry.limit });
+        if (entry) {
+          setUsage({ used: entry.used, limit: entry.limit });
+          if (baselineRef.current === null && entry.limit !== -1) {
+            baselineRef.current = Math.max(0, entry.limit - entry.used);
+          }
+        }
       })
       .catch(() => {
         /* soft-fail — the picker still works without the balance line */
@@ -115,47 +177,6 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
 
   React.useEffect(() => loadUsage(), [loadUsage]);
 
-  // ── Live link preview — read length the moment a link resolves ─────────────
-  // The mask fires `onUrlPreview` as soon as a pasted/typed link resolves to a
-  // card, so the minutes show up-front (not only after the user confirms).
-  const [preview, setPreview] = React.useState<{
-    videoId: string;
-    durationSec: number | null;
-    loading: boolean;
-  } | null>(null);
-  // Cache durations by videoId so confirm reuses the up-front read (no second
-  // hidden-player load).
-  const durationCacheRef = React.useRef<Map<string, number>>(new Map());
-
-  const handleUrlPreview = React.useCallback(
-    (p: { videoId: string; url: string } | null) => {
-      if (!p) {
-        setPreview(null);
-        return;
-      }
-      const cached = durationCacheRef.current.get(p.videoId);
-      if (cached != null) {
-        setPreview({ videoId: p.videoId, durationSec: cached, loading: false });
-        return;
-      }
-      setPreview({ videoId: p.videoId, durationSec: null, loading: true });
-      readYouTubeDuration(p.videoId)
-        .then((d) => {
-          const secs = Math.floor(d);
-          durationCacheRef.current.set(p.videoId, secs);
-          setPreview((cur) =>
-            cur && cur.videoId === p.videoId ? { ...cur, durationSec: secs, loading: false } : cur,
-          );
-        })
-        .catch(() => {
-          setPreview((cur) =>
-            cur && cur.videoId === p.videoId ? { ...cur, durationSec: null, loading: false } : cur,
-          );
-        });
-    },
-    [],
-  );
-
   // ── Native lane: resolve Inbox notebook + a section to land the job's page ──
   const resolveInboxTarget = React.useCallback(async () => {
     if (inboxRef.current) return inboxRef.current;
@@ -165,7 +186,6 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
     if (!inboxJson?.success || !notebookId) {
       throw new Error('Could not prepare your library. Try again.');
     }
-    // Reuse the first existing section, else create one to hold imported notes.
     let sectionId = '';
     const secRes = await fetch(`/api/notebooks/${encodeURIComponent(notebookId)}/sections`);
     const secJson = await secRes.json();
@@ -187,131 +207,179 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
     return inboxRef.current;
   }, []);
 
-  const removeVideo = React.useCallback((key: string) => {
-    onChangeRef.current(videosRef.current.filter((v) => v.key !== key));
-  }, []);
+  // ── Add a batch of links to the queue ──────────────────────────────────────
+  const addDraft = React.useCallback(() => {
+    setError(null);
+    const parsed = parseYouTubeLinks(draft);
+    if (parsed.length === 0) {
+      setError('Paste one or more YouTube links.');
+      return;
+    }
+    const existing = new Set(videosRef.current.map((v) => v.videoId));
+    const fresh = parsed.filter((p) => !existing.has(p.videoId));
+    if (fresh.length === 0) {
+      setError('Those videos are already in your list.');
+      return;
+    }
+    const room = Math.max(0, MAX_BATCH - videosRef.current.length);
+    const take = fresh.slice(0, room);
+    if (take.length === 0) {
+      setError(`That's the max of ${MAX_BATCH} videos.`);
+      return;
+    }
 
-  // ── Add a video ──────────────────────────────────────────────────────────
-  const onConfirmUrl = React.useCallback(
-    async (confirm: VideoUrlConfirm) => {
-      setError(null);
+    const added: AddedVideo[] = take.map((p) => ({
+      key: `yt_${p.videoId}`,
+      url: p.url,
+      videoId: p.videoId,
+      title: 'YouTube video',
+      durationSec: 0,
+      lane: isPro ? 'native' : 'transcript',
+      status: 'queued',
+    }));
+    setVideos([...videosRef.current, ...added]);
+    setDraft('');
+    if (take.length < fresh.length) {
+      setError(`Added ${take.length}; the rest exceed the ${MAX_BATCH}-video max.`);
+    }
 
-      if (videosRef.current.some((v) => v.videoId === confirm.videoId)) {
-        setError('That video is already in your list.');
-        return;
-      }
+    // Resolve nicer titles in the background (independent of ingest order).
+    for (const v of added) {
+      void fetchOEmbedTitle(v.url).then((t) => {
+        if (t) patch(v.key, { title: t });
+      });
+    }
+  }, [draft, isPro, patch, setVideos]);
 
-      setAdding(true);
-      try {
-        // Length is usually already read by the live preview — reuse it. Only
-        // read here if the user confirmed before the preview resolved. The
-        // server reconciles any under-report for the charge.
-        let durationSec = durationCacheRef.current.get(confirm.videoId) ?? 0;
-        if (!durationSec) {
-          try {
-            durationSec = await readYouTubeDuration(confirm.videoId);
-            durationCacheRef.current.set(confirm.videoId, Math.floor(durationSec));
-          } catch {
-            // Embedding blocked — for the transcript lane we can still proceed
-            // (duration is informational); for native we need it to charge.
-            if (isPro) {
-              throw captionsUnavailableError();
-            }
-          }
-        }
-        if (durationSec > MAX_DURATION_SEC) {
-          setError(`That video is too long — ${Math.floor(MAX_DURATION_SEC / 60)} minutes max.`);
-          setAdding(false);
-          return;
-        }
-
-        const title = confirm.title?.trim() || 'YouTube video';
-
-        if (isPro) {
-          // Native lane — kick off the async Gemini job, track to completion.
-          const target = await resolveInboxTarget();
-          const res = await fetch(
-            `/api/notebooks/${encodeURIComponent(target.notebookId)}/video-import`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sectionId: target.sectionId,
-                fileName: title.slice(0, 200),
-                videoUrl: confirm.url,
-                durationSec: Math.floor(durationSec),
-                pageTitle: title.slice(0, 200),
-              }),
-            },
-          );
-          const json = await res.json().catch(() => null);
-          if (!res.ok || !json?.success || !json.data?.jobId) {
-            setError(json?.error ?? 'Could not start that video. Try again.');
-            setAdding(false);
-            return;
-          }
-          onChangeRef.current([
-            ...videosRef.current,
-            {
-              key: makeKey(confirm.videoId),
-              url: confirm.url,
-              videoId: confirm.videoId,
-              title,
-              durationSec: Math.floor(durationSec),
-              lane: 'native',
-              status: 'processing',
-              jobId: json.data.jobId as string,
-            },
-          ]);
-        } else {
-          // Transcript lane — synchronous Document, ready immediately.
-          const res = await fetch('/api/learn/documents/youtube', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: confirm.url }),
-          });
-          const json = await res.json().catch(() => null);
-          if (res.status === 422) {
-            // Captionless — surface the in-card upsell seam.
-            throw captionsUnavailableError();
-          }
-          if (!res.ok || !json?.success || !json.data?.document?.id) {
-            setError(json?.error ?? 'Could not read that video. Try again.');
-            setAdding(false);
-            return;
-          }
-          onChangeRef.current([
-            ...videosRef.current,
-            {
-              key: makeKey(confirm.videoId),
-              url: confirm.url,
-              videoId: confirm.videoId,
-              title,
-              durationSec: Math.floor(durationSec),
-              lane: 'transcript',
-              status: 'ready',
-              materialId: json.data.document.id as string,
-            },
-          ]);
-        }
-        loadUsage();
-      } finally {
-        setAdding(false);
-      }
+  const removeVideo = React.useCallback(
+    (key: string) => {
+      setVideos(videosRef.current.filter((v) => v.key !== key));
     },
-    [isPro, resolveInboxTarget, loadUsage],
+    [setVideos],
   );
 
-  // ── Native lane: poll job status until every processing video resolves ─────
-  const hasProcessing = videos.some((v) => v.lane === 'native' && v.status === 'processing');
+  // ── Sequential processor — one queued video at a time, in order ─────────────
+  const processNext = React.useCallback(async () => {
+    if (processingRef.current) return;
+    const next = videosRef.current.find((v) => v.status === 'queued');
+    if (!next) return;
+    // Respect a rate-limit cooldown before touching the next item.
+    const wait = cooldownUntilRef.current - Date.now();
+    if (wait > 0) {
+      scheduleRetry(wait + 50);
+      return;
+    }
+    processingRef.current = true;
+    try {
+      patch(next.key, { status: 'processing' });
+
+      // Length: from cache, else read it (informational for free, required for
+      // the native minutes charge).
+      let durationSec = durationCacheRef.current.get(next.videoId) ?? 0;
+      if (!durationSec) {
+        try {
+          durationSec = Math.floor(await readYouTubeDuration(next.videoId));
+          durationCacheRef.current.set(next.videoId, durationSec);
+        } catch {
+          durationSec = 0;
+        }
+      }
+      if (durationSec > MAX_DURATION_SEC) {
+        patch(next.key, {
+          status: 'error',
+          durationSec,
+          error: `Too long — ${Math.floor(MAX_DURATION_SEC / 60)} min max.`,
+        });
+        return;
+      }
+      patch(next.key, { durationSec });
+
+      if (isPro) {
+        if (!durationSec) {
+          patch(next.key, { status: 'error', error: 'Couldn’t read this video.' });
+          return;
+        }
+        const target = await resolveInboxTarget();
+        const res = await fetch(
+          `/api/notebooks/${encodeURIComponent(target.notebookId)}/video-import`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sectionId: target.sectionId,
+              fileName: next.title.slice(0, 200),
+              videoUrl: next.url,
+              durationSec,
+              pageTitle: next.title.slice(0, 200),
+            }),
+          },
+        );
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success || !json.data?.jobId) {
+          if (res.status === 429 && /too many/i.test(json?.error ?? '')) {
+            cooldownUntilRef.current = Date.now() + 8000;
+            patch(next.key, { status: 'queued' });
+            scheduleRetry(8000);
+            return;
+          }
+          patch(next.key, { status: 'error', error: json?.error ?? 'Could not start that video.' });
+          return;
+        }
+        // Stays 'processing'; the poll below carries it to ready/error.
+        patch(next.key, { status: 'processing', jobId: json.data.jobId as string });
+      } else {
+        const res = await fetch('/api/learn/documents/youtube', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: next.url }),
+        });
+        const json = await res.json().catch(() => null);
+        if (res.status === 422) {
+          patch(next.key, { status: 'error', error: 'No captions on this video.' });
+          return;
+        }
+        if (!res.ok || !json?.success || !json.data?.document?.id) {
+          if (res.status === 429 && /too many/i.test(json?.error ?? '')) {
+            cooldownUntilRef.current = Date.now() + 8000;
+            patch(next.key, { status: 'queued' });
+            scheduleRetry(8000);
+            return;
+          }
+          patch(next.key, { status: 'error', error: json?.error ?? 'Could not read that video.' });
+          return;
+        }
+        patch(next.key, { status: 'ready', materialId: json.data.document.id as string });
+      }
+      loadUsage();
+    } catch {
+      patch(next.key, { status: 'error', error: 'Something went wrong. Remove and retry.' });
+    } finally {
+      processingRef.current = false;
+    }
+  }, [isPro, patch, resolveInboxTarget, loadUsage, scheduleRetry]);
+
+  // Keep the latest processNext reachable from the (stable) retry scheduler.
   React.useEffect(() => {
-    if (!hasProcessing) return;
+    processNextRef.current = processNext;
+  }, [processNext]);
+
+  // Kick the queue whenever something is waiting and nothing is in flight.
+  React.useEffect(() => {
+    if (!processingRef.current && videos.some((v) => v.status === 'queued')) {
+      void processNext();
+    }
+  }, [videos, processNext]);
+
+  // ── Native lane: poll job status until every in-flight video resolves ───────
+  const hasNativeInFlight = videos.some(
+    (v) => v.lane === 'native' && v.status === 'processing' && v.jobId,
+  );
+  React.useEffect(() => {
+    if (!hasNativeInFlight) return;
     let cancelled = false;
 
     const poll = async () => {
       try {
-        // After a remount the Inbox target may not be cached — re-resolve it so
-        // tracking resumes rather than silently stalling.
         const target = inboxRef.current ?? (await resolveInboxTarget().catch(() => null));
         if (cancelled || !target) return;
         const res = await fetch(
@@ -319,11 +387,14 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
         );
         const json = await res.json().catch(() => null);
         if (cancelled || !json?.success || !Array.isArray(json.data)) return;
-        const byId = new Map<string, { status: string; resultPageId: string | null; error: string | null }>();
+        const byId = new Map<
+          string,
+          { status: string; resultPageId: string | null; error: string | null }
+        >();
         for (const row of json.data) byId.set(row.id, row);
 
         let changed = false;
-        const next = videosRef.current.map((v) => {
+        const nextList = videosRef.current.map((v) => {
           if (v.lane !== 'native' || v.status !== 'processing' || !v.jobId) return v;
           const row = byId.get(v.jobId);
           if (!row) return v;
@@ -342,7 +413,7 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
           return v;
         });
         if (changed) {
-          onChangeRef.current(next);
+          setVideos(nextList);
           loadUsage();
         }
       } catch {
@@ -356,47 +427,90 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
       cancelled = true;
       clearInterval(interval);
     };
-  }, [hasProcessing, resolveInboxTarget, loadUsage]);
+  }, [hasNativeInFlight, resolveInboxTarget, loadUsage, setVideos]);
 
   // ── Derived meter values ───────────────────────────────────────────────────
   const limit = usage?.limit ?? null;
-  const used = usage?.used ?? 0;
   const unlimited = limit === -1;
-  const remaining = limit !== null && !unlimited ? Math.max(0, limit - used) : null;
+  const loaded = limit !== null;
 
-  // Budget cost in the meter's unit (PRO = minutes, free = video count).
-  // `remaining` already reflects videos added this session (both lanes charge on
-  // add); the live preview video is NOT charged yet, so it's projected on top.
-  const sessionMinutes = videos.reduce((sum, v) => sum + minutesForDuration(v.durationSec), 0);
-  const sessionUsed = isPro ? sessionMinutes : videos.length;
-  const previewUsed = !preview
-    ? 0
-    : isPro
-      ? preview.durationSec
-        ? minutesForDuration(preview.durationSec)
-        : 0
-      : 1;
+  // What this session's videos cost the budget (meter unit). Free = 1 per video
+  // (count meter); PRO = minutes. Errored videos are refunded, so they don't
+  // count.
+  const costOf = (v: AddedVideo) =>
+    v.status === 'error' ? 0 : isPro ? minutesForDuration(v.durationSec) : 1;
+  const delta = videos.reduce((sum, v) => sum + costOf(v), 0);
+  const baseline = baselineRef.current;
+  const liveRemaining =
+    limit !== null && !unlimited ? Math.max(0, limit - (usage?.used ?? 0)) : null;
+  const heroValue =
+    baseline !== null ? Math.max(0, baseline - delta) : (liveRemaining ?? 0);
+
+  const queuedCount = videos.filter((v) => v.status === 'queued').length;
+  const processingCount = videos.filter((v) => v.status === 'processing').length;
+  const draftCount = parseYouTubeLinks(draft).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <LimitReader
         isPro={isPro}
-        limit={limit}
-        used={used}
-        remaining={remaining}
+        loaded={loaded}
         unlimited={unlimited}
-        sessionUsed={sessionUsed}
-        previewUsed={previewUsed}
+        limit={limit}
+        heroValue={heroValue}
+        delta={delta}
       />
 
-      <VideoInputMask
-        onConfirmUrl={onConfirmUrl}
-        disabled={adding}
-        dense
-        placeholder="Paste a YouTube link"
-        onUrlPreview={handleUrlPreview}
-        urlEstimate={preview ? <UrlEstimate preview={preview} isPro={isPro} /> : null}
-      />
+      {/* Batch input — paste one or many links */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <textarea
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (error) setError(null);
+          }}
+          onKeyDown={(e) => {
+            // ⌘/Ctrl+Enter adds without reaching for the mouse.
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              e.preventDefault();
+              addDraft();
+            }
+          }}
+          rows={3}
+          placeholder={'Paste YouTube links — one per line'}
+          aria-label="YouTube links"
+          className="vmp-textarea"
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: '10px 12px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--ink-20, var(--outline-variant))',
+            background: 'var(--surface-container-high)',
+            color: 'var(--on-surface)',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-sm)',
+            lineHeight: 1.6,
+            resize: 'vertical',
+            outline: 'none',
+          }}
+        />
+        <button
+          type="button"
+          onClick={addDraft}
+          disabled={draftCount === 0}
+          className="vmp-add"
+        >
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 18 }}>
+            playlist_add
+          </span>
+          {draftCount > 1
+            ? `Add ${draftCount} videos`
+            : draftCount === 1
+              ? 'Add video'
+              : 'Add videos'}
+        </button>
+      </div>
 
       {error && (
         <p
@@ -405,7 +519,7 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
             margin: 0,
             padding: '8px 12px',
             borderRadius: 'var(--radius-md)',
-            background: 'var(--error-container, rgba(253,111,133,0.12))',
+            background: 'rgba(253,111,133,0.12)',
             color: 'var(--error)',
             fontSize: 'var(--fs-xs)',
             lineHeight: 1.5,
@@ -426,13 +540,18 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
             gap: 8,
           }}
         >
-          {videos.map((v) => (
-            <VideoRow key={v.key} video={v} onRemove={() => removeVideo(v.key)} />
+          {videos.map((v, i) => (
+            <VideoRow
+              key={v.key}
+              video={v}
+              index={i}
+              onRemove={() => removeVideo(v.key)}
+            />
           ))}
         </ul>
       )}
 
-      {isPro && hasProcessing && (
+      {queuedCount + processingCount > 0 && (
         <p
           style={{
             margin: 0,
@@ -447,8 +566,9 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
           <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 15 }}>
             schedule
           </span>
-          Mage is watching your video{videos.filter((v) => v.status === 'processing').length > 1 ? 's' : ''} —
-          this can take a few minutes. You can keep adding more.
+          {isPro
+            ? `Working through your list — ${processingCount + queuedCount} to go. This keeps running in the background.`
+            : `Transcribing your list — ${processingCount + queuedCount} to go.`}
         </p>
       )}
 
@@ -457,53 +577,34 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
   );
 }
 
-// ── Limit reader — the budget bar ─────────────────────────────────────────────
+// ── Limit reader — projected budget after this session's videos ───────────────
 
 function LimitReader({
   isPro,
-  limit,
-  used,
-  remaining,
+  loaded,
   unlimited,
-  sessionUsed,
-  previewUsed,
+  limit,
+  heroValue,
+  delta,
 }: {
   isPro: boolean;
-  limit: number | null;
-  used: number;
-  remaining: number | null;
+  loaded: boolean;
   unlimited: boolean;
-  /** Cost (meter unit) of videos added this session — already in `used`. */
-  sessionUsed: number;
-  /** Cost (meter unit) of the video being previewed — not yet charged. */
-  previewUsed: number;
+  limit: number | null;
+  heroValue: number;
+  delta: number;
 }) {
-  // "min" never pluralises; "video(s)" does — agree with the number shown.
-  const unitFor = (n: number | null) => (isPro ? 'min' : n === 1 ? 'video' : 'videos');
+  const unitFor = (n: number) => (isPro ? 'min' : n === 1 ? 'video' : 'videos');
   const noun = isPro ? 'video minutes' : 'video transcripts';
 
-  // Everything this session subtracts from the budget: already-added videos
-  // (in `used`/`remaining`) plus the previewed one (not yet charged).
-  const delta = sessionUsed + previewUsed;
-  // `remaining` already nets out added videos; project the preview on top.
-  const projected = remaining === null ? null : Math.max(0, remaining - previewUsed);
-  const heroValue = delta > 0 ? projected : remaining;
-  const empty = heroValue !== null && heroValue <= 0;
-
-  // Hero + bar carry the colour. Accent normally, error when it would zero out —
-  // both theme-aware tokens so light mode stays legible (no light-on-light).
+  const empty = loaded && !unlimited && heroValue <= 0;
   const heroColor = empty ? 'var(--error)' : 'var(--accent-strong, var(--primary))';
-  const deltaColor = empty ? 'var(--error)' : 'var(--accent-strong, var(--primary))';
   const deltaBg = empty ? 'rgba(253,111,133,0.14)' : 'rgba(140,82,255,0.14)';
-
   const labelText = delta > 0 ? 'left after upload' : isPro ? 'left this month' : 'left';
 
-  // The bar previews charged + previewed consumption together.
-  const barUsed = used + previewUsed;
-  const pct =
-    limit !== null && limit > 0 && !unlimited
-      ? Math.min(100, Math.round((barUsed / limit) * 100))
-      : 0;
+  // Bar mirrors the projection: filled = limit − projected.
+  const barUsed = limit !== null ? Math.min(limit, Math.max(0, limit - heroValue)) : 0;
+  const pct = limit && limit > 0 && !unlimited ? Math.min(100, Math.round((barUsed / limit) * 100)) : 0;
 
   return (
     <div
@@ -517,7 +618,7 @@ function LimitReader({
         border: '1px solid rgba(174,137,255,0.22)',
       }}
     >
-      {/* Header — feature label */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span
           className="material-symbols-outlined"
@@ -540,8 +641,12 @@ function LimitReader({
         </span>
       </div>
 
-      {/* Hero number — projected balance, big + coloured, with the subtraction */}
-      {unlimited || limit === null ? (
+      {/* Hero — projected balance, big + coloured, with the subtraction */}
+      {!loaded ? (
+        <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)' }}>
+          Checking your balance…
+        </span>
+      ) : unlimited ? (
         <span
           style={{
             fontFamily: 'var(--font-display)',
@@ -566,7 +671,7 @@ function LimitReader({
               fontVariantNumeric: 'tabular-nums',
             }}
           >
-            {heroValue ?? 0}
+            {heroValue}
           </span>
           <span
             style={{
@@ -596,7 +701,7 @@ function LimitReader({
                 padding: '2px 8px',
                 borderRadius: 'var(--radius-full)',
                 background: deltaBg,
-                color: deltaColor,
+                color: heroColor,
                 fontFamily: 'var(--font-sans)',
                 fontSize: 'var(--fs-xs)',
                 fontWeight: 800,
@@ -611,12 +716,12 @@ function LimitReader({
       )}
 
       {/* Bar */}
-      {!unlimited && limit !== null && (
+      {loaded && !unlimited && limit !== null && (
         <div
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={limit}
-          aria-valuenow={Math.min(barUsed, limit)}
+          aria-valuenow={barUsed}
           aria-label={`${noun} used`}
           style={{
             height: 8,
@@ -637,7 +742,6 @@ function LimitReader({
         </div>
       )}
 
-      {/* Free-tier hint, only before anything is added. */}
       {!isPro && delta === 0 && (
         <p
           style={{
@@ -654,101 +758,48 @@ function LimitReader({
   );
 }
 
-// ── Live length estimate shown in the input's preview card (pre-confirm) ──────
-
-function UrlEstimate({
-  preview,
-  isPro,
-}: {
-  preview: { videoId: string; durationSec: number | null; loading: boolean };
-  isPro: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '8px 12px',
-        borderRadius: 'var(--radius-md)',
-        background: 'rgba(140,82,255,0.06)',
-        border: '1px solid rgba(174,137,255,0.22)',
-      }}
-    >
-      <span
-        className="material-symbols-outlined"
-        aria-hidden
-        style={{ fontSize: 16, color: 'var(--accent-strong, var(--primary))', flexShrink: 0 }}
-      >
-        schedule
-      </span>
-      {preview.loading ? (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            fontSize: 'var(--fs-xs)',
-            color: 'var(--on-surface-variant)',
-          }}
-        >
-          <span className="vmp-spin-sm" aria-hidden />
-          Reading length…
-        </span>
-      ) : preview.durationSec != null && preview.durationSec > 0 ? (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'baseline',
-            gap: 6,
-            flexWrap: 'wrap',
-            fontSize: 'var(--fs-sm)',
-            color: 'var(--on-surface-variant)',
-          }}
-        >
-          <strong
-            style={{
-              color: 'var(--on-surface)',
-              fontWeight: 700,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {formatDuration(preview.durationSec)}
-          </strong>
-          {isPro && (
-            <>
-              <span aria-hidden style={{ color: 'var(--outline-variant)' }}>
-                ·
-              </span>
-              <span>
-                uses{' '}
-                <strong style={{ color: 'var(--accent-strong, var(--primary))', fontWeight: 800 }}>
-                  {minutesForDuration(preview.durationSec)} min
-                </strong>
-              </span>
-            </>
-          )}
-        </span>
-      ) : (
-        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--on-surface-variant)' }}>
-          Length unavailable
-        </span>
-      )}
-    </div>
-  );
-}
-
 // ── One row in the added-videos list ──────────────────────────────────────────
 
-function VideoRow({ video, onRemove }: { video: AddedVideo; onRemove: () => void }) {
+function VideoRow({
+  video,
+  index,
+  onRemove,
+}: {
+  video: AddedVideo;
+  index: number;
+  onRemove: () => void;
+}) {
   const statusColor =
     video.status === 'ready'
       ? 'var(--success, #4ade80)'
       : video.status === 'error'
         ? 'var(--error)'
-        : 'var(--accent-strong, var(--primary))';
+        : video.status === 'queued'
+          ? 'var(--on-surface-variant)'
+          : 'var(--accent-strong, var(--primary))';
   const statusIcon =
-    video.status === 'ready' ? 'check_circle' : video.status === 'error' ? 'error' : 'progress_activity';
+    video.status === 'ready'
+      ? 'check_circle'
+      : video.status === 'error'
+        ? 'error'
+        : video.status === 'queued'
+          ? 'schedule'
+          : 'progress_activity';
+
+  const subline =
+    video.status === 'error'
+      ? video.error || 'Could not process this video.'
+      : video.status === 'queued'
+        ? 'Waiting…'
+        : video.status === 'processing'
+          ? video.lane === 'native'
+            ? `Generating notes${video.durationSec ? ` · ${formatDuration(video.durationSec)}` : ''}`
+            : `Reading transcript${video.durationSec ? ` · ${formatDuration(video.durationSec)}` : ''}`
+          : video.durationSec
+            ? formatDuration(video.durationSec)
+            : video.lane === 'transcript'
+              ? 'Transcript added'
+              : 'Notes added';
 
   return (
     <li
@@ -763,10 +814,26 @@ function VideoRow({ video, onRemove }: { video: AddedVideo; onRemove: () => void
       }}
     >
       <span
+        aria-hidden
+        style={{
+          flexShrink: 0,
+          width: 22,
+          textAlign: 'center',
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'var(--fs-xs)',
+          fontWeight: 700,
+          color: 'var(--on-surface-variant)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {index + 1}
+      </span>
+      <span
         className="material-symbols-outlined"
         aria-hidden
         style={{
           fontSize: 18,
+          flexShrink: 0,
           color: statusColor,
           animation: video.status === 'processing' ? 'vmpSpin 1s linear infinite' : undefined,
         }}
@@ -799,15 +866,7 @@ function VideoRow({ video, onRemove }: { video: AddedVideo; onRemove: () => void
             whiteSpace: 'nowrap',
           }}
         >
-          {video.status === 'error'
-            ? video.error || 'Could not process this video.'
-            : video.status === 'processing'
-              ? `Generating notes${video.durationSec ? ` · ${formatDuration(video.durationSec)}` : ''}`
-              : video.durationSec
-                ? formatDuration(video.durationSec)
-                : video.lane === 'transcript'
-                  ? 'Transcript added'
-                  : 'Notes added'}
+          {subline}
         </p>
       </div>
 
@@ -825,22 +884,35 @@ function VideoRow({ video, onRemove }: { video: AddedVideo; onRemove: () => void
   );
 }
 
-// ── Scoped styles (hover/focus/active states the inline styles can't carry) ───
+// ── Scoped styles ─────────────────────────────────────────────────────────────
 
 function VideoPickerStyles() {
   return (
     <style>{`
       @keyframes vmpSpin { to { transform: rotate(360deg); } }
-      .vmp-spin-sm {
-        flex-shrink: 0;
-        display: inline-block;
-        width: 13px;
-        height: 13px;
-        border-radius: 50%;
-        border: 2px solid var(--ink-12, var(--surface-container-highest));
-        border-top-color: var(--accent-strong, var(--primary));
-        animation: vmpSpin 0.8s linear infinite;
+      .vmp-textarea:focus { border-color: var(--accent-strong, var(--primary)) !important; }
+      .vmp-add {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        align-self: flex-start;
+        padding: 9px 16px;
+        border-radius: var(--radius-full);
+        border: 1px solid transparent;
+        background: var(--accent-strong, var(--primary));
+        color: var(--on-primary, #fff);
+        font-family: var(--font-sans);
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform var(--dur-fast, 0.16s) var(--ease-spring, cubic-bezier(0.22,1,0.36,1)),
+          opacity var(--dur-fast, 0.16s) var(--ease-spring, cubic-bezier(0.22,1,0.36,1));
       }
+      .vmp-add:hover:not(:disabled) { transform: translateY(-1px); }
+      .vmp-add:active:not(:disabled) { transform: translateY(0); opacity: 0.9; }
+      .vmp-add:focus-visible { outline: 3px solid var(--accent-strong, var(--primary)); outline-offset: 2px; }
+      .vmp-add:disabled { opacity: 0.5; cursor: not-allowed; }
       .vmp-remove {
         flex-shrink: 0;
         display: inline-flex;
@@ -861,8 +933,7 @@ function VideoPickerStyles() {
       .vmp-remove:focus-visible { outline: 2px solid var(--accent-strong, var(--primary)); outline-offset: 2px; }
       .vmp-remove:active { transform: scale(0.92); }
       @media (prefers-reduced-motion: reduce) {
-        .vmp-remove { transition-duration: 0.05s; }
-        .vmp-spin-sm { animation: none !important; }
+        .vmp-add, .vmp-remove { transition-duration: 0.05s; }
         [style*="vmpSpin"] { animation: none !important; }
       }
     `}</style>
