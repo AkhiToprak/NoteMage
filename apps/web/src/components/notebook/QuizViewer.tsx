@@ -1626,13 +1626,13 @@ export default function QuizViewer({
             <SmallButton
               onClick={openSectionPicker}
               icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>task_alt</span>}
-              label="In Notebook"
+              label="In Study Pack"
             />
           ) : (
             <SmallButton
               onClick={openSectionPicker}
               icon={<span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>library_add</span>}
-              label="Add to Notebook"
+              label="Add to Study Pack"
             />
           )}
           {question && mode !== 'review' && (

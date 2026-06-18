@@ -3,11 +3,14 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { NMCard } from '@/components/rework/NMCard';
 import { ProgressBar } from '@/components/rework/ProgressBar';
 import { TopicChip } from '@/components/rework/TopicChip';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/mascot/Mascot';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { usePathGenerationStream } from '@/hooks/usePathGenerationStream';
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -19,16 +22,32 @@ interface WizardState {
   usingSample: boolean;
   pasteText: string;
   showPaste: boolean;
+  // Uploaded/loaded material — the real handles the backend works from.
+  materialIds: string[];
+  // Existing-pack mode (?packId): skip Step 1, generate into this pack.
+  packId: string | null;
+  // Step 2
+  detecting: boolean;
+  detectError: string | null;
   // Step 3
   topics: string[];
   addingTopic: string;
+  suggestedTitle: string;
   // Step 4
   examDate: string;
   intensity: 'easy' | 'balanced' | 'intense';
   hasExamDate: boolean;
+  ultra: boolean;
+  // Step 5
+  generating: boolean;
+  genError: string | null;
+  planId: string | null;
+  firstSlotId: string | null;
+  notebookId: string | null;
 }
 
-// Representative topic chips for the sample material (cell biology)
+// Representative topic chips for the sample material (cell biology). Sample
+// stays mock — it skips real upload/detect and seeds these directly.
 const SAMPLE_TOPICS = [
   'Cell membrane',
   'Diffusion',
@@ -44,6 +63,13 @@ const SAMPLE_FILE_NAME = 'Cell Biology — Transport Mechanisms.pdf';
 
 const TOTAL_STEPS = 5;
 
+// Pace → an explicit brief directive so the generator honours intensity.
+const INTENSITY_DIRECTIVE: Record<WizardState['intensity'], string> = {
+  easy: 'Keep the pace gentle: fewer, shorter checkpoints.',
+  balanced: 'Keep a balanced pace.',
+  intense: 'Make it intensive: more checkpoints and deeper coverage.',
+};
+
 // ── Step progress header ──────────────────────────────────────────────────────
 
 function WizardHeader({
@@ -56,6 +82,10 @@ function WizardHeader({
   onClose: () => void;
 }) {
   const pct = ((step - 1) / (TOTAL_STEPS - 1)) * 100;
+  // Step 5 is terminal — generation starts the moment it mounts. Hide Back so
+  // a back→forward round-trip can't remount the generator and double-create the
+  // pack / re-charge the generation meter. Close still leaves cleanly.
+  const hideBack = step >= TOTAL_STEPS;
 
   return (
     <div
@@ -78,8 +108,10 @@ function WizardHeader({
         <button
           type="button"
           aria-label="Go back"
-          onClick={onBack}
-          style={iconButtonStyle}
+          aria-hidden={hideBack || undefined}
+          tabIndex={hideBack ? -1 : undefined}
+          onClick={hideBack ? undefined : onBack}
+          style={{ ...iconButtonStyle, visibility: hideBack ? 'hidden' : 'visible' }}
           onMouseEnter={(e) => applyHover(e, true)}
           onMouseLeave={(e) => applyHover(e, false)}
           onFocus={(e) => applyFocus(e, true)}
@@ -106,7 +138,7 @@ function WizardHeader({
         {/* Close */}
         <button
           type="button"
-          aria-label="Close wizard"
+          aria-label="Close"
           onClick={onClose}
           style={iconButtonStyle}
           onMouseEnter={(e) => applyHover(e, true)}
@@ -127,6 +159,15 @@ function WizardHeader({
 
 // ── Step 1 — Upload material ──────────────────────────────────────────────────
 
+// Accepted by the backend extractor (PDF, DOCX, TXT, MD). Other picked types
+// are rejected with a terse message rather than failing silently downstream.
+const ACCEPTED_UPLOAD_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'text/markdown',
+];
+
 function Step1Upload({
   state,
   onChange,
@@ -138,18 +179,103 @@ function Step1Upload({
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = React.useState(false);
-  const canContinue = state.file !== null || state.usingSample || state.pasteText.trim().length > 0;
+  const [uploading, setUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const { upload } = useDirectUpload();
+
+  const canContinue =
+    !uploading &&
+    (state.file !== null || state.usingSample || state.pasteText.trim().length > 0);
+
+  // Resolve the user's Inbox notebook id (creating it if this is their first
+  // upload), which the signed-url 'document' purpose needs to scope the storage
+  // path. The Inbox is otherwise created lazily by the first upload, so most
+  // users reaching this flow have none yet — the ensure endpoint get-or-creates
+  // it so the client path and the /api/learn/uploads validation agree.
+  async function resolveInboxId(): Promise<string | null> {
+    try {
+      const res = await fetch('/api/learn/uploads/inbox', { method: 'POST' });
+      const json = await res.json();
+      if (!json?.success) return null;
+      return (json.data?.id as string) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Upload one File to the Inbox as a Document, returning its id.
+  async function uploadAsDocument(file: File): Promise<string | null> {
+    const inboxId = await resolveInboxId();
+    if (!inboxId) throw new Error('Could not prepare the upload. Try again.');
+    const { storagePath } = await upload(file, 'document', { notebookId: inboxId });
+    const res = await fetch('/api/learn/uploads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storagePath,
+        fileName: file.name,
+        fileType: file.type || 'text/plain',
+      }),
+    });
+    const json = await res.json();
+    if (!json?.success || !json.data?.id) {
+      throw new Error(json?.error || 'Upload failed');
+    }
+    return json.data.id as string;
+  }
+
+  async function handleContinue() {
+    setUploadError(null);
+
+    // Sample stays mock — seed topics, skip detection, jump straight to Step 3.
+    if (state.usingSample) {
+      onChange({
+        topics: SAMPLE_TOPICS,
+        suggestedTitle: 'Cell Biology — Transport',
+        materialIds: [],
+      });
+      onContinue();
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ids: string[] = [];
+
+      if (state.file) {
+        if (!ACCEPTED_UPLOAD_TYPES.includes(state.file.type)) {
+          setUploadError('Unsupported file type. Use PDF, Word, text, or Markdown.');
+          setUploading(false);
+          return;
+        }
+        ids.push((await uploadAsDocument(state.file))!);
+      }
+
+      const paste = state.pasteText.trim();
+      if (!state.file && paste) {
+        const blob = new File([paste], 'Pasted notes.txt', { type: 'text/plain' });
+        ids.push((await uploadAsDocument(blob))!);
+      }
+
+      onChange({ materialIds: ids });
+      setUploading(false);
+      onContinue();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed. Try again.');
+      setUploading(false);
+    }
+  }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f) onChange({ file: f, usingSample: false, showPaste: false });
+    if (f) onChange({ file: f, usingSample: false, showPaste: false, pasteText: '' });
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
-    if (f) onChange({ file: f, usingSample: false, showPaste: false });
+    if (f) onChange({ file: f, usingSample: false, showPaste: false, pasteText: '' });
   }
 
   return (
@@ -170,7 +296,7 @@ function Step1Upload({
           lineHeight: 'var(--lh-tight)',
         }}
       >
-        Create a Study Pack
+        Create Study Pack
       </h1>
       <p
         style={{
@@ -182,7 +308,7 @@ function Step1Upload({
           lineHeight: 'var(--lh-relaxed)',
         }}
       >
-        Upload your material and we&apos;ll build a personalised learning path.
+        Upload your material. Mage will build a path from this material.
       </p>
 
       {/* Drop zone */}
@@ -262,10 +388,10 @@ function Step1Upload({
                 lineHeight: 1.5,
               }}
             >
-              Drag your study material here
+              Upload your material
               <br />
               <span style={{ color: 'var(--ink-50)', fontSize: 'var(--fs-xs)' }}>
-                PDF, PowerPoint, images, text, or Word documents
+                PDFs, slides, images, text, or documents
               </span>
             </p>
           </>
@@ -274,7 +400,7 @@ function Step1Upload({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.pptx,.ppt,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp"
+          accept=".pdf,.docx,.doc,.txt,.md"
           style={{ display: 'none' }}
           onChange={handleFileChange}
           aria-label="Choose file to upload"
@@ -318,6 +444,12 @@ function Step1Upload({
         </div>
       )}
 
+      {uploadError && (
+        <p role="alert" style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--error)', textAlign: 'center' }}>
+          {uploadError}
+        </p>
+      )}
+
       {/* Secondary options */}
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
         <button
@@ -339,74 +471,78 @@ function Step1Upload({
         size="lg"
         fullWidth
         disabled={!canContinue}
-        trailingIcon="arrow_forward"
-        onClick={onContinue}
+        loading={uploading}
+        trailingIcon={uploading ? undefined : 'arrow_forward'}
+        onClick={handleContinue}
         haptic="select"
       >
-        Continue
+        {uploading ? 'Uploading…' : 'Continue'}
       </Button>
     </StepWrapper>
   );
 }
 
-// ── Step 2 — Processing ───────────────────────────────────────────────────────
+// ── Step 2 — Mage reads material → detect topics ──────────────────────────────
 
-type ChecklistItem = { label: string; done: boolean; active: boolean };
+function Step2Processing({
+  state,
+  onChange,
+  onDone,
+}: {
+  state: WizardState;
+  onChange: (patch: Partial<WizardState>) => void;
+  onDone: () => void;
+}) {
+  // Drive a real request lifecycle. The effect fires the detect call once on
+  // mount (and on explicit retry, keyed by `state.detecting` flipping).
+  const ran = React.useRef(false);
 
-function Step2Processing({ onDone }: { onDone: () => void }) {
-  const prefersReduced =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  const STEPS_TIMING = [0, 700, 1400, 2100]; // ms delays before each item marks done
-
-  const [items, setItems] = React.useState<ChecklistItem[]>([
-    { label: 'Extracting text', done: false, active: true },
-    { label: 'Detecting topics', done: false, active: false },
-    { label: 'Finding key concepts', done: false, active: false },
-    { label: 'Building your learning path', done: false, active: false },
-  ]);
+  const runDetect = React.useCallback(async () => {
+    onChange({ detecting: true, detectError: null });
+    try {
+      const res = await fetch('/api/learn/paths/detect-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materialIds: state.materialIds,
+          pasteText: state.materialIds.length === 0 ? state.pasteText.trim() || undefined : undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success || !Array.isArray(json.data?.topics)) {
+        onChange({
+          detecting: false,
+          detectError: json?.error || 'Mage could not read your material.',
+        });
+        return;
+      }
+      const topics = (json.data.topics as string[]).filter((t) => t && t.trim());
+      onChange({
+        detecting: false,
+        detectError: null,
+        topics: topics.length > 0 ? topics : state.topics,
+        suggestedTitle: (json.data.suggestedTitle as string) || state.suggestedTitle,
+      });
+      onDone();
+    } catch {
+      onChange({ detecting: false, detectError: 'Network error. Please try again.' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.materialIds, state.pasteText]);
 
   React.useEffect(() => {
-    if (prefersReduced) {
-      // Show all done instantly, advance immediately
-      setItems((prev) => prev.map((it) => ({ ...it, done: true, active: false })));
-      const t: number = window.setTimeout(onDone, 80);
-      return () => window.clearTimeout(t);
-    }
-
-    const timers: number[] = [];
-
-    STEPS_TIMING.forEach((delay, idx) => {
-      timers.push(
-        window.setTimeout(() => {
-          setItems((prev) =>
-            prev.map((it, i) => ({
-              ...it,
-              done: i <= idx,
-              active: i === idx + 1,
-            }))
-          );
-        }, delay + 400)
-      );
-    });
-
-    // Advance to step 3 after all items are done
-    timers.push(
-      window.setTimeout(() => {
-        setItems((prev) => prev.map((it) => ({ ...it, done: true, active: false })));
-        onDone();
-      }, 2600)
-    );
-
-    return () => timers.forEach((t) => window.clearTimeout(t));
+    if (ran.current) return;
+    ran.current = true;
+    void runDetect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const hasError = state.detectError !== null && !state.detecting;
 
   return (
     <StepWrapper>
       <div style={{ textAlign: 'center', marginBottom: 4 }}>
-        <Mascot pose="thinking" size="lg" idle="float" />
+        <Mascot pose={hasError ? 'thinking' : 'thinking'} size="lg" idle={hasError ? 'none' : 'float'} />
       </div>
 
       <h2
@@ -420,7 +556,7 @@ function Step2Processing({ onDone }: { onDone: () => void }) {
           letterSpacing: '-0.02em',
         }}
       >
-        Analysing your material…
+        {hasError ? 'That didn’t work' : 'Mage is reading your material…'}
       </h2>
       <p
         style={{
@@ -429,63 +565,61 @@ function Step2Processing({ onDone }: { onDone: () => void }) {
           color: 'var(--on-surface-variant)',
           margin: '4px 0 0',
           textAlign: 'center',
+          lineHeight: 1.6,
         }}
       >
-        This only takes a moment.
+        {hasError ? state.detectError : 'Finding the topics to build your path around.'}
       </p>
 
-      <NMCard
-        style={{
-          padding: 'var(--card-pad)',
-          background: 'var(--surface-container)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        {items.map((item, i) => (
-          <CheckRow key={i} item={item} />
-        ))}
-      </NMCard>
-    </StepWrapper>
-  );
-}
+      {!hasError ? (
+        <NMCard
+          style={{
+            padding: 'var(--card-pad)',
+            background: 'var(--surface-container)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            minHeight: 96,
+          }}
+        >
+          <span
+            aria-hidden
+            className="sp-detect-spinner"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              border: '3px solid var(--ink-12)',
+              borderTopColor: 'var(--accent-strong)',
+            }}
+          />
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-base)', color: 'var(--on-surface-variant)' }}>
+            Working…
+          </span>
+        </NMCard>
+      ) : (
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          leadingIcon="refresh"
+          onClick={() => {
+            ran.current = true;
+            void runDetect();
+          }}
+          haptic="select"
+        >
+          Try again
+        </Button>
+      )}
 
-function CheckRow({ item }: { item: ChecklistItem }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        opacity: item.done || item.active ? 1 : 0.4,
-        transform: item.done || item.active ? 'translateX(0)' : 'translateX(-4px)',
-        transition: 'opacity var(--dur-normal) var(--ease-spring), transform var(--dur-normal) var(--ease-spring)',
-      }}
-    >
-      <span
-        className="material-symbols-outlined"
-        style={{
-          fontSize: 20,
-          color: item.done ? 'var(--success)' : item.active ? 'var(--accent-strong)' : 'var(--ink-30)',
-          transition: 'color var(--dur-fast) var(--ease-spring)',
-          flexShrink: 0,
-        }}
-      >
-        {item.done ? 'check_circle' : item.active ? 'pending' : 'radio_button_unchecked'}
-      </span>
-      <span
-        style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: 'var(--fs-base)',
-          color: item.done ? 'var(--on-surface)' : item.active ? 'var(--on-surface)' : 'var(--on-surface-variant)',
-          fontWeight: item.active ? 600 : 400,
-          transition: 'color var(--dur-fast) var(--ease-spring), font-weight var(--dur-fast)',
-        }}
-      >
-        {item.label}
-      </span>
-    </div>
+      <style>{`
+        @keyframes spDetectSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .sp-detect-spinner { animation: spDetectSpin 0.9s linear infinite; }
+        @media (prefers-reduced-motion: reduce) { .sp-detect-spinner { animation: none; } }
+      `}</style>
+    </StepWrapper>
   );
 }
 
@@ -528,7 +662,7 @@ function Step3Topics({
             letterSpacing: '-0.02em',
           }}
         >
-          We found {state.topics.length} topic{state.topics.length !== 1 ? 's' : ''}
+          We found these topics
         </h2>
         <p
           style={{
@@ -539,7 +673,7 @@ function Step3Topics({
             lineHeight: 1.6,
           }}
         >
-          Does this look right? Remove topics you don&apos;t want, or add missing ones.
+          Adjust them before Mage builds your path.
         </p>
       </div>
 
@@ -598,17 +732,17 @@ function Step3Topics({
         size="lg"
         fullWidth
         disabled={state.topics.length === 0}
-        trailingIcon="auto_awesome"
+        trailingIcon="arrow_forward"
         onClick={onContinue}
         haptic="select"
       >
-        Generate Path
+        Continue
       </Button>
     </StepWrapper>
   );
 }
 
-// ── Step 4 — Goal setup ───────────────────────────────────────────────────────
+// ── Step 4 — Goal + Ultra ─────────────────────────────────────────────────────
 
 const INTENSITIES: { id: WizardState['intensity']; label: string; icon: string }[] = [
   { id: 'easy', label: 'Easy', icon: 'spa' },
@@ -620,10 +754,16 @@ function Step4Goal({
   state,
   onChange,
   onContinue,
+  canUseUltra,
+  isAdmin,
+  ultraUsage,
 }: {
   state: WizardState;
   onChange: (patch: Partial<WizardState>) => void;
   onContinue: () => void;
+  canUseUltra: boolean;
+  isAdmin: boolean;
+  ultraUsage: { used: number; limit: number } | null;
 }) {
   return (
     <StepWrapper>
@@ -746,15 +886,72 @@ function Step4Goal({
         </div>
       </NMCard>
 
+      {/* Quality — Standard vs Ultra (Pro-gated) */}
+      <NMCard
+        style={{
+          padding: 'var(--card-pad)',
+          background: 'var(--surface-container)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
+        <h3
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-base)',
+            fontWeight: 600,
+            color: 'var(--on-surface)',
+            margin: 0,
+          }}
+        >
+          Choose quality
+        </h3>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <QualityOption
+            active={!state.ultra}
+            label="Standard"
+            icon="auto_awesome"
+            onClick={() => onChange({ ultra: false })}
+          />
+          <QualityOption
+            active={canUseUltra && state.ultra}
+            label="Ultra"
+            icon="bolt"
+            locked={!canUseUltra}
+            onClick={() => {
+              if (canUseUltra) onChange({ ultra: !state.ultra });
+            }}
+          />
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-xs)',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.5,
+          }}
+        >
+          {!canUseUltra
+            ? 'Ultra builds sharper quizzes with the premium model — part of Pro.'
+            : isAdmin
+              ? 'Ultra builds sharper quizzes with the premium model. Unlimited (admin).'
+              : ultraUsage && ultraUsage.limit > 0
+                ? `Ultra builds sharper quizzes. ${Math.max(0, ultraUsage.limit - ultraUsage.used)} of ${ultraUsage.limit} left this month.`
+                : 'Ultra builds sharper quizzes with the premium model. Uses one of your monthly Ultra paths.'}
+        </p>
+      </NMCard>
+
       <Button
         variant="primary"
         size="lg"
         fullWidth
-        trailingIcon="arrow_forward"
+        trailingIcon="auto_awesome"
         onClick={onContinue}
         haptic="select"
       >
-        Continue
+        Generate
       </Button>
     </StepWrapper>
   );
@@ -780,7 +977,7 @@ function SegmentedOption({ active, onClick, label }: { active: boolean; onClick:
         fontSize: 'var(--fs-sm)',
         fontWeight: active ? 700 : 500,
         cursor: 'pointer',
-        transition: 'all var(--dur-fast) var(--ease-spring)',
+        transition: 'background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-spring)',
       }}
     >
       {label}
@@ -825,7 +1022,7 @@ function IntensityOption({
         flexDirection: 'column',
         alignItems: 'center',
         gap: 4,
-        transition: 'all var(--dur-fast) var(--ease-spring)',
+        transition: 'background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-spring)',
       }}
     >
       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{icon}</span>
@@ -834,27 +1031,426 @@ function IntensityOption({
   );
 }
 
-// ── Step 5 — Summary ──────────────────────────────────────────────────────────
+function QualityOption({
+  active,
+  label,
+  icon,
+  onClick,
+  locked,
+}: {
+  active: boolean;
+  label: string;
+  icon: string;
+  onClick: () => void;
+  locked?: boolean;
+}) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-pressed={active}
+      style={{
+        flex: 1,
+        minHeight: 56,
+        padding: '10px 8px',
+        borderRadius: 'var(--radius-md)',
+        border: active ? '2px solid var(--accent-strong)' : '1px solid var(--ink-20)',
+        background: active ? 'color-mix(in srgb, var(--accent-strong) 12%, transparent)' : hover && !locked ? 'var(--ink-08)' : 'transparent',
+        color: active ? 'var(--accent-strong)' : 'var(--on-surface-variant)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: 'var(--fs-sm)',
+        fontWeight: active ? 700 : 500,
+        cursor: locked ? 'not-allowed' : 'pointer',
+        opacity: locked ? 0.55 : 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+        transition: 'background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-spring)',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{icon}</span>
+        {locked && (
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 14, color: 'var(--warning)' }}>
+            lock
+          </span>
+        )}
+      </span>
+      {label}
+    </button>
+  );
+}
 
-function Step5Summary({
+// ── Step 5 — Generate + summary ───────────────────────────────────────────────
+
+interface PlanActivity { kind?: string; completed?: boolean }
+interface PlanSlot { id: string; activities?: PlanActivity[] }
+interface PlanPhase { slots?: PlanSlot[] }
+interface PlanTree { title?: string; phases?: PlanPhase[] }
+
+function countActivities(plan: PlanTree | null): { lessons: number; flashcards: number; quizzes: number } {
+  let lessons = 0;
+  let flashcards = 0;
+  let quizzes = 0;
+  for (const phase of plan?.phases ?? []) {
+    for (const slot of phase.slots ?? []) {
+      for (const act of slot.activities ?? []) {
+        if (act.kind === 'theory') lessons += 1;
+        else if (act.kind === 'flashcards') flashcards += 1;
+        else if (act.kind === 'quiz') quizzes += 1;
+      }
+    }
+  }
+  return { lessons, flashcards, quizzes };
+}
+
+function Step5Generate({
   state,
+  onChange,
   onStartLesson,
   onViewPack,
 }: {
   state: WizardState;
-  onStartLesson: () => void;
-  onViewPack: () => void;
+  onChange: (patch: Partial<WizardState>) => void;
+  onStartLesson: (planId: string, firstSlotId: string | null) => void;
+  onViewPack: (notebookId: string | null) => void;
 }) {
-  const packTitle = state.topics[0]
-    ? `${state.topics[0]} & More`
-    : state.file
-    ? state.file.name.replace(/\.[^.]+$/, '')
-    : 'My Study Pack';
+  const startedRef = React.useRef(false);
 
+  // POST the path itself. Split out so the initial kickoff AND the in-place
+  // "Try again" share it — a retry re-runs ONLY generation, never re-creating
+  // the Study Pack or re-posting the exam.
+  const runPathGeneration = React.useCallback(
+    async (notebookId: string) => {
+      // Topics steer generation via an explicit brief directive (no
+      // structure-override backend).
+      const brief = [
+        `Build the path around these topics, in this order: ${state.topics.join('; ')}.`,
+        INTENSITY_DIRECTIVE[state.intensity],
+      ]
+        .filter(Boolean)
+        .join(' ');
+      try {
+        const pathRes = await fetch('/api/learn/paths', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: state.suggestedTitle || 'My Study Pack',
+            brief,
+            primaryNotebookId: notebookId,
+            materialIds: state.materialIds,
+            ultra: state.ultra,
+            language: 'en',
+          }),
+        });
+        const pathJson = await pathRes.json();
+        if (!pathJson?.success || !pathJson.data?.planId) {
+          onChange({ generating: false, genError: pathJson?.error || 'Could not start generation.' });
+          return;
+        }
+        onChange({ planId: pathJson.data.planId as string });
+      } catch {
+        onChange({ generating: false, genError: 'Network error. Please try again.' });
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [state.topics, state.intensity, state.suggestedTitle, state.materialIds, state.ultra],
+  );
+
+  // Kick off the create chain. Guarded against PARENT state (not just the
+  // per-mount ref) so a back→forward remount can never double-create the pack
+  // or re-charge the meter: bail if a plan already exists, and reuse any
+  // already-created notebook.
+  const startGeneration = React.useCallback(async () => {
+    if (state.planId) return; // already generating/done — the stream resumes below
+    onChange({ generating: true, genError: null });
+    try {
+      // 1. Host notebook (the Study Pack). Reuse an existing one — packId mode,
+      //    or a pack created on a prior attempt — so we never orphan packs.
+      let notebookId = state.packId ?? state.notebookId;
+      if (!notebookId) {
+        const name = (state.suggestedTitle || 'My Study Pack').slice(0, 100);
+        const res = await fetch('/api/notebooks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        });
+        const json = await res.json();
+        if (!json?.success || !json.data?.id) {
+          onChange({ generating: false, genError: json?.error || 'Could not create your Study Pack.' });
+          return;
+        }
+        notebookId = json.data.id as string;
+        onChange({ notebookId });
+      }
+
+      // 2. Persist the exam date once (best-effort — never blocks generation).
+      //    Lives here in startGeneration (the one-time kickoff), NOT in
+      //    runPathGeneration, so the in-place "Try again" never re-posts it —
+      //    and it runs for existing-pack mode too, not only freshly-made packs.
+      if (state.hasExamDate && state.examDate) {
+        try {
+          await fetch('/api/user/exams', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: state.suggestedTitle || 'Study Pack exam',
+              examDate: new Date(state.examDate + 'T00:00:00').toISOString(),
+              notebookId,
+            }),
+          });
+        } catch {
+          /* non-fatal */
+        }
+      }
+
+      // 3. Generate the path.
+      await runPathGeneration(notebookId);
+    } catch {
+      onChange({ generating: false, genError: 'Network error. Please try again.' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.planId, state.packId, state.notebookId, state.suggestedTitle, state.hasExamDate, state.examDate, runPathGeneration]);
+
+  React.useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    void startGeneration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // In-place retry after a client-side failure (no plan created yet). Reuses the
+  // already-created Study Pack and re-runs only path generation — no duplicate
+  // pack, no re-posted exam, no extra back→forward round-trip.
+  const retry = React.useCallback(() => {
+    const notebookId = state.packId ?? state.notebookId;
+    if (notebookId) {
+      onChange({ generating: true, genError: null });
+      void runPathGeneration(notebookId);
+    } else {
+      void startGeneration();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.packId, state.notebookId, runPathGeneration, startGeneration]);
+
+  // Stream progress once we have a planId.
+  const stream = usePathGenerationStream(state.planId, Boolean(state.planId));
+  const isReady = stream.status === 'ready';
+
+  // Once ready, capture the first slot id for the "Start Lesson 1" deep-link.
+  React.useEffect(() => {
+    if (!isReady || !state.planId) return;
+    const plan = stream.plan as PlanTree | null;
+    const first = plan?.phases?.[0]?.slots?.[0]?.id ?? null;
+    if (first !== state.firstSlotId) onChange({ firstSlotId: first });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, state.planId, stream.plan]);
+
+  const failed = state.genError !== null || stream.status === 'failed';
+  const total = stream.progress?.totalSlots ?? 0;
+  const done = stream.progress?.completedSlots ?? 0;
+  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  const currentSlot = stream.progress?.currentSlot;
+  const currentActivity = stream.progress?.currentActivity;
+
+  const plan = stream.plan as PlanTree | null;
+  const counts = countActivities(plan);
+
+  // ── READY ──
+  if (isReady) {
+    return (
+      <StepWrapper>
+        <div style={{ textAlign: 'center', marginBottom: 4 }}>
+          <Mascot pose="graduation" size="lg" idle="bounce" oneShot="cheer-big" />
+        </div>
+
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--fs-2xl)',
+            fontWeight: 700,
+            color: 'var(--on-surface)',
+            margin: 0,
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Your Study Pack is ready
+        </h2>
+        <p
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--on-surface-variant)',
+            margin: '4px 0 0',
+            textAlign: 'center',
+          }}
+        >
+          Start your first lesson whenever you&apos;re ready.
+        </p>
+
+        <NMCard
+          style={{
+            padding: 'var(--card-pad)',
+            background: 'var(--surface-container)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 28, color: 'var(--accent-strong)', flexShrink: 0 }}
+            >
+              auto_stories
+            </span>
+            <h3
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--fs-lg)',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                margin: 0,
+                lineHeight: 1.3,
+              }}
+            >
+              {plan?.title || state.suggestedTitle || 'My Study Pack'}
+            </h3>
+          </div>
+
+          <div style={{ height: 1, background: 'var(--ink-12)' }} />
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 16,
+            }}
+          >
+            <StatCell icon="route" label="Lessons" value={String(counts.lessons)} />
+            <StatCell icon="style" label="Flashcards" value={String(counts.flashcards)} />
+            <StatCell icon="quiz" label="Quizzes" value={String(counts.quizzes)} />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 16, color: 'var(--on-surface-variant)' }}
+            >
+              {state.intensity === 'easy' ? 'spa' : state.intensity === 'intense' ? 'local_fire_department' : 'balance'}
+            </span>
+            <span
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--fs-sm)',
+                color: 'var(--on-surface-variant)',
+                textTransform: 'capitalize',
+              }}
+            >
+              {state.intensity} pace
+              {state.ultra ? ' · Ultra' : ''}
+              {state.examDate ? ` · exam ${new Date(state.examDate + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}` : ''}
+            </span>
+          </div>
+        </NMCard>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            leadingIcon="play_arrow"
+            onClick={() => onStartLesson(state.planId!, state.firstSlotId)}
+            haptic="success"
+          >
+            Start Lesson 1
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            fullWidth
+            leadingIcon="folder_open"
+            onClick={() => onViewPack(state.notebookId)}
+          >
+            View Study Pack
+          </Button>
+        </div>
+      </StepWrapper>
+    );
+  }
+
+  // ── FAILED ──
+  if (failed) {
+    return (
+      <StepWrapper>
+        <div style={{ textAlign: 'center', marginBottom: 4 }}>
+          <Mascot pose="thinking" size="lg" idle="none" />
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--fs-2xl)',
+            fontWeight: 700,
+            color: 'var(--on-surface)',
+            margin: 0,
+            textAlign: 'center',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Generation hit a snag
+        </h2>
+        <p
+          style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--on-surface-variant)',
+            margin: '4px 0 0',
+            textAlign: 'center',
+            lineHeight: 1.6,
+          }}
+        >
+          {state.genError || stream.errorMessage || 'Something went wrong. Try again.'}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Only retry when no plan was created yet — re-running once a planId
+              exists would spawn a duplicate path. */}
+          {!state.planId && (
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              leadingIcon="refresh"
+              onClick={retry}
+            >
+              Try again
+            </Button>
+          )}
+          {state.notebookId && (
+            <Button
+              variant="ghost"
+              size="md"
+              fullWidth
+              leadingIcon="folder_open"
+              onClick={() => onViewPack(state.notebookId)}
+            >
+              View Study Pack
+            </Button>
+          )}
+        </div>
+      </StepWrapper>
+    );
+  }
+
+  // ── GENERATING ──
   return (
     <StepWrapper>
       <div style={{ textAlign: 'center', marginBottom: 4 }}>
-        <Mascot pose="graduation" size="lg" idle="bounce" oneShot="cheer-big" />
+        <Mascot pose="holding-wand" size="lg" idle="sway" />
       </div>
 
       <h2
@@ -868,7 +1464,7 @@ function Step5Summary({
           letterSpacing: '-0.02em',
         }}
       >
-        Your Study Pack is ready
+        Building your path…
       </h2>
       <p
         style={{
@@ -877,9 +1473,12 @@ function Step5Summary({
           color: 'var(--on-surface-variant)',
           margin: '4px 0 0',
           textAlign: 'center',
+          lineHeight: 1.6,
         }}
       >
-        Start your first lesson whenever you&apos;re ready.
+        {currentSlot && currentActivity
+          ? `Writing ${currentActivity} for “${currentSlot.title}”…`
+          : 'Designing sections and checkpoints…'}
       </p>
 
       <NMCard
@@ -888,85 +1487,24 @@ function Step5Summary({
           background: 'var(--surface-container)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 20,
+          gap: 10,
         }}
       >
-        {/* Pack title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 28, color: 'var(--accent-strong)', flexShrink: 0 }}
-          >
-            auto_stories
-          </span>
-          <h3
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--fs-lg)',
-              fontWeight: 700,
-              color: 'var(--on-surface)',
-              margin: 0,
-              lineHeight: 1.3,
-            }}
-          >
-            {packTitle}
-          </h3>
-        </div>
-
-        {/* Stats divider */}
-        <div
+        <ProgressBar value={percent} height={8} />
+        <p
           style={{
-            height: 1,
-            background: 'var(--ink-12)',
-          }}
-        />
-
-        {/* Stat grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 16,
+            margin: 0,
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--fs-xs)',
+            color: 'var(--on-surface-variant)',
+            textAlign: 'center',
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
-          <StatCell icon="route" label="Lessons" value="6" />
-          <StatCell icon="style" label="Flashcards" value="24" />
-          <StatCell icon="quiz" label="Quizzes" value="5" />
-        </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 16,
-          }}
-        >
-          <StatCell icon="emoji_events" label="Boss test" value="1" />
-          <StatCell icon="schedule" label="Est. time" value="2h 30m" />
-        </div>
-
-        {/* Intensity badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 16, color: 'var(--on-surface-variant)' }}
-          >
-            {state.intensity === 'easy' ? 'spa' : state.intensity === 'intense' ? 'local_fire_department' : 'balance'}
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 'var(--fs-sm)',
-              color: 'var(--on-surface-variant)',
-              textTransform: 'capitalize',
-            }}
-          >
-            {state.intensity} pace
-            {state.examDate ? ` · exam ${new Date(state.examDate + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}` : ''}
-          </span>
-        </div>
+          {total > 0 ? `${done} / ${total} checkpoints` : 'Designing structure…'}
+        </p>
       </NMCard>
 
-      {/* Preview note — honest about representative numbers */}
       <p
         style={{
           fontFamily: 'var(--font-sans)',
@@ -974,32 +1512,11 @@ function Step5Summary({
           color: 'var(--ink-40)',
           textAlign: 'center',
           margin: 0,
+          lineHeight: 1.5,
         }}
       >
-        Preview figures — final counts are generated from your material.
+        You can leave — Mage keeps building in the background.
       </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          leadingIcon="play_arrow"
-          onClick={onStartLesson}
-          haptic="success"
-        >
-          Start Lesson 1
-        </Button>
-        <Button
-          variant="ghost"
-          size="md"
-          fullWidth
-          leadingIcon="folder_open"
-          onClick={onViewPack}
-        >
-          View Study Pack
-        </Button>
-      </div>
     </StepWrapper>
   );
 }
@@ -1147,24 +1664,103 @@ const DEFAULT_STATE: WizardState = {
   usingSample: false,
   pasteText: '',
   showPaste: false,
-  topics: SAMPLE_TOPICS,
+  materialIds: [],
+  packId: null,
+  detecting: false,
+  detectError: null,
+  topics: [],
   addingTopic: '',
+  suggestedTitle: '',
   examDate: '',
   intensity: 'balanced',
   hasExamDate: false,
+  ultra: false,
+  generating: false,
+  genError: null,
+  planId: null,
+  firstSlotId: null,
+  notebookId: null,
 };
 
 export default function StudyPackNewPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+
+  const isAdmin = session?.user?.role === 'admin';
+  const canUseUltra = session?.user?.tier === 'PRO' || isAdmin;
+
   const [step, setStep] = React.useState<Step>(1);
   const [state, setState] = React.useReducer(
     (s: WizardState, patch: Partial<WizardState>) => ({ ...s, ...patch }),
-    DEFAULT_STATE
+    DEFAULT_STATE,
   );
 
+  // Live Ultra quota for the quality help text (PRO/admin only).
+  const [ultraUsage, setUltraUsage] = React.useState<{ used: number; limit: number } | null>(null);
+  React.useEffect(() => {
+    if (!canUseUltra) return;
+    let cancelled = false;
+    fetch('/api/user/usage')
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled || !j?.success) return;
+        const features = j.data?.features as
+          | Array<{ featureType: string; used: number; limit: number }>
+          | undefined;
+        const entry = features?.find((f) => f.featureType === 'ultra_path');
+        if (entry) setUltraUsage({ used: entry.used, limit: entry.limit });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [canUseUltra]);
+
+  // Existing-pack mode (?packId): read from window (not useSearchParams, which
+  // bails the page out of static rendering). When present, skip Step 1's
+  // upload, load the pack's material, and jump to topic detection (Step 2).
+  const initedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (initedRef.current || typeof window === 'undefined') return;
+    initedRef.current = true;
+    const packId = new URLSearchParams(window.location.search).get('packId');
+    if (!packId) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/notebooks/${encodeURIComponent(packId)}/inventory`);
+        const json = await res.json();
+        const inv = json?.data as
+          | {
+              pages?: { id: string }[];
+              flashcardSets?: { id: string }[];
+              quizSets?: { id: string }[];
+              documents?: { id: string }[];
+            }
+          | undefined;
+        const ids = json?.success && inv
+          ? [
+              ...(inv.pages ?? []),
+              ...(inv.flashcardSets ?? []),
+              ...(inv.quizSets ?? []),
+              ...(inv.documents ?? []),
+            ].map((m) => m.id)
+          : [];
+        setState({ packId, materialIds: ids });
+        setStep(2);
+      } catch {
+        // Fall back to the normal upload flow if the pack can't be loaded.
+        setState({ packId });
+      }
+    })();
+  }, []);
+
   function goBack() {
+    if (step >= TOTAL_STEPS) return; // terminal step — Back is hidden while generating
     if (step === 1) {
       router.push('/study-packs');
+    } else if (step === 2 && state.packId) {
+      // Existing-pack mode has no upload step to return to.
+      router.push(`/study-packs/${state.packId}`);
     } else {
       setStep((prev) => (prev - 1) as Step);
     }
@@ -1189,7 +1785,13 @@ export default function StudyPackNewPage() {
           />
         );
       case 2:
-        return <Step2Processing onDone={advance} />;
+        return (
+          <Step2Processing
+            state={state}
+            onChange={(p) => setState(p)}
+            onDone={advance}
+          />
+        );
       case 3:
         return (
           <Step3Topics
@@ -1204,14 +1806,26 @@ export default function StudyPackNewPage() {
             state={state}
             onChange={(p) => setState(p)}
             onContinue={advance}
+            canUseUltra={canUseUltra}
+            isAdmin={isAdmin}
+            ultraUsage={ultraUsage}
           />
         );
       case 5:
         return (
-          <Step5Summary
+          <Step5Generate
             state={state}
-            onStartLesson={() => router.push('/lesson/intro')}
-            onViewPack={() => router.push('/study-packs')}
+            onChange={(p) => setState(p)}
+            onStartLesson={(planId, firstSlotId) =>
+              router.push(
+                firstSlotId
+                  ? `/learn/paths/${encodeURIComponent(planId)}?slot=${encodeURIComponent(firstSlotId)}`
+                  : `/learn/paths/${encodeURIComponent(planId)}`,
+              )
+            }
+            onViewPack={(notebookId) =>
+              router.push(notebookId ? `/study-packs/${encodeURIComponent(notebookId)}` : '/study-packs')
+            }
           />
         );
     }

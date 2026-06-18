@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import TheoryViewer from '@/components/learn/TheoryViewer';
+import AskMageButton from '@/components/learn/AskMageButton';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
 import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
@@ -30,6 +31,10 @@ interface CheckpointTheoryViewerProps {
   activity: PathActivity;
   onClose: () => void;
   onCompleted: (unlocked?: PathUnlock[]) => void;
+  /** Path id — enables the "Ask Mage about this lesson" action (Workstream 4). */
+  planId?: string;
+  /** The path's Study Pack notebook, threaded down for the Ask-Mage chat. */
+  notebookId?: string | null;
 }
 
 export default function CheckpointTheoryViewer({
@@ -37,6 +42,8 @@ export default function CheckpointTheoryViewer({
   activity,
   onClose,
   onCompleted,
+  planId,
+  notebookId,
 }: CheckpointTheoryViewerProps) {
   const [theory, setTheory] = useState<TheoryContentPayload['theory'] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -209,6 +216,14 @@ export default function CheckpointTheoryViewer({
             {slot.title}
           </h2>
         </div>
+        {planId ? (
+          <AskMageButton
+            planId={planId}
+            notebookId={notebookId ?? null}
+            slotTitle={slot.title}
+            variant="pill"
+          />
+        ) : null}
         <button
           type="button"
           onClick={onClose}

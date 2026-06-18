@@ -55,7 +55,7 @@ export function TutorialPathPlayer({
 
   const [index, setIndex] = useState(startIndex);
   const [reward, setReward] = useState<
-    { stage: 'celebrate' | 'welcome'; cosmeticSlug: string | null } | null
+    { stage: 'celebrate' | 'community' | 'welcome'; cosmeticSlug: string | null } | null
   >(null);
   const celebratedRef = useRef(false);
 
@@ -83,7 +83,13 @@ export function TutorialPathPlayer({
     router.push('/dashboard');
   }, [router]);
 
-  // Celebration -> welcome. Mark the guided sample complete server-side here
+  // Celebration -> community. Introduce the shared-paths features before the
+  // final welcome screen.
+  const showCommunity = useCallback(() => {
+    setReward({ stage: 'community', cosmeticSlug: null });
+  }, []);
+
+  // Community -> welcome. Mark the guided sample complete server-side here
   // (grants the Apprentice Mage achievement + its title/font cosmetics).
   const advanceReward = useCallback(() => {
     void fetch('/api/user/tutorial/complete', { method: 'POST' });
@@ -138,6 +144,20 @@ export function TutorialPathPlayer({
           title="Path complete!"
           subtitle="You finished the whole flow. Theory, flashcards, and a quiz, just like every path you build."
           cosmeticSlug={reward.cosmeticSlug}
+          buttonLabel="Continue"
+          onDismiss={showCommunity}
+        />
+      ) : reward?.stage === 'community' ? (
+        <RewardTakeover
+          title="Learn from others too"
+          subtitle="Browse shared paths, publish your own, or translate a path when you need it."
+          mascotPose="holding-scroll"
+          confetti={false}
+          features={[
+            { icon: 'groups', label: 'Browse' },
+            { icon: 'ios_share', label: 'Publish' },
+            { icon: 'translate', label: 'Translate' },
+          ]}
           buttonLabel="Continue"
           onDismiss={advanceReward}
         />

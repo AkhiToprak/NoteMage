@@ -76,17 +76,13 @@ export async function POST(request: NextRequest) {
       title,
       contextPageIds = [],
       contextDocIds = [],
+      sourcePathId,
     } = body as {
       title?: string;
       contextPageIds?: string[];
       contextDocIds?: string[];
+      sourcePathId?: string;
     };
-
-    const chatTitle =
-      typeof title === 'string' && title.trim().length > 0 ? title.trim() : 'New Chat';
-    if (chatTitle.length > 200) {
-      return badRequestResponse('Chat title must be 200 characters or less');
-    }
 
     if (!Array.isArray(contextPageIds) || contextPageIds.some((id) => typeof id !== 'string')) {
       return badRequestResponse('contextPageIds must be an array of strings');
@@ -101,16 +97,65 @@ export async function POST(request: NextRequest) {
       return badRequestResponse('Cannot reference more than 50 documents');
     }
 
+    // Workstream 4 — seed context from a learning path ("Ask Mage about this
+    // lesson"). Resolve the StudyPlan's materialIds into OWNED pages + docs and
+    // merge them into the effective context. The materialIds list mixes pages,
+    // docs, and set ids (flashcard/quiz) — only page/doc ids match the lookups
+    // below; everything else is silently ignored. An unfound / unowned plan id
+    // is ignored too (no context added). chat-stream.ts only reads
+    // contextPageIds/contextDocIds, so this is what gives the chat real
+    // material to draw from.
+    let effectivePageIds = [...contextPageIds];
+    let effectiveDocIds = [...contextDocIds];
+    let pathTitle: string | null = null;
+
+    if (typeof sourcePathId === 'string' && sourcePathId.length > 0) {
+      const plan = await db.studyPlan.findFirst({
+        where: { id: sourcePathId, userId },
+        select: { id: true, title: true, materialIds: true, notebookId: true },
+      });
+      if (plan) {
+        pathTitle = plan.title;
+        if (plan.materialIds.length > 0) {
+          const [planPages, planDocs] = await Promise.all([
+            db.page.findMany({
+              where: { id: { in: plan.materialIds }, section: { notebook: { userId } } },
+              select: { id: true },
+            }),
+            db.document.findMany({
+              where: { id: { in: plan.materialIds }, notebook: { userId } },
+              select: { id: true },
+            }),
+          ]);
+          // Union with anything explicitly passed, dedupe, keep within caps.
+          effectivePageIds = Array.from(
+            new Set([...effectivePageIds, ...planPages.map((p) => p.id)]),
+          ).slice(0, 50);
+          effectiveDocIds = Array.from(
+            new Set([...effectiveDocIds, ...planDocs.map((d) => d.id)]),
+          ).slice(0, 50);
+        }
+      }
+    }
+
+    const chatTitle =
+      typeof title === 'string' && title.trim().length > 0
+        ? title.trim()
+        : (pathTitle ?? 'New Chat');
+    if (chatTitle.length > 200) {
+      return badRequestResponse('Chat title must be 200 characters or less');
+    }
+
     // Tally notebook membership for every selected page/doc, validating
     // ownership in the same query.
     const tally = new Map<string, number>();
 
-    if (contextPageIds.length > 0) {
+    if (effectivePageIds.length > 0) {
       const pages = await db.page.findMany({
-        where: { id: { in: contextPageIds }, section: { notebook: { userId } } },
+        where: { id: { in: effectivePageIds }, section: { notebook: { userId } } },
         select: { id: true, section: { select: { notebookId: true } } },
       });
-      if (pages.length !== contextPageIds.length) {
+      if (pages.length !== effectivePageIds.length) {
         return badRequestResponse('One or more page IDs are invalid');
       }
       for (const p of pages) {
@@ -119,12 +164,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (contextDocIds.length > 0) {
+    if (effectiveDocIds.length > 0) {
       const docs = await db.document.findMany({
-        where: { id: { in: contextDocIds }, notebook: { userId } },
+        where: { id: { in: effectiveDocIds }, notebook: { userId } },
         select: { id: true, notebookId: true },
       });
-      if (docs.length !== contextDocIds.length) {
+      if (docs.length !== effectiveDocIds.length) {
         return badRequestResponse('One or more document IDs are invalid');
       }
       for (const d of docs) {
@@ -155,8 +200,8 @@ export async function POST(request: NextRequest) {
         userId,
         notebookId: primaryNotebookId,
         title: chatTitle,
-        contextPageIds,
-        contextDocIds,
+        contextPageIds: effectivePageIds,
+        contextDocIds: effectiveDocIds,
         contextNotebookIds,
       },
     });

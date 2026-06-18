@@ -139,7 +139,7 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
         // Otherwise it's a pure Inbox/uploads chat — bucket it under cross
         // too so it doesn't get dropped.
         key = CROSS_NOTEBOOK_KEY;
-        label = 'Cross-notebook';
+        label = 'Across packs';
         color = null;
         kind = 'cross';
       } else if (chat.primaryNotebookKind === 'inbox') {
@@ -149,7 +149,7 @@ export default function LearnChatsLayout({ children }: { children: React.ReactNo
         kind = 'inbox';
       } else {
         key = chat.primaryNotebookId;
-        label = chat.primaryNotebookName ?? 'Untitled notebook';
+        label = chat.primaryNotebookName ?? 'Untitled Study Pack';
         color = chat.primaryNotebookColor;
         kind = 'standard';
       }

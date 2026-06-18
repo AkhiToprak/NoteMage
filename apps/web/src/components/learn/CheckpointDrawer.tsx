@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import ActivityList from '@/components/learn/ActivityList';
+import AskMageButton from '@/components/learn/AskMageButton';
 import type { PathSlot } from '@/components/learn/PathView';
 import { trackEvent } from '@/lib/telemetry';
 
@@ -19,6 +20,10 @@ interface CheckpointDrawerProps {
   onSelectActivity: (activityId: string | null) => void;
   /** Close the drawer entirely (clear ?slot= as well). */
   onClose: () => void;
+  /** Path id — enables the "Ask Mage about this lesson" action (Workstream 4). */
+  planId?: string;
+  /** The path's Study Pack notebook, threaded down for the Ask-Mage chat. */
+  notebookId?: string | null;
 }
 
 const SLOT_KIND_LABEL: Record<string, string> = {
@@ -32,6 +37,8 @@ export default function CheckpointDrawer({
   slot,
   onSelectActivity,
   onClose,
+  planId,
+  notebookId,
 }: CheckpointDrawerProps) {
   const drawerRef = useRef<HTMLElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -199,6 +206,14 @@ export default function CheckpointDrawer({
               </div>
             ) : null}
           </div>
+          {planId ? (
+            <AskMageButton
+              planId={planId}
+              notebookId={notebookId ?? null}
+              slotTitle={slot.title}
+              variant="compact"
+            />
+          ) : null}
           <button
             type="button"
             onClick={onClose}

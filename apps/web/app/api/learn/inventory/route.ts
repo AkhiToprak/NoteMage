@@ -11,7 +11,7 @@ import {
  * Phase 9.4 — Cross-notebook learn inventory.
  *
  * Returns every assignable material the user owns, annotated with the
- * source notebook so the `LearnPathSetup` modal can group items per
+ * source notebook so the Study Pack creation wizard can group items per
  * notebook. Same item shape as `/api/notebooks/[id]/inventory` plus
  * `notebookId`, `notebookName`, `notebookColor`, and `notebookKind`.
  *

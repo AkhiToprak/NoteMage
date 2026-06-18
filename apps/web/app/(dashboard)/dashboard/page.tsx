@@ -102,7 +102,7 @@ export default function DashboardPage() {
   // doesn't re-show it.
   const [showPostTutorial, setShowPostTutorial] = useState(false);
 
-  const ctaHref = '/my-path?create=1';
+  const ctaHref = '/study-packs/new';
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ export default function DashboardPage() {
               variant="primary"
               shape="pill"
               leadingIcon="upload_file"
-              onClick={() => router.push('/my-path?create=1')}
+              onClick={() => router.push('/study-packs/new')}
             >
               Upload my notes
             </Button>
@@ -614,7 +614,7 @@ export default function DashboardPage() {
                     </Link>
                   ) : (
                     <Link
-                      href="/my-path?create=1"
+                      href="/study-packs/new"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1148,7 +1148,7 @@ export default function DashboardPage() {
                   size="md"
                   shape="pill"
                   leadingIcon="upload_file"
-                  onClick={() => router.push('/my-path?create=1')}
+                  onClick={() => router.push('/study-packs/new')}
                 >
                   Upload
                 </Button>

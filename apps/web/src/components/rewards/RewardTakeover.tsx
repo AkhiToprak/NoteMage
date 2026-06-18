@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Mascot } from '@/components/mascot/Mascot';
+import type { MascotPose } from '@/components/mascot/poses';
 import { Button } from '@/components/ui/Button';
 import { getCosmetic, type CosmeticType } from '@/lib/cosmetics/catalog';
 import { haptics } from '@/lib/haptics';
@@ -38,12 +39,21 @@ export function RewardTakeover({
   title,
   subtitle,
   cosmeticSlug,
+  features,
+  mascotPose = 'graduation',
+  confetti = true,
   buttonLabel = 'Continue',
   onDismiss,
 }: {
   title: string;
   subtitle?: string;
   cosmeticSlug?: string | null;
+  /** Optional small icon-row (e.g. feature highlights) shown above the button. */
+  features?: { icon: string; label: string }[];
+  /** Mascot pose override; defaults to the celebratory graduation pose. */
+  mascotPose?: MascotPose;
+  /** Set false for informational (non-reward) takeovers — skips the confetti burst. */
+  confetti?: boolean;
   buttonLabel?: string;
   onDismiss: () => void;
 }) {
@@ -78,6 +88,7 @@ export function RewardTakeover({
 
   return createPortal(
     <div className={styles.stage} role="dialog" aria-modal="true" aria-label={title}>
+      {confetti && (
       <div className={styles.confettiLayer} aria-hidden>
         {CONFETTI.map((c, i) => (
           <span
@@ -97,11 +108,29 @@ export function RewardTakeover({
           />
         ))}
       </div>
+      )}
 
       <div className={`${styles.content} ${shown ? styles.contentIn : ''}`}>
-        <Mascot pose="graduation" size="xl" idle="float" priority />
+        <Mascot pose={mascotPose} size="xl" idle="float" priority />
         <h2 className={styles.title}>{title}</h2>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+
+        {features && features.length > 0 && (
+          <div className={styles.features}>
+            {features.map((f) => (
+              <span key={f.label} className={styles.feature}>
+                <span
+                  className={`material-symbols-outlined ${styles.featureIcon}`}
+                  aria-hidden
+                  style={{ fontSize: 20 }}
+                >
+                  {f.icon}
+                </span>
+                {f.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         {cosmetic && typeInfo && (
           <div className={styles.chip}>

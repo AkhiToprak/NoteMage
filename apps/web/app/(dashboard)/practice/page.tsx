@@ -1,9 +1,14 @@
 'use client';
 
 // /practice — quick-access review hub.
-// Data: fetches /api/flashcard-sets and /api/quiz-sets (same endpoints used by
-// /practice/flashcards and /practice/quizzes). Everything else (weak topics, mistakes,
-// exam unlocks) is representative — no backing data yet.
+// Data:
+//   • /api/flashcard-sets + /api/quiz-sets (same endpoints as the flashcards /
+//     quizzes sub-pages) — drive the flashcard / quiz availability signals.
+//   • /api/learn/paths (list) + /api/learn/paths/[id] (detail) → derivePathStats,
+//     mirroring /my-path — drive the weak-topic signal and the "continue path"
+//     fallback. The single recommended next step at the top is computed from
+//     these real signals (weak topic → flashcards → quiz → continue path).
+// Mistakes / exam unlocks remain representational — no backing store yet.
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -12,6 +17,8 @@ import { SectionHeading } from '@/components/rework/SectionHeading';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
 import { formatRelativeTime } from '@/lib/relative-time';
+import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
+import type { PathPlan } from '@/components/learn/PathView';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +40,24 @@ interface QuizSetRow {
   notebook: { id: string; name: string } | null;
 }
 
+type PathListItem = PathPlan & {
+  generationStatus?: string;
+  updatedAt?: string;
+};
+
 type LoadState<T> = { status: 'loading' } | { status: 'ready'; data: T[] } | { status: 'error' };
+
+// The recommended next step, computed from real signals only.
+interface NextStep {
+  /** Eyebrow shown above the title. */
+  kind: 'weak' | 'flashcards' | 'quiz' | 'path' | 'create';
+  pose: React.ComponentProps<typeof Mascot>['pose'];
+  title: string;
+  desc: string;
+  href: string;
+  cta: string;
+  icon: string;
+}
 
 // ─── Page shell (Suspense boundary for useSearchParams-free descendants) ─────
 
@@ -60,6 +84,13 @@ function PracticeContent() {
     status: 'loading',
   });
   const [quizSets, setQuizSets] = useState<LoadState<QuizSetRow>>({ status: 'loading' });
+  // Path list (drives the weak-topic signal + the "continue path" fallback).
+  const [pathList, setPathList] = useState<LoadState<PathListItem>>({ status: 'loading' });
+  // Full detail (with slot activities) for the most-recently-active ready path.
+  const [pathPlan, setPathPlan] = useState<PathPlan | null>(null);
+  // The path id whose detail fetch has settled (resolved or failed). Gates the
+  // loading state without hanging it when the detail call errors out.
+  const [settledDetailId, setSettledDetailId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     let live = true;
@@ -92,6 +123,20 @@ function PracticeContent() {
         if (live) setQuizSets({ status: 'error' });
       });
 
+    fetch('/api/learn/paths')
+      .then((r) => r.json())
+      .then((j) => {
+        if (!live) return;
+        if (j?.success) {
+          setPathList({ status: 'ready', data: (j.data ?? []) as PathListItem[] });
+        } else {
+          setPathList({ status: 'error' });
+        }
+      })
+      .catch(() => {
+        if (live) setPathList({ status: 'error' });
+      });
+
     return () => {
       live = false;
     };
@@ -103,23 +148,58 @@ function PracticeContent() {
 
   const fcSets = flashcardSets.status === 'ready' ? flashcardSets.data : [];
   const qSets = quizSets.status === 'ready' ? quizSets.data : [];
-  const isLoading = flashcardSets.status === 'loading' || quizSets.status === 'loading';
-  const hasAnything = fcSets.length > 0 || qSets.length > 0;
+  const paths = pathList.status === 'ready' ? pathList.data : [];
+
+  // Pick the path to base signals on: the most-recently-updated ready path
+  // (mirrors /my-path's `readyItems`; the list arrives newest-first, so the
+  // first ready entry is the most-recently-active one).
+  const activePath =
+    paths.find((p) => p.generationStatus === 'ready' || !p.generationStatus) ?? null;
+
+  // Fetch the active path's full plan so derivePathStats has slot activities.
+  useEffect(() => {
+    if (!activePath) {
+      setPathPlan(null);
+      return;
+    }
+    let cancelled = false;
+    const id = activePath.id;
+    fetch(`/api/learn/paths/${encodeURIComponent(id)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        if (j?.success && j.data) setPathPlan(j.data as PathPlan);
+        setSettledDetailId(id);
+      })
+      .catch(() => {
+        // Detail failed — release the gate; the next-step logic falls through
+        // to a non-path signal (flashcards / quiz / create).
+        if (!cancelled) setSettledDetailId(id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activePath]);
+
+  const detailPlan = pathPlan && activePath && pathPlan.id === activePath.id ? pathPlan : null;
+
+  const isLoading =
+    flashcardSets.status === 'loading' ||
+    quizSets.status === 'loading' ||
+    pathList.status === 'loading' ||
+    // Detail still in flight for the active path — wait so we don't flash a
+    // lower-priority CTA before the weak-topic signal resolves. Released once
+    // the detail fetch settles for this path (even on failure).
+    (activePath !== null && settledDetailId !== activePath.id);
+  const hasAnything = fcSets.length > 0 || qSets.length > 0 || paths.length > 0;
 
   // Empty state — nothing at all
   if (!isLoading && !hasAnything) {
     return <EmptyState />;
   }
 
-  // Determine next-up recommendation based on what user has
-  const hasFc = fcSets.length > 0;
-  const hasQuiz = qSets.length > 0;
-  const nextUpPose = hasFc ? 'holding-flashcards' : 'quizzing';
-  const nextUpTitle = hasFc ? 'Review your flashcards' : 'Take a quick quiz';
-  const nextUpDesc = hasFc
-    ? `You have ${fcSets.length} flashcard ${fcSets.length === 1 ? 'set' : 'sets'} ready.`
-    : `You have ${qSets.length} quiz ${qSets.length === 1 ? 'set' : 'sets'} ready.`;
-  const nextUpHref = hasFc ? '/practice/flashcards' : '/practice/quizzes';
+  // ── The single recommended next step (real signals only) ──
+  const nextStep = computeNextStep({ fcSets, qSets, activePath, detailPlan });
 
   // Preview sets (up to 4, most recently updated)
   const previewFc = fcSets
@@ -140,63 +220,10 @@ function PracticeContent() {
         style={{ marginBottom: '28px' }}
       />
 
-      {/* ── Next-up banner ── */}
-      {!isLoading && hasAnything && (
-        <NMCard
-          accent="review"
-          style={{
-            marginBottom: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'clamp(16px, 3vw, 28px)',
-            flexWrap: 'wrap',
-            padding: 'clamp(20px, 3vw, 28px)',
-          }}
-        >
-          <Mascot pose={nextUpPose} size="md" idle="bounce" aria-hidden />
-          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-            <p
-              style={{
-                margin: '0 0 4px',
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--nm-review)',
-              }}
-            >
-              Next up
-            </p>
-            <h2
-              style={{
-                margin: '0 0 6px',
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(18px, 3vw, 22px)',
-                fontWeight: 800,
-                color: 'var(--on-surface)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {nextUpTitle}
-            </h2>
-            <p
-              style={{
-                margin: '0 0 16px',
-                fontSize: '14px',
-                color: 'var(--on-surface-variant)',
-                lineHeight: 1.5,
-              }}
-            >
-              {nextUpDesc}
-            </p>
-            <Button href={nextUpHref} variant="primary" size="md" leadingIcon="play_arrow">
-              Start now
-            </Button>
-          </div>
-        </NMCard>
-      )}
+      {/* ── Primary recommended next step — the one thing to do now ── */}
+      {!isLoading && nextStep && <PrimaryNextStep step={nextStep} />}
 
-      {/* ── Activity tile grid ── */}
+      {/* ── All practice (demoted tool grid) ── */}
       <section style={{ marginBottom: '40px' }}>
         <h3
           style={{
@@ -208,7 +235,7 @@ function PracticeContent() {
             letterSpacing: '-0.01em',
           }}
         >
-          Activities
+          All practice
         </h3>
         <div
           style={{
@@ -406,7 +433,198 @@ function PracticeContent() {
   );
 }
 
+// ─── Next-step computation (real signals only) ────────────────────────────────
+//
+// Priority, in order — the first signal that holds wins:
+//   1. A weak topic in the active path  → "Review {weakTopicName}"
+//   2. Flashcards available             → "Review flashcards"
+//   3. A quiz available                 → "Take a quiz"
+//   4. An active path to continue       → "Continue your path"
+//   5. Nothing actionable but some paths exist → nudge to create a Study Pack
+//
+// Nothing here is fabricated: weak topics come from derivePathStats, set counts
+// from the real fetches, and the path href from the real continue-slot.
+
+function computeNextStep({
+  fcSets,
+  qSets,
+  activePath,
+  detailPlan,
+}: {
+  fcSets: FlashcardSetRow[];
+  qSets: QuizSetRow[];
+  activePath: PathListItem | null;
+  detailPlan: PathPlan | null;
+}): NextStep | null {
+  const stats = detailPlan ? derivePathStats(detailPlan) : null;
+
+  // 1 — Weak topic. Prefer a graded checkpoint scoring below the pass gate
+  //     (the most specific signal); fall back to the lowest-progress section.
+  if (stats && detailPlan && activePath) {
+    const weakName = stats.weakCheckpoints[0]?.title ?? stats.weakTopicName;
+    if (weakName) {
+      // Deep-link to the weak slot when we can resolve it from the path tree.
+      let href = `/learn/paths/${encodeURIComponent(detailPlan.id)}`;
+      const weakSlot = detailPlan.phases
+        .flatMap((p) => p.slots)
+        .find((s) => s.title === weakName);
+      if (weakSlot) href += `?slot=${encodeURIComponent(weakSlot.id)}`;
+      return {
+        kind: 'weak',
+        pose: 'thinking',
+        title: `Review ${weakName}`,
+        desc:
+          stats.weakCheckpoints.length > 0
+            ? 'Your lowest score so far — a quick review raises your readiness.'
+            : 'Your lowest-progress topic — close the gap before moving on.',
+        href,
+        cta: 'Review now',
+        icon: 'priority_high',
+      };
+    }
+  }
+
+  // 2 — Flashcards available.
+  if (fcSets.length > 0) {
+    return {
+      kind: 'flashcards',
+      pose: 'holding-flashcards',
+      title: 'Review flashcards',
+      desc: `You have ${fcSets.length} flashcard ${fcSets.length === 1 ? 'set' : 'sets'} ready.`,
+      href: '/practice/flashcards',
+      cta: 'Start now',
+      icon: 'style',
+    };
+  }
+
+  // 3 — Quiz available.
+  if (qSets.length > 0) {
+    return {
+      kind: 'quiz',
+      pose: 'quizzing',
+      title: 'Take a quiz',
+      desc: `You have ${qSets.length} quiz ${qSets.length === 1 ? 'set' : 'sets'} ready.`,
+      href: '/practice/quizzes',
+      cta: 'Start now',
+      icon: 'quiz',
+    };
+  }
+
+  // 4 — Continue the active path (deep-link to the next unlocked slot).
+  if (activePath) {
+    let href = `/learn/paths/${encodeURIComponent(activePath.id)}`;
+    const nextSlot = detailPlan ? findContinueSlot(detailPlan) : null;
+    if (nextSlot) {
+      const params = new URLSearchParams({ slot: nextSlot.id });
+      const nextActivity =
+        nextSlot.activities.find((a) => !a.completed) ?? nextSlot.activities[0];
+      if (nextActivity) params.set('activity', nextActivity.id);
+      href += `?${params.toString()}`;
+    }
+    return {
+      kind: 'path',
+      pose: 'default',
+      title: 'Continue your path',
+      desc: nextSlot
+        ? `Pick up at ${nextSlot.title}.`
+        : 'Jump back into your learning path.',
+      href,
+      cta: 'Continue',
+      icon: 'play_arrow',
+    };
+  }
+
+  // 5 — Sets exist but nothing matched (e.g. detail failed to load and no path):
+  //     steer toward building a Study Pack rather than inventing a tool.
+  return {
+    kind: 'create',
+    pose: 'holding-pen',
+    title: 'Build your first Study Pack',
+    desc: 'Turn your notes into lessons, flashcards, and quizzes.',
+    href: '/study-packs/new',
+    cta: 'Get started',
+    icon: 'stacks',
+  };
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+// The single prominent recommended next step. One card, one accent, one CTA —
+// visually dominant so it reads as "do this", not "pick from a menu".
+function PrimaryNextStep({ step }: { step: NextStep }) {
+  // Map the signal to a semantic accent: weak → review, flashcards → lesson,
+  // quiz → quiz, path/create → lesson (the "learning" hue).
+  const accent =
+    step.kind === 'weak'
+      ? 'review'
+      : step.kind === 'quiz'
+        ? 'quiz'
+        : 'lesson';
+  const accentVar =
+    accent === 'review'
+      ? 'var(--nm-review)'
+      : accent === 'quiz'
+        ? 'var(--nm-quiz)'
+        : 'var(--nm-lesson)';
+
+  return (
+    <NMCard
+      accent={accent}
+      style={{
+        marginBottom: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'clamp(16px, 3vw, 28px)',
+        flexWrap: 'wrap',
+        padding: 'clamp(22px, 3.5vw, 32px)',
+      }}
+    >
+      <Mascot pose={step.pose} size="lg" idle="bounce" aria-hidden />
+      <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+        <p
+          style={{
+            margin: '0 0 6px',
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: accentVar,
+          }}
+        >
+          Recommended next
+        </p>
+        <h2
+          style={{
+            margin: '0 0 8px',
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(20px, 3.4vw, 26px)',
+            fontWeight: 800,
+            color: 'var(--on-surface)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {step.title}
+        </h2>
+        <p
+          style={{
+            margin: '0 0 18px',
+            fontSize: '14px',
+            color: 'var(--on-surface-variant)',
+            lineHeight: 1.55,
+            maxWidth: 460,
+          }}
+        >
+          {step.desc}
+        </p>
+        <Button href={step.href} variant="primary" size="lg" shape="pill" leadingIcon={step.icon}>
+          {step.cta}
+        </Button>
+      </div>
+    </NMCard>
+  );
+}
 
 function ActivityTile({
   icon,

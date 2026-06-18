@@ -753,7 +753,7 @@ export default function ChatThread({ chatId }: { chatId: string }) {
               >
                 {totalContext > 0
                   ? `Ready to help with your material — ${totalContext} source${totalContext !== 1 ? 's' : ''} loaded.`
-                  : 'Upload notes or attach notebook pages, then ask away.'}
+                  : 'Upload notes or attach Study Pack material, then ask away.'}
               </p>
             </div>
             {/* Suggestion chips */}

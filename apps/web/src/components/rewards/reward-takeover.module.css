@@ -99,6 +99,32 @@
   color: #ae89ff;
 }
 
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 440px;
+}
+
+.feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(238, 236, 255, 0.06);
+  border: 1px solid rgba(238, 236, 255, 0.14);
+  font-size: 14px;
+  font-weight: 600;
+  color: #eeecff;
+  line-height: 1;
+}
+
+.featureIcon {
+  color: #ae89ff;
+}
+
 .chipType {
   font-size: 12px;
   font-weight: 700;

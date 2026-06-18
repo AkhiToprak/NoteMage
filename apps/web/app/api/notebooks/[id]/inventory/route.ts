@@ -12,9 +12,9 @@ import {
  * Phase 8 — Learn-this-notebook inventory.
  *
  * Returns every assignable material in the notebook as a flat, type-tagged
- * list. The manual mode of LearnPathSetup uses this (when launched from a
- * notebook header) to populate its material picker; cross-notebook mode
- * uses /api/learn/inventory instead. The AI generate route loads the same
+ * list. The manual mode of the Study Pack creation wizard uses this (when
+ * launched from a notebook header) to populate its material picker;
+ * cross-notebook mode uses /api/learn/inventory instead. The AI generate route loads the same
  * primitives itself (with richer prompt-shaped strings); this endpoint is
  * the client-friendly shape.
  */

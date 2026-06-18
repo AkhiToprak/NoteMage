@@ -11,7 +11,6 @@ import { readinessColor } from '@/components/rework/tokens';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
 import { UltraBadge } from '@/components/learn/UltraBadge';
-import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import PublishDialog from '@/components/path-publish/PublishDialog';
 import { DeletePathDialog } from '@/components/learn/DeletePathDialog';
 import { ResetPathDialog } from '@/components/learn/ResetPathDialog';
@@ -86,13 +85,8 @@ export default function MyPathsPage() {
   // Full plan detail (with activities) for the active path.
   const [plan, setPlan] = useState<PathPlan | null>(null);
 
-  // Create flow (moved here from the retired /learn/paths list page). The
-  // generator (LearnPathSetup) is a shared, self-contained component.
-  const [createOpen, setCreateOpen] = useState(false);
-  const [pendingCreate, setPendingCreate] = useState(false);
-  // null until the capability probe resolves. false = FREE-tier switchover is
-  // on for this user → the create CTA routes to the community library instead.
-  const [canGenerate, setCanGenerate] = useState<boolean | null>(null);
+  // Creation moved out to the dedicated Study Pack wizard (/study-packs/new) —
+  // the "New path" CTA just navigates there.
   // The in-flight path the user is stopping / restoring (null = no dialog).
   const [cancelTarget, setCancelTarget] = useState<PathListItem | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,61 +123,11 @@ export default function MyPathsPage() {
     void refresh();
   }, [refresh]);
 
-  // Honour `?create=1` (from the dashboard CTA / Upload FAB / Study Packs).
-  // Read from window (not useSearchParams) to keep the route statically
-  // rendered, and strip the param so a refresh doesn't re-open the generator.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('create') !== '1') return;
-    setPendingCreate(true);
-    params.delete('create');
-    const qs = params.toString();
-    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
-  }, []);
-
-  // Resolve whether this user may still generate AI paths. Fail open to the
-  // generator on error — the modal's own gate + the server-side 402 still
-  // protect against a blocked generation.
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/learn/paths/access')
-      .then((r) => r.json())
-      .then((j) => {
-        if (!cancelled && j?.success) setCanGenerate(Boolean(j.data?.canGenerate));
-      })
-      .catch(() => {
-        if (!cancelled) setCanGenerate(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // The create CTA: PRO / admins (and FREE pre-switchover) open the generator;
-  // a blocked FREE user lands on the community library with the explainer.
+  // The create CTA navigates to the dedicated Study Pack wizard. That flow's
+  // own backend gates (and the server-side 402) handle FREE-tier blocking.
   const handleCreateClick = useCallback(() => {
-    if (canGenerate === false) {
-      router.push('/learn/community?from=create');
-      return;
-    }
-    setCreateOpen(true);
-  }, [canGenerate, router]);
-
-  // Once the capability probe resolves, run a pending `?create=1` through the
-  // same gate as a manual click (FREE → community, else open the generator).
-  useEffect(() => {
-    if (!pendingCreate || canGenerate === null) return;
-    setPendingCreate(false);
-    handleCreateClick();
-  }, [pendingCreate, canGenerate, handleCreateClick]);
-
-  // LearnPathSetup auto-closes once Stage A returns (before generation finishes);
-  // refresh picks up the new `generating` row so the poll loop takes over.
-  const handleCreateClose = useCallback(() => {
-    setCreateOpen(false);
-    void refresh();
-  }, [refresh]);
+    router.push('/study-packs/new');
+  }, [router]);
 
   const readyItems = useMemo(() => {
     if (!listItems) return [];
@@ -341,7 +285,6 @@ export default function MyPathsPage() {
   return (
     <Shell>
       {body}
-      {createOpen ? <LearnPathSetup onClose={handleCreateClose} /> : null}
       {cancelTarget ? (
         <CancelPathDialog
           planId={cancelTarget.id}
@@ -480,7 +423,7 @@ function PathSelectCard({ plan, onSelect }: { plan: PathListItem; onSelect: () =
               whiteSpace: 'nowrap',
             }}
           >
-            {plan.notebookTitle ?? 'Cross-notebook path'}
+            {plan.notebookTitle ?? 'Multi-pack path'}
           </span>
         </span>
       </span>
@@ -575,6 +518,141 @@ function CommunityLink() {
       </span>
       Browse community
     </Link>
+  );
+}
+
+// ── Overflow ("More") menu ───────────────────────────────────────────────
+// A minimal, accessible kebab menu for the secondary path actions. Built
+// inline (no shared menu primitive in the codebase is token-clean enough to
+// reuse) with the page's own toolbar tokens. Closes on click-outside and
+// Escape; every item carries a :focus-visible ring. Each item is either a
+// Link (navigates) or a button (fires a dialog open) — behavior is unchanged
+// from the old inline toolbar buttons.
+
+type MoreMenuItem = {
+  key: string;
+  icon: string;
+  label: string;
+  /** Navigation item — rendered as a Next.js Link. */
+  href?: string;
+  /** Action item — rendered as a button that fires this on select. */
+  onSelect?: () => void;
+  /** Danger styling (Delete) — keeps the red treatment within the menu. */
+  danger?: boolean;
+};
+
+function MoreMenu({ label, items }: { label: string; items: MoreMenuItem[] }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Close on outside pointer (mouse + touch) and on Escape; restore focus to
+  // the trigger when Escape closes the menu.
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const close = () => setOpen(false);
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative' }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="my-path-toolbtn my-path-more-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((p) => !p)}
+      >
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+          more_vert
+        </span>
+        More
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={label}
+          className="my-path-more-popover"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            right: 0,
+            zIndex: 40,
+            minWidth: '212px',
+            padding: '6px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            background: 'var(--surface-container-high)',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 12px 32px rgb(0 0 0 / 0.28)',
+          }}
+        >
+          {items.map((item) => {
+            const cls = item.danger
+              ? 'my-path-more-item my-path-more-item--danger'
+              : 'my-path-more-item';
+            const inner = (
+              <>
+                <span
+                  className="material-symbols-outlined"
+                  aria-hidden
+                  style={{ fontSize: '18px' }}
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </>
+            );
+            if (item.href) {
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  role="menuitem"
+                  className={cls}
+                  onClick={close}
+                >
+                  {inner}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={item.key}
+                type="button"
+                role="menuitem"
+                className={cls}
+                onClick={() => {
+                  close();
+                  item.onSelect?.();
+                }}
+              >
+                {inner}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -682,8 +760,9 @@ function PathOverview({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-      {/* Top toolbar: back (when several paths) on the left; per-path actions
-          (community, publish / publication status, delete) on the right. */}
+      {/* Top toolbar: back (when several paths) on the left; the primary
+          "New path" CTA plus a "More" overflow menu (browse community, publish /
+          publication status, translate, reset, delete) on the right. */}
       <div
         style={{
           display: 'flex',
@@ -741,47 +820,49 @@ function PathOverview({
             </span>
             New path
           </button>
-          <CommunityLink />
-          {publication ? (
-            <Link
-              href={`/learn/paths/${encodeURIComponent(meta.id)}/publication`}
-              className="my-path-toolbtn"
-            >
-              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-                fact_check
-              </span>
-              Publication status
-            </Link>
-          ) : (
-            <button type="button" className="my-path-toolbtn" onClick={() => setPublishOpen(true)}>
-              <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-                rocket_launch
-              </span>
-              Publish
-            </button>
-          )}
-          <button type="button" className="my-path-toolbtn" onClick={() => setTranslateOpen(true)}>
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-              translate
-            </span>
-            Translate
-          </button>
-          <button type="button" className="my-path-toolbtn" onClick={() => setResetOpen(true)}>
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-              restart_alt
-            </span>
-            Reset
-          </button>
-          <button
-            type="button"
-            className="my-path-toolbtn my-path-toolbtn--danger"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
-              delete
-            </span>
-            Delete
-          </button>
+          <MoreMenu
+            label="More path actions"
+            items={[
+              {
+                key: 'community',
+                icon: 'explore',
+                label: 'Browse community',
+                href: '/learn/community',
+              },
+              publication
+                ? {
+                    key: 'publication',
+                    icon: 'fact_check',
+                    label: 'Publication status',
+                    href: `/learn/paths/${encodeURIComponent(meta.id)}/publication`,
+                  }
+                : {
+                    key: 'publish',
+                    icon: 'rocket_launch',
+                    label: 'Publish',
+                    onSelect: () => setPublishOpen(true),
+                  },
+              {
+                key: 'translate',
+                icon: 'translate',
+                label: 'Translate',
+                onSelect: () => setTranslateOpen(true),
+              },
+              {
+                key: 'reset',
+                icon: 'restart_alt',
+                label: 'Reset',
+                onSelect: () => setResetOpen(true),
+              },
+              {
+                key: 'delete',
+                icon: 'delete',
+                label: 'Delete',
+                danger: true,
+                onSelect: () => setDeleteOpen(true),
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -1339,6 +1420,41 @@ function PageStyles() {
       }
       .my-path-toolbtn--primary:hover { border-color: var(--accent-strong); }
       .my-path-toolbtn--primary:focus-visible { outline-color: var(--accent-strong); }
+      /* "More" overflow menu — trigger reuses the toolbtn shell; popover +
+         items get their own surface + focus rings. Only opacity/transform
+         animate, with the project spring easing. */
+      .my-path-more-popover {
+        transform-origin: top right;
+        animation: myPathMenuIn 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @keyframes myPathMenuIn {
+        from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .my-path-more-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--on-surface);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color var(--dur-fast) var(--ease-spring);
+      }
+      .my-path-more-item:hover { background: var(--surface-container-highest); }
+      .my-path-more-item:focus-visible { outline: 3px solid var(--primary); outline-offset: -1px; }
+      .my-path-more-item--danger { color: var(--error); }
+      .my-path-more-item--danger:hover { background: var(--error-container, var(--surface-container-highest)); }
+      .my-path-more-item--danger:focus-visible { outline-color: var(--error); }
       /* Stop/Cancel/Restore control on in-flight cards. */
       .my-path-stop-btn {
         transition: border-color var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring);
@@ -1396,6 +1512,8 @@ function PageStyles() {
         .my-path-continue-ico { animation: none !important; }
         .my-path-toolbtn { transition: none; }
         .my-path-toolbtn:hover { transform: none; }
+        .my-path-more-popover { animation: none; }
+        .my-path-more-item { transition: none; }
       }
     `}</style>
   );

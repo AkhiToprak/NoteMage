@@ -73,7 +73,7 @@ export default function VideoImportTab({
   const { upload } = useDirectUpload();
 
   // Instant client-side tier read; the server gate is authoritative. Admins
-  // bypass like every other PRO surface (mirrors LearnPathSetup).
+  // bypass like every other PRO surface (mirrors the Study Pack creation wizard).
   const isAdmin = session?.user?.role === 'admin';
   const isPro = session?.user?.tier === 'PRO' || isAdmin;
 

@@ -13,7 +13,6 @@ import ExportDialog from '@/components/notebook/ExportDialog';
 import ImportNotebookDialog from '@/components/notebook/ImportNotebookDialog';
 import FlashcardSetCreator from '@/components/notebook/FlashcardSetCreator';
 import QuizSetCreator from '@/components/notebook/QuizSetCreator';
-import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import { useSearch } from '@/hooks/useSearch';
 import SearchDropdown from '@/components/search/SearchDropdown';
 import TimerWidget from '@/components/layout/TimerWidget';
@@ -30,11 +29,11 @@ export default function UnifiedSidebar() {
     sections,
     studyPlans,
     refreshSections,
-    refreshStudyPlans,
     setSidebarCollapsed,
     exportDialogOpen,
     setExportDialogOpen,
   } = useNotebookWorkspace();
+  const router = useRouter();
   const mascotContext = useMascotContextPose();
 
   const [isCreatingSection, setIsCreatingSection] = useState(false);
@@ -62,11 +61,11 @@ export default function UnifiedSidebar() {
   // Exams modal (per-notebook, opened from the header)
   const [showExams, setShowExams] = useState(false);
 
-  // Learn path setup modal — opens the same flow as /learn/paths,
-  // scoped to this notebook by default (its files appear as the
-  // initial inventory; user can still uncheck or pull in materials
-  // from other notebooks inside the modal).
-  const [showPathSetup, setShowPathSetup] = useState(false);
+  // Path creation routes to the dedicated Study Pack wizard, scoped to this
+  // notebook's material via ?packId.
+  const goCreatePath = useCallback(() => {
+    router.push(`/study-packs/new?packId=${notebookId}`);
+  }, [router, notebookId]);
 
   useEffect(() => {
     if (isCreatingSection && sectionInputRef.current) sectionInputRef.current.focus();
@@ -268,7 +267,7 @@ export default function UnifiedSidebar() {
           </span>
           <input
             type="text"
-            placeholder="Search in notebook…"
+            placeholder="Search in Study Pack…"
             value={wsSearchQuery}
             onChange={(e) => setWsSearchQuery(e.target.value)}
             onFocus={() => setWsSearchFocused(true)}
@@ -498,8 +497,8 @@ export default function UnifiedSidebar() {
                   Paths
                 </span>
                 <button
-                  onClick={() => setShowPathSetup(true)}
-                  title="Generate a guided learning path from this notebook"
+                  onClick={goCreatePath}
+                  title="Generate a guided learning path from this Study Pack"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -533,8 +532,8 @@ export default function UnifiedSidebar() {
 
               {studyPlans.length === 0 && (
                 <button
-                  onClick={() => setShowPathSetup(true)}
-                  title="Generate a guided learning path from this notebook"
+                  onClick={goCreatePath}
+                  title="Generate a guided learning path from this Study Pack"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -739,21 +738,6 @@ export default function UnifiedSidebar() {
           notebookId={notebookId}
           sections={sections}
           onClose={() => setExportDialogOpen(false)}
-        />
-      )}
-
-      {/* Learn-path setup modal — same component as /learn/paths, but
-          scoped to this notebook so the inventory is pre-filtered and
-          the AI tab anchors on the notebook id by default. Refresh the
-          Paths group on close so a freshly-generated plan appears. */}
-      {showPathSetup && (
-        <LearnPathSetup
-          defaultNotebookId={notebookId}
-          defaultNotebookName={notebook?.name}
-          onClose={() => {
-            setShowPathSetup(false);
-            refreshStudyPlans();
-          }}
         />
       )}
 

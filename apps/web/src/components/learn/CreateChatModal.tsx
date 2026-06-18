@@ -65,6 +65,10 @@ interface Props {
   defaultNotebookId?: string;
   defaultContextPageIds?: string[];
   defaultContextDocIds?: string[];
+  /** Seed the chat's context from a learning path's source material (Workstream 4). */
+  defaultSourcePathId?: string;
+  /** Pre-fill the custom title (e.g. "Ask about: <lesson>"). */
+  defaultTitle?: string;
   onClose: () => void;
   onCreate: (chatId: string) => void;
 }
@@ -118,6 +122,8 @@ export default function CreateChatModal({
   defaultNotebookId,
   defaultContextPageIds,
   defaultContextDocIds,
+  defaultSourcePathId,
+  defaultTitle,
   onClose,
   onCreate,
 }: Props) {
@@ -140,7 +146,7 @@ export default function CreateChatModal({
   );
 
   const [showTitleInput, setShowTitleInput] = useState(false);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(defaultTitle ?? '');
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -158,7 +164,7 @@ export default function CreateChatModal({
         const json = await res.json();
         if (cancelled) return;
         if (!json?.success) {
-          setNotebooksError(json?.error ?? 'Failed to load notebooks');
+          setNotebooksError(json?.error ?? 'Failed to load Study Packs');
           setNotebooks([]);
           return;
         }
@@ -177,7 +183,7 @@ export default function CreateChatModal({
         setNotebooks(mapped);
       } catch {
         if (!cancelled) {
-          setNotebooksError('Failed to load notebooks');
+          setNotebooksError('Failed to load Study Packs');
           setNotebooks([]);
         }
       }
@@ -477,6 +483,7 @@ export default function CreateChatModal({
           title: chatTitle,
           contextPageIds: [...selectedPageIds],
           contextDocIds: [...selectedDocIds],
+          ...(defaultSourcePathId ? { sourcePathId: defaultSourcePathId } : {}),
         }),
       });
       const json = await res.json();
@@ -607,7 +614,7 @@ export default function CreateChatModal({
               </h2>
             </div>
             <p style={{ margin: 0, fontSize: '12px', color: 'var(--on-surface-variant)' }}>
-              Pick pages and uploads to feed {mageName} — across any of your notebooks.
+              Pick pages and uploads to feed {mageName} — across any of your Study Packs.
             </p>
           </div>
           <button
@@ -700,7 +707,7 @@ export default function CreateChatModal({
               {notebooks === null ? (
                 <div style={{ padding: '24px', textAlign: 'center' }}>
                   <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
-                    Loading notebooks…
+                    Loading Study Packs…
                   </p>
                 </div>
               ) : notebooksError && notebooks.length === 0 ? (
@@ -712,7 +719,7 @@ export default function CreateChatModal({
               ) : notebooks.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center' }}>
                   <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0 }}>
-                    No notebooks yet. Create one first, or drop a file below.
+                    No Study Packs yet. Create one first, or drop a file below.
                   </p>
                 </div>
               ) : (
@@ -961,7 +968,7 @@ export default function CreateChatModal({
                 </p>
                 <p style={{ margin: 0, fontSize: '11px', color: 'var(--on-surface-variant)' }}>
                   {defaultNotebookId
-                    ? 'Uploads attach to the current notebook.'
+                    ? 'Uploads attach to the current Study Pack.'
                     : 'Uploads land in Inbox — they stay available across all chats.'}
                 </p>
                 {uploadError && (
@@ -991,7 +998,7 @@ export default function CreateChatModal({
             <VideoInputMask dense onConfirmUrl={({ url }) => attachYouTubeUrl(url)} />
             <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--on-surface-variant)' }}>
               {defaultNotebookId
-                ? 'Transcripts attach to the current notebook.'
+                ? 'Transcripts attach to the current Study Pack.'
                 : 'Transcripts land in Inbox — available across all chats.'}
             </p>
           </div>

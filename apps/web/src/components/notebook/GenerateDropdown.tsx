@@ -7,7 +7,6 @@ import { useSession } from 'next-auth/react';
 import { useAiTask } from './AiTaskContext';
 import { useNotebookWorkspace } from './NotebookWorkspaceContext';
 import CreateChatModal from '@/components/learn/CreateChatModal';
-import LearnPathSetup from '@/components/learn/LearnPathSetup';
 import { getMageName } from '@/lib/scholar';
 import { useToast } from '@/components/ui/Toast';
 
@@ -42,7 +41,6 @@ export default function GenerateDropdown({
   const [loadingType, setLoadingType] = useState<GenerateType | null>(null);
   const [mounted, setMounted] = useState(false);
   const [chatModalOpen, setChatModalOpen] = useState(false);
-  const [pathModalOpen, setPathModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -393,13 +391,13 @@ export default function GenerateDropdown({
               onPointerUp={() =>
                 fireOnce(() => {
                   setOpen(false);
-                  setPathModalOpen(true);
+                  router.push(`/study-packs/new?packId=${notebookId}`);
                 })
               }
               onClick={() =>
                 fireOnce(() => {
                   setOpen(false);
-                  setPathModalOpen(true);
+                  router.push(`/study-packs/new?packId=${notebookId}`);
                 })
               }
               disabled={loading}
@@ -436,7 +434,7 @@ export default function GenerateDropdown({
               >
                 school
               </span>
-              <span>Generate study path from this notebook</span>
+              <span>Generate study path from this Study Pack</span>
             </button>
 
             {onEssayCheck && (
@@ -512,13 +510,6 @@ export default function GenerateDropdown({
             setChatModalOpen(false);
             router.push(`/learn/chats/${chatId}`);
           }}
-        />
-      )}
-      {pathModalOpen && (
-        <LearnPathSetup
-          defaultNotebookId={notebookId}
-          defaultNotebookName={notebookName}
-          onClose={() => setPathModalOpen(false)}
         />
       )}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

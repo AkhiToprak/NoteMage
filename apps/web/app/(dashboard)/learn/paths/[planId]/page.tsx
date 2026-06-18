@@ -691,6 +691,8 @@ function PathDetailInner({ planId }: { planId: string }) {
           key={activeActivity.id}
           slot={openSlot}
           activity={activeActivity}
+          planId={planId}
+          notebookId={plan.notebookId}
           onClose={() => setUrlSlot({ activity: null })}
           onCompleted={handleActivityCompleted}
         />
@@ -706,6 +708,8 @@ function PathDetailInner({ planId }: { planId: string }) {
       ) : openSlot ? (
         <CheckpointDrawer
           slot={openSlot}
+          planId={planId}
+          notebookId={plan.notebookId}
           onSelectActivity={handleSelectActivity}
           onClose={handleCloseDrawer}
         />

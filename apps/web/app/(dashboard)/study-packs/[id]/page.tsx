@@ -47,9 +47,14 @@ function TabPanel({ tab, notebook }: { tab: Tab; notebook: NotebookData }) {
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.65 }}>
             Your personalized path for this pack — checkpoints, lessons, and boss tests tailored to your material.
           </p>
-          <Button href="/my-path" variant="primary" shape="pill" trailingIcon="arrow_forward" style={{ alignSelf: 'flex-start' }}>
-            Open path
-          </Button>
+          <div style={{ display: 'flex', gap: 'var(--space-3, 12px)', flexWrap: 'wrap' }}>
+            <Button href={`/study-packs/new?packId=${id}`} variant="primary" shape="pill" leadingIcon="add">
+              Create path
+            </Button>
+            <Button href="/my-path" variant="secondary" shape="pill" trailingIcon="arrow_forward">
+              Open path
+            </Button>
+          </div>
         </NMCard>
       );
 
