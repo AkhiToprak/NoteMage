@@ -364,8 +364,18 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
   const unlimited = limit === -1;
   const remaining = limit !== null && !unlimited ? Math.max(0, limit - used) : null;
 
-  // Minutes that the videos added this session represent (for the chip total).
+  // Budget cost in the meter's unit (PRO = minutes, free = video count).
+  // `remaining` already reflects videos added this session (both lanes charge on
+  // add); the live preview video is NOT charged yet, so it's projected on top.
   const sessionMinutes = videos.reduce((sum, v) => sum + minutesForDuration(v.durationSec), 0);
+  const sessionUsed = isPro ? sessionMinutes : videos.length;
+  const previewUsed = !preview
+    ? 0
+    : isPro
+      ? preview.durationSec
+        ? minutesForDuration(preview.durationSec)
+        : 0
+      : 1;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -375,8 +385,8 @@ export default function VideoMaterialPicker({ isPro, videos, onChange }: VideoMa
         used={used}
         remaining={remaining}
         unlimited={unlimited}
-        sessionMinutes={sessionMinutes}
-        sessionCount={videos.length}
+        sessionUsed={sessionUsed}
+        previewUsed={previewUsed}
       />
 
       <VideoInputMask
@@ -455,29 +465,45 @@ function LimitReader({
   used,
   remaining,
   unlimited,
-  sessionMinutes,
-  sessionCount,
+  sessionUsed,
+  previewUsed,
 }: {
   isPro: boolean;
   limit: number | null;
   used: number;
   remaining: number | null;
   unlimited: boolean;
-  sessionMinutes: number;
-  sessionCount: number;
+  /** Cost (meter unit) of videos added this session — already in `used`. */
+  sessionUsed: number;
+  /** Cost (meter unit) of the video being previewed — not yet charged. */
+  previewUsed: number;
 }) {
-  const unit = isPro ? 'min' : 'videos';
-  const period = isPro ? 'left this month' : 'left';
+  // "min" never pluralises; "video(s)" does — agree with the number shown.
+  const unitFor = (n: number | null) => (isPro ? 'min' : n === 1 ? 'video' : 'videos');
   const noun = isPro ? 'video minutes' : 'video transcripts';
 
-  // Fill fraction of the already-consumed budget (PRO native charges on submit,
-  // so `used` already reflects this session's videos after the usage refetch).
-  const pct =
-    limit !== null && limit > 0 && !unlimited ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const empty = remaining !== null && remaining <= 0;
-  // The hero number + bar carry the colour. Accent normally, error when spent —
+  // Everything this session subtracts from the budget: already-added videos
+  // (in `used`/`remaining`) plus the previewed one (not yet charged).
+  const delta = sessionUsed + previewUsed;
+  // `remaining` already nets out added videos; project the preview on top.
+  const projected = remaining === null ? null : Math.max(0, remaining - previewUsed);
+  const heroValue = delta > 0 ? projected : remaining;
+  const empty = heroValue !== null && heroValue <= 0;
+
+  // Hero + bar carry the colour. Accent normally, error when it would zero out —
   // both theme-aware tokens so light mode stays legible (no light-on-light).
   const heroColor = empty ? 'var(--error)' : 'var(--accent-strong, var(--primary))';
+  const deltaColor = empty ? 'var(--error)' : 'var(--accent-strong, var(--primary))';
+  const deltaBg = empty ? 'rgba(253,111,133,0.14)' : 'rgba(140,82,255,0.14)';
+
+  const labelText = delta > 0 ? 'left after upload' : isPro ? 'left this month' : 'left';
+
+  // The bar previews charged + previewed consumption together.
+  const barUsed = used + previewUsed;
+  const pct =
+    limit !== null && limit > 0 && !unlimited
+      ? Math.min(100, Math.round((barUsed / limit) * 100))
+      : 0;
 
   return (
     <div
@@ -514,7 +540,7 @@ function LimitReader({
         </span>
       </div>
 
-      {/* Hero number — the remaining balance, big + coloured */}
+      {/* Hero number — projected balance, big + coloured, with the subtraction */}
       {unlimited || limit === null ? (
         <span
           style={{
@@ -530,7 +556,6 @@ function LimitReader({
       ) : (
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
           <span
-            aria-hidden
             style={{
               fontFamily: 'var(--font-display)',
               fontSize: 'var(--fs-4xl, 2.5rem)',
@@ -541,7 +566,7 @@ function LimitReader({
               fontVariantNumeric: 'tabular-nums',
             }}
           >
-            {remaining ?? 0}
+            {heroValue ?? 0}
           </span>
           <span
             style={{
@@ -551,7 +576,7 @@ function LimitReader({
               color: heroColor,
             }}
           >
-            {unit}
+            {unitFor(heroValue)}
           </span>
           <span
             style={{
@@ -561,8 +586,27 @@ function LimitReader({
               color: 'var(--on-surface-variant)',
             }}
           >
-            {period}
+            {labelText}
           </span>
+          {delta > 0 && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: deltaBg,
+                color: deltaColor,
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--fs-xs)',
+                fontWeight: 800,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.01em',
+              }}
+            >
+              −{delta} {unitFor(delta)}
+            </span>
+          )}
         </div>
       )}
 
@@ -572,7 +616,7 @@ function LimitReader({
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={limit}
-          aria-valuenow={Math.min(used, limit)}
+          aria-valuenow={Math.min(barUsed, limit)}
           aria-label={`${noun} used`}
           style={{
             height: 8,
@@ -593,24 +637,8 @@ function LimitReader({
         </div>
       )}
 
-      {/* Session tally (only once videos are added) / free-tier hint */}
-      {sessionCount > 0 ? (
-        <p
-          style={{
-            margin: 0,
-            fontSize: 'var(--fs-sm)',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
-          }}
-        >
-          <strong style={{ color: 'var(--on-surface)' }}>{sessionCount}</strong>{' '}
-          {sessionCount === 1 ? 'video' : 'videos'} ·{' '}
-          <strong style={{ color: 'var(--accent-strong, var(--primary))' }}>
-            {sessionMinutes} min
-          </strong>{' '}
-          {isPro ? 'of video' : 'total'}
-        </p>
-      ) : !isPro ? (
+      {/* Free-tier hint, only before anything is added. */}
+      {!isPro && delta === 0 && (
         <p
           style={{
             margin: 0,
@@ -621,7 +649,7 @@ function LimitReader({
         >
           Captions become source material for your pack.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }
