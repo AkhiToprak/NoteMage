@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>NoteMage · App Store · iPad Pro 13"</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,500,0,0&display=block" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0c0a1a;
+    --surface:#1a1a36; --c-lowest:#10102a; --c-low:#21213e; --c:#272746; --c-high:#2d2d52; --c-highest:#35355c;
+    --outline-variant:#6a6a96; --outline:#8888a8;
+    --on-surface:#ffffff; --on-variant:#dfdeeb; --on-variant-2:#c0bed8;
+    --primary:#d1bcff; --on-primary:#3f0099; --primary-container:#a479f8;
+    --accent:#8c52ff; --accent-deep:#6d39dd;
+    --lav:#ae89ff; --md-h3:#c4a9ff; --md-h4:#ae89ff;
+    --gold:#ffde59; --gold-ink:#2a2200; --gold-deep:#c9ab2e; --tertiary:#ffe88c; --on-tertiary:#927900;
+    --warning:#ffa726; --success:#48ca9a; --green:#4ade80; --red:#fca5a5; --pdf:#fd6f85;
+    --pass:74,222,128; --fail:252,165,165;
+    --ink-04:rgba(237,233,255,.04); --ink-08:rgba(237,233,255,.08); --ink-12:rgba(237,233,255,.12);
+    --ink-20:rgba(237,233,255,.20); --ink-30:rgba(237,233,255,.30); --ink-50:rgba(237,233,255,.50); --ink-60:rgba(237,233,255,.60);
+    --font-display:'Epilogue',serif; --font-body:'Plus Jakarta Sans',sans-serif; --font-brand:'Oswald',sans-serif;
+    --font-chat:'Oswald',sans-serif; --font-edit:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);overflow:hidden;}
+  .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;line-height:1;display:inline-block;}
+  .fill{font-variation-settings:'FILL' 1;}
+
+  /* iPad Pro 13" = 2064 x 2752 */
+  .frame{position:fixed;top:0;left:0;width:2064px;height:2752px;background:var(--bg);overflow:hidden;font-family:var(--font-body);}
+  .frame .dots{position:absolute;inset:0;z-index:0;pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><circle cx='3' cy='3' r='1.8' fill='%23ffffff' fill-opacity='0.04'/></svg>");}
+  .shot{position:absolute;inset:0;z-index:1;display:none;}
+  .shot.on{display:block;}
+
+  .screen{position:absolute;left:0;top:0;width:2064px;height:1620px;background:var(--surface);overflow:hidden;
+    border-bottom-left-radius:80px;border-bottom-right-radius:80px;
+    box-shadow:0 56px 130px rgba(0,0,0,.6),inset 0 0 0 1.5px rgba(174,137,255,.22);}
+  .shot.std .screen{height:2120px;}
+
+  .sbar{position:absolute;left:0;top:0;width:100%;height:88px;display:flex;align-items:center;justify-content:space-between;padding:0 80px;z-index:40;color:var(--on-surface);}
+  .sbar .time{font-family:var(--font-body);font-size:40px;font-weight:700;}
+  .sbar .ic{display:flex;align-items:center;gap:18px;}
+  .sbar .ic .material-symbols-outlined{font-size:40px;}
+
+  .band{position:absolute;left:0;top:1620px;width:2064px;height:1132px;z-index:5;display:flex;flex-direction:column;align-items:center;text-align:center;padding:92px 120px 0;}
+  .shot.std .band{top:2120px;height:632px;justify-content:center;padding-bottom:40px;}
+  .band .eyebrow{font-family:var(--font-brand);text-transform:uppercase;letter-spacing:.28em;font-size:34px;font-weight:600;color:var(--gold);margin-bottom:28px;}
+  .band .title{font-family:var(--font-display);font-weight:800;font-size:116px;line-height:1.02;letter-spacing:-.03em;color:var(--on-surface);}
+  .band .title .g{color:var(--gold);}
+  .shot.std .band .title{font-size:96px;}
+  .band .explain{margin-top:32px;font-family:var(--font-body);font-weight:500;font-size:46px;line-height:1.4;color:var(--on-variant);max-width:1500px;}
+  .band .mascot{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:430px;}
+  .band .mascot img{width:100%;display:block;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5));}
+
+  /* ===== PATH VIEW (centered column) ===== */
+  .pathwrap{position:absolute;left:50%;top:88px;transform:translateX(-50%);width:1040px;}
+  .sbanner{margin:54px 0 18px;border-radius:50px;padding:42px 48px;display:flex;align-items:center;gap:24px;}
+  .sbanner.unlocked{background:var(--primary);} .sbanner.locked{background:var(--c);}
+  .sbanner .sb-l{flex:1;min-width:0;}
+  .sbanner .lab{font-family:var(--font-body);text-transform:uppercase;letter-spacing:.1em;font-size:30px;font-weight:700;}
+  .sbanner.unlocked .lab{color:rgba(63,0,153,.7);} .sbanner.locked .lab{color:var(--on-variant);}
+  .sbanner .ttl{font-family:var(--font-display);font-weight:800;font-size:56px;margin-top:6px;letter-spacing:-.01em;}
+  .sbanner.unlocked .ttl{color:var(--on-primary);} .sbanner.locked .ttl{color:var(--on-variant);}
+  .sbanner .sb-btn{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;}
+  .sbanner.unlocked .sb-btn{background:rgba(255,255,255,.18);} .sbanner.locked .sb-btn{background:var(--c-high);}
+  .sbanner .sb-btn .material-symbols-outlined{font-size:46px;}
+  .sbanner.unlocked .sb-btn .material-symbols-outlined{color:var(--on-primary);} .sbanner.locked .sb-btn .material-symbols-outlined{color:var(--on-variant);}
+  .slotrow{position:relative;display:flex;padding:0 110px;z-index:2;}
+  .slotrow.l{justify-content:flex-start;} .slotrow.c{justify-content:center;} .slotrow.r{justify-content:flex-end;}
+  .slot{position:relative;width:188px;display:flex;flex-direction:column;align-items:center;}
+  .slot .node{position:relative;width:188px;height:188px;border-radius:56px;border:7px solid;display:grid;place-items:center;}
+  .slot.done .node,.slot.active .node{background:var(--primary);border-color:var(--primary);box-shadow:0 16px 0 var(--primary-container);}
+  .slot.lock .node{background:var(--c);border-color:var(--outline-variant);box-shadow:0 16px 0 #15152b;}
+  .slot .node .ring{position:absolute;inset:-22px;border-radius:70px;border:8px solid var(--gold);}
+  .slot .badge{position:absolute;top:-14px;right:-14px;width:68px;height:68px;border-radius:50%;background:var(--tertiary);border:6px solid var(--surface);display:grid;place-items:center;}
+  .slot .badge .material-symbols-outlined{font-size:38px;color:var(--on-tertiary);}
+  .slot .nm{margin-top:22px;font-family:var(--font-body);font-weight:600;font-size:38px;text-align:center;line-height:1.15;color:var(--on-surface);}
+  .slot.lock .nm{color:var(--on-variant);}
+  .startBubble{position:absolute;left:50%;top:-100px;transform:translateX(-50%);background:var(--primary);color:var(--on-primary);font-family:var(--font-brand);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:34px;padding:16px 36px;border-radius:20px;box-shadow:0 9px 0 var(--primary-container);white-space:nowrap;}
+  .startBubble::after{content:'';position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);border-left:16px solid transparent;border-right:16px solid transparent;border-top:20px solid var(--primary);}
+  .connector{position:relative;height:108px;z-index:1;}
+
+  /* ===== EDITOR (full-screen, faithful) ===== */
+  .edTop{padding:124px 120px 0;}
+  .edTitleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:30px;}
+  .edTitle{font-family:var(--font-edit);font-size:72px;font-weight:700;letter-spacing:-.03em;line-height:1.15;color:var(--on-surface);}
+  .saveChip{flex-shrink:0;display:inline-flex;align-items:center;gap:12px;font-family:var(--font-edit);font-size:28px;font-weight:500;margin-top:18px;color:var(--ink-20);}
+  .saveChip .material-symbols-outlined{font-size:32px;}
+  .edStamp{margin-top:22px;font-family:var(--font-edit);font-size:28px;color:var(--ink-20);}
+  .edRule{margin:34px 0 0;height:1px;background:rgba(174,137,255,.22);}
+  .edToolbar{padding:18px 88px;border-bottom:1px solid rgba(174,137,255,.22);}
+  .trow{display:flex;align-items:center;gap:10px;height:76px;}
+  .tpill{display:inline-flex;align-items:center;gap:12px;height:56px;padding:0 18px;border-radius:14px;background:var(--ink-04);border:1px solid rgba(174,137,255,.16);font-family:var(--font-body);font-size:26px;color:var(--ink-60);}
+  .tpill .material-symbols-outlined{font-size:30px;color:var(--ink-50);}
+  .tbtn{width:60px;height:56px;border-radius:12px;display:grid;place-items:center;color:var(--ink-50);}
+  .tbtn .material-symbols-outlined{font-size:36px;}
+  .tbtn.ai{background:rgba(140,82,255,.22);color:var(--md-h4);}
+  .tsep{width:1px;height:36px;background:var(--ink-08);margin:0 8px;}
+  .modeSw{display:inline-flex;gap:4px;padding:6px;border-radius:16px;background:var(--ink-04);}
+  .modeSw .m{width:60px;height:48px;border-radius:12px;display:grid;place-items:center;color:var(--ink-50);}
+  .modeSw .m .material-symbols-outlined{font-size:32px;}
+  .modeSw .m.on{background:rgba(140,82,255,.22);color:var(--md-h4);}
+  .spacer{flex:1;}
+  .edBody{position:relative;padding:60px 120px;}
+  .edPara{font-family:var(--font-edit);font-size:38px;line-height:1.8;color:var(--on-surface);max-width:1160px;margin-bottom:34px;}
+  .edPara.h{font-size:48px;font-weight:700;color:var(--on-surface);margin-bottom:24px;letter-spacing:-.01em;}
+  .genMenu{position:absolute;top:30px;right:120px;width:560px;background:#1e1d35;border:1px solid rgba(174,137,255,.22);border-radius:28px;padding:16px;box-shadow:0 50px 110px rgba(0,0,0,.6);}
+  .gItem{display:flex;align-items:center;gap:22px;padding:24px 22px;border-radius:18px;}
+  .gItem.hi{background:rgba(140,82,255,.16);box-shadow:inset 0 0 0 2px rgba(140,82,255,.34);}
+  .gItem .gi{width:64px;height:64px;border-radius:16px;background:rgba(140,82,255,.14);display:grid;place-items:center;flex-shrink:0;}
+  .gItem .gi .material-symbols-outlined{font-size:36px;color:var(--md-h4);}
+  .gItem .gl{font-family:var(--font-body);font-size:32px;font-weight:600;color:var(--on-surface);}
+  .gItem .gs{font-family:var(--font-body);font-size:24px;color:var(--ink-50);margin-top:3px;}
+
+  /* ===== FLASHCARD STUDY (iPad, centered) ===== */
+  .fcStage{position:absolute;left:50%;top:88px;transform:translateX(-50%);width:1300px;padding-top:80px;}
+  .fcHead{display:flex;align-items:center;justify-content:space-between;}
+  .fcHead .t{display:flex;align-items:center;gap:18px;font-family:var(--font-display);font-weight:800;font-size:58px;color:var(--on-surface);}
+  .fcHead .t .material-symbols-outlined{font-size:56px;color:var(--accent);}
+  .fcHead .exit{display:inline-flex;align-items:center;gap:12px;font-size:36px;color:var(--on-variant);border:1px solid rgba(140,82,255,.25);border-radius:20px;padding:18px 32px;}
+  .fcHead .exit .material-symbols-outlined{font-size:40px;}
+  .fcProg{display:flex;justify-content:space-between;align-items:center;margin-top:44px;font-size:34px;color:var(--on-variant);}
+  .fcProg b{color:var(--on-surface);font-weight:700;}
+  .fcBar{margin-top:20px;height:18px;border-radius:999px;background:rgba(140,82,255,.16);overflow:hidden;}
+  .fcBar i{display:block;height:100%;background:var(--accent);border-radius:999px;}
+  .fcCard{margin-top:64px;height:780px;border-radius:56px;background:var(--c-high);border:1px solid rgba(81,112,255,.34);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px;box-shadow:0 30px 70px rgba(0,0,0,.4);}
+  .fcCard .lab{font-family:var(--font-brand);text-transform:uppercase;letter-spacing:.16em;font-size:30px;color:var(--ink-30);margin-bottom:40px;}
+  .fcCard .txt{font-size:64px;font-weight:500;line-height:1.4;color:var(--on-surface);}
+  .fcRate{display:flex;gap:36px;justify-content:center;margin-top:60px;}
+  .fcRate .rb{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:20px;padding:48px 0;border-radius:34px;font-size:48px;font-weight:600;}
+  .fcRate .rb .material-symbols-outlined{font-size:52px;}
+  .fcRate .rep{background:rgba(var(--fail),.1);border:1px solid rgba(var(--fail),.25);color:var(--red);}
+  .fcRate .kno{background:rgba(var(--pass),.1);border:1px solid rgba(var(--pass),.25);color:var(--success);}
+
+  /* ===== I3 · INLINE AI ===== */
+  .selSpan{box-decoration-break:clone;-webkit-box-decoration-break:clone;border-radius:6px;padding:2px 4px;background:rgba(140,82,255,.32);}
+  .inlineBar{position:absolute;display:inline-flex;align-items:center;gap:8px;padding:12px;border-radius:999px;background:rgba(39,39,70,.97);border:2px solid rgba(255,222,89,.45);box-shadow:0 30px 80px rgba(0,0,0,.55),0 8px 28px rgba(255,222,89,.2);}
+  .inlineBar::after{content:'';position:absolute;left:50%;bottom:-12px;width:26px;height:26px;background:rgba(39,39,70,.97);border-right:2px solid rgba(255,222,89,.45);border-bottom:2px solid rgba(255,222,89,.45);transform:translateX(-50%) rotate(45deg);}
+  .inlineBar .bolt{width:54px;height:54px;border-radius:16px;background:var(--gold);color:var(--gold-ink);display:grid;place-items:center;}
+  .inlineBar .bolt .material-symbols-outlined{font-size:32px;}
+  .ibtn{display:inline-flex;align-items:center;gap:12px;padding:16px 26px;border-radius:999px;font-size:30px;font-weight:600;color:var(--on-surface);white-space:nowrap;}
+  .ibtn .material-symbols-outlined{font-size:32px;}
+  .ibtn.on{background:rgba(255,222,89,.2);color:var(--gold);}
+  .previewPop{position:absolute;width:760px;background:var(--c-high);border:1px solid var(--ink-12);border-radius:30px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.5);}
+  .ppHead{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+  .ppHead .material-symbols-outlined{font-size:36px;color:var(--accent);}
+  .ppHead .t{font-size:32px;font-weight:700;color:var(--on-surface);}
+  .ppBody{font-family:var(--font-edit);font-size:30px;line-height:1.55;color:var(--on-surface);background:var(--ink-04);border-radius:22px;padding:24px 26px;}
+  .ppFoot{display:flex;justify-content:flex-end;gap:16px;margin-top:24px;}
+  .ppBtn{display:inline-flex;align-items:center;gap:12px;padding:18px 32px;border-radius:20px;font-size:28px;font-weight:600;}
+  .ppBtn.ghost{color:var(--ink-60);border:1px solid var(--ink-12);}
+  .ppBtn.primary{background:var(--accent);color:#fff;}
+  .ppBtn .material-symbols-outlined{font-size:32px;}
+  .proPill{position:absolute;top:124px;right:120px;display:inline-flex;align-items:center;gap:12px;padding:12px 28px;border-radius:999px;background:rgba(255,222,89,.14);border:1px solid rgba(255,222,89,.32);color:var(--gold);font-family:var(--font-brand);font-weight:700;letter-spacing:.14em;font-size:30px;}
+  .proPill .material-symbols-outlined{font-size:34px;}
+
+  /* ===== I4 · CHAT (iPad) ===== */
+  .chHead{display:flex;align-items:center;gap:28px;padding:124px 120px 36px;border-bottom:1px solid rgba(174,137,255,.16);background:var(--c-low);}
+  .wandTile{width:96px;height:96px;border-radius:26px;background:rgba(140,82,255,.4);display:grid;place-items:center;flex-shrink:0;}
+  .wandTile .material-symbols-outlined{font-size:52px;color:var(--md-h3);}
+  .chHead .ht{flex:1;min-width:0;}
+  .chHead .ht .t{font-family:var(--font-chat);font-weight:700;font-size:50px;color:var(--on-surface);}
+  .chHead .ht .s{font-family:var(--font-chat);font-size:32px;color:var(--on-variant);margin-top:6px;}
+  .chHead .feed{flex-shrink:0;display:inline-flex;align-items:center;gap:18px;height:96px;padding:0 40px;border-radius:999px;border:1px solid rgba(140,82,255,.3);background:rgba(140,82,255,.1);}
+  .chHead .feed .material-symbols-outlined{font-size:46px;color:var(--md-h3);}
+  .chHead .feed .fl{font-family:var(--font-chat);font-size:34px;font-weight:700;color:var(--md-h3);}
+  .chHead .feed .bdg{min-width:54px;height:54px;padding:0 16px;border-radius:999px;background:rgba(140,82,255,.35);display:grid;place-items:center;font-family:var(--font-chat);font-size:32px;font-weight:800;color:#fff;}
+  .chList{position:absolute;left:0;right:0;top:330px;bottom:280px;padding:0 120px;display:flex;flex-direction:column;justify-content:flex-end;gap:48px;font-family:var(--font-chat);}
+  .mrow{display:flex;align-items:flex-end;}
+  .mrow.u{justify-content:flex-end;} .mrow.a{justify-content:flex-start;}
+  .ava{flex-shrink:0;width:90px;height:90px;border-radius:24px;background:rgba(140,82,255,.3);display:grid;place-items:center;margin-right:28px;}
+  .ava .material-symbols-outlined{font-size:48px;color:var(--md-h3);}
+  .bub{max-width:62%;padding:38px 46px;font-family:var(--font-chat);font-size:46px;line-height:1.5;}
+  .bub.u{background:var(--accent);color:#fff;border-radius:44px 44px 12px 44px;}
+  .bub.a{background:var(--ink-08);border:1px solid var(--ink-12);color:var(--on-surface);border-radius:44px 44px 44px 12px;}
+  .chComp{position:absolute;left:0;right:0;bottom:0;padding:40px 120px 64px;border-top:1px solid rgba(174,137,255,.16);background:var(--surface);}
+  .compBox{display:flex;align-items:center;gap:26px;background:var(--ink-08);border:1px solid rgba(140,82,255,.15);border-radius:40px;padding:30px 30px 30px 46px;}
+  .compBox .ph{flex:1;font-family:var(--font-chat);font-size:44px;color:var(--ink-30);}
+  .sendBtn{width:104px;height:104px;border-radius:28px;background:var(--accent);display:grid;place-items:center;flex-shrink:0;}
+  .sendBtn .material-symbols-outlined{font-size:50px;color:#fff;}
+
+  /* ===== I5 · QUIZ (iPad) ===== */
+  .qzStage{position:absolute;left:50%;top:88px;transform:translateX(-50%);width:1480px;padding-top:80px;}
+  .qzHead{display:flex;align-items:center;justify-content:center;gap:28px;}
+  .qzHead .t{font-family:var(--font-display);font-weight:800;font-size:60px;color:var(--on-surface);}
+  .qzBadge{display:inline-flex;align-items:center;font-size:36px;font-weight:700;color:var(--lav);border:1px solid rgba(174,137,255,.22);background:rgba(174,137,255,.06);border-radius:999px;padding:14px 32px;}
+  .qzBadge b{color:var(--accent);}
+  .qCard{margin-top:54px;background:#0c0a1a;border:1px solid rgba(174,137,255,.38);border-radius:52px;padding:64px 56px;box-shadow:0 2px 14px rgba(0,0,0,.55),inset 0 1px 0 rgba(196,169,255,.1);}
+  .qCard .qt{font-size:58px;line-height:1.45;font-weight:500;color:#f5f1ff;}
+  .opts{margin-top:44px;display:flex;flex-direction:column;gap:26px;}
+  .opt{display:flex;align-items:center;gap:34px;padding:40px 46px;border-radius:40px;border:1px solid rgba(140,82,255,.15);background:var(--c);}
+  .opt .chip{width:88px;height:88px;border-radius:50%;border:2px solid rgba(140,82,255,.15);display:grid;place-items:center;font-size:42px;font-weight:700;color:var(--on-variant-2);flex-shrink:0;}
+  .opt .ot{font-size:50px;color:var(--on-variant-2);flex:1;}
+  .opt .chip .material-symbols-outlined{font-size:52px;}
+  .opt.correct{border-color:rgba(var(--pass),.5);background:rgba(var(--pass),.08);}
+  .opt.correct .ot{color:var(--success);} .opt.correct .chip{border-color:rgba(var(--pass),.5);color:var(--success);background:rgba(var(--pass),.15);}
+  .qBanner{margin-top:40px;padding:44px 50px;border-radius:40px;background:rgba(var(--pass),.06);border:1px solid rgba(var(--pass),.2);}
+  .qBanner .bh{display:flex;align-items:center;gap:18px;font-size:48px;font-weight:700;color:var(--success);margin-bottom:18px;}
+  .qBanner .bh .material-symbols-outlined{font-size:52px;}
+  .qBanner .bt{font-size:40px;color:var(--on-variant-2);line-height:1.5;}
+
+  /* ===== I6 · CANVAS ===== */
+  .cvHead{display:flex;align-items:center;gap:24px;padding:124px 96px 0;}
+  .cvTitle{font-family:var(--font-edit);font-weight:700;font-size:62px;letter-spacing:-.03em;color:var(--on-surface);}
+  .cvSave{display:inline-flex;align-items:center;gap:12px;font-family:var(--font-edit);font-size:28px;color:var(--ink-20);}
+  .cvSave .material-symbols-outlined{font-size:30px;}
+  .cvStamp{font-family:var(--font-edit);font-size:28px;color:var(--ink-20);margin-left:auto;}
+  .cvSurface{position:absolute;left:0;right:0;top:236px;bottom:0;background:#15132b;
+    background-image:radial-gradient(circle, rgba(237,233,255,.12) 2px, transparent 2px);background-size:54px 54px;}
+  .cvToolbar{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:18px;border-radius:30px;background:#ffffff;box-shadow:0 24px 60px rgba(0,0,0,.5);}
+  .cvTool{width:84px;height:84px;border-radius:18px;display:grid;place-items:center;color:#2b2540;}
+  .cvTool .material-symbols-outlined{font-size:44px;}
+  .cvTool.on{background:#e8defc;color:#5b21b6;}
+  .cvSep{width:1px;height:48px;background:rgba(0,0,0,.12);margin:0 6px;}
+  .cvSwatch{width:62px;height:62px;border-radius:16px;border:3px solid #ffffff;box-shadow:0 0 0 2px rgba(0,0,0,.15);}
+
+  /* ===== I7 · PATH GENERATOR (modal) ===== */
+  .scrim{position:absolute;inset:0;background:rgba(8,7,18,.7);}
+  .genModal{position:absolute;left:50%;top:660px;transform:translateX(-50%);width:1440px;background:var(--surface);border:1px solid rgba(174,137,255,.22);border-radius:52px;box-shadow:0 60px 130px rgba(0,0,0,.6);overflow:hidden;}
+  .gmHead{display:flex;align-items:center;justify-content:space-between;padding:52px 60px 0;}
+  .gmHead .t{font-family:var(--font-display);font-weight:800;font-size:62px;color:var(--on-surface);letter-spacing:-.02em;}
+  .gmHead .x{width:80px;height:80px;border-radius:50%;border:1px solid var(--outline-variant);display:grid;place-items:center;color:var(--on-surface);}
+  .gmHead .x .material-symbols-outlined{font-size:42px;}
+  .gmTabs{display:inline-flex;gap:8px;margin:42px 60px 0;padding:10px;border-radius:24px;background:var(--ink-04);}
+  .gmTab{display:inline-flex;align-items:center;gap:14px;padding:22px 44px;border-radius:18px;font-size:34px;font-weight:600;color:var(--on-variant);}
+  .gmTab .material-symbols-outlined{font-size:38px;}
+  .gmTab.on{background:rgba(140,82,255,.22);color:var(--md-h4);}
+  .gmBody{padding:46px 60px;display:flex;flex-direction:column;gap:40px;}
+  .flabel{font-size:28px;letter-spacing:.08em;text-transform:uppercase;color:var(--on-variant);font-weight:700;margin-bottom:16px;}
+  .finput{width:100%;background:var(--c-high);border:1px solid var(--outline-variant);border-radius:20px;padding:30px 32px;font-size:36px;color:var(--on-surface);display:flex;align-items:center;justify-content:space-between;}
+  .finput.ph{color:var(--ink-50);}
+  .finput .material-symbols-outlined{font-size:42px;color:var(--ink-50);}
+  .ftext{width:100%;min-height:170px;background:var(--c-high);border:1px solid var(--outline-variant);border-radius:20px;padding:30px 32px;font-size:36px;color:var(--ink-50);line-height:1.45;}
+  .ultraToggle{display:flex;align-items:flex-start;gap:24px;padding:34px 38px;border-radius:24px;background:var(--c-low);border:1px solid var(--primary);}
+  .ultraToggle .cbx{width:52px;height:52px;border-radius:12px;border:3px solid var(--primary);background:var(--primary);display:grid;place-items:center;flex-shrink:0;margin-top:4px;}
+  .ultraToggle .cbx .material-symbols-outlined{font-size:38px;color:var(--on-primary);}
+  .ultraToggle .utitle{display:flex;align-items:center;gap:16px;font-size:38px;font-weight:700;color:var(--on-surface);}
+  .ultraToggle .utitle .material-symbols-outlined{font-size:40px;color:var(--primary);}
+  .uBadge{display:inline-flex;align-items:center;padding:4px 18px;border-radius:999px;background:rgba(255,222,89,.14);border:1px solid rgba(255,222,89,.32);color:var(--warning);font-size:26px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
+  .ultraToggle .uhelp{font-size:30px;color:var(--on-variant);line-height:1.5;margin-top:10px;}
+  .gmFoot{padding:0 60px 56px;display:flex;justify-content:flex-end;}
+  .gmBtn{display:inline-flex;align-items:center;gap:18px;padding:32px 56px;border-radius:24px;background:var(--gold);color:var(--gold-ink);font-size:40px;font-weight:700;box-shadow:0 12px 0 var(--gold-deep);}
+  .gmBtn .material-symbols-outlined{font-size:46px;}
+
+  /* ===== I8 · THEORY VISUALS ===== */
+  .thHead{display:flex;align-items:center;gap:28px;padding:124px 120px 36px;border-bottom:1px solid var(--outline-variant);background:var(--c-low);}
+  .slotBadge{display:inline-flex;align-items:center;padding:12px 32px;border-radius:999px;background:var(--primary);color:var(--on-primary);font-size:30px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+  .thHead .tt{flex:1;font-family:var(--font-display);font-weight:800;font-size:56px;color:var(--on-surface);}
+  .thClose{width:88px;height:88px;border-radius:50%;border:1px solid var(--outline-variant);display:grid;place-items:center;color:var(--on-surface);}
+  .thClose .material-symbols-outlined{font-size:46px;}
+  .thBody{padding:60px 120px;max-width:1640px;margin:0 auto;}
+  .thBody h3{font-family:var(--font-chat);font-weight:700;font-size:64px;color:var(--md-h3);margin-bottom:30px;}
+  .thBody p{font-size:42px;line-height:1.6;color:var(--on-surface);margin-bottom:34px;}
+  .figure{margin:0 0 34px;}
+  .figure .img{height:472px;border-radius:32px;border:1px solid var(--outline-variant);background:var(--c);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .figure .cap{margin-top:18px;text-align:center;font-size:30px;color:var(--on-variant);}
+  .diagram{background:var(--c);border:1px solid var(--outline-variant);border-radius:40px;padding:48px 52px;}
+  .dgTitle{display:flex;align-items:center;gap:20px;font-family:var(--font-display);font-weight:800;font-size:36px;letter-spacing:.02em;text-transform:uppercase;color:var(--on-variant);margin-bottom:40px;}
+  .dgTitle .material-symbols-outlined{font-size:46px;}
+  .cycle{display:flex;flex-direction:column;gap:16px;}
+  .cnode{display:flex;align-items:center;gap:24px;padding:30px 36px;background:var(--c-high);border:1px solid var(--outline-variant);border-radius:24px;font-size:40px;font-weight:600;color:var(--on-surface);}
+  .cnode .num{width:64px;height:64px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-size:34px;font-weight:800;flex-shrink:0;}
+  .carrow{display:flex;justify-content:flex-start;padding-left:38px;}
+  .carrow .material-symbols-outlined{font-size:48px;color:var(--primary);}
+
+  /* ===== I9 · COMMUNITY (iPad grid) ===== */
+  .cmHead{padding:124px 120px 0;}
+  .cmHead .t{font-family:var(--font-display);font-weight:800;font-size:72px;color:var(--on-surface);letter-spacing:-.02em;}
+  .cmHead .s{font-size:40px;color:var(--on-variant);margin-top:16px;}
+  .cmGrid{padding:56px 120px;display:grid;grid-template-columns:1fr 1fr;gap:36px;}
+  .cmCard{padding:48px;background:var(--c);border:1px solid var(--outline-variant);border-radius:48px;}
+  .cmTop{display:flex;gap:30px;}
+  .cmIcon{width:120px;height:120px;border-radius:32px;background:var(--c-high);display:grid;place-items:center;flex-shrink:0;}
+  .cmIcon .material-symbols-outlined{font-size:64px;color:var(--md-h4);}
+  .cmTitle{font-family:var(--font-display);font-weight:700;font-size:46px;color:var(--on-surface);line-height:1.2;}
+  .cmAuthor{font-size:34px;color:var(--on-variant);margin-top:10px;}
+  .cmPills{display:flex;flex-wrap:wrap;gap:16px;margin-top:34px;}
+  .cmPill{display:inline-flex;align-items:center;gap:12px;padding:14px 28px;border-radius:999px;font-size:28px;font-weight:700;background:var(--c-high);color:var(--on-variant);}
+  .cmPill .material-symbols-outlined{font-size:34px;}
+  .cmPill.cur{background:rgba(140,82,255,.16);color:var(--md-h3);}
+  .cmMetrics{display:flex;gap:52px;margin-top:36px;}
+  .cmMetric{display:flex;align-items:center;gap:14px;font-size:32px;color:var(--on-variant);}
+  .cmMetric .material-symbols-outlined{font-size:40px;color:var(--md-h4);}
+  .cmMetric b{color:var(--on-surface);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="dots"></div>
+
+  <!-- ============ I0 · LEARNING PATH (hero) ============ -->
+  <section class="shot" id="i0">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="pathwrap">
+        <div class="sbanner unlocked"><div class="sb-l"><div class="lab">Section 1</div><div class="ttl">Cell Foundations</div></div><div class="sb-btn"><span class="material-symbols-outlined">menu_book</span></div></div>
+        <div class="slotrow c"><div class="slot done"><div class="node" id="q0"><span class="badge"><span class="material-symbols-outlined fill">check</span></span></div><div class="nm">Cell theory</div></div></div>
+        <div class="connector"><svg width="1040" height="168" viewBox="0 0 1040 168"><path d="M520 0 C520 84 776 84 776 168" stroke="var(--primary)" stroke-width="16" stroke-linecap="round" fill="none"/></svg></div>
+        <div class="slotrow r"><div class="slot done"><div class="node" id="q1"><span class="badge"><span class="material-symbols-outlined fill">check</span></span></div><div class="nm">Active recall</div></div></div>
+        <div class="connector"><svg width="1040" height="168" viewBox="0 0 1040 168"><path d="M776 0 C776 84 520 84 520 168" stroke="var(--outline-variant)" stroke-width="16" stroke-linecap="round" fill="none"/></svg></div>
+        <div class="slotrow c"><div class="slot active"><div class="startBubble">Start</div><div class="node" id="q3"><div class="ring"></div></div><div class="nm">Checkpoint</div></div></div>
+        <div class="sbanner locked" style="margin-top:46px;"><div class="sb-l"><div class="lab">Section 2</div><div class="ttl">Energy &amp; Enzymes</div></div><div class="sb-btn"><span class="material-symbols-outlined">lock</span></div></div>
+      </div>
+    </div>
+    <div class="band">
+      <div class="eyebrow">Learning Paths</div>
+      <div class="title">Your route to&nbsp;<span class="g">mastery</span></div>
+      <div class="explain">Theory, practice and graded exams — sequenced into one clear path.</div>
+      <div class="mascot"><img src="../svg_mascot/graduation.svg" alt="" /></div>
+    </div>
+  </section>
+
+  <!-- ============ I1 · FILE EDITOR (hero) ============ -->
+  <section class="shot" id="i1">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="edTop">
+        <div class="edTitleRow"><div class="edTitle">Cellular Respiration</div><div class="saveChip"><span class="material-symbols-outlined">check</span>Saved</div></div>
+        <div class="edStamp">Mon, Jun 9, 2026 · 4:12 PM</div>
+        <div class="edRule"></div>
+      </div>
+      <div class="edToolbar">
+        <div class="trow">
+          <div class="tpill">Default<span class="material-symbols-outlined">expand_more</span></div>
+          <div class="tpill">15px<span class="material-symbols-outlined">expand_more</span></div>
+          <div class="tsep"></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_bold</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_italic</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_underlined</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_strikethrough</span></div>
+          <div class="tsep"></div>
+          <div class="tbtn"><span class="material-symbols-outlined">palette</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">ink_highlighter</span></div>
+          <div class="tsep"></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_h1</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_h2</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_list_bulleted</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_list_numbered</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">format_quote</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">code</span></div>
+          <div class="tsep"></div>
+          <div class="tbtn"><span class="material-symbols-outlined">image</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">picture_as_pdf</span></div>
+          <div class="tbtn ai"><span class="material-symbols-outlined">auto_awesome</span></div>
+          <div class="tsep"></div>
+          <div class="modeSw"><div class="m on"><span class="material-symbols-outlined">arrow_selector_tool</span></div><div class="m"><span class="material-symbols-outlined">draw</span></div><div class="m"><span class="material-symbols-outlined">text_fields</span></div></div>
+          <div class="spacer"></div>
+          <div class="tbtn"><span class="material-symbols-outlined">undo</span></div>
+          <div class="tbtn"><span class="material-symbols-outlined">redo</span></div>
+        </div>
+      </div>
+      <div class="edBody">
+        <div class="edPara h">Three stages of respiration</div>
+        <p class="edPara">Cellular respiration is how cells turn glucose into usable energy, released across three stages: glycolysis, the Krebs cycle, and the electron transport chain.</p>
+        <p class="edPara">Glycolysis takes place in the cytoplasm and splits glucose into two pyruvate molecules — it needs no oxygen and nets two ATP and two NADPH.</p>
+        <div class="genMenu">
+          <div class="gItem"><div class="gi"><span class="material-symbols-outlined">style</span></div><div><div class="gl">Generate Flashcards</div><div class="gs">From this page</div></div></div>
+          <div class="gItem"><div class="gi"><span class="material-symbols-outlined">quiz</span></div><div><div class="gl">Generate Quiz</div><div class="gs">From this page</div></div></div>
+          <div class="gItem hi"><div class="gi"><span class="material-symbols-outlined">chat_bubble</span></div><div><div class="gl">Ask Mage about this page</div><div class="gs">Open a chat grounded in this note</div></div></div>
+          <div class="gItem"><div class="gi"><span class="material-symbols-outlined">route</span></div><div><div class="gl">Generate study path</div><div class="gs">From this notebook</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="band">
+      <div class="eyebrow">Notebooks</div>
+      <div class="title">Write it,&nbsp;<span class="g">generate</span> it</div>
+      <div class="explain">A focused editor — turn any page into flashcards, a quiz or a path.</div>
+      <div class="mascot"><img src="../svg_mascot/writing.svg" alt="" /></div>
+    </div>
+  </section>
+
+  <!-- ============ I2 · FLASHCARDS (hero) ============ -->
+  <section class="shot" id="i2">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="fcStage">
+        <div class="fcHead"><div class="t"><span class="material-symbols-outlined">style</span>Study Mode</div><div class="exit"><span class="material-symbols-outlined">close</span>Exit</div></div>
+        <div class="fcProg"><div>Card <b>7</b> of 20</div><div>35% done</div></div>
+        <div class="fcBar"><i style="width:35%"></i></div>
+        <div class="fcCard"><div class="lab">Answer — swipe or use buttons</div><div class="txt">The mitochondrion — it generates most of the cell&rsquo;s ATP through aerobic respiration.</div></div>
+        <div class="fcRate"><div class="rb rep"><span class="material-symbols-outlined">arrow_back</span>Repeat</div><div class="rb kno"><span class="material-symbols-outlined">arrow_forward</span>Known</div></div>
+      </div>
+    </div>
+    <div class="band">
+      <div class="eyebrow">Flashcards</div>
+      <div class="title">Cards that&nbsp;<span class="g">stick</span></div>
+      <div class="explain">Auto-built from your notes — flip, rate, repeat for recall.</div>
+      <div class="mascot"><img src="../svg_mascot/holding_flashcards.svg" alt="" /></div>
+    </div>
+  </section>
+
+  <!-- ============ I3 · INLINE AI EDITS ============ -->
+  <section class="shot std" id="i3">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="proPill"><span class="material-symbols-outlined fill">workspace_premium</span>PRO</div>
+      <div class="edTop">
+        <div class="edTitleRow"><div class="edTitle">Cellular Respiration</div><div class="saveChip"><span class="material-symbols-outlined">check</span>Saved</div></div>
+        <div class="edStamp">Mon, Jun 9, 2026 · 4:12 PM</div>
+        <div class="edRule"></div>
+      </div>
+      <div class="edToolbar"><div class="trow">
+        <div class="tpill">Default<span class="material-symbols-outlined">expand_more</span></div><div class="tpill">15px<span class="material-symbols-outlined">expand_more</span></div>
+        <div class="tsep"></div><div class="tbtn"><span class="material-symbols-outlined">format_bold</span></div><div class="tbtn"><span class="material-symbols-outlined">format_italic</span></div><div class="tbtn"><span class="material-symbols-outlined">format_underlined</span></div>
+        <div class="tsep"></div><div class="tbtn"><span class="material-symbols-outlined">format_h1</span></div><div class="tbtn"><span class="material-symbols-outlined">format_list_bulleted</span></div><div class="tbtn"><span class="material-symbols-outlined">format_quote</span></div><div class="tbtn"><span class="material-symbols-outlined">code</span></div>
+        <div class="tsep"></div><div class="tbtn ai"><span class="material-symbols-outlined">auto_awesome</span></div>
+        <div class="tsep"></div><div class="modeSw"><div class="m on"><span class="material-symbols-outlined">arrow_selector_tool</span></div><div class="m"><span class="material-symbols-outlined">draw</span></div><div class="m"><span class="material-symbols-outlined">text_fields</span></div></div>
+        <div class="spacer"></div><div class="tbtn"><span class="material-symbols-outlined">undo</span></div><div class="tbtn"><span class="material-symbols-outlined">redo</span></div>
+      </div></div>
+      <div class="edBody">
+        <div class="edPara h">Three stages of respiration</div>
+        <p class="edPara">Cellular respiration is how cells turn glucose into usable energy, released across three stages: glycolysis, the Krebs cycle, and the electron transport chain.</p>
+        <p class="edPara"><span class="selSpan">Glycolysis takes place in the cytoplasm and splits glucose into two pyruvate molecules.</span></p>
+      </div>
+      <div class="inlineBar" style="top:548px;left:300px;">
+        <div class="bolt"><span class="material-symbols-outlined fill">bolt</span></div>
+        <div class="ibtn"><span class="material-symbols-outlined">auto_fix_high</span>Rewrite</div>
+        <div class="ibtn"><span class="material-symbols-outlined">short_text</span>Summarize</div>
+        <div class="ibtn on"><span class="material-symbols-outlined">unfold_more</span>Expand</div>
+      </div>
+      <div class="previewPop" style="top:860px;left:300px;">
+        <div class="ppHead"><span class="material-symbols-outlined">unfold_more</span><span class="t">Expand suggestion</span></div>
+        <div class="ppBody">Glycolysis takes place in the cytoplasm, where one glucose molecule is split into two pyruvate molecules. It needs no oxygen and nets two ATP and two NADH, which carry electrons on to the next stage.</div>
+        <div class="ppFoot"><div class="ppBtn ghost">Discard</div><div class="ppBtn primary"><span class="material-symbols-outlined">check</span>Accept</div></div>
+      </div>
+    </div>
+    <div class="band"><div class="eyebrow">Inline AI · Pro</div><div class="title">Rewrite. Summarize. <span class="g">Expand.</span></div></div>
+  </section>
+
+  <!-- ============ I4 · AI MAGE CHAT ============ -->
+  <section class="shot std" id="i4">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="chHead">
+        <div class="wandTile"><span class="material-symbols-outlined fill">auto_fix_high</span></div>
+        <div class="ht"><div class="t">Photosynthesis — Light Reactions</div><div class="s">2 context sources attached</div></div>
+        <div class="feed"><span class="material-symbols-outlined fill">cloud_upload</span><span class="fl">Feed Mage</span><span class="bdg">2</span></div>
+      </div>
+      <div class="chList">
+        <div class="mrow u"><div class="bub u">How do the light reactions power the Calvin cycle?</div></div>
+        <div class="mrow a"><div class="ava"><span class="material-symbols-outlined fill">auto_fix_high</span></div><div class="bub a">The light reactions split water and build ATP and NADPH inside the thylakoid. The Calvin cycle then spends that ATP and NADPH to fix CO&#8322; into G3P — so they&rsquo;re the energy supply that drives carbon fixation.</div></div>
+      </div>
+      <div class="chComp"><div class="compBox"><div class="ph">Ask Mage anything…</div><div class="sendBtn"><span class="material-symbols-outlined fill">send</span></div></div></div>
+    </div>
+    <div class="band"><div class="eyebrow">AI Mage</div><div class="title">Grounded in <span class="g">your notes</span></div></div>
+  </section>
+
+  <!-- ============ I5 · QUIZ ============ -->
+  <section class="shot std" id="i5">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="qzStage">
+        <div class="qzHead"><div class="t">Quiz</div><div class="qzBadge"><b>4</b>&nbsp;/&nbsp;10</div></div>
+        <div class="qCard"><div class="qt">Which process splits glucose into two pyruvate molecules?</div></div>
+        <div class="opts">
+          <div class="opt"><div class="chip">A</div><div class="ot">Krebs cycle</div></div>
+          <div class="opt correct"><div class="chip"><span class="material-symbols-outlined fill">check_circle</span></div><div class="ot">Glycolysis</div></div>
+          <div class="opt"><div class="chip">C</div><div class="ot">Photosynthesis</div></div>
+          <div class="opt"><div class="chip">D</div><div class="ot">Osmosis</div></div>
+        </div>
+        <div class="qBanner"><div class="bh"><span class="material-symbols-outlined fill">check_circle</span>Correct!</div><div class="bt">Glycolysis takes place in the cytoplasm and splits one glucose into two pyruvate molecules.</div></div>
+      </div>
+    </div>
+    <div class="band"><div class="eyebrow">Quizzes</div><div class="title">Test yourself, <span class="g">instantly</span></div></div>
+  </section>
+
+  <!-- ============ I6 · CANVAS ============ -->
+  <section class="shot std" id="i6">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="cvHead"><div class="cvTitle">Respiration — Canvas</div><div class="cvSave"><span class="material-symbols-outlined">check</span>Saved</div><div class="cvStamp">Mon, Jun 9, 2026 · 4:40 PM</div></div>
+      <div class="cvSurface">
+        <svg width="2064" height="100%" viewBox="0 0 2064 1700" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;">
+          <!-- hand-drawn flow: Glucose -> Glycolysis -> 2 Pyruvate -->
+          <g fill="none" stroke="#c4a9ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M360 360 q-6 -14 40 -16 l300 4 q40 2 38 22 l-2 150 q0 22 -42 20 l-300 -3 q-38 -3 -34 -22 z"/>
+            <path d="M860 700 q-6 -14 40 -16 l320 4 q40 2 38 22 l-2 150 q0 22 -42 20 l-320 -3 q-38 -3 -34 -22 z"/>
+            <path d="M1380 360 q-6 -14 40 -16 l320 4 q40 2 38 22 l-2 150 q0 22 -42 20 l-320 -3 q-38 -3 -34 -22 z"/>
+          </g>
+          <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M712 440 q120 90 180 250"/>
+            <path d="M880 690 l16 -8 M896 682 q14 26 4 44"/>
+            <path d="M1240 700 q140 -160 200 -250"/>
+            <path d="M1432 470 l-2 18 M1430 488 q18 4 30 -4"/>
+          </g>
+          <text x="510" y="455" fill="#efeefc" font-family="Plus Jakarta Sans" font-size="48" font-weight="700" text-anchor="middle">Glucose</text>
+          <text x="1058" y="795" fill="#efeefc" font-family="Plus Jakarta Sans" font-size="48" font-weight="700" text-anchor="middle">Glycolysis</text>
+          <text x="1576" y="455" fill="#efeefc" font-family="Plus Jakarta Sans" font-size="48" font-weight="700" text-anchor="middle">2 Pyruvate</text>
+          <text x="1620" y="700" fill="#ffde59" font-family="Plus Jakarta Sans" font-size="42" font-weight="700">+ 2 ATP</text>
+          <path d="M1560 730 q70 6 130 -10" fill="none" stroke="#ffde59" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="cvToolbar">
+        <div class="cvTool"><span class="material-symbols-outlined">lock</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">back_hand</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">arrow_selector_tool</span></div>
+        <div class="cvSep"></div>
+        <div class="cvTool"><span class="material-symbols-outlined">rectangle</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">change_history</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">circle</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">arrow_outward</span></div>
+        <div class="cvTool on"><span class="material-symbols-outlined">draw</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">text_fields</span></div>
+        <div class="cvTool"><span class="material-symbols-outlined">ink_eraser</span></div>
+        <div class="cvSep"></div>
+        <div class="cvSwatch" style="background:#c4a9ff;"></div>
+      </div>
+    </div>
+    <div class="band"><div class="eyebrow">Canvas</div><div class="title">Draw it <span class="g">out</span></div></div>
+  </section>
+
+  <!-- ============ I7 · PATH GENERATOR (Pro) ============ -->
+  <section class="shot std" id="i7">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="scrim"></div>
+      <div class="genModal">
+        <div class="gmHead"><div class="t">Build your learn path</div><div class="x"><span class="material-symbols-outlined">close</span></div></div>
+        <div class="gmTabs"><div class="gmTab"><span class="material-symbols-outlined">edit_note</span>Manual</div><div class="gmTab on"><span class="material-symbols-outlined">auto_awesome</span>AI</div></div>
+        <div class="gmBody">
+          <div><div class="flabel">Generate AI plan for notebook</div><div class="finput">Biology — Cellular Respiration<span class="material-symbols-outlined">expand_more</span></div></div>
+          <div><div class="flabel">Study goals (optional)</div><div class="ftext">Focus on chapters 1–5 for the midterm. Weak on the electron transport chain.</div></div>
+          <div class="ultraToggle">
+            <div class="cbx"><span class="material-symbols-outlined">check</span></div>
+            <div><div class="utitle"><span class="material-symbols-outlined fill">bolt</span>Ultra path<span class="uBadge">Pro</span></div>
+            <div class="uhelp">Sharper AI-generated quizzes, powered by the premium model. Upgrade to Pro to unlock Ultra paths.</div></div>
+          </div>
+        </div>
+        <div class="gmFoot"><div class="gmBtn"><span class="material-symbols-outlined fill">auto_awesome</span>Generate path</div></div>
+      </div>
+    </div>
+    <div class="band"><div class="eyebrow">Path Generator · Pro</div><div class="title">Notes into a <span class="g">path</span></div></div>
+  </section>
+
+  <!-- ============ I8 · THEORY VISUALS ============ -->
+  <section class="shot std" id="i8">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="thHead"><span class="slotBadge">Learning</span><div class="tt">The Calvin Cycle</div><div class="thClose"><span class="material-symbols-outlined">close</span></div></div>
+      <div class="thBody">
+        <h3>Fixing carbon into sugar</h3>
+        <p>The Calvin cycle runs in the stroma of the chloroplast, spending the ATP and NADPH made by the light reactions to turn CO&#8322; into glucose.</p>
+        <p>It is light-independent — but it can&rsquo;t run for long without the light reactions constantly topping up those energy carriers.</p>
+        <div class="figure">
+          <div class="img">
+            <svg width="1240" height="460" viewBox="0 0 1240 460" fill="none">
+              <!-- chloroplast body, double membrane -->
+              <path d="M120 230 C 280 78 960 78 1120 230 C 960 382 280 382 120 230 Z" fill="#1e3a32" stroke="#48ca9a" stroke-width="5"/>
+              <path d="M154 230 C 302 108 938 108 1086 230 C 938 352 302 352 154 230 Z" fill="none" stroke="#7ef0ad" stroke-width="2.5" opacity="0.45"/>
+              <!-- stroma lamellae (intergranal thylakoids) -->
+              <g stroke="#7ef0ad" stroke-width="3" opacity="0.5" fill="none">
+                <path d="M362 206 C 482 172 632 172 716 200"/>
+                <path d="M556 256 C 656 282 818 282 902 252"/>
+                <path d="M384 252 C 524 292 700 292 868 250"/>
+              </g>
+              <!-- grana (thylakoid disc stacks), distributed + uneven -->
+              <g fill="#2f5d4d" stroke="#6fe0a8" stroke-width="2.5">
+                <ellipse cx="340" cy="178" rx="44" ry="15"/><ellipse cx="340" cy="200" rx="44" ry="15"/><ellipse cx="340" cy="222" rx="44" ry="15"/><ellipse cx="340" cy="244" rx="44" ry="15"/><ellipse cx="340" cy="266" rx="44" ry="15"/>
+                <ellipse cx="545" cy="206" rx="44" ry="15"/><ellipse cx="545" cy="228" rx="44" ry="15"/><ellipse cx="545" cy="250" rx="44" ry="15"/><ellipse cx="545" cy="272" rx="44" ry="15"/>
+                <ellipse cx="720" cy="166" rx="44" ry="15"/><ellipse cx="720" cy="188" rx="44" ry="15"/><ellipse cx="720" cy="210" rx="44" ry="15"/><ellipse cx="720" cy="232" rx="44" ry="15"/><ellipse cx="720" cy="254" rx="44" ry="15"/><ellipse cx="720" cy="276" rx="44" ry="15"/>
+                <ellipse cx="905" cy="196" rx="44" ry="15"/><ellipse cx="905" cy="218" rx="44" ry="15"/><ellipse cx="905" cy="240" rx="44" ry="15"/><ellipse cx="905" cy="262" rx="44" ry="15"/>
+              </g>
+              <!-- leader lines -->
+              <g stroke="#8888a8" stroke-width="2" fill="none">
+                <path d="M276 66 L 360 118"/>
+                <path d="M905 66 L 905 160"/>
+                <path d="M226 400 L 250 292"/>
+                <path d="M758 402 L 720 292"/>
+              </g>
+              <g fill="#b9b7d0">
+                <circle cx="360" cy="118" r="5"/><circle cx="905" cy="160" r="5"/><circle cx="250" cy="292" r="5"/><circle cx="720" cy="292" r="5"/>
+              </g>
+              <g font-family="'Plus Jakarta Sans',sans-serif" font-size="27" font-weight="600" fill="#cfcde0" text-anchor="middle">
+                <text x="182" y="54">Outer membrane</text>
+                <text x="905" y="50">Granum</text>
+                <text x="178" y="420">Stroma</text>
+                <text x="788" y="420">Thylakoid</text>
+              </g>
+            </svg>
+          </div>
+          <div class="cap">Fig 1 · The chloroplast — light reactions in the thylakoids, the Calvin cycle in the stroma.</div>
+        </div>
+        <div class="diagram">
+          <div class="dgTitle"><span class="material-symbols-outlined">cached</span>The cycle</div>
+          <div class="cycle">
+            <div class="cnode"><span class="num">1</span>CO&#8322; fixed by RuBisCO</div>
+            <div class="carrow"><span class="material-symbols-outlined">arrow_downward</span></div>
+            <div class="cnode"><span class="num">2</span>Reduced using ATP + NADPH</div>
+            <div class="carrow"><span class="material-symbols-outlined">arrow_downward</span></div>
+            <div class="cnode"><span class="num">3</span>RuBP regenerated → repeat</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="band"><div class="eyebrow">Theory</div><div class="title">Lessons with <span class="g">visuals</span></div></div>
+  </section>
+
+  <!-- ============ I9 · COMMUNITY LIBRARY ============ -->
+  <section class="shot std" id="i9">
+    <div class="screen">
+      <div class="sbar"><div class="time">9:41</div><div class="ic"><span class="material-symbols-outlined fill">wifi</span><span class="material-symbols-outlined fill">battery_full</span></div></div>
+      <div class="cmHead"><div class="t">Community paths</div><div class="s">Clone any path to study it as your own.</div></div>
+      <div class="cmGrid">
+        <div class="cmCard">
+          <div class="cmTop"><div class="cmIcon"><span class="material-symbols-outlined">science</span></div><div><div class="cmTitle">Cellular Respiration — Full Unit</div><div class="cmAuthor">by @maya_b</div></div></div>
+          <div class="cmPills"><span class="cmPill"><span class="material-symbols-outlined">science</span>Biology</span><span class="cmPill"><span class="material-symbols-outlined">translate</span>EN</span><span class="cmPill cur"><span class="material-symbols-outlined fill">verified</span>Curated</span></div>
+          <div class="cmMetrics"><div class="cmMetric"><span class="material-symbols-outlined">route</span><b>9</b>&nbsp;Checkpoints</div><div class="cmMetric"><span class="material-symbols-outlined">download</span><b>1.2k</b>&nbsp;Clones</div><div class="cmMetric"><span class="material-symbols-outlined fill">star</span><b>4.8</b></div></div>
+        </div>
+        <div class="cmCard">
+          <div class="cmTop"><div class="cmIcon"><span class="material-symbols-outlined">calculate</span></div><div><div class="cmTitle">Calculus I — Limits &amp; Derivatives</div><div class="cmAuthor">by @devpatel</div></div></div>
+          <div class="cmPills"><span class="cmPill"><span class="material-symbols-outlined">calculate</span>Math</span><span class="cmPill"><span class="material-symbols-outlined">translate</span>EN</span></div>
+          <div class="cmMetrics"><div class="cmMetric"><span class="material-symbols-outlined">route</span><b>12</b>&nbsp;Checkpoints</div><div class="cmMetric"><span class="material-symbols-outlined">download</span><b>840</b>&nbsp;Clones</div><div class="cmMetric"><span class="material-symbols-outlined fill">star</span><b>4.6</b></div></div>
+        </div>
+        <div class="cmCard">
+          <div class="cmTop"><div class="cmIcon"><span class="material-symbols-outlined">history_edu</span></div><div><div class="cmTitle">World War II — Causes &amp; Course</div><div class="cmAuthor">by @hist_anna</div></div></div>
+          <div class="cmPills"><span class="cmPill"><span class="material-symbols-outlined">history_edu</span>History</span><span class="cmPill"><span class="material-symbols-outlined">translate</span>EN</span><span class="cmPill cur"><span class="material-symbols-outlined fill">verified</span>Curated</span></div>
+          <div class="cmMetrics"><div class="cmMetric"><span class="material-symbols-outlined">route</span><b>14</b>&nbsp;Checkpoints</div><div class="cmMetric"><span class="material-symbols-outlined">download</span><b>2.1k</b>&nbsp;Clones</div><div class="cmMetric"><span class="material-symbols-outlined fill">star</span><b>4.9</b></div></div>
+        </div>
+        <div class="cmCard">
+          <div class="cmTop"><div class="cmIcon"><span class="material-symbols-outlined">translate</span></div><div><div class="cmTitle">Spanish A2 — Everyday Talk</div><div class="cmAuthor">by @lucia_g</div></div></div>
+          <div class="cmPills"><span class="cmPill"><span class="material-symbols-outlined">language</span>Languages</span><span class="cmPill"><span class="material-symbols-outlined">translate</span>ES</span></div>
+          <div class="cmMetrics"><div class="cmMetric"><span class="material-symbols-outlined">route</span><b>8</b>&nbsp;Checkpoints</div><div class="cmMetric"><span class="material-symbols-outlined">download</span><b>560</b>&nbsp;Clones</div><div class="cmMetric"><span class="material-symbols-outlined fill">star</span><b>4.7</b></div></div>
+        </div>
+        <div class="cmCard">
+          <div class="cmTop"><div class="cmIcon"><span class="material-symbols-outlined">rocket_launch</span></div><div><div class="cmTitle">Physics — Forces &amp; Motion</div><div class="cmAuthor">by @neil_k</div></div></div>
+          <div class="cmPills"><span class="cmPill"><span class="material-symbols-outlined">rocket_launch</span>Physics</span><span class="cmPill"><span class="material-symbols-outlined">translate</span>EN</span></div>
+          <div class="cmMetrics"><div class="cmMetric"><span class="material-symbols-outlined">route</span><b>10</b>&nbsp;Checkpoints</div><div class="cmMetric"><span class="material-symbols-outlined">download</span><b>1.5k</b>&nbsp;Clones</div><div class="cmMetric"><span class="material-symbols-outlined fill">star</span><b>4.7</b></div></div>
+        </div>
+        <div class="cmCard">
+          <div class="cmTop"><div class="cmIcon"><span class="material-symbols-outlined">biotech</span></div><div><div class="cmTitle">Organic Chemistry — Reactions</div><div class="cmAuthor">by @sara_chem</div></div></div>
+          <div class="cmPills"><span class="cmPill"><span class="material-symbols-outlined">biotech</span>Chemistry</span><span class="cmPill"><span class="material-symbols-outlined">translate</span>EN</span><span class="cmPill cur"><span class="material-symbols-outlined fill">verified</span>Curated</span></div>
+          <div class="cmMetrics"><div class="cmMetric"><span class="material-symbols-outlined">route</span><b>11</b>&nbsp;Checkpoints</div><div class="cmMetric"><span class="material-symbols-outlined">download</span><b>920</b>&nbsp;Clones</div><div class="cmMetric"><span class="material-symbols-outlined fill">star</span><b>4.5</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="band"><div class="eyebrow">Community</div><div class="title"><span class="g">Clone</span> a path, free</div></div>
+  </section>
+
+</div>
+
+<script>
+  function icTheory(c,s){s=s||94;return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="${c}"><path opacity="0.45" d="M12 5.2997V21.3297C11.83 21.3297 11.65 21.2997 11.51 21.2197L11.47 21.1997C9.55 20.1497 6.2 19.0497 4.03 18.7597L3.74 18.7197C2.78 18.5997 2 17.6997 2 16.7397V4.6597C2 3.4697 2.97 2.5697 4.16 2.6697C6.26 2.8397 9.44 3.8997 11.22 5.0097L11.47 5.1597C11.62 5.2497 11.81 5.2997 12 5.2997Z"/><path d="M22 4.66954V16.7395C22 17.6995 21.22 18.5995 20.26 18.7195L19.93 18.7595C17.75 19.0495 14.39 20.1595 12.47 21.2195C12.34 21.2995 12.18 21.3295 12 21.3295V5.29954C12.19 5.29954 12.38 5.24954 12.53 5.15954L12.7 5.04954C14.48 3.92954 17.67 2.85954 19.77 2.67954H19.83C21.02 2.57954 22 3.46954 22 4.66954Z"/><path d="M7.75 9.24023H5.5C5.09 9.24023 4.75 8.90023 4.75 8.49023C4.75 8.08023 5.09 7.74023 5.5 7.74023H7.75C8.16 7.74023 8.5 8.08023 8.5 8.49023C8.5 8.90023 8.16 9.24023 7.75 9.24023Z"/><path d="M8.5 12.2402H5.5C5.09 12.2402 4.75 11.9002 4.75 11.4902C4.75 11.0802 5.09 10.7402 5.5 10.7402H8.5C8.91 10.7402 9.25 11.0802 9.25 11.4902C9.25 11.9002 8.91 12.2402 8.5 12.2402Z"/></svg>`;}
+  function icReview(c,s){s=s||94;return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none"><path d="M6.00002 5.17031L4.03002 6.46031C2.10002 7.72031 2.10002 10.5403 4.03002 11.8003L10.05 15.7303C11.13 16.4403 12.91 16.4403 13.99 15.7303L19.98 11.8003C21.9 10.5403 21.9 7.73031 19.98 6.47031L13.99 2.54031C12.91 1.83031 11.13 1.83031 10.05 2.54031" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.63012 13.0801L5.62012 17.7701C5.62012 19.0401 6.60012 20.4001 7.80012 20.8001L10.9901 21.8601C11.5401 22.0401 12.4501 22.0401 13.0101 21.8601L16.2001 20.8001C17.4001 20.4001 18.3801 19.0401 18.3801 17.7701V13.1301" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M21.3999 15V9" stroke="${c}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+  function icAssess(c,s){s=s||94;return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="${c}"><path d="M19.35 18.1401C18.95 18.1401 18.61 17.8601 18.53 17.4701L18.32 16.5501C18.23 16.1601 17.92 15.8501 17.54 15.7601L16.6 15.5401C16.22 15.4601 15.95 15.1201 15.95 14.7201C15.95 14.3201 16.22 13.9701 16.61 13.8901L17.54 13.6801C17.93 13.5901 18.24 13.2801 18.33 12.9001L18.55 11.9601C18.63 11.5801 18.98 11.3101 19.38 11.3101C19.78 11.3101 20.12 11.5901 20.2 11.9801L20.41 12.9001C20.5 13.2901 20.81 13.6001 21.19 13.6901L22.13 13.9101C22.51 13.9901 22.78 14.3301 22.78 14.7301C22.78 15.1301 22.51 15.4701 22.12 15.5601L21.19 15.7701C20.8 15.8601 20.49 16.1701 20.41 16.5501L20.19 17.4901C20.11 17.8701 19.76 18.1401 19.35 18.1401Z"/><path d="M16.26 18.04C14.63 18.04 12.69 17.42 12.69 14.47V8.82C12.69 5.87 14.63 5.25 16.26 5.25C17.89 5.25 19.83 5.87 19.83 8.82V9.58C19.83 9.99 19.49 10.33 19.08 10.33C18.67 10.33 18.33 9.99 18.33 9.58V8.82C18.33 7.31 17.77 6.75 16.26 6.75C14.75 6.75 14.19 7.31 14.19 8.82V14.47C14.19 15.98 14.75 16.54 16.26 16.54C16.67 16.54 17.01 16.88 17.01 17.29C17.01 17.7 16.67 18.04 16.26 18.04Z"/><path d="M6.51 18.04C4.88 18.04 2.94 17.42 2.94 14.47V8.82C2.94 5.87 4.88 5.25 6.51 5.25C8.14 5.25 10.08 5.87 10.08 8.82V14.47C10.08 17.42 8.14 18.04 6.51 18.04ZM6.51 6.75C5 6.75 4.44 7.31 4.44 8.82V14.47C4.44 15.98 5 16.54 6.51 16.54C8.02 16.54 8.58 15.98 8.58 14.47V8.82C8.58 7.31 8.02 6.75 6.51 6.75Z"/><path d="M13.43 12.4H9.33002C8.92002 12.4 8.58002 12.06 8.58002 11.65C8.58002 11.24 8.92002 10.9 9.33002 10.9H13.43C13.84 10.9 14.18 11.24 14.18 11.65C14.18 12.06 13.84 12.4 13.43 12.4Z"/></svg>`;}
+  var Q=document.getElementById('q0'); if(Q) Q.insertAdjacentHTML('afterbegin', icTheory('#3f0099'));
+  Q=document.getElementById('q1'); if(Q) Q.insertAdjacentHTML('afterbegin', icReview('#3f0099'));
+  Q=document.getElementById('q2'); if(Q) Q.insertAdjacentHTML('afterbegin', icTheory('#3f0099'));
+  Q=document.getElementById('q3'); if(Q) Q.insertAdjacentHTML('afterbegin', icAssess('#3f0099'));
+
+  const shots = Array.from(document.querySelectorAll('.shot'));
+  window.__shotCount = shots.length;
+  window.__shot = function(n){ shots.forEach((s,i)=>s.classList.toggle('on', i===n)); };
+  window.__shot(0);
+  window.__ready = true;
+</script>
+</body>
+</html>
