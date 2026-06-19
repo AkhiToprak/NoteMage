@@ -143,6 +143,7 @@ export async function POST(request: NextRequest, { params }: Params) {
               filePath,
               fileSize: img.buffer.length,
               mimeType: img.mimeType,
+              sourceType: 'embedded_scan',
             },
           });
           imageNodes.push({

@@ -500,18 +500,22 @@ model Flashcard {
 }
 
 model FlashcardImage {
-  id          String   @id @default(cuid())
-  flashcardId String
-  side        String // "front" | "back"
-  fileName    String
-  filePath    String
-  fileSize    Int
-  mimeType    String
+  id                String   @id @default(cuid())
+  flashcardId       String
+  // Provenance — which source PageImage this figure was snapshotted from (parity
+  // with TheoryImage/QuizQuestionImage). Nullable so source deletion can't strand
+  // us and manually-uploaded card images leave it null.
+  sourcePageImageId String?
+  side              String // "front" | "back"
+  fileName          String
+  filePath          String
+  fileSize          Int
+  mimeType          String
   // Slot-local caption for path-generated figures (figure-reuse feature). Null
   // for manually-uploaded flashcard images, which carry no AI caption.
-  caption     String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
+  caption           String?
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
 
   flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
 
@@ -704,6 +708,13 @@ model PageImage {
   mimeType    String
   aiCaption   String? // Vision-generated caption, cached so each image is captioned once (path theory visuals)
   captionedAt DateTime?
+  // Provenance (figure-reuse hardening). Normalized crop box [x0,y0,x1,y1] in
+  // 0–1 page fractions — set only for vision crops where geometry is known; null
+  // for binary-scan / manual / pptx / onenote images. sourceType records HOW the
+  // image entered: 'vision_crop' | 'embedded_scan' | 'manual_upload' | 'pptx' |
+  // 'onenote'. Both nullable so historical rows are unaffected.
+  bbox        Json?
+  sourceType  String?
   createdAt   DateTime  @default(now())
 
   // Relations
@@ -1516,6 +1527,42 @@ model AiUsageEvent {
   @@index([feature, createdAt])
   @@index([userId, createdAt])
   @@map("ai_usage_events")
+}
+
+/// PathGenerationTelemetry — one row per path generation, recording how the
+/// figure-reuse pipeline behaved (figure-reuse hardening, P4). Written
+/// best-effort at the end of generation; never blocks a path. Lets the admin
+/// debug surface answer "why did/didn't figures appear" without re-running.
+/// userId is a plain column (no FK) so rows survive account deletion.
+model PathGenerationTelemetry {
+  id                  String   @id @default(cuid())
+  planId              String
+  userId              String?
+  /// Candidate PageImages loaded before ranking (the bounded pool).
+  sourceImageCount    Int      @default(0)
+  /// Captioned images actually rendered into the prompt catalog.
+  catalogImageCount   Int      @default(0)
+  /// Figure refs the model emitted across theory + flashcards + quiz.
+  requestedRefs       Int      @default(0)
+  /// Refs that validated + resolved to a catalog image (kept).
+  acceptedRefs        Int      @default(0)
+  /// Refs dropped (sum of `rejections`).
+  rejectedRefs        Int      @default(0)
+  /// [{ ref, reason }] — reason ∈ unknown_ref | schema_invalid | duplicate | cap_exceeded.
+  rejections          Json?
+  /// Blobs copied into theory/flashcard/quiz snapshots.
+  snapshotCount       Int      @default(0)
+  theoryImageCount    Int      @default(0)
+  flashcardImageCount Int      @default(0)
+  quizImageCount      Int      @default(0)
+  /// Set when figures were skipped wholesale: no_source_images | no_catalog_captions | catalog_build_failed.
+  skippedReason       String?
+  createdAt           DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([planId])
+  @@map("path_generation_telemetry")
 }
 
 // ============================================================================

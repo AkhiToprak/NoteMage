@@ -56,7 +56,10 @@ import {
   renderImageCatalog,
   resolveFlashcardFigures,
   resolveQuizFigures,
+  refOf,
   type SourceImage,
+  type FigureRejection,
+  type FigureResolution,
 } from './path-image-catalog';
 
 // Re-exported for back-compat: these figure validators moved to
@@ -723,7 +726,79 @@ interface PlanForGeneration {
   diagramsEnabled: boolean;
   /** Token usage accumulated across this run's Stage B calls. */
   usage: UsageMeter;
+  /** Source images available to the generator after ranking/selection. */
+  sourceImageCount: number;
+  /** Of those, how many were captioned and rendered into the prompt catalog. */
+  catalogImageCount: number;
+  /** Set when figures were skipped wholesale at build time (figure-reuse P5). */
+  figuresSkippedReason: string | null;
+  /** Cross-sweep figure telemetry accumulator, attached by runPathGeneration. */
+  figureStats?: FigureStats;
   phases: PhaseForGeneration[];
+}
+
+/**
+ * Cross-sweep accumulator for the figure-reuse pipeline (figure-reuse P4). One
+ * instance per generation, re-attached to the plan after every retry-sweep
+ * reload, then written to PathGenerationTelemetry at the end. Mutated by the
+ * theory/flashcard/quiz activities; never affects generation outcome.
+ */
+interface FigureStats {
+  sourceImageCount: number;
+  catalogImageCount: number;
+  requestedRefs: number;
+  acceptedRefs: number;
+  rejectedRefs: number;
+  rejections: { ref: string | null; reason: string }[];
+  snapshotCount: number;
+  theoryImageCount: number;
+  flashcardImageCount: number;
+  quizImageCount: number;
+  skippedReason: string | null;
+}
+
+/** Bound the persisted rejection list so a figure-spam path can't bloat JSON. */
+const MAX_TRACKED_REJECTIONS = 50;
+
+function makeFigureStats(): FigureStats {
+  return {
+    sourceImageCount: 0,
+    catalogImageCount: 0,
+    requestedRefs: 0,
+    acceptedRefs: 0,
+    rejectedRefs: 0,
+    rejections: [],
+    snapshotCount: 0,
+    theoryImageCount: 0,
+    flashcardImageCount: 0,
+    quizImageCount: 0,
+    skippedReason: null,
+  };
+}
+
+/** Re-bind the accumulator to a (re)loaded plan, refreshing the per-build
+ *  counts the build step computed. */
+function attachFigureStats(plan: PlanForGeneration, stats: FigureStats): void {
+  stats.sourceImageCount = plan.sourceImageCount;
+  stats.catalogImageCount = plan.catalogImageCount;
+  stats.skippedReason = plan.figuresSkippedReason;
+  plan.figureStats = stats;
+}
+
+/** Fold one resolver result into the plan's accumulator (no-op if unattached). */
+function recordFigureResolution(
+  plan: PlanForGeneration,
+  resolution: FigureResolution<unknown>,
+): void {
+  const s = plan.figureStats;
+  if (!s) return;
+  s.requestedRefs += resolution.accepted.length + resolution.rejected.length;
+  s.acceptedRefs += resolution.accepted.length;
+  s.rejectedRefs += resolution.rejected.length;
+  for (const r of resolution.rejected) {
+    if (s.rejections.length >= MAX_TRACKED_REJECTIONS) break;
+    s.rejections.push({ ref: r.ref, reason: r.reason });
+  }
 }
 
 /**
@@ -787,13 +862,26 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   const quizFiguresEnabled = process.env.PATH_QUIZ_FIGURES_DISABLED !== '1';
   let imageCatalog: string | null = null;
   let availableImages: SourceImage[] = [];
+  // P5 — a wholesale figure skip always records WHY, so an empty catalog is
+  // never silent. Generation continues text-only regardless.
+  let figuresSkippedReason: string | null = null;
   if (theoryFiguresEnabled || flashcardFiguresEnabled || quizFiguresEnabled) {
     try {
-      availableImages = await loadSourceImages(plan.userId, plan.materialIds);
-      if (availableImages.length > 0) {
+      availableImages = await loadSourceImages(plan.userId, plan.materialIds, {
+        planId: plan.id,
+        title: plan.title,
+        subjectLabels: resolvedSubjects,
+      });
+      if (availableImages.length === 0) {
+        figuresSkippedReason = 'no_source_images';
+      } else {
         await captionMissing(availableImages, { userId: plan.userId });
         const rendered = renderImageCatalog(availableImages);
-        imageCatalog = rendered.length > 0 ? rendered : null;
+        if (rendered.length > 0) {
+          imageCatalog = rendered;
+        } else {
+          figuresSkippedReason = 'no_catalog_captions';
+        }
       }
     } catch (error) {
       logTelemetry(plan.userId, 'path.theory.image_catalog_failed', {
@@ -802,8 +890,18 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
       });
       imageCatalog = null;
       availableImages = [];
+      figuresSkippedReason = 'catalog_build_failed';
+    }
+    if (figuresSkippedReason) {
+      logTelemetry(plan.userId, 'path.figures.skipped', {
+        planId: plan.id,
+        reason: figuresSkippedReason,
+      });
     }
   }
+  const catalogImageCount = availableImages.filter(
+    (i) => i.caption && i.caption.trim().length > 0,
+  ).length;
 
   return {
     id: plan.id,
@@ -820,6 +918,9 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     corpus,
     imageCatalog,
     availableImages,
+    sourceImageCount: availableImages.length,
+    catalogImageCount,
+    figuresSkippedReason,
     theoryFiguresEnabled,
     flashcardFiguresEnabled,
     quizFiguresEnabled,
@@ -959,21 +1060,36 @@ function makeSlotContentContext(
 export function resolveFigures(
   rawFigures: unknown,
   available: SourceImage[],
-): { image: SourceImage; caption: string }[] {
-  if (!Array.isArray(rawFigures) || available.length === 0) return [];
+): FigureResolution<{ image: SourceImage; caption: string }> {
+  const accepted: { image: SourceImage; caption: string }[] = [];
+  const rejected: FigureRejection[] = [];
+  if (!Array.isArray(rawFigures)) return { accepted, rejected };
   const byId = new Map(available.map((img) => [img.id, img]));
   const seen = new Set<string>();
-  const out: { image: SourceImage; caption: string }[] = [];
-  for (const raw of rawFigures) {
+  for (let i = 0; i < rawFigures.length; i++) {
+    const raw = rawFigures[i];
     const parsed = TheoryFigureSchema.safeParse(raw);
-    if (!parsed.success) continue;
+    if (!parsed.success) {
+      rejected.push({ index: i, ref: refOf(raw), reason: 'schema_invalid' });
+      continue;
+    }
     const img = byId.get(parsed.data.imageRef);
-    if (!img || seen.has(img.id)) continue;
+    if (!img) {
+      rejected.push({ index: i, ref: parsed.data.imageRef, reason: 'unknown_ref' });
+      continue;
+    }
+    if (seen.has(img.id)) {
+      rejected.push({ index: i, ref: parsed.data.imageRef, reason: 'duplicate' });
+      continue;
+    }
+    if (accepted.length >= 3) {
+      rejected.push({ index: i, ref: parsed.data.imageRef, reason: 'cap_exceeded' });
+      continue;
+    }
     seen.add(img.id);
-    out.push({ image: img, caption: parsed.data.caption });
-    if (out.length >= 3) break;
+    accepted.push({ image: img, caption: parsed.data.caption });
   }
-  return out;
+  return { accepted, rejected };
 }
 
 /**
@@ -1364,10 +1480,12 @@ async function generateTheoryActivity(
   // Theory visuals — validate the model's figures (drop hallucinated refs) and
   // diagrams (drop per-kind-invalid), then snapshot referenced source images
   // into path-owned blobs and emit pathImage / pathDiagram nodes.
-  const figures =
+  const figRes =
     plan.theoryFiguresEnabled && plan.imageCatalog
       ? resolveFigures(resolved.figures, plan.availableImages)
-      : [];
+      : { accepted: [], rejected: [] };
+  recordFigureResolution(plan, figRes);
+  const figures = figRes.accepted;
   const diagrams = plan.diagramsEnabled
     ? resolveDiagrams(resolved.diagrams, { userId: plan.userId, planId: plan.id, slotId: slot.id })
     : [];
@@ -1401,6 +1519,10 @@ async function generateTheoryActivity(
         message: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+  if (plan.figureStats) {
+    plan.figureStats.snapshotCount += snapped.length;
+    plan.figureStats.theoryImageCount += snapped.length;
   }
 
   // pathImage `ref` is the TheoryImage.sortOrder (= index of the snapshot).
@@ -1579,14 +1701,16 @@ async function generateFlashcardsActivity(
   // attach in the same nested create — storage I/O stays OUTSIDE the DB
   // transaction (mirrors theory figure snapshotting). A copy failure simply
   // drops that one figure; the card is still written text-only.
-  const figures =
+  const figRes =
     plan.flashcardFiguresEnabled && plan.imageCatalog
       ? resolveFlashcardFigures(input.flashcards, plan.availableImages)
-      : [];
+      : { accepted: [], rejected: [] };
+  recordFigureResolution(plan, figRes);
+  const figures = figRes.accepted;
   const cardIds = input.flashcards.map(() => randomUUID());
   const snappedByCard = new Map<
     number,
-    { side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
+    { sourcePageImageId: string; side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
   >();
   for (const fig of figures) {
     try {
@@ -1594,6 +1718,7 @@ async function generateFlashcardsActivity(
       const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
       const list = snappedByCard.get(fig.cardIndex) ?? [];
       list.push({
+        sourcePageImageId: fig.image.id,
         side: fig.side,
         fileName: fig.image.fileName,
         filePath,
@@ -1609,6 +1734,12 @@ async function generateFlashcardsActivity(
         message: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+  if (plan.figureStats) {
+    let n = 0;
+    for (const list of snappedByCard.values()) n += list.length;
+    plan.figureStats.snapshotCount += n;
+    plan.figureStats.flashcardImageCount += n;
   }
 
   // Diagram reuse (Phase 3): copy the covering theory's diagrams onto the set
@@ -1641,6 +1772,7 @@ async function generateFlashcardsActivity(
                 ? {
                     images: {
                       create: imgs.map((s) => ({
+                        sourcePageImageId: s.sourcePageImageId,
                         side: s.side,
                         fileName: s.fileName,
                         filePath: s.filePath,
@@ -1923,10 +2055,12 @@ async function generateQuizActivity(
   // QuizQuestionImage row attaches in the same nested create — storage I/O stays
   // OUTSIDE the DB transaction (mirrors theory/flashcard figure snapshotting). A
   // copy failure simply drops that one exhibit; the question is still written.
-  const figures =
+  const figRes =
     plan.quizFiguresEnabled && plan.imageCatalog
       ? resolveQuizFigures(finalQuestions, plan.availableImages)
-      : [];
+      : { accepted: [], rejected: [] };
+  recordFigureResolution(plan, figRes);
+  const figures = figRes.accepted;
   const questionIds = finalQuestions.map(() => randomUUID());
   const snappedByQuestion = new Map<
     number,
@@ -1951,6 +2085,10 @@ async function generateQuizActivity(
         message: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+  if (plan.figureStats) {
+    plan.figureStats.snapshotCount += snappedByQuestion.size;
+    plan.figureStats.quizImageCount += snappedByQuestion.size;
   }
 
   // Diagram reuse (Phase 3): copy the covering theory's diagrams onto the set
@@ -2267,6 +2405,11 @@ async function runPathGeneration(
     return;
   }
 
+  // One figure-telemetry accumulator for the whole generation, re-bound to each
+  // sweep's freshly-loaded plan (figure-reuse P4).
+  const figureStats = makeFigureStats();
+  attachFigureStats(plan, figureStats);
+
   const total = totalSlotCount(plan);
   if (total === 0) {
     await db.studyPlan.update({
@@ -2314,6 +2457,7 @@ async function runPathGeneration(
         if (!fresh) break;
         fresh.usage = usage;
         plan = fresh;
+        attachFigureStats(plan, figureStats);
         logTelemetry(plan.userId, 'path.generation.sweep', {
           planId,
           sweep,
@@ -2398,6 +2542,35 @@ async function runPathGeneration(
     cost: computeCost(usage.perModel),
   });
   reportMeterUsage(usage, 'path-generate', plan.userId);
+
+  // Figure-reuse telemetry (P4): one durable row per generation so the admin
+  // surface can answer "why did/didn't figures appear" without re-running.
+  // Best-effort and fire-and-forget — telemetry must never fail a path.
+  logTelemetry(plan.userId, 'path.figures.summary', { planId, ...figureStats });
+  void db.pathGenerationTelemetry
+    .create({
+      data: {
+        planId,
+        userId: plan.userId,
+        sourceImageCount: figureStats.sourceImageCount,
+        catalogImageCount: figureStats.catalogImageCount,
+        requestedRefs: figureStats.requestedRefs,
+        acceptedRefs: figureStats.acceptedRefs,
+        rejectedRefs: figureStats.rejectedRefs,
+        rejections:
+          figureStats.rejections.length > 0
+            ? (figureStats.rejections as unknown as Prisma.InputJsonValue)
+            : Prisma.JsonNull,
+        snapshotCount: figureStats.snapshotCount,
+        theoryImageCount: figureStats.theoryImageCount,
+        flashcardImageCount: figureStats.flashcardImageCount,
+        quizImageCount: figureStats.quizImageCount,
+        skippedReason: figureStats.skippedReason,
+      },
+    })
+    .catch(() => {
+      /* best-effort — usage analytics must not break the call */
+    });
 }
 
 /**

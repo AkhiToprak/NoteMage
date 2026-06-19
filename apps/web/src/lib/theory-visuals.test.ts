@@ -56,11 +56,16 @@ const CYCLE = { kind: 'cycle' as const, nodes: ['Evaporation', 'Condensation', '
 function mkImage(id: string): SourceImage {
   return {
     id,
+    pageId: `page_${id}`,
     pageTitle: 'Page',
     fileName: `${id}.png`,
     filePath: `images/${id}`,
     mimeType: 'image/png',
+    fileSize: 50_000,
+    bbox: null,
+    sourceType: 'vision_crop',
     caption: 'caption',
+    onPickedPage: true,
   };
 }
 
@@ -144,7 +149,7 @@ describe('theoryInputToTipTap emit', () => {
 describe('resolveFigures drops hallucinated + duplicate refs', () => {
   it('keeps only refs present in the catalog, deduped, in model order', () => {
     const available = [mkImage('img_1'), mkImage('img_2')];
-    const figures = resolveFigures(
+    const { accepted: figures } = resolveFigures(
       [
         { imageRef: 'img_2', caption: 'real' },
         { imageRef: 'ghost', caption: 'hallucinated' },
@@ -159,7 +164,7 @@ describe('resolveFigures drops hallucinated + duplicate refs', () => {
   });
 
   it('returns nothing when no images are available', () => {
-    expect(resolveFigures([{ imageRef: 'img_1', caption: 'c' }], [])).toHaveLength(0);
+    expect(resolveFigures([{ imageRef: 'img_1', caption: 'c' }], []).accepted).toHaveLength(0);
   });
 });
 
@@ -181,7 +186,7 @@ describe('FlashcardFigureSchema', () => {
 describe('resolveFlashcardFigures validates refs, dedupes, caps at 4', () => {
   it('keeps catalog refs in card order with side + caption, dropping bad/dup refs', () => {
     const available = [mkImage('img_1'), mkImage('img_2'), mkImage('img_3')];
-    const figs = resolveFlashcardFigures(
+    const { accepted: figs, rejected } = resolveFlashcardFigures(
       [
         { figure: { imageRef: 'img_1', caption: 'front default' } },
         {}, // no figure
@@ -197,6 +202,10 @@ describe('resolveFlashcardFigures validates refs, dedupes, caps at 4', () => {
     expect(figs[0].image.id).toBe('img_1');
     expect(figs[1]).toMatchObject({ cardIndex: 3, side: 'back', caption: 'on back' });
     expect(figs[1].image.id).toBe('img_2');
+    // P4 — every drop is recorded with a reason for telemetry.
+    expect(rejected.map((r) => r.reason).sort()).toEqual(
+      ['duplicate', 'schema_invalid', 'unknown_ref'].sort(),
+    );
   });
 
   it('caps at 4 figured cards', () => {
@@ -204,12 +213,15 @@ describe('resolveFlashcardFigures validates refs, dedupes, caps at 4', () => {
     const cards = available.map((img) => ({
       figure: { imageRef: img.id, caption: `c-${img.id}` },
     }));
-    expect(resolveFlashcardFigures(cards, available)).toHaveLength(4);
+    const res = resolveFlashcardFigures(cards, available);
+    expect(res.accepted).toHaveLength(4);
+    expect(res.rejected).toHaveLength(2);
+    expect(res.rejected.every((r) => r.reason === 'cap_exceeded')).toBe(true);
   });
 
   it('returns nothing when no images are available', () => {
     expect(
-      resolveFlashcardFigures([{ figure: { imageRef: 'img_1', caption: 'c' } }], []),
+      resolveFlashcardFigures([{ figure: { imageRef: 'img_1', caption: 'c' } }], []).accepted,
     ).toHaveLength(0);
   });
 });
@@ -226,7 +238,7 @@ describe('QuizFigureSchema', () => {
 describe('resolveQuizFigures validates refs, dedupes, caps at 3', () => {
   it('keeps catalog refs in question order with caption, dropping bad/dup refs', () => {
     const available = [mkImage('img_1'), mkImage('img_2'), mkImage('img_3')];
-    const figs = resolveQuizFigures(
+    const { accepted: figs } = resolveQuizFigures(
       [
         { figure: { imageRef: 'img_1', caption: 'exhibit one' } },
         {}, // no figure
@@ -249,12 +261,12 @@ describe('resolveQuizFigures validates refs, dedupes, caps at 3', () => {
     const questions = available.map((img) => ({
       figure: { imageRef: img.id, caption: `c-${img.id}` },
     }));
-    expect(resolveQuizFigures(questions, available)).toHaveLength(3);
+    expect(resolveQuizFigures(questions, available).accepted).toHaveLength(3);
   });
 
   it('returns nothing when no images are available', () => {
     expect(
-      resolveQuizFigures([{ figure: { imageRef: 'img_1', caption: 'c' } }], []),
+      resolveQuizFigures([{ figure: { imageRef: 'img_1', caption: 'c' } }], []).accepted,
     ).toHaveLength(0);
   });
 });

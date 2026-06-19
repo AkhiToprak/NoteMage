@@ -249,7 +249,7 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
     // `alt` is the model's import-time figure title (P1) — written through to
     // `PageImage.aiCaption` below. It rides WITH the crop result so it dies if
     // the crop is dropped (no orphan captions).
-    const figureCrops: Array<{ ref: string; buffer: Buffer; alt?: string }> = [];
+    const figureCrops: Array<{ ref: string; buffer: Buffer; alt?: string; bbox?: number[] }> = [];
     let fallbackPages = 0;
 
     for (let i = 0; i < pageCount; i++) {
@@ -374,7 +374,8 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
           if (block.type !== 'image') continue;
           try {
             const crop = await cropFigure(pngBuffer, block.bbox);
-            if (crop) figureCrops.push({ ref: block.ref, buffer: crop, alt: block.alt });
+            if (crop)
+              figureCrops.push({ ref: block.ref, buffer: crop, alt: block.alt, bbox: block.bbox });
           } catch (err) {
             console.error(
               `[pdf-import] job ${jobId} page ${i + 1}: figure crop failed`,
@@ -457,6 +458,8 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
             filePath,
             fileSize: crop.buffer.length,
             mimeType: 'image/png',
+            sourceType: 'vision_crop',
+            ...(crop.bbox ? { bbox: crop.bbox } : {}),
             ...(aiCaption ? { aiCaption, captionedAt: new Date() } : {}),
           },
         });

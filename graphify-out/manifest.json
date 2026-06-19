@@ -1180,9 +1180,9 @@
     "semantic_hash": "7af6bd11ab95c877eb015160eac5ef6c"
   },
   "apps/web/src/lib/chat-stream.ts": {
-    "mtime": 1781209106.8014793,
-    "ast_hash": "e59a443335942da78069b776af898943",
-    "semantic_hash": "e59a443335942da78069b776af898943"
+    "mtime": 1781857401.8786674,
+    "ast_hash": "73a41daf5e880800b1b0232dc7cc172b",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/chat-title.ts": {
     "mtime": 1781209106.8021712,
@@ -1565,9 +1565,9 @@
     "semantic_hash": "8358096609c9deca0c8b6c019af88882"
   },
   "apps/web/src/lib/onenote-import/run-job.ts": {
-    "mtime": 1781083371.0878787,
-    "ast_hash": "6c80a8258a5aad1c67a4382fc0e1f90b",
-    "semantic_hash": "6c80a8258a5aad1c67a4382fc0e1f90b"
+    "mtime": 1781857470.5349188,
+    "ast_hash": "c3e7f531af944442307132af57801c9c",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/onenoteConverter.ts": {
     "mtime": 1781083371.0881379,
@@ -1635,14 +1635,14 @@
     "semantic_hash": "7ad966f1883781d525e1dc8a65ca0acc"
   },
   "apps/web/src/lib/path-generator.ts": {
-    "mtime": 1781447025.7582443,
-    "ast_hash": "40866809ce1d33c51552a3a2de33254d",
-    "semantic_hash": "40866809ce1d33c51552a3a2de33254d"
+    "mtime": 1781857332.4743001,
+    "ast_hash": "a5184219ce81b2703558666775649fc8",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/path-image-catalog.ts": {
-    "mtime": 1781158715.1076374,
-    "ast_hash": "1dd525997c924f123fb4cbf49e27df49",
-    "semantic_hash": "1dd525997c924f123fb4cbf49e27df49"
+    "mtime": 1781857415.1958046,
+    "ast_hash": "a468e451cbc149ad22a92a0cdc29d8d8",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/path-languages.ts": {
     "mtime": 1781083371.0902133,
@@ -1830,9 +1830,9 @@
     "semantic_hash": "701836f51a06dd0948fa780b8dcd7907"
   },
   "apps/web/src/lib/pdf-import/run-job.ts": {
-    "mtime": 1781209106.809618,
-    "ast_hash": "f53fa78b027da8234f76f72456758e1e",
-    "semantic_hash": "f53fa78b027da8234f76f72456758e1e"
+    "mtime": 1781857464.9666603,
+    "ast_hash": "2db12db53dc81aaaf162d789e1e2320c",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/pdf-import/validate.test.ts": {
     "mtime": 1781083371.0989327,
@@ -2005,9 +2005,9 @@
     "semantic_hash": "205e52b52eab0a8952e038c112d06558"
   },
   "apps/web/src/lib/theory-visuals.test.ts": {
-    "mtime": 1781244169.186873,
-    "ast_hash": "e10972cdf669cca7468e2de290dc09aa",
-    "semantic_hash": "e10972cdf669cca7468e2de290dc09aa"
+    "mtime": 1781857582.189402,
+    "ast_hash": "30a56666d9a4c2c90323068d5ad477e3",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/tiers.ts": {
     "mtime": 1781806580.2762578,
@@ -2190,9 +2190,9 @@
     "semantic_hash": "ed9e26f5ca694bf814995fff8fbbfeab"
   },
   "apps/web/app/(admin)/admin/layout.tsx": {
-    "mtime": 1781732115.2679954,
-    "ast_hash": "118920dfe35a01a4203f2dab1ef1dfff",
-    "semantic_hash": "118920dfe35a01a4203f2dab1ef1dfff"
+    "mtime": 1781857769.4949045,
+    "ast_hash": "9a1a6b050bdfd4745a378b1e2a962da8",
+    "semantic_hash": ""
   },
   "apps/web/app/(admin)/admin/page.tsx": {
     "mtime": 1781083370.9585955,
@@ -2875,9 +2875,9 @@
     "semantic_hash": "d372c89304bfef3d0531f93723244397"
   },
   "apps/web/app/api/notebooks/[id]/pages/[pageId]/append-pdf/route.ts": {
-    "mtime": 1781367804.727462,
-    "ast_hash": "b537b64bb7f4ea9d11e6ef03609a6b56",
-    "semantic_hash": "b537b64bb7f4ea9d11e6ef03609a6b56"
+    "mtime": 1781857491.7895944,
+    "ast_hash": "d512a06c08cf69f755cf0ade1f324ab7",
+    "semantic_hash": ""
   },
   "apps/web/app/api/notebooks/[id]/pages/[pageId]/drawing/route.ts": {
     "mtime": 1775866867.55937,
@@ -2890,9 +2890,9 @@
     "semantic_hash": "b74139fe5062c689052d8f1288129965"
   },
   "apps/web/app/api/notebooks/[id]/pages/[pageId]/images/route.ts": {
-    "mtime": 1781083370.9876828,
-    "ast_hash": "ca2b381f1897b43c77a515ec312010d5",
-    "semantic_hash": "ca2b381f1897b43c77a515ec312010d5"
+    "mtime": 1781857486.3229032,
+    "ast_hash": "ac8d86420ff80153fa61ad719890da7b",
+    "semantic_hash": ""
   },
   "apps/web/app/api/notebooks/[id]/pages/[pageId]/route.ts": {
     "mtime": 1781821563.251975,
@@ -2955,9 +2955,9 @@
     "semantic_hash": "48cadc3abb3d0dcb913bb17165bb381d"
   },
   "apps/web/app/api/notebooks/[id]/sections/[sectionId]/import-pptx/route.ts": {
-    "mtime": 1781367804.728623,
-    "ast_hash": "9c263f71059b19a676d93d67e211e751",
-    "semantic_hash": "9c263f71059b19a676d93d67e211e751"
+    "mtime": 1781857480.4598396,
+    "ast_hash": "5316aa9d0e624e4bb05180e696a94a44",
+    "semantic_hash": ""
   },
   "apps/web/app/api/notebooks/[id]/sections/[sectionId]/import-url/route.ts": {
     "mtime": 1781083370.9895446,
@@ -2970,9 +2970,9 @@
     "semantic_hash": "8da6fa994be84974ca648339b48c4314"
   },
   "apps/web/app/api/notebooks/[id]/sections/[sectionId]/import/route.ts": {
-    "mtime": 1781367804.729044,
-    "ast_hash": "5e777acf5e4b401a05edec9677dc217c",
-    "semantic_hash": "5e777acf5e4b401a05edec9677dc217c"
+    "mtime": 1781857475.246361,
+    "ast_hash": "7bc9efd4f9bbccd263f5b08c23755d49",
+    "semantic_hash": ""
   },
   "apps/web/app/api/notebooks/[id]/sections/[sectionId]/pages/route.ts": {
     "mtime": 1778430898.3328097,
@@ -82670,8 +82670,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1781822685.548991,
-    "ast_hash": "d412d3554ab3637aad97d8ca8ce7eb32",
+    "mtime": 1781855950.817364,
+    "ast_hash": "700d0c819535517d4ff176ba8bc0c17a",
     "semantic_hash": ""
   },
   "README.md": {
@@ -84037,6 +84037,31 @@
   "apps/web/src/lib/mage-types.ts": {
     "mtime": 1781854286.8700004,
     "ast_hash": "44e97e87dc1bb17eafa9113eafc91136",
+    "semantic_hash": ""
+  },
+  "apps/web/app/(admin)/admin/pdf-assets/page.tsx": {
+    "mtime": 1781857763.571736,
+    "ast_hash": "7fecd3a7e0c77698bde8ec01b96d389d",
+    "semantic_hash": ""
+  },
+  "apps/web/app/api/admin/pdf-assets/image/[imageId]/route.ts": {
+    "mtime": 1781857707.5084822,
+    "ast_hash": "d360fbbbf75214b308598b59717eed3a",
+    "semantic_hash": ""
+  },
+  "apps/web/app/api/admin/pdf-assets/route.ts": {
+    "mtime": 1781857692.437247,
+    "ast_hash": "49ce547dff85419b08a9db2dffd3589b",
+    "semantic_hash": ""
+  },
+  "apps/web/prisma/migrations/20260620000000_figure_reuse_provenance_telemetry/migration.sql": {
+    "mtime": 1781856807.8736982,
+    "ast_hash": "3bbdcde206009d944ab61cdc291d50a8",
+    "semantic_hash": ""
+  },
+  "apps/web/src/__tests__/lib/path-image-catalog.test.ts": {
+    "mtime": 1781857870.5729809,
+    "ast_hash": "ccb2ac6bbd0757e9c0b897b3ee73d393",
     "semantic_hash": ""
   }
 }

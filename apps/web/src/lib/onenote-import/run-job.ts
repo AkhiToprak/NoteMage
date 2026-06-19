@@ -225,7 +225,14 @@ async function downloadAndStoreImage(
 
   const { filePath } = await saveImage(pageId, fileName, buffer);
   const pageImage = await db.pageImage.create({
-    data: { pageId, fileName, filePath, fileSize: buffer.length, mimeType: contentType },
+    data: {
+      pageId,
+      fileName,
+      filePath,
+      fileSize: buffer.length,
+      mimeType: contentType,
+      sourceType: 'onenote',
+    },
   });
   return `/api/uploads/images/${pageImage.id}`;
 }

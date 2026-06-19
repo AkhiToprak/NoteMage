@@ -106,6 +106,7 @@ export async function POST(request: NextRequest, { params }: Params) {
             filePath,
             fileSize: image.buffer.length,
             mimeType: image.mimeType,
+            sourceType: 'pptx',
           },
         });
       }

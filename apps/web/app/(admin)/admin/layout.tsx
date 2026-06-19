@@ -61,6 +61,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: 'query_stats',
     matchPrefix: (p) => p === '/admin/stats' || p.startsWith('/admin/stats/'),
   },
+  {
+    href: '/admin/pdf-assets',
+    label: 'PDF assets',
+    icon: 'image',
+    matchPrefix: (p) => p === '/admin/pdf-assets' || p.startsWith('/admin/pdf-assets/'),
+  },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

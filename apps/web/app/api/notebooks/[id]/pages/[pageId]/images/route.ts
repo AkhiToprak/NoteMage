@@ -67,6 +67,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         filePath: storagePath,
         fileSize: buffer.length,
         mimeType: contentType,
+        sourceType: 'manual_upload',
       },
     });
 

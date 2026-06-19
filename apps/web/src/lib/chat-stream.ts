@@ -345,7 +345,15 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
       chat.contextPageIds.length > 0
     ) {
       try {
-        const imgs = await loadSourceImages(userId, chat.contextPageIds);
+        // Chat keeps a TIGHT scope: only the pages the user explicitly attached,
+        // never the whole backing notebook (expandToNotebook: false). The
+        // notebook-wide expansion is a path-generation behavior (figure-reuse P1).
+        const imgs = await loadSourceImages(
+          userId,
+          chat.contextPageIds,
+          { planId: chat.id, title: '', subjectLabels: [] },
+          { expandToNotebook: false },
+        );
         const rendered = renderImageCatalog(imgs); // '' when none captioned
         if (rendered) {
           chatImageCatalog = rendered;
@@ -717,12 +725,12 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 // open. Pre-generated card ids let the rows nest into the same
                 // create. A copy failure drops that one figure; the card saves.
                 const fcFigures = figuresAvailable
-                  ? resolveFlashcardFigures(flashcards, chatSourceImages)
+                  ? resolveFlashcardFigures(flashcards, chatSourceImages).accepted
                   : [];
                 const fcCardIds = flashcards.map(() => randomUUID());
                 const fcSnapped = new Map<
                   number,
-                  { side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
+                  { sourcePageImageId: string; side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
                 >();
                 for (const fig of fcFigures) {
                   try {
@@ -730,6 +738,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                     const { filePath, fileSize } = await copyImage(fig.image.filePath, dest);
                     const list = fcSnapped.get(fig.cardIndex) ?? [];
                     list.push({
+                      sourcePageImageId: fig.image.id,
                       side: fig.side,
                       fileName: fig.image.fileName,
                       filePath,
@@ -779,6 +788,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                               ? {
                                   images: {
                                     create: imgs.map((s) => ({
+                                      sourcePageImageId: s.sourcePageImageId,
                                       side: s.side,
                                       fileName: s.fileName,
                                       filePath: s.filePath,
@@ -907,7 +917,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               // Pre-generated question ids let the row nest into the same
               // create. A copy failure drops that one exhibit; the question saves.
               const qFigures = figuresAvailable
-                ? resolveQuizFigures(parsed.data.questions, chatSourceImages)
+                ? resolveQuizFigures(parsed.data.questions, chatSourceImages).accepted
                 : [];
               const qQuestionIds = parsed.data.questions.map(() => randomUUID());
               const qSnapped = new Map<
