@@ -82670,8 +82670,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1781855950.817364,
-    "ast_hash": "700d0c819535517d4ff176ba8bc0c17a",
+    "mtime": 1781822685.548991,
+    "ast_hash": "d412d3554ab3637aad97d8ca8ce7eb32",
     "semantic_hash": ""
   },
   "README.md": {
@@ -84050,8 +84050,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/api/admin/pdf-assets/route.ts": {
-    "mtime": 1781857692.437247,
-    "ast_hash": "49ce547dff85419b08a9db2dffd3589b",
+    "mtime": 1781857987.208684,
+    "ast_hash": "098ac62f6cc0e4db1a0b1a83a84c4067",
     "semantic_hash": ""
   },
   "apps/web/prisma/migrations/20260620000000_figure_reuse_provenance_telemetry/migration.sql": {

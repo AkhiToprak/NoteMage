@@ -524,6 +524,16 @@
     "ast_hash": "440b3b0601b07317e0ee03010200df0c",
     "semantic_hash": ""
   },
+  "apps/web/src/components/notebook/AiTaskContext.tsx": {
+    "mtime": 1781083371.0456316,
+    "ast_hash": "ce40ff4f3ac6692feb9d608a782e20c4",
+    "semantic_hash": "ce40ff4f3ac6692feb9d608a782e20c4"
+  },
+  "apps/web/src/components/notebook/FileImportDialog.tsx": {
+    "mtime": 1781083371.0485203,
+    "ast_hash": "0527c8d195de3034e9deb81e9402993b",
+    "semantic_hash": "0527c8d195de3034e9deb81e9402993b"
+  },
   "apps/web/src/components/notebook/FlashcardImportDialog.tsx": {
     "mtime": 1781158399.9911647,
     "ast_hash": "c6f028df3a7d07d218fda11f5b35202c",
@@ -539,10 +549,25 @@
     "ast_hash": "a3972b329597ea6f5e6574c7ae50af74",
     "semantic_hash": "a3972b329597ea6f5e6574c7ae50af74"
   },
+  "apps/web/src/components/notebook/ImportSectionPicker.tsx": {
+    "mtime": 1781083371.0505278,
+    "ast_hash": "754f5f1c3bd23c0dd4dd18897d953195",
+    "semantic_hash": "754f5f1c3bd23c0dd4dd18897d953195"
+  },
   "apps/web/src/components/notebook/MindmapRenderer.tsx": {
     "mtime": 1781083371.051477,
     "ast_hash": "d99a353415e42d915fa2080b76361aa1",
     "semantic_hash": "d99a353415e42d915fa2080b76361aa1"
+  },
+  "apps/web/src/components/notebook/NotebookWorkspaceContext.tsx": {
+    "mtime": 1781083371.0518103,
+    "ast_hash": "93b5c12e6b20a3b6c4f58d66c192546b",
+    "semantic_hash": "93b5c12e6b20a3b6c4f58d66c192546b"
+  },
+  "apps/web/src/components/notebook/PageItem.tsx": {
+    "mtime": 1781821563.254359,
+    "ast_hash": "60a90be37466f3c5dde3f0d45c66210f",
+    "semantic_hash": ""
   },
   "apps/web/src/components/notebook/QuizSetCreator.tsx": {
     "mtime": 1781083371.0538301,
@@ -550,9 +575,19 @@
     "semantic_hash": "235a4576429a20afe823eaa66a55d570"
   },
   "apps/web/src/components/notebook/QuizViewer.tsx": {
-    "mtime": 1781855498.3793302,
-    "ast_hash": "a4c5a1327384831c47bcc53382fe017c",
+    "mtime": 1781821563.2545998,
+    "ast_hash": "acd8aac9d4c24b0957eeea3b23f52249",
     "semantic_hash": ""
+  },
+  "apps/web/src/components/notebook/SectionItem.tsx": {
+    "mtime": 1781821563.2548113,
+    "ast_hash": "f157fdd82219550e79005c2038c95614",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/notebook/SectionTree.tsx": {
+    "mtime": 1781083371.0547333,
+    "ast_hash": "5f2e531e1b59eff9897944a2df7236fd",
+    "semantic_hash": "5f2e531e1b59eff9897944a2df7236fd"
   },
   "apps/web/src/components/notebook/SlideEditorModal.tsx": {
     "mtime": 1781083371.0552673,
@@ -563,6 +598,11 @@
     "mtime": 1781083371.0553858,
     "ast_hash": "ac5ca21b08131c932be0e08f48609110",
     "semantic_hash": "ac5ca21b08131c932be0e08f48609110"
+  },
+  "apps/web/src/components/notebook/UrlImportDialog.tsx": {
+    "mtime": 1781083371.05584,
+    "ast_hash": "2bd7ccf2432f0214fac7941a753099ae",
+    "semantic_hash": "2bd7ccf2432f0214fac7941a753099ae"
   },
   "apps/web/src/components/onboarding/AccountStep.tsx": {
     "mtime": 1781367804.7328603,
@@ -84010,8 +84050,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/mage/MagePanel.tsx": {
-    "mtime": 1781854827.8054028,
-    "ast_hash": "667eb3df336aa92d0ae7015ff751e9dd",
+    "mtime": 1781854610.4498708,
+    "ast_hash": "497c24f94d031a7975e6c4cfe1c60f4a",
     "semantic_hash": ""
   },
   "apps/web/src/components/mage/MageProvider.tsx": {
