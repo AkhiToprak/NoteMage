@@ -10,6 +10,7 @@ import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 import { ToastProvider } from '@/components/ui/Toast';
+import { MageProvider, MagePanel, MageLauncher } from '@/components/mage';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
 /** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
@@ -61,34 +62,41 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
     <TimerProvider>
       <UnlockProvider>
         <ToastProvider>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100dvh',
-              overflow: 'hidden',
-              background: 'var(--background)',
-            }}
-          >
-            {!isStudyPacksNew && !isLesson && !isTutorial && <HomeHeader />}
-            <main
+          <MageProvider>
+            <div
               style={{
-                flex: 1,
-                minHeight: 0,
-                overflowX: 'hidden',
-                overflowY: isFullHeight ? 'hidden' : 'auto',
-                padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
-                color: 'var(--on-surface)',
-                display: isFullHeight ? 'flex' : undefined,
-                flexDirection: isFullHeight ? 'column' : undefined,
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100dvh',
+                overflow: 'hidden',
+                background: 'var(--background)',
               }}
             >
-              {children}
-            </main>
-            {/* Phone-only thumb nav. Hidden on full-height surfaces (learn
-              chats, study-pack wizard, lesson, tutorial) which own the viewport. */}
-            {!isFullHeight && <MobileBottomNav />}
-          </div>
+              {!isStudyPacksNew && !isLesson && !isTutorial && <HomeHeader />}
+              <main
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowX: 'hidden',
+                  overflowY: isFullHeight ? 'hidden' : 'auto',
+                  padding: isFullHeight || isLearn ? '0' : isPhone ? '18px' : isTablet ? '20px' : '32px',
+                  color: 'var(--on-surface)',
+                  display: isFullHeight ? 'flex' : undefined,
+                  flexDirection: isFullHeight ? 'column' : undefined,
+                }}
+              >
+                {children}
+              </main>
+              {/* Phone-only thumb nav. Hidden on full-height surfaces (learn
+                chats, study-pack wizard, lesson, tutorial) which own the viewport. */}
+              {!isFullHeight && <MobileBottomNav />}
+            </div>
+            {/* Global Mage panel + launcher (Phase 1). Fixed overlays, so they
+              sit outside the chrome flow and ride on top of every route. The
+              launcher lifts above the phone thumb-nav when one is shown. */}
+            <MagePanel />
+            <MageLauncher avoidBottomNav={isPhone && !isFullHeight} />
+          </MageProvider>
         </ToastProvider>
       </UnlockProvider>
     </TimerProvider>

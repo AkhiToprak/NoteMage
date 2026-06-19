@@ -42,10 +42,19 @@ type StreamStatus = 'idle' | 'streaming' | 'done' | 'error';
  * legacy `{ notebookId, chatId }` shape is still accepted for back-compat with
  * any caller that hasn't migrated to /learn/chats yet.
  */
-interface EndpointOptions {
+interface CommonStreamOptions {
+  /**
+   * Called once with the raw Response immediately after a successful fetch,
+   * before the SSE body is read. Lets a caller read response headers — the
+   * Mage panel uses it to pick up `X-Mage-Chat-Id` so it keeps talking to the
+   * same server-created thread.
+   */
+  onResponse?: (response: Response) => void;
+}
+interface EndpointOptions extends CommonStreamOptions {
   endpoint: string;
 }
-interface NotebookChatOptions {
+interface NotebookChatOptions extends CommonStreamOptions {
   notebookId: string;
   chatId: string;
 }
@@ -94,6 +103,7 @@ function parseSSEEvents(buffer: string): { events: SSEEvent[]; remaining: string
 
 export function useStreamingChat(options: UseStreamingChatOptions) {
   const endpoint = resolveEndpoint(options);
+  const onResponse = options.onResponse;
 
   const [streamingText, setStreamingText] = useState('');
   const [status, setStatus] = useState<StreamStatus>('idle');
@@ -110,7 +120,10 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
   }, []);
 
   const send = useCallback(
-    async (message: string): Promise<DonePayload | null> => {
+    async (
+      message: string,
+      extraBody?: Record<string, unknown>
+    ): Promise<DonePayload | null> => {
       // Abort any in-flight request
       abort();
 
@@ -127,7 +140,7 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
         response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ message, ...(extraBody ?? {}) }),
           signal: controller.signal,
         });
       } catch (err) {
@@ -153,6 +166,9 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
         setError(msg);
         return null;
       }
+
+      // Surface the raw Response (headers) before consuming the SSE body.
+      onResponse?.(response);
 
       const reader = response.body?.getReader();
       if (!reader) {
@@ -216,7 +232,7 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
 
       return donePayload;
     },
-    [endpoint, abort]
+    [endpoint, abort, onResponse]
   );
 
   // Clean up on unmount
