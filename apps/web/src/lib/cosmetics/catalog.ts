@@ -253,13 +253,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     description: 'Retro handwritten script.',
     css: "var(--font-pacifico), 'Pacifico', cursive",
   },
-  'font.marker': {
-    id: 'font.marker',
-    type: 'nameFont',
-    label: 'Marker',
-    description: 'Ink on whiteboard.',
-    css: "var(--font-marker), 'Permanent Marker', cursive",
-  },
   'font.medieval': {
     id: 'font.medieval',
     type: 'nameFont',
@@ -279,13 +272,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Orbitron',
     description: 'Retro-futurist geometry.',
     css: "var(--font-orbitron), 'Orbitron', sans-serif",
-  },
-  'font.pressstart': {
-    id: 'font.pressstart',
-    type: 'nameFont',
-    label: 'Press Start',
-    description: 'Pixel arcade legend.',
-    css: "var(--font-pressstart), 'Press Start 2P', 'Courier New', monospace",
   },
   'font.unifraktur': {
     id: 'font.unifraktur',
@@ -344,26 +330,12 @@ export const COSMETICS: Record<string, Cosmetic> = {
     component: 'FrameGlow',
     params: { hue: 270 },
   },
-  'frame.glow-ember': {
-    id: 'frame.glow-ember',
-    type: 'frame',
-    label: 'Ember Glow',
-    component: 'FrameGlow',
-    params: { hue: 20 },
-  },
   'frame.glow-emerald': {
     id: 'frame.glow-emerald',
     type: 'frame',
     label: 'Emerald Glow',
     component: 'FrameGlow',
     params: { hue: 150 },
-  },
-  'frame.cosmic': {
-    id: 'frame.cosmic',
-    type: 'frame',
-    label: 'Cosmic',
-    component: 'FrameGlow',
-    params: { hue: 210 },
   },
   'frame.pulse-rose': {
     id: 'frame.pulse-rose',
@@ -394,13 +366,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     component: 'none',
     isDefault: true,
   },
-  'bg.aurora-purple': {
-    id: 'bg.aurora-purple',
-    type: 'background',
-    label: 'Purple Aurora',
-    component: 'BackgroundAurora',
-    params: { hue: 270 },
-  },
   'bg.aurora-emerald': {
     id: 'bg.aurora-emerald',
     type: 'background',
@@ -421,13 +386,6 @@ export const COSMETICS: Record<string, Cosmetic> = {
     label: 'Mesh Grid',
     component: 'BackgroundMesh',
     params: { hue: 270 },
-  },
-  'bg.geometric-violet': {
-    id: 'bg.geometric-violet',
-    type: 'background',
-    label: 'Violet Weave',
-    component: 'BackgroundGeometric',
-    params: { hue: 260 },
   },
   'bg.geometric-ember': {
     id: 'bg.geometric-ember',

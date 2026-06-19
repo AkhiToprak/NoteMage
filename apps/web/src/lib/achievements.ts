@@ -1,15 +1,10 @@
 export interface UserStats {
-  notebookCount: number;
   currentStreak: number;
   friendCount: number;
-  sharedNotebookCount: number;
   hasAllWrongQuiz: boolean;
   hasPerfectFirstTry: boolean;
   usernameChanged: boolean;
   examCount: number;
-  folderCount: number;
-  canvasPageCount: number;
-  allTodosDone: boolean;
   scholarNameSet: boolean;
   dailyGoalHit: boolean;
   tutorialCompleted: boolean;
@@ -97,16 +92,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     unlocks: ['font.serif'],
   },
   {
-    badge: 'all_todos_done',
-    name: 'Time for a break!',
-    description: "Check off all your To-Do's",
-    icon: 'task_alt',
-    category: 'study',
-    checkCondition: (s) => s.allTodosDone,
-    getProgress: (s) => ({ current: s.allTodosDone ? 1 : 0, target: 1 }),
-    unlocks: [],
-  },
-  {
     badge: 'apprentice_mage',
     name: 'Apprentice Mage',
     description: 'Complete the welcome tour',
@@ -138,36 +123,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
 
   // ── Content ─────────────────────────────────────────────────────────
-  {
-    badge: '10_notebooks',
-    name: 'librarian',
-    description: 'Have 10 notebooks or more',
-    icon: 'local_library',
-    category: 'content',
-    checkCondition: (s) => s.notebookCount >= 10,
-    getProgress: (s) => ({ current: Math.min(s.notebookCount, 10), target: 10 }),
-    unlocks: ['frame.cosmic', 'bg.aurora-purple'],
-  },
-  {
-    badge: 'first_folder',
-    name: 'organizer',
-    description: 'Create a folder',
-    icon: 'create_new_folder',
-    category: 'content',
-    checkCondition: (s) => s.folderCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.folderCount, 1), target: 1 }),
-    unlocks: ['frame.glow-ember'],
-  },
-  {
-    badge: 'first_canvas',
-    name: 'Picasso',
-    description: 'Use a canvas',
-    icon: 'draw',
-    category: 'content',
-    checkCondition: (s) => s.canvasPageCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.canvasPageCount, 1), target: 1 }),
-    unlocks: ['font.marker', 'bg.geometric-violet'],
-  },
   {
     badge: 'first_upload',
     name: 'loaded in',
@@ -231,16 +186,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     checkCondition: (s) => s.usernameChanged,
     getProgress: (s) => ({ current: s.usernameChanged ? 1 : 0, target: 1 }),
     unlocks: ['title.scholar'],
-  },
-  {
-    badge: 'first_share',
-    name: 'influencer',
-    description: 'Share a notebook',
-    icon: 'share',
-    category: 'social',
-    checkCondition: (s) => s.sharedNotebookCount >= 1,
-    getProgress: (s) => ({ current: Math.min(s.sharedNotebookCount, 1), target: 1 }),
-    unlocks: ['font.pressstart'],
   },
   {
     badge: '20_friends',
@@ -354,8 +299,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: 'special',
     // Bump when adding a non-meta achievement. (Unlock logic uses the dynamic
     // NON_META_BADGES.length in achievement-checker; this drives the progress UI.)
-    checkCondition: (s) => s.totalAchievementsUnlocked >= 30,
-    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 30), target: 30 }),
+    checkCondition: (s) => s.totalAchievementsUnlocked >= 23,
+    getProgress: (s) => ({ current: Math.min(s.totalAchievementsUnlocked, 23), target: 23 }),
     unlocks: [
       'title.archmage',
       'font.unifraktur',

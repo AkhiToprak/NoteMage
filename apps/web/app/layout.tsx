@@ -11,11 +11,9 @@ import {
   Orbitron,
   Oswald,
   Pacifico,
-  Permanent_Marker,
   Playfair_Display,
   Plus_Jakarta_Sans,
   Poppins,
-  Press_Start_2P,
   Silkscreen,
   UnifrakturMaguntia,
 } from 'next/font/google';
@@ -151,22 +149,6 @@ const pacifico = Pacifico({
   display: 'swap',
 });
 
-const permanentMarker = Permanent_Marker({
-  variable: '--font-marker',
-  preload: false,
-  subsets: ['latin'],
-  weight: ['400'],
-  display: 'swap',
-});
-
-const pressStart = Press_Start_2P({
-  variable: '--font-pressstart',
-  preload: false,
-  subsets: ['latin'],
-  weight: ['400'],
-  display: 'swap',
-});
-
 const orbitron = Orbitron({
   variable: '--font-orbitron',
   preload: false,
@@ -238,8 +220,6 @@ export default function RootLayout({
         abrilFatface.variable,
         bungeeShade.variable,
         pacifico.variable,
-        permanentMarker.variable,
-        pressStart.variable,
         orbitron.variable,
         silkscreen.variable,
       ].join(' ')}

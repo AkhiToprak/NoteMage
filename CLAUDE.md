@@ -14,10 +14,6 @@
 
 - **Invoke the `hallmark` skill** before writing any frontend code, every session, no exceptions.
 
-## Already shipped (don't re-flag)
-
-- **Stylus + barrel-button → eraser** on the canvas — implemented in `apps/web/src/components/notebook/InfiniteCanvas.tsx` lines 245–272. See `apps/web/docs/stylus-support.md` for the device matrix, known limitations (Apple Pencil has no barrel button, Wacom+macOS is driver-dependent), and the debug procedure before reporting it as broken.
-
 ## Reference Images
 
 - If a reference image is provided: match layout, spacing, typography, and color exactly. Swap in placeholder content (images via `https://placehold.co/`, generic copy). Do not improve or add to the design.

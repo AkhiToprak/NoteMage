@@ -23,20 +23,13 @@ const VALID_BADGES = ACHIEVEMENTS.map((a) => a.badge);
 // merge without changing results. Caching is out of scope (invalidation risk).
 export async function gatherUserStats(userId: string): Promise<UserStats> {
   const [
-    notebookCount,
     streak,
     friendCount,
-    sharedNotebookCount,    allWrongAttempt,
+    allWrongAttempt,
     userRecord,
     examCount,
-    folderCount,    canvasPageCount,
-    totalTodos,
-    incompleteTodos,
     unlockedCount,
   ] = await Promise.all([
-    // Notebooks owned by user
-    db.notebook.count({ where: { userId } }),
-
     // Current streak
     db.userStreak.findUnique({
       where: { userId },
@@ -49,11 +42,6 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
         status: 'accepted',
         OR: [{ requesterId: userId }, { addresseeId: userId }],
       },
-    }),
-
-    // Community publishes (shared notebooks with no specific recipient)
-    db.sharedNotebook.count({
-      where: { sharedById: userId, sharedWithId: null },
     }),
 
     // Any quiz attempt with all wrong answers
@@ -78,20 +66,6 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
 
     // Exam count
     db.exam.count({ where: { userId } }),
-
-    // Folder count
-    db.notebookFolder.count({ where: { userId } }),
-
-    // Canvas pages in user's notebooks
-    db.page.count({
-      where: { pageType: 'canvas', section: { notebook: { userId } } },
-    }),
-
-    // Total todos
-    db.todo.count({ where: { userId } }),
-
-    // Incomplete todos
-    db.todo.count({ where: { userId, completed: false } }),
 
     // Count of valid unlocked achievements (exclude orphaned old badges)
     db.achievement.count({
@@ -252,15 +226,12 @@ export async function gatherUserStats(userId: string): Promise<UserStats> {
   const tutorialState = (userRecord?.tutorialState ?? null) as { completedAt?: string } | null;
 
   return {
-    notebookCount,
     currentStreak: streak?.currentStreak ?? 0,
     friendCount,
-    sharedNotebookCount,    hasAllWrongQuiz: !!allWrongAttempt,
+    hasAllWrongQuiz: !!allWrongAttempt,
     hasPerfectFirstTry,
     usernameChanged: userRecord?.usernameChanged ?? false,
     examCount,
-    folderCount,    canvasPageCount,
-    allTodosDone: totalTodos > 0 && incompleteTodos === 0,
     scholarNameSet: !!userRecord?.scholarName,
     dailyGoalHit,
     tutorialCompleted: !!tutorialState?.completedAt,
