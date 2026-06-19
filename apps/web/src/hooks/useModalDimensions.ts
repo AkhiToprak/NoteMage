@@ -16,10 +16,9 @@ export interface ModalDimensions {
  * (100vw × 100dvh, square corners); on tablet/desktop it caps at `maxWidth`,
  * sizes to content, and never exceeds the viewport height (scrolls internally).
  *
- * This is the "gold standard" pattern already used by CreateChatModal /
- * CreateGroupModal, extracted so every dialog matches instead of each rolling
- * its own fixed width. Modals are client-only and open on interaction, so the
- * SSR→'desktop' default of useBreakpoint() is irrelevant here.
+ * This is the shared "gold standard" sizing every dialog uses instead of each
+ * rolling its own fixed width. Modals are client-only and open on interaction,
+ * so the SSR→'desktop' default of useBreakpoint() is irrelevant here.
  *
  * @param maxWidth desktop max width in px (default 480)
  * @param opts.fullScreenOnPhone when true (default), the dialog becomes a

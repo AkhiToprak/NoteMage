@@ -6,14 +6,14 @@ import { trackEvent } from '@/lib/telemetry';
 
 // /learn layout. The old horizontal tab strip (Overview / Paths / Flashcards /
 // Quizzes / Chats / Community) was removed — navigation between Learn Hub
-// surfaces now lives in the global header + burger nav. This layout keeps the
-// flex-column wrapper (the /learn/chats sub-tree needs the full viewport) and
-// still fires the `learn.tab_view` telemetry as the active surface changes.
+// surfaces now lives in the global header + burger nav. Mage Revolution Phase 10
+// folded the /learn/chats sub-tree into the global panel, leaving Community as
+// the only Learn surface. This layout keeps the flex-column wrapper and still
+// fires the `learn.tab_view` telemetry as the active surface changes.
 
-type LearnSlug = 'chats' | 'community';
+type LearnSlug = 'community';
 
 const SURFACES: ReadonlyArray<{ href: string; slug: LearnSlug; exact?: boolean }> = [
-  { href: '/learn/chats', slug: 'chats' },
   { href: '/learn/community', slug: 'community' },
 ];
 

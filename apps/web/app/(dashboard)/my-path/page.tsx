@@ -17,6 +17,7 @@ import { ResetPathDialog } from '@/components/learn/ResetPathDialog';
 import { TranslatePathDialog } from '@/components/learn/TranslatePathDialog';
 import { CancelPathDialog } from '@/components/learn/CancelPathDialog';
 import type { PathPlan } from '@/components/learn/PathView';
+import { useRegisterMageContext } from '@/components/mage';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import { SUBJECT_REGISTRY, isSubjectId, type SubjectId } from '@/lib/path-subjects';
 
@@ -78,6 +79,10 @@ function isStuckGenerating(plan: PathListItem): boolean {
 
 export default function MyPathsPage() {
   const router = useRouter();
+
+  // Paths overview — type-only context; the per-path detail page registers the
+  // specific pathId it grounds on.
+  useRegisterMageContext({ type: 'my-path' });
   const [listItems, setListItems] = useState<PathListItem[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   // The path the user has chosen to view (null = selection grid / auto).

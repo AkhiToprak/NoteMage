@@ -84,6 +84,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Mage Revolution Phase 10 — the full-page chat at /learn/chats was folded
+  // into the global Mage panel. Permanently redirect old bookmarks / deep-links
+  // (and any stray link) into the panel via the ?mage=open flag (MageAutoOpen
+  // reads it and opens the panel, then strips the param).
+  async redirects() {
+    return [
+      { source: '/learn/chats', destination: '/dashboard?mage=open', permanent: true },
+      { source: '/learn/chats/:path*', destination: '/dashboard?mage=open', permanent: true },
+    ];
+  },
   // Reverse-proxy PostHog through /ingest so ad blockers and Safari ITP
   // don't silently drop analytics events. The static/array rules MUST come
   // before the catch-all. EU region (PostHog Cloud).

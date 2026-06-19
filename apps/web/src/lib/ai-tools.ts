@@ -692,6 +692,59 @@ export const YOUTUBE_VIDEOS_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
+// ── Mage Revolution Phase 4 — answer annotation ────────────────────────
+//
+// The trailing tool a Mage answer calls EXACTLY ONCE after streaming its prose
+// (see chat-stream.ts). The prose carries inline `[S#]` citation markers; this
+// tool declares HOW grounded the answer was so the server can resolve the chips
+// and downgrade `sourceMode` if the model over-claimed. It joins CHAT_TOOLS as a
+// permanent, byte-stable member — its definition must NEVER change between turns
+// (a changed tool def busts the 1h corpus cache). `actions` (Phase 6) and
+// `revealGate` (Phase 8) are declared now so future phases consume them without
+// editing this schema.
+export const ANNOTATE_ANSWER_TOOL: Anthropic.Messages.Tool = {
+  name: 'annotate_answer',
+  description: [
+    'Call this EXACTLY ONCE, AFTER you have finished writing your prose answer, to annotate how that answer used the provided sources.',
+    'Do not call it before the answer, and never instead of the answer — the prose is the answer; this only tags it.',
+    "Set `sourceMode`: 'material' if the answer came entirely from the numbered sources, 'mixed' if it combined them with general knowledge, 'general' if the sources did not cover it.",
+    'Set `usedSources` to the list of source numbers you actually cited (the N in each `[SN]` marker you wrote). Use only numbers that exist in the provided sources.',
+    'Set `notFoundInMaterial` to true when the answer is not supported by the provided material.',
+  ].join('\n'),
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      sourceMode: {
+        type: 'string',
+        enum: ['material', 'mixed', 'general'],
+        description:
+          "How grounded the answer is: 'material' = fully from the sources, 'mixed' = sources + general knowledge, 'general' = not in the sources.",
+      },
+      usedSources: {
+        type: 'array',
+        items: { type: 'integer' },
+        description: 'The source numbers actually cited in the answer (the N from each [SN] marker).',
+      },
+      notFoundInMaterial: {
+        type: 'boolean',
+        description: 'True when the answer is not supported by the provided material.',
+      },
+      actions: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Reserved: ids of offered actions the answer recommends. Only ids from the provided action menu are valid.',
+      },
+      revealGate: {
+        type: 'string',
+        enum: ['open', 'hint_only', 'sealed'],
+        description: 'Reserved: how much of an answer the learner should see. The server sets the real gate.',
+      },
+    },
+    required: ['sourceMode'],
+  },
+};
+
 // ── Phase 10.2 — Path generator tools ──────────────────────────────────
 //
 // These are intentionally NOT part of the chat tool set (CHAT_TOOLS in chat-stream.ts).
@@ -1231,6 +1284,15 @@ export const CLASSIFY_CHAT_INTENT_TOOL: Anthropic.Messages.Tool = {
 
 // ── Helper to extract tool uses from Anthropic response ──
 
+/** Input the model fills via `annotate_answer` (Mage Revolution Phase 4). */
+export interface AnnotateAnswerToolInput {
+  sourceMode?: 'material' | 'mixed' | 'general';
+  usedSources?: number[];
+  notFoundInMaterial?: boolean;
+  actions?: string[];
+  revealGate?: 'open' | 'hint_only' | 'sealed';
+}
+
 export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
   let text = '';
   let flashcard: { id: string; input: FlashcardToolInput } | null = null;
@@ -1239,6 +1301,7 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
   let studyPlan: { id: string; input: StudyPlanToolInput } | null = null;
   let presentation: { id: string; input: PresentationToolInput } | null = null;
   let youtubeVideos: { id: string; input: YouTubeVideosToolInput } | null = null;
+  let annotate: { id: string; input: AnnotateAnswerToolInput } | null = null;
 
   for (const block of content) {
     if (block.type === 'text') {
@@ -1256,9 +1319,11 @@ export function extractToolUses(content: Anthropic.Messages.ContentBlock[]) {
         presentation = { id: block.id, input: block.input as PresentationToolInput };
       } else if (block.name === 'recommend_videos') {
         youtubeVideos = { id: block.id, input: block.input as YouTubeVideosToolInput };
+      } else if (block.name === 'annotate_answer') {
+        annotate = { id: block.id, input: block.input as AnnotateAnswerToolInput };
       }
     }
   }
 
-  return { text, flashcard, quizV2, mindmap, studyPlan, presentation, youtubeVideos };
+  return { text, flashcard, quizV2, mindmap, studyPlan, presentation, youtubeVideos, annotate };
 }

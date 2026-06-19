@@ -10,11 +10,15 @@ import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
 import { UnlockProvider } from '@/components/cosmetics/UnlockToast';
 import { ToastProvider } from '@/components/ui/Toast';
-import { MageProvider, MagePanel, MageLauncher } from '@/components/mage';
+import {
+  MageProvider,
+  MagePanel,
+  MageLauncher,
+  MageAutoOpen,
+  MageSelectionAction,
+} from '@/components/mage';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
 
-/** Matches /learn/chats and any sub-route — needs full viewport for left rail + thread */
-const LEARN_CHATS_RE = /^\/learn\/chats(\/|$)/;
 /** Matches /study-packs/new — upload wizard is immersive, owns the viewport */
 const STUDY_PACKS_NEW_RE = /^\/study-packs\/new(\/|$)/;
 /** Matches /lesson and any nested lesson route — lesson screen is immersive */
@@ -46,12 +50,10 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
 
   // Track minutes-in-app for the activity heatmap. Only runs when authed.
   useStudyHeartbeat(status === 'authenticated');
-  const isLearnChats = LEARN_CHATS_RE.test(pathname);
   const isStudyPacksNew = STUDY_PACKS_NEW_RE.test(pathname);
   const isLesson = LESSON_RE.test(pathname);
   const isTutorial = TUTORIAL_RE.test(pathname);
-  const isFullHeight =
-    isLearnChats || isStudyPacksNew || isLesson || isTutorial;
+  const isFullHeight = isStudyPacksNew || isLesson || isTutorial;
   // /learn owns its own spacing: the tab strip is full-bleed (flush under the
   // header, edge to edge) and every /learn page self-pads (centered maxWidth +
   // its own horizontal padding). Drop the generic <main> padding here — it
@@ -87,15 +89,20 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
               >
                 {children}
               </main>
-              {/* Phone-only thumb nav. Hidden on full-height surfaces (learn
-                chats, study-pack wizard, lesson, tutorial) which own the viewport. */}
+              {/* Phone-only thumb nav. Hidden on full-height surfaces (study-pack
+                wizard, lesson, tutorial) which own the viewport. */}
               {!isFullHeight && <MobileBottomNav />}
             </div>
             {/* Global Mage panel + launcher (Phase 1). Fixed overlays, so they
               sit outside the chrome flow and ride on top of every route. The
-              launcher lifts above the phone thumb-nav when one is shown. */}
+              launcher lifts above the phone thumb-nav when one is shown.
+              Phase 10: MageAutoOpen opens the panel for redirected /learn/chats
+              deep-links (?mage=open); MageSelectionAction is the highlight-to-ask
+              floating CTA. */}
             <MagePanel />
             <MageLauncher avoidBottomNav={isPhone && !isFullHeight} />
+            <MageAutoOpen />
+            <MageSelectionAction />
           </MageProvider>
         </ToastProvider>
       </UnlockProvider>

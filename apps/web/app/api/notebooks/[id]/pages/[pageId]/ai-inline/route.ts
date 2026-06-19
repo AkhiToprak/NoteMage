@@ -32,8 +32,8 @@ import {
  *   followed by a final `event: done` carrying `{ fullText, totalTokens }`,
  *   or `event: error` on failure.
  *
- * Reuses the same gating + streaming pattern as
- * `app/api/notebooks/[id]/chats/[chatId]/messages/route.ts` so token
+ * Reuses the same gating + streaming pattern as the shared chat stream
+ * (`src/lib/chat-stream.ts`, used by `app/api/mage/messages/route.ts`) so token
  * accounting and rate limits stay consistent across all AI surfaces.
  */
 

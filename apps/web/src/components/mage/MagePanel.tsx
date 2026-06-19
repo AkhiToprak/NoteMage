@@ -6,58 +6,241 @@
  *
  * Mage Revolution Phase 1 — the global Mage panel. Desktop: a right-anchored
  * overlay (clamp 360–420px). Mobile: a full-bleed drawer with a scrim. Streams
- * a plain answer from POST /api/mage/messages (no citations / actions / gate
- * yet — those land in later phases). Motion is transform/opacity only with the
- * project spring easing, and collapses under prefers-reduced-motion.
+ * an answer from POST /api/mage/messages with source chips (Phase 4), action
+ * cards (Phase 6), and the server-authoritative reveal gate (Phase 8) — exam
+ * answers stay sealed; practice answers hide behind a Reveal button. Motion is
+ * transform/opacity only with the project spring easing, and collapses under
+ * prefers-reduced-motion.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { Mascot } from '@/components/mascot';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStreamingChat } from '@/hooks/useStreamingChat';
+import {
+  gateVisibility,
+  mageContextKey,
+  mageSourceLabel,
+  type MageMessageMetadata,
+  type MageMode,
+  type MageRevealGate,
+  type MageSource,
+  type MageSourceKind,
+  type MageSourceMode,
+} from '@/lib/mage-types';
+import type { MageActionCard } from '@/lib/mage-actions';
 import { useMage } from './MageProvider';
+import { presentMageContext } from './mage-presentation';
 
 interface PanelMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Phase 4 — resolved citation chips + the server-set source mode. */
+  sources?: MageSource[];
+  sourceMode?: MageSourceMode;
+  notFoundInMaterial?: boolean;
+  /** Phase 6 — recommended action cards (navigate / prefill / generate). */
+  actions?: MageActionCard[];
+  /** Phase 8 — server-set reveal gate; the body renders behind it. */
+  revealGate?: MageRevealGate;
+  /** Phase 9 — the answer mode that produced this turn, so the switch row
+   *  offers the OTHER two modes. */
+  mode?: MageMode;
+  /** Phase 9 — the user question this answer responded to, so a mode switch can
+   *  re-ask it. Absent for action-card / aborted turns (no switch row). */
+  question?: string;
 }
 
-const EXAMPLE_PROMPTS = [
-  'Explain this simply',
-  'Quiz me on what I’m studying',
-  'What should I focus on next?',
-];
+/** Material Symbols glyph per source kind, for the citation chips. */
+const SOURCE_ICON: Record<MageSourceKind, string> = {
+  theory: 'menu_book',
+  page: 'description',
+  'study-pack': 'folder_open',
+  path: 'route',
+  exam: 'school',
+  quiz: 'quiz',
+};
+
+/**
+ * Phase 9 — the mode switch chips. Each answer offers the OTHER two modes as a
+ * one-tap re-ask, so there's no mode to manage before asking: `quick` is the
+ * automatic default, and the learner reaches for depth / rigor / speed only when
+ * an answer prompts them to.
+ */
+const MODE_SWITCHES: Record<MageMode, { label: string; icon: string }> = {
+  quick: { label: 'Answer faster', icon: 'bolt' },
+  deep: { label: 'Go deeper', icon: 'psychology' },
+  strict: { label: 'Use only my material', icon: 'menu_book' },
+};
+
+/** Stable display order for the switch row (the current mode is filtered out). */
+const MODE_ORDER: MageMode[] = ['deep', 'strict', 'quick'];
 
 let idCounter = 0;
 const nextId = () => `mage-${++idCounter}`;
 
+/** A persisted message row as returned by `GET /api/mage/messages`. */
+interface ServerMessageRow {
+  id: string;
+  role: string;
+  content: string;
+  metadata: unknown;
+}
+
+/**
+ * Phase 10 — rebuild the transcript from a resumed thread. A row's `metadata`
+ * sidecar (Mage turns) restores its chips / cards / gate / mode; a null sidecar
+ * (plain chat + every legacy row) renders as plain prose. Each assistant turn's
+ * `question` is reconstructed from the preceding user message so the mode-switch
+ * row still works on a resumed answer — but only for Mage turns (metadata
+ * present), never for legacy plain prose.
+ */
+function hydrateMessages(rows: ServerMessageRow[]): PanelMessage[] {
+  const out: PanelMessage[] = [];
+  let lastUserContent: string | undefined;
+  for (const row of rows) {
+    if (row.role === 'user') {
+      lastUserContent = row.content;
+      out.push({ id: row.id, role: 'user', content: row.content });
+      continue;
+    }
+    const meta = (row.metadata ?? null) as MageMessageMetadata | null;
+    out.push({
+      id: row.id,
+      role: 'assistant',
+      content: row.content,
+      sources: meta?.sources,
+      sourceMode: meta?.sourceMode,
+      notFoundInMaterial: meta?.notFoundInMaterial,
+      actions: meta?.actions,
+      revealGate: meta?.revealGate,
+      mode: meta?.mode,
+      question: meta ? lastUserContent : undefined,
+    });
+  }
+  return out;
+}
+
 export function MagePanel() {
-  const { isOpen, close, context } = useMage();
+  const { isOpen, close, context, setContext } = useMage();
   const { isPhone } = useBreakpoint();
+  const router = useRouter();
+
+  // Navigate to a deep link (source chip or action card), closing the panel on
+  // the way so the route change isn't hidden behind the overlay.
+  const navigateTo = useCallback(
+    (href: string) => {
+      close();
+      router.push(href);
+    },
+    [close, router]
+  );
+
+  // Presentation follows the surface the panel was opened from (Phase 2): the
+  // context card's icon/label + the starter chips both derive from it.
+  const presentation = presentMageContext(context);
+  const contextTitle = context.title?.trim();
+  const showContextCard = (context.type ?? 'global') !== 'global' || Boolean(contextTitle);
 
   const [messages, setMessages] = useState<PanelMessage[]>([]);
   const [input, setInput] = useState('');
+  // Phase 6 — a medium-risk (generate) card awaiting confirmation.
+  const [pendingAction, setPendingAction] = useState<MageActionCard | null>(null);
+  // Phase 7 — true while a confirmed practice session is being assembled
+  // (POST /api/mage/practice-sessions). Blocks re-entry + the composer.
+  const [building, setBuilding] = useState(false);
   const chatIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  // Bumped on every send, so a slow thread-resume that resolves AFTER the
+  // learner has already sent a message discards its (now-stale) result instead
+  // of clobbering the live turn.
+  const turnSeqRef = useRef(0);
 
   const handleResponse = useCallback((res: Response) => {
     const id = res.headers.get('X-Mage-Chat-Id');
     if (id) chatIdRef.current = id;
   }, []);
 
-  const { streamingText, status, error, send, abort } = useStreamingChat({
+  const { streamingText, status, error, send, abort, revealGate } = useStreamingChat({
     endpoint: '/api/mage/messages',
     onResponse: handleResponse,
   });
   const isStreaming = status === 'streaming';
 
+  // Phase 10 — the persistent-thread key for the current surface. The panel
+  // resumes one conversation per context; the server re-derives the same key
+  // from authorized ids on every send.
+  const contextKey = mageContextKey(context);
+  // The study pack a `notebook:`-scoped thread is homed in — lets resumed legacy
+  // `[quiz_set:id]` / `[flashcard_set:id]` markers deep-link to their viewer.
+  const groundedNotebookId = context.ids?.notebookId;
+  // The contextKey whose thread is currently loaded, so we only re-resume when
+  // the surface actually changes (not on every streaming toggle / reopen).
+  const loadedKeyRef = useRef<string | null>(null);
+
+  // Resume the surface's thread when the panel opens or the surface changes.
+  // Skipped mid-turn so an in-flight stream is never clobbered; failures fall
+  // back to a fresh empty transcript.
+  useEffect(() => {
+    if (!isOpen || isStreaming || building) return;
+    if (loadedKeyRef.current === contextKey) return;
+    loadedKeyRef.current = contextKey;
+    const seq = turnSeqRef.current;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/mage/messages?contextKey=${encodeURIComponent(contextKey)}`);
+        const json = (await res.json().catch(() => null)) as
+          | { success?: boolean; data?: { chatId: string | null; messages: ServerMessageRow[] } }
+          | null;
+        // Drop a stale resume: the panel was navigated away, or the learner
+        // already started a turn while this was in flight.
+        if (cancelled || turnSeqRef.current !== seq) return;
+        if (res.ok && json?.success && json.data) {
+          setMessages(hydrateMessages(json.data.messages ?? []));
+          chatIdRef.current = json.data.chatId ?? null;
+        } else {
+          setMessages([]);
+          chatIdRef.current = null;
+        }
+      } catch {
+        if (!cancelled) {
+          setMessages([]);
+          chatIdRef.current = null;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, contextKey, isStreaming, building]);
+
   // Focus the composer when the panel opens.
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
+
+  // Phase 10 — when the panel was opened from a text selection ("Ask Mage"),
+  // seed the composer once with a starter quoting the highlighted text, so a
+  // single send asks about exactly what was selected. Only seeds an empty
+  // composer, so it never clobbers what the learner is already typing.
+  const seededSelectionRef = useRef<string | null>(null);
+  useEffect(() => {
+    const sel = context.selectedText?.trim();
+    if (!isOpen || !sel) return;
+    if (seededSelectionRef.current === sel) return;
+    seededSelectionRef.current = sel;
+    const snippet = sel.length > 280 ? `${sel.slice(0, 280)}…` : sel;
+    setInput((cur) => (cur.trim().length === 0 ? `Explain this: “${snippet}”` : cur));
+    // Drop the selection from context now that it's seeded into the composer —
+    // the question text carries it, so follow-up turns shouldn't keep re-sending
+    // a stale highlight.
+    setContext({ ...context, selectedText: undefined });
+  }, [isOpen, context, setContext]);
 
   // Keep the transcript pinned to the latest content.
   useEffect(() => {
@@ -75,34 +258,121 @@ export function MagePanel() {
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, close]);
 
-  const handleSend = useCallback(
-    async (raw: string) => {
-      const text = raw.trim();
-      if (!text || isStreaming) return;
-      setInput('');
-      if (inputRef.current) inputRef.current.style.height = 'auto';
-      setMessages((m) => [...m, { id: nextId(), role: 'user', content: text }]);
-      const done = await send(text, {
-        chatId: chatIdRef.current ?? undefined,
-        context,
+  // Plain function — the React Compiler memoizes it; a manual useCallback here
+  // can't preserve its memo (the inferred deps include the stable state setters,
+  // which the explicit [isStreaming, send, context] list omits).
+  const handleSend = async (raw: string, modeOverride?: MageMode) => {
+    const text = raw.trim();
+    if (!text || isStreaming || building) return;
+    turnSeqRef.current += 1; // invalidate any in-flight thread-resume
+    setInput('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
+    setMessages((m) => [...m, { id: nextId(), role: 'user', content: text }]);
+    // Phase 9 — a mode switch ([Go deeper] / [Use only my material] /
+    // [Answer faster]) re-asks the question in that mode; a plain send uses the
+    // automatic default (quick). The mode rides in the context the server
+    // re-authorizes — it never trusts a client-claimed policy.
+    const effectiveMode: MageMode = modeOverride ?? context.mode ?? 'quick';
+    const done = await send(text, {
+      chatId: chatIdRef.current ?? undefined,
+      context: modeOverride ? { ...context, mode: modeOverride } : context,
+    });
+    if (done?.assistantMessage) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: done.assistantMessage.id || nextId(),
+          role: 'assistant',
+          content: done.assistantMessage.content,
+          sources: done.sources?.sources,
+          sourceMode: done.sources?.sourceMode,
+          notFoundInMaterial: done.sources?.notFoundInMaterial,
+          actions: done.actions,
+          revealGate: done.revealGate,
+          mode: effectiveMode,
+          question: text,
+        },
+      ]);
+    } else if (done?.aborted && done.partialText) {
+      // A gated turn that was stopped mid-stream still hides its partial behind
+      // the gate — never leak an exam/practice answer just because it was aborted.
+      setMessages((m) => [
+        ...m,
+        { id: nextId(), role: 'assistant', content: done.partialText!, revealGate: done.revealGate },
+      ]);
+    }
+  };
+
+  // Run a recommended action card. Low-risk navigation + high-risk prefill open
+  // a deep link the server already authorized → run immediately. Medium-risk
+  // generation routes through a confirm dialog first (it spends quota).
+  const handleAction = (card: MageActionCard) => {
+    if (card.href) {
+      navigateTo(card.href);
+      return;
+    }
+    if (card.kind === 'generate') {
+      if (card.confirm) setPendingAction(card);
+      else runGenerateAction(card);
+    }
+  };
+
+  // Execute a confirmed generate action (Phase 7). The three quiz-assembling
+  // actions POST to the practice-session generator (its own server-side context
+  // re-auth + quota re-check), then deep-link into the assembled quiz. Explaining
+  // missed questions isn't a new quiz — it's a grounded chat turn, so it falls
+  // through to the normal send path.
+  const startPracticeSession = async (card: MageActionCard) => {
+    if (building || isStreaming) return;
+    turnSeqRef.current += 1; // invalidate any in-flight thread-resume
+    setBuilding(true);
+    const placeholderId = nextId();
+    setMessages((m) => [
+      ...m,
+      { id: placeholderId, role: 'assistant', content: 'Building your practice set… this takes a few seconds.' },
+    ]);
+    try {
+      const res = await fetch('/api/mage/practice-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: card.id, context }),
       });
-      if (done?.assistantMessage) {
-        setMessages((m) => [
-          ...m,
-          {
-            id: done.assistantMessage.id || nextId(),
-            role: 'assistant',
-            content: done.assistantMessage.content,
-          },
-        ]);
-      } else if (done?.aborted && done.partialText) {
-        setMessages((m) => [...m, { id: nextId(), role: 'assistant', content: done.partialText! }]);
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { quizUrl?: string }; error?: string }
+        | null;
+      const quizUrl = json?.data?.quizUrl;
+      if (res.ok && json?.success && quizUrl) {
+        navigateTo(quizUrl);
+        return;
       }
-    },
-    [isStreaming, send, context]
-  );
+      const fallback =
+        res.status === 429
+          ? 'You have used up your practice-generation allowance for now.'
+          : "Mage couldn't build a practice set right now. Try again in a moment.";
+      const message = json?.error || fallback;
+      setMessages((m) => m.map((x) => (x.id === placeholderId ? { ...x, content: message } : x)));
+    } catch {
+      setMessages((m) =>
+        m.map((x) => (x.id === placeholderId ? { ...x, content: 'Network error — please try again.' } : x))
+      );
+    } finally {
+      setBuilding(false);
+    }
+  };
+
+  const runGenerateAction = (card: MageActionCard) => {
+    if (card.id === 'EXPLAIN_MISTAKE') {
+      void handleSend(card.label);
+      return;
+    }
+    void startPracticeSession(card);
+  };
 
   const showEmptyState = messages.length === 0 && !isStreaming && !streamingText;
+  // Phase 9 — the mode switch row only hangs off the LATEST settled answer, so a
+  // long transcript isn't littered with re-ask controls.
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+  const switchesIdle = !isStreaming && !building;
 
   const panelWidth = isPhone ? '100vw' : 'clamp(360px, 30vw, 420px)';
 
@@ -189,6 +459,69 @@ export function MagePanel() {
           </button>
         </header>
 
+        {/* Context card — shows what Mage is grounded on for the current
+            surface. Hidden on the plain global context. */}
+        {showContextCard && (
+          <div
+            className="mage-context-card"
+            style={{
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '9px 14px',
+              borderBottom: '1px solid var(--outline-variant)',
+              background: 'var(--surface-container-low)',
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '30px',
+                height: '30px',
+                flexShrink: 0,
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-container-high)',
+                color: 'var(--primary)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                {presentation.icon}
+              </span>
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.25 }}>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'var(--on-surface-variant)',
+                }}
+              >
+                {presentation.label}
+              </span>
+              {contextTitle && (
+                <span
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--on-surface)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {contextTitle}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Transcript */}
         <div
           ref={scrollRef}
@@ -228,10 +561,12 @@ export function MagePanel() {
                 Ask Mage anything
               </p>
               <p style={{ fontSize: '13px', color: 'var(--on-surface-variant)', margin: 0, maxWidth: '260px' }}>
-                Get explanations, quiz yourself, or plan what to study next.
+                {contextTitle
+                  ? `Ask about ${contextTitle}, or anything else you’re studying.`
+                  : 'Get explanations, quiz yourself, or plan what to study next.'}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '4px' }}>
-                {EXAMPLE_PROMPTS.map((p) => (
+                {presentation.chips.map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -246,11 +581,57 @@ export function MagePanel() {
           ) : (
             <>
               {messages.map((m) => (
-                <MessageBubble key={m.id} role={m.role} content={m.content} />
+                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {m.role === 'user' ? (
+                    <MessageBubble role="user" content={m.content} />
+                  ) : (
+                    <GatedAnswer
+                      content={m.content}
+                      gate={m.revealGate ?? 'open'}
+                      notebookId={groundedNotebookId}
+                      onNavigate={navigateTo}
+                    />
+                  )}
+                  {m.role === 'assistant' && (
+                    <SourceFooter
+                      sources={m.sources}
+                      sourceMode={m.sourceMode}
+                      notFoundInMaterial={m.notFoundInMaterial}
+                      onNavigate={navigateTo}
+                    />
+                  )}
+                  {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
+                    <ActionCardList actions={m.actions} onRun={handleAction} />
+                  )}
+                  {/* Phase 9 — re-ask the same question in a different mode. Only
+                      under the latest answer, and only for answers born of a
+                      question (not action-card / aborted turns). */}
+                  {m.role === 'assistant' &&
+                    m.question &&
+                    m.id === lastMessageId &&
+                    switchesIdle && (
+                      <ModeSwitchRow
+                        current={m.mode ?? 'quick'}
+                        onSwitch={(mode) => handleSend(m.question!, mode)}
+                      />
+                    )}
+                </div>
               ))}
-              {isStreaming && (
-                <MessageBubble role="assistant" content={streamingText} streaming />
-              )}
+              {isStreaming &&
+                (revealGate === 'open' ? (
+                  <MessageBubble
+                    role="assistant"
+                    content={streamingText}
+                    streaming
+                    notebookId={groundedNotebookId}
+                    onNavigate={navigateTo}
+                  />
+                ) : (
+                  // Phase 8 — never paint the live answer text under a gate; show
+                  // the barrier instead (sealed copy, or a "preparing" placeholder
+                  // for hint_only — the Reveal button arrives once the turn settles).
+                  <GateBubble variant={revealGate === 'sealed' ? 'sealed' : 'hint'} streaming />
+                ))}
             </>
           )}
         </div>
@@ -294,7 +675,7 @@ export function MagePanel() {
             value={input}
             rows={1}
             placeholder="Message Mage…"
-            disabled={isStreaming}
+            disabled={isStreaming || building}
             onChange={(e) => {
               setInput(e.target.value);
               e.target.style.height = 'auto';
@@ -336,7 +717,7 @@ export function MagePanel() {
             <button
               type="submit"
               className="mage-send"
-              disabled={input.trim().length === 0}
+              disabled={input.trim().length === 0 || building}
               aria-label="Send message"
             >
               <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
@@ -345,6 +726,19 @@ export function MagePanel() {
             </button>
           )}
         </form>
+
+        {/* Phase 6 — medium-risk generation confirm (overlays the panel). */}
+        {pendingAction && (
+          <ActionConfirm
+            card={pendingAction}
+            onConfirm={() => {
+              const card = pendingAction;
+              setPendingAction(null);
+              runGenerateAction(card);
+            }}
+            onCancel={() => setPendingAction(null)}
+          />
+        )}
       </aside>
 
       <style>{`
@@ -428,14 +822,575 @@ export function MagePanel() {
         }
         @keyframes mage-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+        .mage-source-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 9px;
+          max-width: 100%;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--outline-variant);
+          background: var(--surface-container);
+          color: var(--on-surface-variant);
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            color 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-source-chip:hover { background: var(--surface-bright); color: var(--on-surface); }
+        .mage-source-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-source-chip:active { transform: translateY(1px); }
+        .mage-source-chip--static { cursor: default; }
+        .mage-source-chip--static:hover { background: var(--surface-container); color: var(--on-surface-variant); }
+        .mage-source-chip--static:active { transform: none; }
+
+        .mage-source-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 9px;
+          border-radius: var(--radius-full);
+          border: 1px dashed var(--outline-variant);
+          background: transparent;
+          color: var(--on-surface-variant);
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .mage-gate-bubble {
+          max-width: 88%;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 11px 13px;
+          border-radius: var(--radius-lg);
+          background: var(--surface-container-high);
+          border: 1px solid var(--outline-variant);
+          color: var(--on-surface);
+        }
+        .mage-gate-bubble[data-variant='sealed'] { border-style: dashed; }
+        .mage-gate-head { display: flex; align-items: center; gap: 8px; }
+        .mage-gate-ico {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          flex-shrink: 0;
+          border-radius: var(--radius-sm);
+          background: var(--surface-container);
+          color: var(--primary);
+        }
+        .mage-gate-title {
+          font-family: var(--font-display);
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--on-surface);
+          letter-spacing: -0.01em;
+        }
+        .mage-gate-body {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.5;
+          color: var(--on-surface-variant);
+        }
+        .mage-reveal-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          align-self: flex-start;
+          padding: 7px 13px;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--outline-variant);
+          background: var(--surface-container);
+          color: var(--on-surface);
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-reveal-btn:hover { background: var(--surface-bright); }
+        .mage-reveal-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-reveal-btn:active { transform: translateY(1px); }
+
+        .mage-action-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          text-align: left;
+          padding: 9px 11px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--outline-variant);
+          background: var(--surface-container-high);
+          color: var(--on-surface);
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-action-card:hover { background: var(--surface-bright); }
+        .mage-action-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-action-card:active { transform: translateY(1px); }
+        .mage-action-ico {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          flex-shrink: 0;
+          border-radius: var(--radius-sm);
+          background: var(--surface-container);
+          color: var(--primary);
+        }
+
+        .mage-artifact-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          align-self: flex-start;
+          padding: 8px 12px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--outline-variant);
+          background: var(--surface-container);
+          color: var(--primary);
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        button.mage-artifact-pill { min-width: 180px; }
+        .mage-artifact-pill:hover { background: var(--surface-bright); }
+        .mage-artifact-pill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-artifact-pill:active { transform: translateY(1px); }
+        .mage-artifact-pill--static {
+          cursor: default;
+          color: var(--on-surface-variant);
+        }
+        .mage-artifact-pill--static:hover { background: var(--surface-container); }
+        .mage-artifact-pill--static:active { transform: none; }
+
+        .mage-mode-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 2px;
+          max-width: 88%;
+        }
+        .mage-mode-switch {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 11px;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--outline-variant);
+          background: transparent;
+          color: var(--on-surface-variant);
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            color 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-mode-switch:hover { background: var(--surface-bright); color: var(--on-surface); }
+        .mage-mode-switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-mode-switch:active { transform: translateY(1px); }
+
+        .mage-confirm-scrim {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          background: rgba(8, 6, 24, 0.6);
+          animation: mage-confirm-in 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-confirm {
+          width: 100%;
+          max-width: 320px;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--outline-variant);
+          background: var(--surface-container-high);
+          padding: 16px;
+          box-shadow: 0 8px 32px rgba(174, 137, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .mage-confirm-btn {
+          flex: 1;
+          padding: 9px 12px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--outline-variant);
+          background: var(--surface-container);
+          color: var(--on-surface);
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-confirm-btn:hover { background: var(--surface-bright); }
+        .mage-confirm-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-confirm-btn:active { transform: translateY(1px); }
+        .mage-confirm-btn--primary {
+          background: var(--primary);
+          color: var(--on-primary);
+          border-color: transparent;
+        }
+        .mage-confirm-btn--primary:hover { background: var(--primary-dim); }
+        @keyframes mage-confirm-in { from { opacity: 0; } to { opacity: 1; } }
+
         @media (prefers-reduced-motion: reduce) {
           .mage-panel, .mage-scrim { transition: opacity 0.12s linear; }
-          .mage-icon-btn, .mage-chip, .mage-send { transition: none; }
-          .mage-icon-btn:active, .mage-chip:active, .mage-send:active { transform: none; }
+          .mage-icon-btn, .mage-chip, .mage-send, .mage-source-chip, .mage-action-card, .mage-confirm-btn, .mage-reveal-btn, .mage-mode-switch, .mage-artifact-pill { transition: none; }
+          .mage-icon-btn:active, .mage-chip:active, .mage-send:active, .mage-source-chip:active, .mage-action-card:active, .mage-confirm-btn:active, .mage-reveal-btn:active, .mage-mode-switch:active, .mage-artifact-pill:active { transform: none; }
           .mage-caret { animation: none; }
+          .mage-confirm-scrim { animation: none; }
         }
       `}</style>
     </>
+  );
+}
+
+/**
+ * Phase 4 — the citation footer under an assistant answer. Renders a chip per
+ * resolved source (deep-linking when the source has a route) plus a "General
+ * knowledge" badge when the answer wasn't grounded in the learner's material.
+ * Renders nothing when there's neither.
+ */
+function SourceFooter({
+  sources,
+  sourceMode,
+  notFoundInMaterial,
+  onNavigate,
+}: {
+  sources?: MageSource[];
+  sourceMode?: MageSourceMode;
+  notFoundInMaterial?: boolean;
+  onNavigate: (href: string) => void;
+}) {
+  const chips = sources ?? [];
+  const hasChips = chips.length > 0;
+  const showGeneralBadge = Boolean(notFoundInMaterial) || (sourceMode === 'general' && !hasChips);
+  if (!hasChips && !showGeneralBadge) return null;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px',
+        paddingLeft: '2px',
+        maxWidth: '88%',
+      }}
+    >
+      {chips.map((s) => {
+        const href = s.href;
+        const fullLabel = `${mageSourceLabel(s.kind)}: ${s.title}${s.subtitle ? ` — ${s.subtitle}` : ''}${
+          s.pageLabel ? ` (${s.pageLabel})` : ''
+        }`;
+        const inner = (
+          <>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px', flexShrink: 0 }}>
+              {SOURCE_ICON[s.kind]}
+            </span>
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '170px',
+              }}
+            >
+              {s.title}
+            </span>
+            {s.pageLabel && (
+              <span style={{ opacity: 0.7, flexShrink: 0 }}>· {s.pageLabel}</span>
+            )}
+          </>
+        );
+        return href ? (
+          <button
+            key={s.n}
+            type="button"
+            className="mage-source-chip"
+            title={fullLabel}
+            onClick={() => onNavigate(href)}
+          >
+            {inner}
+          </button>
+        ) : (
+          <span key={s.n} className="mage-source-chip mage-source-chip--static" title={fullLabel}>
+            {inner}
+          </span>
+        );
+      })}
+      {showGeneralBadge && (
+        <span className="mage-source-badge" title="Answered from general knowledge, not your material">
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px', flexShrink: 0 }}>
+            public
+          </span>
+          General knowledge
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Trailing glyph per action kind — open vs. edit vs. generate. */
+const ACTION_TRAILING: Record<MageActionCard['kind'], string> = {
+  navigate: 'arrow_outward',
+  prefill: 'edit',
+  generate: 'auto_awesome',
+  gate: '',
+};
+
+/**
+ * Phase 6 — the action cards under an assistant answer. Each runs a
+ * server-offered action: low-risk navigation + high-risk prefill open a deep
+ * link the server already authorized; medium-risk generation routes through a
+ * confirm dialog (handled by the parent). The icon + label come straight from
+ * the resolved card; the trailing glyph hints at the action kind.
+ */
+function ActionCardList({
+  actions,
+  onRun,
+}: {
+  actions: MageActionCard[];
+  onRun: (card: MageActionCard) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '88%', marginTop: '2px' }}>
+      {actions.map((card) => (
+        <button key={card.id} type="button" className="mage-action-card" onClick={() => onRun(card)}>
+          <span className="mage-action-ico" aria-hidden>
+            <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>
+              {card.icon}
+            </span>
+          </span>
+          <span
+            style={{
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {card.label}
+          </span>
+          {ACTION_TRAILING[card.kind] && (
+            <span
+              className="material-symbols-outlined"
+              aria-hidden
+              style={{ fontSize: '16px', flexShrink: 0, color: 'var(--on-surface-variant)' }}
+            >
+              {ACTION_TRAILING[card.kind]}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Phase 9 — the mode switch row under the latest answer. Offers the two modes
+ * the current answer ISN'T, each re-asking the same question in that mode:
+ * `[Go deeper]` (Sonnet, thorough), `[Use only my material]` (source-bound +
+ * hint-gated), `[Answer faster]` (Haiku, concise). The server re-authorizes the
+ * mode like any other context field.
+ */
+function ModeSwitchRow({
+  current,
+  onSwitch,
+}: {
+  current: MageMode;
+  onSwitch: (mode: MageMode) => void;
+}) {
+  const others = MODE_ORDER.filter((m) => m !== current);
+  return (
+    <div className="mage-mode-row" role="group" aria-label="Answer in a different mode">
+      {others.map((m) => (
+        <button key={m} type="button" className="mage-mode-switch" onClick={() => onSwitch(m)}>
+          <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '15px' }}>
+            {MODE_SWITCHES[m].icon}
+          </span>
+          {MODE_SWITCHES[m].label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Phase 6 — confirm dialog for a medium-risk (generate) action. It spends
+ * generation quota, so the learner approves first; the server re-checks quota
+ * again at execution (Phase 7). Overlays the panel; Esc / Cancel dismiss
+ * without bubbling the close to the panel itself.
+ */
+function ActionConfirm({
+  card,
+  onConfirm,
+  onCancel,
+}: {
+  card: MageActionCard;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const confirm = card.confirm;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="mage-confirm-scrim"
+      role="dialog"
+      aria-modal="true"
+      aria-label={confirm?.title ?? card.label}
+      onClick={onCancel}
+    >
+      <div className="mage-confirm" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+          <span className="mage-action-ico" aria-hidden>
+            <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>
+              {card.icon}
+            </span>
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '15px',
+              fontWeight: 700,
+              color: 'var(--on-surface)',
+            }}
+          >
+            {confirm?.title ?? card.label}
+          </span>
+        </div>
+        {confirm?.body && (
+          <p style={{ margin: '0 0 14px', fontSize: '13px', lineHeight: 1.5, color: 'var(--on-surface-variant)' }}>
+            {confirm.body}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" className="mage-confirm-btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="mage-confirm-btn mage-confirm-btn--primary" onClick={onConfirm}>
+            {confirm?.confirmLabel ?? 'Continue'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Phase 8 — an assistant answer rendered behind the server's reveal gate. The
+ * gate decision is the pure `gateVisibility` (server-authoritative — the model
+ * can't leak past it):
+ *  - `open`      → the prose renders as a normal bubble.
+ *  - `sealed`    → the prose NEVER renders (exam): a locked notice instead, with
+ *                  no way to reveal it.
+ *  - `hint_only` → the prose hides behind a "Reveal answer" button (practice):
+ *                  hint-first, then reveal on click.
+ * Source chips + action cards live OUTSIDE this gate (rendered by the caller),
+ * so an exam answer still surfaces its readiness chips while staying sealed.
+ */
+function GatedAnswer({
+  content,
+  gate,
+  notebookId,
+  onNavigate,
+}: {
+  content: string;
+  gate: MageRevealGate;
+  notebookId?: string;
+  onNavigate?: (href: string) => void;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const vis = gateVisibility(gate, revealed);
+  if (vis.showBody)
+    return (
+      <MessageBubble role="assistant" content={content} notebookId={notebookId} onNavigate={onNavigate} />
+    );
+  if (vis.sealed) return <GateBubble variant="sealed" />;
+  return <GateBubble variant="hint" onReveal={() => setRevealed(true)} />;
+}
+
+/**
+ * Phase 8 — the barrier shown in place of a gated answer body. `sealed` (exam)
+ * shows a locked notice with no reveal affordance; `hint` (practice) nudges the
+ * learner to try first, then offers a Reveal button — except while `streaming`,
+ * when the answer isn't ready yet so we show a "preparing" placeholder instead.
+ */
+function GateBubble({
+  variant,
+  onReveal,
+  streaming = false,
+}: {
+  variant: 'sealed' | 'hint';
+  onReveal?: () => void;
+  streaming?: boolean;
+}) {
+  const sealed = variant === 'sealed';
+  const preparing = !sealed && streaming;
+  const title = sealed ? 'Answer sealed' : preparing ? 'Preparing your answer' : 'Try it first';
+  const body = sealed
+    ? "Exam mode keeps answers hidden. I'll help you decide what to review — I just won't hand over the answer here."
+    : preparing
+      ? null
+      : 'Give the question a go, then reveal the full answer when you’re ready.';
+  return (
+    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+      <div className="mage-gate-bubble" data-variant={variant}>
+        <div className="mage-gate-head">
+          <span className="mage-gate-ico" aria-hidden>
+            <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>
+              {sealed ? 'lock' : 'lightbulb'}
+            </span>
+          </span>
+          <span className="mage-gate-title">{title}</span>
+          {preparing && <TypingDots />}
+        </div>
+        {body && <p className="mage-gate-body">{body}</p>}
+        {onReveal && !preparing && (
+          <button type="button" className="mage-reveal-btn" onClick={onReveal}>
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '16px' }}>
+              visibility
+            </span>
+            Reveal answer
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -443,10 +1398,15 @@ function MessageBubble({
   role,
   content,
   streaming = false,
+  notebookId,
+  onNavigate,
 }: {
   role: 'user' | 'assistant';
   content: string;
   streaming?: boolean;
+  /** Phase 10 — host study pack for resolving inline artifact-marker links. */
+  notebookId?: string;
+  onNavigate?: (href: string) => void;
 }) {
   const isUser = role === 'user';
   return (
@@ -473,7 +1433,7 @@ function MessageBubble({
         {isUser ? (
           content
         ) : content ? (
-          <MarkdownRenderer content={content} variant="plain" />
+          <AssistantBody content={content} notebookId={notebookId} onNavigate={onNavigate} />
         ) : (
           <TypingDots />
         )}
@@ -484,6 +1444,104 @@ function MessageBubble({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Phase 10 — salvaged from the retired `ChatThread`. Renders an assistant answer,
+ * splitting out inline `[flashcard_set:id]` / `[quiz_set:id]` artifact markers
+ * into deep-link pills. Mage panel turns generate artifacts via action cards (so
+ * they rarely embed these), but a RESUMED legacy notebook chat can — without
+ * this they'd render as raw `[quiz_set:…]` text. Plain answers (the common case)
+ * skip straight to the markdown renderer.
+ */
+const SET_MARKER_RE = /\[(flashcard_set|quiz_set):([^\]]+)\]/g;
+
+function AssistantBody({
+  content,
+  notebookId,
+  onNavigate,
+}: {
+  content: string;
+  notebookId?: string;
+  onNavigate?: (href: string) => void;
+}) {
+  if (!content.includes('[flashcard_set:') && !content.includes('[quiz_set:')) {
+    return <MarkdownRenderer content={content} variant="plain" />;
+  }
+
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  const re = new RegExp(SET_MARKER_RE);
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content)) !== null) {
+    if (m.index > last) {
+      const chunk = content.slice(last, m.index).trim();
+      if (chunk) parts.push(<MarkdownRenderer key={`md-${key++}`} content={chunk} variant="plain" />);
+    }
+    const isQuiz = m[1] === 'quiz_set';
+    const setId = m[2];
+    // Only the study pack the thread is homed in can host these legacy sets, so
+    // deep-link only when that id is in context; otherwise show a static pill.
+    const href = notebookId
+      ? `/study-packs/${notebookId}/${isQuiz ? 'quizzes' : 'flashcards'}/${setId}`
+      : undefined;
+    parts.push(
+      <SetMarkerPill
+        key={`set-${key++}`}
+        isQuiz={isQuiz}
+        href={onNavigate ? href : undefined}
+        onNavigate={onNavigate}
+      />
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < content.length) {
+    const tail = content.slice(last).trim();
+    if (tail) parts.push(<MarkdownRenderer key={`md-${key++}`} content={tail} variant="plain" />);
+  }
+
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{parts}</div>;
+}
+
+/** A salvaged generated-artifact pill (flashcards / quiz). Clickable when the
+ *  host study pack is known; otherwise a static label. */
+function SetMarkerPill({
+  isQuiz,
+  href,
+  onNavigate,
+}: {
+  isQuiz: boolean;
+  href?: string;
+  onNavigate?: (href: string) => void;
+}) {
+  const label = isQuiz ? 'Open quiz' : 'Open flashcards';
+  const icon = isQuiz ? 'quiz' : 'style';
+  if (href && onNavigate) {
+    return (
+      <button type="button" className="mage-artifact-pill" onClick={() => onNavigate(href)}>
+        <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '17px' }}>
+          {icon}
+        </span>
+        {label}
+        <span
+          className="material-symbols-outlined"
+          aria-hidden
+          style={{ fontSize: '15px', marginLeft: 'auto', color: 'var(--on-surface-variant)' }}
+        >
+          arrow_outward
+        </span>
+      </button>
+    );
+  }
+  return (
+    <span className="mage-artifact-pill mage-artifact-pill--static">
+      <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '17px' }}>
+        {icon}
+      </span>
+      {isQuiz ? 'Quiz' : 'Flashcards'}
+    </span>
   );
 }
 

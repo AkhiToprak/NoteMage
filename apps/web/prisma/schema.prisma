@@ -201,6 +201,10 @@ model User {
   resolvedTickets        Ticket[]          @relation("ResolvedTickets")
   // Path-publishing Layer-4 (P13) — community reports filed by this user.
   reportsMade            Report[]          @relation("ReportsMade")
+  // Mage Revolution Phase 7 — focused remediation sessions (weak-topic /
+  // exam-sim / mistake-review / manual). Each assembles a QuizSet the learner
+  // takes through the canonical attempt route.
+  practiceSessions       PracticeSession[]
   // Email-confirmation codes for the credentials-signup gate (one active
   // row per user; reissued on resend).
   emailVerificationCodes EmailVerificationCode[]
@@ -354,8 +358,9 @@ model Document {
   createdAt   DateTime @default(now())
 
   // Relations
-  notebook  Notebook          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  summaries DocumentSummary[]
+  notebook      Notebook          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  summaries     DocumentSummary[]
+  sourceRegions SourceRegion[]
 
   @@index([notebookId])
   @@map("documents")
@@ -374,6 +379,26 @@ model DocumentSummary {
   @@map("document_summaries")
 }
 
+// Citation provenance (Mage Revolution P3) — forward-looking char-range
+// provenance. Maps a region of a source Document (page + optional character
+// span) so a future importer can pin a citation chip to an exact passage,
+// not just a page number. Nothing populates this in P3; it is additive
+// scaffolding the source-resolution layer (P4) and a precision-aware importer
+// will fill in later.
+model SourceRegion {
+  id         String   @id @default(cuid())
+  documentId String
+  pageNumber Int
+  charStart  Int?
+  charEnd    Int?
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, pageNumber])
+  @@map("source_regions")
+}
+
 // ============================================================================
 // CHAT & CONVERSATION MODELS
 // ============================================================================
@@ -390,6 +415,11 @@ model NotebookChat {
   // Phase 9 — every notebook this chat draws context from (including primary).
   // Used for sidebar grouping and quick "show all chats touching notebook X".
   contextNotebookIds String[] @default([])
+  // Mage Revolution Phase 10 — the surface this thread belongs to, so the global
+  // panel resumes one persistent conversation per context: 'exam:{id}' >
+  // 'path:{id}' > 'notebook:{id}' > 'global' (see `mageContextKey`). Null on
+  // legacy notebook chats until backfilled ('notebook:{id}' / 'global').
+  contextKey     String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -402,6 +432,8 @@ model NotebookChat {
 
   @@index([userId])
   @@index([notebookId])
+  // Mage panel resume looks up the latest thread for (user, contextKey).
+  @@index([userId, contextKey])
   @@map("notebook_chats")
 }
 
@@ -416,6 +448,11 @@ model ChatMessage {
   role       String // "user" or "assistant"
   content    String // The message text
   tokens     Int? // Number of tokens used (for cost tracking)
+  // Mage Revolution Phase 10 — per-message sidecar for global-panel turns:
+  // resolved source chips, sourceMode, action cards, reveal gate, answer mode.
+  // Null on plain chat messages (and all legacy rows) → the panel renders plain
+  // prose. Shape: see `MageMessageMetadata` in src/lib/mage-types.ts.
+  metadata   Json?
   createdAt  DateTime @default(now())
 
   // Relations
@@ -686,6 +723,11 @@ model Page {
   drawingData Json? // Array of stroke objects [{points, color, width}]
   sortOrder   Int      @default(0)
   sourceDocId String? // Set if this page was imported from a Document
+  // Citation provenance (Mage Revolution P3). The 1-based source PDF page
+  // where this imported page's content begins — cheap v1 page-number citation
+  // a source chip can render as "Biology.pdf · page 7". Null for pages not
+  // created from a PDF import. Char-range precision lives in SourceRegion.
+  sourceDocPage Int? // 1-based start page of the imported PDF content
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1462,9 +1504,55 @@ model Exam {
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   notebook  Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  // Mage Revolution Phase 5 — what this exam covers (scoped paths / quiz sets /
+  // flashcard sets / pages / documents / sections). Drives deriveExamReadiness.
+  scopeItems ExamScopeItem[]
 
   @@index([userId, examDate])
   @@map("exams")
+}
+
+// Mage Revolution Phase 5 — one entry in an exam's coverage scope. A path,
+// quiz set, flashcard set, page, document, or section the exam tests. Polymorphic
+// by (itemType, itemId); ownership of the referenced row is RE-AUTHORIZED at
+// write time (the FK only ties the row to its exam, never to the referenced
+// content). `deriveExamReadiness` rolls these up: graded items (paths via
+// derivePathStats, quiz sets via best QuizAttempt) drive readiness; passive
+// material (flashcards / pages / documents / sections) is lower-weighted.
+model ExamScopeItem {
+  id        String   @id @default(cuid())
+  examId    String
+  itemType  String // 'path' | 'quiz_set' | 'flashcard_set' | 'page' | 'document' | 'section'
+  itemId    String
+  createdAt DateTime @default(now())
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, itemType, itemId])
+  @@index([examId])
+  @@map("exam_scope_items")
+}
+
+// Mage Revolution Phase 7 — a focused remediation session. The medium-risk
+// "generate" Mage actions (weak-topic / exam-sim / manual practice) assemble a
+// QuizSet here, point `quizSetId` at it, and launch the EXISTING study-pack quiz
+// viewer; attempts flow through the canonical attempt route (zero new grading
+// code). `examId` / `sourcePathId` are provenance-only bare columns (no FK) — a
+// session survives the exam/path being deleted, matching the plan's model.
+model PracticeSession {
+  id           String   @id @default(cuid())
+  userId       String
+  origin       String // 'weak_topic' | 'exam_sim' | 'mistake_review' | 'manual'
+  examId       String? // provenance only (exam-sim origin)
+  sourcePathId String? // provenance only (weak-topic origin)
+  quizSetId    String? // the assembled quiz the learner takes
+  status       String   @default("assembling") // 'assembling' | 'ready' | 'completed'
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("practice_sessions")
 }
 
 // ============================================================================

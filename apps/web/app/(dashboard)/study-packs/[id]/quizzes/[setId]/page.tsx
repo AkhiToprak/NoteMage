@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import QuizViewer from '@/components/notebook/QuizViewer';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/mascot/Mascot';
+import { useRegisterMageContext } from '@/components/mage';
 
 // Standalone quiz player for a Study Pack set. Reuses the shared QuizViewer
 // engine (the same one the path checkpoint quiz wraps) inside a clean
@@ -45,6 +46,13 @@ export default function StudyPackQuizSetPage({
   }, [id, setId]);
 
   const close = () => router.push(`/study-packs/${id}/quizzes`);
+
+  // Mid-quiz: hints-first policy + a quiz-aware chip set. The server grounds on
+  // the quiz title/count only (never the answers) so Mage can coach without
+  // spoiling it. The reveal gate hardens this server-side in Phase 8.
+  useRegisterMageContext(
+    set ? { type: 'quiz-question', ids: { notebookId: id, quizSetId: setId }, title: set.title } : null
+  );
 
   return (
     <div

@@ -434,6 +434,12 @@ export async function runPdfImportJob(jobId: string): Promise<void> {
         pageType: 'text',
         content: EMPTY_DOC as unknown as Prisma.InputJsonValue,
         sortOrder: (sortAgg._max.sortOrder ?? -1) + 1,
+        // Citation provenance (P3) — the 1-based source PDF page this imported
+        // page's content begins on. The import always starts at the PDF's
+        // first page (the cap truncates the tail), so this is the first
+        // ground-truth page number; a future page-range importer records the
+        // real start. Null only if the text layer yielded no pages.
+        sourceDocPage: ground.pages[0]?.pageNumber ?? null,
       },
     });
     await db.importJob.update({ where: { id: jobId }, data: { resultPageId: page.id } });

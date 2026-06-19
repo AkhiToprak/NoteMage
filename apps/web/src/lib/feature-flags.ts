@@ -31,3 +31,16 @@
 export function freeTierAiPathsDisabled(): boolean {
   return process.env.FREE_TIER_AI_PATHS_DISABLED !== 'false';
 }
+
+/**
+ * Mage Revolution Phase 7 — gate for the medium-risk "generate" Mage actions
+ * (weak-topic / exam-sim / manual practice sessions). Now that their executor
+ * (`POST /api/mage/practice-sessions`) exists, the cards are offered by DEFAULT;
+ * this is a kill-switch — set `MAGE_GENERATION_ACTIONS=0` and restart the
+ * container to pull the generation cards (and reject the endpoint) within a
+ * minute if their cost needs reining in. Consumed by the Mage message route
+ * (whether to offer the cards) and the practice-sessions route (whether to run).
+ */
+export function mageGenerationActionsEnabled(): boolean {
+  return process.env.MAGE_GENERATION_ACTIONS !== '0';
+}

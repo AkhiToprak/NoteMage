@@ -16,6 +16,7 @@ import { NMCard } from '@/components/rework/NMCard';
 import { SectionHeading } from '@/components/rework/SectionHeading';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
+import { useRegisterMageContext } from '@/components/mage';
 import { formatRelativeTime } from '@/lib/relative-time';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import type { PathPlan } from '@/components/learn/PathView';
@@ -80,6 +81,10 @@ export default function PracticePage() {
 // ─── Main content ─────────────────────────────────────────────────────────────
 
 function PracticeContent() {
+  // Practice hub → hints-first policy + review-flavoured chips ("quiz me on my
+  // weak spots", "what should I review?").
+  useRegisterMageContext({ type: 'practice' });
+
   const [flashcardSets, setFlashcardSets] = useState<LoadState<FlashcardSetRow>>({
     status: 'loading',
   });

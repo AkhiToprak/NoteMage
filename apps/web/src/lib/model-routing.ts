@@ -42,6 +42,7 @@ export type ModelFeature =
   | 'path-flashcards'
   | 'path-quiz'
   | 'chat-plain'
+  | 'mage-answer'
   | 'inline-rewrite'
   | 'inline-summarize'
   | 'inline-expand'
@@ -58,6 +59,8 @@ export interface ResolveModelCtx {
   providerOverride?: ModelProvider;
   /** Sub-action discriminator (e.g. essay 'grammar'|'full', inline action). */
   action?: string;
+  /** Mage answer depth toggle ('quick'|'deep'|'strict') — picks Haiku vs Sonnet. */
+  mode?: string;
 }
 
 // ── token → concrete model ────────────────────────────────────────────────
@@ -202,6 +205,22 @@ function resolveChatPlain(ctx: ResolveModelCtx): ResolvedModel {
   return fromToken('flash');
 }
 
+// ── mage answer (grounded/action turn — always Anthropic) ──────────────────
+
+/**
+ * Mage Revolution Phase 4. A Mage answer runs Anthropic tools (citations,
+ * `annotate_answer`), so it can never route to Gemini regardless of the chat
+ * composition. Haiku is the cost-efficient default; `deep` mode upgrades to
+ * Sonnet (Phase 9 wires the UI switch). MAGE_ANSWER_MODEL pins the model;
+ * MODEL_COMPOSITION_LEGACY keeps the same Haiku default (no legacy regression).
+ */
+function resolveMageAnswer(ctx: ResolveModelCtx): ResolvedModel {
+  const override = parseToken(process.env.MAGE_ANSWER_MODEL);
+  if (override) return fromToken(override);
+  if (ctx.mode === 'deep') return fromToken('sonnet');
+  return fromToken('haiku');
+}
+
 // ── public entry point ─────────────────────────────────────────────────────
 
 /**
@@ -269,6 +288,9 @@ export function resolveModel(
 
     case 'chat-plain':
       return resolveChatPlain(ctx);
+
+    case 'mage-answer':
+      return resolveMageAnswer(ctx);
 
     case 'path-structure':
     case 'path-theory':

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import CheckpointFlashcardViewer from '@/components/learn/CheckpointFlashcardViewer';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/mascot/Mascot';
+import { useRegisterMageContext } from '@/components/mage';
 
 // Standalone flashcard player for a Study Pack set. Reuses the path checkpoint
 // flashcard deck (CheckpointFlashcardViewer) in `standalone` mode — no path
@@ -64,6 +65,11 @@ export default function StudyPackFlashcardSetPage({
   }, [id, setId]);
 
   const close = () => router.push(`/study-packs/${id}/flashcards`);
+
+  // Studying this pack's cards → "material" context (pack outline grounding +
+  // material-flavoured chips). Registered before the early returns so the hook
+  // order stays stable.
+  useRegisterMageContext({ type: 'material', ids: { notebookId: id }, title: set?.title });
 
   if (error) {
     return (

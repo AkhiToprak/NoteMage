@@ -9,6 +9,7 @@ import { RTabs } from '@/components/rework/RTabs';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/mascot/Mascot';
 import MaterialBrowser from '@/components/study-packs/MaterialBrowser';
+import { useRegisterMageContext, useOptionalMage } from '@/components/mage';
 
 interface NotebookData {
   id: string;
@@ -32,6 +33,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 
 function TabPanel({ tab, notebook }: { tab: Tab; notebook: NotebookData }) {
   const id = notebook.id;
+  const mage = useOptionalMage();
 
   switch (tab) {
     case 'path':
@@ -147,7 +149,14 @@ function TabPanel({ tab, notebook }: { tab: Tab; notebook: NotebookData }) {
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--fs-sm)', color: 'var(--on-surface-variant)', margin: 0, lineHeight: 1.65 }}>
             Chat with Mage about anything in this pack — get explanations, summaries, and deeper dives into difficult topics.
           </p>
-          <Button href="/learn/chats" variant="primary" shape="pill" leadingIcon="auto_awesome">
+          <Button
+            onClick={() =>
+              mage?.open({ type: 'study-pack', ids: { notebookId: id }, title: notebook.name })
+            }
+            variant="primary"
+            shape="pill"
+            leadingIcon="auto_awesome"
+          >
             Ask Mage about this pack
           </Button>
         </NMCard>
@@ -201,6 +210,19 @@ export default function StudyPackDetailPage({ params }: { params: Promise<{ id: 
   }, [id]);
 
   const accentColor = notebook?.color ?? 'var(--accent-strong)';
+
+  // Ground Mage on this pack: the server expands notebookId → a pack outline,
+  // and the chips switch to pack/material prompts. The Material tab narrows the
+  // type so the chips read "what's in here" rather than "study this pack".
+  useRegisterMageContext(
+    notebook
+      ? {
+          type: activeTab === 'material' ? 'material' : 'study-pack',
+          ids: { notebookId: notebook.id },
+          title: notebook.name,
+        }
+      : null
+  );
 
   return (
     <>

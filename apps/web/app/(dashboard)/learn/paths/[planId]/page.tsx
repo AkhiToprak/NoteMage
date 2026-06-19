@@ -15,6 +15,8 @@ import CheckpointQuizViewer from '@/components/learn/CheckpointQuizViewer';
 import GenerationProgressModal from '@/components/learn/GenerationProgressModal';
 import { CheckpointSkeletonOverlay } from '@/components/learn/CheckpointSkeleton';
 import { TutorialPathPlayer } from '@/components/learn/TutorialPathPlayer';
+import { useRegisterMageContext } from '@/components/mage';
+import type { MageClientContext } from '@/lib/mage-types';
 
 // Phase 10.6 — path detail page.
 //
@@ -163,6 +165,21 @@ function PathDetailInner({ planId }: { planId: string }) {
     openSlot && activityId
       ? (openSlot.activities.find((a) => a.id === activityId) ?? null)
       : null;
+
+  // Register what the learner is looking at with the global Mage panel so its
+  // answers ground on the open lesson's theory (server resolves slotId → theory)
+  // and its prompt chips match the surface. A live quiz activity flips the
+  // policy to hints-first; the path map alone grounds on the path outline.
+  const mageContext: MageClientContext = openSlot
+    ? activeActivity?.kind === 'quiz' && activeActivity.quizSetId
+      ? {
+          type: 'quiz-question',
+          ids: { pathId: planId, slotId: openSlot.id, quizSetId: activeActivity.quizSetId },
+          title: openSlot.title,
+        }
+      : { type: 'lesson', ids: { pathId: planId, slotId: openSlot.id }, title: openSlot.title }
+    : { type: 'my-path', ids: { pathId: planId }, title: plan?.title };
+  useRegisterMageContext(mageContext);
 
   const setUrlSlot = useCallback(
     (next: { slot?: string | null; activity?: string | null }) => {

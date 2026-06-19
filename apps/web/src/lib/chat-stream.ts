@@ -23,7 +23,21 @@ import {
   CHAT_STUDY_PLAN_TOOL,
   PRESENTATION_TOOL,
   YOUTUBE_VIDEOS_TOOL,
+  ANNOTATE_ANSWER_TOOL,
 } from './ai-tools';
+import {
+  mageModePromptParts,
+  resolveCitedSources,
+  type MageMessageMetadata,
+  type MageMode,
+  type MageRevealGate,
+  type MageSource,
+} from './mage-types';
+import {
+  describeMageActionMenu,
+  pickRecommendedActions,
+  type MageActionCard,
+} from './mage-actions';
 import { resolveChatIntent } from './chat-intent';
 import { CHAT_BASE_INSTRUCTIONS, INTENT_GUIDANCE, INTENT_TOOL } from './chat-guidance';
 import {
@@ -55,6 +69,10 @@ import { NextResponse } from 'next/server';
 // Figure-capable variants are always used so the array stays byte-stable even
 // when a catalog appears later in the turn; non-catalog figure refs are
 // dropped downstream by resolveFlashcardFigures/resolveQuizFigures.
+// ANNOTATE_ANSWER_TOOL (Mage Revolution Phase 4) is a permanent member: a Mage
+// answer calls it once after its prose to declare source usage. It is never
+// FORCED — only reachable via `tool_choice: 'auto'` on a Mage turn — so plain
+// notebook chats (tool_choice none / a forced generation tool) never invoke it.
 const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
   FLASHCARD_TOOL_WITH_FIGURES,
   QUIZ_TOOL_V2_WITH_FIGURES,
@@ -62,6 +80,7 @@ const CHAT_TOOLS: Anthropic.Messages.Tool[] = [
   CHAT_STUDY_PLAN_TOOL,
   PRESENTATION_TOOL,
   YOUTUBE_VIDEOS_TOOL,
+  ANNOTATE_ANSWER_TOOL,
 ];
 
 export interface ChatStreamChat {
@@ -89,6 +108,48 @@ export interface ChatStreamOptions {
   /** User's billing tier — routes free-form chat to Gemini (FREE) vs
    *  Anthropic (PRO/admin). Generation turns always use Anthropic. */
   tier: TierKey;
+  /**
+   * Mage Revolution Phase 2/4 — server-resolved grounding for the global panel.
+   * Numbered `[S#] (kind) "Title"\n<text>` chunks (see `buildMageSourceManifest`)
+   * derived from the panel's surface context. They join the cached corpus
+   * block alongside any selected pages/docs, so a context-aware Mage answer is
+   * grounded on what the learner is actually looking at. Empty for normal
+   * notebook chats.
+   */
+  groundingParts?: string[];
+  /**
+   * Mage Revolution Phase 8 — the server-authoritative reveal gate for this
+   * surface (`deriveRevealGate(assistancePolicy)`). Streamed to the client as
+   * the FIRST `reveal_gate` SSE event so the panel renders the answer behind the
+   * gate (exam → sealed, practice/live-question → hint_only). Emitted regardless
+   * of the model path (Anthropic or Gemini); only `open` is treated as "no gate"
+   * and skipped. Absent for normal notebook chats.
+   */
+  revealGate?: MageRevealGate;
+  /**
+   * Mage Revolution Phase 4 — marks this turn a "Mage answer": a grounded,
+   * citation-bearing Q&A that ALWAYS runs on Anthropic (never Gemini) so it can
+   * call `annotate_answer`. The numbered corpus chunks already ride in
+   * `groundingParts`; this carries the matching `sources` MANIFEST used to
+   * resolve the model's `[S#]` citations into chips after the stream, the
+   * answer-depth `mode` (→ Haiku/Sonnet via `resolveModel('mage-answer')`), and
+   * the volatile, UNCACHED `studyState` block (Phase 5 fills it — placed AFTER
+   * the cached corpus block so it never busts the 1h corpus cache). Absent for
+   * normal notebook chats.
+   */
+  mageAnswer?: {
+    sources: MageSource[];
+    mode?: MageMode;
+    studyState?: string;
+    /**
+     * Mage Revolution Phase 6 — the server's OFFERED action menu for this
+     * surface (already resolved to authorized deep links). Listed for the model
+     * in an uncached system block; after the stream the model's recommended ids
+     * (`annotate_answer.actions`) are intersected with this menu and emitted as
+     * the `actions` SSE event. The model can never surface an unoffered action.
+     */
+    actions?: MageActionCard[];
+  };
 }
 
 export async function startChatStream(opts: ChatStreamOptions): Promise<Response> {
@@ -102,9 +163,26 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     usedTokens,
     tokenLimit,
     tier,
+    groundingParts,
+    mageAnswer,
+    revealGate,
   } = opts;
   const chatId = chat.id;
+  // Phase 8 — a non-`open` gate this turn renders the answer behind a barrier on
+  // the client. We both emit it as the first SSE event AND add a defence-in-depth
+  // prompt instruction; the client gate is the real enforcement.
+  const gate: MageRevealGate = revealGate ?? 'open';
+  const gated = gate !== 'open';
   const flashcardSetNotebookId = chat.notebookId;
+  // Phase 4 — a "Mage answer" turn: grounded Q&A that runs Anthropic + may call
+  // annotate_answer. Used to route the model, open `tool_choice`, add the
+  // citation guidance, and resolve `[S#]` after the stream.
+  const isMageAnswer = !!mageAnswer;
+  // Phase 9 — the answer mode (quick = automatic default). Drives the per-turn
+  // depth + uncovered-question prompt fragments (uncached, so they never bust
+  // the corpus cache) and the strict source-mode tightening after the stream.
+  // The model tier itself is picked by resolveModel('mage-answer', { mode }).
+  const mageMode: MageMode = mageAnswer?.mode ?? 'quick';
 
   try {
     // ── Build context from selected pages & documents ──
@@ -173,6 +251,14 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
           });
         }
       }
+    }
+
+    // Mage Revolution Phase 2 — fold server-resolved surface grounding into the
+    // corpus. It rides in the same cached reference-data block as selected
+    // pages/docs (Mage chats have none of those, so this is usually the whole
+    // corpus). Subject to the same MAX_CONTEXT_CHARS truncation below.
+    if (groundingParts && groundingParts.length > 0) {
+      contextParts.push(...groundingParts);
     }
 
     let contextTruncated = false;
@@ -408,6 +494,64 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
       });
     }
 
+    // Mage Revolution Phase 4 — volatile study-state block (exam countdown,
+    // readiness, weakest topics). UNCACHED and placed AFTER the cached corpus
+    // block so a changing study state never busts the 1h corpus cache (R2).
+    // Phase 5 populates it; here it's plumbing that's usually empty.
+    if (isMageAnswer && mageAnswer?.studyState && mageAnswer.studyState.trim().length > 0) {
+      systemBlocks.push({
+        type: 'text',
+        text: `STUDY STATE (current, may change between turns):\n${mageAnswer.studyState.trim()}`,
+      });
+    }
+
+    // Mage Revolution Phase 4 — citation guidance (uncached, after the corpus).
+    // Tells the model to cite the numbered sources inline with `[S#]` and to
+    // tag the answer with `annotate_answer` once. Defence-in-depth only: the
+    // server resolves/validates `[S#]` and downgrades sourceMode regardless.
+    // Phase 9 — the uncovered-question line + an answer-depth line vary by
+    // `mageMode` (strict forbids the general-knowledge fallback; deep goes
+    // thorough, quick stays concise). Both blocks sit AFTER the cached corpus
+    // block, so varying them per turn never busts the 1h corpus cache.
+    if (isMageAnswer) {
+      const modeParts = mageModePromptParts(mageMode);
+      systemBlocks.push({
+        type: 'text',
+        text: [
+          'The reference data above is a NUMBERED list of sources, each headed with a marker like [S1], [S2]. When a statement in your answer comes from one of them, cite it inline with that marker — e.g. "Photosynthesis converts light energy into chemical energy [S1]." Cite the specific source a claim rests on; never cite a source you did not use, and never invent a marker that is not in the list.',
+          modeParts.uncoveredDirective,
+          modeParts.depthDirective,
+          'Write your answer as ordinary prose first. Then call `annotate_answer` EXACTLY ONCE to tag how you used the sources (sourceMode + the source numbers you cited). Do not call any other tool.',
+        ].join('\n'),
+      });
+    }
+
+    // Mage Revolution Phase 8 — reveal-gate guidance (uncached, after the
+    // corpus). Defence-in-depth ONLY: the client renders the answer behind the
+    // server-set gate regardless of what the model writes, so a leak can't slip
+    // through. We still steer the model so the gated UX reads naturally.
+    if (isMageAnswer && gated) {
+      systemBlocks.push({
+        type: 'text',
+        text:
+          gate === 'sealed'
+            ? 'EXAM MODE: the learner is in an exam context. Do NOT give away answers to exam or quiz questions, and do not work a question to its solution. Help them decide WHAT to review and HOW to approach it — point at weak topics and study moves, not answers.'
+            : // hint_only — set by practice / a live question, OR by strict mode on
+              // an otherwise-open surface (Phase 9). Neutral copy covers both.
+              "HINT-FIRST: lead with a hint or a guiding question that points the learner toward the answer before stating it outright; reserve the full worked answer for after that nudge. Don't hand over the solution in the first sentence.",
+      });
+    }
+
+    // Mage Revolution Phase 6 — offered-actions menu (uncached, after the
+    // corpus block). Lists the server's per-surface action ids so the model can
+    // recommend a subset via `annotate_answer.actions`. Defence-in-depth only:
+    // the server intersects the picks with this menu, so the model can never
+    // surface an action the server didn't offer.
+    if (isMageAnswer && mageAnswer?.actions && mageAnswer.actions.length > 0) {
+      const menuText = describeMageActionMenu(mageAnswer.actions);
+      if (menuText) systemBlocks.push({ type: 'text', text: menuText });
+    }
+
     // Intent guidance + figure instructions (uncached, after the cached block).
     if (intent !== 'chat') {
       let guidanceText = INTENT_GUIDANCE[intent];
@@ -434,8 +578,25 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     // Generation intents always stay on Anthropic. CHAT_GEMINI_DISABLED (in the
     // resolver) forces Anthropic; CHAT_PLAIN_MODEL pins the model. Build a flat
     // Gemini system string (corpus leads for implicit caching) for that path.
-    const plainChatModel = intent === 'chat' ? resolveModel('chat-plain', { tier }) : null;
+    //
+    // Phase 4 — a Mage answer ALWAYS runs Anthropic (it calls annotate_answer),
+    // routed via resolveModel('mage-answer') (Haiku default, Sonnet on `deep`);
+    // it never takes the Gemini path. A bare chat (no grounding/actions) keeps
+    // the chat-plain composition.
+    const mageAnswerModel =
+      intent === 'chat' && isMageAnswer
+        ? resolveModel('mage-answer', { tier, mode: mageAnswer?.mode })
+        : null;
+    const plainChatModel =
+      intent === 'chat' && !isMageAnswer ? resolveModel('chat-plain', { tier }) : null;
     const useGemini = plainChatModel?.provider === 'gemini';
+    // The Anthropic model id for this turn (Mage answer → resolver; plain
+    // Anthropic chat → resolver; everything else → the generation default).
+    const activeAnthropicModel = mageAnswerModel
+      ? mageAnswerModel.model
+      : !useGemini && plainChatModel?.provider === 'anthropic'
+        ? plainChatModel.model
+        : AI_MODEL;
     // Corpus leads for Gemini implicit caching. "Reference data, not
     // instructions" framing mirrors the Anthropic cached block (PA-30).
     const geminiCorpus =
@@ -524,17 +685,21 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     // changes between turns). Intent routing is done via tool_choice only.
     // INTENT_TOOL maps to the figure-capable names used in CHAT_TOOLS.
     const intentToolName = intent !== 'chat' ? INTENT_TOOL[intent].name : null;
+    // A Mage answer with no forced generation tool opens `tool_choice` to
+    // 'auto' so the model can stream prose AND then call annotate_answer (a
+    // forced tool would suppress the prose). Forcing a tool kills streaming, so
+    // it is never used for the answer itself.
+    const mageAuto = isMageAnswer && !intentToolName;
     const streamParams: Parameters<typeof anthropic.messages.stream>[0] = {
-      model:
-        !useGemini && plainChatModel?.provider === 'anthropic'
-          ? plainChatModel.model
-          : AI_MODEL,
+      model: activeAnthropicModel,
       max_tokens: MAX_OUTPUT_TOKENS,
       system: systemBlocks,
       tools: CHAT_TOOLS,
       tool_choice: intentToolName
         ? { type: 'tool', name: intentToolName }
-        : { type: 'none' },
+        : mageAuto
+          ? { type: 'auto' }
+          : { type: 'none' },
       messages: conversationMessages,
     };
 
@@ -546,6 +711,14 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
             fullText += delta;
             controller.enqueue(sseEvent('text', { delta }));
           };
+
+          // Phase 8 — emit the reveal gate FIRST (before any text), on both the
+          // Gemini and Anthropic paths, so the client can render the answer
+          // behind the barrier from the very first delta. `open` is the no-gate
+          // default and isn't worth a wire event.
+          if (gated) {
+            controller.enqueue(sseEvent('reveal_gate', { gate }));
+          }
 
           // ── Free-tier plain chat → Gemini Flash-Lite ──
           // On a hard Gemini failure BEFORE any text is streamed, fall back to
@@ -664,7 +837,8 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
                 provider: 'anthropic',
                 intent,
                 intentVia: intentResult.via,
-                toolLoaded: intentToolName ?? 'none',
+                toolLoaded: mageAuto ? 'auto' : intentToolName ?? 'none',
+                mage: isMageAnswer,
                 chatId: chat.id,
                 inputTokens: response.usage.input_tokens,
                 outputTokens: response.usage.output_tokens,
@@ -676,15 +850,16 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
 
             logAiUsage({
               userId,
-              feature: intent === 'chat' ? 'chat-plain' : 'chat-generate',
+              feature:
+                intent === 'chat' ? (isMageAnswer ? 'mage-answer' : 'chat-plain') : 'chat-generate',
               tier,
               provider: 'anthropic',
-              model: AI_MODEL,
+              model: activeAnthropicModel,
               inputTokens: response.usage.input_tokens,
               outputTokens: response.usage.output_tokens,
               cacheReadTokens,
               cacheWriteTokens: cacheCreationTokens,
-              extra: { intent },
+              extra: { intent, mage: isMageAnswer },
             });
 
             const {
@@ -695,6 +870,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               studyPlan: studyPlanToolUse,
               presentation: presentationToolUse,
               youtubeVideos: youtubeVideosToolUse,
+              annotate: annotateToolUse,
             } = extractToolUses(response.content);
             let assistantText = extractedText;
 
@@ -1269,6 +1445,53 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               response.usage.output_tokens
             );
             controller.enqueue(sseEvent('done', done));
+            // Phase 4 — resolve the model's `[S#]` citations against the
+            // manifest (dropping hallucinated refs) and the optional
+            // annotate_answer claim, then emit the chips + server-set
+            // sourceMode. Emitted AFTER `done` so the client attaches it to the
+            // settled message (mirrors `chat_title`).
+            if (mageAnswer) {
+              const resolvedSources = resolveCitedSources(
+                assistantText,
+                mageAnswer.sources,
+                annotateToolUse?.input ?? null,
+                // Phase 9 — strict mode forbids a blended `mixed` source mode.
+                { strict: mageMode === 'strict' }
+              );
+              controller.enqueue(sseEvent('sources', resolvedSources));
+              // Phase 6 — intersect the model's recommended action ids with the
+              // offered menu (anything not offered is dropped) and emit the
+              // resolved cards. Emitted after `sources` so the client attaches
+              // both to the settled assistant message.
+              const cards = pickRecommendedActions(
+                mageAnswer.actions ?? [],
+                annotateToolUse?.input?.actions ?? null
+              );
+              if (cards.length > 0) {
+                controller.enqueue(sseEvent('actions', { actions: cards }));
+              }
+              // Phase 10 — persist the resolved sidecar (chips / mode / cards /
+              // gate) onto the just-saved assistant row so resuming the thread
+              // rebuilds the exact same turn. Crucially the gate rides along, so
+              // a sealed exam answer stays sealed after a reload (its body is in
+              // `content`, the gate is what hides it). Fail-soft: a metadata
+              // write error never breaks the already-streamed answer.
+              const metadata: MageMessageMetadata = {
+                v: 1,
+                sources: resolvedSources.sources.length ? resolvedSources.sources : undefined,
+                sourceMode: resolvedSources.sourceMode,
+                notFoundInMaterial: resolvedSources.notFoundInMaterial || undefined,
+                actions: cards.length ? cards : undefined,
+                revealGate: gate,
+                mode: mageMode,
+              };
+              await db.chatMessage
+                .update({
+                  where: { id: done.assistantMessage.id },
+                  data: { metadata: metadata as unknown as object },
+                })
+                .catch((err) => console.error('[AI Chat] mage metadata persist failed:', err));
+            }
             await fireTitleGenIfNeeded(controller);
             controller.close();
           } catch (error: unknown) {

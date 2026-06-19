@@ -1,26 +1,23 @@
 'use client';
 
 /* Hallmark · component: button · genre: editorial · theme: project (Neon Scholar)
- * states: default · hover · focus · active · disabled · loading · error · success
- * contrast: pass (uses --primary / --on-primary tokens)
+ * states: default · hover · focus · active · disabled(n/a) · loading(n/a) · error(n/a) · success(n/a)
+ * contrast: pass (uses --primary / --on-surface tokens)
  *
- * Workstream 4 — "Ask Mage about this lesson". A terse action that opens
- * CreateChatModal seeded with the path's Study Pack notebook + the path's
- * source material (via defaultSourcePathId), defaulting the chat title to
- * the lesson. Additive: generic/cross-pack chat is unaffected.
+ * "Ask Mage about this lesson". Mage Revolution Phase 10 folded the old full-page
+ * chat into the global panel, so this no longer spins up a CreateChatModal +
+ * navigates to /learn/chats — it opens the panel grounded on the path/lesson the
+ * learner is looking at. The panel then resumes that surface's persistent thread.
  */
 
-import { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
-import CreateChatModal from '@/components/learn/CreateChatModal';
+import { useOptionalMage } from '@/components/mage';
 
 interface AskMageButtonProps {
-  /** StudyPlan id — seeds the chat's context from the path's source material. */
+  /** StudyPlan id — grounds the panel on the path's source material. */
   planId: string;
-  /** The path's Study Pack notebook (default notebook for uploads/picker). */
+  /** The path's Study Pack notebook (extra grounding + thread home). */
   notebookId: string | null;
-  /** Opened lesson/slot title — used to seed the chat title. */
+  /** Opened lesson/slot title — shown as the panel's context card title. */
   slotTitle: string;
   /** Visual variant: pill (overlay headers) or compact (drawer header). */
   variant?: 'pill' | 'compact';
@@ -32,9 +29,7 @@ export default function AskMageButton({
   slotTitle,
   variant = 'pill',
 }: AskMageButtonProps) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-
+  const mage = useOptionalMage();
   const compact = variant === 'compact';
 
   return (
@@ -42,7 +37,13 @@ export default function AskMageButton({
       <button
         type="button"
         className="ask-mage-btn"
-        onClick={() => setOpen(true)}
+        onClick={() =>
+          mage?.open({
+            type: 'lesson',
+            ids: { pathId: planId, notebookId: notebookId ?? undefined },
+            title: slotTitle,
+          })
+        }
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -65,7 +66,7 @@ export default function AskMageButton({
           aria-hidden
           style={{ fontSize: '16px', color: 'var(--primary)' }}
         >
-          forum
+          auto_fix_high
         </span>
         {compact ? 'Ask Mage' : 'Ask Mage about this lesson'}
       </button>
@@ -95,26 +96,6 @@ export default function AskMageButton({
           }
         }
       `}</style>
-
-      {/* Portal to <body> so the fixed-position modal escapes the checkpoint
-          drawer's transformed containing block (the drawer's slide-in leaves a
-          persisting transform that would otherwise trap + mis-center the modal
-          and break its backdrop). */}
-      {open && typeof document !== 'undefined'
-        ? createPortal(
-            <CreateChatModal
-              defaultNotebookId={notebookId ?? undefined}
-              defaultSourcePathId={planId}
-              defaultTitle={`Ask about: ${slotTitle}`}
-              onClose={() => setOpen(false)}
-              onCreate={(chatId) => {
-                setOpen(false);
-                router.push(`/learn/chats/${chatId}`);
-              }}
-            />,
-            document.body,
-          )
-        : null}
     </>
   );
 }

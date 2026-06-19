@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { LessonView } from '@/components/rework/LessonView';
 import type { LessonContent } from '@/components/rework/LessonView';
+import { useRegisterMageContext } from '@/components/mage';
 
 // ─── Sample lesson map ─────────────────────────────────────────────────────────
 // Placeholder content — replace with real path-theory data once the lesson API
@@ -104,6 +105,11 @@ export default function LessonPage() {
   const listIndex = orderedIds.indexOf(lessonId);
   const index = listIndex >= 0 ? listIndex + 1 : 2;
   const total = orderedIds.length;
+
+  // Lesson-flavoured chips. This rework surface is still sample content (no real
+  // slotId), so there's no grounding id to send — the path checkpoint drawer is
+  // the grounded lesson surface.
+  useRegisterMageContext({ type: 'lesson', title: lesson.title });
 
   return (
     <LessonView

@@ -12,6 +12,7 @@ import { SectionHeading } from '@/components/rework/SectionHeading';
 import { StudyStats } from '@/components/rework/StudyStats';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button } from '@/components/ui/Button';
+import { useRegisterMageContext } from '@/components/mage';
 import type { PathPhase, PathPlan } from '@/components/learn/PathView';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -91,6 +92,10 @@ function deriveHero(plans: PathPlan[]): DerivedPath | null {
 export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
+
+  // Home surface — no single id to ground on, so Mage opens to broad "what
+  // should I study?" prompts rather than a specific lesson/pack.
+  useRegisterMageContext({ type: 'home' });
 
   const [notebookCount, setNotebookCount] = useState<number | null>(null);
   const [notebooks, setNotebooks] = useState<NotebookOption[]>([]);
@@ -853,11 +858,25 @@ export default function DashboardPage() {
 
               {nextExam && nextExamDays !== null ? (
                 <>
-                  <div
+                  <Link
+                    href={`/exam/${nextExam.id}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 'var(--space-3)',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      margin: '-6px -8px',
+                      padding: '6px 8px',
+                      borderRadius: 'var(--radius-md)',
+                      transition: 'background var(--dur-fast) var(--ease-spring)',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background =
+                        'var(--surface-container)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
                     }}
                   >
                     <span
@@ -902,7 +921,19 @@ export default function DashboardPage() {
                         {nextExam.notebookName}
                       </p>
                     </div>
-                  </div>
+                    <span
+                      className="material-symbols-outlined"
+                      aria-hidden
+                      style={{
+                        fontSize: 18,
+                        color: 'var(--on-surface-variant)',
+                        flexShrink: 0,
+                        marginLeft: 'auto',
+                      }}
+                    >
+                      chevron_right
+                    </span>
+                  </Link>
 
                   {sortedExams.length > 1 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -931,18 +962,21 @@ export default function DashboardPage() {
                               }}
                               aria-hidden
                             />
-                            <span
+                            <Link
+                              href={`/exam/${exam.id}`}
                               style={{
                                 fontSize: 'var(--fs-xs)',
                                 color: 'var(--on-surface)',
                                 flex: 1,
+                                minWidth: 0,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
+                                textDecoration: 'none',
                               }}
                             >
                               {exam.title}
-                            </span>
+                            </Link>
                             <span
                               style={{
                                 fontSize: 'var(--fs-xs)',

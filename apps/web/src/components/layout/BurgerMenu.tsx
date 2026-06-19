@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import TierBadge from '@/components/ui/TierBadge';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useOptionalMage } from '@/components/mage';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
 // NavIcons kept for backward compat; new items use Material Symbols strings only
@@ -31,18 +32,22 @@ const COLORS = {
 } as const;
 
 type NavItem = {
-  href: string;
+  href?: string;
   label: string;
   icon: string | ((color: string) => ReactNode);
+  /** Phase 10 — a non-route item that opens the global Mage panel instead of
+   *  navigating (the old /learn/chats route was folded into the panel). */
+  action?: 'open-mage';
 };
 
-/** Six primary destinations — learning-path focused. */
+/** Five primary destinations — learning-path focused. Mage is no longer a route;
+ *  it opens the global panel in place. */
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',   label: 'Home',        icon: 'cottage' },
   { href: '/my-path',     label: 'My Paths',    icon: 'route' },
   { href: '/study-packs', label: 'Study Packs', icon: 'auto_stories' },
   { href: '/practice',    label: 'Practice',    icon: 'fitness_center' },
-  { href: '/learn/chats', label: 'Mage Tutor',  icon: 'auto_fix_high' },
+  { label: 'Mage',        icon: 'auto_fix_high', action: 'open-mage' },
 ];
 
 /** Secondary / utility item — rendered below a divider. */
@@ -54,6 +59,7 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const { isPhone } = useBreakpoint();
+  const mage = useOptionalMage();
   const user = session?.user as
     | {
         id?: string;
@@ -139,40 +145,37 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
   }, [open, onClose]);
 
   // Shared row renderer — used for both the primary and secondary nav groups so
-  // their styling stays in lockstep with the `sb` sizing object.
+  // their styling stays in lockstep with the `sb` sizing object. A route item
+  // renders a <Link>; an `action` item (Mage) renders a <button> that opens the
+  // global panel in place — it has no route, so it never reads as "active".
   const renderNavItem = (item: NavItem) => {
-    // /learn/chats should be active on itself and any sub-path
-    const isActive =
-      item.href === '/learn/chats'
-        ? pathname === '/learn/chats' || pathname.startsWith('/learn/chats/')
-        : pathname === item.href || pathname.startsWith(item.href + '/');
-    const isHovered = hoveredItem === item.href;
+    const key = item.href ?? item.label;
+    const isActive = item.href
+      ? pathname === item.href || pathname.startsWith(item.href + '/')
+      : false;
+    const isHovered = hoveredItem === key;
     const tint = isActive ? COLORS.primary : isHovered ? COLORS.textPrimary : COLORS.textSecondary;
-    return (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={onClose}
-        onMouseEnter={() => setHoveredItem(item.href)}
-        onMouseLeave={() => setHoveredItem(null)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: sb.itemIconGap,
-          padding: sb.itemPad,
-          borderRadius: sb.itemRadius,
-          background: isActive
-            ? 'rgba(174,137,255,0.1)'
-            : isHovered
-              ? 'rgba(255,255,255,0.06)'
-              : 'transparent',
-          color: tint,
-          textDecoration: 'none',
-          fontSize: sb.itemFont,
-          fontWeight: isActive ? 700 : 500,
-          transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
-        }}
-      >
+
+    const rowStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      gap: sb.itemIconGap,
+      padding: sb.itemPad,
+      borderRadius: sb.itemRadius,
+      background: isActive
+        ? 'rgba(174,137,255,0.1)'
+        : isHovered
+          ? 'rgba(255,255,255,0.06)'
+          : 'transparent',
+      color: tint,
+      textDecoration: 'none',
+      fontSize: sb.itemFont,
+      fontWeight: isActive ? 700 : 500,
+      transition: `background 0.15s ${EASING}, color 0.15s ${EASING}`,
+    } as const;
+
+    const inner = (
+      <>
         {typeof item.icon === 'function' ? (
           item.icon(tint)
         ) : (
@@ -198,6 +201,37 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
             }}
           />
         )}
+      </>
+    );
+
+    if (item.action === 'open-mage') {
+      return (
+        <button
+          key={key}
+          type="button"
+          onClick={() => {
+            onClose();
+            mage?.open();
+          }}
+          onMouseEnter={() => setHoveredItem(key)}
+          onMouseLeave={() => setHoveredItem(null)}
+          style={{ ...rowStyle, border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+        >
+          {inner}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={key}
+        href={item.href!}
+        onClick={onClose}
+        onMouseEnter={() => setHoveredItem(key)}
+        onMouseLeave={() => setHoveredItem(null)}
+        style={rowStyle}
+      >
+        {inner}
       </Link>
     );
   };

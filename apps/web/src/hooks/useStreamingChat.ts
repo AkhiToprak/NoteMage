@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import type { MageRevealGate, MageRevealGatePayload, MageSourcesPayload } from '@/lib/mage-types';
+import type { MageActionsPayload, MageActionCard } from '@/lib/mage-actions';
 
 interface ChatMessage {
   id: string;
@@ -13,6 +15,15 @@ export interface DonePayload {
   flashcardSet?: { id: string; title: string; cardCount: number };
   quizSet?: { id: string; title: string; questionCount: number };
   studyPlan?: { id: string; title: string; phaseCount: number };
+  /** Mage Revolution Phase 4 — resolved citation chips + sourceMode (Mage panel
+   * turns only; arrives on the `sources` SSE event after `done`). */
+  sources?: MageSourcesPayload;
+  /** Mage Revolution Phase 6 — recommended action cards (Mage panel turns only;
+   * arrives on the `actions` SSE event after `done`). */
+  actions?: MageActionCard[];
+  /** Mage Revolution Phase 8 — server-set reveal gate for this turn (arrives on
+   * the `reveal_gate` SSE event BEFORE `done`; absent → `open`). */
+  revealGate?: MageRevealGate;
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -36,13 +47,15 @@ export interface DonePayload {
 type StreamStatus = 'idle' | 'streaming' | 'done' | 'error';
 
 /**
- * Phase 9.3 generalized the hook so it accepts any send endpoint instead of a
- * hardcoded `/api/notebooks/[id]/chats/[chatId]/messages` URL. Pass an explicit
- * `endpoint` (e.g. `/api/learn/chats/<chatId>/messages`) for the new hub. The
- * legacy `{ notebookId, chatId }` shape is still accepted for back-compat with
- * any caller that hasn't migrated to /learn/chats yet.
+ * The hook POSTs each message to an explicit `endpoint` (e.g.
+ * `/api/mage/messages`). The legacy `{ notebookId, chatId }` shape that resolved
+ * to `/api/notebooks/[id]/chats/[chatId]/messages` was dropped in Mage
+ * Revolution Phase 10 — the full-page chat that used it (ChatThread) is gone,
+ * and the global Mage panel is the only caller.
  */
-interface CommonStreamOptions {
+export interface UseStreamingChatOptions {
+  /** Where to POST each message (the SSE endpoint), e.g. '/api/mage/messages'. */
+  endpoint: string;
   /**
    * Called once with the raw Response immediately after a successful fetch,
    * before the SSE body is read. Lets a caller read response headers — the
@@ -51,23 +64,10 @@ interface CommonStreamOptions {
    */
   onResponse?: (response: Response) => void;
 }
-interface EndpointOptions extends CommonStreamOptions {
-  endpoint: string;
-}
-interface NotebookChatOptions extends CommonStreamOptions {
-  notebookId: string;
-  chatId: string;
-}
-export type UseStreamingChatOptions = EndpointOptions | NotebookChatOptions;
 
 interface SSEEvent {
   event: string;
   data: string;
-}
-
-function resolveEndpoint(options: UseStreamingChatOptions): string {
-  if ('endpoint' in options) return options.endpoint;
-  return `/api/notebooks/${options.notebookId}/chats/${options.chatId}/messages`;
 }
 
 function parseSSEEvents(buffer: string): { events: SSEEvent[]; remaining: string } {
@@ -102,15 +102,19 @@ function parseSSEEvents(buffer: string): { events: SSEEvent[]; remaining: string
 }
 
 export function useStreamingChat(options: UseStreamingChatOptions) {
-  const endpoint = resolveEndpoint(options);
+  const endpoint = options.endpoint;
   const onResponse = options.onResponse;
 
   const [streamingText, setStreamingText] = useState('');
   const [status, setStatus] = useState<StreamStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  // Phase 8 — the live reveal gate for the IN-FLIGHT turn, so a caller can hide
+  // the streaming text while the answer is gated. Reset to `open` each send.
+  const [revealGate, setRevealGate] = useState<MageRevealGate>('open');
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamingTextRef = useRef('');
+  const revealGateRef = useRef<MageRevealGate>('open');
 
   const abort = useCallback(() => {
     if (abortControllerRef.current) {
@@ -134,6 +138,8 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
       setStreamingText('');
       streamingTextRef.current = '';
       setError(null);
+      setRevealGate('open');
+      revealGateRef.current = 'open';
 
       let response: Response;
       try {
@@ -146,7 +152,11 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
       } catch (err) {
         if (controller.signal.aborted) {
           setStatus('done');
-          return { aborted: true, partialText: streamingTextRef.current } as DonePayload;
+          return {
+            aborted: true,
+            partialText: streamingTextRef.current,
+            revealGate: revealGateRef.current,
+          } as DonePayload;
         }
         const msg = err instanceof Error ? err.message : 'Network error';
         setStatus('error');
@@ -198,8 +208,17 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
                 setStreamingText(streamingTextRef.current);
                 break;
               }
+              case 'reveal_gate': {
+                // Phase 8 — arrives before any text so the caller can gate the
+                // stream. Mirror it onto the (later) done payload too.
+                const parsed = JSON.parse(sse.data) as MageRevealGatePayload;
+                revealGateRef.current = parsed.gate;
+                setRevealGate(parsed.gate);
+                break;
+              }
               case 'done': {
                 donePayload = JSON.parse(sse.data) as DonePayload;
+                donePayload.revealGate = revealGateRef.current;
                 setStatus('done');
                 break;
               }
@@ -207,6 +226,20 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
                 const parsed = JSON.parse(sse.data) as { title: string };
                 if (donePayload) {
                   donePayload.chatTitle = parsed.title;
+                }
+                break;
+              }
+              case 'sources': {
+                const parsed = JSON.parse(sse.data) as MageSourcesPayload;
+                if (donePayload) {
+                  donePayload.sources = parsed;
+                }
+                break;
+              }
+              case 'actions': {
+                const parsed = JSON.parse(sse.data) as MageActionsPayload;
+                if (donePayload) {
+                  donePayload.actions = parsed.actions;
                 }
                 break;
               }
@@ -222,7 +255,11 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
       } catch (err) {
         if (controller.signal.aborted) {
           setStatus('done');
-          return { aborted: true, partialText: streamingTextRef.current } as DonePayload;
+          return {
+            aborted: true,
+            partialText: streamingTextRef.current,
+            revealGate: revealGateRef.current,
+          } as DonePayload;
         }
         const msg = err instanceof Error ? err.message : 'Stream read error';
         setStatus('error');
@@ -242,5 +279,5 @@ export function useStreamingChat(options: UseStreamingChatOptions) {
     };
   }, []);
 
-  return { streamingText, status, error, send, abort };
+  return { streamingText, status, error, send, abort, revealGate };
 }
