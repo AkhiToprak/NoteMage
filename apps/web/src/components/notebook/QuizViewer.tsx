@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useNotebookWorkspaceOptional } from '@/components/notebook/NotebookWorkspaceContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import PlayerBottomBar from '@/components/quiz/PlayerBottomBar';
@@ -192,9 +191,6 @@ export default function QuizViewer({
   const [editWrongExplanation, setEditWrongExplanation] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const workspace = useNotebookWorkspaceOptional();
-  const refreshSections = workspace?.refreshSections ?? (() => {});
-  const refreshChats = workspace?.refreshChats ?? (() => {});
 
   // Section picker state
   const [showSectionPicker, setShowSectionPicker] = useState(false);
@@ -731,13 +727,11 @@ export default function QuizViewer({
     if (!window.confirm('Delete this entire quiz set? This cannot be undone.')) return;
     try {
       await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
-      refreshSections();
-      refreshChats();
       router.push(`/study-packs/${notebookId}`);
     } catch {
       /* silent */
     }
-  }, [notebookId, setId, refreshSections, refreshChats, router]);
+  }, [notebookId, setId, router]);
 
   // ── Edit question ──
   const startEdit = (q: QuizQuestion) => {
@@ -848,7 +842,6 @@ export default function QuizViewer({
       if (json.success) {
         setSelectedSectionId(sectionId);
         setSectionSaved(true);
-        refreshSections();
         setTimeout(() => setShowSectionPicker(false), 600);
       }
     } catch {

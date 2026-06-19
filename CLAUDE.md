@@ -95,4 +95,6 @@ Rules:
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- The graph is scoped to `apps/web` only — node `src=` paths are relative to `apps/web/` (e.g. `src=src/lib/chat-stream.ts` means `apps/web/src/lib/chat-stream.ts`). When citing a graph result to the user, prefix `apps/web/`.
+- After modifying code, refresh the graph scoped to the web app — never `graphify update .` from the repo root, which re-indexes `apps/mobile/ios/Pods` and bloats the graph from ~5MB to ~75MB. graphify writes under the scanned path, so sync the result back to the canonical root `graphify-out/`:
+  `graphify update apps/web --force && cp apps/web/graphify-out/graph.json graphify-out/graph.json && cp apps/web/graphify-out/GRAPH_REPORT.md graphify-out/GRAPH_REPORT.md && rm -rf apps/web/graphify-out`
