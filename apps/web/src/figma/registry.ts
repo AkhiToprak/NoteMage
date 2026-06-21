@@ -99,9 +99,9 @@ export const SCREENS: readonly FigmaScreen[] = [
   { slug: 'marketing/login', flow: 'marketing', title: 'Login', nodeWeb: '72:8', note: 'form, no auth', mobile: () => import('./marketing/Login.mobile'), web: () => import('./marketing/Login.web') },
 
   // ── Phase 3 · App shell (3 pairs · 6 frames) ──────────────────────────────
-  { slug: 'app-shell/dashboard', flow: 'app-shell', title: 'Dashboard', nodeMobile: '94:3', nodeWeb: '93:3', note: 'tabs/cards, BottomNav' },
-  { slug: 'app-shell/profile', flow: 'app-shell', title: 'Profile', nodeMobile: '97:3', nodeWeb: '96:3', note: 'settings toggles (local)' },
-  { slug: 'app-shell/learning-paths', flow: 'app-shell', title: 'Learning paths', nodeMobile: '100:3', nodeWeb: '99:3', note: 'list → path detail' },
+  { slug: 'app-shell/dashboard', flow: 'app-shell', title: 'Dashboard', nodeMobile: '94:3', nodeWeb: '93:3', note: 'tabs/cards, BottomNav', mobile: () => import('./app-shell/Dashboard.mobile'), web: () => import('./app-shell/Dashboard.web') },
+  { slug: 'app-shell/profile', flow: 'app-shell', title: 'Profile', nodeMobile: '97:3', nodeWeb: '96:3', note: 'settings toggles (local)', mobile: () => import('./app-shell/Profile.mobile'), web: () => import('./app-shell/Profile.web') },
+  { slug: 'app-shell/learning-paths', flow: 'app-shell', title: 'Learning paths', nodeMobile: '100:3', nodeWeb: '99:3', note: 'list → path detail', mobile: () => import('./app-shell/LearningPaths.mobile'), web: () => import('./app-shell/LearningPaths.web') },
 
   // ── Phase 4 · Path & node detail (2 pairs · 4 frames) ─────────────────────
   { slug: 'path-detail/learning-path', flow: 'path-detail', title: 'Learning path', nodeMobile: '171:2', nodeWeb: '161:2', note: 'scroll trail, tap node → node overview' },

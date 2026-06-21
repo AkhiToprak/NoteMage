@@ -1,0 +1,92 @@
+/* App-shell flow — warm/light interaction-state + keyframe styles.
+ *
+ * The Figma app-shell frames (Dashboard, Profile, Learning paths) are drawn in
+ * the SAME warm palette as onboarding (cream #faf7f0 / ink #18202f / purple
+ * #7c5cff / lavender #ede9ff / gold) — NOT the dark Neon Scholar tokens — so this
+ * flow re-uses the onboarding `ONB` design system (see ../onboarding/shell.tsx)
+ * and adds the app chrome (left sidebar / bottom tab bar). This module owns what
+ * inline styles can't: :hover / :focus-visible / :active pseudo-states. Per the
+ * project rule only transform / opacity are transitioned; spring easing. */
+
+.appRoot {
+  --app-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Sidebar / bottom-nav item ─────────────────────────────────────────── */
+.navItem {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  border: none;
+  transition: transform 0.16s var(--app-ease);
+}
+.navItem:hover {
+  transform: translateY(-1px);
+}
+.navItem:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+.navItem:active {
+  transform: scale(0.97);
+}
+
+/* ── Elevated card / tile / row (lifts on hover) ───────────────────────── */
+.card {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s var(--app-ease);
+}
+.card:hover {
+  transform: translateY(-2px);
+}
+.card:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 2px;
+}
+.card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* ── Inline pill / chip / link (press, no lift) ────────────────────────── */
+.pill {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.16s var(--app-ease);
+}
+.pill:hover {
+  transform: translateY(-1px);
+}
+.pill:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 2px;
+}
+.pill:active {
+  transform: scale(0.97);
+}
+
+/* ── Text link (Continue → / Review now →) ─────────────────────────────── */
+.link {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  transition: opacity 0.16s var(--app-ease);
+}
+.link:hover {
+  opacity: 0.7;
+}
+.link:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem,
+  .card,
+  .pill,
+  .link {
+    transition-duration: 0.01ms;
+  }
+}
