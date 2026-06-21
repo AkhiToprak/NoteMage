@@ -1,0 +1,132 @@
+/* Marketing / public-site flow — warm interaction-state + keyframe styles.
+ *
+ * Phase 2 reproduces the Figma marketing frames (Landing, link/upload bridges,
+ * Pricing, About, Docs, Login). They share the warm onboarding design system
+ * (cream #faf7f0 / ink #18202f / purple #7c5cff / lavender #ede9ff — see
+ * onboarding/shell.tsx `ONB`), so this module mirrors onboarding.module.css:
+ * inline styles own per-instance color/type/spacing; this module owns the things
+ * inline styles can't (:hover / :focus-visible / :active + keyframes). Only
+ * transform / opacity are transitioned (project rule); spring easing throughout. */
+
+.mktRoot {
+  /* Re-exposed so re-used onboarding primitives (OnbButton `.btn`, etc.) that read
+   * var(--onb-ease) still get the spring easing under a marketing frame. */
+  --onb-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Header / footer text links ────────────────────────────────────────── */
+.navLink {
+  cursor: pointer;
+  background: none;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.16s var(--onb-ease);
+}
+.navLink:hover {
+  opacity: 0.6;
+}
+.navLink:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.footLink {
+  cursor: pointer;
+  background: none;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.16s var(--onb-ease);
+}
+.footLink:hover {
+  opacity: 0.55;
+}
+.footLink:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Selectable surface (option cards, plan cards, source tiles) ────────── */
+.tap {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s var(--onb-ease);
+}
+.tap:hover {
+  transform: translateY(-2px);
+}
+.tap:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 2px;
+}
+.tap:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* A lighter tap for inline pills / chips (no lift, just a press). */
+.tapPill {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.16s var(--onb-ease);
+}
+.tapPill:hover {
+  transform: translateY(-1px);
+}
+.tapPill:focus-visible {
+  outline: 3px solid rgba(124, 92, 255, 0.5);
+  outline-offset: 2px;
+}
+.tapPill:active {
+  transform: scale(0.97);
+}
+
+/* ── Accordion chevron (Pricing FAQ, Docs) ─────────────────────────────── */
+.chev {
+  transition: transform 0.2s var(--onb-ease);
+}
+.chevOpen {
+  transform: rotate(180deg);
+}
+
+/* ── Landing trail "draw" reveal ───────────────────────────────────────── */
+.trailLit {
+  transform-origin: top center;
+  animation: mkt-draw 1.6s var(--onb-ease) forwards;
+}
+@keyframes mkt-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* Gentle bob for the floating Mage bubble / hero ornaments. */
+.bob {
+  animation: mkt-bob 4s ease-in-out infinite;
+}
+@keyframes mkt-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink,
+  .footLink,
+  .tap,
+  .tapPill,
+  .chev {
+    transition-duration: 0.01ms;
+  }
+  .trailLit,
+  .bob {
+    animation: none;
+  }
+}

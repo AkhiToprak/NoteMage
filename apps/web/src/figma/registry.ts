@@ -90,13 +90,13 @@ export const SCREENS: readonly FigmaScreen[] = [
   { slug: 'onboarding/12-signup', flow: 'onboarding', title: '12 Signup', nodeMobile: '1:39', nodeWeb: '48:26', note: 'form (no submit), finish', mobile: () => import('./onboarding/Signup.mobile'), web: () => import('./onboarding/Signup.web') },
 
   // ── Phase 2 · Marketing / public (7 web-only) ─────────────────────────────
-  { slug: 'marketing/landing', flow: 'marketing', title: 'LP Landing', nodeWeb: '62:2', note: '1440×4080 long-scroll trail landing' },
-  { slug: 'marketing/link-bridge', flow: 'marketing', title: 'B1 Link bridge', nodeWeb: '62:4', note: 'paste-a-link entry' },
-  { slug: 'marketing/upload-bridge', flow: 'marketing', title: 'B2 Upload bridge', nodeWeb: '62:6', note: 'upload entry' },
-  { slug: 'marketing/pricing', flow: 'marketing', title: 'Pricing', nodeWeb: '72:2', note: '1440×2568' },
-  { slug: 'marketing/about', flow: 'marketing', title: 'About', nodeWeb: '72:4', note: '1440×1747' },
-  { slug: 'marketing/docs', flow: 'marketing', title: 'Docs', nodeWeb: '72:6', note: '1440×1100' },
-  { slug: 'marketing/login', flow: 'marketing', title: 'Login', nodeWeb: '72:8', note: 'form, no auth' },
+  { slug: 'marketing/landing', flow: 'marketing', title: 'LP Landing', nodeWeb: '62:2', note: '1440×4080 long-scroll trail landing', mobile: () => import('./marketing/Landing.mobile'), web: () => import('./marketing/Landing.web') },
+  { slug: 'marketing/link-bridge', flow: 'marketing', title: 'B1 Link bridge', nodeWeb: '62:4', note: 'paste-a-link entry', mobile: () => import('./marketing/LinkBridge.mobile'), web: () => import('./marketing/LinkBridge.web') },
+  { slug: 'marketing/upload-bridge', flow: 'marketing', title: 'B2 Upload bridge', nodeWeb: '62:6', note: 'upload entry', mobile: () => import('./marketing/UploadBridge.mobile'), web: () => import('./marketing/UploadBridge.web') },
+  { slug: 'marketing/pricing', flow: 'marketing', title: 'Pricing', nodeWeb: '72:2', note: '1440×2568', mobile: () => import('./marketing/Pricing.mobile'), web: () => import('./marketing/Pricing.web') },
+  { slug: 'marketing/about', flow: 'marketing', title: 'About', nodeWeb: '72:4', note: '1440×1747', mobile: () => import('./marketing/About.mobile'), web: () => import('./marketing/About.web') },
+  { slug: 'marketing/docs', flow: 'marketing', title: 'Docs', nodeWeb: '72:6', note: '1440×1100', mobile: () => import('./marketing/Docs.mobile'), web: () => import('./marketing/Docs.web') },
+  { slug: 'marketing/login', flow: 'marketing', title: 'Login', nodeWeb: '72:8', note: 'form, no auth', mobile: () => import('./marketing/Login.mobile'), web: () => import('./marketing/Login.web') },
 
   // ── Phase 3 · App shell (3 pairs · 6 frames) ──────────────────────────────
   { slug: 'app-shell/dashboard', flow: 'app-shell', title: 'Dashboard', nodeMobile: '94:3', nodeWeb: '93:3', note: 'tabs/cards, BottomNav' },
