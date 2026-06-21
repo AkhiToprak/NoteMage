@@ -1,0 +1,240 @@
+/* Shared interaction-state + keyframe styles for the figma kit primitives.
+ *
+ * Per the project convention: inline styles carry per-instance token values
+ * (colors/type/spacing via CSS custom properties), and this module carries the
+ * things inline styles can't — :hover / :focus-visible / :active pseudo-states,
+ * keyframes, and transitions. Only `transform` and `opacity` are transitioned
+ * (project rule); color swaps are instant. Spring easing throughout. */
+
+/* Spring easing literal (cubic-bezier(0.22, 1, 0.36, 1)). This project's
+ * CSS-module loader runs in "pure" mode — a standalone :root / :global rule is
+ * rejected — so the easing is inlined at each use site rather than held in a
+ * global custom property. */
+
+/* ── FButton ──────────────────────────────────────────────────────────── */
+.btn {
+  --fb-bg: var(--nm-primary);
+  --fb-fg: var(--on-primary-container);
+  --fb-bg-hover: var(--nm-primary-dark);
+  --fb-border: transparent;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1.5px solid var(--fb-border);
+  background: var(--fb-bg);
+  color: var(--fb-fg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn:hover {
+  background: var(--fb-bg-hover);
+  transform: translateY(-1px);
+}
+.btn:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.btn:active {
+  transform: translateY(0) scale(0.985);
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  background: var(--fb-bg);
+}
+.btnBlock {
+  width: 100%;
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border-radius: var(--radius-full);
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: kit-spin 0.7s linear infinite;
+}
+@keyframes kit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── FCard ────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-container);
+  border: 1px solid var(--ink-08);
+  border-radius: var(--radius-lg);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cardInteractive {
+  cursor: pointer;
+}
+.cardInteractive:hover {
+  transform: translateY(-2px);
+}
+.cardInteractive:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.cardInteractive:active {
+  transform: translateY(0);
+}
+
+/* ── FChip ────────────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--ink-12);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.chip:hover {
+  transform: translateY(-1px);
+}
+.chip:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chipSelected {
+  border-color: var(--nm-primary);
+  background: var(--nm-primary-light);
+  color: var(--nm-primary-on-light);
+}
+
+/* ── FInput ───────────────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--ink-12);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  outline: none;
+  transition: opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.input::placeholder {
+  color: var(--ink-40);
+}
+.input:hover {
+  border-color: var(--ink-20);
+}
+.input:focus-visible {
+  border-color: var(--nm-primary);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 1px;
+}
+.inputError {
+  border-color: var(--error);
+}
+.inputError:focus-visible {
+  outline-color: var(--error);
+}
+
+/* ── FToggle ──────────────────────────────────────────────────────────── */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 52px;
+  height: 30px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--surface-container-highest);
+  border: 1px solid var(--ink-12);
+  cursor: pointer;
+  transition: opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.toggleOn {
+  background: var(--nm-primary);
+  border-color: var(--nm-primary);
+}
+.toggle:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.toggleKnob {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.toggleKnobOn {
+  transform: translateX(22px);
+}
+
+/* ── FProgress ────────────────────────────────────────────────────────── */
+.progressTrack {
+  width: 100%;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--ink-12);
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--nm-primary);
+  transform-origin: left center;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── StepDots ─────────────────────────────────────────────────────────── */
+.dot {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--ink-20);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dotActive {
+  background: var(--nm-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .card,
+  .cardInteractive,
+  .chip,
+  .toggleKnob,
+  .progressFill,
+  .dot {
+    transition-duration: 0.01ms;
+  }
+  .spinner {
+    animation-duration: 1.2s;
+  }
+}
