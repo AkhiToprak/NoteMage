@@ -41,6 +41,7 @@ export type ModelFeature =
   | 'path-theory'
   | 'path-flashcards'
   | 'path-quiz'
+  | 'path-preview'
   | 'chat-plain'
   | 'mage-answer'
   | 'inline-rewrite'
@@ -48,7 +49,12 @@ export type ModelFeature =
   | 'inline-expand'
   | 'doc-summarize'
   | 'page-generate'
-  | 'video-ingest';
+  | 'video-ingest'
+  // ── Exam Mode (Phase 0) — full-AI, cheap-first. Meter notes per case below. ──
+  | 'exam-study-plan'
+  | 'exam-mock-questions'
+  | 'exam-weak-analysis'
+  | 'exam-report-summary';
 
 export interface ResolveModelCtx {
   /** Billing tier — used by tier-sensitive features (chat-plain, essay). */
@@ -286,11 +292,49 @@ export function resolveModel(
       return fromToken('flash');
     }
 
+    case 'path-preview':
+      // D4 (onboarding-real-generation): the anonymous pre-signup PREVIEW —
+      // structure + 1 lesson + 2 questions — runs on Sonnet. It is the
+      // make-or-break first impression and only ~3 small calls, so quality wins
+      // over cost here. PATH_PREVIEW_MODEL pins it (e.g. =haiku to cut cost);
+      // MODEL_COMPOSITION_LEGACY deliberately does NOT downgrade it. Distinct
+      // from the FULL completion, which keeps the cheap path-* routing above.
+      return resolveStatic('PATH_PREVIEW_MODEL', 'sonnet', 'sonnet');
+
     case 'chat-plain':
       return resolveChatPlain(ctx);
 
     case 'mage-answer':
       return resolveMageAnswer(ctx);
+
+    case 'exam-study-plan':
+      // Daily/multi-day task ordering + the "Why this plan" rationale. Structured
+      // + short prose, so Flash-Lite suffices; bump via EXAM_STUDY_PLAN_MODEL
+      // (e.g. =sonnet) if quality testing fails. Net-new feature → legacy ==
+      // optimized. Meter: reuse `ai_study_plan` (reserveUsage at the generator).
+      return resolveStatic('EXAM_STUDY_PLAN_MODEL', 'flash-lite', 'flash-lite');
+
+    case 'exam-mock-questions': {
+      // Fresh mock questions for the shortfall when scope content is thin. Prefer
+      // drawing from existing path quizzes; only the gap is generated. Reuses the
+      // path-quiz routing (Gemini basic → Sonnet ultra in legacy / Haiku
+      // optimized) so it tracks the same quality bar. EXAM_MOCK_QUESTIONS_MODEL
+      // pins it. Meter: reuse `ai_quizzes` (reserveUsage at the generator).
+      const override = parseToken(process.env.EXAM_MOCK_QUESTIONS_MODEL);
+      if (override) return fromToken(override);
+      return resolvePathStage('quiz', ctx);
+    }
+
+    case 'exam-weak-analysis':
+      // Group weak topics, write per-topic notes + readiness-impact. Cheap
+      // grouping/labelling work. Meter: piggybacks the calling surface's meter
+      // (no dedicated reserve — runs inside readiness/plan generation).
+      return resolveStatic('EXAM_WEAK_ANALYSIS_MODEL', 'haiku', 'flash-lite');
+
+    case 'exam-report-summary':
+      // Predicted-vs-actual + recommended-next prose for the post-exam report.
+      // Short, cheap. Meter: reuse `ai_study_plan` at the report endpoint.
+      return resolveStatic('EXAM_REPORT_MODEL', 'haiku', 'flash-lite');
 
     case 'path-structure':
     case 'path-theory':

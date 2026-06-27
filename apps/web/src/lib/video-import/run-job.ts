@@ -1,9 +1,9 @@
-// P3 — the detached background worker for a native video import (Lane 2).
+// P3 — the background handler for a native video import (Lane 2).
 //
 // `runVideoImportJob` mirrors `runPdfImportJob`: the POST route persists a
-// `queued` job, charges the minutes meter on submit, and fires this as a
-// fire-and-forget promise so the request returns at once and the client watches
-// progress over the SSE route.
+// `queued` import row, charges the minutes meter on submit, queues a durable
+// `BackgroundJob`, and returns at once while the client watches progress over
+// the SSE route.
 //
 // Like the PDF worker this NEVER throws — every failure is caught and written to
 // `ImportJob.status = "failed"` with a friendly `error`. The minutes meter is

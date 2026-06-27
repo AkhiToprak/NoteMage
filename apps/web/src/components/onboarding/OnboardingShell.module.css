@@ -1,0 +1,154 @@
+/* Hallmark · Figma onboarding setup shell (W02/W03/W04/W05, file mL5j31qppL1WIFiZWx7oDL).
+ * Desktop: lavender left rail (logo + mascot + speech bubble + 4-step stepper) + content.
+ * Mobile (<900): rail collapses to a top progress bar + back arrow + compact mascot
+ * bubble, content stacks, Continue pins to the bottom. Light cream, Inter.
+ */
+
+.root {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background: #faf7f0;
+  color: #18202f;
+  color-scheme: light;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+  display: flex;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+
+/* ─────────── LEFT RAIL (desktop) ─────────── */
+.rail {
+  position: relative;
+  flex: none;
+  width: 480px;
+  background: #f1ecfb;
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+.railLogo { position: absolute; top: 48px; left: 48px; display: inline-flex; }
+.railLogo img { height: 30px; width: auto; display: block; }
+
+.railSpk { position: absolute; line-height: 0; pointer-events: none; animation: obTwinkle 3s ease-in-out infinite alternate both; }
+.railSpk svg { display: block; }
+.railSpkA { top: 144px; right: 88px; }
+.railSpkA svg { width: 22px; height: 22px; transform: rotate(-15deg); filter: drop-shadow(0 0 8px rgba(255, 200, 61, 0.5)); }
+.railSpkB { top: 176px; left: 88px; }
+.railSpkB svg { width: 14px; height: 14px; filter: drop-shadow(0 0 7px rgba(124, 92, 255, 0.45)); }
+.railSpkC { top: 360px; right: 84px; }
+.railSpkC svg { width: 13px; height: 13px; transform: rotate(-20deg); filter: drop-shadow(0 0 7px rgba(124, 92, 255, 0.4)); }
+@keyframes obTwinkle { from { opacity: 0.5; transform: scale(0.84); } to { opacity: 1; transform: scale(1); } }
+
+.railMascotWrap { margin-top: 104px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+.railMascot { width: 244px; max-width: 70%; height: auto; display: block; filter: drop-shadow(0 18px 30px rgba(124, 92, 255, 0.2)); }
+.railBubble {
+  position: relative; margin-top: 14px; max-width: 368px;
+  background: #fff; border: 1px solid #ece6d8; border-radius: 20px;
+  padding: 16px 20px; font-size: 16px; font-weight: 500; line-height: 1.4; color: #18202f; text-align: center;
+  box-shadow: 0 6px 9px rgba(58, 46, 102, 0.08);
+}
+.railBubble::before {
+  content: ''; position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+  border-left: 11px solid transparent; border-right: 11px solid transparent; border-bottom: 10px solid #fff;
+}
+
+/* stepper — pinned to the bottom of the rail */
+.stepper { margin-top: auto; align-self: flex-start; width: 100%; padding-left: 24px; }
+.step { position: relative; display: flex; align-items: center; gap: 16px; min-height: 60px; }
+.stepDot {
+  position: relative; z-index: 1; flex: none; width: 28px; height: 28px; border-radius: 14px;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; line-height: 1;
+}
+.stepDotDone { background: #2fa968; color: #fff; }
+.stepDotActive { background: #7c5cff; color: #fff; }
+.stepDotUpcoming { background: #fff; border: 2px solid #d9cef2; color: #a1a7b3; }
+/* connector runs from this dot's centre to the next dot's centre, behind the dots
+   (steps are a uniform 60px tall); the last step renders no line. */
+.stepLine { position: absolute; left: 13px; top: 30px; height: 60px; width: 2px; background: #d9cef2; }
+.stepLabel { font-size: 15px; }
+.stepLabelDone { color: #6b7280; font-weight: 500; }
+.stepLabelActive { color: #18202f; font-weight: 600; }
+.stepLabelUpcoming { color: #a1a7b3; font-weight: 500; }
+
+/* ─────────── MAIN / CONTENT ─────────── */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.content { flex: 1; padding: 108px clamp(32px, 7vw, 96px) 24px; }
+.contentInner { max-width: 768px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #7c5cff; margin: 0 0 14px; }
+
+/* desktop nav row */
+.navDesktop { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px clamp(32px, 7vw, 96px) 48px; }
+.back {
+  background: none; border: 0; font-family: inherit; font-size: 16px; font-weight: 600; color: #6b7280;
+  cursor: pointer; padding: 8px 4px; transition: color 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.back:hover { color: #18202f; }
+.back:focus-visible { outline: 3px solid #7c5cff; outline-offset: 3px; border-radius: 8px; }
+.continue {
+  height: 56px; padding: 0 40px; border: 0; border-radius: 16px;
+  background: #7c5cff; color: #fff; font-family: inherit; font-size: 16.5px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 12px 28px rgba(124, 92, 255, 0.34);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.continue:hover:not(:disabled) { transform: translateY(-2px); background: #8d70ff; box-shadow: 0 18px 36px rgba(124, 92, 255, 0.42); }
+.continue:active:not(:disabled) { transform: translateY(0); }
+.continue:focus-visible { outline: 3px solid #4326b8; outline-offset: 3px; }
+.continue:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* ─────────── MOBILE chrome (hidden ≥900) ─────────── */
+.mtop { display: none; }
+.mbubble { display: none; }
+.navMobile { display: none; }
+
+@media (max-width: 900px) {
+  .rail { display: none; }
+  .content { padding: 8px 20px 120px; }
+  .contentInner { max-width: 100%; }
+  .eyebrow { display: none; }
+
+  .mtop { display: flex; align-items: center; gap: 14px; padding: 18px 20px 6px; }
+  .mtopBack {
+    flex: none; width: 36px; height: 36px; border-radius: 12px; border: 0; background: transparent;
+    display: grid; place-items: center; color: #18202f; cursor: pointer;
+  }
+  .mtopBack :global(.material-symbols-outlined) { font-size: 24px; }
+  .progress { flex: 1; height: 8px; border-radius: 4px; background: #e6def5; overflow: hidden; }
+  .progressFill { height: 100%; background: #7c5cff; border-radius: 4px; transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+
+  .mbubble { display: flex; align-items: center; gap: 12px; padding: 10px 20px 6px; }
+  .mAvatar { flex: none; width: 44px; height: 44px; border-radius: 22px; background: #ede9ff; border: 2px solid #fff; overflow: hidden; }
+  .mAvatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 26%; display: block; }
+  .mBubbleText {
+    background: #fff; border: 1px solid #ece6d8; border-radius: 16px; padding: 10px 14px;
+    font-size: 14px; font-weight: 500; line-height: 1.35; color: #18202f; box-shadow: 0 4px 8px rgba(58, 46, 102, 0.06);
+  }
+
+  .navDesktop { display: none; }
+  .navMobile {
+    display: block; position: sticky; bottom: 0; z-index: 5;
+    padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
+    background: #faf7f0; border-top: 1px solid #ece6d8;
+  }
+  .navMobile .continue { width: 100%; height: 54px; }
+}
+
+/* Large screens — scale the setup steps up so they fill the canvas. */
+@media (min-width: 1400px) {
+  .railLogo img { height: 36px; }
+  .railMascot { width: 268px; }
+  .railBubble { font-size: 17px; padding: 18px 22px; }
+  .content { padding-top: 128px; }
+  .contentInner { max-width: 900px; }
+  .eyebrow { font-size: 14px; margin-bottom: 16px; }
+  .continue { height: 60px; font-size: 17.5px; padding: 0 44px; }
+  .back { font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .railSpk { animation: none; opacity: 0.85; }
+  .continue, .progressFill { transition: none; }
+}

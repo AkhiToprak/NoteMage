@@ -1,11 +1,9 @@
 // Shared path deep-copy engine.
 //
-// Extracted from app/api/community/paths/[shareId]/clone/route.ts so both the
-// community clone-on-fork and the guided-tutorial sample materializer
-// (src/lib/sample-paths/materialize.ts) build a StudyPlan's phase→slot→activity
-// graph from the same code. The "source" shapes below are the minimal subset a
-// deep-copy reads; a DB select (clone) or an in-code fixture (sample) both
-// satisfy them.
+// Used by the guided-tutorial sample materializer
+// (src/lib/sample-paths/materialize.ts) to build a StudyPlan's
+// phase→slot→activity graph. The "source" shapes below are the minimal subset
+// a deep-copy reads; an in-code fixture satisfies them.
 //
 // Progress is always reset on copy: starsEarned=0, bestPercentage=null,
 // activity.completed=false, flashcard SR fields to SM-2 defaults. Blob-backed

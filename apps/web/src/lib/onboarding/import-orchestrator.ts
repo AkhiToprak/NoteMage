@@ -1,10 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { runPdfImportJob, type ImportJobMode } from '@/lib/pdf-import/run-job';
+import { type ImportJobMode } from '@/lib/pdf-import/run-job';
+import { enqueueJob } from '@/lib/background-jobs';
 
 // The server-side commit stage of the multi-PDF import flow: turn the
-// user-confirmed grouping into real notebooks, then fan out one detached
-// PDF-import worker per PDF. Mirrors the single-PDF route — it only gates
+// user-confirmed grouping into real notebooks, then fan out one durable
+// PDF-import job per PDF. Mirrors the single-PDF route — it only gates
 // the page budget via each job's `pageCap`; the worker meters usage on
 // success. Both the onboarding finale and the /notebooks modal route here.
 
@@ -25,8 +26,6 @@ export interface OrchestratorGroup {
 
 export interface OrchestratorInput {
   userId: string;
-  /** Folder the new notebooks land in; null = root level. */
-  folderId: string | null;
   groups: OrchestratorGroup[];
   /** Engine name recorded on each ImportJob (e.g. "gemini-flash-lite"). */
   engineName: string;
@@ -56,9 +55,9 @@ export interface OrchestratorResult {
  * grouping is preserved. Returns the created ids for the caller to poll.
  */
 export async function runImportOrchestration(
-  input: OrchestratorInput,
+  input: OrchestratorInput
 ): Promise<OrchestratorResult> {
-  const { userId, folderId, groups, engineName } = input;
+  const { userId, groups, engineName } = input;
   const mode: ImportJobMode = input.mode === 'fast' ? 'fast' : 'rich';
   let budget = input.pageBudget;
 
@@ -67,13 +66,12 @@ export async function runImportOrchestration(
   const skippedFiles: string[] = [];
 
   for (const group of groups) {
-    const notebook = await db.notebook.create({
+    const notebook = await db.studyContainer.create({
       data: {
         userId,
         name: group.name,
         subject: group.subject || null,
         color: group.color,
-        folderId: folderId || null,
         kind: 'standard',
       },
     });
@@ -108,10 +106,7 @@ export async function runImportOrchestration(
       jobIds.push(job.id);
       budget -= pageCap;
 
-      // Detached, never-throws worker — mirrors the single-PDF route.
-      void runPdfImportJob(job.id).catch((err) => {
-        console.error(`[multi-import] worker crashed for job ${job.id}`, err);
-      });
+      await enqueueJob('import.pdf', { jobId: job.id }, { dedupeKey: `import:pdf:${job.id}` });
     }
   }
 

@@ -85,4 +85,13 @@ export interface QuestionProps<TPayload = unknown> {
   // layout/sizing. Computed once in the shell (QuizViewer) via `useCoarsePointer`
   // so every renderer shares one SSR-safe snapshot instead of each calling the hook.
   coarsePointer: boolean;
+  // True when hosted by QuizPlayerShell (the immersive cream player). The shell's
+  // sticky ActionBar owns the state-driven "Check answer" CTA, so the multi-step /
+  // input renderers (sentence_reorder, word_bank, match_pairs, fill_blank,
+  // translation, equation, code_output, timeline, code_write) SUPPRESS their own
+  // SubmitBar and instead stage the in-progress answer continuously via
+  // onSelectAnswer — QuizViewer's two-step flow commits it on submitStaged().
+  // Falsy on the still-mounted study-pack page, where renderers keep their
+  // built-in SubmitBar + explicit submit (behaviour unchanged).
+  externalChrome?: boolean;
 }

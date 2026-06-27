@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
 import { openProCheckout } from '@/lib/lemonsqueezy-client';
+import { type BillingInterval } from '@/lib/tiers';
 
 /**
  * Starts the NoteMage Pro upgrade flow for a logged-in user via the Lemon
@@ -27,7 +28,7 @@ export function useUpgrade(onSuccess?: () => void) {
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
 
-  const startUpgrade = useCallback(async () => {
+  const startUpgrade = useCallback(async (interval?: BillingInterval) => {
     const userId = session?.user?.id;
     if (!userId) {
       router.push('/auth/login');
@@ -39,6 +40,7 @@ export function useUpgrade(onSuccess?: () => void) {
       await openProCheckout({
         userId,
         email: session?.user?.email ?? undefined,
+        interval,
         onCompleted: async (subscriptionId) => {
           // The webhook is authoritative — /sync just shortens the latency. We
           // attempt it best-effort when LS handed us a subscription id, but the

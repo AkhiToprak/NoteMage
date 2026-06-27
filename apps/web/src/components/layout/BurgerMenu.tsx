@@ -40,13 +40,11 @@ type NavItem = {
   action?: 'open-mage';
 };
 
-/** Five primary destinations — learning-path focused. Mage is no longer a route;
+/** Primary destinations — learning-path focused. Mage is no longer a route;
  *  it opens the global panel in place. */
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard',   label: 'Home',        icon: 'cottage' },
   { href: '/my-path',     label: 'My Paths',    icon: 'route' },
-  { href: '/study-packs', label: 'Study Packs', icon: 'auto_stories' },
-  { href: '/practice',    label: 'Practice',    icon: 'fitness_center' },
   { label: 'Mage',        icon: 'auto_fix_high', action: 'open-mage' },
 ];
 

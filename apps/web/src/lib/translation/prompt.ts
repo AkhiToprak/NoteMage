@@ -1,5 +1,5 @@
-// P10 of plans/path-publishing-community-library.md — translation
-// prompt assembly (pure module, no DB, no model client).
+// Translation prompt assembly (pure module, no DB, no model client) for the
+// in-place path translation feature.
 //
 // What this file owns:
 //   - TRANSLATION_RUBRIC: the byte-identical system block. Cached on
@@ -28,11 +28,10 @@
 import type Anthropic from '@anthropic-ai/sdk';
 
 /**
- * The structural overlay we translate. Mirrors the SharedPath/Phase/Slot
- * preview shape returned by the GET detail endpoint. Every string carries
- * its source slot ID so the runner can map the translation back without
- * relying on positional ordering (which a malformed model output could
- * scramble).
+ * The structural overlay we translate. Mirrors the path Phase/Slot shape.
+ * Every string carries its source slot ID so the runner can map the
+ * translation back without relying on positional ordering (which a malformed
+ * model output could scramble).
  */
 export interface TranslatableSnapshot {
   /** Source language (BCP-47 lowercase) — sent to the model for context. */
@@ -185,7 +184,7 @@ export const T_GEMINI_SCHEMA = {
  * forced tool / JSON mode — no need for chain-of-thought in the prompt.
  */
 export const TRANSLATION_RUBRIC = [
-  'You are a translation model for a community learning-path library.',
+  'You are a translation model for a learning-path app.',
   'You translate the structural overlay (title + description + phase + slot titles + slot descriptions) of a learning path into a target language.',
   '',
   '## Output rules',

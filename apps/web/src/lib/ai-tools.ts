@@ -26,6 +26,10 @@ interface QuizToolV2Common {
   // when a source-image catalog accompanies the prompt (path quiz slots).
   // Lives at the question level — outside `payload` — so grading is untouched.
   figure?: { imageRef: string; caption: string };
+  // Source provenance (Phase D): the verbatim passage this question was grounded
+  // in, surfaced by the quiz player's "Show source" reader drawer. Question-level
+  // (outside `payload`); only offered when source materials accompany the prompt.
+  source?: { label?: string; page?: number; quote: string };
 }
 
 export interface QuizToolV2McQuestion extends QuizToolV2Common {
@@ -1092,16 +1096,44 @@ const FLASHCARD_FIGURE_PROPERTY = {
   required: ['imageRef', 'caption'],
 };
 
+// Source provenance (Phase D): chat-conditional optional `source` exhibit, the
+// quiz analogue of QUIZ_FIGURE_PROPERTY. Only the path/practice slot tool injects
+// it (alongside an instruction in the system prompt); the chat quiz tool stays
+// source-less so a turn never advertises grounding it can't honestly supply.
+const QUIZ_SOURCE_PROPERTY = {
+  type: 'object' as const,
+  description:
+    "OPTIONAL. Only when SOURCE MATERIALS accompany this prompt: the passage in those materials this question is grounded in, so the learner can open it. Add it ONLY when the question genuinely comes from the supplied material (never from general knowledge); omit it otherwise.",
+  properties: {
+    label: {
+      type: 'string' as const,
+      description:
+        'The title of the material this came from, copied from its "### …:" header (e.g. the document or page name).',
+    },
+    page: {
+      type: 'number' as const,
+      description: 'The source page number, ONLY when the material header shows a "[page N]" marker. Omit otherwise.',
+    },
+    quote: {
+      type: 'string' as const,
+      description:
+        'A short VERBATIM excerpt (≤ ~60 words) from the source material that supports the answer. Copy it exactly; do not paraphrase.',
+    },
+  },
+  required: ['quote'],
+};
+
 /**
- * Clone a tool's `input_schema` and inject an optional `figure` property into
- * the items of its `arrayKey` array (e.g. `questions` / `flashcards`). Lets the
- * figure-enabled variants single-source their base schema so the two can never
- * drift, while keeping the base tool figure-less.
+ * Clone a tool's `input_schema` and inject an optional property into the items
+ * of its `arrayKey` array (e.g. `questions` / `flashcards`). Lets the augmented
+ * tool variants single-source their base schema so the two can never drift,
+ * while keeping the base tool lean. Chainable — inject `figure` then `source`.
  */
-function withFigureProperty(
+function withItemProperty(
   inputSchema: Anthropic.Messages.Tool['input_schema'],
   arrayKey: string,
-  figureProperty: object,
+  propName: string,
+  property: object,
 ): Anthropic.Messages.Tool['input_schema'] {
   const base = inputSchema as unknown as {
     properties: Record<
@@ -1121,11 +1153,20 @@ function withFigureProperty(
         ...arr,
         items: {
           ...arr.items,
-          properties: { ...(arr.items?.properties ?? {}), figure: figureProperty },
+          properties: { ...(arr.items?.properties ?? {}), [propName]: property },
         },
       },
     },
   } as unknown as Anthropic.Messages.Tool['input_schema'];
+}
+
+/** Inject the optional `figure` exhibit property (figure-reuse P4/P5). */
+function withFigureProperty(
+  inputSchema: Anthropic.Messages.Tool['input_schema'],
+  arrayKey: string,
+  figureProperty: object,
+): Anthropic.Messages.Tool['input_schema'] {
+  return withItemProperty(inputSchema, arrayKey, 'figure', figureProperty);
 }
 
 export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
@@ -1137,9 +1178,15 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
     'Use the exact payload shapes given in the system prompt; the server rejects drift.',
   ].join('\n'),
   // Mirrors QUIZ_TOOL_V2 (single-sourced) plus an optional per-question `figure`
-  // exhibit; inputs are validated post-hoc with `QuizSetV2Schema` exactly like
-  // the chat-driven quiz tool.
-  input_schema: withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
+  // exhibit AND `source` provenance (Phase D); inputs are validated post-hoc
+  // with `QuizSetV2Schema` exactly like the chat-driven quiz tool. The Gemini
+  // schema auto-derives from this via toGeminiSchema, so both providers see it.
+  input_schema: withItemProperty(
+    withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
+    'questions',
+    'source',
+    QUIZ_SOURCE_PROPERTY,
+  ),
 };
 
 // Figure-reuse (P5): chat-conditional figure-enabled variants of the chat

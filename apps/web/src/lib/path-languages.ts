@@ -1,8 +1,6 @@
 // Supported path-content languages. The user picks one when creating a
-// path; it is persisted as `StudyPlan.language` (BCP-47 lowercase) and
-// snapshotted onto `SharedPath` at publish time — so moderation wordlist
-// routing (L1), the community-library language filter, and the translation
-// cache all key off this value.
+// path; it is persisted as `StudyPlan.language` (BCP-47 lowercase) and drives
+// the source side of in-place path translation.
 //
 // `code`    — BCP-47 lowercase (ISO 639-1 where possible). Matches the
 //             detail-route `?lang=` validator (`/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/`).

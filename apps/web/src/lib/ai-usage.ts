@@ -7,6 +7,7 @@
 import { logTelemetry } from './telemetry-server';
 import { costForCall } from './path-generator-cost';
 import { db } from './db';
+import { invalidateTokenBudgetCache } from './token-budget';
 import type { ModelProvider } from './model-routing';
 import type { TierKey } from './tiers';
 
@@ -66,6 +67,7 @@ export function logAiUsage(event: AiUsageEvent): void {
         costUsd,
       },
     })
+    .then(() => invalidateTokenBudgetCache(event.userId))
     .catch(() => {
       /* best-effort — usage analytics must not break the call */
     });

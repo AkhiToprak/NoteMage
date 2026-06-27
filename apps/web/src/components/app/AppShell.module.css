@@ -1,0 +1,72 @@
+/* Redesigned (cream) logged-in app shell — sidebar + scrollable content.
+   Self-contained: literal palette declared once here on .shell and inherited
+   through the DOM by AppSidebar and every page's own .module.css (CSS custom
+   properties cascade across module boundaries). Matches the Figma "Notemage —
+   Web" app screens; independent of the legacy dark theme tokens. */
+
+.shell {
+  /* ---- palette ---- */
+  --bg: #faf7f0;            /* page canvas */
+  --surface: #ffffff;      /* cards, sidebar */
+  --border: #d9ccb3;       /* warm hairline — dark enough to read on white-on-cream */
+  --border-soft: #e7ddca;
+  --ink: #18202f;          /* headings */
+  --ink-soft: #5b6273;     /* nav labels, strong body */
+  --body: #6b7280;         /* body text */
+  --muted: #9aa0ad;        /* faint labels */
+  --primary: #7c5cff;      /* brand purple */
+  --primary-press: #6a47f4;
+  --accent: #4326b8;       /* deep purple — text on lilac, links */
+  --lilac: #ede9ff;        /* active nav, pills, secondary button */
+  --lilac-soft: #f4f1ff;   /* ask-mage card, tips, recommendation rows */
+  --amber: #e7a32f;        /* on-track readiness */
+  --amber-ink: #9a6a12;
+  --amber-soft: #fdf3e0;
+  --amber-line: #f3e3c3;
+  --green: #1f9d57;        /* passed / done */
+  --green-ink: #167a42;
+  --green-soft: #e2f4ea;
+  --gold: #ffc83d;
+  --navy: #2b2552;         /* path icon tile */
+  --rc: 18px;              /* card radius */
+  --rm: 14px;              /* medium radius */
+  --rs: 10px;              /* small radius */
+  --shadow: 0 1px 2px rgba(24, 32, 47, 0.04), 0 10px 26px rgba(24, 32, 47, 0.05);
+  --shadow-raise: 0 2px 8px rgba(124, 92, 255, 0.10), 0 20px 44px rgba(24, 32, 47, 0.09);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.content {
+  max-width: 1240px;
+  padding: 40px 48px 96px;
+}
+
+.narrow {
+  max-width: 980px;
+}
+
+@media (max-width: 1100px) {
+  .content { padding: 32px 32px 96px; }
+}
+
+@media (max-width: 760px) {
+  /* bottom padding clears the phone bottom nav supplied by DashboardChrome */
+  .content { padding: 22px 18px 104px; }
+}

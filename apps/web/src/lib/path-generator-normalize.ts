@@ -279,6 +279,11 @@ interface NormalizedQuizQuestion {
   // malformed figure must never fail the question. Absent on legacy output and
   // whenever no source-figure catalog accompanied the prompt.
   figure?: Record<string, unknown>;
+  // Optional source provenance (Phase D). Passed through verbatim so the
+  // generator validates it with QuizSourceSchema and drops invalid ones — a
+  // malformed source must never fail the question. Absent when the model wrote
+  // the question from general knowledge or no source materials were supplied.
+  source?: Record<string, unknown>;
 }
 
 // Pull the visible text out of an option that the model returned as an
@@ -556,6 +561,10 @@ export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
     // in the generator. Accept `figure` or `image` as the key.
     const figureRaw = q.figure ?? q.image;
     if (isPlainObject(figureRaw)) normalized.figure = figureRaw;
+    // Pass any source object through untyped — QuizSourceSchema is the arbiter
+    // in the generator (Phase D). Accept `source` or the drifted `citation` key.
+    const sourceRaw = q.source ?? q.citation;
+    if (isPlainObject(sourceRaw)) normalized.source = sourceRaw;
     out.push(normalized);
   }
   return out;

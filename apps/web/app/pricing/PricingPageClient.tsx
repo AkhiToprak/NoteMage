@@ -1,313 +1,288 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
-import PricingCard from '@/components/pricing/PricingCard';
-import PricingHero from '@/components/pricing/PricingHero';
-import BillingIntervalToggle from '@/components/pricing/BillingIntervalToggle';
-import FeatureComparison from '@/components/pricing/FeatureComparison';
-import FAQ from '@/components/pricing/FAQ';
-import LandingNavbar from '@/components/landing/LandingNavbar';
-import LandingFooter from '@/components/landing/LandingFooter';
+import MageNav from '@/components/landing/MageNav';
+import MageFooter from '@/components/landing/MageFooter';
 import {
   TIERS,
   monthlyEquivalent,
   yearlySavingsPct,
-  type TierKey,
+  INTERVAL_LABEL,
+  INTERVAL_SUFFIX,
   type BillingInterval,
 } from '@/lib/tiers';
 import { useCurrency } from '@/hooks/useCurrency';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+import styles from './Pricing.module.css';
 
-export default function PricingPageClient({
-  freeAiPathsDisabled,
-}: {
-  freeAiPathsDisabled: boolean;
-}) {
+const INTERVALS: BillingInterval[] = ['weekly', 'monthly', 'yearly'];
+
+/* The two brand sparkles (user SVGs) — gold twinkle + purple 4-point. */
+function Spark({ variant }: { variant: 'gold' | 'purple' }) {
+  return variant === 'gold' ? (
+    <svg viewBox="0 0 29 29" fill="none" aria-hidden focusable="false">
+      <path d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z" fill="#FFC83D" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden focusable="false">
+      <path d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z" fill="#7C5CFF" />
+    </svg>
+  );
+}
+
+type CompareVal = string | boolean;
+type CompareRow = { label: string; free: CompareVal; pro: CompareVal };
+
+function Cell({ value }: { value: CompareVal }) {
+  if (value === true) return <span className={styles.tick} aria-hidden>✓</span>;
+  if (value === '—') return <span className={styles.dash} aria-hidden>—</span>;
+  return <>{value}</>;
+}
+
+const FAQS: { q: string; a: string }[] = [
+  {
+    q: 'Can I switch plans at any time?',
+    a: 'Yes — upgrade or downgrade anytime from Settings. Changes take effect right away.',
+  },
+  {
+    q: 'Is there a student discount?',
+    a: 'Pro is already priced for students — there’s no separate student code, but the yearly plan works out to roughly the price of a coffee a month.',
+  },
+  {
+    q: 'What happens when I hit my monthly limit?',
+    a: 'Your AI allowance simply pauses until it resets at the start of the next month. Your notes, flashcards, quizzes and saved paths keep working — upgrade to Pro for unlimited AI.',
+  },
+  {
+    q: 'Can I cancel my subscription?',
+    a: 'Anytime, from Settings. You keep Pro until the end of the period you’ve already paid for, then drop back to Free. We also offer a 14-day money-back guarantee.',
+  },
+  {
+    q: 'What payment methods do you accept?',
+    a: 'All major cards, handled securely by our payment provider (Lemon Squeezy), which manages checkout, invoices and VAT. You’re billed in CHF.',
+  },
+];
+
+export default function PricingPageClient() {
   const { formatPrice, currency } = useCurrency();
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
-  const { ref: cardsRef, isRevealed: cardsRevealed } = useScrollReveal();
-  const { ref: ctaRef, isRevealed: ctaRevealed } = useScrollReveal();
+  const [interval, setInterval] = useState<BillingInterval>('yearly');
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const tiers: { key: TierKey; ctaText: string }[] = [
-    { key: 'FREE', ctaText: 'Get Started Free' },
-    { key: 'PRO', ctaText: 'Get Pro' },
+  const savings = yearlySavingsPct('PRO');
+
+  const plans = [
+    {
+      key: 'FREE' as const,
+      name: 'Free',
+      pro: false,
+      features: [
+        '1 AI flashcard set',
+        '2 AI quizzes / month',
+        '50 Mage chat messages / month',
+        '50 PDF pages (one-time)',
+        'Flashcards, quizzes & study tools',
+      ],
+      ctaLabel: 'Get started',
+      note: null as string | null,
+    },
+    {
+      key: 'PRO' as const,
+      name: 'Pro',
+      pro: true,
+      features: [
+        'Unlimited AI flashcards, quizzes & chat*',
+        'Unlimited AI study paths',
+        '3 Ultra paths / month',
+        '450 PDF pages / month',
+        'Inline AI editing',
+        'Everything in Free',
+      ],
+      ctaLabel: 'Go Pro  →',
+      note: '*Fair use ~1M tokens / month',
+    },
   ];
 
+  const compare: { group: string; rows: CompareRow[] }[] = [
+    {
+      group: 'AI FEATURES',
+      rows: [
+        { label: 'AI flashcard sets', free: '1 / mo', pro: 'Unlimited*' },
+        { label: 'AI presentations', free: '1 / mo', pro: 'Unlimited*' },
+        { label: 'Study paths', free: '—', pro: 'Unlimited*' },
+        { label: 'Ultra paths', free: '—', pro: '3 / mo' },
+        { label: 'AI quizzes', free: '2 / mo', pro: 'Unlimited*' },
+        { label: 'Mage chat messages', free: '50 / mo', pro: 'Unlimited*' },
+        { label: 'Inline AI editing', free: '—', pro: 'Unlimited*' },
+        { label: 'PDF pages', free: '50 total', pro: '450 / mo' },
+      ],
+    },
+    {
+      group: 'STUDY TOOLS',
+      rows: [
+        { label: 'Flashcards & quizzes', free: true, pro: true },
+        { label: 'Text & canvas files', free: true, pro: true },
+        { label: 'Mind maps', free: true, pro: true },
+        { label: 'Exam timers & streaks', free: true, pro: true },
+        { label: 'And much more…', free: true, pro: true },
+      ],
+    },
+  ];
+
+  const proSub =
+    interval === 'yearly'
+      ? `≈ ${formatPrice(monthlyEquivalent('PRO'))}/mo · billed yearly`
+      : interval === 'monthly'
+        ? 'Billed monthly · cancel anytime'
+        : 'Billed weekly · cancel anytime';
+
   return (
-    <main
-      style={{
-        position: 'relative',
-        isolation: 'isolate',
-        background: '#0c0a1a',
-        color: 'var(--on-surface)',
-        minHeight: '100vh',
-        overflowX: 'hidden',
-      }}
-    >
-      {/* ── GLOBAL STYLES ── */}
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    <div className={styles.root}>
+      <MageNav />
 
-        .grain {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          z-index: 999;
-          opacity: 0.022;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
-        }
+      <main className={styles.page}>
+        {/* ─────────── HEADER ─────────── */}
+        <header className={styles.head}>
+          <div className={styles.headInner}>
+            <span className={`${styles.spark} ${styles.sparkA}`} aria-hidden><Spark variant="gold" /></span>
+            <span className={`${styles.spark} ${styles.sparkB}`} aria-hidden><Spark variant="purple" /></span>
+            <span className={`${styles.spark} ${styles.sparkC}`} aria-hidden><Spark variant="purple" /></span>
+            <p className={styles.eyebrow}>PRICING</p>
+            <h1 className={styles.title}>Simple, student-friendly pricing.</h1>
+            <p className={styles.sub}>
+              Start free. Upgrade to Pro for unlimited AI whenever you need it.
+            </p>
+          </div>
+        </header>
 
-        /* Popular badge float */
-        @keyframes badge-float {
-          0%, 100% { transform: translateX(-50%) translateY(0); }
-          50% { transform: translateX(-50%) translateY(-3px); }
-        }
-        .popular-badge { animation: badge-float 3s ease-in-out infinite; }
-
-        /* Comparison: desktop table visible, mobile hidden */
-        .comparison-desktop { display: block; }
-        .comparison-mobile { display: none; }
-
-        /* Hover on comparison rows */
-        .comparison-row:hover {
-          background: rgba(174,137,255,0.04) !important;
-        }
-
-        /* CTA glow pulse */
-        @keyframes cta-glow {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-
-        /* ── Responsive: Tablet (768–1023px) ── */
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .pricing-hero { padding: 140px 24px 60px !important; }
-          .pricing-cards-grid {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-          }
-          .pricing-cards-grid > * {
-            flex: 0 0 calc(50% - 12px) !important;
-            max-width: calc(50% - 12px) !important;
-          }
-          .pricing-cards-section { padding: 20px 24px 60px !important; }
-          .comparison-section { padding: 60px 24px !important; }
-          .social-proof-section { padding: 20px 24px 60px !important; }
-        }
-
-        /* ── Responsive: Phone (max-width 767px) ── */
-        @media (max-width: 767px) {
-          .pricing-hero { padding: 120px 16px 40px !important; }
-          .pricing-cards-grid {
-            /* column-reverse keeps PRO (second in source order) on top on a
-               phone so it isn't below the fold; FREE follows underneath. */
-            flex-direction: column-reverse !important;
-            align-items: center !important;
-            padding-top: 8px !important;
-          }
-          .pricing-cards-grid > * {
-            width: 100% !important;
-            max-width: 400px !important;
-            transform: none !important;
-          }
-          .pricing-cards-section { padding: 20px 16px 40px !important; }
-          .comparison-section { padding: 40px 16px !important; }
-          .comparison-desktop { display: none !important; }
-          .comparison-mobile { display: block !important; }
-          .social-proof-section { padding: 20px 16px 40px !important; }
-          .social-proof-grid {
-            flex-direction: column !important;
-          }
-          .cta-banner { padding: 60px 16px !important; }
-        }
-
-        /* Reduced motion */
-        @media (prefers-reduced-motion: reduce) {
-          .popular-badge { animation: none !important; }
-          * { transition-duration: 0.01ms !important; }
-        }
-      `}</style>
-
-      {/* Grain */}
-      <div className="grain" />
-
-      {/* ── NAVBAR ── */}
-      <LandingNavbar />
-
-      {/* ── HERO ── */}
-      <PricingHero />
-
-      {/* ── PRICING CARDS ── */}
-      <section
-        ref={cardsRef}
-        className="pricing-cards-section"
-        style={{ padding: '20px 40px 80px', position: 'relative', zIndex: 1 }}
-      >
-        {/* Billing interval switcher */}
-        <div style={{ marginBottom: 40 }}>
-          <BillingIntervalToggle
-            value={billingInterval}
-            onChange={setBillingInterval}
-            savingsPct={yearlySavingsPct('PRO')}
-          />
+        {/* ─────────── BILLING TOGGLE ─────────── */}
+        <div className={styles.toggleRow}>
+          <div className={styles.seg} role="tablist" aria-label="Billing interval">
+            {INTERVALS.map((iv) => (
+              <button
+                key={iv}
+                type="button"
+                role="tab"
+                aria-selected={interval === iv}
+                className={`${styles.segBtn} ${interval === iv ? styles.segActive : ''}`}
+                onClick={() => setInterval(iv)}
+              >
+                {INTERVAL_LABEL[iv]}
+              </button>
+            ))}
+          </div>
+          {savings > 0 && <span className={styles.savePill}>Save {savings}%</span>}
         </div>
 
-        <div
-          className="pricing-cards-grid"
-          style={{
-            display: 'flex',
-            gap: 24,
-            justifyContent: 'center',
-            alignItems: 'stretch',
-            maxWidth: 1280,
-            margin: '0 auto',
-          }}
-        >
-          {tiers.map(({ key, ctaText }, idx) => {
-            const subline =
-              key === 'PRO' && billingInterval === 'yearly'
-                ? `${formatPrice(monthlyEquivalent(key))} / month`
-                : undefined;
+        {/* ─────────── PLAN CARDS ─────────── */}
+        <section className={styles.cards}>
+          {plans.map((plan) => {
+            // Free is always "CHF 0" (formatPrice maps 0 → "Free", which would double
+            // the plan name). Pro drops a trailing ".00" so round prices read "CHF 99".
+            const amount = plan.pro
+              ? formatPrice(TIERS.PRO.price[interval]).replace(/([.,])00\b/, '')
+              : 'CHF 0';
+            const suffix = plan.pro ? INTERVAL_SUFFIX[interval] : '';
+            const sub = plan.pro ? proSub : 'Free forever — no card needed';
             return (
-              <PricingCard
-                key={key}
-                tier={key}
-                freeAiPathsDisabled={freeAiPathsDisabled}
-                formattedPrice={formatPrice(TIERS[key].price[billingInterval])}
-                interval={billingInterval}
-                priceSubline={subline}
-                ctaHref="/auth/register"
-                ctaText={ctaText}
-                isRevealed={cardsRevealed}
-                delay={idx * 120}
-              />
+              <div key={plan.key} className={`${styles.plan} ${plan.pro ? styles.planPro : ''}`}>
+                <div className={styles.planHead}>
+                  <span className={styles.planName}>{plan.name}</span>
+                  {plan.pro && <span className={styles.popular}>Most popular</span>}
+                </div>
+                <div className={styles.price}>
+                  <span className={styles.priceAmt}>{amount}</span>
+                  {suffix && <span className={styles.priceSuffix}>{suffix}</span>}
+                </div>
+                <p className={styles.priceSub}>{sub}</p>
+                <div className={styles.planDivider} />
+                <ul className={styles.feats}>
+                  {plan.features.map((f, i) => (
+                    <li key={i}>
+                      <span className={`${styles.tick} ${plan.pro ? styles.tickPro : ''}`} aria-hidden>✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={plan.pro ? `/auth/register?interval=${interval}` : '/auth/register'}
+                  className={plan.pro ? styles.btnPro : styles.btnFree}
+                >
+                  {plan.ctaLabel}
+                </Link>
+                {plan.note && <p className={styles.planNote}>{plan.note}</p>}
+              </div>
             );
           })}
-        </div>
+        </section>
 
         {currency !== 'CHF' && (
-          <p
-            style={{
-              margin: '24px auto 0',
-              maxWidth: 640,
-              textAlign: 'center',
-              fontSize: 13,
-              lineHeight: 1.6,
-              color: 'var(--outline)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-              info
-            </span>
-            Prices shown in your approximate local currency. You&apos;ll be billed in CHF,
-            converted at checkout.
+          <p className={styles.fx}>
+            <span className="material-symbols-outlined" aria-hidden>info</span>
+            Prices shown in your approximate local currency. You’ll be billed in CHF, converted at checkout.
           </p>
         )}
-      </section>
 
-      {/* ── FEATURE COMPARISON ── */}
-      <FeatureComparison freeAiPathsDisabled={freeAiPathsDisabled} />
+        {/* ─────────── COMPARISON TABLE ─────────── */}
+        <section className={styles.compareWrap}>
+          <h2 className={styles.h2}>Compare plans in detail</h2>
+          <div className={styles.tableCard}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.thFeature}>Feature</th>
+                  <th className={styles.thPlan}>Free</th>
+                  <th className={`${styles.thPlan} ${styles.proCol}`}>Pro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {compare.map((section) => (
+                  <Fragment key={section.group}>
+                    <tr className={styles.groupRow}>
+                      <td colSpan={3}>{section.group}</td>
+                    </tr>
+                    {section.rows.map((row) => (
+                      <tr key={row.label} className={styles.dataRow}>
+                        <td className={styles.tdFeature}>{row.label}</td>
+                        <td className={styles.tdPlan}><Cell value={row.free} /></td>
+                        <td className={`${styles.tdPlan} ${styles.proCol}`}><Cell value={row.pro} /></td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className={styles.fineprint}>
+            *Pro usage is subject to a fair-use policy (~1M tokens/month) — far more than any student
+            realistically uses. It’s only there to prevent abuse.
+          </p>
+        </section>
 
-      {/* ── FAQ ── */}
-      <FAQ />
+        {/* ─────────── FAQ ─────────── */}
+        <section className={styles.faqWrap}>
+          <h2 className={styles.h2}>Frequently asked questions</h2>
+          <div className={styles.faqList}>
+            {FAQS.map((f, i) => {
+              const open = openFaq === i;
+              return (
+                <div key={f.q} className={styles.faqItem}>
+                  <button
+                    type="button"
+                    className={styles.faqQ}
+                    aria-expanded={open}
+                    onClick={() => setOpenFaq(open ? null : i)}
+                  >
+                    <span>{f.q}</span>
+                    <span className={styles.faqSign} aria-hidden>{open ? '−' : '+'}</span>
+                  </button>
+                  {open && <p className={styles.faqA}>{f.a}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </main>
 
-      {/* ── CTA BANNER ── */}
-      <section
-        ref={ctaRef}
-        className="cta-banner"
-        style={{
-          padding: 'clamp(40px, 8vw, 80px) clamp(20px, 5vw, 40px)',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(28px, 4vw, 40px)',
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-            color: 'var(--on-surface)',
-            marginBottom: 16,
-            position: 'relative',
-            zIndex: 1,
-            opacity: ctaRevealed ? 1 : 0,
-            transform: ctaRevealed ? 'translateY(0)' : 'translateY(16px)',
-            transition:
-              'opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1)',
-          }}
-        >
-          Get started today
-        </h2>
-        <p
-          style={{
-            fontSize: 'clamp(15px, 2vw, 17px)',
-            color: 'var(--on-surface-variant)',
-            opacity: ctaRevealed ? 0.7 : 0,
-            lineHeight: 1.6,
-            maxWidth: 480,
-            margin: '0 auto 32px',
-            position: 'relative',
-            zIndex: 1,
-            transform: ctaRevealed ? 'translateY(0)' : 'translateY(16px)',
-            transition:
-              'opacity 0.6s cubic-bezier(0.22,1,0.36,1) 80ms, transform 0.6s cubic-bezier(0.22,1,0.36,1) 80ms',
-          }}
-        >
-          Pick a plan and start learning in minutes.
-        </p>
-        <Link
-          href="/auth/register"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'var(--tertiary-container)',
-            color: '#22223a',
-            fontWeight: 700,
-            fontSize: 16,
-            padding: '15px 32px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            textDecoration: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 4px 28px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.3)',
-            position: 'relative',
-            zIndex: 1,
-            opacity: ctaRevealed ? 1 : 0,
-            transform: ctaRevealed ? 'translateY(0)' : 'translateY(16px)',
-            transition:
-              'opacity 0.6s cubic-bezier(0.22,1,0.36,1) 160ms, transform 0.4s cubic-bezier(0.22,1,0.36,1)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-3px)';
-            e.currentTarget.style.boxShadow =
-              '0 10px 48px rgba(255,222,89,0.35), 0 4px 16px rgba(0,0,0,0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow =
-              '0 4px 28px rgba(255,222,89,0.25), 0 2px 8px rgba(0,0,0,0.3)';
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}
-          >
-            rocket_launch
-          </span>
-          Get Started Free
-        </Link>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <LandingFooter />
-    </main>
+      <MageFooter />
+    </div>
   );
 }

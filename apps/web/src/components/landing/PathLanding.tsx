@@ -1,18 +1,27 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { Fragment, useEffect, useRef, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isInsideNativeShell } from '@/lib/native-bridge';
-import LandingNavbar from './LandingNavbar';
+import { setPendingUpload, patchOnboardingDraft } from '@/lib/onboarding-handoff';
+import { extractCappedCorpus } from '@/lib/onboarding-corpus';
+import { putPendingFile, putPendingCorpus } from '@/lib/onboarding-file-store';
+import { uploadTooLarge, MAX_UPLOAD_LABEL } from '@/lib/onboarding-preview-constants';
+import MageNav from './MageNav';
+import MageFooter from './MageFooter';
 import styles from './PathLanding.module.css';
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ─────────  checkpoint data (matches the Figma "Path Concept" frame)  ───────── */
+/* ─────────  checkpoint data (matches the Figma "Notemage Landing New" frame)  ─────────
+   START → 5 alternating cards → Finish. `side` is the card's rail, `mascotSide` the
+   opposite rail, `nudge` shifts the node toward its card (the gentle ±30 zig-zag in
+   the Figma). One card is `active` — the "aha moment". `mascot` keys a book-wizard
+   pose in /public/landing. */
 type Checkpoint = {
   id: string;
   kind?: 'start' | 'finish';
@@ -21,189 +30,103 @@ type Checkpoint = {
   nudge: number;
   side?: 'left' | 'right';
   mascotSide?: 'left' | 'right';
-  mascot?: string[];
+  mascot?: string;
   active?: boolean;
-  eyebrow?: ReactNode;
+  eyebrow?: string;
   title?: ReactNode;
-  body?: ReactNode[];
-  bullets?: ReactNode[];
-  grade?: string;
-  stars?: number;
+  body?: string[];
+  bullets?: string[];
 };
 
 const CP: Checkpoint[] = [
   { id: 'start', kind: 'start', icon: 'flag', bubble: 'START', nudge: 0 },
   {
-    id: 'notes', icon: 'edit_note', nudge: -28, side: 'left', mascotSide: 'right', mascot: ['writing'],
-    eyebrow: 'NOTES & CANVAS',
-    title: <>Take <span className="pl-g-purple">Notes</span></>,
-    body: [
-      'Either as a Text editor with Inline AI features, or draw on a canvas using your pen.',
-      'You already have Notes on another app? No worries, import them with a single click!',
-    ],
-    bullets: ['Slash menu & markdown shortcuts', 'Easy Import', 'Inline AI rewrite · Pro'],
+    id: 'upload', icon: 'upload', nudge: -30, side: 'left', mascotSide: 'right', mascot: 'writing',
+    eyebrow: 'BRING ANYTHING',
+    title: 'Upload your material',
+    body: ['Drop a PDF, slides, notes, or images — or paste a YouTube link. Mage works straight from your own material.'],
+    bullets: ['PDFs, slides & images', 'Paste notes or a video link', 'No messy reformatting'],
   },
   {
-    id: 'mage', icon: 'auto_awesome', nudge: 28, side: 'right', mascotSide: 'left', mascot: ['wave'],
-    eyebrow: 'AI TUTOR',
-    title: <>Meet your personal <span className="pl-g-gold">Mage</span></>,
-    body: ['Ask about anything inside your Notes or study material, and get real-time answers!'],
-    bullets: [<>Personalize your <span className="pl-g-gold">Mage</span></>, 'Feed him your material', 'And ask away!'],
-  },
-  {
-    id: 'cards', icon: 'content_copy', nudge: -24, side: 'left', mascotSide: 'right', mascot: ['holding-flashcards'],
-    eyebrow: 'SPACED REPETITION',
-    title: <>Flashcards &amp; quizzes</>,
-    body: ['Feed Mage your material, and watch him build flashcards and quizzes in seconds.'],
-    bullets: ['No more hour-long flashcard creation', 'Test your knowledge in quizzes based on your material', 'Track your performance'],
-  },
-  {
-    id: 'paths', icon: 'account_tree', nudge: 28, side: 'right', mascotSide: 'left', mascot: ['graduation'],
+    id: 'path', icon: 'account_tree', nudge: 30, side: 'right', mascotSide: 'left', mascot: 'grad',
     active: true,
-    eyebrow: 'THE MAIN EVENT',
-    title: <><span className="pl-g-gold">Learning Paths</span> based on your material</>,
-    body: ['An entire, multiphase learning path with theory modules, graded exams, and more from your study material!'],
-    bullets: ['Phased units & sections', 'Graded checkpoint exams', 'Resume where you left off'],
+    eyebrow: 'THE AHA MOMENT',
+    title: <>Get your <span className="pl-g-deepgold">learning path</span></>,
+    body: ['Mage turns your material into a multi-phase path — theory, quizzes, and checkpoints, all grounded in your sources.'],
+    bullets: ['Phased units & sections', 'Source-cited lessons', 'Built around your goal'],
   },
   {
-    id: 'habit', icon: 'local_fire_department', nudge: -24, side: 'left', mascotSide: 'right', mascot: ['graduation'],
-    grade: 'A', stars: 3,
-    eyebrow: 'HABIT BUILDING',
-    title: <>Make studying into a habit</>,
-    body: ['Give yourself a daily goal, and compete against yourself!'],
-    bullets: ['Streaks & achievements', 'Exam countdown', 'Reminders'],
+    id: 'study', icon: 'auto_awesome', nudge: -30, side: 'left', mascotSide: 'right', mascot: 'plain',
+    eyebrow: 'GUIDED SESSIONS',
+    title: 'Study with Mage',
+    body: ['Short, focused sessions: read a little, then Mage checks your understanding and explains every answer.'],
+    bullets: ['Bite-size lessons', 'Source-grounded answers', 'Ask Mage anything'],
   },
-  { id: 'finish', kind: 'finish', icon: 'trophy', bubble: 'Finish', nudge: 0 },
+  {
+    id: 'practise', icon: 'fitness_center', nudge: 30, side: 'right', mascotSide: 'left', mascot: 'cards',
+    eyebrow: 'WEAK-POINT TRAINING',
+    title: 'Practise what you miss',
+    body: ['Mage spots your weak points and brings them back at the right time — so you fix what actually trips you up.'],
+    bullets: ['Automatic weak-point tracking', 'A smart review queue', 'Flashcards & quizzes'],
+  },
+  {
+    id: 'consistent', icon: 'local_fire_department', nudge: -30, side: 'left', mascotSide: 'right', mascot: 'sparkle',
+    eyebrow: 'STAY CONSISTENT',
+    title: 'Stay on track until exam day',
+    body: ['Daily goals, streaks, and an exam countdown keep you moving — right up to the day it counts.'],
+    bullets: ['Daily goals & streaks', 'Exam countdown', 'Gentle reminders'],
+  },
+  { id: 'finish', kind: 'finish', icon: 'emoji_events', bubble: 'Finish', nudge: 0 },
 ];
 
-/* vertical span of the connector BETWEEN node i and node i+1 */
-const SEG_H = [240, 480, 480, 480, 480, 320];
+/* vertical span of the connector BETWEEN node i and node i+1 (Figma node spacing ≈ 400px) */
+const SEG_H = [400, 400, 400, 400, 400, 380];
 
-/* ─────────  hero preview carousel data  ───────── */
-type SectionSlide = { eyebrow: string; title: ReactNode; grade: string; desc: ReactNode; nodes: string[] };
-type VideoSlide = { video: string; title: string; label: string };
-type Slide = SectionSlide | VideoSlide;
-const SLIDES: Slide[] = [
-  {
-    // Intro explainer — the first object in the carousel. Source of truth lives
-    // in brand_assets/videos/; this served copy is in apps/web/public/videos/.
-    video: '/videos/learning_path_landing_video.mp4',
-    title: 'Learning Paths',
-    label: 'See how NoteMage turns your material into a guided learning path',
-  },
-  {
-    video: '/videos/notemage-flashcards-16x9.mp4',
-    title: 'Flashcards',
-    label: 'See how NoteMage turns your notes into flashcards',
-  },
-  {
-    video: '/videos/notemage-ai-chat-16x9.mp4',
-    title: 'Mage Chat',
-    label: 'See how Mage Chat answers questions about your notes',
-  },
-  {
-    video: '/videos/notemage-inline-edits-16x9.mp4',
-    title: 'Inline Edits',
-    label: 'See how NoteMage edits your notes inline',
-  },
-];
-const SLOTS = ['left', 'center', 'right'];
-const CONN = ['M 80 6 C 80 40, 240 26, 240 58', 'M 240 6 C 240 40, 400 26, 400 58'];
+/* the file-type pills under the hero card */
+const CHIPS = ['YouTube', 'PDF', 'Slides', 'Notes', 'Images'];
 
-/* footer links — paths verified against the existing LandingFooter */
-const FOOTER_LINKS = [
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'How it works', href: '/#how-it-works' },
-  { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
-  { label: 'Docs', href: '/docs' },
-  { label: 'Privacy', href: '/privacy' },
-  { label: 'Terms', href: '/terms' },
-  { label: 'Refunds', href: '/refund' },
-  { label: 'Legal Notice', href: '/legal' },
-];
+/* nav + footer chrome now live in the shared MageNav / MageFooter components */
 
-function CarouselSlide({ s, idx, total, clone }: { s: Slide; idx: number; total: number; clone?: boolean }) {
-  return (
-    <div
-      className="pl-car-slide"
-      role="group"
-      aria-roledescription="slide"
-      aria-label={`${idx + 1} of ${total}`}
-      {...(clone ? { 'data-clone': '', 'aria-hidden': true } : {})}
-    >
-      {'video' in s ? (
-        <div className="pl-car-video-frame">
-          <div className="pl-car-video-title">{s.title}</div>
-          <video
-            className="pl-car-video"
-            src={s.video}
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-label={s.label}
-          />
-        </div>
-      ) : (
-        <>
-          <div className="pl-mini-banner">
-            <div className="pl-mb-text">
-              <div className="pl-mb-eyebrow">{s.eyebrow}</div>
-              <div className="pl-mb-title">{s.title}</div>
-              <div className="pl-mb-desc">{s.desc}</div>
-            </div>
-            <span className="pl-grade-pill"><strong>{s.grade}</strong> AVG</span>
-            <span className="pl-mb-icon-btn"><span className="material-symbols-outlined">menu_book</span></span>
-          </div>
-          <div className="pl-mini-path">
-            {s.nodes.map((label, i) => (
-              <Fragment key={i}>
-                <div className="pl-mini-row">
-                  <div className={`pl-mini-slot pl-${SLOTS[i]}`}>
-                    <div className="pl-mini-node">
-                      <span className="material-symbols-outlined">menu_book</span>
-                      <span className="pl-mini-check"><span className="material-symbols-outlined">check</span></span>
-                    </div>
-                    <div className="pl-mini-label">{label}</div>
-                  </div>
-                </div>
-                {i < s.nodes.length - 1 && (
-                  <svg className="pl-mini-conn" viewBox="0 0 480 64" preserveAspectRatio="none" aria-hidden>
-                    <path d={CONN[i]} stroke="var(--node)" strokeWidth="5" fill="none" strokeLinecap="round" />
-                  </svg>
-                )}
-              </Fragment>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+/* the two brand sparkles (user-supplied SVGs): gold 4-point twinkle + purple 4-point.
+   String forms feed the imperative "magic" burst; the component is for JSX placement. */
+const SPARK_GOLD =
+  '<svg viewBox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z" fill="#FFC83D"/></svg>';
+const SPARK_PURPLE =
+  '<svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z" fill="#7C5CFF"/></svg>';
+
+function Spark({ variant }: { variant: 'gold' | 'purple' }) {
+  return variant === 'gold' ? (
+    <svg viewBox="0 0 29 29" fill="none" aria-hidden focusable="false">
+      <path d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z" fill="#FFC83D" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden focusable="false">
+      <path d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z" fill="#7C5CFF" />
+    </svg>
   );
 }
 
-function Mascot({ cp }: { cp: Checkpoint }) {
-  const mascots = cp.mascot ?? [];
-  if (mascots.length > 1) {
-    return (
-      <div className="pl-mascot-grid" aria-hidden>
-        {mascots.map((m, idx) => (
-          <img key={idx} className={`pl-floaty pl-d${idx}`} src={`/mascot/${m}-v2.png`} alt="" loading="lazy" decoding="async" />
-        ))}
-      </div>
-    );
-  }
-  return <img className="pl-mascot pl-floaty" src={`/mascot/${mascots[0]}-v2.png`} alt="" aria-hidden loading="lazy" decoding="async" />;
+function Mascot({ pose }: { pose: string }) {
+  return (
+    <img
+      className="pl-mascot pl-floaty"
+      src={`/landing/mage-${pose}.png`}
+      alt=""
+      aria-hidden
+      loading="lazy"
+      decoding="async"
+    />
+  );
 }
 
 export default function PathLanding() {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const carTrackRef = useRef<HTMLDivElement>(null);
-  const dotsRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [linkValue, setLinkValue] = useState('');
+  const [uploadError, setUploadError] = useState('');
 
   // Native shells (iOS WebView, Electron) boot into the app, never the marketing
   // landing. Catch deep links / errant navs that drop a native user back at /.
@@ -499,10 +422,7 @@ export default function PathLanding() {
       for (let i = 0; i < COUNT; i++) {
         const spark = document.createElement('span');
         spark.className = 'pl-magic-spark';
-        const icon = document.createElement('span');
-        icon.className = 'material-symbols-outlined filled';
-        icon.textContent = 'auto_awesome';
-        spark.appendChild(icon);
+        spark.innerHTML = i % 2 === 0 ? SPARK_GOLD : SPARK_PURPLE;
         const onLeft = i % 2 === 0;
         const x = onLeft ? Math.random() * band : vw - Math.random() * band;
         spark.style.left = `${x.toFixed(0)}px`;
@@ -510,7 +430,6 @@ export default function PathLanding() {
         spark.style.setProperty('--rot', `${((onLeft ? -1 : 1) * (60 + Math.random() * 170)).toFixed(0)}deg`);
         spark.style.setProperty('--sz', `${(14 + Math.random() * 18).toFixed(0)}px`);
         spark.style.setProperty('--drift', `${(-12 - Math.random() * 40).toFixed(0)}px`);
-        spark.style.color = i % 3 === 0 ? 'var(--primary)' : 'var(--gold)';
         spark.style.animationDelay = `${Math.floor(Math.random() * 300)}ms`;
         layer.appendChild(spark);
       }
@@ -521,175 +440,39 @@ export default function PathLanding() {
     startNode?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   };
 
-  /* ─────────  hero preview carousel  ───────── */
-  useEffect(() => {
-    const root = carouselRef.current;
-    const track = carTrackRef.current;
-    const dotsWrap = dotsRef.current;
-    if (!root || !track || !dotsWrap) return;
-
-    const N = SLIDES.length;
-    const cells = Array.from(track.children) as HTMLElement[]; // N + 2 (clones at both ends)
-    const dots = Array.from(dotsWrap.children) as HTMLElement[];
-    const reduce = prefersReducedMotion();
-    const vp = root.querySelector<HTMLElement>('.pl-car-viewport');
-    const playPauseBtn = root.querySelector<HTMLButtonElement>('.pl-car-playpause');
-    // Each video slide (and the loop clone) renders a <video>. Only the current
-    // slide's clip plays — the rest stay paused so the hero never decodes more
-    // than one at a time. Playback is JS-gated, so reduced-motion users get a
-    // paused first frame (no autoplay attribute on the elements).
-    const videos = Array.from(track.querySelectorAll<HTMLVideoElement>('video.pl-car-video'));
-    let cur = 1; // cells[1] = first real slide
-    let userPaused = false; // manual pause of the current slide's video
-
-    const currentVideo = (): HTMLVideoElement | null =>
-      videos.find((v) => cells[cur].contains(v)) ?? null;
-
-    // The play/pause control governs the current slide's video — the pause
-    // affordance WCAG 2.2.2 wants for the looping clips. Hidden on slides with
-    // no video (and under reduced motion, via CSS).
-    const syncPlayPause = () => {
-      if (!playPauseBtn) return;
-      const cv = currentVideo();
-      playPauseBtn.style.display = cv ? '' : 'none';
-      if (!cv) return;
-      const icon = playPauseBtn.querySelector('.material-symbols-outlined');
-      if (icon) icon.textContent = cv.paused ? 'play_arrow' : 'pause';
-      playPauseBtn.setAttribute('aria-label', cv.paused ? 'Play video' : 'Pause video');
-    };
-    const syncVideos = () => {
-      const cv = currentVideo();
-      videos.forEach((v) => {
-        if (v === cv && !userPaused && !reduce) void v.play().catch(() => {});
-        else v.pause();
-      });
-      syncPlayPause();
-    };
-
-    function paint(animate: boolean) {
-      track!.style.transition = animate ? '' : 'none';
-      if (vp) vp.style.transition = animate ? '' : 'none';
-      track!.style.transform = `translateX(${-cells[cur].offsetLeft}px)`;
-      // Viewport hugs the current slide's own height, so each 16:9 video and the
-      // taller section previews fill the window without letterboxing.
-      if (vp) vp.style.height = `${cells[cur].offsetHeight}px`;
-      cells.forEach((c, i) => c.classList.toggle('pl-is-current', i === cur));
-      const logical = (((cur - 1) % N) + N) % N;
-      dots.forEach((d, i) => {
-        if (i === logical) d.setAttribute('aria-current', 'true');
-        else d.removeAttribute('aria-current');
-      });
-      syncVideos();
-      if (!animate) {
-        void track!.offsetWidth; // commit, then re-enable transitions
-        track!.style.transition = '';
-        if (vp) vp.style.transition = '';
-      }
+  /* The two import affordances open their onboarding bridge — a pre-sign-up
+     "here's what I detected, what's your goal?" step. The pasted link rides the
+     URL so the bridge can resolve the real video; a picked file's metadata is
+     stashed for the bridge to show. The real importer still lives past sign-up. */
+  const goLinkBridge = (e?: { preventDefault: () => void }) => {
+    e?.preventDefault();
+    const url = linkValue.trim();
+    router.push(url ? `/start/link?url=${encodeURIComponent(url)}` : '/start/link');
+  };
+  const openFilePicker = () => fileInputRef.current?.click();
+  const onFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // let the same file be re-picked later
+    if (!file) return;
+    // Client reject (P5): the preview only reads a capped slice, so refuse a file
+    // too large to stash in IndexedDB rather than choke the device on it.
+    if (uploadTooLarge(file.size)) {
+      setUploadError(`That file is over ${MAX_UPLOAD_LABEL}. Try a smaller PDF, slides, or notes.`);
+      return;
     }
-    function step(dir: number) {
-      userPaused = false;
-      if (cur > N) {
-        cur = 1;
-        paint(false);
-      } else if (cur < 1) {
-        cur = N;
-        paint(false);
-      }
-      cur += dir;
-      paint(true);
-    }
-    function toLogical(L: number) {
-      userPaused = false;
-      cur = L + 1;
-      paint(true);
-    }
-
-    const onTransitionEnd = (e: TransitionEvent) => {
-      if (e.target !== track || e.propertyName !== 'transform') return;
-      if (cur > N) {
-        cur = 1;
-        paint(false);
-      } else if (cur < 1) {
-        cur = N;
-        paint(false);
-      }
-    };
-    track.addEventListener('transitionend', onTransitionEnd);
-
-    // Manual navigation only — the carousel never advances on its own.
-    const dotHandlers = dots.map((d) => {
-      const h = () => toLogical(Number(d.dataset.i));
-      d.addEventListener('click', h);
-      return h;
+    setUploadError('');
+    setPendingUpload({ name: file.name, size: file.size, mime: file.type });
+    patchOnboardingDraft({ source: 'upload', sourceKind: 'upload' });
+    // Keep the heavy bytes client-side (IndexedDB) — they're uploaded only after
+    // auth (D2). Extract the capped text slice now so the building step can POST
+    // it for the preview without re-reading the file. Both are fire-and-forget;
+    // the SPA context survives the navigation below, so they finish off-thread.
+    void putPendingFile(file);
+    void extractCappedCorpus(file).then((corpus) => {
+      if (corpus.text) void putPendingCorpus(corpus);
     });
-
-    const prevBtn = root.querySelector<HTMLButtonElement>('.pl-car-arrow.pl-prev');
-    const nextBtn = root.querySelector<HTMLButtonElement>('.pl-car-arrow.pl-next');
-    const onPrev = () => step(-1);
-    const onNext = () => step(1);
-    prevBtn?.addEventListener('click', onPrev);
-    nextBtn?.addEventListener('click', onNext);
-
-    const onPlayPause = () => {
-      const cv = currentVideo();
-      if (!cv) return;
-      if (cv.paused) {
-        userPaused = false;
-        void cv.play().catch(() => {});
-      } else {
-        userPaused = true;
-        cv.pause();
-      }
-      syncPlayPause();
-    };
-    playPauseBtn?.addEventListener('click', onPlayPause);
-    videos.forEach((v) => {
-      v.addEventListener('play', syncPlayPause);
-      v.addEventListener('pause', syncPlayPause);
-    });
-
-    // swipe / drag
-    let x0: number | null = null;
-    const onPointerDown = (e: PointerEvent) => {
-      x0 = e.clientX;
-    };
-    const onPointerUp = (e: PointerEvent) => {
-      if (x0 == null) return;
-      const dx = e.clientX - x0;
-      if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
-      x0 = null;
-    };
-    vp?.addEventListener('pointerdown', onPointerDown);
-    vp?.addEventListener('pointerup', onPointerUp);
-
-    paint(false);
-    let rt: ReturnType<typeof setTimeout> | undefined;
-    const onResize = () => {
-      clearTimeout(rt);
-      rt = setTimeout(() => paint(false), 120);
-    };
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      clearTimeout(rt);
-      track.removeEventListener('transitionend', onTransitionEnd);
-      dots.forEach((d, i) => d.removeEventListener('click', dotHandlers[i]));
-      prevBtn?.removeEventListener('click', onPrev);
-      nextBtn?.removeEventListener('click', onNext);
-      playPauseBtn?.removeEventListener('click', onPlayPause);
-      videos.forEach((v) => {
-        v.removeEventListener('play', syncPlayPause);
-        v.removeEventListener('pause', syncPlayPause);
-      });
-      vp?.removeEventListener('pointerdown', onPointerDown);
-      vp?.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
-
-  // [cloneOf(last), s0 … s(N-1), cloneOf(first)] — a real next slide always peeks on
-  // the right and the loop is seamless (animate onto a clone, snap to its real twin).
-  const N = SLIDES.length;
+    router.push('/start/upload');
+  };
 
   return (
     <div className={styles.root} ref={rootRef}>
@@ -699,85 +482,102 @@ export default function PathLanding() {
       <noscript>
         <style>{`.nm-landing .pl-reveal,.nm-landing .pl-node-wrap .pl-gutter{opacity:1!important;transform:none!important}`}</style>
       </noscript>
-      {/* ─────────────  NAV  ─────────────
-          Shared marketing pill, identical across every signed-out page. */}
-      <LandingNavbar />
+
+      {/* ─────────────  NAV  ───────────── */}
+      <MageNav />
 
       <div className="pl-page">
         {/* ─────────────  HERO  ───────────── */}
         <div className="pl-hero">
           <div className="pl-hero-title">
             {/* decorative golden sparkles orbiting the headline (purely ornamental) */}
-            <span className="pl-hspark pl-hspark--lg pl-hspark-a" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark-b" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark--sm pl-hspark-c" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark--sm pl-hspark-d" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark-e" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark--lg pl-hspark-f" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <h1>
-              Your <span className="pl-g-gold">Path</span> to academic success
-            </h1>
+            <span className="pl-hspark pl-hspark--lg pl-hspark-a pl-spk-gold" aria-hidden><Spark variant="gold" /></span>
+            <span className="pl-hspark pl-hspark-b pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-c pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-d pl-spk-gold" aria-hidden><Spark variant="gold" /></span>
+            <span className="pl-hspark pl-hspark-e pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
+            <span className="pl-hspark pl-hspark--lg pl-hspark-f pl-spk-gold" aria-hidden><Spark variant="gold" /></span>
+            <h1>Turn anything into a learning path.</h1>
           </div>
+          <p className="pl-hero-sub">
+            Paste a YouTube link or drop your PDF, slides, or notes. Mage builds your personal study path in minutes.
+          </p>
         </div>
 
+        {/* ─────────────  HERO INPUT CARD  ─────────────
+            Visual only for now — link-paste isn't wired, so submitting or browsing
+            routes into sign-up where the real importer lives. */}
         <section className="pl-hero-stage">
-          <div className="pl-hero-card">
-            <div className="pl-carousel" ref={carouselRef} aria-roledescription="carousel" aria-label="NoteMage feature videos">
-              <div className="pl-car-viewport">
-                <div className="pl-car-track" ref={carTrackRef}>
-                  <CarouselSlide s={SLIDES[N - 1]} idx={N - 1} total={N} clone />
-                  {SLIDES.map((s, i) => (
-                    <CarouselSlide key={i} s={s} idx={i} total={N} />
-                  ))}
-                  <CarouselSlide s={SLIDES[0]} idx={0} total={N} clone />
-                </div>
+          <img className="pl-hero-mage pl-floaty" src="/landing/mage-wand.png" alt="" aria-hidden loading="lazy" decoding="async" />
+          <span className="pl-paper pl-paper-1" aria-hidden />
+          <span className="pl-paper pl-paper-2" aria-hidden />
+
+          <form className="pl-hero-card" onSubmit={goLinkBridge}>
+            <div className="pl-hc-top">
+              <div className="pl-hc-field">
+                <span className="pl-hc-field-icon" aria-hidden>
+                  <span className="material-symbols-outlined filled">play_arrow</span>
+                </span>
+                <input
+                  className="pl-hc-input"
+                  type="text"
+                  placeholder="Paste a YouTube link…"
+                  aria-label="Paste a YouTube link"
+                  value={linkValue}
+                  onChange={(e) => setLinkValue(e.target.value)}
+                  inputMode="url"
+                  autoComplete="off"
+                />
               </div>
-              <button className="pl-car-arrow pl-prev" type="button" aria-label="Previous section">
-                <span className="material-symbols-outlined" aria-hidden>chevron_left</span>
-              </button>
-              <button className="pl-car-arrow pl-next" type="button" aria-label="Next section">
-                <span className="material-symbols-outlined" aria-hidden>chevron_right</span>
-              </button>
-              <div className="pl-car-controls">
-                <div className="pl-car-dots" ref={dotsRef} role="group" aria-label="Choose a section">
-                  {SLIDES.map((s, i) => {
-                    const isVideo = 'video' in s;
-                    const n = SLIDES.slice(0, i + 1).filter((x) => 'video' in x === isVideo).length;
-                    return (
-                      <button
-                        key={i}
-                        className="pl-car-dot"
-                        type="button"
-                        aria-label={isVideo ? `Go to video ${n}` : `Go to section ${n}`}
-                        data-i={i}
-                      />
-                    );
-                  })}
-                </div>
-                <button className="pl-car-playpause" type="button" aria-label="Pause video">
-                  <span className="material-symbols-outlined" aria-hidden>pause</span>
-                </button>
-              </div>
+              <button type="submit" className="pl-hc-create">Create my path</button>
             </div>
+
+            <div className="pl-hc-or" aria-hidden>
+              <span className="pl-hc-rule" />
+              <span className="pl-hc-or-text">or</span>
+              <span className="pl-hc-rule" />
+            </div>
+
+            <button type="button" className="pl-hc-drop" onClick={openFilePicker}>
+              <span className="pl-hc-drop-icon" aria-hidden>
+                <span className="material-symbols-outlined">upload</span>
+              </span>
+              <span className="pl-hc-drop-text">
+                <strong>Drop a PDF, slides, or image</strong>
+                <span>or click to browse your files</span>
+              </span>
+              <span className="pl-hc-browse">Browse files</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md,.rtf,.odt,image/*"
+              hidden
+              onChange={onFilePicked}
+            />
+            {uploadError && (
+              <p
+                role="alert"
+                style={{ marginTop: 10, color: 'var(--error)', fontSize: 13, lineHeight: 1.4 }}
+              >
+                {uploadError}
+              </p>
+            )}
+          </form>
+
+          <p className="pl-hero-note">No sign-up needed to try · See a 2-minute demo</p>
+
+          <div className="pl-chips" aria-hidden>
+            {CHIPS.map((c) => (
+              <span key={c} className="pl-chip">{c}</span>
+            ))}
           </div>
         </section>
 
         {/* ─────────────  "The magic"  ───────────── */}
         <div className="pl-magic-wrap">
           <button className="pl-magic pl-reveal" type="button" onClick={onMagicClick}>
-            <span className="material-symbols-outlined filled pl-magic-star" aria-hidden>auto_awesome</span>
+            <span className="pl-magic-star" aria-hidden><Spark variant="gold" /></span>
             The magic
             <span className="material-symbols-outlined pl-magic-chev" aria-hidden>expand_more</span>
           </button>
@@ -790,7 +590,6 @@ export default function PathLanding() {
             {CP.map((cp, i) => {
               const cls =
                 cp.kind === 'start' ? 'pl-start' : cp.kind === 'finish' ? 'pl-finish' : cp.active ? 'pl-active' : '';
-              const lone = (cp.mascot?.length ?? 0) > 1 ? '' : ' pl-lone';
               return (
                 <Fragment key={cp.id}>
                   <div className="pl-node-wrap" data-cp={i}>
@@ -811,8 +610,14 @@ export default function PathLanding() {
                             </ul>
                           </div>
                         </div>
-                        <div className={`pl-gutter pl-${cp.mascotSide}${lone}`}>
-                          <Mascot cp={cp} />
+                        <div className={`pl-gutter pl-${cp.mascotSide} pl-lone`}>
+                          <Mascot pose={cp.mascot!} />
+                          <span
+                            className={`pl-mascot-spark pl-mascot-spark--${cp.mascotSide} pl-spk-${i % 2 === 0 ? 'gold' : 'purple'}`}
+                            aria-hidden
+                          >
+                            <Spark variant={i % 2 === 0 ? 'gold' : 'purple'} />
+                          </span>
                         </div>
                       </>
                     )}
@@ -825,15 +630,7 @@ export default function PathLanding() {
                       <div className="pl-node-shift" style={cp.nudge ? { transform: `translateX(${cp.nudge}px)` } : undefined}>
                         <div className={`pl-node ${cls}`} {...(cp.active ? { 'aria-current': 'page' as const } : {})}>
                           <span className="material-symbols-outlined" aria-hidden>{cp.icon}</span>
-                          {cp.grade && <span className="pl-node-grade">{cp.grade}</span>}
                         </div>
-                        {cp.stars ? (
-                          <div className="pl-node-stars" aria-hidden>
-                            {Array.from({ length: cp.stars }).map((_, si) => (
-                              <span key={si} className="material-symbols-outlined filled">star</span>
-                            ))}
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -848,27 +645,17 @@ export default function PathLanding() {
         <section className="pl-cta">
           <div className="pl-cta-title">
             {/* decorative golden sparkles around the closing CTA (purely ornamental) */}
-            <span className="pl-hspark pl-hspark--lg pl-hspark-g" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark-h" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark--sm pl-hspark-i" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark--sm pl-hspark-j" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
-            <span className="pl-hspark pl-hspark-k" aria-hidden>
-              <span className="material-symbols-outlined filled">auto_awesome</span>
-            </span>
+            <span className="pl-hspark pl-hspark--lg pl-hspark-g pl-spk-gold" aria-hidden><Spark variant="gold" /></span>
+            <span className="pl-hspark pl-hspark-h pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-i pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
+            <span className="pl-hspark pl-hspark--sm pl-hspark-j pl-spk-gold" aria-hidden><Spark variant="gold" /></span>
+            <span className="pl-hspark pl-hspark-k pl-spk-purple" aria-hidden><Spark variant="purple" /></span>
             <h2 className="pl-reveal">
               Try it out for <span className="pl-g-gold">FREE</span>
             </h2>
           </div>
           <div className="pl-cta-row pl-reveal" ref={ctaRef}>
-            <Link className="pl-btn-gold pl-lg" href="/auth/register">
+            <Link className="pl-btn-gold pl-lg" href="/start/welcome">
               Start free <span aria-hidden>→</span>
             </Link>
             <Link className="pl-btn-ghost pl-lg" href="/pricing">See pricing</Link>
@@ -876,30 +663,7 @@ export default function PathLanding() {
         </section>
 
         {/* ─────────────  FOOTER  ───────────── */}
-        <footer className="pl-footer">
-          <div className="pl-footer-top">
-            <div className="pl-brand">
-              <img src="/logo_trimmed.png" alt="Notemage" width={75} height={28} loading="lazy" decoding="async" />
-            </div>
-            <a
-              className="pl-footer-orb"
-              href="https://www.tiktok.com/@notemage"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Notemage on TikTok"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M19.321 5.562a5.124 5.124 0 0 1-3.414-1.267 5.124 5.124 0 0 1-1.537-2.723 5.105 5.105 0 0 1-.08-.898h-3.29v13.4a3.022 3.022 0 0 1-5.436 1.817 3.02 3.02 0 0 1-.604-1.817 3.022 3.022 0 0 1 3.022-3.022c.324 0 .634.051.926.145V8.045a6.353 6.353 0 0 0-.926-.067 6.318 6.318 0 0 0-6.318 6.318 6.318 6.318 0 0 0 6.318 6.318 6.318 6.318 0 0 0 6.318-6.318V8.871a8.399 8.399 0 0 0 5.021 1.647V7.226a5.124 5.124 0 0 1-.001-1.664z" />
-              </svg>
-            </a>
-          </div>
-          <nav className="pl-footer-links" aria-label="Footer">
-            {FOOTER_LINKS.map((l) => (
-              <Link key={l.href} href={l.href}>{l.label}</Link>
-            ))}
-          </nav>
-          <div className="pl-footer-copy">© 2026{'  '}Notemage</div>
-        </footer>
+        <MageFooter />
       </div>
     </div>
   );

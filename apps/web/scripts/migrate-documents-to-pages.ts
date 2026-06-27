@@ -33,7 +33,7 @@ async function main() {
   console.log('Starting document → page migration...\n');
 
   // Find all notebooks that have at least one document
-  const notebooks = await db.notebook.findMany({
+  const notebooks = await db.studyContainer.findMany({
     where: {
       documents: { some: {} },
     },

@@ -1,0 +1,247 @@
+/* Hallmark · shared chrome for the onboarding sample run (Figma W08–W11).
+ * Centred ~720px column, floating back button, Mage avatar + bubble, and a
+ * primary button that pins to the bottom on mobile. Light cream, Inter.
+ * Screen-specific blocks (lesson / quiz / feedback / weak-point) live below.
+ */
+
+.root {
+  position: relative; isolation: isolate; min-height: 100vh;
+  background: #faf7f0; color: #18202f; color-scheme: light;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: clip;
+  padding: 0 24px 72px;
+  display: flex; flex-direction: column;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+
+.logo { position: absolute; top: 46px; left: 64px; display: inline-flex; }
+.logo img { height: 30px; width: auto; display: block; }
+.back {
+  position: absolute; top: 120px; left: 64px; width: 44px; height: 44px; border-radius: 22px;
+  background: #fff; border: 1px solid #ece6d8; box-shadow: 0 4px 5px rgba(58, 46, 102, 0.06);
+  display: grid; place-items: center; color: #18202f; cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.back :global(.material-symbols-outlined) { font-size: 22px; }
+.back:hover { transform: translateY(-1px); border-color: #c9bcf7; }
+.back:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+
+.wrap { width: 100%; max-width: 720px; margin: 0 auto; padding-top: 118px; }
+
+.heading { font-size: clamp(26px, 3.4vw, 34px); font-weight: 700; letter-spacing: -0.015em; color: #18202f; margin: 0; }
+.sub { font-size: 15px; font-weight: 600; color: #6b7280; margin: 8px 0 0; }
+
+.bubbleRow { display: flex; align-items: flex-start; gap: 12px; margin: 24px 0 0; }
+.avatar { flex: none; width: 52px; height: 52px; border-radius: 26px; background: #ede9ff; border: 2px solid #fff; overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 26%; display: block; }
+.bubble { background: #fff; border: 1px solid #ece6d8; border-radius: 18px; padding: 14px 17px; font-size: 16px; font-weight: 500; line-height: 1.38; color: #18202f; box-shadow: 0 5px 7px rgba(58, 46, 102, 0.07); }
+
+.footer { margin-top: 24px; }
+.primaryBtn {
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 58px;
+  border: 0; border-radius: 16px; background: #7c5cff; color: #fff; font-family: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 12px 28px rgba(124, 92, 255, 0.34);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.primaryBtn:hover:not(:disabled) { transform: translateY(-2px); background: #8d70ff; box-shadow: 0 18px 36px rgba(124, 92, 255, 0.42); }
+.primaryBtn:active:not(:disabled) { transform: translateY(0); }
+.primaryBtn:focus-visible { outline: 3px solid #4326b8; outline-offset: 3px; }
+.primaryBtn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* ─────────── W08 lesson ─────────── */
+.lesson { background: #fff; border: 1.2px solid #ece6d8; border-radius: 24px; padding: 28px 30px; margin-top: 24px; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.08); }
+.kicker { font-size: 14px; font-weight: 700; letter-spacing: 0.01em; color: #4326b8; margin: 0; }
+.lessonBody { font-size: 18px; line-height: 1.58; color: #18202f; margin: 12px 0 0; }
+.example { background: #f4efe3; border-radius: 14px; padding: 18px 20px; margin-top: 22px; }
+.exampleLabel { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #7a5200; margin: 0; }
+.exampleText { font-size: 15px; line-height: 1.48; color: #6b7280; margin: 8px 0 0; }
+.cite { display: inline-flex; align-items: center; gap: 9px; margin-top: 20px; background: #f3ede1; border: 1px solid #ece6d8; border-radius: 17px; padding: 7px 14px; font-size: 13.5px; font-weight: 600; color: #6b7280; }
+.cite :global(.material-symbols-outlined) { font-size: 16px; }
+.keyIdea { position: relative; background: #fff3d6; border-radius: 18px; padding: 18px 20px 18px 28px; margin-top: 20px; overflow: hidden; }
+.keyBar { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #ffc83d; }
+.keyLabel { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #7a5200; margin: 0; }
+.keyText { font-size: 16px; font-weight: 600; line-height: 1.44; color: #18202f; margin: 6px 0 0; }
+
+/* ─────────── W09 quiz ─────────── */
+.quizTop { position: relative; }
+.quizMeta { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; color: #6b7280; margin: 0; }
+.segs { display: flex; gap: 10px; margin-top: 14px; }
+.seg { flex: 1; height: 7px; border-radius: 3.5px; background: #ece6d8; }
+.segOn { background: #7c5cff; }
+.quizMascot { position: absolute; top: -16px; right: 0; width: 72px; height: auto; display: block; }
+.question { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.22; color: #18202f; margin: 26px 0 0; }
+.answers { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.answer {
+  display: flex; align-items: center; gap: 16px; min-height: 68px; padding: 14px 18px; width: 100%;
+  border-radius: 18px; background: #fff; border: 1.4px solid #ece6d8; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.08);
+  cursor: pointer; font-family: inherit; text-align: left;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.answer:hover { border-color: #c9bcf7; transform: translateY(-1px); }
+.answer:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.answerActive { background: #ede9ff; border: 2px solid #7c5cff; box-shadow: none; }
+.answerActive:hover { border-color: #7c5cff; }
+.ansLetter { flex: none; width: 38px; height: 38px; border-radius: 11px; background: #ede9ff; display: grid; place-items: center; color: #4326b8; font-size: 16px; font-weight: 700; }
+.answerActive .ansLetter { background: #7c5cff; color: #fff; }
+.ansText { flex: 1; min-width: 0; font-size: 17px; font-weight: 500; color: #18202f; }
+.ansRadio { flex: none; width: 26px; height: 26px; border-radius: 13px; border: 2px solid #d9cef2; background: #fff; }
+.answerActive .ansRadio { border-color: #7c5cff; background: #7c5cff; display: grid; place-items: center; }
+.answerActive .ansRadio::after { content: ''; width: 10px; height: 10px; border-radius: 5px; background: #fff; }
+
+/* ─────────── W10 / W10b feedback (centred) ─────────── */
+.fbWrap { width: 100%; max-width: 600px; margin: 0 auto; padding-top: 96px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.fbIcon { width: 56px; height: 56px; border-radius: 28px; display: grid; place-items: center; color: #fff; }
+.fbIcon :global(.material-symbols-outlined) { font-size: 32px; font-weight: 700; }
+.fbIconOk { background: #2fa968; box-shadow: 0 10px 22px rgba(47, 169, 104, 0.35); }
+.fbIconNo { background: #ef6351; box-shadow: 0 10px 22px rgba(239, 99, 81, 0.35); }
+.fbTitle { font-size: clamp(30px, 4vw, 40px); font-weight: 700; letter-spacing: -0.02em; margin: 18px 0 0; }
+.fbTitleOk { color: #0f6b3d; }
+.fbTitleNo { color: #b23423; }
+.fbPill { display: inline-block; margin-top: 12px; background: #e2f5eb; color: #0f6b3d; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 13px; }
+.fbBubbleRow { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+.why { position: relative; width: 100%; text-align: left; background: #fff; border: 1.2px solid #ece6d8; border-radius: 20px; padding: 22px 24px; margin-top: 22px; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.08); overflow: hidden; }
+.whyBar { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #ef6351; }
+.whyLabel { font-size: 13px; font-weight: 700; margin: 0; }
+.whyLabelOk { color: #0f6b3d; }
+.whyLabelNo { color: #b23423; }
+.whyText { font-size: 16px; line-height: 1.5; color: #18202f; margin: 8px 0 0; }
+.hintBar { width: 100%; text-align: left; background: #fff3d6; border-radius: 14px; padding: 14px 18px; margin-top: 16px; font-size: 14px; font-weight: 500; color: #7a5200; }
+.fbActions { display: flex; gap: 14px; margin-top: 28px; width: 100%; max-width: 420px; }
+.fbActions .primaryBtn, .fbActions .ghostBtn { margin-top: 0; }
+.ghostBtn {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 58px;
+  border: 1.6px solid #e0d9c9; border-radius: 16px; background: transparent; color: #7c5cff;
+  font-family: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ghostBtn:hover { transform: translateY(-2px); border-color: #c9bcf7; background: #f6f2ea; }
+.ghostBtn:focus-visible { outline: 3px solid #4326b8; outline-offset: 3px; }
+
+/* ─────────── W11 weak point (centred) ─────────── */
+.wpWrap { width: 100%; max-width: 640px; margin: 0 auto; padding-top: 80px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.wpIllo { position: relative; width: 230px; height: 230px; flex: none; }
+.wpBlob { position: absolute; inset: 0; background: #ede9ff; border-radius: 68px; }
+.wpMascot { position: absolute; left: 20px; top: 6px; width: 190px; height: auto; display: block; }
+.wpSpk { position: absolute; line-height: 0; pointer-events: none; }
+.wpSpk svg { display: block; }
+.wpSpkA { top: 17px; right: 4px; } .wpSpkA svg { width: 24px; height: 24px; transform: rotate(-12deg); }
+.wpSpkB { top: 32px; left: 24px; } .wpSpkB svg { width: 16px; height: 16px; }
+.wpSpkC { top: 156px; right: 12px; } .wpSpkC svg { width: 18px; height: 18px; transform: rotate(-20deg); }
+.wpSpkD { top: 162px; left: 38px; } .wpSpkD svg { width: 13px; height: 13px; }
+.wpTitle { font-size: clamp(30px, 4vw, 40px); font-weight: 700; letter-spacing: -0.02em; color: #18202f; margin: 18px 0 0; }
+.wpSub { font-size: 17px; line-height: 1.48; color: #6b7280; margin: 14px 0 0; max-width: 600px; }
+
+.resultCard { width: 100%; max-width: 600px; text-align: left; background: #fff; border: 1.2px solid #ece6d8; border-radius: 22px; padding: 22px 26px; margin-top: 30px; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.08); }
+.resultTitle { font-size: 17px; font-weight: 700; color: #18202f; margin: 0; }
+.resultStats { display: flex; gap: 12px; margin-top: 18px; }
+.rStat { flex: 1; min-width: 0; }
+.rStatNum { font-size: 26px; font-weight: 800; line-height: 1; }
+.rStatLabel { font-size: 13px; font-weight: 500; color: #6b7280; margin-top: 6px; }
+
+.weakCard { width: 100%; max-width: 600px; text-align: left; background: #fcefd9; border: 1.2px solid #f0dbb4; border-radius: 22px; padding: 22px 26px; margin-top: 16px; }
+.needsPill { display: inline-block; background: #f2a33c; color: #fff; font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 14px; }
+.weakTitle { font-size: 20px; font-weight: 700; color: #18202f; margin: 14px 0 0; }
+.weakDesc { font-size: 15px; line-height: 1.44; color: #6b7280; margin: 8px 0 0; }
+.weakDivider { height: 1px; background: #ebd9b6; margin: 16px 0; }
+.weakReview { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.weakReviewIcon { flex: none; width: 28px; height: 28px; border-radius: 14px; background: #ffc83d; color: #7a5200; display: grid; place-items: center; font-size: 15px; font-weight: 700; }
+.weakReviewText { font-size: 14px; font-weight: 600; color: #8a5a12; }
+.weakReviewSub { font-size: 14px; font-weight: 500; color: #6b7280; }
+
+/* "no weak points yet" variant — green twin of the weak card (aced the run) */
+.okCard { width: 100%; max-width: 600px; text-align: left; background: #e9f7ef; border: 1.2px solid #c4e7d4; border-radius: 22px; padding: 22px 26px; margin-top: 16px; }
+.okPill { display: inline-block; background: #2fa968; color: #fff; font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 14px; }
+.okDivider { height: 1px; background: #cdeadb; margin: 16px 0; }
+.okReviewIcon { flex: none; width: 28px; height: 28px; border-radius: 14px; background: #2fa968; color: #fff; display: grid; place-items: center; font-size: 15px; font-weight: 700; }
+.okReviewText { font-size: 14px; font-weight: 600; color: #0f6b3d; }
+
+/* ─────────── W12 signup (centred) ─────────── */
+.suWrap { width: 100%; max-width: 480px; margin: 0 auto; padding-top: 88px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.suIllo { position: relative; width: 150px; height: 150px; flex: none; }
+.suBlob { position: absolute; inset: 0; background: #ede9ff; border-radius: 46px; }
+.suMascot { position: absolute; left: 16px; top: 4px; width: 118px; height: auto; display: block; }
+.suSpk { position: absolute; line-height: 0; pointer-events: none; }
+.suSpk svg { display: block; }
+.suSpkA { top: 12px; right: -6px; } .suSpkA svg { width: 16px; height: 16px; transform: rotate(-12deg); }
+.suSpkB { top: 20px; left: -10px; } .suSpkB svg { width: 12px; height: 12px; }
+.suTitle { font-size: clamp(24px, 3.2vw, 30px); font-weight: 700; letter-spacing: -0.015em; line-height: 1.16; color: #18202f; margin: 20px 0 0; max-width: 520px; }
+.suSub { font-size: 16px; line-height: 1.44; color: #6b7280; margin: 14px 0 0; max-width: 440px; }
+
+.previewCard { width: 100%; text-align: left; background: #fff; border: 1.2px solid #ece6d8; border-radius: 22px; padding: 18px 22px; margin-top: 28px; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.08); }
+.pvHead { display: flex; align-items: center; gap: 14px; }
+.pvTile { flex: none; width: 48px; height: 48px; border-radius: 14px; background: #ede9ff; display: grid; place-items: center; color: #4326b8; }
+.pvTile :global(.material-symbols-outlined) { font-size: 24px; }
+.pvTitle { font-size: 18px; font-weight: 700; color: #18202f; }
+.pvSub { font-size: 13px; font-weight: 500; color: #6b7280; margin-top: 2px; }
+.pvDivider { height: 1px; background: #e3dccd; margin: 16px 0; }
+.pvChips { display: flex; gap: 8px; flex-wrap: wrap; }
+.pvChip { font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 14px; }
+
+.authList { width: 100%; display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.authBtn {
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 56px;
+  border-radius: 16px; font-family: inherit; font-size: 16.5px; font-weight: 600; cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.authApple { background: #15151c; color: #fff; border: 0; box-shadow: 0 8px 18px rgba(21, 21, 28, 0.22); }
+.authApple:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(21, 21, 28, 0.3); }
+.authWhite { background: #fff; color: #18202f; border: 1.6px solid #e0d9c9; box-shadow: 0 5px 14px rgba(58, 46, 102, 0.06); }
+.authWhite:hover:not(:disabled) { transform: translateY(-2px); border-color: #c9bcf7; }
+.authBtn:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.authBtn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+.authBtn :global(.material-symbols-outlined) { font-size: 20px; color: #6b7280; }
+
+.legal { font-size: 13px; line-height: 1.4; color: #6b7280; margin: 20px 0 0; max-width: 420px; }
+.legal a { color: #7c5cff; font-weight: 600; text-decoration: none; }
+.legal a:hover { color: #4326b8; }
+
+@media (max-width: 900px) {
+  .root { padding: 0 20px 0; }
+  .logo { display: none; }
+  .back { top: 22px; left: 20px; }
+  .wrap { padding-top: 76px; padding-bottom: 24px; }
+  .lessonBody { font-size: 16.5px; }
+  .quizMascot { width: 56px; top: -8px; }
+  .fbWrap { padding-top: 72px; padding-bottom: 24px; }
+  .fbActions { flex-direction: column; max-width: 100%; }
+  .wpWrap { padding-top: 64px; padding-bottom: 24px; }
+  .resultStats { gap: 6px; }
+  .rStatNum { font-size: 22px; }
+  .rStatLabel { font-size: 12px; }
+  .suWrap { padding-top: 64px; padding-bottom: 24px; }
+  .footer {
+    position: sticky; bottom: 0; z-index: 5; margin: 24px -20px 0;
+    padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
+    background: #faf7f0; border-top: 1px solid #ece6d8;
+  }
+  .footer .primaryBtn { height: 54px; }
+}
+
+/* Large screens — scale the sample-run + signup screens up. */
+@media (min-width: 1400px) {
+  .logo img { height: 36px; }
+  .wrap { max-width: 840px; padding-top: 128px; }
+  .heading { font-size: 40px; }
+  .sub { font-size: 16px; }
+  .bubble { font-size: 17px; }
+  .lessonBody { font-size: 19px; }
+  .keyText { font-size: 17px; }
+  .question { font-size: 34px; }
+  .answer { min-height: 72px; }
+  .ansText { font-size: 18px; }
+  .primaryBtn { height: 62px; font-size: 18px; }
+  .fbWrap { max-width: 680px; padding-top: 108px; }
+  .fbTitle { font-size: 46px; }
+  .whyText { font-size: 17px; }
+  .wpWrap { max-width: 720px; }
+  .wpTitle { font-size: 46px; }
+  .wpSub { font-size: 18px; }
+  .suWrap { max-width: 520px; }
+  .suTitle { font-size: 34px; }
+  .suSub { font-size: 17px; }
+  .authBtn { height: 60px; font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back, .primaryBtn { transition: none; }
+}

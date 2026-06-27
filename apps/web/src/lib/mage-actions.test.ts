@@ -31,9 +31,9 @@ describe('resolveMageActionCards — href building', () => {
     expect(cards.every((c) => c.risk === 'low' && c.kind === 'navigate' && !c.confirm)).toBe(true);
   });
 
-  it('nests the quiz viewer under its study pack', () => {
+  it('deep-links the quiz to the shared practice player', () => {
     const [card] = resolveMageActionCards(['OPEN_QUIZ'], quizCtx);
-    expect(card.href).toBe('/study-packs/nb1/quizzes/q1');
+    expect(card.href).toBe('/practice/session/nb1/q1');
   });
 
   it('builds the high-risk prefill targets with ?edit=', () => {
@@ -42,7 +42,7 @@ describe('resolveMageActionCards — href building', () => {
       ['EDIT_EXAM_SCOPE', '/exam/e1?edit=scope', 'high', 'prefill'],
       ['CHANGE_EXAM_DATE', '/exam/e1?edit=date', 'high', 'prefill'],
       // Path creation runs through the wizard; needs no context id.
-      ['CREATE_PATH', '/study-packs/new', 'high', 'prefill'],
+      ['CREATE_PATH', '/paths/new', 'high', 'prefill'],
     ]);
   });
 });

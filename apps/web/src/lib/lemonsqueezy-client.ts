@@ -8,6 +8,8 @@
  * with /sync as a slow-webhook fallback.
  */
 
+import { type BillingInterval } from '@/lib/tiers';
+
 declare global {
   interface Window {
     createLemonSqueezy?: () => void;
@@ -21,6 +23,29 @@ declare global {
 const LEMON_JS = 'https://app.lemonsqueezy.com/js/lemon.js';
 let lemonReady: Promise<void> | null = null;
 let onCompletedCb: ((subscriptionId: string | null) => void) | null = null;
+
+// Per-cadence checkout URLs. Each Pro variant (weekly / monthly / yearly) has
+// its own Lemon Squeezy buy URL — pointing the overlay at a variant URL pre-
+// selects that cadence instead of showing the picker. These MUST be literal
+// `process.env.NEXT_PUBLIC_*` reads so Next inlines them into the client bundle.
+const CHECKOUT_URL_BY_INTERVAL: Record<BillingInterval, string | undefined> = {
+  weekly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_WEEKLY,
+  monthly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_MONTHLY,
+  yearly: process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL_YEARLY,
+};
+
+/**
+ * Resolve the checkout URL for a chosen cadence. Falls back to the generic
+ * product URL (which shows LS's own cadence picker) whenever a per-interval URL
+ * isn't configured — so leaving the new env vars unset is a graceful no-op that
+ * preserves today's behavior, never a break.
+ */
+function resolveCheckoutUrl(interval?: BillingInterval): string {
+  const specific = interval ? CHECKOUT_URL_BY_INTERVAL[interval] : undefined;
+  const base = specific || process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL;
+  if (!base) throw new Error('NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL is not set');
+  return base;
+}
 
 function loadLemon(): Promise<void> {
   if (lemonReady) return lemonReady;
@@ -79,6 +104,11 @@ export interface OpenProCheckoutOptions {
   /** Pre-fills the checkout email when known. */
   email?: string;
   /**
+   * Chosen billing cadence. Opens that variant's checkout (pre-selected) when a
+   * per-interval URL is configured; otherwise the generic product URL is used.
+   */
+  interval?: BillingInterval;
+  /**
    * Fires on Checkout.Success after payment is taken. The LS subscription id is
    * passed when available (so callers can hit /sync for an immediate provision);
    * `null` means the order arrived before the subscription record was created,
@@ -94,8 +124,7 @@ export interface OpenProCheckoutOptions {
  * fallback.
  */
 export async function openProCheckout(opts: OpenProCheckoutOptions): Promise<void> {
-  const base = process.env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL;
-  if (!base) throw new Error('NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_URL is not set');
+  const base = resolveCheckoutUrl(opts.interval);
 
   onCompletedCb = opts.onCompleted ?? null;
 

@@ -1,24 +1,25 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
 import TurnstileWidget, { turnstileEnabled } from '@/components/auth/TurnstileWidget';
+import styles from './ForgotPassword.module.css';
+
+const SparkGold = (
+  <svg viewBox="0 0 29 29" fill="none" aria-hidden focusable="false">
+    <path d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z" fill="#FFC83D" />
+  </svg>
+);
+const SparkPurple = (
+  <svg viewBox="0 0 18 18" fill="none" aria-hidden focusable="false">
+    <path d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z" fill="#7C5CFF" />
+  </svg>
+);
 
 export default function ForgotPasswordPage() {
-  // The auth experience is always-dark (the (auth) layout paints a fixed
-  // #0c0a1a frame). Scope a dark token island so the subtree — including the
-  // shared ResetPasswordForm — resolves to its dark values in light mode.
-  return (
-    <div data-theme="dark" style={{ display: 'contents' }}>
-      <ForgotPasswordFlow />
-    </div>
-  );
-}
-
-function ForgotPasswordFlow() {
   const router = useRouter();
   const [phase, setPhase] = useState<'request' | 'reset'>('request');
   const [email, setEmail] = useState('');
@@ -61,230 +62,90 @@ function ForgotPasswordFlow() {
     router.push('/auth/login?reset=1');
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '16px 16px 16px 44px',
-    background: '#23233c',
-    border: 'none',
-    borderRadius: '16px',
-    color: 'var(--on-surface)',
-    fontSize: '15px',
-    fontFamily: 'inherit',
-    fontWeight: 600,
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-  };
+  // Phase 2 — code entry + new password. The shared ResetPasswordForm is
+  // dark-token-styled, so keep it on a dark card (data-theme="dark") centred on
+  // the cream background — exactly how the login page treats its VerifyCodeForm.
+  if (phase === 'reset') {
+    return (
+      <div className={styles.resetRoot}>
+        <div data-theme="dark" className={styles.resetCard}>
+          <div className={styles.resetHead}>
+            <img src="/landing/notemage-wordmark.png" alt="Notemage" width={120} height={45} />
+          </div>
+          <h1 className={styles.resetTitle}>Check your email</h1>
+          <ResetPasswordForm email={email} onReset={handleReset} />
+          <button type="button" className={styles.resetBack} onClick={() => setPhase('request')}>
+            Use a different email
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {/* Logo + heading */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          marginBottom: '40px',
-        }}
-      >
-        <Link
-          href="/"
-          aria-label="Notemage home"
-          style={{ position: 'relative', display: 'inline-flex', marginBottom: '24px' }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(174,137,255,0.2)',
-              filter: 'blur(24px)',
-              borderRadius: '50%',
-            }}
-          />
-          <Image
-            src="/logo_trimmed.png"
-            alt="Notemage"
-            width={96}
-            height={96}
-            style={{ objectFit: 'contain', position: 'relative' }}
-            priority
-          />
+    <div className={styles.root}>
+      {/* ─────────── LEFT PANEL ─────────── */}
+      <div className={styles.panel}>
+        <Link href="/" className={styles.panelLogo} aria-label="NoteMage — home">
+          <img src="/landing/notemage-wordmark.png" alt="NoteMage" width={80} height={30} />
         </Link>
-        <h1
-          style={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '40px',
-            fontWeight: 400,
-            color: 'var(--brand-purple)',
-            margin: 0,
-            letterSpacing: '-0.02em',
-            textAlign: 'center',
-          }}
-        >
-          {phase === 'request' ? 'Reset your password' : 'Check your email'}
-        </h1>
+        <span className={`${styles.star} ${styles.starA}`} aria-hidden>{SparkGold}</span>
+        <span className={`${styles.star} ${styles.starB}`} aria-hidden>{SparkPurple}</span>
+        <span className={`${styles.star} ${styles.starC}`} aria-hidden>{SparkPurple}</span>
+        <span className={`${styles.star} ${styles.starD}`} aria-hidden>{SparkGold}</span>
+        <div className={styles.panelInner}>
+          <img className={styles.panelMascot} src="/landing/mage-wand.png" alt="" aria-hidden />
+          <h2 className={styles.panelTitle}>Happens to the best of us.</h2>
+          <p className={styles.panelSub}>
+            A quick code and a new password — you&apos;ll be back to your paths in a minute.
+          </p>
+        </div>
       </div>
 
-      {/* Card */}
-      <div
-        style={{
-          background: '#121222',
-          borderRadius: '32px',
-          padding: '40px',
-          boxShadow: '0 32px 64px -12px rgba(0,0,0,0.5)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {phase === 'request' ? (
-          <>
-            {error && (
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  background: 'rgba(253,111,133,0.12)',
-                  color: '#fd6f85',
-                  fontSize: '14px',
-                  marginBottom: '24px',
-                }}
-              >
-                {error}
+      {/* ─────────── RIGHT FORM ─────────── */}
+      <div className={styles.formCol}>
+        <div className={styles.form}>
+          <Link href="/" className={styles.formLogo} aria-label="NoteMage — home">
+            <img src="/landing/notemage-wordmark.png" alt="NoteMage" width={80} height={30} />
+          </Link>
+          <h1 className={styles.formTitle}>Reset your password</h1>
+          <p className={styles.formSub}>Enter your email and we&apos;ll send a 6-digit reset code.</p>
+
+          {error && <div className={`${styles.banner} ${styles.bannerError}`}>{error}</div>}
+
+          <form onSubmit={handleRequest}>
+            <div className={styles.field}>
+              <label htmlFor="email" className={styles.label}>Email</label>
+              <div className={styles.inputWrap}>
+                <input
+                  id="email"
+                  type="email"
+                  className={styles.input}
+                  placeholder="you@school.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                  autoComplete="email"
+                />
               </div>
-            )}
+            </div>
 
-            <p
-              style={{
-                margin: '0 0 24px',
-                textAlign: 'center',
-                fontSize: '14px',
-                lineHeight: 1.6,
-                color: 'var(--on-surface-variant)',
-              }}
-            >
-              Enter your email and we&apos;ll send a 6-digit reset code.
-            </p>
+            <div className={styles.turnstile}>
+              <TurnstileWidget theme="light" onToken={setTurnstileToken} />
+            </div>
 
-            <form onSubmit={handleRequest} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: 'var(--on-surface-variant)',
-                    marginBottom: '8px',
-                    paddingLeft: '4px',
-                  }}
-                >
-                  Email Address
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      paddingLeft: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      pointerEvents: 'none',
-                      color: 'var(--outline)',
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                      mail
-                    </span>
-                  </div>
-                  <input
-                    type="email"
-                    placeholder="mage@notemage.app"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                    autoComplete="email"
-                    style={inputStyle}
-                    onFocus={(e) => {
-                      e.target.style.boxShadow = '0 0 0 2px rgba(174,137,255,0.4)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-              </div>
+            <button type="submit" className={styles.submit} disabled={loading}>
+              {loading ? 'Sending…' : 'Send reset code'}
+            </button>
+          </form>
 
-              <TurnstileWidget onToken={setTurnstileToken} />
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  background: loading ? '#464560' : 'var(--brand-purple)',
-                  border: 'none',
-                  borderRadius: '16px',
-                  color: loading ? '#aaa8c8' : '#2a0066',
-                  fontSize: '17px',
-                  fontWeight: 800,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: loading ? 'none' : '0 8px 24px rgba(174,137,255,0.25)',
-                  transition:
-                    'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s cubic-bezier(0.22,1,0.36,1)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = 'scale(1.02)';
-                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(174,137,255,0.35)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(174,137,255,0.25)';
-                  }
-                }}
-                onMouseDown={(e) => {
-                  if (!loading) e.currentTarget.style.transform = 'scale(0.98)';
-                }}
-                onMouseUp={(e) => {
-                  if (!loading) e.currentTarget.style.transform = 'scale(1.02)';
-                }}
-              >
-                {loading ? 'Sending…' : 'Send reset code'}
-              </button>
-            </form>
-          </>
-        ) : (
-          <ResetPasswordForm email={email} onReset={handleReset} />
-        )}
+          <p className={styles.backLink}>
+            Remembered it?{' '}
+            <Link href="/auth/login">Back to log in</Link>
+          </p>
+        </div>
       </div>
-
-      {/* Back to login */}
-      <p
-        style={{
-          marginTop: '32px',
-          textAlign: 'center',
-          color: 'var(--on-surface-variant)',
-          fontSize: '15px',
-        }}
-      >
-        Remembered it?{' '}
-        <Link
-          href="/auth/login"
-          style={{ color: 'var(--brand-gold)', fontWeight: 900, textDecoration: 'none' }}
-        >
-          Back to log in
-        </Link>
-      </p>
-    </>
+    </div>
   );
 }

@@ -1,6 +1,18 @@
 import { db } from '@/lib/db';
+import { cacheDel, cacheGetOrSet } from '@/lib/redis-cache';
 import { TIERS, getMonthStart } from '@/lib/tiers';
 import type { TierKey } from '@/lib/tiers';
+
+const TOKEN_BUDGET_CACHE_TTL_SECONDS = 20;
+
+function tokenBudgetCacheKey(userId: string): string {
+  return `cache:token-budget:${userId}`;
+}
+
+export async function invalidateTokenBudgetCache(userId: string | null): Promise<void> {
+  if (!userId) return;
+  await cacheDel(tokenBudgetCacheKey(userId));
+}
 
 /**
  * Check whether a user has exceeded their monthly token budget.
@@ -41,6 +53,12 @@ export async function checkTokenBudget(userId: string): Promise<{
   const usedTokens =
     (tokenUsage._sum.inputTokens ?? 0) + (tokenUsage._sum.outputTokens ?? 0);
   return { allowed: usedTokens < tokenLimit, usedTokens, tokenLimit, tier: user.tier as TierKey };
+}
+
+export async function getCachedTokenBudget(userId: string): Promise<Awaited<ReturnType<typeof checkTokenBudget>>> {
+  return cacheGetOrSet(tokenBudgetCacheKey(userId), TOKEN_BUDGET_CACHE_TTL_SECONDS, () =>
+    checkTokenBudget(userId),
+  );
 }
 
 /**

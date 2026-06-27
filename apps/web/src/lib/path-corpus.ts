@@ -33,6 +33,9 @@ export async function loadMaterialCorpus(
         id: true,
         title: true,
         textContent: true,
+        // Phase D — 1-based source page for citation provenance (null unless the
+        // page was PDF-imported). Surfaced to the quiz model as a "[page N]" marker.
+        sourceDocPage: true,
         section: { select: { title: true, notebookId: true } },
       },
     }),
@@ -74,6 +77,7 @@ export async function loadMaterialCorpus(
       title: p.title,
       content: p.textContent,
       sectionTitle: p.section?.title,
+      pageNumber: p.sourceDocPage ?? null,
       notebookId: p.section?.notebookId ?? null,
     });
   }
@@ -143,7 +147,10 @@ export function renderMaterialCorpus(entries: MaterialCorpusEntry[], cap: number
   const blocks = entries.map((e, i) => {
     const label = KIND_LABELS[e.kind];
     const where = e.sectionTitle ? ` (section: ${e.sectionTitle})` : '';
-    const header = `### ${label}: "${e.title}"${where}`;
+    // Phase D — append a "[page N]" marker when the material carries a source
+    // page, so the quiz model can cite it verbatim as a question's source.page.
+    const pageMark = e.pageNumber != null ? ` [page ${e.pageNumber}]` : '';
+    const header = `### ${label}: "${e.title}"${where}${pageMark}`;
     let body = bodies[i];
     if (body.length > budgets[i]) {
       body = `${body.slice(0, budgets[i]).trimEnd()}\n… [content truncated to fit]`;

@@ -1,5 +1,14 @@
 'use client';
 
+/* Hallmark · component: diagram-cloze quiz options · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · active · disabled · selected · correct · wrong
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens): a framed diagram + cream Multiple-Choice option
+ * rows for the masked label. Body-only — badge, source chip and white card come from QuestionCard.
+ */
+
 import { useMemo } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import PathDiagram from '@/components/learn/PathDiagram';
@@ -16,9 +25,11 @@ import type { QuestionProps } from './types';
 // columns (mirrored from the payload by buildLegacyColumns), so this reads them
 // the same way MCRenderer does. Built in code, never by an LLM (zero AI tokens).
 //
-// Design: design tokens only (no hex/gradients), no transition-all (only
-// background/border-color transitions), every option has hover/:focus-visible
-// (visible ring)/active, ≥44px touch targets, terse copy, light-mode safe.
+// Design: cream design tokens only (no hex), no transition-all (only
+// border-color/background/transform transitions), every option has
+// hover/:focus-visible (visible ring)/active, ≥44px touch targets, terse copy,
+// light-mode safe. diagram_cloze is a SELECT kind — onSelectAnswer fires on
+// click with no SubmitBar; QuizViewer advances automatically.
 export default function DiagramClozeRenderer({
   question,
   mode,
@@ -47,40 +58,75 @@ export default function DiagramClozeRenderer({
   );
 
   const diagram = question.payload?.diagram;
+  const locked = isAnswered || mode === 'review';
 
   return (
-    <div style={{ width: '100%', maxWidth: isPhone ? '100%' : '560px', marginBottom: '20px' }}>
+    <div style={{ width: '100%' }}>
       <style>{`
-        .dgc-option:hover:not(:disabled), .dgc-option.is-hover {
-          border-color: var(--primary);
+        .qdc-opt {
+          transition: border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+                      background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+                      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .dgc-option:focus-visible {
-          outline: 2px solid var(--primary);
+        .qdc-opt:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qdc-opt:not(:disabled):hover .qdc-badge { background: var(--nm-primary-light); }
+        .qdc-opt:not(:disabled):active { transform: translateY(1px); }
+        .qdc-opt:focus-visible {
+          outline: 2px solid var(--color-focus);
           outline-offset: 2px;
+          border-color: var(--nm-primary);
         }
-        .dgc-option:active:not(:disabled) {
-          transform: translateY(1px);
+        @media (prefers-reduced-motion: reduce) {
+          .qdc-opt { transition: none; }
+          .qdc-opt:not(:disabled):active { transform: none; }
         }
       `}</style>
 
+      {/* Prompt — large display heading on the white card (no dark sub-card). */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid var(--outline-variant)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.18)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.25,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
-        <div style={{ fontSize: '18px', color: 'var(--on-surface)', lineHeight: 1.6, marginBottom: '14px' }}>
-          <MarkdownRenderer content={question.question} />
-        </div>
-        {/* The masked diagram — the missing label renders as a "?" chip. */}
-        {diagram ? <PathDiagram diagram={diagram} maskMarker={DIAGRAM_CLOZE_MASK} /> : null}
+        <MarkdownRenderer content={question.question} />
       </div>
+      <p
+        style={{
+          margin: '0 0 20px',
+          fontSize: '14px',
+          lineHeight: 1.5,
+          color: 'var(--on-surface-variant)',
+        }}
+      >
+        Pick the missing label.
+      </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+      {/* Diagram image container — cream-framed, centred, masked label stays visible as "?" chip. */}
+      {diagram ? (
+        <div
+          style={{
+            background: 'var(--quiz-bg)',
+            border: '1px solid var(--quiz-card-border)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: '20px',
+            padding: '16px',
+            overflow: 'hidden',
+          }}
+        >
+          <PathDiagram diagram={diagram} maskMarker={DIAGRAM_CLOZE_MASK} />
+        </div>
+      ) : null}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
         {displayOrder.map((origIdx, pos) => {
           const option = question.options[origIdx];
           const letter = String.fromCharCode(65 + pos);
@@ -88,88 +134,105 @@ export default function DiagramClozeRenderer({
           const isCorrectOption = question.correctIndex === origIdx;
           const showResult = isAnswered || mode === 'review';
           const reviewSelected = mode === 'review' && reviewIdx === origIdx;
+          const markedWrong = (isSelected || reviewSelected) && !isCorrectOption;
 
+          // Row variant → token-composed surfaces. Order matters: a correct row
+          // always reads green even if it was the one selected.
+          let bg = 'var(--surface-container-lowest)';
           let borderColor = 'var(--outline-variant)';
-          let bg = 'var(--surface-container)';
-          let textColor = 'var(--on-surface-variant)';
+          const textColor = 'var(--on-surface)';
+          let badgeBg = 'var(--nm-primary-light)';
+          let badgeColor = 'var(--nm-primary-on-light)';
+          let badgeContent: React.ReactNode = letter;
+          let trailing: { label: string; color: string } | null = null;
 
-          if (showResult) {
-            if (isCorrectOption) {
-              borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
-              bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
-              textColor = 'var(--success)';
-            } else if (isSelected || reviewSelected) {
-              borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
-              bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
-              textColor = 'var(--error)';
-            }
-          } else if (isSelected) {
-            borderColor = 'var(--primary)';
-            bg = 'var(--surface-container-high)';
-            textColor = 'var(--on-surface)';
+          if (showResult && isCorrectOption) {
+            bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
+            borderColor = 'rgb(var(--verdict-pass-rgb) / 0.55)';
+            badgeBg = 'var(--success)';
+            badgeColor = 'var(--on-primary-container)';
+            badgeContent = (
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                check
+              </span>
+            );
+            trailing = { label: 'Correct answer', color: 'var(--success)' };
+          } else if (showResult && markedWrong) {
+            bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
+            borderColor = 'rgb(var(--verdict-fail-rgb) / 0.55)';
+            badgeBg = 'var(--error)';
+            badgeColor = 'var(--on-primary-container)';
+            badgeContent = (
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                close
+              </span>
+            );
+            trailing = { label: 'Your answer', color: 'var(--error)' };
+          } else if (!showResult && isSelected) {
+            bg = 'var(--nm-primary-light)';
+            borderColor = 'var(--nm-primary)';
+            badgeBg = 'var(--nm-primary)';
+            badgeColor = 'var(--on-primary-container)';
           }
-
-          const locked = isAnswered || mode === 'review';
 
           return (
             <button
               key={origIdx}
               type="button"
-              className="dgc-option"
+              className="qdc-opt"
               onClick={() => onSelectAnswer({ kind: 'diagram_cloze', selectedIdx: origIdx })}
               disabled={locked}
+              aria-pressed={isSelected}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: isPhone ? '10px' : '12px',
-                padding: isPhone ? '12px 14px' : '14px 16px',
-                minHeight: '44px',
-                borderRadius: '12px',
-                border: `1px solid ${borderColor}`,
+                gap: isPhone ? '12px' : '14px',
+                padding: isPhone ? '13px 14px' : '15px 18px',
+                minHeight: '56px',
+                borderRadius: 'var(--radius-md)',
+                border: `1.5px solid ${borderColor}`,
                 background: bg,
                 cursor: locked ? 'default' : 'pointer',
                 textAlign: 'left',
                 fontFamily: 'inherit',
-                transition: 'background 0.15s, border-color 0.15s, transform 0.05s',
                 width: '100%',
               }}
             >
               <span
+                className="qdc-badge"
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  border: `2px solid ${borderColor}`,
-                  display: 'flex',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 700,
+                  fontSize: '14px',
+                  fontWeight: 800,
                   flexShrink: 0,
-                  color: textColor,
-                  background:
-                    showResult && isCorrectOption
-                      ? 'rgb(var(--verdict-pass-rgb) / 0.15)'
-                      : showResult && (isSelected || reviewSelected)
-                        ? 'rgb(var(--verdict-fail-rgb) / 0.15)'
-                        : 'transparent',
+                  color: badgeColor,
+                  background: badgeBg,
+                  transition: 'background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
               >
-                {showResult && isCorrectOption ? (
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
-                    check_circle
-                  </span>
-                ) : showResult && (isSelected || reviewSelected) ? (
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>
-                    cancel
-                  </span>
-                ) : (
-                  letter
-                )}
+                {badgeContent}
               </span>
               <span style={{ fontSize: '16px', color: textColor, flex: 1, lineHeight: 1.5 }}>
                 <MarkdownRenderer content={option} />
               </span>
+              {trailing ? (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: trailing.color,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {trailing.label}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -187,15 +250,13 @@ export default function DiagramClozeRenderer({
       {isAnswered && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
             background: isCorrect
-              ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
-              : 'rgb(var(--verdict-fail-rgb) / 0.06)',
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
             border: `1px solid ${
-              isCorrect
-                ? 'rgb(var(--verdict-pass-rgb) / 0.2)'
-                : 'rgb(var(--verdict-fail-rgb) / 0.2)'
+              isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
             }`,
             marginBottom: '12px',
           }}
@@ -205,34 +266,27 @@ export default function DiagramClozeRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
+              fontSize: '15px',
+              fontWeight: 800,
               marginBottom: '6px',
               color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {isCorrect ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                  check_circle
-                </span>{' '}
-                Correct!
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                  cancel
-                </span>{' '}
-                Not quite
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {isCorrect ? 'check_circle' : 'cancel'}
+            </span>
+            {isCorrect ? 'Correct' : 'Not quite'}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
-            The missing label is{' '}
-            <strong style={{ color: 'var(--success)' }}>
-              {question.options[question.correctIndex]}
-            </strong>
-            .
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+            <MarkdownRenderer
+              content={
+                isCorrect
+                  ? question.correctExplanation ||
+                    `The missing label is ${question.options[question.correctIndex]}.`
+                  : question.wrongExplanation ||
+                    `The correct label is ${question.options[question.correctIndex]}.`
+              }
+            />
           </div>
         </div>
       )}
@@ -240,57 +294,59 @@ export default function DiagramClozeRenderer({
       {mode === 'review' && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
             marginBottom: '12px',
             background:
               reviewIdx !== undefined
                 ? reviewIdx === question.correctIndex
-                  ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
-                  : 'rgb(var(--verdict-fail-rgb) / 0.06)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.08)'
                 : 'var(--surface-container)',
             border: `1px solid ${
               reviewIdx !== undefined
                 ? reviewIdx === question.correctIndex
-                  ? 'rgb(var(--verdict-pass-rgb) / 0.2)'
-                  : 'rgb(var(--verdict-fail-rgb) / 0.2)'
-                : 'var(--outline-variant)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.3)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+                : 'var(--ink-08)'
             }`,
           }}
         >
           {reviewIdx !== undefined ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14px',
-                fontWeight: 700,
-                color: reviewIdx === question.correctIndex ? 'var(--success)' : 'var(--error)',
-              }}
-            >
-              {reviewIdx === question.correctIndex ? (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                    check_circle
-                  </span>{' '}
-                  You answered correctly
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                    cancel
-                  </span>{' '}
-                  Correct label:{' '}
-                  <strong style={{ color: 'var(--success)' }}>
-                    {question.options[question.correctIndex]}
-                  </strong>
-                </>
-              )}
-            </div>
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  marginBottom: '6px',
+                  color: reviewIdx === question.correctIndex ? 'var(--success)' : 'var(--error)',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                  {reviewIdx === question.correctIndex ? 'check_circle' : 'cancel'}
+                </span>
+                {reviewIdx === question.correctIndex
+                  ? 'You answered correctly'
+                  : 'You answered incorrectly'}
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+                <MarkdownRenderer
+                  content={
+                    reviewIdx === question.correctIndex
+                      ? question.correctExplanation ||
+                        `The missing label is ${question.options[question.correctIndex]}.`
+                      : question.wrongExplanation ||
+                        `The correct label is ${question.options[question.correctIndex]}.`
+                  }
+                />
+              </div>
+            </>
           ) : (
-            <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
-              You skipped this question. The missing label is{' '}
+            <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)' }}>
+              You skipped this question. The correct label is{' '}
               <strong style={{ color: 'var(--success)' }}>
                 {question.options[question.correctIndex]}
               </strong>

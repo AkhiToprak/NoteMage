@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
-import { getUserUsageSummary } from '@/lib/usage-limits';
-import { checkTokenBudget } from '@/lib/token-budget';
+import { getCachedUserUsageSummary } from '@/lib/usage-limits';
+import { getCachedTokenBudget } from '@/lib/token-budget';
 import { successResponse, unauthorizedResponse, internalErrorResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
     if (!userId) return unauthorizedResponse();
 
     const [features, tokenBudget] = await Promise.all([
-      getUserUsageSummary(userId),
-      checkTokenBudget(userId),
+      getCachedUserUsageSummary(userId),
+      getCachedTokenBudget(userId),
     ]);
 
     return successResponse({

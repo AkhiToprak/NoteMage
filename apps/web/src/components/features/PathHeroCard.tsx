@@ -128,7 +128,7 @@ function NoPathCard({ hasPlans }: { hasPlans: boolean }) {
       </div>
       <div>
         <Link
-          href="/study-packs"
+          href="/paths/new"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

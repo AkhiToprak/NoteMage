@@ -10,15 +10,16 @@ import {
   badRequestResponse,
   tooManyRequestsResponse,
 } from '@/lib/api-response';
-import { generatePath } from '@/lib/path-generator';
 import { staleGenerationCutoff } from '@/lib/path-loader';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { reserveUsage, refundUsage } from '@/lib/usage-limits';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
+import { enqueueJob } from '@/lib/background-jobs';
 
-// Phase 10.3 — retry path-generation. `generatePath` is idempotent
+// Phase 10.3 — retry path-generation. The path-generation worker is idempotent
 // (skips activity kinds the slot already has), so this endpoint just
-// flips the plan back into the `generating` state and re-fires the
+// flips the plan back into the `generating` state and re-queues the
 // orchestrator. The client should reconnect to `/generation` SSE to
 // watch the retry stream.
 
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const reservation = await reserveUsage(userId, 'path_regenerate');
     if (!reservation.allowed) {
       return tooManyRequestsResponse(
-        'Monthly regeneration limit reached. Please try again next month.',
+        'Monthly regeneration limit reached. Please try again next month.'
       );
     }
 
@@ -117,9 +118,22 @@ export async function POST(request: NextRequest, { params }: Params) {
         : notFoundResponse('Path not found');
     }
 
-    void generatePath(planId).catch((err) => {
-      console.error('[learn/paths regenerate]', err);
-    });
+    await invalidateDashboardCache(userId);
+    try {
+      await enqueueJob('path.regenerate', { planId }, { dedupeKey: `path:generate:${planId}` });
+    } catch (error) {
+      await refundUsage(userId, 'path_regenerate');
+      await db.studyPlan
+        .update({
+          where: { id: planId },
+          data: {
+            generationStatus: 'failed',
+            generationError: 'Could not start regeneration. Please try again.',
+          },
+        })
+        .catch(() => {});
+      throw error;
+    }
 
     return successResponse({ planId, status: 'generating' });
   } catch (error) {

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const notebooks = await db.notebook.findMany({
+    const notebooks = await db.studyContainer.findMany({
       where: { userId },
       orderBy: [{ kind: 'asc' }, { updatedAt: 'desc' }],
       select: { id: true, name: true, color: true, kind: true },

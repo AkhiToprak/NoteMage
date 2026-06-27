@@ -134,7 +134,7 @@ const AUTH_LOGIC_PATTERNS: RegExp[] = [
   /^\/$/,
   /^\/auth\/(login|register)(\/|$)/,
   /^\/dashboard(\/|$)/,
-  /^\/study-packs(\/|$)/,
+  /^\/paths(\/|$)/,
   /^\/settings(\/|$)/,
   /^\/(pricing|about|contact|waitlist)$/,
   /^\/legal(\/|$)/,
@@ -157,6 +157,10 @@ const PUBLIC_API_ROUTES: RegExp[] = [
   /^\/api\/import\/onenote\/callback(\/|$)/,
   /^\/api\/user\/check-username(\/|$)/,
   /^\/api\/waitlist(\/|$)/,
+  // Pre-sign-up onboarding bridges (/start/*): a public video-metadata preview
+  // and the anonymous path-preview generator (Turnstile + IP rate-limited),
+  // both used before the user has an account.
+  /^\/api\/start(\/|$)/,
 ];
 
 function isPublicApiRoute(pathname: string): boolean {

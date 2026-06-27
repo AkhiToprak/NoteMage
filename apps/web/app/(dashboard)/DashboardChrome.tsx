@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import HomeHeader from '@/components/layout/HomeHeader';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import AppMobileNav from '@/components/app/AppMobileNav';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStudyHeartbeat } from '@/hooks/useStudyHeartbeat';
 import { TimerProvider } from '@/contexts/TimerContext';
@@ -13,18 +13,30 @@ import { ToastProvider } from '@/components/ui/Toast';
 import {
   MageProvider,
   MagePanel,
-  MageLauncher,
   MageAutoOpen,
   MageSelectionAction,
 } from '@/components/mage';
 import { nativeBridge, isInsideNativeShell } from '@/lib/native-bridge';
+import GradingSystemGate from '@/components/onboarding/GradingSystemGate';
 
-/** Matches /study-packs/new — upload wizard is immersive, owns the viewport */
-const STUDY_PACKS_NEW_RE = /^\/study-packs\/new(\/|$)/;
 /** Matches /lesson and any nested lesson route — lesson screen is immersive */
 const LESSON_RE = /^\/lesson(\/|$)/;
 /** Matches /tutorial — guided sample tutorial owns the viewport, no chrome */
 const TUTORIAL_RE = /^\/tutorial(\/|$)/;
+/** Exam Mode Phase 3 — the timed mock-exam run surface (the immersive sealed
+ *  player) owns the viewport. Anchored to the run route only ($) so the setup
+ *  (/exam/:id/mock) and results (/exam/:id/mock/:mockId/results) screens keep the
+ *  AppShell sidebar + phone nav. */
+const MOCK_RUN_RE = /^\/exam\/[^/]+\/mock\/[^/]+$/;
+/** Exam Mode Phase 5 — the good-result celebration is a full-bleed takeover (no
+ *  sidebar, no phone nav), like the welcome-back overlay. Anchored to the
+ *  celebration route only ($) so the rest of the post-exam loop (result /
+ *  reflection / report / feedback) keeps the AppShell sidebar. */
+const CELEBRATION_RE = /^\/exam\/[^/]+\/celebration$/;
+/** Redesigned (cream) screens that carry their own left sidebar (AppShell).
+ *  They run full-height but keep the phone nav. The create-path wizard
+ *  (/paths/new) is one of these — the Figma WCP screens show the sidebar. */
+const APP_SHELL_RE = /^\/(dashboard|my-path|profile|exam|exams|progress|learn\/paths|paths\/new|settings)(\/|$)/;
 
 export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -50,10 +62,15 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
 
   // Track minutes-in-app for the activity heatmap. Only runs when authed.
   useStudyHeartbeat(status === 'authenticated');
-  const isStudyPacksNew = STUDY_PACKS_NEW_RE.test(pathname);
   const isLesson = LESSON_RE.test(pathname);
   const isTutorial = TUTORIAL_RE.test(pathname);
-  const isFullHeight = isStudyPacksNew || isLesson || isTutorial;
+  const isMockRun = MOCK_RUN_RE.test(pathname);
+  const isCelebration = CELEBRATION_RE.test(pathname);
+  const isAppShell = APP_SHELL_RE.test(pathname);
+  // Immersive routes own the whole viewport (no header, no phone nav). AppShell
+  // routes also drop the header and run full-height, but keep the phone nav.
+  const isImmersive = isLesson || isTutorial || isMockRun || isCelebration;
+  const isFullHeight = isImmersive || isAppShell;
   // /learn owns its own spacing: the tab strip is full-bleed (flush under the
   // header, edge to edge) and every /learn page self-pads (centered maxWidth +
   // its own horizontal padding). Drop the generic <main> padding here — it
@@ -74,7 +91,6 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
                 background: 'var(--background)',
               }}
             >
-              {!isStudyPacksNew && !isLesson && !isTutorial && <HomeHeader />}
               <main
                 style={{
                   flex: 1,
@@ -89,20 +105,24 @@ export function DashboardChrome({ children }: { children: React.ReactNode }) {
               >
                 {children}
               </main>
-              {/* Phone-only thumb nav. Hidden on full-height surfaces (study-pack
-                wizard, lesson, tutorial) which own the viewport. */}
-              {!isFullHeight && <MobileBottomNav />}
+              {/* Phone-only thumb nav. Hidden on immersive surfaces (lesson,
+                tutorial, mock run, celebration) which own the viewport. The
+                redesigned cream AppShell routes get the matching cream
+                AppMobileNav (mirrors AppSidebar); the remaining legacy dark
+                routes keep the dark MobileBottomNav. */}
+              {!isImmersive && (isAppShell ? <AppMobileNav /> : <MobileBottomNav />)}
             </div>
-            {/* Global Mage panel + launcher (Phase 1). Fixed overlays, so they
-              sit outside the chrome flow and ride on top of every route. The
-              launcher lifts above the phone thumb-nav when one is shown.
-              Phase 10: MageAutoOpen opens the panel for redirected /learn/chats
-              deep-links (?mage=open); MageSelectionAction is the highlight-to-ask
-              floating CTA. */}
+            {/* Global Mage panel. Fixed overlay, sits outside the chrome flow
+              and rides on top of every route. Opened from the sidebar "Ask Mage"
+              card and the highlight-to-ask CTA (the floating launcher button was
+              removed). Phase 10: MageAutoOpen opens the panel for redirected
+              /learn/chats deep-links (?mage=open); MageSelectionAction is the
+              highlight-to-ask floating CTA. */}
             <MagePanel />
-            <MageLauncher avoidBottomNav={isPhone && !isFullHeight} />
             <MageAutoOpen />
             <MageSelectionAction />
+            {/* First-run grading-system picker (after signup, once per account). */}
+            <GradingSystemGate />
           </MageProvider>
         </ToastProvider>
       </UnlockProvider>

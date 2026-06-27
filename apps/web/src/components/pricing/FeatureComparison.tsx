@@ -83,12 +83,6 @@ const COMPARISON_DATA: FeatureCategory[] = [
         free: limitLabel('FREE', 'pdf_import'),
         pro: limitLabel('PRO', 'pdf_import'),
       },
-      {
-        name: 'Path Translations',
-        icon: 'translate',
-        free: limitLabel('FREE', 'path_translation'),
-        pro: limitLabel('PRO', 'path_translation'),
-      },
       { name: 'And many more…', icon: 'more_horiz', free: '✓', pro: '✓' },
     ],
   },
@@ -104,36 +98,6 @@ const COMPARISON_DATA: FeatureCategory[] = [
     ],
   },
 ];
-
-function buildComparisonData(freeAiPathsDisabled: boolean): FeatureCategory[] {
-  // Phase 12 switchover: when FREE AI path generation is off, FREE users get
-  // curated community paths instead of AI-generated ones. Reframe the row so the
-  // table tells the truth and stays consistent with the pricing card.
-  const studyPathsRow: FeatureRow = freeAiPathsDisabled
-    ? {
-        name: 'Study Paths',
-        icon: 'school',
-        free: 'Community',
-        pro: limitLabel('PRO', 'ai_study_plan'),
-      }
-    : {
-        name: 'AI Study Plans',
-        icon: 'school',
-        free: limitLabel('FREE', 'ai_study_plan'),
-        pro: limitLabel('PRO', 'ai_study_plan'),
-      };
-
-  return COMPARISON_DATA.map((category) =>
-    category.category === 'AI Features'
-      ? {
-          ...category,
-          features: category.features.map((f) =>
-            f.name === 'AI Study Plans' ? studyPathsRow : f
-          ),
-        }
-      : category
-  );
-}
 
 function CellValue({ value, isPro }: { value: string; isPro?: boolean }) {
   if (value === 'Unlimited*' || value === 'Unlimited') {
@@ -178,14 +142,10 @@ function CellValue({ value, isPro }: { value: string; isPro?: boolean }) {
   return <span style={{ fontSize: 13, color: 'var(--on-surface-variant)' }}>{value}</span>;
 }
 
-export default function FeatureComparison({
-  freeAiPathsDisabled = false,
-}: {
-  freeAiPathsDisabled?: boolean;
-}) {
+export default function FeatureComparison() {
   const { ref, isRevealed } = useScrollReveal();
   const [expandedMobile, setExpandedMobile] = useState<number>(0);
-  const comparisonData = buildComparisonData(freeAiPathsDisabled);
+  const comparisonData = COMPARISON_DATA;
 
   return (
     <section

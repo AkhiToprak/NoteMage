@@ -20,20 +20,6 @@ export interface NotebookResult {
   updatedAt: string;
 }
 
-export interface CommunityNotebookResult {
-  shareId: string;
-  name: string;
-  title: string | null;
-  subject: string | null;
-  ownerId: string;
-  ownerUsername: string;
-  ownerName: string | null;
-  ownerAvatarUrl: string | null;
-  ownerNameStyle?: { fontId?: string; colorId?: string } | null;
-  ownerEquippedTitleId?: string | null;
-  ownerEquippedFrameId?: string | null;
-}
-
 export interface PageResult {
   id: string;
   title: string;
@@ -46,7 +32,6 @@ export interface PageResult {
 export interface SearchResults {
   users?: UserResult[];
   notebooks?: NotebookResult[];
-  communityNotebooks?: CommunityNotebookResult[];
   pages?: PageResult[];
 }
 

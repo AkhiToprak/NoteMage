@@ -74,6 +74,15 @@ export interface PathStructureContext {
   subjectWeights: number[];
   /** Content language the path is generated in. Defaults to English. */
   language?: PathLanguageCode;
+  /**
+   * PREVIEW mode (onboarding-real-generation P2). When set, the prompt asks for
+   * a SINGLE short section of about this many `learning` slots — a taster of a
+   * larger path — instead of the full 3–6 section scale guidance. The generator
+   * still runs `enforceSpacedReviews`, so the final node count lands ~`maxNodes`
+   * + 2 (one review + the trailing assessment). Keeps a cheap/fast preview model
+   * tightly bounded. Omit for the full path.
+   */
+  maxNodes?: number;
 }
 
 export interface SlotContentContext {
@@ -257,7 +266,9 @@ export const GEMINI_JSON_PREAMBLE =
   'no `tool_code` / `tool_name` / `tool_code_args` wrappers.\n';
 
 export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt {
-  const systemLines: string[] = [
+  const isPreview = typeof ctx.maxNodes === 'number' && ctx.maxNodes > 0;
+  const previewSlots = isPreview ? Math.max(2, Math.min(4, ctx.maxNodes as number)) : 0;
+  const intro: string[] = [
     'You are NoteMage, an AI tutor that designs guided learning paths.',
     'Your job is to plan the SHAPE of the path — sections and slots — not the lesson content itself.',
     '',
@@ -265,10 +276,8 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt
     '{ "title": string, "description": string, "phases": [ { "title": string, "description": string, "slots": [ { "title": string, "kind": "learning"|"review"|"assessment", "topicHint": string, "objective": string } ] } ] }',
     'The UI renders each phase as a "Section" — but the JSON key stays `phases`. All titles MUST be non-empty strings.',
     '',
-    'Scale to the material:',
-    '- Output 3–6 sections with 3–6 slots each — but only as many as the subject matter genuinely supports. Do NOT pad to hit a number; a tight 3-section path beats a bloated 6-section one full of filler slots.',
-    '- When the material is thin, make fewer, denser slots. When it is rich, spread it across more slots so each stays focused on one idea.',
-    '',
+  ];
+  const coherence: string[] = [
     'Coherence — this is the ONLY step that sees the whole path, so get the structure right here:',
     '- Every slot teaches a DISTINCT concept. No two slots may overlap or repeat. If two ideas are small, merge them into one slot rather than splitting hairs.',
     '- Order the slots so each builds on the ones before it — prerequisites first, then the concepts that depend on them.',
@@ -277,14 +286,35 @@ export function buildPathStructurePrompt(ctx: PathStructureContext): SplitPrompt
     '- `title`: one short line (≤ 6 words), shown on the path node.',
     '- `topicHint`: 1–2 sentences naming the SPECIFIC concepts/skills this slot teaches — not a vague label. Drives the theory + flashcards.',
     '- `objective`: ONE line — the concrete, testable thing the learner can DO after this slot, phrased verb-first (e.g. "Conjugate regular -ar verbs in the present tense"). The slot\'s quiz (or its section\'s checkpoint) is written to test exactly this, so make it sharp and measurable.',
-    '',
-    'Slot kinds — build in spaced repetition; NEVER output a section that is just learning slots plus one assessment:',
-    '- `learning`: teaches ONE new concept (becomes theory + flashcards).',
-    '- `review`: consolidates and quizzes earlier slots (flashcards + quiz, no new theory). Add a `review` slot after about every 2 `learning` slots so the learner practices before taking on more.',
-    '- `assessment`: the LAST slot of every section MUST have `kind: "assessment"` — the graded checkpoint that gates the next section.',
-    '- A healthy section reads like: learning, learning, review, learning, learning, review, assessment. Adapt the rhythm to the material, but always interleave reviews — do not stack all the learning first.',
-    '- Section titles should read like "Section N: Topic" or similar — the UI renders them as banners.',
   ];
+  const systemLines: string[] = isPreview
+    ? [
+        ...intro,
+        // PREVIEW (onboarding taster): one short section of learning slots only.
+        // The generator interleaves the review + trailing assessment in code
+        // (enforceSpacedReviews), so the model must NOT add them here.
+        'This is a SHORT PREVIEW of a larger path — a taster shown before the learner commits.',
+        `- Output EXACTLY ONE section: a single entry in \`phases\` whose \`slots\` are about ${previewSlots} \`learning\` slots (never more than ${previewSlots}). Pick the ${previewSlots} most important, foundational concepts the material opens with.`,
+        '- Every slot MUST be `kind: "learning"`. Do NOT add `review` or `assessment` slots — those are added automatically after you.',
+        '- Keep it tight: each slot is one distinct core concept the learner meets first. A focused first section beats a broad shallow one.',
+        '',
+        ...coherence,
+      ]
+    : [
+        ...intro,
+        'Scale to the material:',
+        '- Output 3–6 sections with 3–6 slots each — but only as many as the subject matter genuinely supports. Do NOT pad to hit a number; a tight 3-section path beats a bloated 6-section one full of filler slots.',
+        '- When the material is thin, make fewer, denser slots. When it is rich, spread it across more slots so each stays focused on one idea.',
+        '',
+        ...coherence,
+        '',
+        'Slot kinds — build in spaced repetition; NEVER output a section that is just learning slots plus one assessment:',
+        '- `learning`: teaches ONE new concept (becomes theory + flashcards).',
+        '- `review`: consolidates and quizzes earlier slots (flashcards + quiz, no new theory). Add a `review` slot after about every 2 `learning` slots so the learner practices before taking on more.',
+        '- `assessment`: the LAST slot of every section MUST have `kind: "assessment"` — the graded checkpoint that gates the next section.',
+        '- A healthy section reads like: learning, learning, review, learning, learning, review, assessment. Adapt the rhythm to the material, but always interleave reviews — do not stack all the learning first.',
+        '- Section titles should read like "Section N: Topic" or similar — the UI renders them as banners.',
+      ];
   if (ctx.hasSourceMaterials) {
     systemLines.push(
       '- A SOURCE MATERIALS section is provided above. Ground the whole path in it: every section and slot must cover a topic the materials actually teach, sequenced to follow how the material builds up, and TOGETHER the slots should cover the material\'s important topics without leaving big gaps. Do not pad with generic subject topics the materials do not cover. Make each `topicHint` and `objective` point at the specific concepts and skills from those materials.',
@@ -519,7 +549,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
       : 'You are NoteMage, writing a quiz that tests ONE checkpoint slot inside a guided learning path.',
     '',
     'JSON shape (top-level keys MUST match EXACTLY — camelCase, no snake_case):',
-    '{ "title": string, "questions": [ { "kind": <one of the allowed kinds listed below>, "prompt": string, "hint": string?, "correctExplanation": string?, "wrongExplanation": string?, "payload": <kind-specific NESTED object> } ] }',
+    '{ "title": string, "questions": [ { "kind": <one of the allowed kinds listed below>, "prompt": string, "hint": string?, "correctExplanation": string?, "wrongExplanation": string?, "payload": <kind-specific NESTED object>, "source": { "label": string, "page": number?, "quote": string }? } ] }',
     '`payload` is a NESTED OBJECT. Every kind-specific key (options, correctIndex, correct, blank, pairs, template, slots, wordBank, expectedExpression, code, events, starterCode, tests, …) MUST live INSIDE the `payload` object — NEVER at the question top level next to `kind`/`prompt`.',
     'CORRECT shape:   `{"kind":"mc","prompt":"…","payload":{"options":["a","b","c","d"],"correctIndex":0}}`',
     'WRONG (rejected): `{"kind":"mc","prompt":"…","options":["a","b","c","d"],"correctIndex":0}`',
@@ -540,6 +570,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
     ...(ctx.hasSourceMaterials
       ? [
           'Write every question FROM the SOURCE MATERIALS above — test what that content actually states. Ground each prompt, answer, and explanation in the material rather than generic subject knowledge.',
+          'PROVENANCE — for every question grounded in those materials, add a question-level `source` object (a sibling of `kind`/`prompt`/`payload`, NEVER inside `payload`): `{ "label": string, "page": number?, "quote": string }`. `quote` is a SHORT VERBATIM excerpt (≤ 60 words) copied EXACTLY from the material that supports the answer — never paraphrased, never your own words. `label` is that material\'s title, copied verbatim from its "### …" header. Set `page` ONLY when that header shows a "[page N]" marker (use that N); otherwise omit `page`. Omit the whole `source` object for any question you wrote from general knowledge instead of the materials.',
         ]
       : []),
   ];
@@ -606,5 +637,73 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
   }
   const briefLine = learnerBriefLine(ctx);
   if (briefLine) tailLines.push('', briefLine);
+  return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
+}
+
+/**
+ * Context for the onboarding PREVIEW quiz (onboarding-real-generation P2). A
+ * deliberately tiny, decoupled shape — the preview never has a full
+ * `SlotContentContext` (no phases, subjects, figures, …), and binding to one
+ * would drag the whole pipeline in. Questions test the slot-1 lesson the learner
+ * just read.
+ */
+export interface PreviewQuizContext {
+  pathTitle: string;
+  slotTitle: string;
+  slotTopicHint: string;
+  /** Plain text of the slot-1 lesson — the questions test exactly THIS. */
+  lessonText: string;
+  /** Citation label for each question's `source` line (material title / "Your notes"). */
+  sourceLabel: string;
+  language?: PathLanguageCode;
+}
+
+/**
+ * PREVIEW quiz prompt (onboarding-real-generation P2, D5/D6). Generates EXACTLY
+ * two questions in the onboarding sample-run shape (`SampleQuestion` minus the
+ * `id`, assigned in code) so the `/start/*` screens render real + sample output
+ * with the same machinery. Hard railings keep a cheap model reliable: only
+ * `mc` / `true_false` (the kinds weak models never malform), a forced source
+ * cite, two-tier feedback, and the second question carrying the `weakPoint`
+ * diagnostic. The JSON-shape prose is load-bearing for the schemaless Gemini
+ * path; on Anthropic the preview-questions tool enforces the same shape.
+ */
+export function buildPreviewQuizPrompt(ctx: PreviewQuizContext): SplitPrompt {
+  const systemLines: string[] = [
+    'You are NoteMage, writing a TWO-question warm-up quiz for a learner who just read one short lesson.',
+    '',
+    'JSON shape (keys MUST match EXACTLY — camelCase):',
+    '{ "questions": [ { "topic": string, "prompt": string, "options": [ { "id": string, "text": string } ], "correct": string, "source": string, "hint": string, "okBubble": string, "okWhy": string, "noBubble": string, "noWhy": string, "weakPoint": { "title": string, "desc": string }? } ] }',
+    '',
+    'Produce EXACTLY 2 questions — no more, no fewer.',
+    'Each question is EITHER multiple-choice OR true/false:',
+    '- multiple-choice: EXACTLY 4 `options`, ids "A","B","C","D"; one is correct, the other three are plausible but wrong.',
+    '- true/false: EXACTLY 2 `options` — `{ "id": "A", "text": "True" }` and `{ "id": "B", "text": "False" }`; the `prompt` IS the statement being judged.',
+    '`correct` is the `id` of the right option (e.g. "A"). NEVER use any other question type.',
+    '',
+    'Per-question fields:',
+    '- `topic`: a 1–3 word chip naming the sub-topic (e.g. "Database basics").',
+    '- `source`: a short citation grounding the question in the material (e.g. "Your notes · §2"). Keep it plausible and specific; never leave it blank.',
+    '- `hint`: one short nudge that helps without giving the answer away.',
+    '- `okBubble`: one warm sentence shown when the learner is RIGHT.',
+    '- `okWhy`: 1–2 sentences explaining WHY it is right, with a concrete example.',
+    '- `noBubble`: one gentle sentence shown when the learner is WRONG (name the likely mix-up).',
+    '- `noWhy`: 1–2 sentences stating the correct idea plainly.',
+    '',
+    'Diagnostic: the SECOND question MUST include a `weakPoint` object — `title` is the sub-skill it probes, `desc` is one sentence of the form "You understood X, but …" shown if the learner misses it. The FIRST question MUST NOT include `weakPoint`.',
+    '',
+    'Test ONLY what the lesson below teaches — do not introduce facts it does not cover. Keep prompts crisp and unambiguous.',
+  ];
+  const dir = languageDirective(ctx.language);
+  if (dir) systemLines.unshift(dir, '');
+
+  const tailLines: string[] = [
+    `Path: "${ctx.pathTitle}"`,
+    `Lesson topic: "${ctx.slotTitle}" — ${ctx.slotTopicHint}`,
+    `Cite this source on every question: ${ctx.sourceLabel}`,
+    '',
+    'THE LESSON THE LEARNER JUST READ — write both questions from THIS and nothing else:',
+    ctx.lessonText.trim(),
+  ];
   return { system: systemLines.join('\n'), tail: tailLines.join('\n') };
 }

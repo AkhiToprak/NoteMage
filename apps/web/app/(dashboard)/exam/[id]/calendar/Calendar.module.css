@@ -1,0 +1,251 @@
+/* Hallmark · component: exam-study-calendar · genre: editorial · theme: system-managed (cream AppShell)
+ * states: default · hover · focus-visible · active · disabled · loading · empty
+ * contrast: pass — cream `.shell` tokens only · no gradients
+ *
+ * Study Calendar (X2 Study Calendar, Figma 89:20014 web / 89:18448 mobile). The
+ * plan across the days to the exam: a "path to exam day" stepper, day session
+ * cards, and the daily-time slider that rebalances. Reuses the shipped exam
+ * screens' cream language; gold reserved for the exam-day node. Layout only. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---- back + header ---- */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.back:hover { opacity: 0.78; }
+.back:active { transform: translateX(-1px); }
+.back:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+.headRow { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.titleWrap { min-width: 0; }
+.title { margin: 0; font-size: 33px; font-weight: 800; letter-spacing: -0.022em; line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; }
+.subtitle { margin: 7px 0 0; font-size: 14.5px; color: var(--body); }
+.adjustBtn { flex-shrink: 0; }
+
+/* ---- mobile summary (hidden on web) ---- */
+.mobileSummary { display: none; }
+.msTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.msTitle { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.msSub { margin: 4px 0 0; font-size: 13px; color: var(--body); }
+.msProgRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--body); margin-top: 4px; }
+.msProg { font-weight: 700; color: var(--accent); }
+
+.bannerErr {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a32d18;
+  background: #fdecea;
+  border: 1px solid #f3c9c0;
+  border-radius: var(--rm);
+  padding: 10px 14px;
+}
+
+/* ---- path to exam day (stepper) ---- */
+.stepperCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 18px 22px 22px;
+}
+.stepperHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.stepperTitle { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--ink); }
+.stepper { list-style: none; margin: 0; padding: 0; display: flex; justify-content: space-between; gap: 6px; position: relative; }
+.stepperLine { position: absolute; top: 22px; left: 28px; right: 28px; height: 2px; background: var(--border); z-index: 0; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; position: relative; z-index: 1; text-align: center; }
+.stepNode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--muted);
+}
+.stepToday { background: var(--primary); border-color: var(--primary); color: #fff; }
+.stepExam { background: var(--gold); border-color: var(--gold); color: #fff; }
+.stepDone { background: var(--green); border-color: var(--green); color: #fff; }
+.stepLabel { font-size: 12.5px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.stepSub { font-size: 11.5px; color: var(--muted); }
+
+/* ---- day cards ---- */
+.daysHead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.daysTitle { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.daysHint { font-size: 12.5px; color: var(--muted); }
+
+.dayGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+
+.dayCard {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.dayToday { border-color: #d2c4ff; box-shadow: var(--shadow-raise); }
+.examCard { border-color: #ecdcae; background: #fdf8ec; }
+
+.dayTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #faf7ef;
+  border: 1px solid var(--border-soft);
+}
+.examTile { background: var(--gold); border-color: var(--gold); }
+.dayWk { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--muted); }
+.dayNum { font-size: 20px; font-weight: 800; color: var(--ink); line-height: 1; }
+
+.dayBody { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.dayTitleRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.dayTitle { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; min-width: 0; }
+.dayBadge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.bDone { background: var(--green-soft); color: var(--green-ink); }
+.bToday { background: var(--primary); color: #fff; }
+.bUpcoming { background: #efeade; color: var(--muted); }
+.bMissed { background: #fdecea; color: #a32d18; }
+.bExam { background: rgba(202, 165, 58, 0.18); color: #8a6a1c; }
+.dayDesc { margin: 0; font-size: 12.5px; color: var(--body); line-height: 1.45; }
+.dayFoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.dayChips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.minChip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #faf7ef;
+  border: 1px solid var(--border-soft);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dayStart, .dayOpen {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--rm);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.dayStart { border: none; background: var(--primary); color: #fff; box-shadow: 0 5px 14px rgba(124, 92, 255, 0.24); }
+.dayStart:hover { background: var(--primary-press); }
+.dayOpen { border: 1px solid var(--border); background: var(--surface); color: var(--ink); }
+.dayOpen:hover { background: #f6f3ec; }
+.dayStart:active, .dayOpen:active { transform: translateY(1px); }
+.dayStart:focus-visible, .dayOpen:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ---- bottom (legend + daily time) ---- */
+.bottomGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.legendCard, .timeCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+.legendTitle { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.legendItems { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
+.legendItem { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+
+.timeHead { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
+.timeIcon { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; background: var(--lilac-soft); color: var(--accent); flex-shrink: 0; }
+.timeSub { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.regenBtn {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 40px;
+  border-radius: var(--rm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.regenBtn:hover { background: #f6f3ec; }
+.regenBtn:active { transform: translateY(1px); }
+.regenBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.regenBtn:disabled { opacity: 0.55; cursor: default; }
+
+/* ---- empty ---- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: clamp(40px, 8vw, 72px) 24px;
+}
+.emptyTile { display: inline-flex; align-items: center; justify-content: center; width: 96px; height: 96px; border-radius: 24px; background: var(--lilac-soft); border: 1px solid #e4ddff; }
+.emptyMascot { width: 60px; height: 60px; object-fit: contain; }
+.emptyTitle { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.emptyText { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.6; max-width: 40ch; }
+.cardErr { margin: 4px 0 0; font-size: 12.5px; color: #a32d18; }
+
+/* ---- responsive ---- */
+@media (max-width: 880px) {
+  .dayGrid { grid-template-columns: 1fr; }
+  .bottomGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .title { font-size: 26px; }
+  .subtitle { display: none; }
+  .page { padding-bottom: 84px; }
+  .adjustBtn { width: 100%; justify-content: center; }
+  .headRow { align-items: flex-start; }
+  .stepperCard { display: none; }
+  .mobileSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--rc);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+}

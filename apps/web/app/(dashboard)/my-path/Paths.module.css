@@ -1,0 +1,186 @@
+.tabs {
+  margin-top: 22px;
+  display: flex;
+  gap: 10px;
+}
+.tab {
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.tab:hover { background: #f6f3ec; }
+.tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.tabActive { background: var(--primary); border-color: var(--primary); color: #fff; }
+.tabActive:hover { background: var(--primary-press); }
+
+.grid {
+  margin-top: 22px;
+  max-width: 860px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+@media (max-width: 820px) {
+  .grid { grid-template-columns: 1fr; max-width: 460px; }
+}
+
+/* ---- path card ---- */
+.pathCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pathActive { border: 1.5px solid var(--primary); box-shadow: var(--shadow-raise); }
+
+.pathHead { display: flex; align-items: flex-start; gap: 16px; }
+.pathTile {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lilac);
+  color: var(--accent);
+}
+.headText { flex: 1; min-width: 0; }
+.titleRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pathTitle { font-size: 18px; font-weight: 700; color: var(--ink); }
+.source { margin-top: 6px; font-size: 13px; color: var(--body); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.badgeActive { background: var(--primary); color: #fff; }
+.badgeDone { background: var(--lilac); color: var(--accent); }
+
+.progress { display: flex; align-items: center; gap: 12px; }
+.pct { font-size: 14px; font-weight: 700; color: var(--ink); flex-shrink: 0; }
+
+.divider { height: 1px; background: var(--border); }
+
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.next { font-size: 14px; color: var(--ink-soft); }
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  transition: opacity 0.18s var(--ease);
+}
+.link:hover { opacity: 0.78; }
+
+.tipWrap { margin-top: 26px; max-width: 620px; }
+
+/* ---- card overflow menu ---- */
+/* Slot in the pathHead that holds the MoreMenu trigger, pushed to the right
+   so it doesn't fight with the headText flex child. */
+.cardMenu { flex-shrink: 0; margin-left: auto; }
+
+.moreBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--body);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.moreBtn:hover { background: var(--border); border-color: var(--border); color: var(--ink); }
+.moreBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.morePopover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 196px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  animation: morePopoverIn 0.14s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes morePopoverIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.moreItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.13s var(--ease);
+}
+.moreItem:hover { background: #f6f3ec; }
+.moreItem:focus-visible { outline: 2px solid var(--primary); outline-offset: -1px; }
+
+.moreItemDanger { color: #c0392b; }
+.moreItemDanger:hover { background: #fef0ee; }
+.moreItemDanger:focus-visible { outline-color: #c0392b; }
+
+/* ---- cancel/stop button inside GeneratingCard foot ---- */
+.cancelBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--body);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.cancelBtn:hover { border-color: var(--ink-soft); color: var(--ink); }
+.cancelBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }

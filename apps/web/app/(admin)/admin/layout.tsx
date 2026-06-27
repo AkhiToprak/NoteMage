@@ -32,18 +32,6 @@ const NAV_ITEMS: NavItem[] = [
     matchPrefix: (p) => p === '/admin',
   },
   {
-    href: '/admin/tickets',
-    label: 'Tickets',
-    icon: 'inbox',
-    matchPrefix: (p) => p === '/admin/tickets' || p.startsWith('/admin/tickets/'),
-  },
-  {
-    href: '/admin/paths',
-    label: 'Paths',
-    icon: 'route',
-    matchPrefix: (p) => p === '/admin/paths' || p.startsWith('/admin/paths/'),
-  },
-  {
     href: '/admin/users',
     label: 'Users',
     icon: 'group',

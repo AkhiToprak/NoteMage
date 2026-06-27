@@ -1,0 +1,202 @@
+/* Hallmark · Figma "Pricing" (file mL5j31qppL1WIFiZWx7oDL, node 5:2)
+ * light warm-cream · Inter · matches the redesigned landing palette · no gradients
+ * shares MageNav + MageFooter with the landing.
+ */
+
+.root {
+  --bg: #faf7f0;
+  --surface: #ffffff;
+  --hairline: #ece6d8;
+  --hairline-strong: #e0d9c9;
+  --primary: #7c5cff;
+  --primary-bright: #8d70ff;
+  --accent: #4326b8;
+  --lav: #ece3ff;
+  --gold: #ffc83d;
+  --gold-bright: #ffd25e;
+  --gold-tile: #fff3d6;
+  --on-gold: #7a5200;
+  --ink: #18202f;
+  --body: #6b7280;
+  --faint: #a1a7b3;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+
+.page { overflow-x: clip; padding-bottom: 24px; }
+
+/* ─────────── HEADER ─────────── */
+.head { text-align: center; padding: 132px 20px 0; }
+.headInner { position: relative; display: inline-block; max-width: 1040px; }
+.eyebrow {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.16em;
+  color: var(--accent); margin: 0 0 14px;
+}
+.title {
+  font-size: clamp(2rem, 4.6vw, 3rem); font-weight: 800; letter-spacing: -0.025em;
+  line-height: 1.08; color: var(--ink); margin: 0 auto;
+  /* no width cap → one line on desktop; wraps naturally on narrow phones */
+  overflow-wrap: anywhere;
+}
+.sub {
+  font-size: clamp(1rem, 1.6vw, 1.12rem); color: var(--body); line-height: 1.55;
+  margin: 18px auto 0; max-width: 560px;
+}
+.spark { position: absolute; line-height: 0; pointer-events: none; animation: pxTwinkle 2.8s ease-in-out infinite alternate both; }
+.spark svg { display: block; }
+.sparkA { top: 6%; left: -6%; }
+.sparkA svg { width: 26px; height: 26px; filter: drop-shadow(0 0 8px rgba(255, 200, 61, 0.5)); }
+.sparkB { top: 14%; right: -4%; animation-delay: -1.2s; }
+.sparkB svg { width: 16px; height: 16px; filter: drop-shadow(0 0 7px rgba(124, 92, 255, 0.45)); }
+.sparkC { bottom: -6%; left: 8%; animation-delay: -0.6s; }
+.sparkC svg { width: 14px; height: 14px; filter: drop-shadow(0 0 7px rgba(124, 92, 255, 0.45)); }
+@keyframes pxTwinkle {
+  from { opacity: 0.4; transform: scale(0.82) rotate(-6deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* ─────────── BILLING TOGGLE ─────────── */
+.toggleRow { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 36px auto 0; flex-wrap: wrap; }
+.seg {
+  display: inline-flex; align-items: center; gap: 2px;
+  background: #fff; border: 1px solid var(--hairline); border-radius: 999px; padding: 4px;
+  box-shadow: 0 2px 8px rgba(58, 46, 102, 0.05);
+}
+.segBtn {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 15px; font-weight: 600; color: var(--body);
+  padding: 10px 22px; border-radius: 999px;
+  transition: color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.segBtn:hover { color: var(--ink); }
+.segBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.segActive { background: var(--primary); color: #fff; }
+.segActive:hover { color: #fff; }
+.savePill {
+  display: inline-flex; align-items: center;
+  background: var(--gold-tile); color: var(--on-gold);
+  font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 999px;
+}
+
+/* ─────────── PLAN CARDS ─────────── */
+.cards {
+  display: flex; gap: 24px; justify-content: center; align-items: stretch;
+  max-width: 880px; margin: 40px auto 0; padding: 0 20px;
+}
+.plan {
+  flex: 1 1 0; min-width: 0; max-width: 420px;
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1.4px solid var(--hairline); border-radius: 26px;
+  padding: 30px;
+  box-shadow: 0 8px 24px rgba(58, 46, 102, 0.07);
+}
+.planPro { border: 2.4px solid var(--primary); box-shadow: 0 18px 48px rgba(124, 92, 255, 0.2); }
+.planHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px; }
+.planName { font-size: 20px; font-weight: 700; color: var(--ink); }
+.popular {
+  background: var(--gold); color: var(--on-gold);
+  font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px;
+}
+.price { display: flex; align-items: baseline; gap: 7px; margin-top: 14px; }
+.priceAmt { font-size: 42px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1; }
+.priceSuffix { font-size: 17px; font-weight: 600; color: var(--body); }
+.priceSub { font-size: 13.5px; font-weight: 500; color: var(--body); margin: 10px 0 0; min-height: 18px; }
+.planDivider { height: 1px; background: var(--hairline); margin: 22px 0 20px; }
+.feats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; flex: 1 1 auto; }
+.feats li { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; font-weight: 500; line-height: 1.34; color: var(--ink); }
+.tick {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: var(--lav); color: var(--accent);
+  font-size: 12px; font-weight: 700;
+}
+.tickPro { background: var(--gold-tile); color: var(--on-gold); }
+.btnFree, .btnPro {
+  display: flex; align-items: center; justify-content: center;
+  height: 56px; margin-top: 28px; border-radius: 15px;
+  font-family: inherit; font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer;
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.btnFree { background: #fff; color: var(--ink); border: 1.6px solid var(--hairline-strong); }
+.btnFree:hover { transform: translateY(-1px); border-color: var(--primary); color: var(--accent); }
+.btnFree:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.btnPro { background: var(--gold); color: var(--on-gold); border: 0; box-shadow: 0 12px 28px rgba(255, 200, 61, 0.34); }
+.btnPro:hover { transform: translateY(-1px); background: var(--gold-bright); box-shadow: 0 16px 32px rgba(255, 200, 61, 0.42); }
+.btnPro:active { transform: translateY(1px); }
+.btnPro:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.planNote { font-size: 12px; font-weight: 500; color: var(--faint); text-align: center; margin: 14px 0 0; }
+
+.fx {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  max-width: 640px; margin: 22px auto 0; text-align: center;
+  font-size: 13px; line-height: 1.6; color: var(--body);
+}
+.fx :global(.material-symbols-outlined) { font-size: 16px; }
+
+/* ─────────── COMPARISON TABLE ─────────── */
+.compareWrap { max-width: 880px; margin: 88px auto 0; padding: 0 20px; }
+.h2 { text-align: center; font-size: clamp(1.6rem, 3vw, 2rem); font-weight: 800; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 28px; }
+.tableCard { background: #fff; border: 1.4px solid var(--hairline); border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.07); }
+.table { width: 100%; border-collapse: collapse; }
+.thFeature, .thPlan { padding: 18px 24px; font-size: 13px; font-weight: 700; color: var(--body); }
+.thFeature { text-align: left; }
+.thPlan { text-align: center; width: 22%; }
+.table thead tr { border-bottom: 1px solid var(--hairline); }
+.groupRow td {
+  padding: 18px 24px 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--accent); text-transform: uppercase;
+}
+.dataRow { border-top: 1px solid var(--hairline); }
+.dataRow:nth-of-type(even) { background: #faf7f0; }
+.tdFeature { padding: 13px 24px; font-size: 14.5px; font-weight: 500; color: var(--ink); }
+.tdPlan { padding: 13px 16px; text-align: center; font-size: 14px; font-weight: 600; color: var(--body); }
+.proCol { background: #fff7e6; }
+.dataRow .proCol { color: var(--ink); }
+.tick { /* shared with cards — table reuses .tick visual via .tickTable below */ }
+.dataRow .tdPlan .tick {
+  display: inline-grid; width: 22px; height: 22px; background: var(--lav); color: var(--accent);
+}
+.dataRow .proCol .tick { background: var(--gold-tile); color: var(--on-gold); }
+.dash { color: var(--faint); }
+.fineprint { max-width: 760px; margin: 18px auto 0; text-align: center; font-size: 12.5px; line-height: 1.5; color: var(--faint); }
+
+/* ─────────── FAQ ─────────── */
+.faqWrap { max-width: 760px; margin: 80px auto 0; padding: 0 20px; }
+.faqList { margin-top: 4px; }
+.faqItem { border-bottom: 1px solid var(--hairline); }
+.faqQ {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  appearance: none; background: transparent; border: 0; cursor: pointer; text-align: left;
+  font-family: inherit; font-size: 17px; font-weight: 600; color: var(--ink);
+  padding: 22px 4px;
+  transition: color 0.2s var(--ease);
+}
+.faqQ:hover { color: var(--accent); }
+.faqQ:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+.faqSign { flex-shrink: 0; font-size: 24px; font-weight: 400; color: var(--primary); line-height: 1; }
+.faqA { font-size: 15px; line-height: 1.6; color: var(--body); margin: 0 4px; padding: 0 0 22px; max-width: 64ch; }
+
+/* ─────────── RESPONSIVE ─────────── */
+@media (max-width: 767px) {
+  .head { padding: 108px 16px 0; }
+  .toggleRow { margin-top: 28px; }
+  .cards { flex-direction: column; align-items: center; padding: 0 16px; }
+  .plan { width: 100%; max-width: 420px; }
+  /* PRO above FREE on phones so the recommended plan isn't below the fold */
+  .planPro { order: -1; }
+  .compareWrap { margin-top: 64px; }
+  .thFeature, .tdFeature { padding-left: 16px; }
+  .thPlan, .tdPlan { padding-left: 8px; padding-right: 8px; font-size: 13px; }
+  .groupRow td { padding-left: 16px; }
+  .faqWrap { margin-top: 56px; }
+  .faqQ { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spark { animation: none; opacity: 0.85; transform: none; }
+  .segBtn, .btnFree, .btnPro, .faqQ { transition: none; }
+}

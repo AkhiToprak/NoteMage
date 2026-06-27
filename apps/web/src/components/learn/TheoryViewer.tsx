@@ -29,6 +29,14 @@ interface TheoryViewerProps {
    * embedded images; image segments are then skipped rather than broken.
    */
   theoryId?: string;
+  /**
+   * `'callouts'` (the cream quiz player) renders the generator's keyPoints /
+   * examples sections as Figma-style Key-idea / Example callout cards. Default
+   * keeps the plain document rendering. Sections are classified by their
+   * structure, not localized heading text (see `splitDocCallouts`), so it works
+   * in every path language.
+   */
+  variant?: 'default' | 'callouts';
 }
 
 interface TipTapNode {
@@ -195,6 +203,140 @@ function splitDoc(body: unknown): Segment[] {
   return segments;
 }
 
+// ── Callouts variant (cream quiz player) ──────────────────────────────────
+// theoryInputToTipTap emits the generated sections deterministically:
+//   keyPoints → h3 + bulletList   ·   examples → h3 + h4 sub-headings
+//   summary   → h3 + paragraphs (left as prose)
+// So a section is identified by the SHAPE of the blocks under its h3, never by
+// matching the localized heading text — this works across every path language.
+type CalloutKind = 'keyIdea' | 'example';
+
+type CalloutSegment =
+  | { type: 'prose'; text: string }
+  | { type: 'callout'; kind: CalloutKind; label: string; text: string }
+  | { type: 'image'; ref: number; alt: string }
+  | { type: 'diagram'; diagram: PathDiagramData };
+
+const CALLOUT_META: Record<CalloutKind, { bg: string; border: string; ink: string; icon: string }> = {
+  keyIdea: { bg: 'var(--nm-primary-light)', border: 'var(--nm-primary)', ink: 'var(--nm-primary-on-light)', icon: 'lightbulb' },
+  example: { bg: 'var(--nm-streak-soft)', border: 'var(--nm-streak)', ink: 'var(--nm-streak)', icon: 'science' },
+};
+
+function classifySection(blocks: TipTapNode[]): CalloutKind | null {
+  if (blocks.some((b) => b?.type === 'bulletList' || b?.type === 'orderedList')) return 'keyIdea';
+  if (blocks.some((b) => b?.type === 'heading' && b.attrs?.level === 4)) return 'example';
+  return null; // summary / anything else → render as plain prose
+}
+
+// Split the generated theory doc into ordered segments: intro + summary prose,
+// Key-idea / Example callout cards, and the existing image / diagram nodes.
+function splitDocCallouts(body: unknown): CalloutSegment[] {
+  if (!body || typeof body !== 'object') return [];
+  const doc = body as TipTapNode;
+  const blocks = Array.isArray(doc.content) ? doc.content : [];
+  const segments: CalloutSegment[] = [];
+  let prose: TipTapNode[] = [];
+  const flushProse = () => {
+    if (prose.length === 0) return;
+    const md = prose
+      .map((b) => serializeBlock(b))
+      .filter((chunk) => chunk.trim().length > 0)
+      .join('\n\n')
+      .trim();
+    if (md) segments.push({ type: 'prose', text: md });
+    prose = [];
+  };
+
+  let i = 0;
+  while (i < blocks.length) {
+    const block = blocks[i];
+    if (block?.type === 'pathImage') {
+      flushProse();
+      const ref = block.attrs?.ref;
+      const alt = block.attrs?.alt;
+      if (typeof ref === 'number') segments.push({ type: 'image', ref, alt: typeof alt === 'string' ? alt : '' });
+      i += 1;
+      continue;
+    }
+    if (block?.type === 'pathDiagram') {
+      flushProse();
+      const parsed = PathDiagramSchema.safeParse(block.attrs?.diagram);
+      if (parsed.success) segments.push({ type: 'diagram', diagram: parsed.data });
+      i += 1;
+      continue;
+    }
+    if (block?.type === 'heading' && block.attrs?.level === 3) {
+      // Gather this section's body — blocks until the next section heading or a
+      // custom node — then classify it by shape.
+      const sectionBlocks: TipTapNode[] = [];
+      let j = i + 1;
+      for (; j < blocks.length; j += 1) {
+        const b = blocks[j];
+        const lvl = b?.type === 'heading' ? b.attrs?.level : undefined;
+        if (lvl === 3 || lvl === 2 || b?.type === 'pathImage' || b?.type === 'pathDiagram') break;
+        sectionBlocks.push(b);
+      }
+      const kind = classifySection(sectionBlocks);
+      if (kind) {
+        flushProse();
+        const md = sectionBlocks
+          .map((b) => serializeBlock(b))
+          .filter((chunk) => chunk.trim().length > 0)
+          .join('\n\n')
+          .trim();
+        segments.push({ type: 'callout', kind, label: rawText(block.content).trim(), text: md });
+        i = j;
+        continue;
+      }
+      // Unclassified (summary / other) → keep heading + body in the prose flow.
+      prose.push(block);
+      i += 1;
+      continue;
+    }
+    prose.push(block);
+    i += 1;
+  }
+  flushProse();
+  return segments;
+}
+
+function TheoryCallout({ kind, label, text }: { kind: CalloutKind; label: string; text: string }) {
+  const meta = CALLOUT_META[kind];
+  return (
+    <div
+      style={{
+        borderRadius: 'var(--radius-md)',
+        background: meta.bg,
+        border: `1px solid ${meta.border}`,
+        padding: '14px 16px',
+        margin: '18px 0',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '11px',
+          fontWeight: 800,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: meta.ink,
+          marginBottom: '6px',
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>
+          {meta.icon}
+        </span>
+        {label}
+      </span>
+      <div style={{ fontSize: '15px', lineHeight: 1.6, color: 'var(--on-surface)' }}>
+        <MarkdownRenderer content={text} />
+      </div>
+    </div>
+  );
+}
+
 function TheoryFigure({ src, alt }: { src: string; alt: string }) {
   return (
     <figure style={{ margin: '1em 0' }}>
@@ -231,8 +373,11 @@ function TheoryFigure({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export default function TheoryViewer({ body, theoryId }: TheoryViewerProps) {
-  const segments = useMemo(() => splitDoc(body), [body]);
+export default function TheoryViewer({ body, theoryId, variant = 'default' }: TheoryViewerProps) {
+  const segments = useMemo<Array<Segment | CalloutSegment>>(
+    () => (variant === 'callouts' ? splitDocCallouts(body) : splitDoc(body)),
+    [body, variant],
+  );
 
   if (segments.length === 0) {
     return (
@@ -248,20 +393,25 @@ export default function TheoryViewer({ body, theoryId }: TheoryViewerProps) {
       style={{ color: 'var(--on-surface)', fontSize: '15px', lineHeight: 1.7 }}
     >
       {segments.map((seg, i) => {
-        if (seg.type === 'markdown') {
-          return <MarkdownRenderer key={i} content={seg.text} />;
+        switch (seg.type) {
+          case 'markdown':
+          case 'prose':
+            return <MarkdownRenderer key={i} content={seg.text} />;
+          case 'callout':
+            return <TheoryCallout key={i} kind={seg.kind} label={seg.label} text={seg.text} />;
+          case 'image':
+            return theoryId ? (
+              <TheoryFigure
+                key={i}
+                src={`/api/path-images/${encodeURIComponent(theoryId)}/${seg.ref}`}
+                alt={seg.alt}
+              />
+            ) : null;
+          case 'diagram':
+            return <PathDiagram key={i} diagram={seg.diagram} />;
+          default:
+            return null;
         }
-        if (seg.type === 'image') {
-          if (!theoryId) return null;
-          return (
-            <TheoryFigure
-              key={i}
-              src={`/api/path-images/${encodeURIComponent(theoryId)}/${seg.ref}`}
-              alt={seg.alt}
-            />
-          );
-        }
-        return <PathDiagram key={i} diagram={seg.diagram} />;
       })}
     </div>
   );

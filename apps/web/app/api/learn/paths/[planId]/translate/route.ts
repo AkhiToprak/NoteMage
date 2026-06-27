@@ -10,11 +10,12 @@ import {
   badRequestResponse,
   tooManyRequestsResponse,
 } from '@/lib/api-response';
-import { translatePath } from '@/lib/path-translator';
 import { isPathLanguage } from '@/lib/path-languages';
 import { checkTokenBudget } from '@/lib/token-budget';
 import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { reserveUsage, refundUsage } from '@/lib/usage-limits';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
+import { enqueueJob } from '@/lib/background-jobs';
 
 // Translate an existing path IN PLACE into another language. Progress is
 // preserved because only text columns on the existing rows change (see
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!rl.success) {
       return tooManyRequestsResponse(
         'Too many translation attempts. Please wait a moment and try again.',
-        rl.retryAfterMs,
+        rl.retryAfterMs
       );
     }
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const reservation = await reserveUsage(userId, 'path_translate');
     if (!reservation.allowed) {
       return tooManyRequestsResponse(
-        'Monthly translation limit reached. Please try again next month.',
+        'Monthly translation limit reached. Please try again next month.'
       );
     }
 
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!tokenAllowed) {
       await refundUsage(userId, 'path_translate');
       return tooManyRequestsResponse(
-        `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`,
+        `Monthly token limit reached (${tokenLimit.toLocaleString()} tokens). Resets on the 1st of next month.`
       );
     }
 
@@ -105,10 +106,27 @@ export async function POST(request: NextRequest, { params }: Params) {
         } as unknown as Prisma.InputJsonValue,
       },
     });
+    await invalidateDashboardCache(userId);
 
-    void translatePath(planId, language).catch((err) => {
-      console.error('[learn/paths translate]', err);
-    });
+    try {
+      await enqueueJob(
+        'path.translate',
+        { planId, language },
+        { dedupeKey: `path:translate:${planId}:${language}` }
+      );
+    } catch (error) {
+      await refundUsage(userId, 'path_translate');
+      await db.studyPlan
+        .update({
+          where: { id: planId },
+          data: {
+            generationStatus: 'failed',
+            generationError: 'Could not start translation. Please try again.',
+          },
+        })
+        .catch(() => {});
+      throw error;
+    }
 
     return successResponse({ planId, language, status: 'generating' });
   } catch (error) {

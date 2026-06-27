@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
+    "build:worker": "esbuild src/worker.ts --bundle --platform=node --format=esm --alias:@=./src --external:@prisma/client --external:.prisma/client --external:@napi-rs/canvas --outfile=dist/worker.mjs",
+    "worker": "node dist/worker.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

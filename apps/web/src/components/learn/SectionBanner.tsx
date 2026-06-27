@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { LockIcon } from '@/components/icons/CheckpointIcons';
 
 // Phase 10.5 — sticky section header rendered above each section's slot
@@ -22,14 +21,6 @@ interface SectionBannerProps {
   title: string;
   description?: string | null;
   /**
-   * Notebook the section's primary backing material belongs to. When
-   * present (and the section is unlocked), the right-side icon button
-   * deep-links to it so the learner can jump back to the underlying
-   * note.
-   */
-  notebookId: string | null;
-  notebookTitle: string | null;
-  /**
    * False when the previous section's assessment hasn't been passed
    * yet. Greys the banner and swaps the notebook icon for a lock.
    */
@@ -46,8 +37,6 @@ export default function SectionBanner({
   index,
   title,
   description,
-  notebookId,
-  notebookTitle,
   unlocked,
   sectionGrade,
 }: SectionBannerProps) {
@@ -166,31 +155,7 @@ export default function SectionBanner({
           </span>
         ) : null}
 
-        {unlocked && notebookId ? (
-          <Link
-            href={`/study-packs/${notebookId}`}
-            aria-label={`Open study pack ${notebookTitle ?? ''}`.trim()}
-            style={{
-              width: '36px',
-              height: '36px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 'var(--radius-full)',
-              background: trailingBg,
-              color: fg,
-              textDecoration: 'none',
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
-              aria-hidden
-              style={{ fontSize: '20px', color: fg }}
-            >
-              menu_book
-            </span>
-          </Link>
-        ) : !unlocked ? (
+        {!unlocked ? (
           <span
             aria-label="Section locked"
             role="img"

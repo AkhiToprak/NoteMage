@@ -66,13 +66,6 @@ export const MAGE_ACTION_CATALOG: Record<MageActionId, MageActionSpec> = {
     kind: 'navigate',
     when: 'the learner should see their exam readiness and weak spots.',
   },
-  OPEN_STUDY_PACK: {
-    label: 'Open study pack',
-    icon: 'folder_open',
-    risk: 'low',
-    kind: 'navigate',
-    when: 'the learner should browse this study pack.',
-  },
   OPEN_QUIZ: {
     label: 'Open the quiz',
     icon: 'quiz',
@@ -217,13 +210,11 @@ function cardHref(id: MageActionId, ctx: MageActionContext): string | null {
         : null;
     case 'OPEN_EXAM':
       return ids.examId ? `/exam/${ids.examId}` : null;
-    case 'OPEN_STUDY_PACK':
-      return ids.notebookId ? `/study-packs/${ids.notebookId}` : null;
-    // The quiz viewer is nested under its study pack — needs both ids. Path
-    // bundles (quizSetId but no notebookId) have no standalone viewer → drop.
+    // The quiz runs in the shared practice player — needs both ids. Path
+    // bundles (quizSetId but no notebookId) aren't standalone-runnable → drop.
     case 'OPEN_QUIZ':
       return ids.notebookId && ids.quizSetId
-        ? `/study-packs/${ids.notebookId}/quizzes/${ids.quizSetId}`
+        ? `/practice/session/${ids.notebookId}/${ids.quizSetId}`
         : null;
     // No flashcard-set id rides in MageContextIds yet, so this never resolves —
     // it stays catalog-only until a surface registers one (Phase 7+).
@@ -235,9 +226,9 @@ function cardHref(id: MageActionId, ctx: MageActionContext): string | null {
       return ids.examId ? `/exam/${ids.examId}?edit=scope` : null;
     case 'CHANGE_EXAM_DATE':
       return ids.examId ? `/exam/${ids.examId}?edit=date` : null;
-    // Path creation runs through the Study Pack wizard.
+    // Path creation runs through the create-path wizard.
     case 'CREATE_PATH':
-      return '/study-packs/new';
+      return '/paths/new';
     default:
       return null;
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import QuizViewer from '@/components/notebook/QuizViewer';
 import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
@@ -8,6 +8,27 @@ import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
 import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
 import { gradeForPercentage } from '@/lib/path-gating';
 import { trackEvent } from '@/lib/telemetry';
+import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
+import GradedResultPanel, { type GradedResultAction } from '@/components/quiz/player/GradedResultPanel';
+import { useOptionalMage } from '@/components/mage/MageProvider';
+import type { MageQuickAction, MissionStep, QuizSession, QuizSource } from '@/components/quiz/player/types';
+
+// Map a path activity kind → the Mission rail label. Mirrors the Figma rail
+// (Theory · Quick Check · Practice · Complete).
+const ACTIVITY_MISSION_LABEL: Record<string, string> = {
+  theory: 'Theory',
+  quiz: 'Quick Check',
+  flashcards: 'Practice',
+};
+
+// Map a source label (usually a file name) to the Sources icon family (Phase D).
+function inferSourceKind(label?: string | null): QuizSource['kind'] {
+  const l = (label ?? '').trim().toLowerCase();
+  if (l.endsWith('.pdf')) return 'pdf';
+  if (l.endsWith('.ppt') || l.endsWith('.pptx') || l.endsWith('.key')) return 'ppt';
+  if (l.endsWith('.doc') || l.endsWith('.docx')) return 'doc';
+  return 'page';
+}
 
 // Full-screen viewer for checkpoint quiz activities. Mirrors the
 // CheckpointTheoryViewer + CheckpointFlashcardViewer shell. For graded
@@ -25,6 +46,11 @@ interface QuizQuestion {
   hint: string | null;
   correctExplanation: string | null;
   wrongExplanation: string | null;
+  // Source provenance (Phase D) — denormalized grounding the reader drawer
+  // highlights. Null on legacy rows / questions written from general knowledge.
+  sourceLabel?: string | null;
+  sourcePage?: number | null;
+  sourceQuote?: string | null;
   sortOrder: number;
   // Figure-reuse (P4): exhibit image (0-or-1) threaded from the content route
   // into QuizViewer, which renders it above the prompt.
@@ -71,6 +97,10 @@ interface CheckpointQuizViewerProps {
   // real gate, so the fail panel gains a "Continue anyway" action that advances
   // the flow (fires onCompleted) without requiring a pass.
   allowContinueOnFail?: boolean;
+  // Phase A — path context for the QuizPlayerShell header breadcrumb + the
+  // Ask-Mage grounding ids. Optional so the tutorial player can omit them.
+  pathTitle?: string;
+  pathId?: string;
 }
 
 export default function CheckpointQuizViewer({
@@ -80,14 +110,17 @@ export default function CheckpointQuizViewer({
   onCompleted,
   onProgress,
   allowContinueOnFail = false,
+  pathTitle,
+  pathId,
 }: CheckpointQuizViewerProps) {
   const [quizSet, setQuizSet] = useState<QuizSetPayload['quizSet'] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
   // Bumped on retake so QuizViewer remounts and its internal answer state resets.
   const [retakeCount, setRetakeCount] = useState(0);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  // Phase A — live session state reported up from QuizViewer (external chrome).
+  const [session, setSession] = useState<QuizSession | null>(null);
+  const mage = useOptionalMage();
   // Achievements unlocked by passing this checkpoint (e.g. path_complete);
   // surfaced when the learner clicks back-to-list.
   const unlockedRef = useRef<PathUnlock[]>([]);
@@ -130,14 +163,6 @@ export default function CheckpointQuizViewer({
       cancelled = true;
     };
   }, [activity.id]);
-
-  useEffect(() => {
-    previousFocusRef.current = (document.activeElement as HTMLElement) ?? null;
-    containerRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus?.();
-    };
-  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -203,185 +228,145 @@ export default function CheckpointQuizViewer({
 
   const handleRetake = useCallback(() => {
     setAssessmentResult(null);
+    setSession(null);
     setRetakeCount((n) => n + 1);
   }, []);
 
+  // Mission rail from the slot's activities + a terminal "Complete" step. The
+  // current activity is "in progress"; completed ones are done; the rest locked.
+  const mission = useMemo<MissionStep[]>(() => {
+    const steps: MissionStep[] = slot.activities
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((a) => ({
+        id: a.id,
+        label: ACTIVITY_MISSION_LABEL[a.kind] ?? a.title,
+        status: a.id === activity.id ? 'current' : a.completed ? 'done' : 'locked',
+      }));
+    steps.push({ id: `${slot.id}-complete`, label: 'Complete', status: 'finish' });
+    return steps;
+  }, [slot.activities, slot.id, activity.id]);
+
+  // Step pill: "<label> · Step N of M" (Figma: "Quick Check · Step 2 of 4").
+  const stepLabel = useMemo(() => {
+    const ordered = slot.activities.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+    const idx = ordered.findIndex((a) => a.id === activity.id);
+    const label = ACTIVITY_MISSION_LABEL[activity.kind] ?? SLOT_KIND_LABEL[slot.kind] ?? 'Quiz';
+    const total = ordered.length + 1; // +1 for the terminal Complete step
+    return idx >= 0 ? `${label} · Step ${idx + 1} of ${total}` : label;
+  }, [slot.activities, slot.kind, activity.id, activity.kind]);
+
+  const breadcrumb = useMemo(
+    () => (pathTitle ? [pathTitle, slot.title] : [slot.title]),
+    [pathTitle, slot.title],
+  );
+
+  // Sources (Phase D) — the CURRENT question's denormalized provenance drives
+  // both the Sources card and the reader drawer: when the generator grounded the
+  // question (sourceQuote present) we show that file/page with the passage to
+  // highlight; otherwise we fall back to the learning path (honest — the quiz IS
+  // generated from the path's material), which has no passage so "Show source"
+  // defers to Ask Mage.
+  const questionSource = useMemo<QuizSource | undefined>(() => {
+    const q = session && quizSet ? quizSet.questions[session.index] : undefined;
+    if (!q || !q.sourceQuote) return undefined;
+    return {
+      id: `q-${q.id}`,
+      title: q.sourceLabel?.trim() || pathTitle || 'Source material',
+      kind: inferSourceKind(q.sourceLabel),
+      detail: q.sourcePage != null ? `Page ${q.sourcePage}` : undefined,
+      quote: q.sourceQuote,
+    };
+  }, [session, quizSet, pathTitle]);
+
+  const sources = useMemo<QuizSource[]>(() => {
+    if (questionSource) return [questionSource];
+    return pathTitle ? [{ id: pathId ?? slot.id, title: pathTitle, kind: 'path', detail: 'Learning path' }] : [];
+  }, [questionSource, pathTitle, pathId, slot.id]);
+
+  const openMage = useCallback(() => {
+    mage?.open({
+      type: 'quiz-question',
+      ids: { pathId, slotId: slot.id, quizSetId: quizSet?.id },
+      title: slot.title,
+      activeQuestionId: session?.questionId ?? undefined,
+    });
+  }, [mage, pathId, slot.id, slot.title, quizSet?.id, session?.questionId]);
+
+  const mageActions = useMemo<MageQuickAction[]>(
+    () => [
+      { label: 'Explain the concept', onClick: openMage },
+      { label: 'Give a hint', onClick: openMage },
+      { label: 'Show related theory', onClick: openMage },
+    ],
+    [openMage],
+  );
+
   return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${slot.title} quiz`}
-      tabIndex={-1}
-      className="checkpoint-quiz"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'var(--surface)',
-        color: 'var(--on-surface)',
-        zIndex: 1300,
-        display: 'flex',
-        flexDirection: 'column',
-        outline: 'none',
-      }}
+    <QuizPlayerShell
+      breadcrumb={breadcrumb}
+      title={slot.title}
+      stepLabel={stepLabel}
+      session={session}
+      graded={isGraded}
+      sources={sources}
+      questionSource={questionSource}
+      mission={mission}
+      mageSubtitle="Hints first — not the answer"
+      mageActions={mageActions}
+      onAskMage={openMage}
+      onShowSource={openMage}
+      onClose={onClose}
+      bodyOnly={!!loadError || !quizSet || !!assessmentResult}
     >
-      <style>{`
-        .checkpoint-quiz {
-          animation: cqOverlayIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes cqOverlayIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .checkpoint-quiz { animation: none; }
-        }
-      `}</style>
-
-      <header
-        style={{
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          borderBottom: '1px solid var(--outline-variant)',
-          background: 'var(--surface-container-low)',
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-          }}
-        >
-          <span
-            style={{
-              alignSelf: 'flex-start',
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px 10px',
-              background: 'var(--primary)',
-              color: 'var(--on-primary)',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '10px',
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {SLOT_KIND_LABEL[slot.kind] ?? slot.kind}
-          </span>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--on-surface)',
-              letterSpacing: '-0.01em',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {slot.title}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close quiz"
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--outline-variant)',
-            background: 'transparent',
-            color: 'var(--on-surface)',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            fontFamily: 'inherit',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            close
-          </span>
-        </button>
-      </header>
-
-      <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          minHeight: 0,
-          // Flex column so the 720px wrapper (and the QuizViewer inside it) can
-          // fill this scroll region's height — that's what lets QuizViewer's
-          // pinned bottom bar actually sit at the bottom on short questions.
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '720px',
-            width: '100%',
-            margin: '0 auto',
-            flex: 1,
-            minHeight: 0,
-            padding: 'clamp(16px, 3vh, 24px) 20px 0',
-          }}
-        >
-          {loadError ? (
-            <p role="alert" style={{ color: 'var(--error)', fontSize: '14px' }}>
-              {loadError}
-            </p>
-          ) : !quizSet ? (
-            <CheckpointSkeletonBody kind="quiz" />
-          ) : assessmentResult ? (
-            <AssessmentResultPanel
-              result={assessmentResult}
-              slotKind={slot.kind}
-              onBackToList={() => onCompleted(unlockedRef.current)}
-              onRetake={handleRetake}
-              onReviewTheory={onClose}
-              onContinueAnyway={
-                allowContinueOnFail ? () => onCompleted(unlockedRef.current) : undefined
-              }
-            />
-          ) : quizSet.notebookId ? (
-            <>
-              {/* Reference diagrams copied from the covered theory — collapsed
-                  by default, above the question list. Same study-aid visibility
-                  as the existing figure treatment (shown on graded slots too). */}
-              <DiagramReferencePanel diagrams={quizSet.diagrams} />
-              <QuizViewer
-                key={retakeCount}
-                notebookId={quizSet.notebookId}
-                setId={quizSet.id}
-                title={quizSet.title}
-                initialQuestions={quizSet.questions as never}
-                isCheckpoint={isGraded}
-                hideManagementActions
-                onComplete={(result) => void handleQuizComplete(result)}
-              />
-            </>
-          ) : (
-            <p style={{ color: 'var(--error)', fontSize: '14px' }}>
-              This quiz isn&apos;t linked to a notebook yet.
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
+      {loadError ? (
+        <p role="alert" style={{ color: 'var(--error)', fontSize: '14px' }}>
+          {loadError}
+        </p>
+      ) : !quizSet ? (
+        <CheckpointSkeletonBody kind="quiz" />
+      ) : assessmentResult ? (
+        <AssessmentResultPanel
+          result={assessmentResult}
+          slotKind={slot.kind}
+          onBackToList={() => onCompleted(unlockedRef.current)}
+          onRetake={handleRetake}
+          onReviewTheory={onClose}
+          onContinueAnyway={
+            allowContinueOnFail ? () => onCompleted(unlockedRef.current) : undefined
+          }
+        />
+      ) : quizSet.notebookId ? (
+        <>
+          {/* Reference diagrams copied from the covered theory — collapsed by
+              default, above the question. (Path quizzes rarely carry diagrams,
+              so this is usually empty in the MC slice.) */}
+          <DiagramReferencePanel diagrams={quizSet.diagrams} />
+          <QuizViewer
+            key={retakeCount}
+            notebookId={quizSet.notebookId}
+            setId={quizSet.id}
+            title={quizSet.title}
+            initialQuestions={quizSet.questions as never}
+            isCheckpoint={isGraded}
+            hideManagementActions
+            externalChrome
+            onSession={setSession}
+            onComplete={(result) => void handleQuizComplete(result)}
+          />
+        </>
+      ) : (
+        <p style={{ color: 'var(--error)', fontSize: '14px' }}>
+          This quiz isn&apos;t linked to a notebook yet.
+        </p>
+      )}
+    </QuizPlayerShell>
   );
 }
 
+// Maps the path-checkpoint assessment result onto the shared cream
+// GradedResultPanel. The pass gate is 70%; a miss leads with the score (not a
+// red "F") per the product's no-punitive-report-card stance.
 function AssessmentResultPanel({
   result,
   slotKind,
@@ -399,166 +384,49 @@ function AssessmentResultPanel({
   onContinueAnyway?: () => void;
 }) {
   const isGraded = slotKind === 'assessment' || slotKind === 'final_exam';
+  const isFinal = slotKind === 'final_exam';
   const letterGrade = gradeForPercentage(result.percentage);
+
+  const title = result.passed
+    ? isFinal
+      ? 'Final exam cleared. Path complete!'
+      : 'Checkpoint cleared!'
+    : 'Almost there. 70% to pass.';
+
+  const message = result.passed
+    ? isFinal
+      ? 'Congratulations on finishing the path.'
+      : 'Great work. The next section is unlocked.'
+    : isFinal
+      ? 'Review the sections you struggled with, then retake the final exam.'
+      : 'Review the earlier theory slots, then retake the assessment to unlock the next section.';
+
+  const actions: GradedResultAction[] = result.passed
+    ? [{ label: 'Back to activities', onClick: onBackToList }]
+    : isGraded
+      ? [
+          { label: isFinal ? 'Retake the final exam' : 'Retake the assessment', onClick: onRetake },
+          { label: 'Review the theory', onClick: onReviewTheory, variant: 'ghost' },
+          ...(onContinueAnyway
+            ? [{ label: 'Continue anyway', onClick: onContinueAnyway, variant: 'ghost' as const }]
+            : []),
+        ]
+      : [{ label: 'Try again', onClick: onRetake }];
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '16px',
-        padding: '24px 8px',
-      }}
-    >
-      <h3
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-display)',
-          fontSize: '24px',
-          fontWeight: 800,
-          color: 'var(--on-surface)',
-          letterSpacing: '-0.01em',
-          textAlign: 'center',
-        }}
-      >
-        {result.passed
-          ? slotKind === 'final_exam'
-            ? 'Final exam cleared. Path complete!'
-            : 'Checkpoint cleared!'
-          : 'Almost there. 70% to pass.'}
-      </h3>
-      <div
-        aria-label={
-          result.passed
-            ? `Grade ${letterGrade}, ${result.percentage} percent`
-            : `${result.percentage} percent, 70 percent needed to pass`
-        }
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '4px',
-        }}
-      >
-        {/* On a fail, lead with the score and what's needed — not a red "F"
-            letter grade. The product avoids punitive report-card framing. */}
-        <span
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '56px',
-            fontWeight: 800,
-            lineHeight: 1,
-            letterSpacing: '-0.04em',
-            color: result.passed ? 'var(--tertiary-container)' : 'var(--on-surface)',
-          }}
-        >
-          {result.passed ? letterGrade : `${result.percentage}%`}
-        </span>
-        <span
-          style={{
-            fontSize: '13px',
-            fontWeight: 700,
-            color: 'var(--on-surface-variant)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {result.passed ? `${result.percentage}%` : '70% to pass'}
-        </span>
-      </div>
-      <p
-        style={{
-          margin: 0,
-          fontSize: '14px',
-          color: 'var(--on-surface-variant)',
-          textAlign: 'center',
-          maxWidth: 'min(360px, calc(100vw - 32px))',
-        }}
-      >
-        {result.passed
-          ? slotKind === 'final_exam'
-            ? 'Congratulations on finishing the path.'
-            : 'Great work. The next section is unlocked.'
-          : slotKind === 'final_exam'
-            ? 'Review the sections you struggled with, then retake the final exam.'
-            : 'Review the earlier theory slots, then retake the assessment to unlock the next section.'}
-      </p>
-      <div
-        aria-label={`${result.starsEarned} of 3 stars`}
-        style={{ display: 'flex', gap: '6px' }}
-      >
-        {[0, 1, 2].map((i) => {
-          const earned = i < result.starsEarned;
-          return (
-            <span
-              key={i}
-              aria-hidden
-              className="material-symbols-outlined"
-              style={{
-                fontSize: '40px',
-                color: earned ? 'var(--tertiary-container)' : 'var(--outline-variant)',
-                fontVariationSettings: earned ? '"FILL" 1' : '"FILL" 0',
-              }}
-            >
-              star
-            </span>
-          );
-        })}
-      </div>
-      {result.passed ? (
-        <button type="button" onClick={onBackToList} style={primaryBtnStyle}>
-          Back to activities
-        </button>
-      ) : isGraded ? (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            width: '100%',
-            maxWidth: 'min(320px, calc(100vw - 32px))',
-          }}
-        >
-          <button type="button" onClick={onRetake} style={primaryBtnStyle}>
-            {slotKind === 'final_exam' ? 'Retake the final exam' : 'Retake the assessment'}
-          </button>
-          <button type="button" onClick={onReviewTheory} style={ghostBtnStyle}>
-            Review the theory
-          </button>
-          {onContinueAnyway ? (
-            <button type="button" onClick={onContinueAnyway} style={ghostBtnStyle}>
-              Continue anyway
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <button type="button" onClick={onRetake} style={primaryBtnStyle}>
-          Try again
-        </button>
-      )}
-    </div>
+    <GradedResultPanel
+      hero={result.passed ? letterGrade : `${result.percentage}%`}
+      heroSub={result.passed ? `${result.percentage}%` : '70% to pass'}
+      tone={result.passed ? 'pass' : 'neutral'}
+      title={title}
+      message={message}
+      stars={result.starsEarned}
+      ariaScore={
+        result.passed
+          ? `Grade ${letterGrade}, ${result.percentage} percent`
+          : `${result.percentage} percent, 70 percent needed to pass`
+      }
+      actions={actions}
+    />
   );
 }
-
-const primaryBtnStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '6px',
-  padding: '10px 18px',
-  background: 'var(--primary)',
-  color: 'var(--on-primary)',
-  border: 'none',
-  borderRadius: 'var(--radius-full)',
-  fontSize: '13px',
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  minWidth: '140px',
-};
-
-const ghostBtnStyle: React.CSSProperties = {
-  ...primaryBtnStyle,
-  background: 'transparent',
-  color: 'var(--on-surface-variant)',
-  border: '1px solid var(--outline-variant)',
-};

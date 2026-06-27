@@ -3,18 +3,20 @@
 import { Suspense, useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PathView, {
+import {
   type PathActivity,
   type PathPlan,
   type PathSlot,
 } from '@/components/learn/PathView';
-import CheckpointDrawer from '@/components/learn/CheckpointDrawer';
 import CheckpointFlashcardViewer from '@/components/learn/CheckpointFlashcardViewer';
 import CheckpointTheoryViewer from '@/components/learn/CheckpointTheoryViewer';
 import CheckpointQuizViewer from '@/components/learn/CheckpointQuizViewer';
 import GenerationProgressModal from '@/components/learn/GenerationProgressModal';
 import { CheckpointSkeletonOverlay } from '@/components/learn/CheckpointSkeleton';
 import { TutorialPathPlayer } from '@/components/learn/TutorialPathPlayer';
+import AppShell from '@/components/app/AppShell';
+import LearningPathScreen from '@/components/learn/path-screen/LearningPathScreen';
+import NodeOverview from '@/components/learn/path-screen/NodeOverview';
 import { useRegisterMageContext } from '@/components/mage';
 import type { MageClientContext } from '@/lib/mage-types';
 
@@ -61,16 +63,11 @@ export default function PathDetailPage({ params }: PageProps) {
 
 function LoadingShell() {
   return (
-    <p
-      style={{
-        margin: '32px auto',
-        textAlign: 'center',
-        color: 'var(--on-surface-variant)',
-        fontSize: '14px',
-      }}
-    >
-      Loading path…
-    </p>
+    <AppShell width="wide">
+      <p style={{ margin: '32px auto', textAlign: 'center', color: 'var(--body)', fontSize: '14px' }}>
+        Loading path…
+      </p>
+    </AppShell>
   );
 }
 
@@ -290,12 +287,14 @@ function PathDetailInner({ planId }: { planId: string }) {
 
   if (error) {
     return (
-      <div style={{ maxWidth: '760px', margin: '32px auto', padding: '0 16px' }}>
-        <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px' }}>{error}</p>
-        <Link href="/my-path" style={{ color: 'var(--primary)', fontSize: '14px' }}>
-          ← Back to paths
-        </Link>
-      </div>
+      <AppShell width="wide">
+        <div style={{ maxWidth: '760px', margin: '24px auto', textAlign: 'center' }}>
+          <p style={{ color: 'var(--body)', fontSize: '14px' }}>{error}</p>
+          <Link href="/my-path" style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: 600 }}>
+            ← Back to paths
+          </Link>
+        </div>
+      </AppShell>
     );
   }
   // On a tutorial deep-link the entry activity is the learning slot's theory.
@@ -321,43 +320,24 @@ function PathDetailInner({ planId }: { planId: string }) {
   // stuck generation is incomplete and gets deleted. Copy + actions branch on it.
   const isTranslate = plan.generationMode === 'translate';
 
-  return (
-    <>
-      <div style={{ paddingBottom: '64px' }}>
-        <nav style={{ maxWidth: '640px', margin: '0 auto', padding: '8px 16px 0' }}>
-          <Link
-            href="/my-path"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              color: 'var(--on-surface-variant)',
-              fontSize: '13px',
-              textDecoration: 'none',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden>
-              arrow_back
-            </span>
-            All paths
-          </Link>
-        </nav>
-
-        {generating ? (
-          <div style={{ maxWidth: '640px', margin: '12px auto 0', padding: '0 16px' }}>
+  const bannerNode = generating ? (
+          <div className="path-banner" style={{ margin: '0 0 16px' }}>
             <style>{`
               @keyframes spin { to { transform: rotate(360deg); } }
+              .path-banner { --danger: #c0392b; }
+              .path-spin { animation: spin 0.8s linear infinite; }
               .path-stop-btn { transition: transform 0.12s cubic-bezier(0.22,1,0.36,1); }
               .path-stop-btn:active { transform: translateY(1px); }
-              .path-stop-btn--ghost:hover { background: var(--surface-container-high); }
-              .path-stop-btn--ghost:focus-visible { outline: 2px solid var(--outline); outline-offset: 2px; }
+              .path-stop-btn--ghost:hover { background: #f6f3ec; }
+              .path-stop-btn--ghost:focus-visible { outline: 2px solid var(--border); outline-offset: 2px; }
               .path-stop-btn--danger:hover { opacity: 0.92; }
-              .path-stop-btn--danger:focus-visible { outline: 2px solid var(--error); outline-offset: 2px; }
+              .path-stop-btn--danger:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
               .path-stop-btn--primary:hover { opacity: 0.92; }
               .path-stop-btn--primary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
               @media (prefers-reduced-motion: reduce) {
                 .path-stop-btn { transition: none; }
                 .path-stop-btn:active { transform: none; }
+                .path-spin { animation: none; }
               }
             `}</style>
             <div
@@ -366,9 +346,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                 alignItems: 'center',
                 gap: '12px',
                 padding: '12px 14px',
-                background: 'var(--surface-container)',
-                border: '1px solid var(--outline-variant)',
-                borderRadius: 'var(--radius-lg)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--rc)',
               }}
             >
               {stuckGenerating ? (
@@ -383,9 +363,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--tertiary-container)',
-                    color: 'var(--on-tertiary-container)',
+                    borderRadius: '999px',
+                    background: 'var(--amber-soft)',
+                    color: 'var(--amber-ink)',
                   }}
                 >
                   sync_problem
@@ -403,19 +383,19 @@ function PathDetailInner({ planId }: { planId: string }) {
                   }}
                 >
                   <span
+                    className="path-spin"
                     style={{
                       width: '22px',
                       height: '22px',
                       borderRadius: '50%',
-                      border: '3px solid var(--outline-variant)',
+                      border: '3px solid var(--border)',
                       borderTopColor: 'var(--primary)',
-                      animation: 'spin 0.8s linear infinite',
                     }}
                   />
                 </span>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--on-surface)' }}>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>
                   {stuckGenerating
                     ? isTranslate
                       ? 'Translation stalled'
@@ -428,7 +408,7 @@ function PathDetailInner({ planId }: { planId: string }) {
                   style={{
                     margin: '2px 0 0',
                     fontSize: '12px',
-                    color: 'var(--on-surface-variant)',
+                    color: 'var(--body)',
                     lineHeight: 1.4,
                   }}
                 >
@@ -447,7 +427,7 @@ function PathDetailInner({ planId }: { planId: string }) {
                       margin: '6px 0 0',
                       fontSize: '12px',
                       fontWeight: 600,
-                      color: 'var(--error)',
+                      color: 'var(--danger)',
                       lineHeight: 1.4,
                     }}
                   >
@@ -471,10 +451,10 @@ function PathDetailInner({ planId }: { planId: string }) {
                         alignItems: 'center',
                         justifyContent: 'center',
                         padding: '9px 14px',
-                        borderRadius: 'var(--radius-md)',
+                        borderRadius: 'var(--rm)',
                         background: 'transparent',
-                        color: 'var(--on-surface-variant)',
-                        border: '1px solid var(--outline-variant)',
+                        color: 'var(--body)',
+                        border: '1px solid var(--border)',
                         fontFamily: 'inherit',
                         fontSize: '13px',
                         fontWeight: 700,
@@ -499,9 +479,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                         gap: '6px',
                         minWidth: '128px',
                         padding: '9px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: isTranslate ? 'var(--primary)' : 'var(--error)',
-                        color: isTranslate ? 'var(--on-primary)' : 'var(--on-error)',
+                        borderRadius: 'var(--rm)',
+                        background: isTranslate ? 'var(--primary)' : 'var(--danger)',
+                        color: isTranslate ? '#fff' : '#fff',
                         border: 'none',
                         fontFamily: 'inherit',
                         fontSize: '13px',
@@ -512,11 +492,8 @@ function PathDetailInner({ planId }: { planId: string }) {
                     >
                       <span
                         aria-hidden
-                        className="material-symbols-outlined"
-                        style={{
-                          fontSize: '16px',
-                          animation: stopping ? 'spin 0.8s linear infinite' : undefined,
-                        }}
+                        className={stopping ? 'material-symbols-outlined path-spin' : 'material-symbols-outlined'}
+                        style={{ fontSize: '16px' }}
                       >
                         {stopping ? 'progress_activity' : isTranslate ? 'restart_alt' : 'close'}
                       </span>
@@ -543,9 +520,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                       justifyContent: 'center',
                       gap: '6px',
                       padding: '9px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      background: isTranslate ? 'var(--primary)' : 'var(--error)',
-                      color: isTranslate ? 'var(--on-primary)' : 'var(--on-error)',
+                      borderRadius: 'var(--rm)',
+                      background: isTranslate ? 'var(--primary)' : 'var(--danger)',
+                      color: isTranslate ? '#fff' : '#fff',
                       border: 'none',
                       fontFamily: 'inherit',
                       fontSize: '13px',
@@ -567,17 +544,23 @@ function PathDetailInner({ planId }: { planId: string }) {
             </div>
           </div>
         ) : incompleteCount > 0 ? (
-          <div style={{ maxWidth: '640px', margin: '12px auto 0', padding: '0 16px' }}>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div className="path-banner" style={{ margin: '0 0 16px' }}>
+            <style>{`
+              @keyframes spin { to { transform: rotate(360deg); } }
+              .path-banner { --danger: #c0392b; }
+              .path-spin { animation: spin 0.8s linear infinite; }
+              .path-stop-btn--primary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+              @media (prefers-reduced-motion: reduce) { .path-spin { animation: none; } }
+            `}</style>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 padding: '12px 14px',
-                background: 'var(--surface-container)',
-                border: '1px solid var(--outline-variant)',
-                borderRadius: 'var(--radius-lg)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--rc)',
               }}
             >
               <span
@@ -591,9 +574,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--tertiary-container)',
-                  color: 'var(--on-tertiary-container)',
+                  borderRadius: '999px',
+                  background: 'var(--amber-soft)',
+                  color: 'var(--amber-ink)',
                 }}
               >
                 sync_problem
@@ -604,7 +587,7 @@ function PathDetailInner({ planId }: { planId: string }) {
                     margin: 0,
                     fontSize: '13px',
                     fontWeight: 700,
-                    color: 'var(--on-surface)',
+                    color: 'var(--ink)',
                   }}
                 >
                   {incompleteCount === 1
@@ -615,7 +598,7 @@ function PathDetailInner({ planId }: { planId: string }) {
                   style={{
                     margin: '2px 0 0',
                     fontSize: '12px',
-                    color: 'var(--on-surface-variant)',
+                    color: 'var(--body)',
                     lineHeight: 1.4,
                   }}
                 >
@@ -629,7 +612,7 @@ function PathDetailInner({ planId }: { planId: string }) {
                       margin: '6px 0 0',
                       fontSize: '12px',
                       fontWeight: 600,
-                      color: 'var(--error)',
+                      color: 'var(--danger)',
                       lineHeight: 1.4,
                     }}
                   >
@@ -639,6 +622,7 @@ function PathDetailInner({ planId }: { planId: string }) {
               </div>
               <button
                 type="button"
+                className="path-stop-btn--primary"
                 onClick={handleRegenerate}
                 disabled={regenStarting}
                 aria-busy={regenStarting}
@@ -657,9 +641,9 @@ function PathDetailInner({ planId }: { planId: string }) {
                   gap: '6px',
                   minWidth: '128px',
                   padding: '9px 14px',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: 'var(--rm)',
                   background: 'var(--primary)',
-                  color: 'var(--on-primary)',
+                  color: '#fff',
                   border: 'none',
                   fontFamily: 'inherit',
                   fontSize: '13px',
@@ -671,18 +655,15 @@ function PathDetailInner({ planId }: { planId: string }) {
                   boxShadow:
                     !regenStarting && regenPressed
                       ? 'none'
-                      : '0 2px 0 var(--primary-container, var(--outline))',
+                      : '0 2px 0 var(--primary-container, var(--border))',
                   transition:
                     'transform 0.12s cubic-bezier(0.22,1,0.36,1), opacity 0.12s cubic-bezier(0.22,1,0.36,1)',
                 }}
               >
                 <span
                   aria-hidden
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: '16px',
-                    animation: regenStarting ? 'spin 0.8s linear infinite' : undefined,
-                  }}
+                  className={regenStarting ? 'material-symbols-outlined path-spin' : 'material-symbols-outlined'}
+                  style={{ fontSize: '16px' }}
                 >
                   {regenStarting ? 'progress_activity' : 'autorenew'}
                 </span>
@@ -690,10 +671,22 @@ function PathDetailInner({ planId }: { planId: string }) {
               </button>
             </div>
           </div>
-        ) : null}
+        ) : null;
 
-        <PathView plan={plan} onSlotClick={handleSlotClick} />
-      </div>
+  return (
+    <>
+      <AppShell width="wide">
+        {openSlot ? (
+          <NodeOverview
+            slot={openSlot}
+            plan={plan}
+            onSelectActivity={handleSelectActivity}
+            onBack={handleCloseDrawer}
+          />
+        ) : (
+          <LearningPathScreen plan={plan} onSlotClick={handleSlotClick} banner={bannerNode} />
+        )}
+      </AppShell>
 
       {openSlot && activeActivity?.kind === 'flashcards' ? (
         <CheckpointFlashcardViewer
@@ -710,6 +703,7 @@ function PathDetailInner({ planId }: { planId: string }) {
           activity={activeActivity}
           planId={planId}
           notebookId={plan.notebookId}
+          pathTitle={plan.title}
           onClose={() => setUrlSlot({ activity: null })}
           onCompleted={handleActivityCompleted}
         />
@@ -718,17 +712,11 @@ function PathDetailInner({ planId }: { planId: string }) {
           key={activeActivity.id}
           slot={openSlot}
           activity={activeActivity}
+          pathTitle={plan.title}
+          pathId={planId}
           onClose={() => setUrlSlot({ activity: null })}
           onCompleted={handleActivityCompleted}
           onProgress={handleSlotChanged}
-        />
-      ) : openSlot ? (
-        <CheckpointDrawer
-          slot={openSlot}
-          planId={planId}
-          notebookId={plan.notebookId}
-          onSelectActivity={handleSelectActivity}
-          onClose={handleCloseDrawer}
         />
       ) : null}
 

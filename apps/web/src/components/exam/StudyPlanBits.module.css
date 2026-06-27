@@ -1,0 +1,84 @@
+/* Hallmark · component: study-plan-slider · genre: editorial · theme: system-managed (cream AppShell)
+ * states: default · hover · focus-visible · active · disabled
+ * contrast: pass — cream `.shell` tokens only · no gradients (solid track + fill)
+ *
+ * Daily-study-time slider for Today's Plan + Study Calendar. Native range input
+ * overlaid transparently on a solid track + fill (project rule: no gradients);
+ * the thumb is styled via the vendor pseudo-elements CSS modules can reach. */
+
+.slider {
+  position: relative;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 999px;
+  background: #eee7da;
+}
+.fill {
+  position: absolute;
+  left: 0;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.range {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.range:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+}
+.range::-moz-range-track {
+  height: 6px;
+  background: transparent;
+}
+
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -7px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  box-shadow: 0 2px 6px rgba(124, 92, 255, 0.3);
+  cursor: pointer;
+}
+.range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  box-shadow: 0 2px 6px rgba(124, 92, 255, 0.3);
+  cursor: pointer;
+}
+.range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

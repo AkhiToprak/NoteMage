@@ -1,0 +1,120 @@
+.section { margin-top: 30px; }
+
+.grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+@media (max-width: 980px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* ---- active exam card ---- */
+.examCard {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cardTitle { font-size: 20px; font-weight: 700; color: var(--ink); }
+.cardSubject {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--body);
+}
+
+.readyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.readyPct { font-size: 15px; font-weight: 700; }
+
+.metaRow { display: flex; align-items: center; gap: 24px; }
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--body);
+}
+
+.reco {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--lilac-soft);
+  color: var(--accent);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.reco .ic { font-size: 17px; }
+
+.actions {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---- empty state (X2 Empty · No exams) ---- */
+.empty {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 56px 24px;
+}
+.emptyArt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 28px;
+  background: var(--lilac-soft);
+  margin-bottom: 18px;
+}
+.emptyArt img { width: 92px; height: 92px; object-fit: contain; }
+.emptyTitle { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+.emptyText { margin: 4px 0 22px; font-size: 14.5px; color: var(--body); line-height: 1.6; max-width: 38ch; }
+
+/* ---- archived row ---- */
+.archCard {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.archLeft { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.archCheck {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--green-soft);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.archTitle { font-size: 16px; font-weight: 700; color: var(--ink); }
+.archMeta { margin-top: 3px; font-size: 13px; color: var(--body); }

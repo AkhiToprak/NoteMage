@@ -1,16 +1,16 @@
-import type { Notebook } from '@prisma/client';
+import type { StudyContainer } from '@prisma/client';
 import { db } from './db';
 
 const INBOX_NAME = 'Inbox';
 const INBOX_COLOR = '#5b6b9c';
 
-export async function getOrCreateInboxNotebook(userId: string): Promise<Notebook> {
-  const existing = await db.notebook.findFirst({
+export async function getOrCreateInboxNotebook(userId: string): Promise<StudyContainer> {
+  const existing = await db.studyContainer.findFirst({
     where: { userId, kind: 'inbox' },
   });
   if (existing) return existing;
 
-  return db.notebook.create({
+  return db.studyContainer.create({
     data: {
       userId,
       name: INBOX_NAME,
@@ -39,7 +39,7 @@ export function isInboxNotebook(notebook: { kind: string }): boolean {
  * way.
  */
 export async function resolvePathHostNotebookId(userId: string): Promise<string> {
-  const oldest = await db.notebook.findFirst({
+  const oldest = await db.studyContainer.findFirst({
     where: { userId },
     orderBy: { createdAt: 'asc' },
     select: { id: true },

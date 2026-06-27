@@ -7,6 +7,7 @@ import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import PlayerBottomBar from '@/components/quiz/PlayerBottomBar';
 import { RENDERERS } from '@/components/quiz/questionRenderers';
 import type { UserAnswer } from '@/components/quiz/questionRenderers/types';
+import type { QuizSession } from '@/components/quiz/player/types';
 import { grade } from '@/lib/quiz-grading';
 import {
   QuizReactionLayer,
@@ -87,6 +88,27 @@ interface QuizViewerProps {
   // this for every path quiz — including ungraded review slots — so the path
   // stays focused on answering, not authoring.
   hideManagementActions?: boolean;
+  // Phase A — external-chrome mode. When true, QuizViewer suppresses its own
+  // title / progress / PlayerBottomBar and reports session state up via
+  // `onSession` so QuizPlayerShell renders the header progress + the
+  // state-driven CTA. MC (and every lock-on-pick kind) becomes a two-step
+  // select → "Check answer" flow. The study-pack page leaves this unset and
+  // keeps the built-in chrome + immediate-grade behavior untouched.
+  externalChrome?: boolean;
+  // Phase E — sealed (exam) mode. Layers on top of externalChrome: the learner
+  // submits each answer WITHOUT seeing whether it was right (no per-question
+  // verdict, no streak reactions — a correct-streak takeover would leak the
+  // result), and the run is forward-only. Used by the exam run surface; the
+  // path-checkpoint and study-pack paths leave it false (verdict shown as today).
+  sealed?: boolean;
+  // Phase 3 — mock-exam (timed, free-navigation) mode. Layers on externalChrome:
+  // every answer is STAGED per question (kept in `mockDrafts`, never committed),
+  // so no verdict is shown and the learner can revisit/change answers and jump
+  // around freely; the whole set grades in one pass via `submitAll`. The shell
+  // drives the navigator + timer + single "Submit exam". Distinct from `sealed`
+  // (which is forward-only, auto-advance). Used only by the mock run surface.
+  mock?: boolean;
+  onSession?: (session: QuizSession | null) => void;
   // Phase 10.6 — fires after the attempt POST returns successfully.
   // The checkpoint drawer uses this to PATCH a learning-slot quiz
   // activity as completed, or POST to /assessment for assessment
@@ -167,9 +189,13 @@ export default function QuizViewer({
   assignedSectionId,
   isCheckpoint = false,
   hideManagementActions = false,
+  externalChrome = false,
+  sealed = false,
+  mock = false,
+  onSession,
   onComplete,
 }: QuizViewerProps) {
-  const { isPhone, isTablet } = useBreakpoint();
+  const { isPhone } = useBreakpoint();
   // Touch-capability signal — gates the per-renderer tap-first interaction swaps.
   const coarsePointer = useCoarsePointer();
   const [questions, setQuestions] = useState<QuizQuestion[]>(initialQuestions);
@@ -181,6 +207,18 @@ export default function QuizViewer({
   // Per-set sessionStorage key for the in-progress draft (persisted below).
   const draftKey = `notemage:quiz-draft:${setId}`;
   const [showHint, setShowHint] = useState(false);
+  // Phase A external-chrome two-step: a selected-but-unsubmitted answer. The
+  // shell's "Check answer" CTA commits it via submitStaged(). Stays undefined in
+  // the built-in-chrome study-pack path (which grades on selection).
+  const [stagedAnswer, setStagedAnswer] = useState<UserAnswer | undefined>(undefined);
+  // Phase 3 — mock mode keeps every answer here (per-index draft), never in
+  // `answers`, so `isAnswered` stays false and the renderer paints the selection
+  // WITHOUT a verdict (preserving the seal) while still allowing free navigation
+  // + answer changes. Graded all at once in `submitAll`. A ref mirror lets the
+  // submit-all + nav callbacks read the freshest drafts without stale closures.
+  const [mockDrafts, setMockDrafts] = useState<Map<number, UserAnswer>>(new Map());
+  const mockDraftsRef = useRef(mockDrafts);
+  mockDraftsRef.current = mockDrafts;
   const [mode, setMode] = useState<QuizMode>('quiz');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editQuestion, setEditQuestion] = useState('');
@@ -337,20 +375,29 @@ export default function QuizViewer({
   );
 
   const next = useCallback(() => {
-    if (currentIndex < questions.length - 1) {
-      // Non-MC commit point. No-op for MC (already in committedRef) and for
-      // unanswered/skipped questions.
-      const entry = answers.get(currentIndex);
-      const q = questions[currentIndex];
-      const gated = entry && q ? commitFor(currentIndex, entry.isCorrect, q.hint) : false;
-      // If this commit opened the streak takeover, don't advance yet — the
-      // takeover's Continue button advances (so it shows before the next question).
-      if (gated) return;
-      setCurrentIndex((i) => i + 1);
+    if (currentIndex >= questions.length - 1) return;
+    // Mock: free-nav, no grading on move — restore the next question's draft.
+    if (mock) {
+      const ni = currentIndex + 1;
+      setCurrentIndex(ni);
       setShowHint(false);
+      setStagedAnswer(mockDraftsRef.current.get(ni));
       setLiveAnnouncement('');
+      return;
     }
-  }, [currentIndex, questions, answers, commitFor]);
+    // Non-MC commit point. No-op for MC (already in committedRef) and for
+    // unanswered/skipped questions.
+    const entry = answers.get(currentIndex);
+    const q = questions[currentIndex];
+    const gated = entry && q ? commitFor(currentIndex, entry.isCorrect, q.hint) : false;
+    // If this commit opened the streak takeover, don't advance yet — the
+    // takeover's Continue button advances (so it shows before the next question).
+    if (gated) return;
+    setCurrentIndex((i) => i + 1);
+    setShowHint(false);
+    setStagedAnswer(undefined);
+    setLiveAnnouncement('');
+  }, [currentIndex, questions, answers, commitFor, mock]);
 
   // Continue from a streak takeover (3-in-a-row dash or 5-in-a-row fire) →
   // advance to the next question. commitFor is idempotent, so the current
@@ -359,22 +406,45 @@ export default function QuizViewer({
     setStreakTakeover(null);
     setCurrentIndex((i) => (i < questions.length - 1 ? i + 1 : i));
     setShowHint(false);
+    setStagedAnswer(undefined);
     setLiveAnnouncement('');
   }, [questions.length]);
 
   const prev = useCallback(() => {
+    // Sealed (exam) runs are forward-only — going back would re-show a recorded
+    // answer with its verdict, breaking the seal. Mock runs never commit a
+    // verdict, so back-nav is safe (and expected) there.
+    if (sealed) return;
     if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
+      const pi = currentIndex - 1;
+      setCurrentIndex(pi);
       setShowHint(false);
+      // Mock: restore the previous question's draft so it shows the prior pick.
+      setStagedAnswer(mock ? mockDraftsRef.current.get(pi) : undefined);
       setLiveAnnouncement('');
     }
-  }, [currentIndex]);
+  }, [currentIndex, sealed, mock]);
+
+  // Phase 3 — mock free-nav: jump to any question (navigator click). Restores the
+  // target's staged draft. Forward-only `sealed` runs never expose this.
+  const jumpTo = useCallback(
+    (index: number) => {
+      if (!mock) return;
+      const clamped = Math.min(Math.max(index, 0), questions.length - 1);
+      setCurrentIndex(clamped);
+      setShowHint(false);
+      setStagedAnswer(mockDraftsRef.current.get(clamped));
+      setLiveAnnouncement('');
+    },
+    [mock, questions.length],
+  );
 
   const reset = useCallback(() => {
     setCurrentIndex(0);
     setStreakTakeover(null);
     setAnswers(new Map());
     setShowHint(false);
+    setStagedAnswer(undefined);
     setMode('quiz');
     correctStreakRef.current = 0;
     wrongStreakRef.current = 0;
@@ -399,6 +469,16 @@ export default function QuizViewer({
       // on the question.
       const locksOnFirstPick = kind === 'mc' || kind === 'diagram_cloze';
       if (locksOnFirstPick && isAnswered) return;
+      // External-chrome (shell) two-step flow: stage the selection; grading
+      // happens on submitStaged() ("Check answer"). The built-in study-pack
+      // chrome falls through to the immediate-grade path below.
+      if (externalChrome && !isAnswered) {
+        setStagedAnswer(answer);
+        // Mock mode: persist the pick as a per-index draft so it survives
+        // navigation + lights the navigator cell (graded later in submitAll).
+        if (mock) setMockDrafts((prev) => new Map(prev).set(currentIndex, answer));
+        return;
+      }
       const { isCorrect } = grade(
         kind,
         q.payload,
@@ -425,23 +505,62 @@ export default function QuizViewer({
           : true;
       if (isFinalAnswer) commitFor(currentIndex, isCorrect, q.hint);
     },
-    [mode, isAnswered, currentIndex, questions, commitFor]
+    [mode, isAnswered, currentIndex, questions, commitFor, externalChrome, mock]
   );
+
+  // Commit the staged answer ("Check answer" in the shell). Grades + commits
+  // exactly like the immediate path in selectAnswer, then clears the stage.
+  const submitStaged = useCallback(() => {
+    if (stagedAnswer === undefined || isAnswered || mode !== 'quiz') return;
+    const q = questions[currentIndex];
+    if (!q) return;
+    const kind: QuestionKind = q.kind ?? 'mc';
+    const { isCorrect } = grade(
+      kind,
+      q.payload,
+      { options: q.options, correctIndex: q.correctIndex },
+      stagedAnswer
+    );
+    setAnswers((prev) => new Map(prev).set(currentIndex, { answer: stagedAnswer, isCorrect }));
+    setLiveAnnouncement(isCorrect ? 'Correct.' : 'Not quite. The answer is shown below.');
+    commitFor(currentIndex, isCorrect, q.hint);
+    setStagedAnswer(undefined);
+  }, [stagedAnswer, isAnswered, mode, currentIndex, questions, commitFor]);
+
+  // Re-attempt the current question ("Try again" in the shell). Clears the
+  // committed answer + the per-index commit guard so a fresh selection can be
+  // staged and re-graded. Formative slots only — graded checkpoints never offer
+  // this (the shell hides it), so a learner can't brute-force a graded score.
+  const retryCurrent = useCallback(() => {
+    setAnswers((prev) => {
+      const next = new Map(prev);
+      next.delete(currentIndex);
+      return next;
+    });
+    committedRef.current.delete(currentIndex);
+    setStagedAnswer(undefined);
+    setShowHint(false);
+    setLiveAnnouncement('');
+  }, [currentIndex]);
 
   // POST the attempt. Returns true on success; on any failure (network or a
   // non-success body) sets saveError so the results screen can offer a retry.
   // Separated from finish() so the retry button can re-run it without
   // re-entering the results transition.
-  const submitAttempt = useCallback(async (): Promise<boolean> => {
+  const submitAttempt = useCallback(async (answersOverride?: Map<number, AnswerEntry>): Promise<boolean> => {
+    // Sealed mode records the final answer + finishes in one handler, so it
+    // passes the freshly-built map here rather than relying on the still-stale
+    // `answers` state closure.
+    const answersToSubmit = answersOverride ?? answers;
     setSubmitting(true);
     setSaveError(false);
     try {
       const timeSpent = Math.round((Date.now() - quizStartTime) / 1000);
-      const answersPayload = Array.from(answers.entries()).map(([idx, entry]) => ({
+      const answersPayload = Array.from(answersToSubmit.entries()).map(([idx, entry]) => ({
         questionId: questions[idx].id,
         userAnswer: entry.answer,
       }));
-      const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/attempts`, {
+      const res = await fetch(`/api/material/${notebookId}/quiz-sets/${setId}/attempts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: answersPayload, timeSpent }),
@@ -504,6 +623,74 @@ export default function QuizViewer({
     onComplete,
   ]);
 
+  // Phase E — sealed (exam) submit. Grades the staged answer for final scoring
+  // but SEALS the verdict: it pre-marks the index committed so no reaction /
+  // haptic / hint ever fires (a per-question "correct!" would leak the answer),
+  // then advances WITHOUT showing correctness. On the last question it records +
+  // finishes in one pass, threading the fresh map straight into submitAttempt so
+  // the closing answer isn't lost to the async `answers` state.
+  const submitStagedSealed = useCallback(() => {
+    if (stagedAnswer === undefined || isAnswered || mode !== 'quiz') return;
+    const q = questions[currentIndex];
+    if (!q) return;
+    const kind: QuestionKind = q.kind ?? 'mc';
+    const { isCorrect } = grade(
+      kind,
+      q.payload,
+      { options: q.options, correctIndex: q.correctIndex },
+      stagedAnswer
+    );
+    committedRef.current.add(currentIndex);
+    const recorded = new Map(answers).set(currentIndex, { answer: stagedAnswer, isCorrect });
+    setAnswers(recorded);
+    setStagedAnswer(undefined);
+    setShowHint(false);
+    setLiveAnnouncement('');
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((i) => i + 1);
+    } else {
+      setMode('results');
+      try {
+        sessionStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
+      }
+      void submitAttempt(recorded);
+    }
+  }, [stagedAnswer, isAnswered, mode, currentIndex, questions, answers, submitAttempt, draftKey]);
+
+  // Phase 3 — mock submit-all. Grades every staged draft (no per-question
+  // verdict ever shown), builds one sealed attempt map, and finishes in a single
+  // pass. Pre-marks every index committed so no streak reaction fires (the final
+  // pass/fail reaction in submitAttempt still does, which is fine at the end).
+  const submitAll = useCallback(() => {
+    if (mode !== 'quiz') return;
+    const drafts = mockDraftsRef.current;
+    const recorded = new Map<number, AnswerEntry>();
+    questions.forEach((q, idx) => {
+      const answer = drafts.get(idx);
+      if (answer === undefined) return;
+      const kind: QuestionKind = q.kind ?? 'mc';
+      const { isCorrect } = grade(
+        kind,
+        q.payload,
+        { options: q.options, correctIndex: q.correctIndex },
+        answer,
+      );
+      recorded.set(idx, { answer, isCorrect });
+      committedRef.current.add(idx);
+    });
+    setAnswers(recorded);
+    setStagedAnswer(undefined);
+    setMode('results');
+    try {
+      sessionStorage.removeItem(draftKey);
+    } catch {
+      /* ignore */
+    }
+    void submitAttempt(recorded);
+  }, [mode, questions, submitAttempt, draftKey]);
+
   const finish = useCallback(async () => {
     // Commit the current question first (no-op for MC; non-MC may be the
     // very last answered question that hasn't been advanced past yet).
@@ -524,6 +711,7 @@ export default function QuizViewer({
     setMode('review');
     setCurrentIndex(0);
     setShowHint(false);
+    setStagedAnswer(undefined);
   }, []);
 
   // Rehydrate an in-progress attempt once on mount so a refresh or a discarded
@@ -605,12 +793,17 @@ export default function QuizViewer({
       ) {
         return;
       }
-      if (e.code === 'ArrowLeft') {
-        e.preventDefault();
-        prev();
-      } else if (e.code === 'ArrowRight') {
-        e.preventDefault();
-        next();
+      // Sealed (exam) runs are forward-only and never skip an unanswered
+      // question — the ONLY way forward is the shell's "Submit answer" CTA, so
+      // arrow-key navigation is suppressed here.
+      if (!sealed) {
+        if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          prev();
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          next();
+        }
       }
       const q = questions[currentIndex];
       const kind: QuestionKind = q?.kind ?? 'mc';
@@ -631,7 +824,7 @@ export default function QuizViewer({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [prev, next, selectAnswer, editingId, questions, currentIndex, streakTakeover]);
+  }, [prev, next, selectAnswer, editingId, questions, currentIndex, streakTakeover, sealed]);
 
   // Warm the streak-takeover hero art into cache on mount, so when a 3-/5-streak
   // fires the full-screen takeover the mascot is already loaded (no "pop in" wait
@@ -671,7 +864,7 @@ export default function QuizViewer({
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/attempts`);
+        const res = await fetch(`/api/material/${notebookId}/quiz-sets/${setId}/attempts`);
         const json = await res.json();
         if (json.success && json.data) {
           setAttemptHistory(json.data);
@@ -686,6 +879,60 @@ export default function QuizViewer({
     };
     fetchHistory();
   }, [notebookId, setId]);
+
+  // Phase A — report session state up to QuizPlayerShell (external-chrome mode).
+  // Held in a ref so a fresh `onSession` identity never re-subscribes; the effect
+  // re-fires only on the primitive transitions the shell header + CTA depend on.
+  const onSessionRef = useRef(onSession);
+  onSessionRef.current = onSession;
+  const currentIsCorrect = currentEntry ? currentEntry.isCorrect : null;
+  useEffect(() => {
+    if (!externalChrome) return;
+    const q = questions[currentIndex];
+    onSessionRef.current?.({
+      index: currentIndex,
+      total: questions.length,
+      mode,
+      questionId: q?.id ?? null,
+      questionKind: (q?.kind ?? 'mc') as QuestionKind,
+      isAnswered,
+      isCorrect: currentIsCorrect,
+      isLast: currentIndex === questions.length - 1,
+      canSubmit: stagedAnswer !== undefined && !isAnswered,
+      submit: sealed ? submitStagedSealed : submitStaged,
+      next,
+      prev,
+      retry: retryCurrent,
+      finish,
+      ...(mock
+        ? {
+            isMock: true,
+            answeredIndices: Array.from(mockDrafts.keys()),
+            jumpTo,
+            submitAll,
+          }
+        : null),
+    });
+  }, [
+    externalChrome,
+    sealed,
+    mock,
+    mockDrafts,
+    jumpTo,
+    submitAll,
+    currentIndex,
+    questions,
+    mode,
+    isAnswered,
+    currentIsCorrect,
+    stagedAnswer,
+    submitStaged,
+    submitStagedSealed,
+    next,
+    prev,
+    retryCurrent,
+    finish,
+  ]);
 
   const downloadJSON = useCallback(() => {
     const data = {
@@ -716,7 +963,7 @@ export default function QuizViewer({
 
   const downloadPdf = useCallback(() => {
     const a = document.createElement('a');
-    a.href = `/api/notebooks/${notebookId}/quiz-sets/${setId}/export-pdf`;
+    a.href = `/api/material/${notebookId}/quiz-sets/${setId}/export-pdf`;
     a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_quiz.pdf`;
     document.body.appendChild(a);
     a.click();
@@ -726,8 +973,8 @@ export default function QuizViewer({
   const deleteSet = useCallback(async () => {
     if (!window.confirm('Delete this entire quiz set? This cannot be undone.')) return;
     try {
-      await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
-      router.push(`/study-packs/${notebookId}`);
+      await fetch(`/api/material/${notebookId}/quiz-sets/${setId}`, { method: 'DELETE' });
+      router.push('/my-path');
     } catch {
       /* silent */
     }
@@ -748,7 +995,7 @@ export default function QuizViewer({
     if (!editingId) return;
     try {
       const res = await fetch(
-        `/api/notebooks/${notebookId}/quiz-sets/${setId}/questions/${editingId}`,
+        `/api/material/${notebookId}/quiz-sets/${setId}/questions/${editingId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -790,7 +1037,7 @@ export default function QuizViewer({
   const deleteQuestion = async (questionId: string) => {
     if (!window.confirm('Delete this quiz question?')) return;
     try {
-      await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}/questions/${questionId}`, {
+      await fetch(`/api/material/${notebookId}/quiz-sets/${setId}/questions/${questionId}`, {
         method: 'DELETE',
       });
       const newQuestions = questions.filter((q) => q.id !== questionId);
@@ -807,7 +1054,7 @@ export default function QuizViewer({
     setShowSectionPicker(true);
     setLoadingSections(true);
     try {
-      const res = await fetch(`/api/notebooks/${notebookId}/sections`);
+      const res = await fetch(`/api/material/${notebookId}/sections`);
       const json = await res.json();
       if (json.success) {
         const flat: SectionItem[] = json.data;
@@ -833,7 +1080,7 @@ export default function QuizViewer({
   const assignToSection = async (sectionId: string) => {
     setSavingSection(true);
     try {
-      const res = await fetch(`/api/notebooks/${notebookId}/quiz-sets/${setId}`, {
+      const res = await fetch(`/api/material/${notebookId}/quiz-sets/${setId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sectionId }),
@@ -1266,6 +1513,106 @@ export default function QuizViewer({
     );
   }
 
+  // Renderer dispatch — shared by the built-in chrome and the external-chrome
+  // body so the two paths can never drift. In external chrome the staged
+  // selection stands in for `currentAnswer` until "Check answer" commits it
+  // (so the renderer paints the purple selected state without the verdict).
+  const displayAnswer = externalChrome && !isAnswered ? stagedAnswer : currentAnswer;
+  const renderQuestionBody = () => {
+    const kind: QuestionKind = question.kind ?? 'mc';
+    const Renderer = RENDERERS[kind];
+    if (!Renderer) {
+      return (
+        <div
+          style={{
+            width: '100%',
+            maxWidth: isPhone ? '100%' : '480px',
+            marginBottom: '20px',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            border: '1px solid rgb(var(--verdict-fail-rgb) / 0.3)',
+            background: 'rgb(var(--verdict-fail-rgb) / 0.06)',
+            color: 'var(--error)',
+            fontSize: '13px',
+            lineHeight: 1.6,
+          }}
+        >
+          This question uses a type ({kind}) that isn&apos;t supported in this version yet.
+        </div>
+      );
+    }
+    return (
+      <>
+        {question.image ? (
+          <QuestionFigure key={`fig-${question.id}`} img={question.image} isPhone={isPhone} />
+        ) : null}
+        <Renderer
+          key={question.id}
+          question={{
+            id: question.id,
+            kind,
+            question: question.question,
+            options: question.options,
+            correctIndex: question.correctIndex,
+            payload: question.payload as never,
+            hint: question.hint,
+            correctExplanation: question.correctExplanation,
+            wrongExplanation: question.wrongExplanation,
+            sortOrder: question.sortOrder,
+          }}
+          mode={mode === 'review' ? 'review' : 'quiz'}
+          isAnswered={isAnswered}
+          currentAnswer={displayAnswer}
+          reviewAnswer={mode === 'review' ? answers.get(currentIndex)?.answer : undefined}
+          gradedCorrect={currentEntry?.isCorrect}
+          showHint={showHint}
+          onToggleHint={() => setShowHint((v) => !v)}
+          onSelectAnswer={selectAnswer}
+          isPhone={isPhone}
+          coarsePointer={coarsePointer}
+          externalChrome={externalChrome}
+        />
+      </>
+    );
+  };
+
+  // ── External-chrome body (Phase A) ──
+  // QuizPlayerShell renders the header, progress, sidebar, and the state-driven
+  // action bar; QuizViewer renders only the question body here and reports
+  // session state via the effect above. Results mode is handled by the shared
+  // results return above (the shell renders it bare, no QuestionCard).
+  if (externalChrome) {
+    return (
+      <>
+        <QuizReactionLayer ref={reactionLayerRef} audioEnabled={audioEnabled} />
+        {streakTakeover === 'small' && (
+          <StreakTakeover audioEnabled={audioEnabled} onDismiss={continueAfterStreak} />
+        )}
+        {streakTakeover === 'mid' && (
+          <FireStreakTakeover audioEnabled={audioEnabled} onDismiss={continueAfterStreak} />
+        )}
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            padding: 0,
+            margin: -1,
+            overflow: 'hidden',
+            clipPath: 'inset(50%)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        >
+          {liveAnnouncement}
+        </div>
+        {renderQuestionBody()}
+      </>
+    );
+  }
+
   // ── Quiz / Review mode ──
   const showCheckpointWarn =
     isCheckpoint && mode === 'quiz' && currentIndex === questions.length - 1 && !allAnswered;
@@ -1488,64 +1835,7 @@ export default function QuizViewer({
           </div>
         </div>
       ) : (
-        (() => {
-          const kind: QuestionKind = question.kind ?? 'mc';
-          const Renderer = RENDERERS[kind];
-          if (!Renderer) {
-            return (
-              <div
-                style={{
-                  width: '100%',
-                  maxWidth: isPhone ? '100%' : '480px',
-                  marginBottom: '20px',
-                  padding: '16px 20px',
-                  borderRadius: '12px',
-                  border: '1px solid rgb(var(--verdict-fail-rgb) / 0.3)',
-                  background: 'rgb(var(--verdict-fail-rgb) / 0.06)',
-                  color: 'var(--error)',
-                  fontSize: '13px',
-                  lineHeight: 1.6,
-                }}
-              >
-                This question uses a type ({kind}) that isn&apos;t supported in this version yet.
-              </div>
-            );
-          }
-          return (
-            <>
-              {/* Figure-reuse (P4): exhibit image above the prompt, in both
-                  quiz and review modes. Keyed so it swaps with the question. */}
-              {question.image ? (
-                <QuestionFigure key={`fig-${question.id}`} img={question.image} isPhone={isPhone} />
-              ) : null}
-              <Renderer
-                key={question.id}
-                question={{
-                  id: question.id,
-                  kind,
-                  question: question.question,
-                  options: question.options,
-                  correctIndex: question.correctIndex,
-                  payload: question.payload as never,
-                  hint: question.hint,
-                  correctExplanation: question.correctExplanation,
-                  wrongExplanation: question.wrongExplanation,
-                  sortOrder: question.sortOrder,
-                }}
-                mode={mode === 'review' ? 'review' : 'quiz'}
-                isAnswered={isAnswered}
-                currentAnswer={currentAnswer}
-                reviewAnswer={mode === 'review' ? answers.get(currentIndex)?.answer : undefined}
-                gradedCorrect={currentEntry?.isCorrect}
-                showHint={showHint}
-                onToggleHint={() => setShowHint((v) => !v)}
-                onSelectAnswer={selectAnswer}
-                isPhone={isPhone}
-                coarsePointer={coarsePointer}
-              />
-            </>
-          );
-        })()
+        renderQuestionBody()
       )}
 
       {/* Navigation controls — pinned to the bottom on touch checkpoint surfaces */}

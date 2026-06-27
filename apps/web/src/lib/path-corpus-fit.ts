@@ -19,6 +19,13 @@ export interface MaterialCorpusEntry {
   content: string | null;
   /** Section title, for a page's header line. */
   sectionTitle?: string;
+  /**
+   * 1-based source page where this material's content begins (Phase D). Only
+   * set for PDF-imported pages (`Page.sourceDocPage`); null for everything else.
+   * Surfaced in the corpus header as a "[page N]" marker so the quiz model can
+   * cite it as a question's `source.page`. The water-fill math ignores it.
+   */
+  pageNumber?: number | null;
   /** The notebook this material belongs to, if any. */
   notebookId: string | null;
 }

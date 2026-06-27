@@ -28,9 +28,9 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 function readStoredPreference(): ThemePreference {
-  if (typeof window === 'undefined') return 'system';
-  const v = window.localStorage.getItem(STORAGE_KEY);
-  return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+  // Dark mode isn't designed for the cream redesign yet — the app is locked to
+  // light. Ignore any persisted preference until the theme toggle is reinstated.
+  return 'light';
 }
 
 function applyTheme(resolved: ResolvedTheme) {
@@ -40,8 +40,8 @@ function applyTheme(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>('system');
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>('dark');
+  const [preference, setPreferenceState] = useState<ThemePreference>('light');
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>('light');
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
-    return { preference: 'system', resolved: 'dark', setPreference: () => {} };
+    return { preference: 'light', resolved: 'light', setPreference: () => {} };
   }
   return ctx;
 }

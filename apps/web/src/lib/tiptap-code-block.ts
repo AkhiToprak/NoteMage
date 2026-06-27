@@ -1,5 +1,10 @@
-import type { Editor } from '@tiptap/react';
+import type { ChainedCommands, Editor } from '@tiptap/react';
 import { TextSelection } from '@tiptap/pm/state';
+
+// The CodeBlock extension's `toggleCodeBlock` command exists at runtime (stock
+// TipTap StarterKit) but its type augmentation isn't in this TS program, so the
+// chain type doesn't expose it. Narrow cast at the call sites below.
+type ChainWithCodeBlock = ChainedCommands & { toggleCodeBlock: () => ChainedCommands };
 
 /**
  * Obsidian-style code-block insertion.
@@ -32,13 +37,13 @@ export function insertCodeBlock(editor: Editor | null): boolean {
 
   // Cursor is already in a code block — clicking again removes it.
   if (editor.isActive('codeBlock')) {
-    return editor.chain().focus().toggleCodeBlock().run();
+    return (editor.chain().focus() as ChainWithCodeBlock).toggleCodeBlock().run();
   }
 
   const codeBlockType = editor.schema.nodes.codeBlock;
   if (!codeBlockType) {
     // Schema has no code block — fall back to the stock command.
-    return editor.chain().focus().toggleCodeBlock().run();
+    return (editor.chain().focus() as ChainWithCodeBlock).toggleCodeBlock().run();
   }
 
   return editor

@@ -6,6 +6,7 @@ import {
   Cinzel,
   Epilogue,
   IM_Fell_English_SC,
+  Inter,
   JetBrains_Mono,
   MedievalSharp,
   Orbitron,
@@ -40,6 +41,16 @@ const oswald = Oswald({
   variable: '--font-oswald',
   subsets: ['latin'],
   weight: ['200', '300', '400', '500', '600', '700'],
+  display: 'swap',
+});
+
+// Inter — the typeface of the redesigned marketing landing (PathLanding). Exposed
+// as --font-inter so the landing's scoped CSS can reference it without touching the
+// app's semantic font tokens (Epilogue/Jakarta/Oswald), which the rest of the app uses.
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
 });
 
@@ -197,7 +208,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme="light"
       // next/font variable classes live on <html> (not <body>) so the CSS
       // custom properties they define (--font-epilogue, --font-jakarta, …) exist
       // at :root. The semantic font tokens (--font-sans/-display/-brand) are
@@ -211,6 +222,7 @@ export default function RootLayout({
         bangers.variable,
         poppins.variable,
         plusJakartaSans.variable,
+        inter.variable,
         playfair.variable,
         jetbrainsMono.variable,
         cinzel.variable,
@@ -223,7 +235,7 @@ export default function RootLayout({
         orbitron.variable,
         silkscreen.variable,
       ].join(' ')}
-      style={{ colorScheme: 'dark light' }}
+      style={{ colorScheme: 'light' }}
       suppressHydrationWarning
     >
       <head>
@@ -235,7 +247,10 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem('notemage-theme');var s=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';var t=p==='light'||p==='dark'?p:s;document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`,
+            // Dark mode isn't designed yet — lock first paint to light, ignoring
+            // any persisted 'notemage-theme'. Restore the localStorage-driven
+            // script when a dark theme ships.
+            __html: `document.documentElement.dataset.theme='light';document.documentElement.style.colorScheme='light';`,
           }}
         />
       </head>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import LandingNavbar from '@/components/landing/LandingNavbar';
-import LandingFooter from '@/components/landing/LandingFooter';
-import MarketingHeroBackdrop from '@/components/landing/MarketingHeroBackdrop';
+import MageNav from '@/components/landing/MageNav';
+import MageFooter from '@/components/landing/MageFooter';
+import styles from './Contact.module.css';
 
 const TOPICS = [
   { value: 'bug', label: 'Bug report' },
@@ -14,12 +14,22 @@ const TOPICS = [
 
 const CONTACT_EMAIL = 'notemage.app@gmail.com';
 
+const SparkGold = (
+  <svg viewBox="0 0 29 29" fill="none" aria-hidden focusable="false">
+    <path d="M10.6066 0L17.1889 9.81239L28.9778 10.6066L19.1654 17.1889L18.3712 28.9778L11.7889 19.1655L0 18.3712L9.81237 11.7889L10.6066 0Z" fill="#FFC83D" />
+  </svg>
+);
+const SparkPurple = (
+  <svg viewBox="0 0 18 18" fill="none" aria-hidden focusable="false">
+    <path d="M9 0L11.291 6.70897L18 9L11.291 11.291L9 18L6.70897 11.291L0 9L6.70897 6.70897L9 0Z" fill="#7C5CFF" />
+  </svg>
+);
+
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [topic, setTopic] = useState('bug');
   const [message, setMessage] = useState('');
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,527 +53,124 @@ export default function ContactPage() {
     window.location.href = mailto;
   };
 
-  const baseField: React.CSSProperties = {
-    width: '100%',
-    padding: '14px 18px',
-    borderRadius: 'var(--radius-md)',
-    background: 'rgba(33, 33, 62, 0.72)',
-    border: '1px solid rgba(140, 82, 255, 0.22)',
-    color: 'var(--on-surface)',
-    fontSize: 15,
-    fontFamily: 'var(--font-sans)',
-    outline: 'none',
-    transition:
-      'border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
-  };
-
-  const focusedField_s = (id: string): React.CSSProperties =>
-    focusedField === id
-      ? {
-          borderColor: 'rgba(174, 137, 255, 0.7)',
-          background: 'rgba(39, 39, 70, 0.85)',
-          boxShadow: '0 0 0 4px rgba(174, 137, 255, 0.14), 0 8px 24px rgba(174, 137, 255, 0.12)',
-        }
-      : {};
-
-  const label: React.CSSProperties = {
-    display: 'block',
-    fontFamily: 'var(--font-brand)',
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.2em',
-    textTransform: 'uppercase',
-    color: 'var(--primary)',
-    marginBottom: 10,
-  };
-
   return (
-    <main
-      className="nm-contact"
-      style={{
-        position: 'relative',
-        background: '#0c0a1a',
-        color: 'var(--on-surface)',
-        fontFamily: 'var(--font-sans)',
-        minHeight: '100vh',
-        overflow: 'hidden',
-      }}
-    >
-      <LandingNavbar />
+    <main className={styles.root}>
+      <MageNav />
 
       {/* ───────────── HERO ───────────── */}
-      <section
-        style={{
-          position: 'relative',
-          paddingTop: 180,
-          paddingBottom: 60,
-          overflow: 'hidden',
-        }}
-      >
-        <MarketingHeroBackdrop />
+      <section className={styles.hero}>
+        <span className={`${styles.spk} ${styles.spk1}`} aria-hidden>{SparkGold}</span>
+        <span className={`${styles.spk} ${styles.spk2}`} aria-hidden>{SparkPurple}</span>
+        <span className={`${styles.spk} ${styles.spk3}`} aria-hidden>{SparkPurple}</span>
+        <span className={`${styles.spk} ${styles.spk4}`} aria-hidden>{SparkGold}</span>
 
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            maxWidth: 960,
-            margin: '0 auto',
-            padding: '0 32px',
-            textAlign: 'center',
-          }}
-        >
-          {/* Eyebrow */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 18px',
-              borderRadius: 'var(--radius-full)',
-              background: 'rgba(174, 137, 255, 0.18)',
-              border: '1px solid rgba(174, 137, 255, 0.3)',
-              marginBottom: 40,
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 16, color: 'var(--tertiary-container)' }}
-            >
-              mail
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-brand)',
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                color: 'var(--on-surface)',
-              }}
-            >
-              Contact
-            </span>
-          </div>
-
-          {/* Headline */}
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(56px, 10vw, 132px)',
-              fontWeight: 800,
-              letterSpacing: '-0.035em',
-              lineHeight: 0.95,
-              margin: 0,
-              color: 'var(--on-surface)',
-            }}
-          >
-            Say{' '}
-            <span style={{ position: 'relative', display: 'inline-block' }}>
-              hi
-              <span style={{ color: 'var(--tertiary-container)' }}>.</span>
-              {/* Brush-stroke underline */}
-              <svg
-                aria-hidden
-                viewBox="0 0 200 24"
-                preserveAspectRatio="none"
-                style={{
-                  position: 'absolute',
-                  left: '-4%',
-                  right: 0,
-                  bottom: '-0.18em',
-                  width: '108%',
-                  height: '0.22em',
-                  pointerEvents: 'none',
-                }}
-              >
-                <path
-                  d="M4 14 C 44 4, 84 22, 124 10 S 188 6, 196 14"
-                  fill="none"
-                  stroke="#ffde59"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  opacity="0.9"
-                />
-              </svg>
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p
-            style={{
-              maxWidth: 620,
-              margin: '44px auto 0',
-              fontSize: 19,
-              lineHeight: 1.6,
-              color: 'rgba(237, 233, 255, 0.72)',
-              fontFamily: 'var(--font-sans)',
-            }}
-          >
-            Found a bug? Got a feature idea? Just want to chat? Drop a line and I&apos;ll get back
-            to you as soon as I can.
-          </p>
-        </div>
+        <span className={styles.eyebrow}>
+          <span className="material-symbols-outlined" aria-hidden>mail</span>
+          Contact
+        </span>
+        <h1 className={styles.heroTitle}>
+          Say <span className={styles.hi}>hi</span>.
+        </h1>
+        <p className={styles.heroSub}>
+          Found a bug? Got a feature idea? Just want to chat? Drop a line and I&apos;ll get back to
+          you as soon as I can.
+        </p>
       </section>
 
       {/* ───────────── FORM ───────────── */}
-      <section
-        style={{
-          position: 'relative',
-          padding: '40px 32px 120px',
-        }}
-      >
-        {/* Ambient side glows */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: '0%',
-            left: '-10%',
-            width: 600,
-            height: 600,
-            borderRadius: '50%',
-            background: 'rgba(174, 137, 255, 0.08)',
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            bottom: '10%',
-            right: '-8%',
-            width: 500,
-            height: 500,
-            borderRadius: '50%',
-            background: 'rgba(255, 222, 89, 0.05)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        <div
-          style={{
-            position: 'relative',
-            maxWidth: 680,
-            margin: '0 auto',
-          }}
-        >
-          {/* Glass form panel */}
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              position: 'relative',
-              padding: '48px 44px',
-              borderRadius: 'var(--radius-xl)',
-              background: 'rgba(33, 33, 62, 0.6)',
-              border: '1px solid rgba(174, 137, 255, 0.45)',
-              backdropFilter: 'blur(24px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-              boxShadow: '0 32px 64px rgba(174,137,255,0.08), 0 8px 24px rgba(0,0,0,0.4)',
-            }}
-            className="nm-contact-form"
-          >
-            {/* Small header inside card */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                marginBottom: 36,
-                paddingBottom: 24,
-                borderBottom: '1px solid rgba(174, 137, 255, 0.36)',
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(174, 137, 255, 0.25)',
-                  border: '1px solid rgba(174, 137, 255, 0.32)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--tertiary-container)',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-                  edit_note
-                </span>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 22,
-                    fontWeight: 700,
-                    letterSpacing: '-0.018em',
-                    color: 'var(--on-surface)',
-                  }}
-                >
-                  Write me a message
-                </div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: 'rgba(237, 233, 255, 0.55)',
-                    marginTop: 2,
-                  }}
-                >
-                  Goes straight to{' '}
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-brand)',
-                      letterSpacing: '0.04em',
-                      color: 'var(--primary)',
-                    }}
-                  >
-                    {CONTACT_EMAIL}
-                  </span>
-                </div>
+      <section className={styles.formWrap}>
+        <form onSubmit={handleSubmit} className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.headIcon}>
+              <span className="material-symbols-outlined" aria-hidden>edit_note</span>
+            </div>
+            <div>
+              <div className={styles.headTitle}>Write me a message</div>
+              <div className={styles.headSub}>
+                Goes straight to <b>{CONTACT_EMAIL}</b>
               </div>
             </div>
+          </div>
 
-            {/* Name + Email row */}
-            <div
-              className="nm-contact-row"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 20,
-                marginBottom: 22,
-              }}
-            >
-              <div>
-                <label htmlFor="nm-name" style={label}>
-                  Your name
-                </label>
-                <input
-                  id="nm-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onFocus={() => setFocusedField('name')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Ada Lovelace"
-                  autoComplete="name"
-                  style={{ ...baseField, ...focusedField_s('name') }}
-                />
-              </div>
-              <div>
-                <label htmlFor="nm-email" style={label}>
-                  Email
-                </label>
-                <input
-                  id="nm-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="ada@example.com"
-                  autoComplete="email"
-                  style={{ ...baseField, ...focusedField_s('email') }}
-                />
-              </div>
-            </div>
-
-            {/* Topic chips */}
-            <div style={{ marginBottom: 22 }}>
-              <div style={label}>What&apos;s this about?</div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 10,
-                }}
-              >
-                {TOPICS.map((t) => {
-                  const active = topic === t.value;
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setTopic(t.value)}
-                      style={{
-                        padding: '10px 18px',
-                        borderRadius: 'var(--radius-full)',
-                        background: active ? 'rgba(174, 137, 255, 0.28)' : 'rgba(33, 33, 62, 0.6)',
-                        border: active
-                          ? '1px solid rgba(174, 137, 255, 0.55)'
-                          : '1px solid rgba(140, 82, 255, 0.22)',
-                        color: active ? 'var(--on-surface)' : 'rgba(237, 233, 255, 0.72)',
-                        fontFamily: 'var(--font-sans)',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        cursor: 'pointer',
-                        transition:
-                          'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
-                        boxShadow: active ? '0 6px 20px rgba(174, 137, 255, 0.18)' : 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!active) {
-                          e.currentTarget.style.borderColor = 'rgba(174, 137, 255, 0.4)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) {
-                          e.currentTarget.style.borderColor = 'rgba(140, 82, 255, 0.22)';
-                        }
-                      }}
-                    >
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Message */}
-            <div style={{ marginBottom: 32 }}>
-              <label htmlFor="nm-message" style={label}>
-                Message
-              </label>
-              <textarea
-                id="nm-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onFocus={() => setFocusedField('message')}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Tell me what's on your mind…"
-                rows={7}
-                required
-                style={{
-                  ...baseField,
-                  ...focusedField_s('message'),
-                  resize: 'vertical',
-                  minHeight: 160,
-                  lineHeight: 1.6,
-                  fontFamily: 'var(--font-sans)',
-                }}
+          {/* Name + Email */}
+          <div className={styles.row}>
+            <div>
+              <label htmlFor="nm-name" className={styles.label}>Your name</label>
+              <input
+                id="nm-name"
+                type="text"
+                className={styles.input}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ada Lovelace"
+                autoComplete="name"
               />
             </div>
-
-            {/* Submit */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                flexWrap: 'wrap',
-              }}
-              className="nm-contact-submit-row"
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  color: 'rgba(237, 233, 255, 0.4)',
-                  maxWidth: 260,
-                  lineHeight: 1.5,
-                }}
-              >
-                Opens your email client with everything prefilled — no magic tracking, I promise.
-              </p>
-              <button
-                type="submit"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '14px 28px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--tertiary-container)',
-                  color: '#2a2200',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-sans)',
-                  boxShadow: '0 8px 24px rgba(255, 222, 89, 0.18), 0 2px 8px rgba(0,0,0,0.3)',
-                  transition:
-                    'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 16px 36px rgba(255, 222, 89, 0.28), 0 4px 12px rgba(0,0,0,0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 8px 24px rgba(255, 222, 89, 0.18), 0 2px 8px rgba(0,0,0,0.3)';
-                }}
-              >
-                Send message
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                  send
-                </span>
-              </button>
+            <div>
+              <label htmlFor="nm-email" className={styles.label}>Email</label>
+              <input
+                id="nm-email"
+                type="email"
+                className={styles.input}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ada@example.com"
+                autoComplete="email"
+              />
             </div>
-          </form>
+          </div>
 
-          {/* Direct email fallback */}
-          <p
-            style={{
-              marginTop: 28,
-              textAlign: 'center',
-              fontSize: 13,
-              color: 'rgba(237, 233, 255, 0.5)',
-            }}
-          >
-            Prefer plain email? Write to{' '}
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              style={{
-                color: 'var(--tertiary-container)',
-                textDecoration: 'underline',
-                textDecorationColor: 'rgba(255, 222, 89, 0.4)',
-                textUnderlineOffset: '3px',
-                fontFamily: 'var(--font-brand)',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {CONTACT_EMAIL}
-            </a>
-            .
-          </p>
-        </div>
+          {/* Topic chips */}
+          <div className={styles.field}>
+            <div className={styles.label}>What&apos;s this about?</div>
+            <div className={styles.chips}>
+              {TOPICS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTopic(t.value)}
+                  className={`${styles.chip} ${topic === t.value ? styles.chipActive : ''}`}
+                  aria-pressed={topic === t.value}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Message */}
+          <div className={styles.field}>
+            <label htmlFor="nm-message" className={styles.label}>Message</label>
+            <textarea
+              id="nm-message"
+              className={styles.textarea}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Tell me what's on your mind…"
+              rows={7}
+              required
+            />
+          </div>
+
+          {/* Submit */}
+          <div className={styles.submitRow}>
+            <p className={styles.hint}>
+              Opens your email client with everything prefilled — no magic tracking, I promise.
+            </p>
+            <button type="submit" className={styles.submit}>
+              Send message
+              <span className="material-symbols-outlined" aria-hidden>send</span>
+            </button>
+          </div>
+        </form>
+
+        <p className={styles.fallback}>
+          Prefer plain email? Write to{' '}
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        </p>
       </section>
 
-      <LandingFooter />
-
-      <style jsx global>{`
-        .nm-contact a:focus-visible,
-        .nm-contact button:focus-visible,
-        .nm-contact input:focus-visible,
-        .nm-contact textarea:focus-visible {
-          outline: 2px solid #ffde59;
-          outline-offset: 3px;
-          border-radius: 8px;
-        }
-        .nm-contact a:focus:not(:focus-visible),
-        .nm-contact button:focus:not(:focus-visible) {
-          outline: none;
-        }
-
-        .nm-contact input::placeholder,
-        .nm-contact textarea::placeholder {
-          color: rgba(237, 233, 255, 0.32);
-        }
-
-        @media (max-width: 640px) {
-          .nm-contact .nm-contact-form {
-            padding: 32px 24px !important;
-          }
-          .nm-contact .nm-contact-row {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+      <MageFooter />
     </main>
   );
 }

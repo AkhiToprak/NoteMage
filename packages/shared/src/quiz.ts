@@ -224,6 +224,13 @@ const QuestionCommonShape = {
   // per-kind `payload` so all kinds get it with zero payload-catalog churn and
   // zero grading impact. Absent on legacy / already-generated questions.
   figure: z.unknown().optional(),
+  // Source provenance (Phase D): a question MAY carry the verbatim passage it
+  // was grounded in, so the quiz player's "Show source" reader drawer can
+  // highlight it. Held LOOSE for the same reason as `figure` — a malformed
+  // source must never fail the question; the generator validates it separately
+  // with `QuizSourceSchema` and drops invalid ones. Absent on legacy output and
+  // whenever the model wrote the question from general knowledge.
+  source: z.unknown().optional(),
 };
 
 export const QuizQuestionV2Schema = z.discriminatedUnion('kind', [
@@ -290,6 +297,19 @@ export const QuizSetV2Schema = z.object({
   questions: z.array(QuizQuestionV2Schema).min(1),
 });
 export type QuizSetV2 = z.infer<typeof QuizSetV2Schema>;
+
+// Source provenance (Phase D) — the validated shape of a question's `source`.
+// Held loose on the question (see QuestionCommonShape.source) and parsed with
+// THIS schema in the generator, so a malformed source is dropped instead of
+// failing the whole question. `quote` is the load-bearing field (the passage the
+// reader drawer highlights); `label` (document / page title) and `page` are best
+// effort — only set when the model could cite them.
+export const QuizSourceSchema = z.object({
+  label: z.string().trim().min(1).max(200).optional(),
+  page: z.number().int().positive().max(100_000).optional(),
+  quote: z.string().trim().min(1).max(600),
+});
+export type QuizQuestionSource = z.infer<typeof QuizSourceSchema>;
 
 // Theory visuals (theory-visuals feature). A figure references one image from
 // the per-path source-image catalog by its `imageRef` (a catalog id). The

@@ -16,7 +16,6 @@ type TurnstileApi = {
   remove: (id: string) => void;
 };
 declare global {
-  // eslint-disable-next-line no-var
   interface Window {
     turnstile?: TurnstileApi;
   }
@@ -45,6 +44,9 @@ function loadTurnstileScript(): Promise<void> {
 interface TurnstileWidgetProps {
   /** Called with the verification token (or '' when it expires/errors). */
   onToken: (token: string) => void;
+  /** Widget colour scheme. Defaults to 'dark' (the always-dark auth surfaces);
+   *  the redesigned light login passes 'light'. */
+  theme?: 'light' | 'dark' | 'auto';
 }
 
 /**
@@ -53,10 +55,12 @@ interface TurnstileWidgetProps {
  * parent, which sends it with the form submit; the server verifies it via
  * src/lib/turnstile.ts. Works in native WebViews (no special-casing needed).
  */
-export default function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
+export default function TurnstileWidget({ onToken, theme = 'dark' }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onTokenRef = useRef(onToken);
-  onTokenRef.current = onToken;
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  });
 
   useEffect(() => {
     if (!SITE_KEY) return;
@@ -67,7 +71,7 @@ export default function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
         if (cancelled || !containerRef.current || !window.turnstile) return;
         widgetId = window.turnstile.render(containerRef.current, {
           sitekey: SITE_KEY,
-          theme: 'dark',
+          theme,
           callback: (token: string) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(''),
           'error-callback': () => onTokenRef.current(''),
@@ -86,7 +90,7 @@ export default function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
         }
       }
     };
-  }, []);
+  }, [theme]);
 
   if (!SITE_KEY) return null;
   return <div ref={containerRef} style={{ display: 'flex', justifyContent: 'center' }} />;

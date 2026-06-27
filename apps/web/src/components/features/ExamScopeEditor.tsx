@@ -108,8 +108,9 @@ export default function ExamScopeEditor({
         setSaving(false);
         return;
       }
-      const view = await res.json();
-      onSaved(view);
+      // The PUT wraps the refreshed scope view in the { success, data } envelope.
+      const body = await res.json();
+      onSaved(body.data);
     } catch {
       setError('Could not save. Please try again.');
       setSaving(false);

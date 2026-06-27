@@ -1,0 +1,120 @@
+/* Hallmark · Figma "W07 Path reveal" (node 14:789) — the path preview. Two-column
+ * on desktop (summary card + node list), single column on mobile. The CTA adapts:
+ * sample → Start first section; real source → "Try a sample path?" vs sign-up.
+ * Light cream, Inter.
+ */
+
+.root {
+  position: relative; isolation: isolate; min-height: 100vh;
+  background: #faf7f0; color: #18202f; color-scheme: light;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: clip;
+  padding: 0 24px 64px;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+
+.logo { position: absolute; top: 46px; left: 64px; display: inline-flex; }
+.logo img { height: 30px; width: auto; display: block; }
+
+.head { position: relative; text-align: center; padding-top: 104px; }
+.title { font-size: clamp(32px, 4.6vw, 46px); font-weight: 700; letter-spacing: -0.025em; color: #18202f; margin: 0; }
+.headSpk { position: absolute; line-height: 0; pointer-events: none; }
+.headSpk svg { display: block; }
+.headSpkA { top: 8px; right: 28%; } .headSpkA svg { width: 22px; height: 22px; transform: rotate(-12deg); }
+.headSpkB { top: 30px; left: 30%; } .headSpkB svg { width: 16px; height: 16px; }
+
+.bubbleRow { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 24px auto 0; max-width: 820px; }
+.avatar { flex: none; width: 52px; height: 52px; border-radius: 26px; background: #ede9ff; border: 2px solid #fff; overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 26%; display: block; }
+.bubble { background: #fff; border: 1px solid #ece6d8; border-radius: 18px; padding: 14px 18px; font-size: 16px; font-weight: 500; line-height: 1.38; color: #18202f; box-shadow: 0 5px 7px rgba(58, 46, 102, 0.07); }
+
+.grid { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 40px; align-items: start; max-width: 1164px; margin: 40px auto 0; }
+
+/* ── summary card ── */
+.summary { background: #fff; border: 1.2px solid #ece6d8; border-radius: 24px; padding: 26px; box-shadow: 0 8px 24px rgba(58, 46, 102, 0.08); }
+.sumHead { display: flex; align-items: flex-start; gap: 16px; }
+.sumTile { flex: none; width: 56px; height: 56px; border-radius: 16px; background: #ede9ff; display: grid; place-items: center; color: #4326b8; }
+.sumTile :global(.material-symbols-outlined) { font-size: 26px; }
+.sumPill { display: inline-block; background: #fff3d6; color: #7a5200; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 12px; }
+.sumTitle { font-size: 24px; font-weight: 700; color: #18202f; margin: 8px 0 0; line-height: 1.2; }
+.sumSub { font-size: 14px; font-weight: 500; color: #6b7280; margin: 6px 0 0; }
+.sumGoal { font-size: 14px; font-weight: 600; color: #4326b8; margin: 4px 0 0; }
+.sumDivider { height: 1px; background: #e3dccd; margin: 20px 0; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 0; }
+.stat { text-align: left; }
+.statNum { font-size: 26px; font-weight: 800; color: #18202f; line-height: 1; }
+.statLabel { font-size: 13px; font-weight: 500; color: #6b7280; margin-top: 6px; }
+.timeBar { display: flex; align-items: center; background: #ede9ff; border-radius: 14px; padding: 13px 18px; margin-top: 20px; font-size: 14.5px; font-weight: 600; color: #4326b8; }
+
+/* ── path column ── */
+.pathHead { font-size: 20px; font-weight: 700; color: #18202f; margin: 0; }
+.pathSub { font-size: 14px; font-weight: 500; color: #6b7280; margin: 6px 0 0; }
+.path { position: relative; display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
+/* per-node connector: from this marker's centre down to the next marker's centre
+   (node height + the 24px column gap), drawn behind the markers. The last node
+   renders none — so no line trails past the final checkpoint, robust to node height. */
+.pnodeLine { position: absolute; left: 21px; top: 22px; height: calc(100% + 24px); width: 2px; background: #e0d9c9; z-index: 0; }
+.pnode { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 24px; }
+/* position+z-index lifts each marker above the connector line, which is an
+   absolutely-positioned z-index:0 element — without this the 2px line paints
+   over the lower half of every circle instead of tucking behind it. */
+.marker { position: relative; z-index: 1; flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; font-size: 17px; font-weight: 700; line-height: 1; }
+.markerActive { background: #7c5cff; color: #fff; box-shadow: 0 6px 7px rgba(124, 92, 255, 0.55); }
+.markerNum { background: #fff; border: 2px solid #e0d9c9; color: #a1a7b3; }
+.markerReview { background: #ffc83d; color: #7a5200; font-size: 18px; }
+.markerExam { background: #ef6351; color: #fff; }
+.node { flex: 1; min-width: 0; position: relative; min-height: 68px; border-radius: 18px; padding: 13px 18px; background: #fff; border: 1.3px solid #ece6d8; box-shadow: 0 8px 12px rgba(58, 46, 102, 0.08); }
+.nodeActive { background: #ede9ff; border: 2px solid #7c5cff; box-shadow: none; }
+.nodeTitle { font-size: 17.5px; font-weight: 600; color: #18202f; }
+.nodeActive .nodeTitle { color: #4326b8; }
+.nodeMeta { font-size: 13.5px; font-weight: 500; color: #6b7280; margin-top: 4px; }
+.nodeMetaGold { color: #7a5200; }
+.nodeMetaRed { color: #b23423; }
+.nodeTag { position: absolute; top: 20px; right: 18px; display: inline-flex; align-items: center; gap: 8px; height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.nodeTag::before { content: ''; width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.85; }
+.nodeTagLav { background: #ede9ff; color: #4326b8; }
+.nodeTagGold { background: #fff3d6; color: #7a5200; }
+
+.actions { display: flex; gap: 16px; margin-top: 32px; }
+.btnPrimary {
+  display: inline-flex; align-items: center; justify-content: center; height: 58px; padding: 0 32px; border: 0; border-radius: 16px;
+  background: #7c5cff; color: #fff; font-family: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 12px 28px rgba(124, 92, 255, 0.34);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btnPrimary:hover { transform: translateY(-2px); background: #8d70ff; box-shadow: 0 18px 36px rgba(124, 92, 255, 0.42); }
+.btnGhost {
+  display: inline-flex; align-items: center; justify-content: center; height: 58px; padding: 0 28px; border: 1.6px solid #e0d9c9; border-radius: 16px;
+  background: transparent; color: #7c5cff; font-family: inherit; font-size: 17px; font-weight: 600; cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btnGhost:hover { transform: translateY(-2px); border-color: #c9bcf7; background: #f6f2ea; }
+.btnPrimary:focus-visible, .btnGhost:focus-visible { outline: 3px solid #4326b8; outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .head { padding-top: 72px; text-align: left; }
+  .title { font-size: clamp(30px, 8vw, 38px); }
+  .headSpk { display: none; }
+  .bubbleRow { margin-top: 18px; }
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-top: 24px; }
+  .stats { gap: 16px 0; }
+  .actions { flex-direction: column; }
+  .btnPrimary, .btnGhost { width: 100%; }
+}
+
+/* Large screens — scale the path reveal up. */
+@media (min-width: 1400px) {
+  .logo img { height: 36px; }
+  .title { font-size: 54px; }
+  .grid { grid-template-columns: 480px minmax(0, 1fr); gap: 56px; max-width: 1320px; }
+  .bubble { font-size: 17px; }
+  .sumTitle { font-size: 26px; }
+  .pathHead { font-size: 22px; }
+  .node { min-height: 72px; }
+  .nodeTitle { font-size: 18.5px; }
+  .btnPrimary, .btnGhost { height: 62px; font-size: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btnPrimary, .btnGhost { transition: none; }
+}

@@ -27,8 +27,7 @@ type Tab = {
 const TABS: Tab[] = [
   { href: '/dashboard',      label: 'Home',     icon: 'cottage' },
   { href: '/my-path',        label: 'My Paths', icon: 'route' },
-  { href: '/study-packs/new', label: 'Create', icon: 'add', isPrimary: true },
-  { href: '/practice',       label: 'Practice', icon: 'fitness_center' },
+  { href: '/paths/new',      label: 'Create', icon: 'add', isPrimary: true },
   { label: 'Mage',           icon: 'auto_fix_high', action: 'open-mage' },
 ];
 

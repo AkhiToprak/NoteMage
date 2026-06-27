@@ -1,23 +1,44 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import TheoryViewer from '@/components/learn/TheoryViewer';
-import AskMageButton from '@/components/learn/AskMageButton';
-import type { PathActivity, PathSlot } from '@/components/learn/PathView';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
 import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
+import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { trackEvent } from '@/lib/telemetry';
+import QuizPlayerShell from '@/components/quiz/player/QuizPlayerShell';
+import TheoryActivityCard from '@/components/quiz/player/TheoryActivityCard';
+import QuickRecall from '@/components/quiz/player/QuickRecall';
+import { useOptionalMage } from '@/components/mage/MageProvider';
+import type { MageQuickAction, MissionStep, QuizSource } from '@/components/quiz/player/types';
 
-// Full-screen viewer for checkpoint theory activities. Mirrors the
-// CheckpointFlashcardViewer shell — fixed overlay, slot badge + title +
-// close in the header, primary "Mark as read & continue" CTA in the
-// footer. Replaces the in-drawer theory rendering for checkpoint slots
-// so theory gets the same focused reading surface as flashcards.
+// Full-screen viewer for checkpoint theory activities. Phase C of the "Quiz
+// screens" redesign: theory now rides the same warm-cream QuizPlayerShell as
+// quizzes (header breadcrumb · step pill · Sources / Ask Mage / Mission sidebar
+// · sticky action bar) instead of the old bare dark overlay. The lesson renders
+// in a Core-concept card (TheoryActivityCard); a Quick-recall reveal under it
+// self-checks the learner using the slot's first sibling flashcard. The content
+// fetch + "mark read" completion POST are unchanged.
 
 interface TheoryContentPayload {
   kind: 'theory';
   theory: { id: string; title: string; body: unknown };
 }
+
+// One sibling flashcard, surfaced as the Quick-recall self-check. The cards are
+// generated from this exact theory, so the front primes the lesson the learner
+// just read without needing a new recall schema (that's Phase D territory).
+interface FlashcardContentPayload {
+  kind: 'flashcards';
+  flashcardSet: { cards: Array<{ question: string; answer: string }> };
+}
+
+// Mirrors the Figma mission rail (Theory · Quick Check · Practice · Complete).
+const ACTIVITY_MISSION_LABEL: Record<string, string> = {
+  theory: 'Theory',
+  quiz: 'Quick Check',
+  flashcards: 'Practice',
+};
 
 const SLOT_KIND_LABEL: Record<string, string> = {
   learning: 'Learning',
@@ -31,10 +52,12 @@ interface CheckpointTheoryViewerProps {
   activity: PathActivity;
   onClose: () => void;
   onCompleted: (unlocked?: PathUnlock[]) => void;
-  /** Path id — enables the "Ask Mage about this lesson" action (Workstream 4). */
+  /** Path id — Ask-Mage grounding + the Sources path chip. */
   planId?: string;
-  /** The path's Study Pack notebook, threaded down for the Ask-Mage chat. */
+  /** The path's Study Pack notebook (kept for parity; unused by the shell). */
   notebookId?: string | null;
+  /** Path title — the QuizPlayerShell breadcrumb root + Sources label. */
+  pathTitle?: string;
 }
 
 export default function CheckpointTheoryViewer({
@@ -43,13 +66,15 @@ export default function CheckpointTheoryViewer({
   onClose,
   onCompleted,
   planId,
-  notebookId,
+  pathTitle,
 }: CheckpointTheoryViewerProps) {
   const [theory, setTheory] = useState<TheoryContentPayload['theory'] | null>(null);
+  const [recall, setRecall] = useState<{ question: string; answer: string } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const { isDesktop } = useBreakpoint();
+  const isPhone = !isDesktop;
+  const mage = useOptionalMage();
 
   useEffect(() => {
     trackEvent('path.activity.opened', {
@@ -88,13 +113,33 @@ export default function CheckpointTheoryViewer({
     };
   }, [activity.id]);
 
+  // Quick-recall: lazily pull the slot's first sibling flashcard. Non-blocking —
+  // theory renders regardless; the recall card just appears once the card loads.
+  // Omitted gracefully when the slot has no flashcards (e.g. some sample slots).
   useEffect(() => {
-    previousFocusRef.current = (document.activeElement as HTMLElement) ?? null;
-    containerRef.current?.focus();
+    const flashActivity = slot.activities.find((a) => a.kind === 'flashcards');
+    if (!flashActivity) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/learn/activities/${encodeURIComponent(flashActivity.id)}/content`,
+        );
+        const json = await res.json();
+        if (cancelled || !json?.success) return;
+        const payload = json.data as FlashcardContentPayload;
+        const card = payload?.kind === 'flashcards' ? payload.flashcardSet.cards[0] : null;
+        if (card?.question && card?.answer) {
+          setRecall({ question: card.question, answer: card.answer });
+        }
+      } catch {
+        // Recall is a bonus self-check — a failed fetch never blocks the lesson.
+      }
+    })();
     return () => {
-      previousFocusRef.current?.focus?.();
+      cancelled = true;
     };
-  }, []);
+  }, [slot.activities]);
 
   const handleDone = useCallback(async () => {
     if (submitting) return;
@@ -132,195 +177,106 @@ export default function CheckpointTheoryViewer({
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  const breadcrumb = useMemo(
+    () => (pathTitle ? [pathTitle, slot.title] : [slot.title]),
+    [pathTitle, slot.title],
+  );
+
+  // Mission rail from the slot's activities + a terminal "Complete" step.
+  const mission = useMemo<MissionStep[]>(() => {
+    const steps: MissionStep[] = slot.activities
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((a) => ({
+        id: a.id,
+        label: ACTIVITY_MISSION_LABEL[a.kind] ?? a.title,
+        status: a.id === activity.id ? 'current' : a.completed ? 'done' : 'locked',
+      }));
+    steps.push({ id: `${slot.id}-complete`, label: 'Complete', status: 'finish' });
+    return steps;
+  }, [slot.activities, slot.id, activity.id]);
+
+  // Step pill + header progress: "<label> · Step N of M" over the segment bar.
+  const { stepLabel, progress } = useMemo(() => {
+    const ordered = slot.activities.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+    const idx = ordered.findIndex((a) => a.id === activity.id);
+    const label = ACTIVITY_MISSION_LABEL[activity.kind] ?? SLOT_KIND_LABEL[slot.kind] ?? 'Theory';
+    const total = ordered.length + 1; // +1 for the terminal Complete step
+    const current = idx >= 0 ? idx + 1 : 1;
+    return {
+      stepLabel: idx >= 0 ? `${label} · Step ${current} of ${total}` : label,
+      progress: { current, total },
+    };
+  }, [slot.activities, slot.kind, activity.id, activity.kind]);
+
+  // Sources — Phase C shows the learning path as the grounding source (the
+  // lesson IS written from the path's material). Phase D adds per-lesson
+  // file/page provenance + the reader drawer.
+  const sources = useMemo<QuizSource[]>(
+    () =>
+      pathTitle
+        ? [{ id: planId ?? slot.id, title: pathTitle, kind: 'path', detail: 'Learning path' }]
+        : [],
+    [pathTitle, planId, slot.id],
+  );
+
+  const openMage = useCallback(() => {
+    mage?.open({
+      type: 'lesson',
+      ids: { pathId: planId, slotId: slot.id },
+      title: slot.title,
+    });
+  }, [mage, planId, slot.id, slot.title]);
+
+  const mageActions = useMemo<MageQuickAction[]>(
+    () => [
+      { label: 'Explain simpler', onClick: openMage },
+      { label: 'Give me an example', onClick: openMage },
+      { label: 'Why does this matter?', onClick: openMage },
+    ],
+    [openMage],
+  );
+
   return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${slot.title} theory`}
-      tabIndex={-1}
-      className="checkpoint-theory"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'var(--surface)',
-        color: 'var(--on-surface)',
-        zIndex: 1300,
-        display: 'flex',
-        flexDirection: 'column',
-        outline: 'none',
-      }}
+    <QuizPlayerShell
+      breadcrumb={breadcrumb}
+      title={slot.title}
+      stepLabel={stepLabel}
+      ariaLabel={`${slot.title} lesson`}
+      session={null}
+      progress={progress}
+      sourcesNoun="lesson"
+      customCard
+      primaryCta={
+        theory ? { label: submitting ? 'Saving…' : 'Continue', onClick: handleDone, disabled: submitting } : null
+      }
+      sources={sources}
+      mission={mission}
+      mageSubtitle="Stuck? Get it explained"
+      mageActions={mageActions}
+      onAskMage={openMage}
+      onShowSource={openMage}
+      onClose={onClose}
+      bodyOnly={!!loadError || !theory}
     >
-      <style>{`
-        .checkpoint-theory {
-          animation: ctOverlayIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes ctOverlayIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .checkpoint-theory { animation: none; }
-        }
-      `}</style>
-
-      <header
-        style={{
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          borderBottom: '1px solid var(--outline-variant)',
-          background: 'var(--surface-container-low)',
-        }}
-      >
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-          }}
-        >
-          <span
-            style={{
-              alignSelf: 'flex-start',
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px 10px',
-              background: 'var(--primary)',
-              color: 'var(--on-primary)',
-              borderRadius: 'var(--radius-full)',
-              fontSize: '10px',
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {SLOT_KIND_LABEL[slot.kind] ?? slot.kind}
-          </span>
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--on-surface)',
-              letterSpacing: '-0.01em',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {slot.title}
-          </h2>
-        </div>
-        {planId ? (
-          <AskMageButton
-            planId={planId}
-            notebookId={notebookId ?? null}
-            slotTitle={slot.title}
-            variant="pill"
+      {loadError ? (
+        <p role="alert" style={{ color: 'var(--error)', fontSize: '14px' }}>
+          {loadError}
+        </p>
+      ) : !theory ? (
+        <CheckpointSkeletonBody kind="theory" />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isPhone ? '12px' : '16px' }}>
+          <TheoryActivityCard
+            body={theory.body}
+            theoryId={theory.id}
+            source={sources[0]}
+            isPhone={isPhone}
+            onAskMage={openMage}
           />
-        ) : null}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close theory"
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--outline-variant)',
-            background: 'transparent',
-            color: 'var(--on-surface)',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            fontFamily: 'inherit',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            close
-          </span>
-        </button>
-      </header>
-
-      <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          minHeight: 0,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '720px',
-            margin: '0 auto',
-            padding: 'clamp(16px, 3vh, 32px) 20px clamp(32px, 7vh, 64px)',
-          }}
-        >
-          {loadError ? (
-            <p role="alert" style={{ color: 'var(--error)', fontSize: '14px' }}>
-              {loadError}
-            </p>
-          ) : !theory ? (
-            <CheckpointSkeletonBody kind="theory" />
-          ) : (
-            <TheoryViewer body={theory.body} theoryId={theory.id} />
-          )}
+          {recall ? <QuickRecall question={recall.question} answer={recall.answer} /> : null}
         </div>
-      </div>
-
-      {theory ? (
-        <footer
-          style={{
-            padding: '14px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '12px',
-            borderTop: '1px solid var(--outline-variant)',
-            background: 'var(--surface-container-low)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleDone}
-            disabled={submitting}
-            style={{ ...primaryBtnStyle, opacity: submitting ? 0.6 : 1 }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-              check
-            </span>
-            {submitting
-              ? 'Saving…'
-              : activity.completed
-                ? 'Done'
-                : 'Mark as read & continue'}
-          </button>
-        </footer>
-      ) : null}
-    </div>
+      )}
+    </QuizPlayerShell>
   );
 }
-
-const primaryBtnStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '6px',
-  padding: '10px 18px',
-  background: 'var(--primary)',
-  color: 'var(--on-primary)',
-  border: 'none',
-  borderRadius: 'var(--radius-full)',
-  fontSize: '13px',
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  minWidth: '180px',
-  justifyContent: 'center',
-};

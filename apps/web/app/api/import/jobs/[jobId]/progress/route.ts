@@ -27,9 +27,8 @@ import { db } from '@/lib/db';
 // event whenever something changed. Stateless — a client connecting mid-import
 // gets the current snapshot immediately.
 //
-// A `processing`/`queued` job whose `updatedAt` has gone stale was almost
-// certainly killed by a redeploy: the detached worker is not durable. The
-// handler flags such a job `failed` and emits `error` so the user can retry.
+// Durable queue recovery is owned by the background job worker. This stream
+// only reports the current ImportJob row; it never marks unfinished work failed.
 
 type Params = { params: Promise<{ jobId: string }> };
 
@@ -53,8 +52,6 @@ function readSnapshot(status: string, progress: unknown): SnapshotEnvelope {
 }
 
 const POLL_INTERVAL_MS = 500;
-/** A `processing` job idle longer than this is treated as redeploy-killed. */
-const STALE_AFTER_MS = 10 * 60_000;
 
 export async function GET(request: NextRequest, { params }: Params) {
   const userId = await getAuthUserId(request);
@@ -108,7 +105,7 @@ export async function GET(request: NextRequest, { params }: Params) {
               summary: initial.resultSummary,
               truncated: initial.truncated,
               fallbackPages: initial.fallbackPages,
-            }),
+            })
           );
           controller.close();
           return;
@@ -142,21 +139,6 @@ export async function GET(request: NextRequest, { params }: Params) {
             break;
           }
 
-          // Stale unfinished job — the worker was killed by a redeploy.
-          if (
-            (row.status === 'processing' || row.status === 'queued') &&
-            Date.now() - row.updatedAt.getTime() > STALE_AFTER_MS
-          ) {
-            const message = 'The server restarted while importing. Please try again.';
-            await db.importJob
-              .update({ where: { id: jobId }, data: { status: 'failed', error: message } })
-              .catch(() => {
-                /* best-effort — the error event below is what matters */
-              });
-            controller.enqueue(sseEvent('error', { message }));
-            break;
-          }
-
           const snap = readSnapshot(row.status, row.progress);
           const snapStr = JSON.stringify(snap);
           if (snapStr !== lastSnap) {
@@ -171,7 +153,7 @@ export async function GET(request: NextRequest, { params }: Params) {
                 summary: row.resultSummary,
                 truncated: row.truncated,
                 fallbackPages: row.fallbackPages,
-              }),
+              })
             );
             break;
           }

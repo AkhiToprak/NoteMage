@@ -22,19 +22,20 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    // The marketing page renders dark in both themes. Without this the landing inherits a
-    // light-mode visitor's [data-theme='light'] tokens (near-black text) onto its dark
-    // backdrop. The dark-island pattern re-establishes dark token values locally.
+    // The redesigned marketing landing renders LIGHT (warm cream) in both themes. The
+    // light-island pattern pins local light tokens + colorScheme so a dark-theme visitor's
+    // [data-theme='dark'] tokens never bleed onto the cream surface (and so native form
+    // controls / scrollbars render light). PathLanding's scoped CSS carries its own palette.
     <div
       className="nm-landing"
-      data-theme="dark"
+      data-theme="light"
       style={{
         position: 'relative',
         isolation: 'isolate',
-        background: '#0c0a1a',
-        color: 'var(--on-surface)',
-        colorScheme: 'dark',
-        fontFamily: 'var(--font-sans)',
+        background: '#faf7f0',
+        color: '#18202f',
+        colorScheme: 'light',
+        fontFamily: 'var(--font-inter), var(--font-sans)',
         minHeight: '100vh',
       }}
     >

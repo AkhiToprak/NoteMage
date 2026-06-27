@@ -409,7 +409,7 @@ describe('buildMageSourceManifest', () => {
         title: 'Osmosis notes',
         text: 'Water moves across a membrane.',
         subtitle: 'Bio pack',
-        href: '/study-packs/nb1',
+        href: '/learn/paths/nb1',
         pageLabel: 'page 7',
       },
     ]);
@@ -417,7 +417,7 @@ describe('buildMageSourceManifest', () => {
     expect(corpusParts[1]).toBe('[S2] (page) "Osmosis notes" — Bio pack (page 7)\nWater moves across a membrane.');
     expect(manifest).toEqual([
       { n: 1, kind: 'theory', title: 'Diffusion', subtitle: 'Biology 101', href: '/lesson/s1', pageLabel: undefined },
-      { n: 2, kind: 'page', title: 'Osmosis notes', subtitle: 'Bio pack', href: '/study-packs/nb1', pageLabel: 'page 7' },
+      { n: 2, kind: 'page', title: 'Osmosis notes', subtitle: 'Bio pack', href: '/learn/paths/nb1', pageLabel: 'page 7' },
     ]);
   });
 
@@ -434,7 +434,7 @@ describe('buildMageSourceManifest', () => {
 
 const CITE_MANIFEST: MageSource[] = [
   { n: 1, kind: 'theory', title: 'Diffusion', href: '/lesson/s1' },
-  { n: 2, kind: 'page', title: 'Osmosis', href: '/study-packs/nb1', pageLabel: 'page 7' },
+  { n: 2, kind: 'page', title: 'Osmosis', href: '/learn/paths/nb1', pageLabel: 'page 7' },
 ];
 
 describe('resolveCitedSources — [S#] resolution + sourceMode downgrade', () => {

@@ -1,0 +1,119 @@
+/* Hallmark · component: bottom-nav · genre: playful · theme: cream app-shell
+ * states: default · hover · focus · active(pressed) · current(aria-current)
+ * contrast: pass — ink-soft #5b6273 / accent #4326b8 on #fff ≥ 4.5:1
+ *
+ * Self-contained cream palette: this nav renders OUTSIDE the AppShell `.shell`
+ * (sibling of <main> in DashboardChrome), so it can't inherit the shell tokens.
+ * Declared locally, prefixed --mn-* to avoid colliding with the dark-theme
+ * tokens on :root. Mirrors AppShell.module.css `.shell`. */
+
+.nav {
+  --mn-surface: #ffffff;
+  --mn-border: #d9ccb3;
+  --mn-ink-soft: #5b6273;
+  --mn-accent: #4326b8;
+  --mn-lilac: #ede9ff;
+  --mn-focus: #7c5cff;
+  --mn-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  display: none;
+  flex-shrink: 0;
+  border-top: 1px solid var(--mn-border);
+  background: color-mix(in srgb, var(--mn-surface) 94%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Phone only. Shown ≤760px — the exact width at which AppSidebar hides, so
+   precisely one of (sidebar | bottom nav) is visible. SSR-renders hidden →
+   no desktop flash (no JS breakpoint). */
+@media (max-width: 760px) {
+  .nav { display: block; }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+}
+
+.cell {
+  min-width: 0;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 7px 4px;
+  text-decoration: none;
+  color: var(--mn-ink-soft);
+  transition: color 0.18s var(--mn-ease);
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 30px;
+  border-radius: 10px;
+  background: transparent;
+  transition: background-color 0.18s var(--mn-ease);
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Current destination — lilac pill behind the icon + accent ink, matching the
+   AppSidebar `.active` treatment (background var(--lilac); color var(--accent)). */
+.active {
+  color: var(--mn-accent);
+}
+.active .iconWrap {
+  background: var(--mn-lilac);
+}
+.active .label {
+  font-weight: 700;
+}
+
+/* Interactive states */
+.tab:hover .iconWrap {
+  background: #f4f1ff;
+}
+.active:hover .iconWrap {
+  background: var(--mn-lilac);
+}
+.tab:active {
+  transform: scale(0.95);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--mn-focus);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .iconWrap {
+    transition: none;
+  }
+  .tab:active {
+    transform: none;
+  }
+}

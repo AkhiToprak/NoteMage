@@ -10,25 +10,27 @@ import {
   tooManyRequestsResponse,
   paymentRequiredResponse,
 } from '@/lib/api-response';
-import { generatePathStructure, generatePath } from '@/lib/path-generator';
+import { generatePathStructure } from '@/lib/path-generator';
+import { persistPlanStructure } from '@/lib/persist-plan-structure';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 import { pathContentCap } from '@/lib/path-corpus-fit';
 import { loadPathsForUser, serializePath, staleGenerationCutoff } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { acquireRedisLock, stableHash } from '@/lib/redis-cache';
 import { checkTokenBudget } from '@/lib/token-budget';
 import type { PathStructureToolInput } from '@/lib/ai-tools';
 import { classifySubjects } from '@/lib/path-classifier';
 import { normalizePathLanguage } from '@/lib/path-languages';
 import { logTelemetry } from '@/lib/telemetry-server';
-import { freeTierAiPathsDisabled } from '@/lib/feature-flags';
-import { trackFreeUserPathGenerationBlocked } from '@/lib/telemetry-switchover';
+import { enqueueJob } from '@/lib/background-jobs';
 
 // Phase 10.3 — POST kicks off the two-stage AI path generation. Stage A
 // (one inline AI call → `create_path_structure`) returns the section /
 // slot skeleton in ~3–5s. We persist the plan + phases + empty slots in
-// one transaction with `generationStatus: 'generating'`, then fire
-// Stage B off as a background promise that fills theory / flashcards /
+// one transaction with `generationStatus: 'generating'`, then enqueue
+// Stage B as a durable background job that fills theory / flashcards /
 // quiz activities per slot. The route returns immediately so the client
 // can connect to the SSE `/generation` endpoint and watch progress.
 
@@ -50,21 +52,8 @@ export async function GET(request: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// POST — create a path (Stage A inline + Stage B fire-and-forget).
+// POST — create a path (Stage A inline + Stage B queued).
 // ─────────────────────────────────────────────────────────────────────
-
-// Paths are self-paced: the start/end dates stamped below are internal
-// bookkeeping only — nothing in the path UI shows or gates on them. We use a
-// fixed span so the non-null StudyPlan / StudyPhase date columns stay valid.
-const DEFAULT_PATH_SPAN_DAYS = 30;
-
-function defaultPathSpan(): { start: Date; end: Date } {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + DEFAULT_PATH_SPAN_DAYS - 1);
-  return { start, end };
-}
 
 interface CreatePathBody {
   title?: string;
@@ -78,8 +67,8 @@ interface CreatePathBody {
    *  the ultra flag. Toggle from the path-creation UI for testing. */
   gemini?: boolean;
   /** Author-selected content language (BCP-47 lowercase). Persisted as
-   *  StudyPlan.language and snapshotted onto SharedPath at publish time.
-   *  Validated against the supported set; junk falls back to 'en'. */
+   *  StudyPlan.language. Validated against the supported set; junk falls
+   *  back to 'en'. */
   language?: string;
 }
 
@@ -96,13 +85,13 @@ export async function POST(request: NextRequest) {
     if (!burst.success) {
       return tooManyRequestsResponse(
         'Too many path generations in a short window. Please wait a moment and try again.',
-        burst.retryAfterMs,
+        burst.retryAfterMs
       );
     }
 
     // Per-user concurrent-generation cap. The burst limiter above bounds the
     // request rate, but a user could still hold many Stage-B orchestrators
-    // in flight at once (each fired fire-and-forget below), multiplying live
+    // in flight at once, multiplying live
     // COGS. Cap live `generating` runs at 3. Stale rows (a dead orchestrator
     // killed mid-run by a redeploy) don't count — they're reclaimable by
     // regenerate and would otherwise wedge the user out forever.
@@ -116,7 +105,7 @@ export async function POST(request: NextRequest) {
     });
     if (liveGenerating >= MAX_CONCURRENT_GENERATIONS) {
       return tooManyRequestsResponse(
-        'You already have several paths generating. Wait for one to finish, then try again.',
+        'You already have several paths generating. Wait for one to finish, then try again.'
       );
     }
 
@@ -138,23 +127,19 @@ export async function POST(request: NextRequest) {
     const usageFeature = ultra ? 'ultra_path' : 'ai_study_plan';
     const usage = await checkUsageLimit(userId, usageFeature);
     if (!usage.allowed) {
-      // Phase 12 free-tier switchover (AC-Switch-1). When
-      // FREE_TIER_AI_PATHS_DISABLED is on, FREE's ai_study_plan limit is 0
-      // (tiers.ts). A 0 limit on the non-ultra meter can only mean a FREE
-      // user under the switchover — admins return allowed:true and PRO is
-      // unlimited (-1) — so this is a tier gate, not an exhausted quota:
-      // answer with 402 + library-pointing copy and drop a telemetry
-      // breadcrumb to size the friction. Everything else stays 429.
-      if (!ultra && usage.limit === 0 && freeTierAiPathsDisabled()) {
-        trackFreeUserPathGenerationBlocked(userId);
+      // FREE's ai_study_plan limit is 0 (AI path generation is Pro-only). A 0
+      // limit on the non-ultra meter can only mean a FREE user — admins return
+      // allowed:true and PRO is unlimited (-1) — so this is a tier gate, not an
+      // exhausted quota: answer 402 + upgrade copy. Everything else stays 429.
+      if (!ultra && usage.limit === 0) {
         return paymentRequiredResponse(
-          'AI path generation is part of Pro. Browse the community library to clone a ready-made path — free.',
+          'AI path generation is a Pro feature. Upgrade to generate learning paths.'
         );
       }
       return tooManyRequestsResponse(
         ultra
           ? 'Ultra path limit reached — Ultra is a Pro feature, capped at 3 per month.'
-          : 'Monthly AI path generation limit reached. Upgrade your plan for more.',
+          : 'Monthly AI path generation limit reached. Upgrade your plan for more.'
       );
     }
 
@@ -183,7 +168,7 @@ export async function POST(request: NextRequest) {
     const allNotebookIds = new Set<string>(contextNotebookIds);
     if (primaryNotebookId) allNotebookIds.add(primaryNotebookId);
     if (allNotebookIds.size > 0) {
-      const owned = await db.notebook.count({
+      const owned = await db.studyContainer.count({
         where: { id: { in: Array.from(allNotebookIds) }, userId },
       });
       if (owned !== allNotebookIds.size) {
@@ -221,7 +206,7 @@ export async function POST(request: NextRequest) {
       if (derived.length > 0) {
         resolvedPrimaryNotebookId = derived[0];
       } else {
-        const fallback = await db.notebook.findFirst({
+        const fallback = await db.studyContainer.findFirst({
           where: { userId },
           orderBy: { createdAt: 'asc' },
           select: { id: true },
@@ -231,158 +216,119 @@ export async function POST(request: NextRequest) {
     }
     if (!resolvedPrimaryNotebookId) {
       return badRequestResponse(
-        'Create a notebook first — learn paths need somewhere to store generated content.',
+        'Create a notebook first — learn paths need somewhere to store generated content.'
       );
     }
     derivedNotebookIds.add(resolvedPrimaryNotebookId);
 
-    // ── Subject classification (Haiku, ~1s) ──────────────────────────
-    const classification = await classifySubjects({
-      title,
-      brief: body.brief,
-      corpus: corpus || undefined,
-    });
-    logTelemetry(userId, 'path.classifier.result', {
-      subjects: classification.subjects,
-      weights: classification.weights,
-      fallback: classification.fallback,
-    });
+    const duplicateLock = await acquireRedisLock(
+      `lock:path-create:${userId}:${stableHash({
+        title,
+        brief: body.brief ?? null,
+        contextNotebookIds,
+        primaryNotebookId: resolvedPrimaryNotebookId,
+        materialIds,
+        ultra,
+        gemini,
+        language,
+      })}`,
+      120
+    );
+    if (!duplicateLock.acquired) {
+      return tooManyRequestsResponse(
+        'That path is already being created. Please wait a moment.',
+        duplicateLock.retryAfterMs
+      );
+    }
 
-    // ── Stage A (one AI call, inline) ────────────────────────────────
-    let structure: PathStructureToolInput;
     try {
-      structure = await generatePathStructure({
-        userId,
+      // ── Subject classification (Haiku, ~1s) ──────────────────────────
+      const classification = await classifySubjects({
         title,
         brief: body.brief,
         corpus: corpus || undefined,
-        subjects: classification.subjects,
-        subjectWeights: classification.weights,
-        gemini,
-        language,
       });
-    } catch (error) {
-      console.error('[learn/paths POST] Stage A failed', error);
-      return internalErrorResponse('Failed to design path structure. Please try again.');
-    }
+      logTelemetry(userId, 'path.classifier.result', {
+        subjects: classification.subjects,
+        weights: classification.weights,
+        fallback: classification.fallback,
+      });
 
-    // ── Persist plan + phases + empty slots in one transaction ───────
-    const { start, end } = defaultPathSpan();
-    const planTitle = structure.title?.trim() || title;
-    const planDescription = structure.description?.trim() || null;
+      // ── Stage A (one AI call, inline) ────────────────────────────────
+      let structure: PathStructureToolInput;
+      try {
+        structure = await generatePathStructure({
+          userId,
+          title,
+          brief: body.brief,
+          corpus: corpus || undefined,
+          subjects: classification.subjects,
+          subjectWeights: classification.weights,
+          gemini,
+          language,
+        });
+      } catch (error) {
+        console.error('[learn/paths POST] Stage A failed', error);
+        return internalErrorResponse('Failed to design path structure. Please try again.');
+      }
 
-    const planId = await db.$transaction(async (tx) => {
-      const plan = await tx.studyPlan.create({
-        data: {
+      // ── Persist plan + phases + empty slots in one transaction ───────
+      // Shared verbatim with the onboarding claim (persist-plan-structure.ts).
+      const planId = await db.$transaction((tx) =>
+        persistPlanStructure(tx, {
           userId,
           notebookId: resolvedPrimaryNotebookId,
           contextNotebookIds: Array.from(derivedNotebookIds),
           materialIds,
-          title: planTitle,
-          description: planDescription,
-          learnerBrief: body.brief?.trim().slice(0, 4000) || null,
-          startDate: start,
-          endDate: end,
+          fallbackTitle: title,
+          learnerBrief: body.brief,
+          structure,
           source: 'ai',
           ultra,
           gemini,
           language,
-          generationStatus: 'generating',
           subjects: classification.subjects,
           subjectWeights: classification.weights,
-        },
-      });
+          generationStatus: 'generating',
+        })
+      );
+      await invalidateDashboardCache(userId);
 
-      for (let i = 0; i < structure.phases.length; i++) {
-        const phase = structure.phases[i];
-        // Spread the phase dates evenly across the target days.
-        const phaseLengthDays = Math.max(
-          1,
-          Math.floor(DEFAULT_PATH_SPAN_DAYS / Math.max(1, structure.phases.length)),
+      // Stage B durable job. Errors are surfaced to the client through
+      // `StudyPlan.generationStatus = "failed"` + the SSE `error` event.
+      // `allowRefund` lets Stage B give the reserved credit back if the path
+      // generates nothing at all (only the create flow opts in — regenerate is
+      // already free, so it must never trigger a second refund).
+      try {
+        await enqueueJob(
+          'path.generate',
+          { planId, allowRefund: true },
+          {
+            dedupeKey: `path:generate:${planId}`,
+          }
         );
-        const phaseStart = new Date(start);
-        phaseStart.setDate(phaseStart.getDate() + i * phaseLengthDays);
-        const phaseEnd = new Date(phaseStart);
-        phaseEnd.setDate(phaseEnd.getDate() + phaseLengthDays - 1);
-
-        const studyPhase = await tx.studyPhase.create({
+      } catch (error) {
+        await db.studyPlan.update({
+          where: { id: planId },
           data: {
-            planId: plan.id,
-            title: phase.title,
-            description: phase.description ?? null,
-            sortOrder: i,
-            startDate: phaseStart,
-            endDate: phaseEnd,
-            status: i === 0 ? 'active' : 'upcoming',
+            generationStatus: 'failed',
+            generationError: 'Could not start path generation. Please try again.',
           },
-        });
-
-        // Create slots in order so each checkpoint's `covers` (section-local
-        // indices Stage A emitted) can be resolved to the ids of the earlier
-        // slots it tests. Indices are clamped to slots that precede this one.
-        const phaseSlotIds: string[] = [];
-        for (let j = 0; j < phase.slots.length; j++) {
-          const slot = phase.slots[j];
-          const coversSlotIds = (slot.covers ?? [])
-            .filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < j)
-            .map((idx) => phaseSlotIds[idx])
-            .filter((id): id is string => Boolean(id));
-          const created = await tx.checkpointSlot.create({
-            data: {
-              phaseId: studyPhase.id,
-              title: slot.title,
-              description: slot.topicHint,
-              objective: slot.objective ?? null,
-              kind: slot.kind,
-              sortOrder: j,
-              coversSlotIds,
-            },
+        }).catch((updateError) => {
+          console.error('[learn/paths POST] failed to mark plan failed after enqueue error', {
+            planId,
+            error: updateError,
           });
-          phaseSlotIds.push(created.id);
-        }
+        });
+        throw error;
       }
 
-      // Append the path-wide Final Exam as its own synthetic phase so it
-      // sits visually after every section, unlocks only when all prior
-      // slots are complete, and grades the learner against the whole
-      // path. One quiz-only slot of kind `final_exam`; Stage B fills it.
-      await tx.studyPhase.create({
-        data: {
-          planId: plan.id,
-          title: 'Final Exam',
-          description: 'Comprehensive, graded exam covering every section.',
-          sortOrder: structure.phases.length,
-          startDate: end,
-          endDate: end,
-          status: 'upcoming',
-          slots: {
-            create: [
-              {
-                title: 'Final Exam',
-                description: `Path-wide capstone for "${planTitle}". Pulls questions from every section to simulate the real exam.`,
-                kind: 'final_exam',
-                sortOrder: 0,
-              },
-            ],
-          },
-        },
-      });
+      await incrementUsage(userId, usageFeature);
 
-      return plan.id;
-    });
-
-    // Stage B fire-and-forget. Errors are surfaced to the client through
-    // `StudyPlan.generationStatus = "failed"` + the SSE `error` event.
-    // `allowRefund` lets Stage B give the reserved credit back if the path
-    // generates nothing at all (only the create flow opts in — regenerate is
-    // already free, so it must never trigger a second refund).
-    void generatePath(planId, { allowRefund: true }).catch((err) => {
-      console.error('[learn/paths POST] Stage B failed', err);
-    });
-
-    await incrementUsage(userId, usageFeature);
-
-    return createdResponse({ planId, status: 'generating' });
+      return createdResponse({ planId, status: 'generating' });
+    } finally {
+      await duplicateLock.release();
+    }
   } catch (error) {
     console.error('[learn/paths POST]', error);
     return internalErrorResponse();

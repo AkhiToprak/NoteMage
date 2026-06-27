@@ -4,7 +4,16 @@
 // rule misfires on this standard API.
 /* eslint-disable react-hooks/refs */
 
-import { useCallback, useMemo, useState } from 'react';
+/* Hallmark · component: timeline-placement quiz · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · active · dragging · over · disabled · correct · wrong
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens): cream event tiles placed onto timeline slots,
+ * purple while placing, green/red on check. Body-only — badge/source/card from QuestionCard.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -41,6 +50,7 @@ export default function TimelineRenderer({
   onSelectAnswer,
   isPhone,
   coarsePointer,
+  externalChrome,
 }: QuestionProps<TimelinePayload | null>) {
   const payload = question.payload;
 
@@ -98,7 +108,6 @@ export default function TimelineRenderer({
     reviewPlacements ?? placements;
 
   const placedLabels = new Set(Object.values(effectivePlacements).filter((v) => v.length > 0));
-  const remainingLabels = shuffledLabels.filter((l) => !placedLabels.has(l));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -181,82 +190,86 @@ export default function TimelineRenderer({
     onSelectAnswer({ kind: 'timeline', placements });
   };
 
+  // Shell flow: stage the current placements continuously so the sticky
+  // ActionBar "Check answer" can commit it; the internal SubmitBar is hidden.
+  useEffect(() => {
+    if (!externalChrome || isAnswered || mode !== 'quiz') return;
+    onSelectAnswer({ kind: 'timeline', placements });
+  }, [externalChrome, isAnswered, mode, placements, onSelectAnswer]);
+
   const showResults =
     mode === 'review' || (currentAnswer?.kind === 'timeline' && isAnswered);
 
+  const placedCount = Object.keys(placements).length;
+  const totalCount = sortedEvents.length;
+
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '640px',
-        marginBottom: '20px',
-      }}
-    >
+    <div style={{ width: '100%' }}>
+      <style>{`
+        .qtl-label:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qtl-label:not(:disabled):active { transform: translateY(1px); }
+        .qtl-label:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        .qtl-slot:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        .qtl-placed:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qtl-ctl:hover { border-color: var(--nm-primary); color: var(--nm-primary-on-light); }
+        .qtl-ctl:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+          .qtl-label { transition: none; }
+          .qtl-label:not(:disabled):active { transform: none; }
+        }
+      `}</style>
+
+      {/* Prompt — large display heading on the cream card. */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '28px 24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.25,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
-        </div>
+        <MarkdownRenderer content={question.question} />
       </div>
-
-      <div style={{ display: 'flex', marginBottom: '8px' }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(140,82,255,0.12)',
-            border: '1px solid rgba(140,82,255,0.3)',
-            borderRadius: '999px',
-            padding: '4px 12px',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: 'var(--accent-strong)',
-            fontFamily: 'inherit',
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>calendar_month</span> {coarsePointer ? 'Tap a label, then tap its year' : 'Drag each label onto its year'}
-        </span>
-      </div>
+      <p style={{ margin: '0 0 18px', fontSize: '14px', lineHeight: 1.5, color: 'var(--on-surface-variant)' }}>
+        {coarsePointer ? 'Tap a label, then tap its year.' : 'Drag each label onto its year.'}
+      </p>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {/* Label bank */}
+        {/* Label bank — neutral surface, placed labels fade in place. */}
         <div
           style={{
-            padding: '14px 16px',
-            borderRadius: '12px',
-            border: '1px solid rgba(140,82,255,0.22)',
-            background: 'rgba(140,82,255,0.05)',
-            marginBottom: '14px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            minHeight: '52px',
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--on-surface-variant)',
+            marginBottom: '10px',
           }}
         >
-          {remainingLabels.length === 0 ? (
-            <span
-              style={{
-                fontSize: '12px',
-                color: 'var(--on-surface-variant)',
-                fontStyle: 'italic',
-                alignSelf: 'center',
-              }}
-            >
-              All labels placed.
-            </span>
-          ) : (
-            remainingLabels.map((label) => (
+          Event labels
+        </div>
+        <div
+          style={{
+            padding: '14px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--quiz-card-border)',
+            background: 'transparent',
+            marginBottom: '20px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px',
+            minHeight: '60px',
+          }}
+        >
+          {shuffledLabels.map((label) => {
+            const isPlaced = placedLabels.has(label);
+            if (isPlaced) {
+              return <UsedChip key={label} label={label} coarsePointer={coarsePointer} />;
+            }
+            return (
               <LabelChip
                 key={label}
                 label={label}
@@ -265,20 +278,20 @@ export default function TimelineRenderer({
                 coarsePointer={coarsePointer}
                 onTap={() => handleLabelTap(label)}
               />
-            ))
-          )}
+            );
+          })}
         </div>
 
-        {/* Timeline axis */}
+        {/* Timeline axis — cream inset. */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            padding: '14px 14px',
-            borderRadius: '12px',
-            border: '1px solid rgba(174,137,255,0.22)',
-            background: 'var(--surface-container)',
+            padding: isPhone ? '14px 12px' : '16px 14px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--quiz-card-border)',
+            background: 'var(--quiz-bg)',
             marginBottom: '16px',
           }}
         >
@@ -297,6 +310,7 @@ export default function TimelineRenderer({
                 disabled={mode === 'review' || isAnswered}
                 showResult={correctAtYear}
                 coarsePointer={coarsePointer}
+                tappedLabel={tappedLabel}
                 onTap={() => handleSlotTap(slotKey)}
                 onUnplace={() => unplaceSlot(slotKey)}
                 correctLabel={mode === 'review' ? event.label : null}
@@ -306,11 +320,59 @@ export default function TimelineRenderer({
         </div>
 
         <DragOverlay>
-          {activeDragLabel ? <LabelChipPreview label={activeDragLabel} /> : null}
+          {activeDragLabel ? <LabelChipPreview label={activeDragLabel} coarsePointer={coarsePointer} /> : null}
         </DragOverlay>
       </DndContext>
 
-      {!isAnswered && mode === 'quiz' && (
+      {/* Footer: placed count + Clear. */}
+      {!isAnswered && mode === 'quiz' && totalCount > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: '6px',
+            minHeight: '34px',
+          }}
+        >
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface-variant)' }}>
+            {placedCount} of {totalCount} {totalCount === 1 ? 'event' : 'events'} placed
+          </span>
+          {placedCount > 0 && (
+            <button
+              type="button"
+              className="qtl-ctl"
+              onClick={() => {
+                if (isAnswered) return;
+                setPlacements({});
+                setTappedLabel(null);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--outline-variant)',
+                background: 'var(--surface-container-lowest)',
+                color: 'var(--on-surface-variant)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                backspace
+              </span>
+              Reset
+            </button>
+          )}
+        </div>
+      )}
+
+      {!externalChrome && !isAnswered && mode === 'quiz' && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
           <SubmitBar
             onClick={submit}
@@ -333,10 +395,17 @@ export default function TimelineRenderer({
       {showResults && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
-            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: isCorrect
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: `1px solid ${
+              isCorrect
+                ? 'rgb(var(--verdict-pass-rgb) / 0.3)'
+                : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+            }`,
+            marginTop: '4px',
             marginBottom: '12px',
           }}
         >
@@ -345,23 +414,18 @@ export default function TimelineRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
+              fontSize: '15px',
+              fontWeight: 800,
               marginBottom: '6px',
               color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {isCorrect ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Timeline complete
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {isCorrect ? 'check_circle' : 'cancel'}
+            </span>
+            {isCorrect ? 'Timeline complete' : 'Not quite'}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -379,6 +443,7 @@ export default function TimelineRenderer({
   );
 }
 
+// A label chip in the bank that hasn't been placed yet — draggable + tappable.
 function LabelChip({
   label,
   tapped,
@@ -393,9 +458,6 @@ function LabelChip({
   onTap: () => void;
 }) {
   const draggable = useDraggable({ id: label, disabled });
-  const borderColor = tapped ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.4)';
-  const bg = tapped ? 'rgba(140,82,255,0.28)' : 'rgba(140,82,255,0.12)';
-  const textColor = tapped ? 'var(--on-surface)' : 'var(--on-surface-variant)';
   return (
     <button
       ref={draggable.setNodeRef}
@@ -403,20 +465,21 @@ function LabelChip({
       {...draggable.listeners}
       onClick={onTap}
       disabled={disabled}
+      className="qtl-label"
       style={{
-        padding: coarsePointer ? '10px 16px' : '6px 14px',
-        minHeight: coarsePointer ? '44px' : '34px',
-        borderRadius: '999px',
-        border: `1px solid ${borderColor}`,
-        background: bg,
-        color: textColor,
-        fontSize: '13px',
-        fontWeight: 600,
+        padding: coarsePointer ? '10px 16px' : '8px 14px',
+        minHeight: coarsePointer ? '44px' : '36px',
+        borderRadius: 'var(--radius-full)',
+        border: `1.5px solid ${tapped ? 'var(--nm-primary)' : 'transparent'}`,
+        background: 'var(--nm-primary-light)',
+        color: 'var(--nm-primary-on-light)',
+        fontSize: '14px',
+        fontWeight: 700,
         cursor: disabled ? 'default' : 'grab',
         fontFamily: 'inherit',
         opacity: draggable.isDragging ? 0.35 : 1,
         touchAction: 'none',
-        transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+        transition: 'border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), transform 0.15s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
     >
       {label}
@@ -424,22 +487,48 @@ function LabelChip({
   );
 }
 
-function LabelChipPreview({ label }: { label: string }) {
+// Ghost placeholder left in the bank where a placed label used to be.
+function UsedChip({ label, coarsePointer }: { label: string; coarsePointer: boolean }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        padding: coarsePointer ? '10px 16px' : '8px 14px',
+        minHeight: coarsePointer ? '44px' : '36px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        borderRadius: 'var(--radius-full)',
+        border: '1.5px dashed var(--quiz-card-border)',
+        background: 'transparent',
+        color: 'var(--on-surface-variant)',
+        fontSize: '14px',
+        fontWeight: 600,
+        fontFamily: 'inherit',
+        opacity: 0.45,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// Floating drag preview rendered by DragOverlay.
+function LabelChipPreview({ label, coarsePointer }: { label: string; coarsePointer: boolean }) {
   return (
     <span
       style={{
-        padding: '6px 14px',
-        minHeight: '34px',
+        padding: coarsePointer ? '10px 16px' : '8px 14px',
+        minHeight: coarsePointer ? '44px' : '36px',
         display: 'inline-flex',
         alignItems: 'center',
-        borderRadius: '999px',
-        border: '1px solid rgba(196,169,255,0.85)',
-        background: 'rgba(140,82,255,0.28)',
-        color: 'var(--on-surface)',
-        fontSize: '13px',
-        fontWeight: 600,
+        borderRadius: 'var(--radius-full)',
+        border: '1.5px solid var(--nm-primary)',
+        background: 'var(--nm-primary)',
+        color: 'var(--on-primary-container)',
+        fontSize: '14px',
+        fontWeight: 700,
         fontFamily: 'inherit',
-        boxShadow: '0 12px 30px rgba(140,82,255,0.45)',
+        boxShadow: '0 14px 30px rgb(124 92 255 / 0.4)',
       }}
     >
       {label}
@@ -454,6 +543,7 @@ function YearSlot({
   disabled,
   showResult,
   coarsePointer,
+  tappedLabel,
   onTap,
   onUnplace,
   correctLabel,
@@ -464,20 +554,34 @@ function YearSlot({
   disabled: boolean;
   showResult: boolean | null;
   coarsePointer: boolean;
+  tappedLabel: string | null;
   onTap: () => void;
   onUnplace: () => void;
   correctLabel: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `slot-${slotKey}`, disabled });
 
-  let labelBorder = 'rgba(140,82,255,0.45)';
-  let labelBg = 'rgba(140,82,255,0.12)';
-  let labelColor = 'var(--on-surface)';
+  // Determine slot drop-zone highlight (tap-mode: a label is selected and slot is empty).
+  const tapHighlight = !disabled && tappedLabel !== null && !placedLabel;
+
+  let slotBorder = isOver || tapHighlight ? 'var(--nm-primary)' : 'var(--outline-variant)';
+  let slotBg = isOver || tapHighlight ? 'var(--nm-primary-light)' : 'transparent';
+  const slotBorderStyle = placedLabel ? 'solid' : 'dashed';
+
+  // Placed chip colors.
+  let labelBorder = 'var(--nm-primary)';
+  let labelBg = 'var(--nm-primary-light)';
+  let labelColor = 'var(--nm-primary-on-light)';
+
   if (showResult === true) {
+    slotBorder = 'rgb(var(--verdict-pass-rgb) / 0.55)';
+    slotBg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
     labelBorder = 'rgb(var(--verdict-pass-rgb) / 0.55)';
     labelBg = 'rgb(var(--verdict-pass-rgb) / 0.12)';
     labelColor = 'var(--success)';
   } else if (showResult === false) {
+    slotBorder = 'rgb(var(--verdict-fail-rgb) / 0.55)';
+    slotBg = 'rgb(var(--verdict-fail-rgb) / 0.06)';
     labelBorder = 'rgb(var(--verdict-fail-rgb) / 0.55)';
     labelBg = 'rgb(var(--verdict-fail-rgb) / 0.10)';
     labelColor = 'var(--error)';
@@ -488,6 +592,7 @@ function YearSlot({
       ref={setNodeRef}
       role="button"
       tabIndex={disabled ? -1 : 0}
+      className="qtl-slot"
       onClick={onTap}
       onKeyDown={(e) => {
         if (disabled) return;
@@ -501,26 +606,30 @@ function YearSlot({
         alignItems: 'center',
         gap: '12px',
         padding: '10px 12px',
-        borderRadius: '10px',
-        border: `1px dashed ${isOver ? 'rgba(196,169,255,0.85)' : 'rgba(174,137,255,0.28)'}`,
-        background: isOver ? 'rgba(140,82,255,0.10)' : 'transparent',
-        minHeight: '44px',
+        borderRadius: 'var(--radius-md)',
+        border: `1px ${slotBorderStyle} ${slotBorder}`,
+        background: slotBg,
+        minHeight: '48px',
         cursor: disabled ? 'default' : 'pointer',
-        transition: 'background 0.12s, border-color 0.12s',
+        transition: 'background-color 0.15s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
     >
+      {/* Year marker */}
       <span
         style={{
           minWidth: '72px',
           fontFamily: '"JetBrains Mono", monospace',
           fontSize: '13px',
           fontWeight: 700,
-          color: 'var(--accent-strong)',
+          color: 'var(--on-surface)',
           letterSpacing: '0.04em',
+          flexShrink: 0,
         }}
       >
         {year}
       </span>
+
+      {/* Placed label or empty drop hint */}
       {placedLabel ? (
         <button
           onClick={(e) => {
@@ -528,17 +637,19 @@ function YearSlot({
             if (!disabled) onUnplace();
           }}
           disabled={disabled}
+          className="qtl-placed"
           style={{
             padding: coarsePointer ? '10px 14px' : '5px 12px',
             minHeight: coarsePointer ? '44px' : undefined,
-            borderRadius: '999px',
-            border: `1px solid ${labelBorder}`,
+            borderRadius: 'var(--radius-full)',
+            border: `1.5px solid ${labelBorder}`,
             background: labelBg,
             color: labelColor,
             fontSize: '13px',
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: disabled ? 'default' : 'pointer',
             fontFamily: 'inherit',
+            transition: 'border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
           {placedLabel}
@@ -546,20 +657,25 @@ function YearSlot({
       ) : (
         <span
           style={{
-            fontSize: '12px',
+            fontSize: '13px',
             color: 'var(--on-surface-variant)',
             fontStyle: 'italic',
+            opacity: 0.7,
           }}
         >
           drop a label here
         </span>
       )}
+
+      {/* Correct answer reveal in review mode when wrong. */}
       {correctLabel && showResult === false && (
         <span
           style={{
             marginLeft: 'auto',
             fontSize: '12px',
+            fontWeight: 600,
             color: 'var(--success)',
+            flexShrink: 0,
           }}
         >
           answer: {correctLabel}

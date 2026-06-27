@@ -5,12 +5,9 @@ import Link from 'next/link';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 /**
- * Admin dashboard home (P6). Consolidates /api/admin/stats and the new
- * /api/admin/tickets count into a single landing surface; nav into deeper
- * admin work happens via the layout strip and the CTA cards below.
- *
- * P6 scope: read-only at-a-glance overview + a CTA to the tickets queue.
- * No decision-making UI here (P7).
+ * Admin dashboard home. Reads /api/admin/stats for an at-a-glance overview;
+ * nav into deeper admin work happens via the layout strip and the CTA cards
+ * below. Read-only — no decision-making UI here.
  */
 
 type Stats = {
@@ -26,9 +23,7 @@ type Stats = {
 export default function AdminDashboardPage() {
   const { isPhone } = useBreakpoint();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [openTicketCount, setOpenTicketCount] = useState<number | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [ticketsError, setTicketsError] = useState<string | null>(null);
 
   // Independent fetches so a 5xx on one surface doesn't blank both.
   useEffect(() => {
@@ -46,29 +41,6 @@ export default function AdminDashboardPage() {
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : 'failed';
           setStatsError(msg);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    // Pass limit=1 — we only want the `total` envelope value, not the rows.
-    fetch('/api/admin/tickets?status=open&limit=1')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`tickets ${res.status}`);
-        const json = await res.json();
-        return json?.data?.total as number;
-      })
-      .then((count) => {
-        if (!cancelled) setOpenTicketCount(typeof count === 'number' ? count : 0);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          const msg = err instanceof Error ? err.message : 'failed';
-          setTicketsError(msg);
         }
       });
     return () => {
@@ -112,7 +84,7 @@ export default function AdminDashboardPage() {
             lineHeight: 1.55,
           }}
         >
-          At-a-glance state of the platform plus the queue of community-path tickets waiting on a human decision.
+          At-a-glance state of the platform.
         </p>
       </header>
 
@@ -151,13 +123,6 @@ export default function AdminDashboardPage() {
           error={statsError}
         />
         <StatTile
-          label="Open tickets"
-          value={fmtNum(openTicketCount)}
-          loading={openTicketCount === null && !ticketsError}
-          error={ticketsError}
-          accent={openTicketCount && openTicketCount > 0 ? 'warning' : 'neutral'}
-        />
-        <StatTile
           label="Weekly AI tokens"
           value={fmtNum(stats?.weeklyTokensTotal)}
           loading={!stats && !statsError}
@@ -173,20 +138,6 @@ export default function AdminDashboardPage() {
           gridTemplateColumns: isPhone ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))',
         }}
       >
-        <NavCard
-          href="/admin/tickets"
-          icon="inbox"
-          title="Moderation tickets"
-          description="Open and historical moderation tickets. Layer 3 escalations land here."
-          badgeCount={openTicketCount ?? undefined}
-          badgeKind={openTicketCount && openTicketCount > 0 ? 'warning' : 'neutral'}
-        />
-        <NavCard
-          href="/admin/paths"
-          icon="route"
-          title="Community paths"
-          description="Every published path across all moderation states — report counts, author trust, force-unpublish."
-        />
         <NavCard
           href="/admin/users"
           icon="group"

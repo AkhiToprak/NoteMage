@@ -73,6 +73,21 @@ export interface StructuredCallCtx<T> {
   dynamicInstructions: string;
   /** Anthropic tool definition for the call. */
   anthropicTool: Anthropic.Messages.Tool;
+  /**
+   * Override the Anthropic `tools` array sent on the call. Defaults to the four
+   * stable path tools (`PATH_TOOLS_STABLE`). The forced `anthropicTool` MUST be
+   * present in whatever array is sent, so a call forcing a tool OUTSIDE the four
+   * (e.g. the onboarding preview-questions tool) supplies its own single-tool
+   * array here. Ignored on the Gemini branch (it never sends tools).
+   */
+  anthropicTools?: Anthropic.Messages.Tool[];
+  /**
+   * Resolve the model against a DIFFERENT feature key than the stage's default
+   * (e.g. `'path-preview'` → Sonnet for the anonymous onboarding preview). The
+   * `stage` still drives cache TTL + the Gemini prefix shape; only the model
+   * picked changes. Omit for normal Stage A/B calls.
+   */
+  featureOverride?: ModelFeature;
   /** User-turn message — usually 'Generate now.' or a corrective notice on retry. */
   userMessage: string;
   /** Max attempts at the call level. Default 2 (matches the existing pattern). */
@@ -108,7 +123,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   // flashcards: Flash-Lite; quiz: Haiku all tiers). MODEL_COMPOSITION_LEGACY=1
   // reverts to the prior routing; PATH_<STAGE>_MODEL pins a single stage; and
   // `providerOverride` (plan.gemini) still forces a provider for one run.
-  const resolved = resolveModel(STAGE_FEATURE[ctx.stage], {
+  const resolved = resolveModel(ctx.featureOverride ?? STAGE_FEATURE[ctx.stage], {
     ultra: ctx.ultra,
     providerOverride: ctx.providerOverride,
   });
@@ -128,7 +143,7 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     return forcedStructuredCallAnthropic<T>({
       system,
       tool: ctx.anthropicTool,
-      tools: PATH_TOOLS_STABLE,
+      tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
       userMessage: ctx.userMessage,
       maxAttempts: ctx.maxAttempts,
       model,

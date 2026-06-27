@@ -135,12 +135,19 @@ export async function POST(request: NextRequest) {
         data: { quizSetId, status: 'ready' },
       });
 
+      // Phase E — run the assembled set through the shared cream QuizPlayerShell
+      // (not the old study-pack viewer). `origin` tells the runner formative vs
+      // sealed; `examId` grounds the exam Mage context + the "Back to exam" exit.
+      const runQuery = new URLSearchParams({ origin });
+      if (focus.examId) runQuery.set('examId', focus.examId);
+      const quizUrl = `/practice/session/${notebookId}/${quizSetId}?${runQuery.toString()}`;
+
       return successResponse({
         sessionId: session.id,
         quizSetId,
         notebookId,
         questionCount: parsed.questions.length,
-        quizUrl: `/study-packs/${notebookId}/quizzes/${quizSetId}`,
+        quizUrl,
       });
     } catch (err) {
       // Generation failed — refund the reservation so it costs the learner

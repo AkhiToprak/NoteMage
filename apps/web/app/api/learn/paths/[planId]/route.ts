@@ -16,6 +16,7 @@ import {
 } from '@/lib/path-loader';
 import { refundUsage } from '@/lib/usage-limits';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 
 // Per-user daily cap on auto-refunded ULTRA cancellations. Cancelling always
 // stops the generation (we always want to halt COGS), but only the first N
@@ -105,6 +106,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
         data: { generationStatus: CANCELLING_STATUS },
       });
       if (claim.count === 1) {
+        await invalidateDashboardCache(userId);
         return successResponse({ cancelling: true, ...(await refundDailyCapped()) });
       }
       // Lost the claim — re-read to answer truthfully, but DON'T refund (the
@@ -120,6 +122,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       // Settled to ready/failed in the race — it delivered, so honor the cancel
       // by deleting but issue NO refund.
       await deletePathCascade(planId);
+      await invalidateDashboardCache(userId);
       return successResponse({ deleted: true });
     }
 
@@ -150,6 +153,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       }
     }
     await deletePathCascade(planId);
+    await invalidateDashboardCache(userId);
     return successResponse({ deleted: true, ...refund });
   } catch (error) {
     console.error('[learn/paths/[planId] DELETE]', error);

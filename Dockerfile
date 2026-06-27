@@ -68,6 +68,7 @@ ENV SENTRY_PROJECT=$SENTRY_PROJECT
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
 RUN pnpm --filter web exec next build
+RUN pnpm --filter web run build:worker
 
 # ── Runner ─────────────────────────────────────────────────────────────
 # Standalone output preserves the monorepo structure under .next/standalone/
@@ -87,6 +88,7 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/prisma ./apps/web/prisma
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/dist ./apps/web/dist
 
 RUN npm install -g prisma@5.22.0
 

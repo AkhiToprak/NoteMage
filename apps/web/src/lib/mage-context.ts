@@ -48,7 +48,7 @@ export interface MageOwnershipLookup {
 export function dbOwnershipLookup(userId: string): MageOwnershipLookup {
   return {
     ownsNotebook: (id) =>
-      db.notebook.findFirst({ where: { id, userId }, select: { id: true } }).then(Boolean),
+      db.studyContainer.findFirst({ where: { id, userId }, select: { id: true } }).then(Boolean),
     ownsPath: (id) =>
       db.studyPlan.findFirst({ where: { id, userId }, select: { id: true } }).then(Boolean),
     ownsExam: (id) =>
@@ -150,7 +150,6 @@ export function dbGroundingLoader(userId: string): MageGroundingLoader {
         title: page.title,
         text: capText(text),
         subtitle: nb?.name || undefined,
-        href: nb?.id ? `/study-packs/${nb.id}` : undefined,
         pageLabel: page.sourceDocPage ? `page ${page.sourceDocPage}` : undefined,
       };
     },
@@ -158,7 +157,7 @@ export function dbGroundingLoader(userId: string): MageGroundingLoader {
     // notebookId → a cheap OUTLINE of the pack (note + document titles), not a
     // full dump. Enough for "what's in this pack?"; deep retrieval is Phase 4.
     async studyPackOutline(notebookId) {
-      const nb = await db.notebook.findFirst({
+      const nb = await db.studyContainer.findFirst({
         where: { id: notebookId, userId },
         select: {
           name: true,
@@ -180,7 +179,6 @@ export function dbGroundingLoader(userId: string): MageGroundingLoader {
         kind: 'study-pack',
         title: nb.name,
         text: `This study pack contains:\n${lines.join('\n')}`,
-        href: `/study-packs/${notebookId}`,
       };
     },
 
@@ -250,8 +248,8 @@ export function dbGroundingLoader(userId: string): MageGroundingLoader {
         kind: 'quiz',
         title: set.title,
         text: `Quiz "${set.title}" has ${n} question${n === 1 ? '' : 's'}. Do NOT reveal the answers; help the learner reason it out instead.`,
-        // The quiz viewer is nested under its study pack; null for inbox/path bundles.
-        href: set.notebookId ? `/study-packs/${set.notebookId}/quizzes/${quizSetId}` : undefined,
+        // Runs in the shared practice player; null for inbox/path bundles.
+        href: set.notebookId ? `/practice/session/${set.notebookId}/${quizSetId}` : undefined,
       };
     },
   };

@@ -76,7 +76,6 @@ export const MAGE_ACTION_IDS = [
   'OPEN_PATH',
   'OPEN_LESSON',
   'OPEN_EXAM',
-  'OPEN_STUDY_PACK',
   'OPEN_QUIZ',
   'OPEN_FLASHCARDS',
   // Medium-risk generation (confirm + quota re-check at execution).
@@ -524,7 +523,6 @@ export function deriveAllowedActions(
   if (ids.pathId) actions.add('OPEN_PATH');
   if (ids.slotId) actions.add('OPEN_LESSON');
   if (ids.quizSetId) actions.add('OPEN_QUIZ');
-  if (ids.notebookId) actions.add('OPEN_STUDY_PACK');
   if (ids.examId) {
     actions.add('OPEN_EXAM');
     // High-risk edits open the existing UI prefilled — Mage never commits them.
