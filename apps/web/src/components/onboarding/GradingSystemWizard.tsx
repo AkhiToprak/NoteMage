@@ -85,6 +85,10 @@ export default function GradingSystemWizard({
           border: `1.5px solid ${sel ? C.borderSel : C.border}`,
           fontFamily: 'inherit',
           width: '100%',
+          // Let the grid track shrink below the card's content width so the
+          // label can ellipsize instead of blowing the 2-column grid past the
+          // panel (right column was clipping on narrow viewports).
+          minWidth: 0,
         }}
       >
         <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }} aria-hidden>
@@ -138,6 +142,7 @@ export default function GradingSystemWizard({
           borderRadius: 24,
           width: '100%',
           maxWidth: 560,
+          minWidth: 0,
           maxHeight: '88vh',
           display: 'flex',
           flexDirection: 'column',
@@ -191,13 +196,13 @@ export default function GradingSystemWizard({
         </div>
 
         {/* Scrollable system list */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '4px 28px 8px' }}>
+        <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflowX: 'hidden', overflowY: 'auto', padding: '4px 28px 8px' }}>
           {countries.length > 0 && (
             <>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: C.body, textTransform: 'uppercase', margin: '8px 0' }}>
                 Countries
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>{countries.map(renderCard)}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 10 }}>{countries.map(renderCard)}</div>
             </>
           )}
           {global.length > 0 && (
@@ -205,7 +210,7 @@ export default function GradingSystemWizard({
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: C.body, textTransform: 'uppercase', margin: '18px 0 8px' }}>
                 Global
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>{global.map(renderCard)}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 10 }}>{global.map(renderCard)}</div>
             </>
           )}
           {countries.length === 0 && global.length === 0 && (
