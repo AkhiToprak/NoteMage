@@ -169,7 +169,7 @@ export default function ExamResultEntryView({ examId, ctx }: { examId: string; c
       </Link>
       <div className={styles.head}>
         <h1 className={styles.title}>How did it go?</h1>
-        <p className={styles.subtitle}>Enter your {ctx.exam.title} result. We'll update your readiness and study plan.</p>
+        <p className={styles.subtitle}>Enter your {ctx.exam.title} result. We’ll update your readiness and study plan.</p>
       </div>
 
       <div className={styles.layout}>

@@ -17,7 +17,7 @@
  * and the START_EXAM_SIMULATION mock launcher — folded into a "Manage exam"
  * section opened by "Open exam dashboard". Cream AppShell; `.shell` tokens. */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/app/AppShell';

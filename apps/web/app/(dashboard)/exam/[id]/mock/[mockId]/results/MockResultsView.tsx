@@ -67,7 +67,7 @@ function Bar({ group }: { group: BreakdownGroup }) {
   );
 }
 
-export default function MockResultsView({ detail, examId, mockId, errored }: MockResultsViewProps) {
+export default function MockResultsView({ detail, examId, errored }: MockResultsViewProps) {
   if (!detail || !detail.result || errored) {
     return (
       <AppShell>

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
 import MageTip from '@/components/app/MageTip';
-import { useOptionalMage } from '@/components/mage';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import type { SerializedPath } from '@/lib/path-loader';
 import type { PathPlan } from '@/components/learn/PathView';
@@ -353,7 +352,6 @@ interface PathsViewProps {
 }
 
 export default function PathsView({ paths: initialPaths, errored }: PathsViewProps) {
-  const mage = useOptionalMage();
   const [paths, setPaths] = useState<SerializedPath[]>(initialPaths);
   // Mirrors the old client page's error card: seeded from the server's errored
   // flag, and re-raised if a post-mutation refresh() fails (rather than silently
