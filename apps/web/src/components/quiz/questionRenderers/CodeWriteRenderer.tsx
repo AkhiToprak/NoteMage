@@ -1,5 +1,18 @@
 'use client';
 
+/* Hallmark · component: coding (code-write) quiz · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · running · disabled · passed · failed · error · unavailable
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens · "Coding"): the REAL runner is kept — CodeMirror
+ * editor, server execution, Terminal/test-result rows, pass/fail feedback (a genuine
+ * runner, not decorative chrome). Body-only — the type badge, source chip and white
+ * card come from QuestionCard. In the shell (externalChrome) the inline "Run code"
+ * runs the graded tests and stages the verdict; the shell's ActionBar commits it.
+ * The study-pack page keeps the inline Run + Submit buttons (immediate commit).
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import CodeMirrorEditor from '@/components/quiz/CodeMirrorEditor';
@@ -36,6 +49,7 @@ export default function CodeWriteRenderer({
   onSelectAnswer,
   isPhone,
   coarsePointer,
+  externalChrome,
 }: QuestionProps<CodeWritePayload | null>) {
   const payload = question.payload;
 
@@ -93,7 +107,9 @@ export default function CodeWriteRenderer({
       }
       setRuns(data.data.runs);
       if (includeTests) {
-        // Commit the verdict as the answer.
+        // Record the verdict as the answer. In the shell (externalChrome) this
+        // STAGES it — the sticky ActionBar commits on "Submit answer"; on the
+        // study-pack page it commits immediately (code_write is a final answer).
         onSelectAnswer({
           kind: 'code_write',
           language: payload.language,
@@ -113,50 +129,36 @@ export default function CodeWriteRenderer({
 
   const submittedRuns = submitted ? runs : null;
   const isCorrect = submitted?.passed === true;
+  const runDisabled = code.trim().length === 0 || pendingMode !== null;
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '640px',
-        marginBottom: '20px',
-      }}
-    >
+    <div style={{ width: '100%' }}>
+      <style>{`
+        .cm-spin { animation: cmSpin 0.9s linear infinite; }
+        @keyframes cmSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .qcw-run:not(:disabled):hover { opacity: 0.92; }
+        .qcw-run:not(:disabled):active { transform: translateY(1px); }
+        .qcw-run:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) { .qcw-run:not(:disabled):active { transform: none; } }
+      `}</style>
+
+      {/* Prompt — large display heading on the white card. */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '24px 22px',
-          marginBottom: '12px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.3,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
-        </div>
-        <div style={{ display: 'flex', marginTop: '12px' }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(140,82,255,0.16)',
-              border: '1px solid rgba(140,82,255,0.35)',
-              borderRadius: '999px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#c4a9ff',
-              fontFamily: 'inherit',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {language}
-          </span>
-        </div>
+        <MarkdownRenderer content={question.question} />
       </div>
+      <p style={{ margin: '0 0 16px', fontSize: '14px', lineHeight: 1.5, color: 'var(--on-surface-variant)' }}>
+        Write your solution, then run it against the tests.
+      </p>
 
       <CodeMirrorEditor
         value={code}
@@ -167,68 +169,59 @@ export default function CodeWriteRenderer({
         maxHeight="420px"
       />
 
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          marginTop: '12px',
-          flexWrap: 'wrap',
-        }}
-      >
-        {!inputDisabled && (
+      <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {!inputDisabled && externalChrome && (
+          // Shell: one inline "Run code" runs the graded tests + stages the
+          // verdict; the sticky ActionBar "Submit answer" commits it.
+          <button
+            onClick={onSubmit}
+            disabled={runDisabled}
+            className="qcw-run"
+            style={runButtonStyle(coarsePointer, runDisabled)}
+          >
+            {pendingMode === 'grade' ? (
+              <span className="material-symbols-outlined cm-spin" style={{ fontSize: 16 }} aria-hidden>progress_activity</span>
+            ) : (
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>play_arrow</span>
+            )}
+            Run code
+          </button>
+        )}
+        {!inputDisabled && !externalChrome && (
           <>
             <button
               onClick={onRun}
-              disabled={code.trim().length === 0 || pendingMode !== null}
+              disabled={runDisabled}
+              className="qcw-run"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '10px 16px',
-                minHeight: coarsePointer ? '44px' : undefined,
-                borderRadius: '10px',
-                border: '1px solid rgba(140,82,255,0.45)',
-                background: 'transparent',
-                color: 'var(--accent-strong)',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor:
-                  code.trim().length === 0 || pendingMode !== null ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
+                ...runButtonStyle(coarsePointer, runDisabled),
+                background: 'var(--surface-container-lowest)',
+                color: 'var(--on-surface)',
+                border: '1.5px solid var(--outline-variant)',
               }}
             >
               {pendingMode === 'run' ? (
-                <span className="material-symbols-outlined cm-spin" style={{ fontSize: 14 }} aria-hidden>progress_activity</span>
+                <span className="material-symbols-outlined cm-spin" style={{ fontSize: 16 }} aria-hidden>progress_activity</span>
               ) : (
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>play_arrow</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>play_arrow</span>
               )}
               Run
             </button>
             <button
               onClick={onSubmit}
-              disabled={code.trim().length === 0 || pendingMode !== null}
+              disabled={runDisabled}
+              className="qcw-run"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '10px 16px',
-                minHeight: coarsePointer ? '44px' : undefined,
-                borderRadius: '10px',
-                border: 'none',
+                ...runButtonStyle(coarsePointer, runDisabled),
                 background: 'var(--accent-strong)',
                 color: 'var(--on-primary-container)',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor:
-                  code.trim().length === 0 || pendingMode !== null ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                boxShadow: '0 4px 16px rgba(140,82,255,0.25)',
+                boxShadow: '0 4px 16px rgb(124 92 255 / 0.25)',
               }}
             >
               {pendingMode === 'grade' ? (
-                <span className="material-symbols-outlined cm-spin" style={{ fontSize: 14 }} aria-hidden>progress_activity</span>
+                <span className="material-symbols-outlined cm-spin" style={{ fontSize: 16 }} aria-hidden>progress_activity</span>
               ) : (
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>send</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>send</span>
               )}
               Submit
             </button>
@@ -245,19 +238,14 @@ export default function CodeWriteRenderer({
         coarsePointer={coarsePointer}
       />
 
-      <style>{`
-        .cm-spin { animation: cmSpin 0.9s linear infinite; }
-        @keyframes cmSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-
       {error && (
         <div
           style={{
             marginTop: '12px',
             padding: '12px 16px',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-md)',
             background: 'rgb(var(--verdict-fail-rgb) / 0.08)',
-            border: '1px solid rgb(var(--verdict-fail-rgb) / 0.25)',
+            border: '1px solid rgb(var(--verdict-fail-rgb) / 0.3)',
             fontSize: '13px',
             color: 'var(--error)',
           }}
@@ -267,14 +255,7 @@ export default function CodeWriteRenderer({
       )}
 
       {unavailable && (
-        <p
-          style={{
-            marginTop: '8px',
-            fontSize: '12px',
-            color: 'var(--on-surface-variant)',
-            lineHeight: 1.5,
-          }}
-        >
+        <p style={{ marginTop: '8px', fontSize: '12px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}>
           The code runner isn&apos;t available right now. Skip this question or come back later.
         </p>
       )}
@@ -291,10 +272,14 @@ export default function CodeWriteRenderer({
         <div
           style={{
             marginTop: '12px',
-            padding: '14px 18px',
-            borderRadius: '12px',
-            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: isCorrect
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: `1px solid ${
+              isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+            }`,
           }}
         >
           <div
@@ -302,23 +287,18 @@ export default function CodeWriteRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
+              fontSize: '15px',
+              fontWeight: 800,
               marginBottom: '6px',
               color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {isCorrect ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> All tests passed
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Some tests failed
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {isCorrect ? 'check_circle' : 'cancel'}
+            </span>
+            {isCorrect ? 'All tests passed' : 'Some tests failed'}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -335,30 +315,50 @@ export default function CodeWriteRenderer({
   );
 }
 
+function runButtonStyle(coarsePointer: boolean, disabled: boolean): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '7px',
+    padding: '11px 18px',
+    minHeight: coarsePointer ? '46px' : '42px',
+    borderRadius: 'var(--radius-md)',
+    border: 'none',
+    background: 'var(--on-surface)',
+    color: 'var(--surface)',
+    fontSize: '14px',
+    fontWeight: 700,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+    fontFamily: 'inherit',
+    transition: 'opacity 0.15s, transform 0.12s cubic-bezier(0.22,1,0.36,1)',
+  };
+}
+
 function CaseResultRow({ index, result }: { index: number; result: RunResult }) {
   const label = result.name ?? `Test ${index + 1}`;
   const verdict = result.isCorrect;
   const statusColor =
-    verdict === true ? 'var(--success)' : verdict === false ? 'var(--error)' : 'var(--accent-strong)';
+    verdict === true ? 'var(--success)' : verdict === false ? 'var(--error)' : 'var(--nm-primary-on-light)';
   const bg =
     verdict === true
-      ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
+      ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
       : verdict === false
-        ? 'rgb(var(--verdict-fail-rgb) / 0.06)'
-        : 'rgba(140,82,255,0.06)';
+        ? 'rgb(var(--verdict-fail-rgb) / 0.08)'
+        : 'var(--nm-primary-light)';
   const border =
     verdict === true
-      ? 'rgb(var(--verdict-pass-rgb) / 0.22)'
+      ? 'rgb(var(--verdict-pass-rgb) / 0.3)'
       : verdict === false
-        ? 'rgb(var(--verdict-fail-rgb) / 0.22)'
-        : 'rgba(140,82,255,0.22)';
+        ? 'rgb(var(--verdict-fail-rgb) / 0.3)'
+        : 'var(--nm-primary)';
   return (
     <details
       style={{
         background: bg,
         border: `1px solid ${border}`,
-        borderRadius: '10px',
-        padding: '8px 12px',
+        borderRadius: 'var(--radius-md)',
+        padding: '10px 14px',
         fontFamily: '"JetBrains Mono", "Fira Code", monospace',
         fontSize: '12.5px',
         color: 'var(--on-surface)',
@@ -377,46 +377,30 @@ function CaseResultRow({ index, result }: { index: number; result: RunResult }) 
         }}
       >
         {verdict === true ? (
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>check_circle</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>check_circle</span>
         ) : verdict === false ? (
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>cancel</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>cancel</span>
         ) : (
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }} aria-hidden>play_arrow</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }} aria-hidden>play_arrow</span>
         )}
         {label}
-        <span style={{ marginLeft: 'auto', color: 'var(--on-surface-variant)' }}>
-          {result.durationMs}ms
-        </span>
+        <span style={{ marginLeft: 'auto', color: 'var(--on-surface-variant)' }}>{result.durationMs}ms</span>
       </summary>
       <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {result.stdin && (
-          <RunBlock title="stdin" body={result.stdin} color="rgba(196,169,255,0.7)" />
+          <RunBlock title="stdin" body={result.stdin} color="var(--nm-primary-on-light)" />
         )}
         {result.expectedStdout !== undefined && (
-          <RunBlock
-            title="expected stdout"
-            body={result.expectedStdout}
-            color="rgb(var(--verdict-pass-rgb) / 0.8)"
-          />
+          <RunBlock title="expected stdout" body={result.expectedStdout} color="var(--success)" />
         )}
-        <RunBlock title="actual stdout" body={result.stdout || '(empty)'} color="var(--on-surface)" />
-        {result.stderr && (
-          <RunBlock title="stderr" body={result.stderr} color="rgb(var(--verdict-fail-rgb) / 0.8)" />
-        )}
+        <RunBlock title="actual stdout" body={result.stdout || '(empty)'} color="var(--on-surface-variant)" />
+        {result.stderr && <RunBlock title="stderr" body={result.stderr} color="var(--error)" />}
       </div>
     </details>
   );
 }
 
-function RunBlock({
-  title,
-  body,
-  color,
-}: {
-  title: string;
-  body: string;
-  color: string;
-}) {
+function RunBlock({ title, body, color }: { title: string; body: string; color: string }) {
   return (
     <div>
       <div
@@ -435,9 +419,9 @@ function RunBlock({
         style={{
           margin: 0,
           padding: '6px 8px',
-          borderRadius: '6px',
-          background: 'rgba(0,0,0,0.35)',
-          color: '#ede4ff',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--surface-container-highest)',
+          color: 'var(--on-surface)',
           whiteSpace: 'pre-wrap',
           overflowX: 'auto',
         }}

@@ -5,6 +5,19 @@
 // measurement-driven state is the correct idiom here.
 /* eslint-disable react-hooks/set-state-in-effect */
 
+/* Hallmark · component: match-pairs quiz · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · active · selected · connected · disabled · correct · wrong
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens · "Match Pairs"): two cream columns linked by
+ * purple connector lines (green/red on check), connected tiles fill lavender, with
+ * an "X of N linked · <term> selected" + Reset matches footer. Coarse pointers keep
+ * the stacked tap-to-pair layout. Body-only — the type badge, source chip and white
+ * card come from QuestionCard. match_pairs reports each link up via onSelectAnswer,
+ * so the shell's ActionBar stages it with no internal SubmitBar to suppress.
+ */
+
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { haptics } from '@/lib/haptics';
@@ -202,28 +215,45 @@ export default function MatchPairsRenderer({
 
   const showResults = mode === 'review' || (isAnswered && connections.length === pairs.length);
 
+  const resetMatches = () => {
+    if (mode !== 'quiz') return;
+    updateConnections([]);
+    setSelectedLeft(null);
+  };
+
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '520px',
-        marginBottom: '20px',
-      }}
-    >
+    <div style={{ width: '100%' }}>
+      <style>{`
+        .qmp-tile:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qmp-tile:not(:disabled):active { transform: translateY(1px); }
+        .qmp-tile:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-color: var(--nm-primary); }
+        .qmp-ctl:hover { border-color: var(--nm-primary); color: var(--nm-primary-on-light); }
+        .qmp-ctl:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+          .qmp-tile { transition: none; }
+          .qmp-tile:not(:disabled):active { transform: none; }
+        }
+      `}</style>
+
+      {/* Prompt — large display heading on the white card. */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '28px 24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.25,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
-        </div>
+        <MarkdownRenderer content={question.question} />
       </div>
+      <p style={{ margin: '0 0 18px', fontSize: '14px', lineHeight: 1.5, color: 'var(--on-surface-variant)' }}>
+        {coarsePointer
+          ? 'Tap a term, then tap its match.'
+          : 'Connect each item on the left to its match on the right.'}
+      </p>
 
       {/* Pair canvas. Coarse pointers get a stacked tap-to-pair layout (no columns,
           no SVG lines — full-width rows that wrap, so long definitions never clip).
@@ -355,21 +385,24 @@ export default function MatchPairsRenderer({
             const correct = isConnectionCorrect(line.leftIdx, rightLabel);
             const stroke = showResults
               ? correct
-                ? 'rgb(var(--verdict-pass-rgb) / 0.85)'
-                : 'rgb(var(--verdict-fail-rgb) / 0.85)'
-              : 'rgba(196,169,255,0.65)';
+                ? 'var(--success)'
+                : 'var(--error)'
+              : 'var(--nm-primary)';
             return (
-              <line
-                key={`${line.leftIdx}-${line.rightIdx}`}
-                x1={line.a.x}
-                y1={line.a.y}
-                x2={line.b.x}
-                y2={line.b.y}
-                stroke={stroke}
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                style={{ opacity: 0.95 }}
-              />
+              <g key={`${line.leftIdx}-${line.rightIdx}`}>
+                <line
+                  x1={line.a.x}
+                  y1={line.a.y}
+                  x2={line.b.x}
+                  y2={line.b.y}
+                  stroke={stroke}
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  style={{ opacity: 0.9 }}
+                />
+                <circle cx={line.a.x} cy={line.a.y} r={4} fill={stroke} />
+                <circle cx={line.b.x} cy={line.b.y} r={4} fill={stroke} />
+              </g>
             );
           })}
         </svg>
@@ -431,19 +464,57 @@ export default function MatchPairsRenderer({
       </div>
       )}
 
-      {/* Progress indicator while pairing */}
+      {/* Footer: linked count (+ selected term) and Reset matches. */}
       {mode === 'quiz' && (
         <div
           style={{
-            fontSize: '12px',
-            color: 'var(--ink-30)',
-            textAlign: 'center',
-            marginBottom: '10px',
-            fontVariantNumeric: 'tabular-nums',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: '12px',
+            minHeight: '34px',
           }}
         >
-          {connections.length} / {pairs.length} paired
-          {selectedLeft !== null && ' — pick its match'}
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--on-surface-variant)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {connections.length} of {pairs.length} linked
+            {selectedLeft !== null && pairs[selectedLeft]
+              ? ` · ${pairs[selectedLeft].left} selected`
+              : ''}
+          </span>
+          {connections.length > 0 ? (
+            <button
+              type="button"
+              className="qmp-ctl"
+              onClick={resetMatches}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--outline-variant)',
+                background: 'var(--surface-container-lowest)',
+                color: 'var(--on-surface-variant)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                restart_alt
+              </span>
+              Reset matches
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -487,26 +558,26 @@ function PairItem({
   refCallback: (el: HTMLElement | null) => void;
   side: 'left' | 'right';
 }) {
-  let borderColor = 'rgba(140,82,255,0.2)';
-  let bg = 'var(--surface-container)';
+  let borderColor = 'var(--outline-variant)';
+  let bg = 'var(--surface-container-lowest)';
   let textColor = 'var(--on-surface)';
 
   if (showResult === true) {
-    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
+    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.55)';
     bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
     textColor = 'var(--success)';
   } else if (showResult === false) {
-    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
+    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.55)';
     bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
     textColor = 'var(--error)';
   } else if (selected) {
-    borderColor = 'rgba(174,137,255,0.7)';
-    bg = 'rgba(140,82,255,0.18)';
+    borderColor = 'var(--nm-primary)';
+    bg = 'var(--nm-primary-light)';
     textColor = 'var(--on-surface)';
   } else if (connected) {
-    borderColor = 'rgba(174,137,255,0.45)';
-    bg = 'rgba(140,82,255,0.10)';
-    textColor = 'var(--on-surface-variant)';
+    borderColor = 'var(--nm-primary)';
+    bg = 'var(--nm-primary-light)';
+    textColor = 'var(--nm-primary-on-light)';
   }
 
   return (
@@ -514,21 +585,23 @@ function PairItem({
       ref={refCallback}
       onClick={onClick}
       disabled={disabled}
+      className="qmp-tile"
       style={{
-        padding: '12px 14px',
-        minHeight: '44px',
-        borderRadius: '12px',
-        border: `1px solid ${borderColor}`,
+        padding: '13px 15px',
+        minHeight: '48px',
+        borderRadius: 'var(--radius-md)',
+        border: `1.5px solid ${borderColor}`,
         background: bg,
         color: textColor,
-        fontSize: '14px',
-        fontWeight: 500,
+        fontSize: '15px',
+        fontWeight: 600,
         cursor: disabled ? 'default' : 'pointer',
         textAlign: side === 'left' ? 'left' : 'right',
         fontFamily: 'inherit',
         lineHeight: 1.4,
         width: '100%',
-        transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+        transition:
+          'background-color 0.18s cubic-bezier(0.22,1,0.36,1), border-color 0.18s cubic-bezier(0.22,1,0.36,1), transform 0.18s cubic-bezier(0.22,1,0.36,1)',
       }}
     >
       {label}
@@ -552,22 +625,24 @@ function TapTile({
     <button
       onClick={onClick}
       disabled={disabled}
+      className="qmp-tile"
       style={{
         width: '100%',
-        minHeight: '52px',
+        minHeight: '54px',
         padding: '14px 16px',
-        borderRadius: '12px',
-        border: `1px solid ${selected ? 'rgba(174,137,255,0.7)' : 'rgba(140,82,255,0.2)'}`,
-        background: selected ? 'rgba(140,82,255,0.18)' : 'var(--surface-container)',
+        borderRadius: 'var(--radius-md)',
+        border: `1.5px solid ${selected ? 'var(--nm-primary)' : 'var(--outline-variant)'}`,
+        background: selected ? 'var(--nm-primary-light)' : 'var(--surface-container-lowest)',
         color: 'var(--on-surface)',
         fontSize: '15px',
-        fontWeight: 500,
+        fontWeight: 600,
         lineHeight: 1.45,
         textAlign: 'left',
         cursor: disabled ? 'default' : 'pointer',
         fontFamily: 'inherit',
         overflowWrap: 'anywhere',
-        transition: 'background 0.15s, border-color 0.15s',
+        transition:
+          'background-color 0.18s cubic-bezier(0.22,1,0.36,1), border-color 0.18s cubic-bezier(0.22,1,0.36,1), transform 0.18s cubic-bezier(0.22,1,0.36,1)',
       }}
     >
       {label}
@@ -590,9 +665,9 @@ function MatchedRow({
   canUnlink: boolean;
   onUnlink: () => void;
 }) {
-  let borderColor = 'rgba(174,137,255,0.45)';
-  let bg = 'rgba(140,82,255,0.10)';
-  let accent = 'var(--on-surface-variant)';
+  let borderColor = 'var(--nm-primary)';
+  let bg = 'var(--nm-primary-light)';
+  let accent = 'var(--nm-primary-on-light)';
   if (result === true) {
     borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
     bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
@@ -701,10 +776,14 @@ function SummaryBanner({
   return (
     <div
       style={{
-        padding: '14px 18px',
-        borderRadius: '12px',
-        background: allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-        border: `1px solid ${allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
+        padding: '16px 18px',
+        borderRadius: 'var(--radius-md)',
+        background: allCorrect
+          ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+          : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+        border: `1px solid ${
+          allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+        }`,
         marginBottom: '12px',
       }}
     >
@@ -713,23 +792,23 @@ function SummaryBanner({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          fontSize: '14px',
-          fontWeight: 700,
+          fontSize: '15px',
+          fontWeight: 800,
           marginBottom: '6px',
           color: allCorrect ? 'var(--success)' : 'var(--error)',
         }}
       >
         {allCorrect ? (
           <>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> All pairs correct
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>check_circle</span> All pairs correct
           </>
         ) : (
           <>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Some pairs were off
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>cancel</span> Some pairs were off
           </>
         )}
       </div>
-      <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+      <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
         <MarkdownRenderer
           content={
             allCorrect

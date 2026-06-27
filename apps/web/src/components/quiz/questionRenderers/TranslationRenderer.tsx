@@ -1,13 +1,22 @@
 'use client';
 
+/* Hallmark · component: translation quiz · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · disabled · correct · wrong · skipped
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens): a clean cream translation input that verifies
+ * green/red. Body-only — badge, source chip and white card come from QuestionCard.
+ */
+
 import { useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TranslationPayload } from '@notemage/shared';
 import { fuzzyMatch } from '@/lib/quiz-grading';
 import { substituteBlankMarker } from './blankPlaceholder';
+import type { QuestionProps } from './types';
 import HintButton from './HintButton';
 import SubmitBar from './SubmitBar';
-import type { QuestionProps } from './types';
 
 export default function TranslationRenderer({
   question,
@@ -20,6 +29,7 @@ export default function TranslationRenderer({
   onSelectAnswer,
   isPhone,
   coarsePointer,
+  externalChrome,
 }: QuestionProps<TranslationPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -56,103 +66,105 @@ export default function TranslationRenderer({
     onSelectAnswer({ kind: 'translation', text });
   };
 
+  // Shell flow: stage each keystroke so the sticky ActionBar "Check answer" can
+  // commit it; the internal SubmitBar is hidden.
+  const onChangeText = (value: string) => {
+    setDraft(value);
+    if (externalChrome && !isAnswered && mode === 'quiz' && value.trim().length > 0) {
+      onSelectAnswer({ kind: 'translation', text: value.trim() });
+    }
+  };
+
   const inputValue = submittedText ?? draft;
   const inputDisabled = isAnswered || mode === 'review';
+  const verdict = inputDisabled ? (isCorrect ? 'correct' : 'wrong') : null;
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '480px',
-        marginBottom: '20px',
-      }}
-    >
+    <div style={{ width: '100%' }}>
+      <style>{`
+        .qtr-input:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qtr-input:focus-visible { outline: none; border-color: var(--nm-primary); box-shadow: 0 0 0 3px var(--nm-primary-light); }
+      `}</style>
+
+      {/* Prompt — the sentence or phrase to translate. */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '28px 24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.3,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={substituteBlankMarker(question.question)} />
-        </div>
+        <MarkdownRenderer content={substituteBlankMarker(question.question)} />
       </div>
 
-      {targetLanguage && (
-        <div style={{ display: 'flex', marginBottom: '10px' }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(140,82,255,0.12)',
-              border: '1px solid rgba(140,82,255,0.3)',
-              borderRadius: '999px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--accent-strong)',
-              fontFamily: 'inherit',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
+      <p style={{ margin: '0 0 16px', fontSize: '14px', lineHeight: 1.5, color: 'var(--on-surface-variant)' }}>
+        {targetLanguage ? `Type your translation in ${targetLanguage}.` : 'Type your translation.'}
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <input
+            className="qtr-input"
+            value={inputValue}
+            onChange={(e) => onChangeText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
             }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>translate</span> Answer in {targetLanguage}
-          </span>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-        <input
-          value={inputValue}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          disabled={inputDisabled}
-          placeholder={targetLanguage ? `Type the ${targetLanguage} translation…` : 'Type the translation…'}
-          aria-label="Type the translation"
-          autoFocus={!inputDisabled}
-          style={{
-            width: '100%',
-            padding: isPhone ? '12px 14px' : '14px 16px',
-            minHeight: '48px',
-            borderRadius: '12px',
-            border: `1px solid ${
-              inputDisabled
-                ? isCorrect
-                  ? 'rgb(var(--verdict-pass-rgb) / 0.5)'
-                  : 'rgb(var(--verdict-fail-rgb) / 0.5)'
-                : 'rgba(140,82,255,0.32)'
-            }`,
-            background: inputDisabled
-              ? isCorrect
-                ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
-                : 'rgb(var(--verdict-fail-rgb) / 0.06)'
-              : 'var(--surface-container)',
-            color: inputDisabled
-              ? isCorrect
-                ? 'var(--success)'
-                : 'var(--error)'
-              : 'var(--on-surface)',
-            fontSize: '16px',
-            fontFamily: 'inherit',
-          }}
-        />
-
-        {!inputDisabled && (
-          <SubmitBar
-            onClick={submit}
-            disabled={draft.trim().length === 0}
-            isPhone={isPhone}
+            disabled={inputDisabled}
+            placeholder={targetLanguage ? `Type the ${targetLanguage} translation…` : 'Type the translation…'}
+            aria-label="Type the translation"
+            autoFocus={!inputDisabled}
+            style={{
+              width: '100%',
+              padding: isPhone ? '14px 16px' : '15px 18px',
+              paddingRight: verdict === 'correct' ? '44px' : undefined,
+              minHeight: '54px',
+              borderRadius: 'var(--radius-md)',
+              border: `1.5px solid ${
+                verdict === 'correct'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.6)'
+                  : verdict === 'wrong'
+                    ? 'rgb(var(--verdict-fail-rgb) / 0.6)'
+                    : 'var(--outline-variant)'
+              }`,
+              background:
+                verdict === 'correct'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+                  : verdict === 'wrong'
+                    ? 'rgb(var(--verdict-fail-rgb) / 0.08)'
+                    : 'var(--surface-container-lowest)',
+              color:
+                verdict === 'correct'
+                  ? 'var(--success)'
+                  : verdict === 'wrong'
+                    ? 'var(--error)'
+                    : 'var(--on-surface)',
+              fontSize: '16px',
+              fontWeight: verdict ? 700 : 500,
+              fontFamily: 'inherit',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+            }}
           />
+          {verdict === 'correct' ? (
+            <span
+              className="material-symbols-outlined"
+              style={{ position: 'absolute', right: '14px', fontSize: 22, color: 'var(--success)' }}
+              aria-hidden
+            >
+              check_circle
+            </span>
+          ) : null}
+        </div>
+
+        {!externalChrome && !inputDisabled && (
+          <SubmitBar onClick={submit} disabled={draft.trim().length === 0} isPhone={isPhone} />
         )}
       </div>
 
@@ -168,10 +180,14 @@ export default function TranslationRenderer({
       {(isAnswered || (mode === 'review' && submittedText !== undefined)) && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
-            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: isCorrect
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: `1px solid ${
+              isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+            }`,
             marginBottom: '12px',
           }}
         >
@@ -180,29 +196,30 @@ export default function TranslationRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
+              fontSize: '15px',
+              fontWeight: 800,
               marginBottom: '6px',
               color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {isCorrect ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> {mode === 'review' ? 'You answered correctly' : 'Correct!'}
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> {mode === 'review' ? 'You answered incorrectly' : 'Not quite'}
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {isCorrect ? 'check_circle' : 'cancel'}
+            </span>
+            {isCorrect
+              ? mode === 'review'
+                ? 'You answered correctly'
+                : 'Correct'
+              : mode === 'review'
+                ? 'You answered incorrectly'
+                : 'Not quite'}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
                   ? question.correctExplanation || `Accepted answer: ${canonicalAnswer}.`
                   : question.wrongExplanation ||
-                    `The correct ${targetLanguage} answer is ${canonicalAnswer}.`
+                    `The correct${targetLanguage ? ` ${targetLanguage}` : ''} answer is ${canonicalAnswer}.`
               }
             />
           </div>
@@ -212,14 +229,14 @@ export default function TranslationRenderer({
       {mode === 'review' && submittedText === undefined && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
             marginBottom: '12px',
             background: 'var(--surface-container)',
             border: '1px solid var(--ink-08)',
           }}
         >
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)' }}>
             You skipped this question. The correct answer is{' '}
             <strong style={{ color: 'var(--success)' }}>{canonicalAnswer}</strong>.
           </div>

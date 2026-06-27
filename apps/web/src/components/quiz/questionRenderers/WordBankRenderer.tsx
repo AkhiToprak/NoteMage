@@ -4,7 +4,20 @@
 // use. React 19's `react-hooks/refs` rule misfires on this standard API.
 /* eslint-disable react-hooks/refs */
 
-import { useMemo, useState } from 'react';
+/* Hallmark · component: fill-the-blank (drag) quiz · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · active · dragging · over · disabled · correct · wrong
+ * contrast: pass (uses --quiz-* / --surface-* / --on-surface / --nm-* / --verdict-* tokens — no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens · "Fill the Blank" — drag): a cream sentence
+ * inset with inline purple word-pills and dashed "drop word" slots, a labelled
+ * word bank whose placed words fade in place, and an "X of N blanks filled" +
+ * Clear blanks footer. Body-only — the type badge, source chip and white card
+ * come from QuestionCard. Tokens stay semantic so dark mode keeps working; the
+ * still-mounted study-pack page keeps its own SubmitBar (externalChrome falsy).
+ */
+
+import { useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -66,6 +79,7 @@ export default function WordBankRenderer({
   onSelectAnswer,
   isPhone,
   coarsePointer,
+  externalChrome,
 }: QuestionProps<WordBankPayload | null>) {
   const payload = question.payload;
   const slotCount = payload?.slots.length ?? 0;
@@ -113,18 +127,39 @@ export default function WordBankRenderer({
       ? reviewSlots
       : slotIds.map((id) => (id !== null ? tokenById.get(id)?.text ?? null : null));
 
-  // Commit the current slot layout as the learner's answer. Triggered
-  // ONLY by the explicit Submit button — dragging tokens around the
-  // template is free-play until the learner is happy with the layout.
+  // Commit the current slot layout as the learner's answer. Triggered ONLY by
+  // the explicit Submit button on the study-pack page; dragging tokens around
+  // the template is free-play until the learner is happy with the layout.
   const submitAnswer = () => {
     if (isAnswered || mode === 'review') return;
     const slotAnswers = slotIds.map((id) => (id !== null ? tokenById.get(id)?.text ?? null : null));
     onSelectAnswer({ kind: 'word_bank', slotAnswers });
   };
 
+  // Shell flow: stage the current slot layout continuously so the sticky
+  // ActionBar "Check answer" can commit it; the internal SubmitBar is hidden.
+  useEffect(() => {
+    if (!externalChrome || isAnswered || mode !== 'quiz') return;
+    onSelectAnswer({
+      kind: 'word_bank',
+      slotAnswers: slotIds.map((id) => (id !== null ? tokenById.get(id)?.text ?? null : null)),
+    });
+  }, [externalChrome, isAnswered, mode, slotIds, tokenById, onSelectAnswer]);
+
   const commitState = (nextBank: string[], nextSlots: (string | null)[]) => {
     setBankIds(nextBank);
     setSlotIds(nextSlots);
+  };
+
+  // Clear all blanks: return every placed token to the bank.
+  const clearBlanks = () => {
+    if (isAnswered || mode === 'review') return;
+    const placed = slotIds.filter((id): id is string => id !== null);
+    if (placed.length === 0) return;
+    const nextBank = [...bankIds];
+    for (const id of placed) if (!nextBank.includes(id)) nextBank.push(id);
+    commitState(nextBank, Array(slotCount).fill(null));
+    setTappedTokenId(null);
   };
 
   const handleDragStart = (e: DragStartEvent) => {
@@ -215,9 +250,11 @@ export default function WordBankRenderer({
 
   const segments = useMemo(() => parseTemplate(template), [template]);
 
-  const slotsFilled = slotIds.every((id) => id !== null);
+  const filledCount = slotIds.filter((id) => id !== null).length;
+  const slotsFilled = slotCount > 0 && filledCount === slotCount;
   const showResults =
     mode === 'review' || (isAnswered && currentAnswer?.kind === 'word_bank');
+  const locked = mode === 'review' || isAnswered;
 
   const slotCorrectness = useMemo(() => {
     if (!payload) return null;
@@ -228,57 +265,60 @@ export default function WordBankRenderer({
   }, [payload, effectiveSlots]);
 
   const allCorrect = slotCorrectness?.every(Boolean) ?? false;
+  // Placed tokens render faded-in-place in the bank (Figma) — derive the set.
+  const placedSet = useMemo(
+    () => new Set(slotIds.filter((id): id is string => id !== null)),
+    [slotIds]
+  );
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '520px',
-        marginBottom: '20px',
-      }}
-    >
+    <div style={{ width: '100%' }}>
+      <style>{`
+        .qwb-token:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qwb-token:not(:disabled):active { transform: translateY(1px); }
+        .qwb-token:focus-visible, .qwb-slot:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        .qwb-ctl:hover { border-color: var(--nm-primary); color: var(--nm-primary-on-light); }
+        .qwb-ctl:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+          .qwb-token { transition: none; }
+          .qwb-token:not(:disabled):active { transform: none; }
+        }
+      `}</style>
+
+      {/* Prompt — large display heading on the white card. */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '28px 24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.25,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={substituteBlankMarker(question.question)} />
-        </div>
+        <MarkdownRenderer content={substituteBlankMarker(question.question)} />
       </div>
+      <p style={{ margin: '0 0 18px', fontSize: '14px', lineHeight: 1.5, color: 'var(--on-surface-variant)' }}>
+        {coarsePointer ? 'Tap a word, then tap a blank.' : 'Drag the correct words into each blank.'}
+      </p>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {coarsePointer && !isAnswered && mode === 'quiz' && (
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--on-surface-variant)',
-              marginBottom: '8px',
-            }}
-          >
-            Tap a word, then tap a blank
-          </div>
-        )}
-        {/* Template with inline slots */}
+        {/* Sentence with inline slots — cream inset. */}
         <div
           style={{
-            padding: isPhone ? '14px 14px' : '16px 18px',
-            borderRadius: '14px',
-            border: '1px solid rgba(140,82,255,0.22)',
-            background: 'var(--ink-08)',
-            marginBottom: '14px',
+            padding: isPhone ? '16px 16px' : '20px 22px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--quiz-card-border)',
+            background: 'var(--quiz-bg)',
+            marginBottom: '20px',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
-            gap: '6px',
-            fontSize: '16px',
+            gap: '7px',
+            fontSize: '17px',
             color: 'var(--on-surface)',
-            lineHeight: 1.7,
+            lineHeight: 1.9,
           }}
         >
           {segments.map((seg, i) => {
@@ -301,7 +341,7 @@ export default function WordBankRenderer({
                 tokenId={tokenId}
                 onTap={() => handleSlotTap(seg.index)}
                 showResult={showResults ? correct : null}
-                disabled={mode === 'review' || isAnswered}
+                disabled={locked}
                 tapModeHint={tappedTokenId !== null}
                 coarsePointer={coarsePointer}
               />
@@ -309,35 +349,36 @@ export default function WordBankRenderer({
           })}
         </div>
 
-        {/* Word bank */}
-        <BankZone disabled={mode === 'review' || isAnswered}>
-          {bankIds.map((id) => {
-            const token = tokenById.get(id);
-            if (!token) return null;
+        {/* Word bank — placed words fade in place. */}
+        <div
+          style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: 'var(--on-surface-variant)',
+            marginBottom: '10px',
+          }}
+        >
+          Word bank
+        </div>
+        <BankZone disabled={locked}>
+          {initialBank.map((token) => {
+            if (placedSet.has(token.id)) {
+              return <UsedChip key={token.id} text={token.text} coarsePointer={coarsePointer} />;
+            }
             return (
               <BankToken
-                key={id}
-                id={id}
+                key={token.id}
+                id={token.id}
                 text={token.text}
-                disabled={mode === 'review' || isAnswered}
-                tapped={tappedTokenId === id}
-                onTap={() => handleTokenTap(id)}
+                disabled={locked}
+                tapped={tappedTokenId === token.id}
+                onTap={() => handleTokenTap(token.id)}
                 coarsePointer={coarsePointer}
               />
             );
           })}
-          {bankIds.length === 0 && (
-            <span
-              style={{
-                color: 'var(--on-surface-variant)',
-                fontSize: '12px',
-                fontStyle: 'italic',
-                padding: '8px 4px',
-              }}
-            >
-              All words placed.
-            </span>
-          )}
         </BankZone>
 
         <DragOverlay>
@@ -351,7 +392,52 @@ export default function WordBankRenderer({
         </DragOverlay>
       </DndContext>
 
-      {!isAnswered && mode === 'quiz' && (
+      {/* Footer: blanks-filled count + Clear blanks. */}
+      {!locked && slotCount > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginTop: '14px',
+            marginBottom: '6px',
+            minHeight: '34px',
+          }}
+        >
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--on-surface-variant)' }}>
+            {filledCount} of {slotCount} {slotCount === 1 ? 'blank' : 'blanks'} filled
+          </span>
+          {filledCount > 0 ? (
+            <button
+              type="button"
+              className="qwb-ctl"
+              onClick={clearBlanks}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--outline-variant)',
+                background: 'var(--surface-container-lowest)',
+                color: 'var(--on-surface-variant)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
+                backspace
+              </span>
+              Clear blanks
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {!externalChrome && !isAnswered && mode === 'quiz' && (
         <div style={{ display: 'flex', flexDirection: 'column', marginTop: '12px' }}>
           <SubmitBar onClick={submitAnswer} disabled={!slotsFilled} isPhone={isPhone} />
         </div>
@@ -369,10 +455,14 @@ export default function WordBankRenderer({
       {showResults && payload && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
-            background: allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-            border: `1px solid ${allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: allCorrect
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: `1px solid ${
+              allCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+            }`,
             marginTop: '12px',
             marginBottom: '12px',
           }}
@@ -382,23 +472,18 @@ export default function WordBankRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
+              fontSize: '15px',
+              fontWeight: 800,
               marginBottom: '6px',
               color: allCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {allCorrect ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> All slots correct
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Some slots are off
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {allCorrect ? 'check_circle' : 'cancel'}
+            </span>
+            {allCorrect ? 'Correct' : 'Not quite'}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 allCorrect
@@ -434,30 +519,25 @@ function Slot({
   coarsePointer: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `slot-${slotIndex}` });
-  let borderColor = 'rgba(140,82,255,0.45)';
-  let bg = 'rgba(140,82,255,0.10)';
-  let textColor = 'var(--on-surface-variant)';
-  let dashed = !tokenText;
+  const dashed = !tokenText;
+  let borderColor = 'var(--nm-primary)';
+  let bg = tokenText ? 'var(--nm-primary-light)' : 'transparent';
+  let textColor = tokenText ? 'var(--nm-primary-on-light)' : 'var(--nm-primary-on-light)';
 
-  if (tokenText) {
-    dashed = false;
-    borderColor = 'rgba(174,137,255,0.55)';
-    bg = 'rgba(140,82,255,0.16)';
-    textColor = 'var(--on-surface)';
-  }
   if (showResult === true) {
-    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.55)';
-    bg = 'rgb(var(--verdict-pass-rgb) / 0.10)';
+    borderColor = 'rgb(var(--verdict-pass-rgb) / 0.6)';
+    bg = 'rgb(var(--verdict-pass-rgb) / 0.12)';
     textColor = 'var(--success)';
   } else if (showResult === false) {
-    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.55)';
+    borderColor = 'rgb(var(--verdict-fail-rgb) / 0.6)';
     bg = 'rgb(var(--verdict-fail-rgb) / 0.10)';
     textColor = 'var(--error)';
   } else if (isOver) {
-    borderColor = 'rgba(196,169,255,0.85)';
-    bg = 'rgba(140,82,255,0.22)';
+    borderColor = 'var(--nm-primary)';
+    bg = 'var(--nm-primary-light)';
   } else if (tapModeHint && !tokenText) {
-    borderColor = 'rgba(196,169,255,0.7)';
+    borderColor = 'var(--nm-primary)';
+    bg = 'var(--nm-primary-light)';
   }
 
   // Render the placed token as a draggable so it can be re-dragged.
@@ -467,22 +547,23 @@ function Slot({
     <span
       ref={setNodeRef}
       onClick={onTap}
+      className="qwb-slot"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: '56px',
-        minHeight: coarsePointer ? '44px' : '32px',
-        padding: coarsePointer ? '8px 14px' : '4px 12px',
-        borderRadius: '999px',
-        border: `${dashed ? '1.5px dashed' : '1px solid'} ${borderColor}`,
+        minWidth: tokenText ? '56px' : '88px',
+        minHeight: coarsePointer ? '40px' : '34px',
+        padding: coarsePointer ? '7px 16px' : '5px 14px',
+        borderRadius: 'var(--radius-full)',
+        border: `${dashed ? '1.5px dashed' : '1.5px solid'} ${borderColor}`,
         background: bg,
         color: textColor,
-        fontSize: '14px',
-        fontWeight: tokenText ? 600 : 500,
+        fontSize: '15px',
+        fontWeight: 700,
         fontFamily: 'inherit',
         cursor: disabled ? 'default' : 'pointer',
-        transition: 'background 0.15s, border-color 0.15s',
+        transition: 'background-color 0.15s, border-color 0.15s',
       }}
     >
       {tokenText ? (
@@ -499,19 +580,13 @@ function Slot({
           {tokenText}
         </span>
       ) : (
-        <span style={{ letterSpacing: '0.05em' }}>____</span>
+        <span style={{ fontWeight: 600, opacity: 0.8 }}>drop word</span>
       )}
     </span>
   );
 }
 
-function BankZone({
-  children,
-  disabled,
-}: {
-  children: React.ReactNode;
-  disabled: boolean;
-}) {
+function BankZone({ children, disabled }: { children: React.ReactNode; disabled: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: BANK_ZONE_ID, disabled });
   return (
     <div
@@ -519,15 +594,13 @@ function BankZone({
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '8px',
+        gap: '10px',
         padding: '14px',
-        borderRadius: '14px',
-        border: `1px ${isOver ? 'solid' : 'dashed'} ${
-          isOver ? 'rgba(174,137,255,0.7)' : 'rgba(140,82,255,0.3)'
-        }`,
-        background: isOver ? 'rgba(140,82,255,0.10)' : 'var(--ink-08)',
-        minHeight: '64px',
-        transition: 'background 0.15s, border-color 0.15s',
+        borderRadius: 'var(--radius-md)',
+        border: `1px ${isOver ? 'solid var(--nm-primary)' : 'dashed var(--quiz-card-border)'}`,
+        background: isOver ? 'var(--nm-primary-light)' : 'transparent',
+        minHeight: '60px',
+        transition: 'background-color 0.15s, border-color 0.15s',
       }}
     >
       {children}
@@ -558,24 +631,50 @@ function BankToken({
       {...draggable.listeners}
       onClick={onTap}
       disabled={disabled}
+      className="qwb-token"
       style={{
-        padding: coarsePointer ? '10px 14px' : '6px 12px',
-        minHeight: coarsePointer ? '44px' : '32px',
-        borderRadius: '999px',
-        border: `1px solid ${tapped ? 'rgba(196,169,255,0.85)' : 'rgba(140,82,255,0.4)'}`,
-        background: tapped ? 'rgba(140,82,255,0.28)' : 'rgba(140,82,255,0.12)',
-        color: tapped ? 'var(--on-surface)' : 'var(--on-surface-variant)',
-        fontSize: '14px',
-        fontWeight: 600,
+        padding: coarsePointer ? '10px 16px' : '8px 14px',
+        minHeight: coarsePointer ? '44px' : '36px',
+        borderRadius: 'var(--radius-full)',
+        border: `1.5px solid ${tapped ? 'var(--nm-primary)' : 'transparent'}`,
+        background: 'var(--nm-primary-light)',
+        color: 'var(--nm-primary-on-light)',
+        fontSize: '15px',
+        fontWeight: 700,
         cursor: disabled ? 'default' : 'grab',
         fontFamily: 'inherit',
         opacity: draggable.isDragging ? 0.35 : 1,
         touchAction: 'none',
-        transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+        transition: 'border-color 0.15s, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
     >
       {text}
     </button>
+  );
+}
+
+// A placed word, shown faded in the bank where it used to sit (Figma).
+function UsedChip({ text, coarsePointer }: { text: string; coarsePointer: boolean }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        padding: coarsePointer ? '10px 16px' : '8px 14px',
+        minHeight: coarsePointer ? '44px' : '36px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        borderRadius: 'var(--radius-full)',
+        border: '1.5px dashed var(--quiz-card-border)',
+        background: 'transparent',
+        color: 'var(--on-surface-variant)',
+        fontSize: '15px',
+        fontWeight: 600,
+        fontFamily: 'inherit',
+        opacity: 0.45,
+      }}
+    >
+      {text}
+    </span>
   );
 }
 
@@ -591,18 +690,18 @@ function TokenChip({
   return (
     <span
       style={{
-        padding: coarsePointer ? '10px 14px' : '6px 12px',
-        minHeight: coarsePointer ? '44px' : '32px',
+        padding: coarsePointer ? '10px 16px' : '8px 14px',
+        minHeight: coarsePointer ? '44px' : '36px',
         display: 'inline-flex',
         alignItems: 'center',
-        borderRadius: '999px',
-        border: '1px solid rgba(196,169,255,0.85)',
-        background: 'rgba(140,82,255,0.28)',
-        color: 'var(--on-surface)',
-        fontSize: '14px',
-        fontWeight: 600,
+        borderRadius: 'var(--radius-full)',
+        border: '1.5px solid var(--nm-primary)',
+        background: 'var(--nm-primary)',
+        color: 'var(--on-primary-container)',
+        fontSize: '15px',
+        fontWeight: 700,
         fontFamily: 'inherit',
-        boxShadow: dragging ? '0 12px 30px rgba(140,82,255,0.45)' : 'none',
+        boxShadow: dragging ? '0 14px 30px rgb(124 92 255 / 0.4)' : 'none',
       }}
     >
       {text}

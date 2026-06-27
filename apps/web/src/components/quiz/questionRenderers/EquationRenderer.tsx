@@ -1,5 +1,18 @@
 'use client';
 
+/* Hallmark · component: calculation / equation quiz · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · active · disabled · correct · wrong · skipped
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens · "Calculation"): a cream "Your answer" field that
+ * verifies green with a trailing check, the real math-symbol palette + live KaTeX
+ * grading preview kept intact (a genuine input, not decorative chrome), and a
+ * step-by-step feedback block. Body-only — the type badge, source chip and white
+ * card come from QuestionCard. Tokens stay semantic so dark mode keeps working;
+ * the study-pack page keeps its SubmitBar (externalChrome falsy).
+ */
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import katex from 'katex';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
@@ -66,6 +79,7 @@ export default function EquationRenderer({
   onSelectAnswer,
   isPhone,
   coarsePointer,
+  externalChrome,
 }: QuestionProps<EquationPayload | null>) {
   const payload = question.payload;
   const [draft, setDraft] = useState('');
@@ -85,11 +99,6 @@ export default function EquationRenderer({
 
   // Client doesn't recompute equation correctness — it's already on the
   // entry stored in QuizViewer's answers Map (set via grade() at select time).
-  // For review-mode display we re-derive a presentational correct/wrong from
-  // whether the stored answer matches one of the canonical surfaces — but
-  // since we can't access the QuizViewer's stored isCorrect from here, we
-  // show neutral "submitted" framing during quiz and reveal the expected
-  // expression after submission.
   const expectedExpression = payload?.expectedExpression ?? '';
 
   const inputValue = submittedExpression ?? draft;
@@ -101,6 +110,15 @@ export default function EquationRenderer({
     if (expression.length === 0) return;
     onSelectAnswer({ kind: 'equation', expression });
   };
+
+  // Shell flow: stage the (non-empty) expression continuously — covers both
+  // typing and palette inserts — so the sticky ActionBar "Check answer" can
+  // commit it; the internal SubmitBar is hidden.
+  useEffect(() => {
+    if (!externalChrome || isAnswered || mode !== 'quiz') return;
+    if (draft.trim().length === 0) return;
+    onSelectAnswer({ kind: 'equation', expression: draft.trim() });
+  }, [externalChrome, isAnswered, mode, draft, onSelectAnswer]);
 
   // Splice a palette glyph in at the caret (or over the selection), then restore
   // focus + caret once React commits the controlled value. `onMouseDown`
@@ -161,65 +179,115 @@ export default function EquationRenderer({
     expectedExpression.length > 0 &&
     normalize(submittedExpression) === normalize(expectedExpression);
   const correct = gradedCorrect ?? matchedLiteral;
+  const verdict = submittedExpression !== undefined ? (correct ? 'correct' : 'wrong') : null;
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '480px',
-        marginBottom: '20px',
-      }}
-    >
+    <div style={{ width: '100%' }}>
       <style>{`
         .eq-key {
-          transition: background-color 0.15s var(--ease-out, cubic-bezier(0.22,1,0.36,1)),
-                      border-color 0.15s var(--ease-out, cubic-bezier(0.22,1,0.36,1)),
-                      transform 0.12s var(--ease-out, cubic-bezier(0.22,1,0.36,1));
+          transition: background-color 0.15s cubic-bezier(0.22,1,0.36,1),
+                      border-color 0.15s cubic-bezier(0.22,1,0.36,1),
+                      transform 0.12s cubic-bezier(0.22,1,0.36,1);
         }
-        .eq-key:hover { background: var(--surface-container-high); border-color: rgba(140,82,255,0.55); }
-        .eq-key:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
-        .eq-key:active { transform: translateY(1px); background: var(--surface-container-highest); }
-        @media (prefers-reduced-motion: reduce) { .eq-key { transition: none; } }
+        .eq-key:hover { background: var(--nm-primary-light); border-color: var(--nm-primary); }
+        .eq-key:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+        .eq-key:active { transform: translateY(1px); }
+        .eq-input:not(:disabled):hover { border-color: var(--nm-primary); }
+        .eq-input:focus-visible { outline: none; border-color: var(--nm-primary); box-shadow: 0 0 0 3px var(--nm-primary-light); }
+        @media (prefers-reduced-motion: reduce) { .eq-key { transition: none; } .eq-key:active { transform: none; } }
       `}</style>
 
+      {/* Prompt — large display heading on the white card. */}
       <div
         style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '28px 24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.3,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '14px',
         }}
       >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
-        </div>
+        <MarkdownRenderer content={question.question} />
       </div>
 
-      <div style={{ display: 'flex', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
         <span
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(140,82,255,0.12)',
-            border: '1px solid rgba(140,82,255,0.3)',
-            borderRadius: '999px',
-            padding: '4px 12px',
             fontSize: '11px',
             fontWeight: 700,
-            color: 'var(--accent-strong)',
-            fontFamily: 'inherit',
-            letterSpacing: '0.04em',
+            letterSpacing: '0.06em',
             textTransform: 'uppercase',
+            color: 'var(--on-surface-variant)',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 12 }} aria-hidden>functions</span> Math input
+          Your answer
         </span>
-      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <input
+            ref={inputRef}
+            className="eq-input"
+            value={inputValue}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            disabled={inputDisabled}
+            maxLength={MAX_EQUATION_CHARS}
+            placeholder="e.g. x = 5,  2*x + 3,  sqrt(16)"
+            aria-label="Type your equation answer"
+            autoFocus={!inputDisabled}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            style={{
+              width: '100%',
+              padding: isPhone ? '13px 14px' : '15px 18px',
+              paddingRight: verdict === 'correct' ? '44px' : undefined,
+              minHeight: '54px',
+              borderRadius: 'var(--radius-md)',
+              border: `1.5px solid ${
+                verdict === 'correct'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.6)'
+                  : verdict === 'wrong'
+                    ? 'rgb(var(--verdict-fail-rgb) / 0.6)'
+                    : 'var(--outline-variant)'
+              }`,
+              background:
+                verdict === 'correct'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+                  : verdict === 'wrong'
+                    ? 'rgb(var(--verdict-fail-rgb) / 0.08)'
+                    : 'var(--surface-container-lowest)',
+              color:
+                verdict === 'correct'
+                  ? 'var(--success)'
+                  : verdict === 'wrong'
+                    ? 'var(--error)'
+                    : 'var(--on-surface)',
+              fontSize: '16px',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+              letterSpacing: '0.02em',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+            }}
+          />
+          {verdict === 'correct' ? (
+            <span
+              className="material-symbols-outlined"
+              style={{ position: 'absolute', right: '14px', fontSize: 22, color: 'var(--success)' }}
+              aria-hidden
+            >
+              check_circle
+            </span>
+          ) : null}
+        </div>
+
         {!inputDisabled && (
           <div
             role="group"
@@ -238,12 +306,12 @@ export default function EquationRenderer({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insertSymbol(key)}
                 style={{
-                  minWidth: coarsePointer ? '44px' : '36px',
-                  minHeight: coarsePointer ? '44px' : '36px',
+                  minWidth: coarsePointer ? '44px' : '38px',
+                  minHeight: coarsePointer ? '44px' : '38px',
                   padding: '0 10px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(140,82,255,0.28)',
-                  background: 'var(--surface-container)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--outline-variant)',
+                  background: 'var(--surface-container-lowest)',
                   color: 'var(--on-surface)',
                   fontSize: coarsePointer ? '17px' : '15px',
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
@@ -257,41 +325,6 @@ export default function EquationRenderer({
           </div>
         )}
 
-        <input
-          ref={inputRef}
-          value={inputValue}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          disabled={inputDisabled}
-          maxLength={MAX_EQUATION_CHARS}
-          placeholder="e.g. x = 5,  2*x + 3,  sqrt(16)"
-          aria-label="Type your equation answer"
-          autoFocus={!inputDisabled}
-          spellCheck={false}
-          autoCapitalize="off"
-          autoComplete="off"
-          autoCorrect="off"
-          style={{
-            width: '100%',
-            padding: isPhone ? '12px 14px' : '14px 16px',
-            minHeight: '48px',
-            borderRadius: '12px',
-            border: `1px solid ${
-              inputDisabled ? 'rgba(140,82,255,0.5)' : 'rgba(140,82,255,0.32)'
-            }`,
-            background: 'var(--surface-container)',
-            color: inputDisabled ? 'var(--accent-strong)' : 'var(--on-surface)',
-            fontSize: '16px',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-            letterSpacing: '0.02em',
-          }}
-        />
-
         {!inputDisabled && preview && (
           <div
             style={{
@@ -299,10 +332,10 @@ export default function EquationRenderer({
               alignItems: 'center',
               gap: '8px',
               minHeight: '34px',
-              padding: '7px 12px',
-              borderRadius: '10px',
-              background: 'var(--surface-container-low)',
-              border: '1px solid var(--ink-08)',
+              padding: '8px 14px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--quiz-bg)',
+              border: '1px solid var(--quiz-card-border)',
               color: 'var(--on-surface)',
               overflowX: 'auto',
             }}
@@ -342,23 +375,12 @@ export default function EquationRenderer({
           </div>
         )}
 
-        <span
-          style={{
-            fontSize: '11px',
-            color: 'var(--on-surface-variant)',
-            fontFamily: 'inherit',
-            letterSpacing: '0.02em',
-          }}
-        >
+        <span style={{ fontSize: '12px', color: 'var(--on-surface-variant)', letterSpacing: '0.01em' }}>
           Enter your final answer — <code>x = 5</code> or <code>5</code> both work.
         </span>
 
-        {!inputDisabled && (
-          <SubmitBar
-            onClick={submit}
-            disabled={draft.trim().length === 0}
-            isPhone={isPhone}
-          />
+        {!externalChrome && !inputDisabled && (
+          <SubmitBar onClick={submit} disabled={draft.trim().length === 0} isPhone={isPhone} />
         )}
       </div>
 
@@ -374,10 +396,14 @@ export default function EquationRenderer({
       {submittedExpression !== undefined && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
-            background: correct ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-            border: `1px solid ${correct ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.25)'}`,
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: correct
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: `1px solid ${
+              correct ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+            }`,
             marginBottom: '12px',
           }}
         >
@@ -386,21 +412,16 @@ export default function EquationRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
-              marginBottom: correct ? 0 : '6px',
+              fontSize: '15px',
+              fontWeight: 800,
+              marginBottom: correct && !question.correctExplanation ? 0 : '6px',
               color: correct ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {correct ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>check_circle</span> Correct!
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>cancel</span> Not quite
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {correct ? 'check_circle' : 'cancel'}
+            </span>
+            {correct ? 'Correct' : 'Not quite'}
           </div>
           {!correct && (
             <>
@@ -410,7 +431,7 @@ export default function EquationRenderer({
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: '8px',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   color: 'var(--on-surface-variant)',
                   lineHeight: 1.6,
                   fontFamily: 'inherit',
@@ -421,10 +442,10 @@ export default function EquationRenderer({
                   <span
                     style={{
                       fontSize: '15px',
-                      color: 'var(--accent-strong)',
+                      color: 'var(--nm-primary-on-light)',
                       padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: 'var(--ink-08)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--nm-primary-light)',
                     }}
                     dangerouslySetInnerHTML={{ __html: expectedHtml }}
                   />
@@ -432,24 +453,17 @@ export default function EquationRenderer({
                   <code
                     style={{
                       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                      color: 'var(--accent-strong)',
+                      color: 'var(--nm-primary-on-light)',
                       padding: '2px 6px',
-                      borderRadius: '6px',
-                      background: 'var(--ink-08)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--nm-primary-light)',
                     }}
                   >
                     {expectedExpression || '—'}
                   </code>
                 )}
               </div>
-              <div
-                style={{
-                  marginTop: '8px',
-                  fontSize: '12px',
-                  color: 'var(--on-surface-variant)',
-                  lineHeight: 1.6,
-                }}
-              >
+              <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
                 <MarkdownRenderer
                   content={
                     question.wrongExplanation ||
@@ -461,14 +475,7 @@ export default function EquationRenderer({
             </>
           )}
           {correct && question.correctExplanation && (
-            <div
-              style={{
-                marginTop: '8px',
-                fontSize: '12px',
-                color: 'var(--on-surface-variant)',
-                lineHeight: 1.6,
-              }}
-            >
+            <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
               <MarkdownRenderer content={question.correctExplanation} />
             </div>
           )}
@@ -478,8 +485,8 @@ export default function EquationRenderer({
       {mode === 'review' && submittedExpression === undefined && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
             marginBottom: '12px',
             background: 'var(--surface-container)',
             border: '1px solid var(--ink-08)',
@@ -491,7 +498,7 @@ export default function EquationRenderer({
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '6px',
-              fontSize: '13px',
+              fontSize: '14px',
               color: 'var(--on-surface-variant)',
             }}
           >

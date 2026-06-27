@@ -1,5 +1,15 @@
 'use client';
 
+/* Hallmark · component: true/false quiz options · genre: editorial · theme: project (cream / --nm-* + verdict tokens)
+ * states: default · hover · focus-visible · active · disabled · selected · correct · wrong
+ * contrast: pass (uses --surface-* / --on-surface / --nm-* / --verdict-* tokens — theme-flipping, no inline hex)
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Figma redesign (Quiz screens): True/False reads as two cream option rows like
+ * Multiple Choice, with green/red verdict + trailing labels. Body-only — the type
+ * badge, source chip and white card come from QuestionCard.
+ */
+
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import type { TrueFalsePayload } from '@notemage/shared';
 import HintButton from './HintButton';
@@ -27,147 +37,160 @@ export default function TrueFalseRenderer({
     { value: false, label: 'False' },
   ];
 
-  return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: isPhone ? '100%' : '480px',
-        marginBottom: '20px',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--quiz-question-surface)',
-          border: '1px solid rgba(174,137,255,0.38)',
-          borderRadius: '16px',
-          padding: isPhone ? '20px 16px' : '28px 24px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(196,169,255,0.10)',
-        }}
-      >
-        <div style={{ fontSize: '18px', color: '#f5f1ff', lineHeight: 1.6 }}>
-          <MarkdownRenderer content={question.question} />
-        </div>
-      </div>
+  const locked = isAnswered || mode === 'review';
 
+  return (
+    <div style={{ width: '100%' }}>
+      <style>{`
+        .qtf-opt {
+          transition: border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+                      background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+                      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .qtf-opt:not(:disabled):hover { border-color: var(--nm-primary); }
+        .qtf-opt:not(:disabled):hover .qtf-badge { background: var(--nm-primary-light); }
+        .qtf-opt:not(:disabled):active { transform: translateY(1px); }
+        .qtf-opt:focus-visible {
+          outline: 2px solid var(--color-focus);
+          outline-offset: 2px;
+          border-color: var(--nm-primary);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .qtf-opt { transition: none; }
+          .qtf-opt:not(:disabled):active { transform: none; }
+        }
+      `}</style>
+
+      {/* Prompt — large display heading on the cream card. */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-          gap: '10px',
-          marginBottom: '12px',
+          fontFamily: 'var(--font-display)',
+          fontSize: isPhone ? '20px' : 'clamp(22px, 2.2vw, 28px)',
+          fontWeight: 800,
+          lineHeight: 1.25,
+          letterSpacing: '-0.01em',
+          color: 'var(--on-surface)',
+          marginBottom: '6px',
         }}
       >
+        <MarkdownRenderer content={question.question} />
+      </div>
+      <p
+        style={{
+          margin: '0 0 20px',
+          fontSize: '14px',
+          lineHeight: 1.5,
+          color: 'var(--on-surface-variant)',
+        }}
+      >
+        Select true or false.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
         {options.map(({ value, label }) => {
           const isSelected = selectedValue === value;
           const isCorrectOption = correctValue === value;
           const showResult = isAnswered || mode === 'review';
           const reviewSelected = mode === 'review' && reviewValue === value;
+          const markedWrong = (isSelected || reviewSelected) && !isCorrectOption;
 
-          let borderColor = 'rgba(140,82,255,0.15)';
-          let bg = 'var(--surface-container)';
-          let textColor = 'var(--on-surface-variant)';
+          // Row variant → token-composed surfaces. Correct row is always green
+          // even if it was the one selected.
+          let bg = 'var(--surface-container-lowest)';
+          let borderColor = 'var(--outline-variant)';
+          const textColor = 'var(--on-surface)';
+          let badgeBg = 'var(--nm-primary-light)';
+          let badgeColor = 'var(--nm-primary-on-light)';
+          let badgeContent: React.ReactNode = label.charAt(0);
+          let trailing: { label: string; color: string } | null = null;
 
-          if (showResult) {
-            if (isCorrectOption) {
-              borderColor = 'rgb(var(--verdict-pass-rgb) / 0.5)';
-              bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
-              textColor = 'var(--success)';
-            } else if (isSelected || reviewSelected) {
-              borderColor = 'rgb(var(--verdict-fail-rgb) / 0.5)';
-              bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
-              textColor = 'var(--error)';
-            }
-          } else if (isSelected) {
-            borderColor = 'rgba(140,82,255,0.5)';
-            bg = 'rgba(140,82,255,0.12)';
-            textColor = 'var(--accent-strong)';
+          if (showResult && isCorrectOption) {
+            bg = 'rgb(var(--verdict-pass-rgb) / 0.08)';
+            borderColor = 'rgb(var(--verdict-pass-rgb) / 0.55)';
+            badgeBg = 'var(--success)';
+            badgeColor = 'var(--on-primary-container)';
+            badgeContent = (
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                check
+              </span>
+            );
+            trailing = { label: 'Correct answer', color: 'var(--success)' };
+          } else if (showResult && markedWrong) {
+            bg = 'rgb(var(--verdict-fail-rgb) / 0.08)';
+            borderColor = 'rgb(var(--verdict-fail-rgb) / 0.55)';
+            badgeBg = 'var(--error)';
+            badgeColor = 'var(--on-primary-container)';
+            badgeContent = (
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                close
+              </span>
+            );
+            trailing = { label: 'Your answer', color: 'var(--error)' };
+          } else if (!showResult && isSelected) {
+            bg = 'var(--nm-primary-light)';
+            borderColor = 'var(--nm-primary)';
+            badgeBg = 'var(--nm-primary)';
+            badgeColor = 'var(--on-primary-container)';
           }
 
           return (
             <button
               key={String(value)}
+              type="button"
+              className="qtf-opt"
               onClick={() => onSelectAnswer({ kind: 'true_false', value })}
-              disabled={isAnswered || mode === 'review'}
+              disabled={locked}
+              aria-pressed={isSelected}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                padding: isPhone ? '16px 14px' : '20px 16px',
-                minHeight: '60px',
-                borderRadius: '12px',
-                border: `1px solid ${borderColor}`,
+                gap: isPhone ? '12px' : '14px',
+                padding: isPhone ? '13px 14px' : '15px 18px',
+                minHeight: coarsePointer ? '56px' : '52px',
+                borderRadius: 'var(--radius-md)',
+                border: `1.5px solid ${borderColor}`,
                 background: bg,
-                cursor: isAnswered || mode === 'review' ? 'default' : 'pointer',
+                cursor: locked ? 'default' : 'pointer',
+                textAlign: 'left',
                 fontFamily: 'inherit',
-                transition: 'background 0.15s, border-color 0.15s',
                 width: '100%',
-                minWidth: 0,
               }}
             >
               <span
+                className="qtf-badge"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: `2px solid ${borderColor}`,
-                  display: 'flex',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 800,
                   flexShrink: 0,
-                  color: textColor,
-                  background:
-                    showResult && isCorrectOption
-                      ? 'rgb(var(--verdict-pass-rgb) / 0.15)'
-                      : showResult && (isSelected || reviewSelected)
-                        ? 'rgb(var(--verdict-fail-rgb) / 0.15)'
-                        : 'transparent',
+                  color: badgeColor,
+                  background: badgeBg,
+                  transition: 'background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
               >
-                {showResult && isCorrectOption ? (
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 16, color: 'var(--success)' }}
-                    aria-hidden
-                  >
-                    check_circle
-                  </span>
-                ) : showResult && (isSelected || reviewSelected) ? (
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 16, color: 'var(--error)' }}
-                    aria-hidden
-                  >
-                    cancel
-                  </span>
-                ) : (
-                  <span
-                    aria-hidden
-                    style={{
-                      display: 'block',
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      border: '2px solid var(--outline)',
-                      background: 'transparent',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
+                {badgeContent}
               </span>
-              <span
-                style={{
-                  fontSize: '17px',
-                  fontWeight: 600,
-                  color: textColor,
-                  minWidth: 0,
-                  overflowWrap: 'anywhere',
-                  textAlign: 'center',
-                }}
-              >
+              <span style={{ fontSize: '16px', color: textColor, flex: 1, lineHeight: 1.5, fontWeight: 600 }}>
                 {label}
               </span>
+              {trailing ? (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: trailing.color,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {trailing.label}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -185,10 +208,14 @@ export default function TrueFalseRenderer({
       {isAnswered && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
-            background: isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.06)' : 'rgb(var(--verdict-fail-rgb) / 0.06)',
-            border: `1px solid ${isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.2)' : 'rgb(var(--verdict-fail-rgb) / 0.2)'}`,
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
+            background: isCorrect
+              ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+              : 'rgb(var(--verdict-fail-rgb) / 0.08)',
+            border: `1px solid ${
+              isCorrect ? 'rgb(var(--verdict-pass-rgb) / 0.3)' : 'rgb(var(--verdict-fail-rgb) / 0.3)'
+            }`,
             marginBottom: '12px',
           }}
         >
@@ -197,29 +224,18 @@ export default function TrueFalseRenderer({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              fontSize: '14px',
-              fontWeight: 700,
+              fontSize: '15px',
+              fontWeight: 800,
               marginBottom: '6px',
               color: isCorrect ? 'var(--success)' : 'var(--error)',
             }}
           >
-            {isCorrect ? (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                  check_circle
-                </span>{' '}
-                Correct!
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
-                  cancel
-                </span>{' '}
-                Not quite
-              </>
-            )}
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+              {isCorrect ? 'check_circle' : 'cancel'}
+            </span>
+            {isCorrect ? 'Correct' : 'Not quite'}
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
             <MarkdownRenderer
               content={
                 isCorrect
@@ -236,20 +252,20 @@ export default function TrueFalseRenderer({
       {mode === 'review' && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: '12px',
+            padding: '16px 18px',
+            borderRadius: 'var(--radius-md)',
             marginBottom: '12px',
             background:
               reviewValue !== undefined
                 ? reviewValue === correctValue
-                  ? 'rgb(var(--verdict-pass-rgb) / 0.06)'
-                  : 'rgb(var(--verdict-fail-rgb) / 0.06)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.08)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.08)'
                 : 'var(--surface-container)',
             border: `1px solid ${
               reviewValue !== undefined
                 ? reviewValue === correctValue
-                  ? 'rgb(var(--verdict-pass-rgb) / 0.2)'
-                  : 'rgb(var(--verdict-fail-rgb) / 0.2)'
+                  ? 'rgb(var(--verdict-pass-rgb) / 0.3)'
+                  : 'rgb(var(--verdict-fail-rgb) / 0.3)'
                 : 'var(--ink-08)'
             }`,
           }}
@@ -261,37 +277,20 @@ export default function TrueFalseRenderer({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: 700,
+                  fontSize: '15px',
+                  fontWeight: 800,
                   marginBottom: '6px',
                   color: reviewValue === correctValue ? 'var(--success)' : 'var(--error)',
                 }}
               >
-                {reviewValue === correctValue ? (
-                  <>
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 16 }}
-                      aria-hidden
-                    >
-                      check_circle
-                    </span>{' '}
-                    You answered correctly
-                  </>
-                ) : (
-                  <>
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 16 }}
-                      aria-hidden
-                    >
-                      cancel
-                    </span>{' '}
-                    You answered incorrectly
-                  </>
-                )}
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }} aria-hidden>
+                  {reviewValue === correctValue ? 'check_circle' : 'cancel'}
+                </span>
+                {reviewValue === correctValue
+                  ? 'You answered correctly'
+                  : 'You answered incorrectly'}
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)', lineHeight: 1.6 }}>
                 <MarkdownRenderer
                   content={
                     reviewValue === correctValue
@@ -304,9 +303,10 @@ export default function TrueFalseRenderer({
               </div>
             </>
           ) : (
-            <div style={{ fontSize: '13px', color: 'var(--on-surface-variant)' }}>
+            <div style={{ fontSize: '14px', color: 'var(--on-surface-variant)' }}>
               You skipped this question. The statement is{' '}
-              <strong style={{ color: 'var(--success)' }}>{correctValue ? 'true' : 'false'}</strong>.
+              <strong style={{ color: 'var(--success)' }}>{correctValue ? 'true' : 'false'}</strong>
+              .
             </div>
           )}
         </div>
