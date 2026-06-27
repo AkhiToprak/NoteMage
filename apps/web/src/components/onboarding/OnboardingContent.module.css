@@ -1,0 +1,200 @@
+/* Shared content primitives for the onboarding setup steps (heading, subtitle,
+ * confirmation banner, and the selectable card grid). Used inside OnboardingShell's
+ * content slot by W04 Goal and W05 Intensity. Light cream, Inter. */
+
+.heading {
+  font-size: clamp(26px, 4.4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: #18202f;
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+.subtitle {
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.46;
+  color: #6b7280;
+  margin: 0 0 32px;
+  max-width: 640px;
+}
+
+/* selectable card grid */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 21px;
+}
+.card {
+  position: relative;
+  text-align: left;
+  min-height: 152px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1.4px solid #ece6d8;
+  box-shadow: 0 6px 18px rgba(58, 46, 102, 0.07);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card:hover { transform: translateY(-2px); border-color: #c9bcf7; box-shadow: 0 12px 26px rgba(58, 46, 102, 0.1); }
+.card:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.cardActive {
+  background: #ede9ff;
+  border: 2px solid #7c5cff;
+  box-shadow: none;
+}
+.cardActive:hover { border-color: #7c5cff; }
+
+.cardTile {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: #ede9ff; display: grid; place-items: center; color: #4326b8;
+}
+.cardActive .cardTile { background: #fff; }
+.cardTile :global(.material-symbols-outlined) { font-size: 24px; }
+
+.cardTitle { font-size: 18px; font-weight: 600; color: #18202f; margin: 16px 0 0; }
+.cardDesc { font-size: 13.5px; line-height: 1.32; color: #6b7280; margin: 6px 0 0; }
+
+.cardCheck {
+  position: absolute; top: 16px; right: 16px;
+  width: 24px; height: 24px; border-radius: 12px; background: #7c5cff;
+  display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; line-height: 1;
+}
+
+/* confirmation banner */
+.banner {
+  display: flex; align-items: center; gap: 12px;
+  background: #ede9ff; border-radius: 16px; padding: 16px 18px; margin-top: 28px;
+}
+.bannerSpark { flex: none; line-height: 0; }
+.bannerSpark svg { width: 18px; height: 18px; display: block; }
+.bannerText { font-size: 14px; font-weight: 500; line-height: 1.4; color: #4326b8; }
+
+/* rhythm cards (W05) — centred, big number */
+.rhythmGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.rhythmCard {
+  position: relative; min-height: 158px; padding: 18px 12px; border-radius: 20px;
+  background: #fff; border: 1.4px solid #ece6d8; box-shadow: 0 6px 18px rgba(58, 46, 102, 0.07);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  text-align: center; cursor: pointer; font-family: inherit;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rhythmCard:hover { transform: translateY(-2px); border-color: #c9bcf7; box-shadow: 0 12px 26px rgba(58, 46, 102, 0.1); }
+.rhythmCard:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.rhythmCardActive { background: #ede9ff; border: 2px solid #7c5cff; box-shadow: none; }
+.rhythmCardActive:hover { border-color: #7c5cff; }
+.rhythmIcon { color: #7c5cff; line-height: 0; }
+.rhythmIcon :global(.material-symbols-outlined) { font-size: 24px; }
+.rhythmNum { font-size: 25px; font-weight: 700; color: #18202f; }
+.rhythmLabel { font-size: 13px; font-weight: 500; color: #6b7280; }
+.recPill {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  background: #fff3d6; color: #7a5200; font-size: 10.5px; font-weight: 600;
+  padding: 4px 8px; border-radius: 11px; white-space: nowrap;
+}
+/* the card centres its content, so the recommended card needs top room or the
+   clock collides with the absolute "Recommended" pill (all widths). */
+.rhythmCard:has(.recPill) { padding-top: 44px; }
+
+/* secondary question + chips */
+.subhead { font-size: 20px; font-weight: 700; color: #18202f; margin: 28px 0 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  padding: 10px 18px; border-radius: 21px; background: #fff; border: 1.4px solid #ece6d8; color: #18202f;
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.chip:hover { border-color: #c9bcf7; transform: translateY(-1px); }
+.chip:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.chipActive { background: #ede9ff; border: 1.8px solid #7c5cff; color: #4326b8; }
+.chipActive:hover { border-color: #7c5cff; }
+
+/* green trust pill (W03 "No upload needed") */
+.greenPill { display: inline-block; background: #e2f5eb; color: #0f6b3d; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 13px; margin: 0 0 16px; }
+
+/* source-type option cards (W02) — horizontal */
+.optGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.opt {
+  position: relative; display: flex; align-items: center; gap: 16px; min-height: 108px; padding: 18px;
+  border-radius: 20px; background: #fff; border: 1.4px solid #ece6d8; box-shadow: 0 6px 18px rgba(58, 46, 102, 0.07);
+  cursor: pointer; font-family: inherit; text-align: left;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.opt:hover { transform: translateY(-2px); border-color: #c9bcf7; box-shadow: 0 12px 26px rgba(58, 46, 102, 0.1); }
+.opt:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.optActive { background: #ede9ff; border: 2px solid #7c5cff; box-shadow: none; }
+.optActive:hover { border-color: #7c5cff; }
+.optTile { flex: none; width: 56px; height: 56px; border-radius: 16px; background: #ede9ff; display: grid; place-items: center; color: #4326b8; }
+.optActive .optTile { background: #fff; }
+.optTileGold { background: #fff3d6; }
+.optActive .optTileGold { background: #fff3d6; }
+.optTile :global(.material-symbols-outlined) { font-size: 26px; }
+.optBody { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.optTitle { font-size: 19px; font-weight: 600; color: #18202f; }
+.optDesc { font-size: 14px; line-height: 1.34; color: #6b7280; margin-top: 4px; }
+.optRadio { flex: none; width: 26px; height: 26px; border-radius: 13px; border: 1.8px solid #e0d9c9; background: #fff; }
+.optRadioOn { border-color: #7c5cff; background: #7c5cff; display: grid; place-items: center; }
+.optRadioOn::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; }
+.recPillGold { position: absolute; top: 14px; right: 14px; background: #ffc83d; color: #7a5200; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 11px; white-space: nowrap; }
+/* reserve space so the title wraps clear of the absolute Recommended pill */
+.opt:has(.recPillGold) .optBody { padding-right: 104px; }
+
+/* sample-pack cards (W03) — vertical */
+.packGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.pack {
+  position: relative; display: flex; flex-direction: column; min-height: 268px; padding: 20px;
+  border-radius: 22px; background: #fff; border: 1.4px solid #ece6d8; box-shadow: 0 6px 18px rgba(58, 46, 102, 0.07);
+  cursor: pointer; font-family: inherit; text-align: left;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pack:hover { transform: translateY(-2px); border-color: #c9bcf7; box-shadow: 0 12px 26px rgba(58, 46, 102, 0.1); }
+.pack:focus-visible { outline: 3px solid #7c5cff; outline-offset: 2px; }
+.packActive { border: 2px solid #7c5cff; box-shadow: 0 10px 28px rgba(124, 92, 255, 0.2); }
+.packActive:hover { border-color: #7c5cff; }
+.packTile { width: 58px; height: 58px; border-radius: 16px; display: grid; place-items: center; }
+.packTile :global(.material-symbols-outlined) { font-size: 24px; }
+.packTitle { font-size: 19px; font-weight: 700; color: #18202f; margin: 14px 0 0; line-height: 1.16; }
+.packTopic { font-size: 14px; font-weight: 500; color: #6b7280; margin: 8px 0 0; }
+.packPill { align-self: flex-start; font-size: 11.5px; font-weight: 600; padding: 5px 10px; border-radius: 12px; margin: 10px 0 0; }
+.packDesc { font-size: 14px; line-height: 1.44; color: #6b7280; margin: 14px 0 0; }
+.packCheck { position: absolute; top: 20px; right: 20px; width: 28px; height: 28px; border-radius: 14px; background: #7c5cff; color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 700; line-height: 1; }
+
+@media (max-width: 900px) {
+  .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .card { min-height: 0; padding: 16px; }
+  .cardTitle { font-size: 16px; margin-top: 12px; }
+  .subtitle { margin-bottom: 22px; }
+  .rhythmGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .rhythmCard { min-height: 140px; }
+  .subhead { font-size: 18px; }
+  .optGrid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .opt { min-height: 0; }
+  .packGrid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .pack { min-height: 0; }
+}
+
+@media (max-width: 339px) {
+  .cardGrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Large screens — scale headings, cards and chips up. */
+@media (min-width: 1400px) {
+  .heading { font-size: 48px; }
+  .subtitle { font-size: 20px; max-width: 680px; }
+  .cardTile { width: 52px; height: 52px; }
+  .cardTitle { font-size: 19px; }
+  .cardDesc { font-size: 14px; }
+  .banner { padding: 18px 20px; }
+  .bannerText { font-size: 15px; }
+  .rhythmCard { min-height: 170px; }
+  .rhythmNum { font-size: 28px; }
+  .rhythmLabel { font-size: 14px; }
+  .subhead { font-size: 22px; }
+  .chip { font-size: 15px; padding: 11px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
