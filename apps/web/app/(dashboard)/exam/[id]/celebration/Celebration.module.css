@@ -73,7 +73,8 @@
   .stage { animation: none; }
 }
 
-.badgeRow { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 22px; }
+/* gap clears the star's 10px gold glow ring so the mascot sits beside it, never on top */
+.badgeRow { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 22px; }
 .starBadge {
   width: 96px;
   height: 96px;
@@ -88,7 +89,7 @@
 /* `:global()` — the icon uses the GLOBAL `material-symbols-outlined` class; a
    module-scoped descendant selector hashes it and silently fails to 24px. */
 .starBadge :global(.material-symbols-outlined) { font-size: 48px; }
-.mascot { width: 64px; height: 64px; object-fit: contain; margin-left: -6px; }
+.mascot { width: 96px; height: 96px; object-fit: contain; }
 
 .title {
   margin: 0;
@@ -169,7 +170,8 @@
   .statGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .actions { flex-direction: column; width: 100%; }
   .primary, .secondary { width: 100%; justify-content: center; }
-  .badgeRow { margin-bottom: 16px; }
+  .badgeRow { margin-bottom: 16px; gap: 14px; }
   .starBadge { width: 80px; height: 80px; }
   .starBadge :global(.material-symbols-outlined) { font-size: 40px; }
+  .mascot { width: 80px; height: 80px; }
 }

@@ -294,7 +294,9 @@ function ResultEntry({ examId, ctx }: { examId: string; ctx: ResultContext }) {
                 className={`${styles.choice} ${outcome === o.key ? styles.choiceOn : ''}`}
                 onClick={() => { setOutcome(o.key); setOutcomeTouched(true); }}
               >
-                {outcome === o.key && <span className="material-symbols-outlined" aria-hidden style={{ fontSize: 16 }}>{o.icon}</span>}
+                <span className={`${styles.choiceIcon} ${outcome === o.key ? styles.choiceIconOn : ''}`} aria-hidden>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{o.icon}</span>
+                </span>
                 {o.label}
               </button>
             ))}

@@ -22,7 +22,10 @@ export default function ExamCelebrationPage() {
   useEffect(() => {
     if (!examId) return;
     let cancelled = false;
-    fetch(`/api/user/exams/${examId}/report`)
+    // `ai=0`: the celebration only renders the deterministic stats, so skip the
+    // one-time AI prose generation that otherwise blocks this first report load
+    // (the prose still generates + caches when the learner opens /report).
+    fetch(`/api/user/exams/${examId}/report?ai=0`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
       .then((body) => {
         if (cancelled) return;

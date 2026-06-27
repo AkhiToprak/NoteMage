@@ -32,8 +32,14 @@ export async function GET(request: NextRequest, { params }: Params) {
     // AI prose only for PRO, with the kill-switch off and token budget intact.
     // Cached after first generation, so a free/over-budget viewer still sees the
     // (deterministic) narrative — just never the AI one.
+    //
+    // `?ai=0` force-skips generation: the celebration screen loads this report
+    // for its stats only (it never renders the prose) and must not block on the
+    // one-time LLM call — the prose still generates + caches when the learner
+    // actually opens /report. Skipping also drops the token-budget DB round-trip.
+    const skipAi = request.nextUrl.searchParams.get('ai') === '0';
     let useAi = false;
-    if (mageGenerationActionsEnabled()) {
+    if (!skipAi && mageGenerationActionsEnabled()) {
       const { allowed, tier } = await checkTokenBudget(userId);
       useAi = allowed && tier !== 'FREE';
     }
