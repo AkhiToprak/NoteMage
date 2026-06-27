@@ -1,0 +1,204 @@
+.body {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .body { grid-template-columns: 1fr; }
+}
+
+.main { min-width: 0; }
+.sectionTitle { margin-top: 28px; font-size: 22px; font-weight: 700; color: var(--ink); }
+
+/* ---- hero ---- */
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+.heroHead { display: flex; align-items: center; gap: 16px; }
+.heroTile {
+  width: 56px;
+  height: 56px;
+  border-radius: 15px;
+  background: var(--lilac);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.heroTitle { font-size: 23px; font-weight: 700; color: var(--ink); }
+.heroSource { margin-top: 4px; font-size: 14px; color: var(--body); }
+.heroStats { margin-top: 18px; font-size: 13.5px; color: var(--body); }
+.heroProgRow { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; }
+.heroProgLabel { font-size: 14px; color: var(--ink-soft); font-weight: 500; }
+.heroProgPct { font-size: 14px; color: var(--accent); font-weight: 600; }
+.heroBar { margin-top: 10px; }
+.heroFoot {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.heroNext { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--ink); }
+.heroPlay {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.heroContinue { height: 52px; padding: 0 34px; font-size: 15px; }
+
+/* ---- study plan rows ---- */
+.planList { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.planRow {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  /* used as <div>, <a> and <button> — neutralize anchor/button chrome */
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.planIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--lilac);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.planIcon img { width: 28px; height: 28px; object-fit: contain; }
+.planText { flex: 1; min-width: 0; }
+.planTitle { font-size: 15px; font-weight: 600; color: var(--ink); }
+.planSub { margin-top: 3px; font-size: 13px; color: var(--body); }
+.planGo {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--lilac-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.planGo:hover { background: var(--lilac); }
+.planGo:active { transform: translateY(1px); }
+
+/* ---- study tools ---- */
+.tools { margin-top: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 640px) { .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tool {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.tool:hover { box-shadow: var(--shadow-raise); transform: translateY(-2px); }
+.tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.toolIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--lilac);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.toolIcon img { width: 28px; height: 28px; object-fit: contain; }
+.toolTitle { margin-top: 30px; font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.toolSub { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+
+/* ---- right rail ---- */
+.rail { display: flex; flex-direction: column; gap: 20px; }
+.railCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.railTitle { font-size: 15px; font-weight: 700; color: var(--ink); }
+.railSub { margin-top: 3px; font-size: 13px; color: var(--body); }
+.railNote { margin-top: 12px; font-size: 13px; color: var(--body); line-height: 1.45; }
+
+.queue { background: var(--amber-soft); border-color: var(--amber-line); }
+.queueHead { display: flex; align-items: center; gap: 12px; }
+.queueIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--amber-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.queueDivider { height: 1px; background: var(--amber-line); margin: 14px 0; }
+.railRowTitle { font-size: 14px; font-weight: 600; color: var(--ink); }
+.amberLink {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--amber-ink);
+  text-decoration: none;
+  transition: opacity 0.18s var(--ease);
+}
+.amberLink:hover { opacity: 0.78; }
+
+.goalRow { margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.goalCheck {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.checkpointPill { margin-top: 14px; }
+.checkpointBar { margin-top: 14px; }

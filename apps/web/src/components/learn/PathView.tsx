@@ -217,8 +217,6 @@ export default function PathView({ plan, onSlotClick }: PathViewProps) {
               index={phaseIdx}
               title={phase.title}
               description={phase.description}
-              notebookId={plan.notebookId}
-              notebookTitle={plan.notebookTitle}
               unlocked={phase.unlocked}
               sectionGrade={sectionAverageGrade(phase.slots)}
             />

@@ -2,7 +2,8 @@
 
 /* Hallmark · component: provider · genre: editorial · theme: project (Neon Scholar)
  * Mage Revolution Phase 1 — the global panel's open/close + current-context
- * state. No UI of its own; MagePanel / MageLauncher consume `useMage()`.
+ * state. No UI of its own; MagePanel (and the sidebar "Ask Mage" card)
+ * consume `useMage()`.
  */
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';

@@ -23,11 +23,11 @@ import {
   gateVisibility,
   mageContextKey,
   mageSourceLabel,
+  type MageContextType,
   type MageMessageMetadata,
   type MageMode,
   type MageRevealGate,
   type MageSource,
-  type MageSourceKind,
   type MageSourceMode,
 } from '@/lib/mage-types';
 import type { MageActionCard } from '@/lib/mage-actions';
@@ -54,16 +54,6 @@ interface PanelMessage {
   question?: string;
 }
 
-/** Material Symbols glyph per source kind, for the citation chips. */
-const SOURCE_ICON: Record<MageSourceKind, string> = {
-  theory: 'menu_book',
-  page: 'description',
-  'study-pack': 'folder_open',
-  path: 'route',
-  exam: 'school',
-  quiz: 'quiz',
-};
-
 /**
  * Phase 9 — the mode switch chips. Each answer offers the OTHER two modes as a
  * one-tap re-ask, so there's no mode to manage before asking: `quick` is the
@@ -81,6 +71,20 @@ const MODE_ORDER: MageMode[] = ['deep', 'strict', 'quick'];
 
 let idCounter = 0;
 const nextId = () => `mage-${++idCounter}`;
+
+/** Header subtitle reflecting the current surface's answer stance (presentation
+ *  only — the real reveal gate is still server-derived per turn). */
+function subtitleFor(type: MageContextType | undefined): string {
+  switch (type) {
+    case 'exam':
+      return 'Exam mode · answers stay sealed';
+    case 'practice':
+    case 'quiz-question':
+      return 'Concept help · hints, not answers';
+    default:
+      return 'Your study companion';
+  }
+}
 
 /** A persisted message row as returned by `GET /api/mage/messages`. */
 interface ServerMessageRow {
@@ -144,6 +148,7 @@ export function MagePanel() {
   const presentation = presentMageContext(context);
   const contextTitle = context.title?.trim();
   const showContextCard = (context.type ?? 'global') !== 'global' || Boolean(contextTitle);
+  const headerSubtitle = subtitleFor(context.type);
 
   const [messages, setMessages] = useState<PanelMessage[]>([]);
   const [input, setInput] = useState('');
@@ -387,7 +392,11 @@ export function MagePanel() {
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 1190,
+          // Above the immersive quiz shell (z1300) + its source drawer (z1400) so
+          // "Ask Mage" from a checkpoint / exam / practice run opens IN FRONT of
+          // the shell, not behind it. (Phase E — the shell contexts depend on
+          // Mage being reachable; before this it slid in under the cream frame.)
+          zIndex: 1440,
           background: 'rgba(8, 6, 24, 0.55)',
           opacity: isOpen && isPhone ? 1 : 0,
           pointerEvents: isOpen && isPhone ? 'auto' : 'none',
@@ -407,12 +416,14 @@ export function MagePanel() {
           right: 0,
           bottom: 0,
           width: panelWidth,
-          zIndex: 1200,
+          // Rides above the quiz shell (z1300) + source drawer (z1400) — see the
+          // scrim note above. Paired so the panel sits just over its own scrim.
+          zIndex: 1450,
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--surface-container-low)',
           borderLeft: isPhone ? 'none' : '1px solid var(--outline-variant)',
-          boxShadow: '-8px 0 32px rgba(174, 137, 255, 0.06), -2px 0 8px rgba(0, 0, 0, 0.3)',
+          boxShadow: '-10px 0 40px rgba(24, 32, 47, 0.10), -2px 0 10px rgba(24, 32, 47, 0.05)',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
@@ -423,28 +434,57 @@ export function MagePanel() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '11px',
             padding: '12px 14px',
             borderBottom: '1px solid var(--outline-variant)',
             flexShrink: 0,
             background: 'var(--surface-container)',
           }}
         >
-          <Mascot pose="chatting" size={36} idle="none" />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, flex: 1, minWidth: 0 }}>
+          <span
+            aria-hidden
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 40,
+              flexShrink: 0,
+              borderRadius: 12,
+              background: 'var(--mage-lilac-soft)',
+              overflow: 'hidden',
+            }}
+          >
+            <Mascot pose="chatting" size={34} idle="none" />
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  color: 'var(--on-surface)',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Mage
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600, color: 'var(--mage-online)' }}>
+                <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--mage-online)' }} />
+                online
+              </span>
+            </span>
             <span
               style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '16px',
-                fontWeight: 700,
-                color: 'var(--on-surface)',
-                letterSpacing: '-0.01em',
+                fontSize: '11.5px',
+                color: 'var(--on-surface-variant)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              Mage
-            </span>
-            <span style={{ fontSize: '11px', color: 'var(--on-surface-variant)' }}>
-              Your study companion
+              {headerSubtitle}
             </span>
           </div>
           <button
@@ -459,68 +499,7 @@ export function MagePanel() {
           </button>
         </header>
 
-        {/* Context card — shows what Mage is grounded on for the current
-            surface. Hidden on the plain global context. */}
-        {showContextCard && (
-          <div
-            className="mage-context-card"
-            style={{
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '9px 14px',
-              borderBottom: '1px solid var(--outline-variant)',
-              background: 'var(--surface-container-low)',
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '30px',
-                height: '30px',
-                flexShrink: 0,
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--surface-container-high)',
-                color: 'var(--primary)',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                {presentation.icon}
-              </span>
-            </span>
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.25 }}>
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: 'var(--on-surface-variant)',
-                }}
-              >
-                {presentation.label}
-              </span>
-              {contextTitle && (
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'var(--on-surface)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {contextTitle}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Context card now rides at the top of the transcript (scrolls with it). */}
 
         {/* Transcript */}
         <div
@@ -536,6 +515,55 @@ export function MagePanel() {
             gap: '12px',
           }}
         >
+          {showContextCard && (
+            <div
+              style={{
+                flexShrink: 0,
+                background: 'var(--surface-container)',
+                border: '1px solid var(--outline-variant)',
+                borderRadius: 16,
+                boxShadow: 'var(--mage-shadow)',
+                padding: '14px 16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: contextTitle ? 9 : 0 }}>
+                <span
+                  aria-hidden
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 22,
+                    height: 22,
+                    flexShrink: 0,
+                    borderRadius: 999,
+                    background: 'var(--mage-lilac)',
+                    color: 'var(--mage-accent)',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>
+                    {presentation.icon}
+                  </span>
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: 'var(--mage-accent)',
+                  }}
+                >
+                  {presentation.label}
+                </span>
+              </div>
+              {contextTitle && (
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--on-surface)', lineHeight: 1.35 }}>
+                  {contextTitle}
+                </p>
+              )}
+            </div>
+          )}
           {showEmptyState ? (
             <div
               style={{
@@ -565,7 +593,7 @@ export function MagePanel() {
                   ? `Ask about ${contextTitle}, or anything else you’re studying.`
                   : 'Get explanations, quiz yourself, or plan what to study next.'}
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '4px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginTop: '4px' }}>
                 {presentation.chips.map((p) => (
                   <button
                     key={p}
@@ -580,58 +608,64 @@ export function MagePanel() {
             </div>
           ) : (
             <>
-              {messages.map((m) => (
-                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {m.role === 'user' ? (
-                    <MessageBubble role="user" content={m.content} />
-                  ) : (
-                    <GatedAnswer
-                      content={m.content}
-                      gate={m.revealGate ?? 'open'}
-                      notebookId={groundedNotebookId}
-                      onNavigate={navigateTo}
-                    />
-                  )}
-                  {m.role === 'assistant' && (
-                    <SourceFooter
-                      sources={m.sources}
-                      sourceMode={m.sourceMode}
-                      notFoundInMaterial={m.notFoundInMaterial}
-                      onNavigate={navigateTo}
-                    />
-                  )}
-                  {m.role === 'assistant' && m.actions && m.actions.length > 0 && (
-                    <ActionCardList actions={m.actions} onRun={handleAction} />
-                  )}
-                  {/* Phase 9 — re-ask the same question in a different mode. Only
-                      under the latest answer, and only for answers born of a
-                      question (not action-card / aborted turns). */}
-                  {m.role === 'assistant' &&
-                    m.question &&
-                    m.id === lastMessageId &&
-                    switchesIdle && (
-                      <ModeSwitchRow
-                        current={m.mode ?? 'quick'}
-                        onSwitch={(mode) => handleSend(m.question!, mode)}
-                      />
-                    )}
-                </div>
-              ))}
-              {isStreaming &&
-                (revealGate === 'open' ? (
-                  <MessageBubble
-                    role="assistant"
-                    content={streamingText}
-                    streaming
-                    notebookId={groundedNotebookId}
-                    onNavigate={navigateTo}
-                  />
+              {messages.map((m) =>
+                m.role === 'user' ? (
+                  <MessageBubble key={m.id} role="user" content={m.content} />
                 ) : (
-                  // Phase 8 — never paint the live answer text under a gate; show
-                  // the barrier instead (sealed copy, or a "preparing" placeholder
-                  // for hint_only — the Reveal button arrives once the turn settles).
-                  <GateBubble variant={revealGate === 'sealed' ? 'sealed' : 'hint'} streaming />
-                ))}
+                  // Assistant turn — mascot avatar + a column holding the gated
+                  // answer, its source chips, action cards, and the mode-switch row.
+                  <div key={m.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <MageAvatar />
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <GatedAnswer
+                        content={m.content}
+                        gate={m.revealGate ?? 'open'}
+                        notebookId={groundedNotebookId}
+                        onNavigate={navigateTo}
+                      />
+                      <SourceFooter
+                        sources={m.sources}
+                        sourceMode={m.sourceMode}
+                        notFoundInMaterial={m.notFoundInMaterial}
+                        onNavigate={navigateTo}
+                      />
+                      {m.actions && m.actions.length > 0 && (
+                        <ActionCardList actions={m.actions} onRun={handleAction} />
+                      )}
+                      {/* Phase 9 — re-ask the same question in a different mode. Only
+                          under the latest answer, and only for answers born of a
+                          question (not action-card / aborted turns). */}
+                      {m.question && m.id === lastMessageId && switchesIdle && (
+                        <ModeSwitchRow
+                          current={m.mode ?? 'quick'}
+                          onSwitch={(mode) => handleSend(m.question!, mode)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )
+              )}
+              {isStreaming && (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <MageAvatar />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {revealGate === 'open' ? (
+                      <MessageBubble
+                        role="assistant"
+                        content={streamingText}
+                        streaming
+                        notebookId={groundedNotebookId}
+                        onNavigate={navigateTo}
+                      />
+                    ) : (
+                      // Phase 8 — never paint the live answer text under a gate; show
+                      // the barrier instead (sealed copy, or a "preparing" placeholder
+                      // for hint_only — the Reveal button arrives once the turn settles).
+                      <GateBubble variant={revealGate === 'sealed' ? 'sealed' : 'hint'} streaming />
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -674,7 +708,7 @@ export function MagePanel() {
             className="mage-input"
             value={input}
             rows={1}
-            placeholder="Message Mage…"
+            placeholder={showContextCard ? 'Ask Mage about this…' : 'Ask Mage anything…'}
             disabled={isStreaming || building}
             onChange={(e) => {
               setInput(e.target.value);
@@ -691,8 +725,8 @@ export function MagePanel() {
               flex: 1,
               resize: 'none',
               maxHeight: '140px',
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-md)',
+              padding: '10px 16px',
+              borderRadius: '22px',
               border: '1px solid var(--outline-variant)',
               background: 'var(--surface-container-high)',
               color: 'var(--on-surface)',
@@ -743,6 +777,29 @@ export function MagePanel() {
 
       <style>{`
         .mage-panel {
+          /* Cream palette — scoped to the panel so every semantic token it uses
+             resolves to the warm redesign instead of the dark global theme. The
+             panel rides at the document root (outside the AppShell .shell), so it
+             can't inherit those vars; it declares its own here. Children (incl.
+             the confirm overlay) inherit them. */
+          --surface-container-low: #faf7f0;
+          --surface-container: #ffffff;
+          --surface-container-high: #ffffff;
+          --surface-bright: #f6f3ec;
+          --outline: #e4ddcd;
+          --outline-variant: #ece6d8;
+          --on-surface: #18202f;
+          --on-surface-variant: #6b7280;
+          --primary: #7c5cff;
+          --primary-dim: #6a47f4;
+          --on-primary: #ffffff;
+          --error: #c0392b;
+          /* extra cream accents the redesign uses for chips / badges / avatars */
+          --mage-lilac: #ede9ff;
+          --mage-lilac-soft: #f4f1ff;
+          --mage-accent: #4326b8;
+          --mage-online: #1f9d57;
+          --mage-shadow: 0 1px 2px rgba(24, 32, 47, 0.04), 0 8px 22px rgba(24, 32, 47, 0.06);
           transition:
             transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
             opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1);
@@ -756,27 +813,27 @@ export function MagePanel() {
           justify-content: center;
           width: 36px;
           height: 36px;
-          border-radius: var(--radius-full);
+          border-radius: 11px;
           border: none;
-          background: transparent;
-          color: var(--on-surface-variant);
+          background: #f4f0e8;
+          color: var(--on-surface);
           cursor: pointer;
           flex-shrink: 0;
           transition:
             background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
             transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .mage-icon-btn:hover { background: var(--surface-bright); color: var(--on-surface); }
+        .mage-icon-btn:hover { background: #ece6d8; color: var(--on-surface); }
         .mage-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .mage-icon-btn:active { transform: scale(0.92); }
 
         .mage-chip {
-          text-align: left;
-          padding: 10px 14px;
-          border-radius: var(--radius-md);
-          border: 1px solid var(--outline-variant);
-          background: var(--surface-container-high);
-          color: var(--on-surface);
+          text-align: center;
+          padding: 9px 15px;
+          border-radius: 999px;
+          border: none;
+          background: var(--mage-lilac-soft);
+          color: var(--mage-accent);
           font-family: inherit;
           font-size: 13px;
           font-weight: 600;
@@ -785,7 +842,7 @@ export function MagePanel() {
             background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
             transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .mage-chip:hover { background: var(--surface-bright); }
+        .mage-chip:hover { background: var(--mage-lilac); }
         .mage-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .mage-chip:active { transform: translateY(1px); }
 
@@ -825,15 +882,15 @@ export function MagePanel() {
         .mage-source-chip {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          padding: 4px 9px;
+          gap: 6px;
+          padding: 3px 11px 3px 3px;
           max-width: 100%;
-          border-radius: var(--radius-full);
-          border: 1px solid var(--outline-variant);
-          background: var(--surface-container);
-          color: var(--on-surface-variant);
+          border-radius: 999px;
+          border: none;
+          background: var(--mage-lilac-soft);
+          color: var(--on-surface);
           font-family: inherit;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           transition:
@@ -841,12 +898,27 @@ export function MagePanel() {
             color 0.14s cubic-bezier(0.22, 1, 0.36, 1),
             transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .mage-source-chip:hover { background: var(--surface-bright); color: var(--on-surface); }
+        .mage-source-chip:hover { background: var(--mage-lilac); color: var(--on-surface); }
         .mage-source-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .mage-source-chip:active { transform: translateY(1px); }
         .mage-source-chip--static { cursor: default; }
-        .mage-source-chip--static:hover { background: var(--surface-container); color: var(--on-surface-variant); }
+        .mage-source-chip--static:hover { background: var(--mage-lilac-soft); color: var(--on-surface); }
         .mage-source-chip--static:active { transform: none; }
+        .mage-snum {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 22px;
+          height: 22px;
+          padding: 0 5px;
+          border-radius: 7px;
+          background: var(--primary);
+          color: #fff;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          flex-shrink: 0;
+        }
 
         .mage-source-badge {
           display: inline-flex;
@@ -882,8 +954,8 @@ export function MagePanel() {
           height: 26px;
           flex-shrink: 0;
           border-radius: var(--radius-sm);
-          background: var(--surface-container);
-          color: var(--primary);
+          background: var(--mage-lilac-soft);
+          color: var(--mage-accent);
         }
         .mage-gate-title {
           font-family: var(--font-display);
@@ -950,8 +1022,8 @@ export function MagePanel() {
           height: 28px;
           flex-shrink: 0;
           border-radius: var(--radius-sm);
-          background: var(--surface-container);
-          color: var(--primary);
+          background: var(--mage-lilac-soft);
+          color: var(--mage-accent);
         }
 
         .mage-artifact-pill {
@@ -994,11 +1066,11 @@ export function MagePanel() {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          padding: 5px 11px;
-          border-radius: var(--radius-full);
-          border: 1px solid var(--outline-variant);
-          background: transparent;
-          color: var(--on-surface-variant);
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: none;
+          background: var(--mage-lilac-soft);
+          color: var(--mage-accent);
           font-family: inherit;
           font-size: 12px;
           font-weight: 600;
@@ -1008,7 +1080,7 @@ export function MagePanel() {
             color 0.14s cubic-bezier(0.22, 1, 0.36, 1),
             transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .mage-mode-switch:hover { background: var(--surface-bright); color: var(--on-surface); }
+        .mage-mode-switch:hover { background: var(--mage-lilac); color: var(--mage-accent); }
         .mage-mode-switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .mage-mode-switch:active { transform: translateY(1px); }
 
@@ -1109,8 +1181,8 @@ function SourceFooter({
         }`;
         const inner = (
           <>
-            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '14px', flexShrink: 0 }}>
-              {SOURCE_ICON[s.kind]}
+            <span className="mage-snum" aria-hidden>
+              S{s.n}
             </span>
             <span
               style={{
@@ -1394,6 +1466,29 @@ function GateBubble({
   );
 }
 
+/** Small mascot avatar shown beside each assistant message (cream redesign). */
+function MageAvatar() {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 30,
+        height: 30,
+        flexShrink: 0,
+        borderRadius: 9,
+        background: 'var(--mage-lilac-soft)',
+        overflow: 'hidden',
+        marginTop: 2,
+      }}
+    >
+      <Mascot pose="chatting" size={26} idle="none" />
+    </span>
+  );
+}
+
 function MessageBubble({
   role,
   content,
@@ -1418,12 +1513,15 @@ function MessageBubble({
     >
       <div
         style={{
-          maxWidth: '88%',
-          padding: isUser ? '9px 13px' : '10px 13px',
+          maxWidth: isUser ? '88%' : '100%',
+          padding: isUser ? '10px 14px' : '11px 14px',
           borderRadius: 'var(--radius-lg)',
           background: isUser ? 'var(--primary)' : 'var(--surface-container-high)',
           color: isUser ? 'var(--on-primary)' : 'var(--on-surface)',
           border: isUser ? 'none' : '1px solid var(--outline-variant)',
+          boxShadow: isUser
+            ? '0 6px 16px rgba(124, 92, 255, 0.26)'
+            : 'var(--mage-shadow)',
           fontSize: '14px',
           lineHeight: 1.55,
           wordBreak: 'break-word',
@@ -1482,11 +1580,10 @@ function AssistantBody({
     }
     const isQuiz = m[1] === 'quiz_set';
     const setId = m[2];
-    // Only the study pack the thread is homed in can host these legacy sets, so
-    // deep-link only when that id is in context; otherwise show a static pill.
-    const href = notebookId
-      ? `/study-packs/${notebookId}/${isQuiz ? 'quizzes' : 'flashcards'}/${setId}`
-      : undefined;
+    // Quiz sets run in the shared practice player; flashcard sets have no
+    // standalone surface anymore, so only quizzes (with a notebook id) deep-link.
+    const href =
+      notebookId && isQuiz ? `/practice/session/${notebookId}/${setId}` : undefined;
     parts.push(
       <SetMarkerPill
         key={`set-${key++}`}
