@@ -51,7 +51,7 @@ export default function FolderCard({
   const itemCount = [];
   if (folder._count.notebooks > 0) {
     itemCount.push(
-      `${folder._count.notebooks} notebook${folder._count.notebooks !== 1 ? 's' : ''}`
+      `${folder._count.notebooks} study pack${folder._count.notebooks !== 1 ? 's' : ''}`
     );
   }
   if (folder._count.children > 0) {

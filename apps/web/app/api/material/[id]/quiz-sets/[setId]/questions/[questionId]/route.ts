@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const { id: notebookId, setId, questionId } = await params;
 
     const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({ where: { id: setId, notebookId } });
     if (!quizSet) return notFoundResponse('Quiz set not found');
@@ -97,7 +97,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const { id: notebookId, setId, questionId } = await params;
 
     const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({ where: { id: setId, notebookId } });
     if (!quizSet) return notFoundResponse('Quiz set not found');

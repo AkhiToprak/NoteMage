@@ -65,7 +65,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       where: { id: notebookId, userId },
       select: { id: true },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const jobs = await db.importJob.findMany({
       where: { notebookId, userId, sourceFormat: 'video' },
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       where: { id: notebookId, userId },
       select: { id: true },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     // Gemini must be configured — D3 routes video to Gemini regardless of tier.
     const resolved = resolveModel('video-ingest', {});
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       where: { id: sectionId, notebookId },
       select: { id: true },
     });
-    if (!section) return badRequestResponse('Section not found in this notebook');
+    if (!section) return badRequestResponse('Section not found in this study pack');
 
     const fileName =
       typeof body.fileName === 'string' ? body.fileName.trim().slice(0, MAX_FILE_NAME) : '';

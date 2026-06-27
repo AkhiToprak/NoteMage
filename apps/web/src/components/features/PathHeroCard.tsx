@@ -122,8 +122,8 @@ function NoPathCard({ hasPlans }: { hasPlans: boolean }) {
           }}
         >
           {hasPlans
-            ? 'Upload notes into a notebook so NoteMage can fill your path with lessons.'
-            : 'Drop notes into a notebook and NoteMage will turn them into a guided study path.'}
+            ? 'Upload notes into a study pack so NoteMage can fill your path with lessons.'
+            : 'Drop notes into a study pack and NoteMage will turn them into a guided study path.'}
         </p>
       </div>
       <div>

@@ -116,8 +116,8 @@ export function DeletePathDialog({
               }}
             >
               <strong style={{ color: 'var(--on-surface)' }}>{planTitle}</strong> and everything it
-              generated (theory, flashcards, and quizzes) will be permanently deleted. The flashcards
-              and quizzes are also removed from the linked notebook. This can&apos;t be undone.
+              generated (theory, flashcards, and quizzes) will be permanently deleted. This can&apos;t be
+              undone.
             </p>
           </div>
         </div>

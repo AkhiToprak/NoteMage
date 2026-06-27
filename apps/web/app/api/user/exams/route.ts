@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!notebookId) {
-      return badRequestResponse('Notebook ID is required');
+      return badRequestResponse('Study pack ID is required');
     }
 
     // Verify notebook belongs to user
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       where: { id: notebookId, userId },
     });
     if (!notebook) {
-      return badRequestResponse('Notebook not found or does not belong to you');
+      return badRequestResponse('Study pack not found or does not belong to you');
     }
 
     const baseData = {

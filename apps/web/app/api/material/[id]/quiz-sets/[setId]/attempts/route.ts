@@ -61,7 +61,7 @@ export async function POST(
     const notebook = await db.studyContainer.findFirst({
       where: { id: notebookId, userId },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({
       where: { id: setId, notebookId },
@@ -231,7 +231,7 @@ export async function GET(
     const notebook = await db.studyContainer.findFirst({
       where: { id: notebookId, userId },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     // Defensive cap: returns the 100 most-recent attempts (not user-facing
     // pagination), bounding the answers/questions payload.

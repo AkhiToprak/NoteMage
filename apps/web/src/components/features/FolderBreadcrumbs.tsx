@@ -101,7 +101,7 @@ export default function FolderBreadcrumbs({
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
             home
           </span>
-          My Notebooks
+          My Study Packs
         </button>
       </DroppableCrumb>
 

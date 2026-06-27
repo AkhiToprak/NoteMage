@@ -29,7 +29,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
     } else if (examDate < minDate) {
       newErrors.examDate = 'Date must be in the future';
     }
-    if (!notebookId) newErrors.notebookId = 'Notebook is required';
+    if (!notebookId) newErrors.notebookId = 'Study pack is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -263,7 +263,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                     marginBottom: '8px',
                   }}
                 >
-                  Notebook
+                  Study pack
                 </label>
                 <select
                   value={notebookId}
@@ -289,7 +289,7 @@ export default function ExamForm({ notebooks, onSubmit, onClose }: ExamFormProps
                   }}
                 >
                   <option value="" style={{ background: 'var(--surface-container)', color: 'var(--outline)' }}>
-                    Select a notebook...
+                    Select a study pack...
                   </option>
                   {notebooks.map((nb) => (
                     <option

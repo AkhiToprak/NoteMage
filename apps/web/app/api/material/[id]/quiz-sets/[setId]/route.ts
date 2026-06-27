@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const { id: notebookId, setId } = await params;
 
     const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({
       where: { id: setId, notebookId },
@@ -59,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const { id: notebookId, setId } = await params;
 
     const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({ where: { id: setId, notebookId } });
     if (!quizSet) return notFoundResponse('Quiz set not found');
@@ -69,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     if (sectionId !== null && sectionId !== undefined) {
       const section = await db.section.findFirst({ where: { id: sectionId, notebookId } });
-      if (!section) return badRequestResponse('Section not found in this notebook');
+      if (!section) return badRequestResponse('Section not found in this study pack');
     }
 
     const updated = await db.quizSet.update({
@@ -95,7 +95,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const { id: notebookId, setId } = await params;
 
     const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({ where: { id: setId, notebookId } });
     if (!quizSet) return notFoundResponse('Quiz set not found');

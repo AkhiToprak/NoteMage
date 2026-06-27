@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const notebook = await db.studyContainer.findFirst({
       where: { id: notebookId, userId },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const sections = await db.section.findMany({
       where: { notebookId },
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const notebook = await db.studyContainer.findFirst({
       where: { id: notebookId, userId },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const body = await request.json();
     const { title, parentId } = body;
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       const parentSection = await db.section.findFirst({
         where: { id: parentId, notebookId },
       });
-      if (!parentSection) return notFoundResponse('Parent section not found in this notebook');
+      if (!parentSection) return notFoundResponse('Parent section not found in this study pack');
     }
 
     const maxOrder = await db.section.aggregate({

@@ -89,7 +89,7 @@ const COMPARISON_DATA: FeatureCategory[] = [
   {
     category: 'Study Tools',
     features: [
-      { name: 'Notebooks', icon: <NotebookIcon size={18} />, free: '✓', pro: '✓' },
+      { name: 'Study Packs', icon: <NotebookIcon size={18} />, free: '✓', pro: '✓' },
       { name: 'Text Files', icon: <TextFileIcon size={18} />, free: '✓', pro: '✓' },
       { name: 'Canvas Files', icon: <CanvasIcon size={18} />, free: '✓', pro: '✓' },
       { name: 'Flashcard Creator', icon: 'style', free: '✓', pro: '✓' },

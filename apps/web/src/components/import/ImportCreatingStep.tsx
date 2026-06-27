@@ -95,14 +95,14 @@ export default function ImportCreatingStep({
             color: 'var(--on-surface)',
           }}
         >
-          {done ? 'Your notebooks are ready' : 'Creating your notebooks'}
+          {done ? 'Your study packs are ready' : 'Creating your study packs'}
         </h2>
         {!done && (
           <p
             aria-live="polite"
             style={{ margin: 0, fontSize: '13.5px', color: 'var(--on-surface-variant)', lineHeight: 1.5 }}
           >
-            Hang tight — NoteMage is building each notebook from your PDFs.
+            Hang tight — NoteMage is building each study pack from your PDFs.
           </p>
         )}
       </div>
@@ -206,7 +206,7 @@ export default function ImportCreatingStep({
       {done && failed > 0 && (
         <NoticeBox icon="error">
           {failed === total
-            ? "We couldn't import your PDFs. Your notebooks were still created — try importing again from inside one."
+            ? "We couldn't import your PDFs. Your study packs were still created — try importing again from inside one."
             : `${failed} of ${total} PDFs couldn't be imported. The rest are ready.`}
         </NoticeBox>
       )}
@@ -214,7 +214,7 @@ export default function ImportCreatingStep({
       {skipped.length > 0 && (
         <NoticeBox icon="info">
           {skipped.length} PDF{skipped.length === 1 ? '' : 's'} went past your PDF import allowance,
-          so {skipped.length === 1 ? 'its notebook was' : 'their notebooks were'} created empty.
+          so {skipped.length === 1 ? 'its study pack was' : 'their study packs were'} created empty.
         </NoticeBox>
       )}
 

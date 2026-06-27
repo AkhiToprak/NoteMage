@@ -32,7 +32,7 @@ export async function GET(
       where: { id: notebookId, userId },
       select: { id: true },
     });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const [sections, flashcardSets, quizSets, documents] = await Promise.all([
       db.section.findMany({

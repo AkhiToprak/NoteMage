@@ -475,7 +475,7 @@ export const MINDMAP_TOOL: Anthropic.Messages.Tool = {
 export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
   name: 'create_study_plan',
   description:
-    'Create a structured study plan with phases and materials. Use this tool when the user asks you to create, generate, or make a study plan, study schedule, or revision plan from their notebook materials. Each phase has a title, description, duration, and a list of materials to study. For the Learn Path experience (Phase 5), prefer gateStrategy="checkpoint" on every phase and place a quiz_set material as the LAST material of each phase — that quiz becomes the checkpoint that gates the next phase.',
+    'Create a structured study plan with phases and materials. Use this tool when the user asks you to create, generate, or make a study plan, study schedule, or revision plan from their study pack materials. Each phase has a title, description, duration, and a list of materials to study. For the Learn Path experience (Phase 5), prefer gateStrategy="checkpoint" on every phase and place a quiz_set material as the LAST material of each phase — that quiz becomes the checkpoint that gates the next phase.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -522,7 +522,7 @@ export const STUDY_PLAN_TOOL: Anthropic.Messages.Tool = {
                   },
                   referenceId: {
                     type: 'string',
-                    description: 'The exact ID of the resource from the notebook inventory',
+                    description: 'The exact ID of the resource from the study pack inventory',
                   },
                   title: {
                     type: 'string',

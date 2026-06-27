@@ -51,10 +51,10 @@ export async function POST(request: NextRequest) {
     const mode: ImportJobMode = rawMode === 'fast' ? 'fast' : 'rich';
 
     if (!Array.isArray(rawGroups) || rawGroups.length === 0) {
-      return badRequestResponse('No notebooks to create.');
+      return badRequestResponse('No study packs to create.');
     }
     if (rawGroups.length > MAX_GROUPS) {
-      return badRequestResponse(`You can create up to ${MAX_GROUPS} notebooks at once.`);
+      return badRequestResponse(`You can create up to ${MAX_GROUPS} study packs at once.`);
     }
 
     const groups: OrchestratorGroup[] = [];
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       };
       const name = typeof g.name === 'string' ? g.name.trim() : '';
       if (!name || name.length > 100) {
-        return badRequestResponse('Each notebook needs a name of 1–100 characters.');
+        return badRequestResponse('Each study pack needs a name of 1–100 characters.');
       }
       const subject = typeof g.subject === 'string' ? g.subject.trim().slice(0, 100) : '';
       const color = typeof g.color === 'string' && HEX_COLOR.test(g.color) ? g.color : '#8c52ff';

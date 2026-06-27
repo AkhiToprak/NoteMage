@@ -56,15 +56,15 @@ const groupSchema = z.object({
 });
 const responseSchema = z.object({ groups: z.array(groupSchema) });
 
-const SYSTEM_PROMPT = `You organize a student's uploaded study materials into notebooks.
+const SYSTEM_PROMPT = `You organize a student's uploaded study materials into study packs.
 
 You are given a list of PDF files. Each file has an id, a file name, and a short text sample from its first pages.
 
-Group the files into notebooks by academic subject or topic. Rules:
-- Files about the same subject or course go in the same notebook.
-- A file with a clearly distinct topic gets its own notebook.
-- Prefer fewer, well-themed notebooks, but never force unrelated files together.
-- "name" is a concise, human notebook title (e.g. "Organic Chemistry", "World History II").
+Group the files into study packs by academic subject or topic. Rules:
+- Files about the same subject or course go in the same study pack.
+- A file with a clearly distinct topic gets its own study pack.
+- Prefer fewer, well-themed study packs, but never force unrelated files together.
+- "name" is a concise, human study pack title (e.g. "Organic Chemistry", "World History II").
 - "subject" is a single broad subject word when one clearly applies (e.g. "Chemistry", "History", "Mathematics"); otherwise an empty string.
 - Every provided file id must appear in exactly one group.
 

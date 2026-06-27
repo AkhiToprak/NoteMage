@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         const section = await db.section.findFirst({ where: { id: sectionId, notebookId } });
         if (!section) return notFoundResponse('Section not found');
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         const flashcardSet = await db.flashcardSet.findFirst({ where: { id: setId, notebookId } });
         if (!flashcardSet) return notFoundResponse('Flashcard set not found');
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
           select: { id: true, sharedById: true },
         });
         if (!sharedNotebook || sharedNotebook.sharedById !== userId) {
-          return notFoundResponse('Shared notebook not found');
+          return notFoundResponse('Shared study pack not found');
         }
 
         storagePath = `images/shared-${shareId}/${timestamp}-${sanitized}`;
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         storagePath = `documents/${notebookId}/${timestamp}-${sanitized}`;
         bucket = BUCKET_PRIVATE;
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         const section = await db.section.findFirst({ where: { id: sectionId, notebookId } });
         if (!section) return notFoundResponse('Section not found');
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         storagePath = `temp-imports/${userId}/${timestamp}-${sanitized}`;
         bucket = BUCKET_PRIVATE;
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         // The structured importer uploads the raw PDF plus one PNG per
         // page — the random suffix keeps those many near-simultaneous
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-        if (!notebook) return notFoundResponse('Notebook not found');
+        if (!notebook) return notFoundResponse('Study pack not found');
 
         // Native video ingest (Lane 2) downloads this temp file and forwards it
         // to the Gemini Files API. Same per-user temp scope + random suffix as

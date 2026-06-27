@@ -33,7 +33,7 @@ export function getNotificationText(n: Notification): string {
     case 'friend_accepted':
       return `${safeStr(data.username, 'Someone')} accepted your friend request`;
     case 'notebook_sent':
-      return `${safeStr(data.sharedBy, 'Someone')} shared "${safeStr(data.notebookName, 'a notebook')}" with you`;
+      return `${safeStr(data.sharedBy, 'Someone')} shared "${safeStr(data.notebookName, 'a study pack')}" with you`;
     case 'post_upvote':
       return `${safeStr(data.fromUsername, 'Someone')} upvoted your post`;
     case 'post_comment':

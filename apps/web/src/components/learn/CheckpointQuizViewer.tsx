@@ -357,7 +357,7 @@ export default function CheckpointQuizViewer({
         </>
       ) : (
         <p style={{ color: 'var(--error)', fontSize: '14px' }}>
-          This quiz isn&apos;t linked to a notebook yet.
+          This quiz isn&apos;t linked to a study pack yet.
         </p>
       )}
     </QuizPlayerShell>

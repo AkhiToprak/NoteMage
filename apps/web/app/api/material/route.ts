@@ -58,10 +58,10 @@ export async function POST(request: NextRequest) {
     const { name, description, subject, color } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return badRequestResponse('Notebook name is required');
+      return badRequestResponse('Study pack name is required');
     }
     if (name.trim().length > 100) {
-      return badRequestResponse('Notebook name must be 100 characters or less');
+      return badRequestResponse('Study pack name must be 100 characters or less');
     }
     if (description && description.length > 500) {
       return badRequestResponse('Description must be 500 characters or less');

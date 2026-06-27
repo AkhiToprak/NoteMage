@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const { id: notebookId, setId } = await params;
 
     const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
-    if (!notebook) return notFoundResponse('Notebook not found');
+    if (!notebook) return notFoundResponse('Study pack not found');
 
     const quizSet = await db.quizSet.findFirst({
       where: { id: setId, notebookId },

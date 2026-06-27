@@ -62,10 +62,10 @@ export default function ImportOrganizeStep({
             color: 'var(--on-surface)',
           }}
         >
-          Organize your notebooks
+          Organize your study packs
         </h2>
         <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: 'var(--on-surface-variant)' }}>
-          Rename, recolor, or move PDFs between notebooks, then create them.
+          Rename, recolor, or move PDFs between study packs, then create them.
         </p>
       </header>
 
@@ -130,7 +130,7 @@ export default function ImportOrganizeStep({
               {canRemove && (
                 <button
                   type="button"
-                  aria-label="Remove notebook"
+                  aria-label="Remove study pack"
                   onClick={() => onRemoveGroup(group.id)}
                   disabled={committing}
                   style={{
@@ -167,7 +167,7 @@ export default function ImportOrganizeStep({
               type="text"
               value={group.name}
               maxLength={100}
-              placeholder="Notebook name"
+              placeholder="Study pack name"
               onChange={(e) => onRename(group.id, e.target.value)}
               style={{
                 width: '100%',
@@ -275,7 +275,7 @@ export default function ImportOrganizeStep({
                     </span>
                     {groups.length > 1 && (
                       <select
-                        aria-label={`Move ${nameById.get(fileId) ?? 'PDF'} to another notebook`}
+                        aria-label={`Move ${nameById.get(fileId) ?? 'PDF'} to another study pack`}
                         value=""
                         disabled={committing}
                         onChange={(e) => {
@@ -299,7 +299,7 @@ export default function ImportOrganizeStep({
                           .filter((other) => other.id !== group.id)
                           .map((other) => (
                             <option key={other.id} value={other.id}>
-                              {other.name.trim() || 'Untitled notebook'}
+                              {other.name.trim() || 'Untitled study pack'}
                             </option>
                           ))}
                       </select>
@@ -343,7 +343,7 @@ export default function ImportOrganizeStep({
           <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
             add
           </span>
-          Add another notebook
+          Add another study pack
         </button>
       </div>
 
@@ -433,7 +433,7 @@ export default function ImportOrganizeStep({
         >
           {committing
             ? 'Creating…'
-            : `Create ${notebookCount} notebook${notebookCount === 1 ? '' : 's'}`}
+            : `Create ${notebookCount} study pack${notebookCount === 1 ? '' : 's'}`}
         </button>
       </div>
     </div>

@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         where: { id: { in: Array.from(allNotebookIds) }, userId },
       });
       if (owned !== allNotebookIds.size) {
-        return badRequestResponse('One or more notebook IDs are invalid');
+        return badRequestResponse('One or more study pack IDs are invalid');
       }
     }
 
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
     }
     if (!resolvedPrimaryNotebookId) {
       return badRequestResponse(
-        'Create a notebook first — learn paths need somewhere to store generated content.'
+        'Create a study pack first — learn paths need somewhere to store generated content.'
       );
     }
     derivedNotebookIds.add(resolvedPrimaryNotebookId);

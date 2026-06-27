@@ -323,7 +323,7 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
       ...prev,
       {
         id: newId(),
-        name: 'New notebook',
+        name: 'New study pack',
         subject: '',
         color: PALETTE[prev.length % PALETTE.length],
         fileIds: [],
@@ -415,7 +415,7 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         throw new Error(
-          json?.error ?? 'We could not create your notebooks. Please try again.',
+          json?.error ?? 'We could not create your study packs. Please try again.',
         );
       }
 
@@ -432,7 +432,7 @@ export function useMultiImport(options: UseMultiImportOptions = {}) {
       setError(
         err instanceof Error
           ? err.message
-          : 'Something went wrong creating your notebooks.',
+          : 'Something went wrong creating your study packs.',
       );
       setPhase('organize');
     } finally {
