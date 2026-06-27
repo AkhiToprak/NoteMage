@@ -148,11 +148,13 @@ export async function POST(request: NextRequest) {
       ? resolved?.ids.notebookId ?? null
       : null;
 
-    // Prefer an owned in-session chatId that already belongs to this context;
-    // else resume the latest thread for (user, contextKey); else start fresh.
+    // Prefer an explicitly-selected owned chatId (the panel's active thread, incl.
+    // one opened from the history overlay) — honored across surfaces, ownership
+    // scoped by userId; else resume the latest thread for (user, contextKey);
+    // else start fresh.
     let chat =
       typeof chatId === 'string' && chatId.length > 0
-        ? await db.notebookChat.findFirst({ where: { id: chatId, userId, contextKey } })
+        ? await db.notebookChat.findFirst({ where: { id: chatId, userId } })
         : null;
     if (!chat) {
       chat = await db.notebookChat.findFirst({
@@ -241,13 +243,19 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const contextKey = new URL(request.url).searchParams.get('contextKey')?.trim() || 'global';
+    const params = new URL(request.url).searchParams;
+    const explicitChatId = params.get('chatId')?.trim();
+    const contextKey = params.get('contextKey')?.trim() || 'global';
 
-    const chat = await db.notebookChat.findFirst({
-      where: { userId, contextKey },
-      orderBy: { updatedAt: 'desc' },
-      select: { id: true },
-    });
+    // The history overlay loads a specific thread by id (ownership-scoped);
+    // otherwise resume the surface's latest thread for (userId, contextKey).
+    const chat = explicitChatId
+      ? await db.notebookChat.findFirst({ where: { id: explicitChatId, userId }, select: { id: true } })
+      : await db.notebookChat.findFirst({
+          where: { userId, contextKey },
+          orderBy: { updatedAt: 'desc' },
+          select: { id: true },
+        });
     if (!chat) return successResponse({ chatId: null, messages: [] });
 
     // Cap the resume payload to the most recent turns, then restore chronological

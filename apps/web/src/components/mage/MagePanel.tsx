@@ -15,6 +15,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { getMageName } from '@/lib/scholar';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { Mascot } from '@/components/mascot';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -82,8 +84,32 @@ function subtitleFor(type: MageContextType | undefined): string {
     case 'quiz-question':
       return 'Concept help · hints, not answers';
     default:
-      return 'Your study companion';
+      // Global surface: no subtitle — the header shows just the Mage's name.
+      return '';
   }
+}
+
+/** A past Mage conversation, as listed by `GET /api/mage/chats`. */
+interface ChatSummary {
+  id: string;
+  title: string;
+  contextKey: string | null;
+  updatedAt: string;
+}
+
+/** Compact relative time for the history list ("just now", "3h", "2d"). */
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '';
+  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (secs < 60) return 'just now';
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.round(hrs / 24);
+  if (days < 7) return `${days}d`;
+  return `${Math.round(days / 7)}w`;
 }
 
 /** A persisted message row as returned by `GET /api/mage/messages`. */
@@ -132,6 +158,11 @@ export function MagePanel() {
   const { isOpen, close, context, setContext } = useMage();
   const { isPhone } = useBreakpoint();
   const router = useRouter();
+  const { data: session } = useSession();
+  // The Mage's display name follows the user's custom name (Settings → Mage
+  // name), falling back to "Mage". The server already greets/answers under this
+  // name; the header now matches it.
+  const mageDisplayName = getMageName(session?.user?.scholarName);
 
   // Navigate to a deep link (source chip or action card), closing the panel on
   // the way so the route change isn't hidden behind the overlay.
@@ -157,6 +188,10 @@ export function MagePanel() {
   // Phase 7 — true while a confirmed practice session is being assembled
   // (POST /api/mage/practice-sessions). Blocks re-entry + the composer.
   const [building, setBuilding] = useState(false);
+  // Chat history overlay — start a fresh thread or reopen a past one.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [chatsLoading, setChatsLoading] = useState(false);
   const chatIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -305,6 +340,73 @@ export function MagePanel() {
         ...m,
         { id: nextId(), role: 'assistant', content: done.partialText!, revealGate: done.revealGate },
       ]);
+    }
+  };
+
+  // Open the history overlay and (re)load the user's recent conversations.
+  const openHistory = async () => {
+    setHistoryOpen(true);
+    setChatsLoading(true);
+    try {
+      const res = await fetch('/api/mage/chats');
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { chats?: ChatSummary[] } }
+        | null;
+      setChats(json?.data?.chats ?? []);
+    } catch {
+      setChats([]);
+    } finally {
+      setChatsLoading(false);
+    }
+  };
+
+  // Start a brand-new conversation on the current surface. Creates an empty
+  // thread server-side (excluded from history until its first turn) and points
+  // the panel at it, so the next send opens a fresh chat instead of resuming the
+  // surface's latest one.
+  const startNewChat = async () => {
+    if (isStreaming || building) return;
+    turnSeqRef.current += 1; // invalidate any in-flight thread-resume
+    setHistoryOpen(false);
+    setMessages([]);
+    chatIdRef.current = null;
+    try {
+      const res = await fetch('/api/mage/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contextKey }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { id?: string } }
+        | null;
+      if (json?.data?.id) chatIdRef.current = json.data.id;
+    } catch {
+      /* fall back to a fresh-on-next-send thread */
+    }
+    // Mark the surface as loaded so the resume effect doesn't refill the new chat.
+    loadedKeyRef.current = contextKey;
+    inputRef.current?.focus();
+  };
+
+  // Reopen a past conversation from the history overlay. Loads its messages by
+  // id (ownership-scoped) and makes it the active thread; follow-up sends
+  // continue it via the explicit chatId, regardless of the current surface.
+  const openChat = async (id: string) => {
+    if (isStreaming || building) return;
+    turnSeqRef.current += 1;
+    setHistoryOpen(false);
+    try {
+      const res = await fetch(`/api/mage/messages?chatId=${encodeURIComponent(id)}`);
+      const json = (await res.json().catch(() => null)) as
+        | { success?: boolean; data?: { chatId: string | null; messages: ServerMessageRow[] } }
+        | null;
+      if (res.ok && json?.success && json.data) {
+        setMessages(hydrateMessages(json.data.messages ?? []));
+        chatIdRef.current = json.data.chatId ?? id;
+        loadedKeyRef.current = contextKey; // don't let the resume effect clobber it
+      }
+    } catch {
+      /* leave the current transcript as-is on failure */
     }
   };
 
@@ -458,35 +560,57 @@ export function MagePanel() {
             <Mascot pose="chatting" size={34} idle="none" />
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: 'var(--on-surface)',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                Mage
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600, color: 'var(--mage-online)' }}>
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--mage-online)' }} />
-                online
-              </span>
-            </span>
             <span
               style={{
-                fontSize: '11.5px',
-                color: 'var(--on-surface-variant)',
+                fontFamily: 'var(--font-display)',
+                fontSize: '16px',
+                fontWeight: 700,
+                color: 'var(--on-surface)',
+                letterSpacing: '-0.01em',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}
             >
-              {headerSubtitle}
+              {mageDisplayName}
             </span>
+            {headerSubtitle && (
+              <span
+                style={{
+                  fontSize: '11.5px',
+                  color: 'var(--on-surface-variant)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {headerSubtitle}
+              </span>
+            )}
           </div>
+          <button
+            type="button"
+            className="mage-icon-btn"
+            onClick={startNewChat}
+            disabled={isStreaming || building}
+            aria-label="New chat"
+            title="New chat"
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
+              edit_square
+            </span>
+          </button>
+          <button
+            type="button"
+            className="mage-icon-btn"
+            onClick={openHistory}
+            aria-label="Chat history"
+            title="Chat history"
+          >
+            <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
+              history
+            </span>
+          </button>
           <button
             type="button"
             className="mage-icon-btn"
@@ -773,6 +897,58 @@ export function MagePanel() {
             onCancel={() => setPendingAction(null)}
           />
         )}
+
+        {/* Chat history — a simple overlay to start a new chat or reopen an old
+            one. Clicking the scrim or an item closes it. */}
+        {historyOpen && (
+          <div
+            className="mage-history"
+            role="dialog"
+            aria-label="Chat history"
+            onClick={() => setHistoryOpen(false)}
+          >
+            <div className="mage-history-card" onClick={(e) => e.stopPropagation()}>
+              <div className="mage-history-head">
+                <span className="mage-history-title">Your chats</span>
+                <button
+                  type="button"
+                  className="mage-icon-btn"
+                  onClick={() => setHistoryOpen(false)}
+                  aria-label="Close history"
+                >
+                  <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '20px' }}>
+                    close
+                  </span>
+                </button>
+              </div>
+              <button type="button" className="mage-history-new" onClick={startNewChat}>
+                <span className="material-symbols-outlined" aria-hidden style={{ fontSize: '18px' }}>
+                  add
+                </span>
+                New chat
+              </button>
+              <div className="mage-history-list custom-scrollbar">
+                {chatsLoading ? (
+                  <p className="mage-history-empty">Loading…</p>
+                ) : chats.length === 0 ? (
+                  <p className="mage-history-empty">No chats yet. Start one above.</p>
+                ) : (
+                  chats.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="mage-history-item"
+                      onClick={() => openChat(c.id)}
+                    >
+                      <span className="mage-history-item-title">{c.title || 'Untitled chat'}</span>
+                      <span className="mage-history-item-time">{relativeTime(c.updatedAt)}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
 
       <style>{`
@@ -798,7 +974,6 @@ export function MagePanel() {
           --mage-lilac: #ede9ff;
           --mage-lilac-soft: #f4f1ff;
           --mage-accent: #4326b8;
-          --mage-online: #1f9d57;
           --mage-shadow: 0 1px 2px rgba(24, 32, 47, 0.04), 0 8px 22px rgba(24, 32, 47, 0.06);
           transition:
             transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
@@ -826,6 +1001,117 @@ export function MagePanel() {
         .mage-icon-btn:hover { background: #ece6d8; color: var(--on-surface); }
         .mage-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .mage-icon-btn:active { transform: scale(0.92); }
+        .mage-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* Chat history overlay — start a new chat / reopen an old one. */
+        .mage-history {
+          position: absolute;
+          inset: 0;
+          z-index: 20;
+          display: flex;
+          flex-direction: column;
+          background: rgba(24, 32, 47, 0.28);
+          backdrop-filter: blur(2px);
+          padding: 52px 12px 12px;
+          animation: mage-history-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes mage-history-in { from { opacity: 0; } to { opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .mage-history { animation: none; } }
+        .mage-history-card {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          max-height: 100%;
+          background: var(--surface-container);
+          border: 1px solid var(--outline-variant);
+          border-radius: 16px;
+          box-shadow: var(--mage-shadow);
+          overflow: hidden;
+        }
+        .mage-history-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 12px 10px 8px 16px;
+          flex-shrink: 0;
+        }
+        .mage-history-title {
+          font-family: var(--font-display);
+          font-weight: 700;
+          font-size: 15px;
+          color: var(--on-surface);
+        }
+        .mage-history-new {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: 0 12px 8px;
+          padding: 10px 14px;
+          border: none;
+          border-radius: 12px;
+          background: var(--primary);
+          color: var(--on-primary);
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition:
+            background 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-history-new:hover { background: var(--primary-dim); }
+        .mage-history-new:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .mage-history-new:active { transform: translateY(1px); }
+        .mage-history-list {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 2px 8px 10px;
+          overflow-y: auto;
+          min-height: 0;
+        }
+        .mage-history-empty {
+          margin: 0;
+          padding: 18px 8px;
+          text-align: center;
+          font-size: 13px;
+          color: var(--on-surface-variant);
+        }
+        .mage-history-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          width: 100%;
+          text-align: left;
+          padding: 10px 12px;
+          border: none;
+          border-radius: 10px;
+          background: transparent;
+          color: var(--on-surface);
+          font-family: inherit;
+          cursor: pointer;
+          transition: background 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .mage-history-item:hover { background: var(--mage-lilac-soft); }
+        .mage-history-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+        .mage-history-item:active { background: var(--mage-lilac); }
+        .mage-history-item-title {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 13.5px;
+          font-weight: 600;
+        }
+        .mage-history-item-time {
+          flex-shrink: 0;
+          font-size: 11.5px;
+          color: var(--on-surface-variant);
+        }
 
         .mage-chip {
           text-align: center;
