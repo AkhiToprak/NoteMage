@@ -115,7 +115,7 @@ export default function MCRenderer({
           // always reads green even if it was the one selected.
           let bg = 'var(--surface-container-lowest)';
           let borderColor = 'var(--outline-variant)';
-          let textColor = 'var(--on-surface)';
+          const textColor = 'var(--on-surface)';
           let badgeBg = 'var(--nm-primary-light)';
           let badgeColor = 'var(--nm-primary-on-light)';
           let badgeContent: React.ReactNode = letter;
