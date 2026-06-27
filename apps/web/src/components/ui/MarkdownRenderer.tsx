@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { all, createLowlight } from 'lowlight';
+import { common, createLowlight } from 'lowlight';
 import { toHtml } from 'hast-util-to-html';
 import type { Components } from 'react-markdown';
 import {
@@ -14,7 +14,11 @@ import {
   CALLOUT_TYPE_BY_MARKER,
 } from '@/lib/callout-markers';
 
-const lowlight = createLowlight(all);
+// `common` (~37 mainstream grammars) instead of `all` (190+). MarkdownRenderer
+// mounts on every dashboard route via the Mage panel, so the full grammar set was
+// shipping in the hot-path client bundle to highlight languages study content
+// never uses. highlightAuto still covers anything outside the common set.
+const lowlight = createLowlight(common);
 
 /**
  * GitHub-style admonition support for blockquotes.
