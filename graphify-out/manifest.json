@@ -9,11 +9,6 @@
     "ast_hash": "75c261c619056584e7e74f2c351437db",
     "semantic_hash": "75c261c619056584e7e74f2c351437db"
   },
-  "apps/web/src/__tests__/api/user/activity-heatmap-privacy.test.ts": {
-    "mtime": 1782509949.076119,
-    "ast_hash": "3b8f78aec96ec2e643e81ae9a77d3110",
-    "semantic_hash": "3b8f78aec96ec2e643e81ae9a77d3110"
-  },
   "apps/web/src/__tests__/lib/translation-prompt.test.ts": {
     "mtime": 1782509949.0717242,
     "ast_hash": "d7378be817ab854badc44a8b6168623c",
@@ -99,16 +94,6 @@
     "ast_hash": "caadd9d91b39c2372777c85921c4ebd0",
     "semantic_hash": "caadd9d91b39c2372777c85921c4ebd0"
   },
-  "apps/web/src/components/features/ActivityHeatmap.tsx": {
-    "mtime": 1782509949.1499894,
-    "ast_hash": "0f1d83bec5fdb44447141c7887c47521",
-    "semantic_hash": "0f1d83bec5fdb44447141c7887c47521"
-  },
-  "apps/web/src/components/features/DashboardAchievements.tsx": {
-    "mtime": 1782509949.1512177,
-    "ast_hash": "35a9bdea6dea4b5925482181c4dd06fe",
-    "semantic_hash": "35a9bdea6dea4b5925482181c4dd06fe"
-  },
   "apps/web/src/components/features/DashboardGreeting.tsx": {
     "mtime": 1782509949.1503065,
     "ast_hash": "31ff9efd1cb65d9627bc9057d2c9509f",
@@ -144,25 +129,10 @@
     "ast_hash": "394ed69bce4cf6ff9b4a9fa9373da1a3",
     "semantic_hash": ""
   },
-  "apps/web/src/components/features/RecentTrophies.tsx": {
-    "mtime": 1782509949.1492012,
-    "ast_hash": "5cc34d7643fa264615d99aaabd003370",
-    "semantic_hash": "5cc34d7643fa264615d99aaabd003370"
-  },
-  "apps/web/src/components/features/SocialsCard.tsx": {
-    "mtime": 1782509949.15161,
-    "ast_hash": "245a3a969461d4becbf1b1cb39fb40af",
-    "semantic_hash": "245a3a969461d4becbf1b1cb39fb40af"
-  },
   "apps/web/src/components/features/StreakDisplay.tsx": {
     "mtime": 1782509949.1522212,
     "ast_hash": "d625fb43911c2aad415023b8f711bbf9",
     "semantic_hash": "d625fb43911c2aad415023b8f711bbf9"
-  },
-  "apps/web/src/components/features/TrophyShelf.tsx": {
-    "mtime": 1782509949.148099,
-    "ast_hash": "3ab61a2843ba3f55ca978d84930e7465",
-    "semantic_hash": "3ab61a2843ba3f55ca978d84930e7465"
   },
   "apps/web/src/components/icons/CheckpointIcons.tsx": {
     "mtime": 1782509949.1633775,
@@ -484,16 +454,6 @@
     "ast_hash": "cd5a60e8d8ac398d25b3a4f35e1524c2",
     "semantic_hash": "cd5a60e8d8ac398d25b3a4f35e1524c2"
   },
-  "apps/web/src/components/profile/ProfileHero.tsx": {
-    "mtime": 1782509949.162445,
-    "ast_hash": "e80ea18e9d0f706a396ee29329adac68",
-    "semantic_hash": "e80ea18e9d0f706a396ee29329adac68"
-  },
-  "apps/web/src/components/profile/ProfileStatsStrip.tsx": {
-    "mtime": 1782509949.162183,
-    "ast_hash": "f7d33fea440b139749104ca52c4af6c4",
-    "semantic_hash": "f7d33fea440b139749104ca52c4af6c4"
-  },
   "apps/web/src/components/quiz/CodeMirrorEditor.tsx": {
     "mtime": 1782509949.153527,
     "ast_hash": "868132d3965d27c8e85961156603c5c5",
@@ -644,11 +604,6 @@
     "ast_hash": "94bba122d797baf184e31c76018837d6",
     "semantic_hash": "94bba122d797baf184e31c76018837d6"
   },
-  "apps/web/src/components/rework/StudyStats.tsx": {
-    "mtime": 1782509949.1671233,
-    "ast_hash": "d4e701887d6615a2143cd3eb3fbbf7c6",
-    "semantic_hash": "d4e701887d6615a2143cd3eb3fbbf7c6"
-  },
   "apps/web/src/components/rework/TopicChip.tsx": {
     "mtime": 1782509949.1640708,
     "ast_hash": "63c1561a6790298a24f655b528983802",
@@ -658,11 +613,6 @@
     "mtime": 1782509949.1645465,
     "ast_hash": "2e4a862ed9c12fa1670ae2b3923b14ab",
     "semantic_hash": "2e4a862ed9c12fa1670ae2b3923b14ab"
-  },
-  "apps/web/src/components/search/SearchDropdown.tsx": {
-    "mtime": 1782567541.4168909,
-    "ast_hash": "0931bd8b8a4d19b70b241139324b7c8e",
-    "semantic_hash": ""
   },
   "apps/web/src/components/settings/IosUpgradeSheet.tsx": {
     "mtime": 1782509949.1273634,
@@ -824,11 +774,6 @@
     "ast_hash": "3f0b91954edd84302acf89ec4fb36117",
     "semantic_hash": "3f0b91954edd84302acf89ec4fb36117"
   },
-  "apps/web/src/hooks/useSearch.ts": {
-    "mtime": 1782509948.986603,
-    "ast_hash": "79073a59352d319944c63d04ea241e37",
-    "semantic_hash": "79073a59352d319944c63d04ea241e37"
-  },
   "apps/web/src/hooks/useStreamingChat.ts": {
     "mtime": 1782567541.417502,
     "ast_hash": "50e8e45d84ec4258e1fda6fb63cdd5c0",
@@ -848,11 +793,6 @@
     "mtime": 1782509948.9954312,
     "ast_hash": "b20e428f6013d7533cc49debf15176d1",
     "semantic_hash": ""
-  },
-  "apps/web/src/lib/achievement-format.ts": {
-    "mtime": 1782509949.0600054,
-    "ast_hash": "014d1b6f6b4c71c5771485dd4ea9ec61",
-    "semantic_hash": "014d1b6f6b4c71c5771485dd4ea9ec61"
   },
   "apps/web/src/lib/achievements.ts": {
     "mtime": 1782509949.004162,
@@ -1754,11 +1694,6 @@
     "ast_hash": "d355374028f46ab2c8dc8167b649fff7",
     "semantic_hash": "d355374028f46ab2c8dc8167b649fff7"
   },
-  "apps/web/src/types/search.ts": {
-    "mtime": 1782567541.4272046,
-    "ast_hash": "c1648504ab0c66bf006a0a07fc9755db",
-    "semantic_hash": ""
-  },
   "apps/web/app/(admin)/admin/_components/ui.tsx": {
     "mtime": 1782509949.1196187,
     "ast_hash": "ed9e26f5ca694bf814995fff8fbbfeab",
@@ -1843,11 +1778,6 @@
     "mtime": 1782578504.8557851,
     "ast_hash": "27e65186ff7ced3c1e5dca35f7deecb9",
     "semantic_hash": ""
-  },
-  "apps/web/app/(dashboard)/profile/[username]/page.tsx": {
-    "mtime": 1782509949.1137621,
-    "ast_hash": "57b7f721ca4e7508d41327eb1c4d8e4f",
-    "semantic_hash": "57b7f721ca4e7508d41327eb1c4d8e4f"
   },
   "apps/web/app/(dashboard)/profile/page.tsx": {
     "mtime": 1782578999.523604,
@@ -1988,26 +1918,6 @@
     "mtime": 1782509949.2005866,
     "ast_hash": "368f91ff54835293115ab20f7406cee5",
     "semantic_hash": "368f91ff54835293115ab20f7406cee5"
-  },
-  "apps/web/app/api/friends/[id]/route.ts": {
-    "mtime": 1782509949.2228928,
-    "ast_hash": "e21a76fd29ec20d713ad9e600f4cfe8f",
-    "semantic_hash": "e21a76fd29ec20d713ad9e600f4cfe8f"
-  },
-  "apps/web/app/api/friends/request/[id]/route.ts": {
-    "mtime": 1782509949.256413,
-    "ast_hash": "b612500e7a3fe9f83fa4b2f9c91ffad1",
-    "semantic_hash": "b612500e7a3fe9f83fa4b2f9c91ffad1"
-  },
-  "apps/web/app/api/friends/request/route.ts": {
-    "mtime": 1782509949.2554452,
-    "ast_hash": "3fd8ae12bc19ecd727e327671d91bf09",
-    "semantic_hash": "3fd8ae12bc19ecd727e327671d91bf09"
-  },
-  "apps/web/app/api/friends/route.ts": {
-    "mtime": 1782509949.2039926,
-    "ast_hash": "1f037c6d02ecda8d885c8c2002189c58",
-    "semantic_hash": "1f037c6d02ecda8d885c8c2002189c58"
   },
   "apps/web/app/api/import/classify/route.ts": {
     "mtime": 1782509949.2262697,
@@ -2179,21 +2089,6 @@
     "ast_hash": "ce2af97687ebdb1ac87468936032bc04",
     "semantic_hash": "ce2af97687ebdb1ac87468936032bc04"
   },
-  "apps/web/app/api/schools/peers/route.ts": {
-    "mtime": 1782509949.2281272,
-    "ast_hash": "897ea6ec393d812d48f5ece636645fe4",
-    "semantic_hash": "897ea6ec393d812d48f5ece636645fe4"
-  },
-  "apps/web/app/api/schools/search/route.ts": {
-    "mtime": 1782509949.2275577,
-    "ast_hash": "bce8e3ac01934fdf68d141eee26e88dc",
-    "semantic_hash": "bce8e3ac01934fdf68d141eee26e88dc"
-  },
-  "apps/web/app/api/search/route.ts": {
-    "mtime": 1782567541.3951094,
-    "ast_hash": "d75f42ea67cdb0dce8f7a9d441650584",
-    "semantic_hash": ""
-  },
   "apps/web/app/api/telemetry/route.ts": {
     "mtime": 1782509949.2029452,
     "ast_hash": "43b01f8410221d9148d4c32b52d9ed9f",
@@ -2233,11 +2128,6 @@
     "mtime": 1782509949.249839,
     "ast_hash": "ad105e971ac48c3ca93ab87f0ce76804",
     "semantic_hash": "ad105e971ac48c3ca93ab87f0ce76804"
-  },
-  "apps/web/app/api/user/activity-heatmap/route.ts": {
-    "mtime": 1782509949.2519135,
-    "ast_hash": "ccf2ad73f69d1ba82bbfbb82ec4230eb",
-    "semantic_hash": "ccf2ad73f69d1ba82bbfbb82ec4230eb"
   },
   "apps/web/app/api/user/avatar/route.ts": {
     "mtime": 1782509949.2524545,
@@ -2293,11 +2183,6 @@
     "mtime": 1782509949.248682,
     "ast_hash": "a68c10c6e2fc49fe2b0a34059b72cffc",
     "semantic_hash": "a68c10c6e2fc49fe2b0a34059b72cffc"
-  },
-  "apps/web/app/api/user/profile/[username]/route.ts": {
-    "mtime": 1782509949.2573898,
-    "ast_hash": "5ccaea2dc10be8370bf87bcab178fee9",
-    "semantic_hash": "5ccaea2dc10be8370bf87bcab178fee9"
   },
   "apps/web/app/api/user/profile/route.ts": {
     "mtime": 1782509949.2515185,
@@ -2368,11 +2253,6 @@
     "mtime": 1782509949.2538836,
     "ast_hash": "2c2767ca79251b18580d186db1c22e1d",
     "semantic_hash": "2c2767ca79251b18580d186db1c22e1d"
-  },
-  "apps/web/app/api/users/search/route.ts": {
-    "mtime": 1782509949.2551422,
-    "ast_hash": "fa56b9943d94a3ef848e3137622cd3ab",
-    "semantic_hash": "fa56b9943d94a3ef848e3137622cd3ab"
   },
   "apps/web/app/api/waitlist/route.ts": {
     "mtime": 1782509949.1998234,
@@ -84560,8 +84440,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/profile/ProfileView.tsx": {
-    "mtime": 1782579469.029772,
-    "ast_hash": "670346fb2047ac596d0ff3310b2b8039",
+    "mtime": 1782597354.106514,
+    "ast_hash": "f9d2c5b7e0fd8027138923be84a702e4",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/profile/loading.tsx": {
