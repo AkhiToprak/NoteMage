@@ -44,9 +44,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const rawGroups: unknown = (body as { groups?: unknown }).groups;
-    const folderIdRaw = (body as { folderId?: unknown }).folderId;
-    const folderId =
-      typeof folderIdRaw === 'string' && folderIdRaw.length > 0 ? folderIdRaw : null;
     const rawMode = (body as { mode?: unknown }).mode;
     if (rawMode !== undefined && rawMode !== 'fast' && rawMode !== 'rich') {
       return badRequestResponse('mode must be "rich" or "fast"');
@@ -143,15 +140,6 @@ export async function POST(request: NextRequest) {
     }
     const selectedEngine = engineForJob(user.tier, mode);
 
-    // Validate the chosen folder belongs to the caller before any creation.
-    if (folderId) {
-      const folder = await db.notebookFolder.findFirst({
-        where: { id: folderId, userId },
-        select: { id: true },
-      });
-      if (!folder) return badRequestResponse('Folder not found.');
-    }
-
     // Page-budget gate (FREE: lifetime allowance, PRO: monthly). The
     // orchestrator spends `pageBudget` greedily across the PDFs.
     const usage = await checkUsageLimit(userId, 'pdf_import');
@@ -167,7 +155,6 @@ export async function POST(request: NextRequest) {
 
     const result = await runImportOrchestration({
       userId,
-      folderId,
       groups,
       engineName: selectedEngine.name,
       pageBudget,

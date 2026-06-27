@@ -64,102 +64,96 @@ enum GateStrategy {
 // ============================================================================
 
 model User {
-  id                    String    @id @default(cuid())
-  email                 String    @unique
-  name                  String?
-  password              String? // Hashed with bcrypt; null for OAuth-only accounts
+  id                         String             @id @default(cuid())
+  email                      String             @unique
+  name                       String?
+  password                   String? // Hashed with bcrypt; null for OAuth-only accounts
   // Email-confirmation gate for credentials sign-ups. Null = not yet
   // verified → CredentialsProvider.authorize() refuses login (hard block).
   // OAuth accounts are provider-verified, so they're stamped on create.
   // Pre-existing rows were grandfathered (set to createdAt) in the
   // add_email_verification migration so only new signups are gated.
-  emailVerified         DateTime?
-  role                  String    @default("user") // "user" | "admin"
-  banned                Boolean   @default(false) // Banned users cannot log in
-  banReason             String? // Optional reason shown to banned user
-  failedLoginAttempts   Int       @default(0) // Brute-force protection counter
-  lockedAt              DateTime? // Set when account is locked after too many failures
-  dailyGoal             Int       @default(10) // Pages the user wants to write/study per day (kept for backward compat)
+  emailVerified              DateTime?
+  role                       String             @default("user") // "user" | "admin"
+  banned                     Boolean            @default(false) // Banned users cannot log in
+  banReason                  String? // Optional reason shown to banned user
+  failedLoginAttempts        Int                @default(0) // Brute-force protection counter
+  lockedAt                   DateTime? // Set when account is locked after too many failures
+  dailyGoal                  Int                @default(10) // Pages the user wants to write/study per day (kept for backward compat)
   // Personal targets — null = not set
-  dailyStudyMinutesGoal Int?
-  weeklyStudyPlansGoal  Int?
-  weeklyNotesGoal       Int?
-  weeklyChatsGoal       Int?
-  username              String    @unique // 3-20 chars, alphanumeric + underscores only
-  avatarUrl             String? // URL to uploaded avatar image, null = default
-  bio                   String?   @db.VarChar(160) // Short bio, max 160 chars
-  age                   Int?
-  birthDate             DateTime? @db.Date // Date of birth — collected at sign-up for the 13+ age gate
-  location              String?   @db.VarChar(100)
-  school                String?   @db.VarChar(100)
-  lineOfWork            String?   @db.VarChar(100)
-  fieldOfStudy          String?   @db.VarChar(100) // What the user studies — set in the onboarding personalization step
-  instagramHandle       String?   @db.VarChar(30) // Public IG username (no @), shown on Socials bento card
-  linkedinUrl           String?   @db.VarChar(200) // Full LinkedIn profile URL, shown on Socials bento card
-  customGreeting        String?   @db.VarChar(120) // Custom dashboard greeting, null = use random
-  scholarName           String?   @db.VarChar(30) // Custom AI assistant name, null = "Scholar"
-  usernameChanged       Boolean   @default(false) // Set to true when user changes their username
-  profilePrivate        Boolean   @default(false) // If true, only friends see full profile
-  hideAchievements      Boolean   @default(false) // If true, achievements hidden on public profile
-  quizReactionsMode     String    @default("all") // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
-  quizReactionsAudio    Boolean   @default(false) // Opt-in sound effects for quiz reactions
+  dailyStudyMinutesGoal      Int?
+  weeklyStudyPlansGoal       Int?
+  weeklyNotesGoal            Int?
+  weeklyChatsGoal            Int?
+  username                   String             @unique // 3-20 chars, alphanumeric + underscores only
+  avatarUrl                  String? // URL to uploaded avatar image, null = default
+  bio                        String?            @db.VarChar(160) // Short bio, max 160 chars
+  age                        Int?
+  birthDate                  DateTime?          @db.Date // Date of birth — collected at sign-up for the 13+ age gate
+  location                   String?            @db.VarChar(100)
+  school                     String?            @db.VarChar(100)
+  lineOfWork                 String?            @db.VarChar(100)
+  fieldOfStudy               String?            @db.VarChar(100) // What the user studies — set in the onboarding personalization step
+  gradingSystem              String?            @db.VarChar(20) // Grading-system id (see src/lib/grading-systems.ts); set in onboarding, editable in settings; null = not chosen yet
+  instagramHandle            String?            @db.VarChar(30) // Public IG username (no @), shown on Socials bento card
+  linkedinUrl                String?            @db.VarChar(200) // Full LinkedIn profile URL, shown on Socials bento card
+  customGreeting             String?            @db.VarChar(120) // Custom dashboard greeting, null = use random
+  scholarName                String?            @db.VarChar(30) // Custom AI assistant name, null = "Scholar"
+  usernameChanged            Boolean            @default(false) // Set to true when user changes their username
+  profilePrivate             Boolean            @default(false) // If true, only friends see full profile
+  hideAchievements           Boolean            @default(false) // If true, achievements hidden on public profile
+  quizReactionsMode          String             @default("all") // "all" | "minimal" | "off" — Phase 3 mascot reaction engine
+  quizReactionsAudio         Boolean            @default(false) // Opt-in sound effects for quiz reactions
   // Phase 7 — personal learning-path rework achievement stats. Denormalized
   // so achievement gathering reads a single column instead of replaying
   // every QuizAttempt.answers blob. Bumped by the attempts route.
-  maxQuizStreakEver     Int       @default(0) // Longest consecutive-correct run in any single quiz session
-  everHadComeback       Boolean   @default(false) // Has the user ever, in one session, hit ≥3 wrong then ≥5 right?
-  // Path-publishing Layer-4 trust score (P13). Net publication trust:
-  // +1 per approved community path, -penalty per human-rejected one.
-  // Below the autoflag threshold, an L2 "pass" is downgraded to a deep
-  // L3 audit (new authors get extra scrutiny). Can go negative — that's
-  // just "very untrusted". See src/lib/moderation/layer4.ts.
-  publishTrustScore     Int       @default(0)
-  tier                  Tier      @default(FREE)
-  pendingTier           Tier? // Tier to switch to at end of current period (null = no change)
-  subscriptionPeriodEnd DateTime? // When the current billing period ends (null = free / no active period)
+  maxQuizStreakEver          Int                @default(0) // Longest consecutive-correct run in any single quiz session
+  everHadComeback            Boolean            @default(false) // Has the user ever, in one session, hit ≥3 wrong then ≥5 right?
+  tier                       Tier               @default(FREE)
+  pendingTier                Tier? // Tier to switch to at end of current period (null = no change)
+  subscriptionPeriodEnd      DateTime? // When the current billing period ends (null = free / no active period)
   // Which provider currently backs `tier`. Null when FREE. Drives the
   // `source` field of /api/me/entitlement (see src/lib/entitlement.ts).
-  entitlementSource     EntitlementSource? // null = FREE / no active source
-  inGracePeriod         Boolean   @default(false) // dunning / billing-retry window — keep PRO, don't downgrade yet
+  entitlementSource          EntitlementSource? // null = FREE / no active source
+  inGracePeriod              Boolean            @default(false) // dunning / billing-retry window — keep PRO, don't downgrade yet
   // Lemon Squeezy (web/desktop, Merchant of Record).
-  lemonSqueezyCustomerId     String? @unique
-  lemonSqueezySubscriptionId String? @unique
+  lemonSqueezyCustomerId     String?            @unique
+  lemonSqueezySubscriptionId String?            @unique
   // RevenueCat / Apple IAP (iOS). revenueCatAppUserId is set to User.id on
   // logIn so the StoreKit purchase binds to this account; the Apple
   // originalTransactionId is the stable per-Apple-account key used for
   // idempotent restore/transfer handling.
-  revenueCatAppUserId        String? @unique
-  appleOriginalTransactionId String? @unique
-  onboardingComplete    Boolean   @default(false) // false until wizard step 4 is done
+  revenueCatAppUserId        String?            @unique
+  appleOriginalTransactionId String?            @unique
+  onboardingComplete         Boolean            @default(false) // false until wizard step 4 is done
   // Welcome tour state — { step: TutorialStep, completedAt?: ISO, dismissedAt?: ISO }
-  tutorialState         Json      @default("{}")
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  tutorialState              Json               @default("{}")
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
 
   // Core relations
-  notebooks       Notebook[]
-  notebookFolders NotebookFolder[]
+  notebooks       StudyContainer[]
   chatMessages    ChatMessage[]
 
   // Phase 1 — Social relations
-  sentFriendRequests     Friendship[]          @relation("SentFriendRequests")
-  receivedFriendRequests Friendship[]          @relation("ReceivedFriendRequests")
+  sentFriendRequests     Friendship[]            @relation("SentFriendRequests")
+  receivedFriendRequests Friendship[]            @relation("ReceivedFriendRequests")
   notifications          Notification[]
+  // Exam Mode (Phase 6) — DB-backed notification/reminder preferences. At most
+  // one row per user; absence means "all defaults" (opt-in model). See
+  // src/lib/notification-preferences.ts.
+  notificationPreferences UserNotificationPreferences?
   posts                  Post[]
   postVotes              PostVote[]
   postComments           PostComment[]
   commentVotes           CommentVote[]
   pollVotes              PollVote[]
   postVisibility         PostVisibility[]
-  sharedByMe             SharedNotebook[]      @relation("SharedByMe")
-  sharedWithMe           SharedNotebook[]      @relation("SharedWithMe")
+  sharedByMe             SharedNotebook[]        @relation("SharedByMe")
+  sharedWithMe           SharedNotebook[]        @relation("SharedWithMe")
   notebookDownloads      NotebookDownload[]
-  notebookRatings        NotebookRating[]
-  notebookViews          NotebookView[]
   friendActivities       FriendActivity[]
   lastSeenAt             DateTime?
-  notebookComments       NotebookComment[]
-  notebookCommentVotes   NotebookCommentVote[]
   microsoftConnection    MicrosoftConnection?
   studyMinutes           StudyMinute[]
   streak                 UserStreak?
@@ -180,7 +174,7 @@ model User {
   exams                  Exam[]
   todos                  Todo[]
   usageRecords           UsageRecord[]
-  adminAuditLogs         AdminAuditLog[]       @relation("AdminAuditLogs")
+  adminAuditLogs         AdminAuditLog[]         @relation("AdminAuditLogs")
   oauthAccounts          OAuthAccount[]
   // Phase 10 — renamed from checkpointAttempts (CheckpointAttempt was dropped
   // and replaced by AssessmentAttempt scoped to CheckpointSlot).
@@ -192,15 +186,6 @@ model User {
   quizSets               QuizSet[]
   studyPlans             StudyPlan[]
   importJobs             ImportJob[]
-  // Path-publishing (Phase 1) — community-library publishing,
-  // ratings, moderation actorship, and ticket assignment/resolution.
-  sharedPaths            SharedPath[]
-  pathRatings            PathRating[]
-  moderationAudits       ModerationAudit[] @relation("ModerationActor")
-  assignedTickets        Ticket[]          @relation("AssignedTickets")
-  resolvedTickets        Ticket[]          @relation("ResolvedTickets")
-  // Path-publishing Layer-4 (P13) — community reports filed by this user.
-  reportsMade            Report[]          @relation("ReportsMade")
   // Mage Revolution Phase 7 — focused remediation sessions (weak-topic /
   // exam-sim / mistake-review / manual). Each assembles a QuizSet the learner
   // takes through the canonical attempt route.
@@ -254,33 +239,35 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
+model BackgroundJob {
+  id          String    @id @default(cuid())
+  kind        String
+  payload     Json
+  status      String    @default("queued") // queued|running|succeeded|failed
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  runAt       DateTime  @default(now())
+  lockedAt    DateTime?
+  lockedBy    String?
+  lastError   String?   @db.Text
+  dedupeKey   String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, runAt])
+  @@index([lockedAt])
+  @@index([kind, status])
+  @@map("background_jobs")
+}
+
 // ============================================================================
 // NOTEBOOK & DOCUMENT MODELS
 // ============================================================================
 
-model NotebookFolder {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  parentId  String? // null = root level
-  color     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent    NotebookFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children  NotebookFolder[] @relation("FolderTree")
-  notebooks Notebook[]
-
-  @@index([userId])
-  @@index([parentId])
-  @@map("notebook_folders")
-}
-
-model Notebook {
+model StudyContainer {
   id          String   @id @default(cuid())
   userId      String
-  folderId    String? // null = root level (no folder)
   name        String
   description String?
   subject     String? // e.g., "Biology", "History"
@@ -293,55 +280,54 @@ model Notebook {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folder         NotebookFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  documents      Document[]
-  chatMessages   ChatMessage[]
-  chats          NotebookChat[]
-  sections       Section[]
-  shares         SharedNotebook[]
-  flashcardSets  FlashcardSet[]
-  quizSets       QuizSet[]
-  studyPlans     StudyPlan[]
-  exams          Exam[]
-  importJobs     ImportJob[]
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents     Document[]
+  chatMessages  ChatMessage[]
+  chats         NotebookChat[]
+  sections      Section[]
+  shares        SharedNotebook[]
+  flashcardSets FlashcardSet[]
+  quizSets      QuizSet[]
+  studyPlans    StudyPlan[]
+  exams         Exam[]
+  importJobs    ImportJob[]
 
   @@index([userId])
-  @@index([folderId])
   @@map("notebooks")
 }
 
 model ImportJob {
-  id             String   @id @default(cuid())
-  notebookId     String
-  sectionId      String?  // PDF target section; null for OneNote (worker creates many sections)
-  userId         String
-  sourceFormat   String   @default("pdf") // "pdf" | "onenote" | "video"
-  fileName       String
-  engine         String   @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"; video uses "gemini-flash" (model token from resolveModel)
-  mode           String   @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
-  pageTitle      String?  // PDF only: user-chosen title for the created page; null = derive from fileName
-  pageCap        Int
-  status         String   @default("queued") // queued|processing|ready|failed
-  progress       Json?    // { phase, totalPages, processedPages, message }
-  error          String?  @db.Text
-  pdfPath        String?  // PDF only
-  pageImagePaths Json?    // PDF only: string[] temp-imports/ paths
+  id                String    @id @default(cuid())
+  notebookId        String
+  sectionId         String? // PDF target section; null for OneNote (worker creates many sections)
+  userId            String
+  sourceFormat      String    @default("pdf") // "pdf" | "onenote" | "video"
+  fileName          String
+  engine            String    @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"; video uses "gemini-flash" (model token from resolveModel)
+  mode              String    @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
+  pageTitle         String? // PDF only: user-chosen title for the created page; null = derive from fileName
+  pageCap           Int
+  status            String    @default("queued") // queued|processing|ready|failed
+  progress          Json? // { phase, totalPages, processedPages, message }
+  error             String?   @db.Text
+  pdfPath           String? // PDF only
+  pageImagePaths    Json? // PDF only: string[] temp-imports/ paths
   oneNoteSectionIds Json? // OneNote only: string[] of selected section ids
-  videoPath        String?  // Video only: temp-imports/ path for an uploaded video file
-  videoUrl         String?  // Video only: YouTube URL ingested via Gemini fileData.fileUri
-  videoDurationSec Int?     // Video only: probed/estimated duration; drives the minutes meter
-  mediaResolution  String?  @default("low") // Video only: "low" | "default" — token-rate control
-  resultPageId   String?
-  resultSummary  Json?    // OneNote: { sectionsImported, pagesImported, errors[], firstSectionId?, firstPageId? }
-  truncated      Boolean  @default(false)
-  fallbackPages  Int      @default(0)
-  startedAt      DateTime?
-  finishedAt     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  notebook       Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoPath         String? // Video only: temp-imports/ path for an uploaded video file
+  videoUrl          String? // Video only: YouTube URL ingested via Gemini fileData.fileUri
+  videoDurationSec  Int? // Video only: probed/estimated duration; drives the minutes meter
+  mediaResolution   String?   @default("low") // Video only: "low" | "default" — token-rate control
+  resultPageId      String?
+  resultSummary     Json? // OneNote: { sectionsImported, pagesImported, errors[], firstSectionId?, firstPageId? }
+  truncated         Boolean   @default(false)
+  fallbackPages     Int       @default(0)
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  notebook          StudyContainer  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([notebookId])
   @@index([userId, status])
   @@map("import_jobs")
@@ -358,26 +344,12 @@ model Document {
   createdAt   DateTime @default(now())
 
   // Relations
-  notebook      Notebook          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  summaries     DocumentSummary[]
-  sourceRegions SourceRegion[]
+  notebook      StudyContainer          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
   @@map("documents")
 }
 
-model DocumentSummary {
-  id         String   @id @default(cuid())
-  documentId String
-  length     String // "brief" | "detailed"
-  content    String   @db.Text
-  createdAt  DateTime @default(now())
-
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@unique([documentId, length])
-  @@map("document_summaries")
-}
 
 // Citation provenance (Mage Revolution P3) — forward-looking char-range
 // provenance. Maps a region of a source Document (page + optional character
@@ -385,33 +357,20 @@ model DocumentSummary {
 // not just a page number. Nothing populates this in P3; it is additive
 // scaffolding the source-resolution layer (P4) and a precision-aware importer
 // will fill in later.
-model SourceRegion {
-  id         String   @id @default(cuid())
-  documentId String
-  pageNumber Int
-  charStart  Int?
-  charEnd    Int?
-  createdAt  DateTime @default(now())
-
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@index([documentId, pageNumber])
-  @@map("source_regions")
-}
 
 // ============================================================================
 // CHAT & CONVERSATION MODELS
 // ============================================================================
 
 model NotebookChat {
-  id             String   @id @default(cuid())
+  id                 String   @id @default(cuid())
   // Phase 9 — userId is the source of truth for ownership; notebookId is the
   // primary/home notebook (may be null for cross-notebook or inbox-only chats).
-  userId         String
-  notebookId     String?
-  title          String   @default("New Chat")
-  contextPageIds String[] @default([]) // Page IDs from any user-owned notebook fed as context
-  contextDocIds  String[] @default([]) // Document IDs fed as context
+  userId             String
+  notebookId         String?
+  title              String   @default("New Chat")
+  contextPageIds     String[] @default([]) // Page IDs from any user-owned notebook fed as context
+  contextDocIds      String[] @default([]) // Document IDs fed as context
   // Phase 9 — every notebook this chat draws context from (including primary).
   // Used for sidebar grouping and quick "show all chats touching notebook X".
   contextNotebookIds String[] @default([])
@@ -419,13 +378,13 @@ model NotebookChat {
   // panel resumes one persistent conversation per context: 'exam:{id}' >
   // 'path:{id}' > 'notebook:{id}' > 'global' (see `mageContextKey`). Null on
   // legacy notebook chats until backfilled ('notebook:{id}' / 'global').
-  contextKey     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  contextKey         String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook      Notebook?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  notebook      StudyContainer?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   messages      ChatMessage[]
   flashcardSets FlashcardSet[]
   quizSets      QuizSet[]
@@ -456,7 +415,7 @@ model ChatMessage {
   createdAt  DateTime @default(now())
 
   // Relations
-  notebook Notebook?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  notebook StudyContainer?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   chat     NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
@@ -471,16 +430,16 @@ model ChatMessage {
 // ============================================================================
 
 model FlashcardSet {
-  id         String   @id @default(cuid())
+  id           String   @id @default(cuid())
   // Phase 9 — see NotebookChat for the userId/notebookId rationale.
-  userId     String
-  notebookId String?
-  chatId     String?
-  messageId  String? // assistant message that created this set
-  title      String
-  source     String   @default("ai") // "ai" | "manual" | "import" | "quizlet" | "anki"
-  sectionId  String? // optional: link to a notebook section for publishing
-  // Detach path-generated sets from notebook surfaces. Notebook list
+  userId       String
+  notebookId   String?
+  chatId       String?
+  messageId    String? // assistant message that created this set
+  title        String
+  source       String   @default("ai") // "ai" | "manual" | "import" | "quizlet" | "anki"
+  sectionId    String? // optional: link to a notebook section for publishing
+  // Detach path-generated sets from notebook surfaces. StudyContainer list
   // endpoints (`/api/notebooks/[id]/flashcard-sets`, `/inventory`) filter
   // `sourcePathId: null` so a path's generated bundles only show up in
   // the path itself; the FK to StudyPlan is the back-reference the future
@@ -492,16 +451,16 @@ model FlashcardSet {
   // the covering theory's body, rendered by the checkpoint viewer as a collapsed
   // reference panel above the card stack. Set-level (slot-scoped reference
   // graphics, not per-card illustrations). Null/absent when no diagrams apply.
-  diagrams   Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  diagrams     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook   Notebook?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
-  chat       NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  section    Section?      @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  sourcePath StudyPlan?    @relation("PathFlashcardSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
-  flashcards Flashcard[]
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook           StudyContainer?           @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  chat               NotebookChat?       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  section            Section?            @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sourcePath         StudyPlan?          @relation("PathFlashcardSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
+  flashcards         Flashcard[]
   // Phase 10 — back-relation for the unique FK on CheckpointActivity. Null
   // for any set not owned by a checkpoint activity.
   checkpointActivity CheckpointActivity?
@@ -565,31 +524,31 @@ model FlashcardImage {
 // ============================================================================
 
 model QuizSet {
-  id         String   @id @default(cuid())
+  id           String   @id @default(cuid())
   // Phase 9 — see NotebookChat for the userId/notebookId rationale.
-  userId     String
-  notebookId String?
-  chatId     String?
-  messageId  String? // assistant message that created this set
-  title      String
-  sectionId  String? // optional: link to a notebook section
+  userId       String
+  notebookId   String?
+  chatId       String?
+  messageId    String? // assistant message that created this set
+  title        String
+  sectionId    String? // optional: link to a notebook section
   // See FlashcardSet.sourcePathId — same rationale (filter from notebook
   // surfaces, keep `notebookId` for QuizViewer routing).
   sourcePathId String?
   // Path-diagrams revival (Phase 3): PathDiagram[] copied (zero AI tokens) from
   // the covering theory's body, rendered by the checkpoint quiz viewer as a
   // collapsed reference panel above the question list. See FlashcardSet.diagrams.
-  diagrams   Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  diagrams     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook  Notebook?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
-  chat      NotebookChat?  @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  section   Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  sourcePath StudyPlan?    @relation("PathQuizSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
-  questions QuizQuestion[]
-  attempts  QuizAttempt[]
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook           StudyContainer?           @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  chat               NotebookChat?       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  section            Section?            @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sourcePath         StudyPlan?          @relation("PathQuizSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
+  questions          QuizQuestion[]
+  attempts           QuizAttempt[]
   // Phase 10 — back-relation for the unique FK on CheckpointActivity.
   checkpointActivity CheckpointActivity?
 
@@ -617,11 +576,21 @@ model QuizQuestion {
   hint               String? // Optional hint text
   correctExplanation String?      @db.Text // Shown when answer is correct
   wrongExplanation   String?      @db.Text // Shown when answer is wrong
+  // Source provenance (Phase D) — denormalized grounding so the quiz player's
+  // "Show source" reader drawer can highlight the exact passage a question was
+  // community-cloned paths and raw-text paths have no live source row, and the
+  // quote is what we highlight regardless. All nullable — older rows, the
+  // code-generated diagram_cloze, and questions the model couldn't ground stay
+  // null and the player falls back to the path-level source. `sourcePage` is the
+  // approximate 1-based source page (only set for page-imported materials).
+  sourceLabel        String? // Citation label, e.g. the document / page title
+  sourcePage         Int? // 1-based source page/slide, when known
+  sourceQuote        String?      @db.Text // Verbatim grounding passage to highlight
   sortOrder          Int          @default(0)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  quizSet QuizSet      @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
+  quizSet QuizSet            @relation(fields: [quizSetId], references: [id], onDelete: Cascade)
   answers QuizAnswer[]
   // Figure-reuse (P4) — at most one snapshotted exhibit image per question.
   image   QuizQuestionImage?
@@ -701,7 +670,7 @@ model Section {
   updatedAt  DateTime @updatedAt
 
   // Relations
-  notebook      Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook      StudyContainer       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   parent        Section?       @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
   children      Section[]      @relation("SectionTree")
   pages         Page[]
@@ -714,28 +683,25 @@ model Section {
 }
 
 model Page {
-  id          String   @id @default(cuid())
-  sectionId   String
-  title       String   @default("Untitled")
-  pageType    String   @default("text") // "text" (TipTap editor) | "canvas" (infinite canvas)
-  content     Json? // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
-  textContent String? // Plain text mirror for AI context + search
-  drawingData Json? // Array of stroke objects [{points, color, width}]
-  sortOrder   Int      @default(0)
-  sourceDocId String? // Set if this page was imported from a Document
+  id            String   @id @default(cuid())
+  sectionId     String
+  title         String   @default("Untitled")
+  pageType      String   @default("text") // "text" (TipTap editor) | "canvas" (infinite canvas)
+  content       Json? // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
+  textContent   String? // Plain text mirror for AI context + search
+  drawingData   Json? // Array of stroke objects [{points, color, width}]
+  sortOrder     Int      @default(0)
+  sourceDocId   String? // Set if this page was imported from a Document
   // Citation provenance (Mage Revolution P3). The 1-based source PDF page
   // where this imported page's content begins — cheap v1 page-number citation
   // a source chip can render as "Biology.pdf · page 7". Null for pages not
-  // created from a PDF import. Char-range precision lives in SourceRegion.
   sourceDocPage Int? // 1-based start page of the imported PDF content
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   section       Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   images        PageImage[]
-  revisions     PageRevision[]
-  contentAudits PageContentAudit[]
 
   @@index([sectionId])
   @@map("pages")
@@ -767,7 +733,6 @@ model PageImage {
 }
 
 // ----------------------------------------------------------------------------
-// PageRevision — point-in-time snapshots of a page's content.
 //
 // Written by the PUT /pages/[pageId] handler on every successful content
 // update. Kept at ~50 most-recent-per-page by a trigger (see migration).
@@ -778,23 +743,8 @@ model PageImage {
 // Snapshots are stored as JSONB so they compress well and indexing stays
 // cheap. Retention bounds total storage: 50 revisions * N pages.
 // ----------------------------------------------------------------------------
-model PageRevision {
-  id          String   @id @default(cuid())
-  pageId      String
-  title       String
-  content     Json // Full TipTap JSON at snapshot time
-  textContent String? // Plain text mirror at snapshot time
-  createdBy   String? // User id of the save author, if known
-  createdAt   DateTime @default(now())
-
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
-
-  @@index([pageId, createdAt])
-  @@map("page_revisions")
-}
 
 // ----------------------------------------------------------------------------
-// PageContentAudit — tamper-evident audit trail for page.content mutations.
 //
 // Written by the PUT /pages/[pageId] handler BEFORE the actual update, so
 // every attempted write is captured — successful or not. Includes client
@@ -804,24 +754,6 @@ model PageRevision {
 // `result` is 'accepted' | 'refused_empty_overwrite' | 'error'. Failed
 // writes are logged too — that's the whole point.
 // ----------------------------------------------------------------------------
-model PageContentAudit {
-  id              String   @id @default(cuid())
-  pageId          String
-  userId          String?
-  clientIp        String?
-  userAgent       String?
-  incomingIsEmpty Boolean
-  existingIsEmpty Boolean
-  result          String // 'accepted' | 'refused_empty_overwrite' | 'error'
-  errorMessage    String?
-  createdAt       DateTime @default(now())
-
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
-
-  @@index([pageId, createdAt])
-  @@index([result, createdAt])
-  @@map("page_content_audits")
-}
 
 // ============================================================================
 // PHASE 1 — SOCIAL FEATURE MODELS
@@ -830,76 +762,68 @@ model PageContentAudit {
 // --- Study Planning ---
 
 model StudyPlan {
-  id          String   @id @default(cuid())
+  id                     String   @id @default(cuid())
   // Phase 9 — see NotebookChat for the userId/notebookId rationale. A path may
   // draw materials from multiple notebooks; contextNotebookIds tracks them.
-  userId      String
-  notebookId  String?
-  title       String
-  description String?  @db.Text
+  userId                 String
+  notebookId             String?
+  title                  String
+  description            String?  @db.Text
   // The learner's own goals / intent message for this path (the "Study goals"
   // brief from setup, or the manual tab's description + section hints). Stage A
   // already used it to shape the structure; persisted so Stage B reads it back
   // and the requested tone / emphasis / focus / difficulty steer the actual
   // theory, flashcards, and quizzes — not just the curriculum skeleton.
-  learnerBrief String? @db.Text
-  startDate   DateTime
-  endDate     DateTime
-  source      String   @default("manual") // "manual" | "ai"
-  contextNotebookIds String[] @default([])
+  learnerBrief           String?  @db.Text
+  startDate              DateTime
+  endDate                DateTime
+  source                 String   @default("manual") // "manual" | "ai"
+  contextNotebookIds     String[] @default([])
   // Phase 10 — exact material ids (pages / docs / flashcard + quiz sets) the
   // learner picked as source content. Persisted so Stage B can rebuild the
   // same material corpus the structure call was grounded in.
-  materialIds        String[] @default([])
+  materialIds            String[] @default([])
   // Phase 10 — AI generation lifecycle for checkpoint bundles. POST returns
   // immediately with status="generating"; the orchestrator (Phase 10.2) flips
   // it to "ready" once every slot has its theory/flashcards/quiz, or "failed"
   // with a message in generationError. The /generation SSE endpoint tails
   // generationProgress (`{ totalSlots, completedSlots, currentSlot,
   // currentActivity }`).
-  generationStatus   String  @default("ready") // "queued" | "generating" | "ready" | "failed"
-  generationProgress Json?
-  generationError    String? @db.Text
+  generationStatus       String   @default("ready") // "queued" | "generating" | "ready" | "failed"
+  generationProgress     Json?
+  generationError        String?  @db.Text
   // Subject-aware generation (Phase 10.8). Classifier-detected subject
   // buckets ranked by weight; the generator restricts question kinds to
   // each subject's palette. Empty arrays mean the row predates the
   // feature — the orchestrator treats this as `['general']` with weight 1.
-  subjects        String[] @default([])
-  subjectWeights  Float[]  @default([])
+  subjects               String[] @default([])
+  subjectWeights         Float[]  @default([])
   // Ultra path = quizzes generated with the premium model (Pro-only,
   // quota-limited). Persisted because Stage B runs detached and reloads
   // the plan from this row.
-  ultra           Boolean  @default(false)
+  ultra                  Boolean  @default(false)
   // Per-path Gemini override (test toggle). When true, every stage
   // (structure / theory / flashcards / quiz) routes through Gemini
   // regardless of PATH_PROVIDER env vars OR the ultra flag. Default
   // false → behavior unchanged.
-  gemini          Boolean  @default(false)
-  // Path-publishing (Phase 1) — content language of the path. Drives the
-  // wordlist used by moderation L1 and the source side of translation.
-  // Snapshotted into SharedPath.language on publish.
-  language        String   @default("en")
-  // Path-publishing (Phase 1) — analytics anchor pointing at the
-  // SharedPath this plan was cloned from. Null for first-party plans.
-  // SetNull so a clone survives the source publication being deleted.
-  clonedFromSharedPathId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  gemini                 Boolean  @default(false)
+  // Content language of the path (BCP-47 lowercase). Drives the source
+  // side of in-place path translation.
+  language               String   @default("en")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook            Notebook?    @relation(fields: [notebookId], references: [id], onDelete: SetNull)
-  clonedFromSharedPath SharedPath? @relation("PathClones", fields: [clonedFromSharedPathId], references: [id], onDelete: SetNull)
-  phases              StudyPhase[]
-  sharedPaths         SharedPath[]
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook             StudyContainer?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  phases               StudyPhase[]
   // Back-references for FlashcardSet/QuizSet.sourcePathId — used by
   // future "Save to notebook" promote action; SetNull there so deleting
   // the path leaves the bundle behind for the notebook to claim.
-  flashcardSets       FlashcardSet[] @relation("PathFlashcardSets")
-  quizSets            QuizSet[]      @relation("PathQuizSets")
+  flashcardSets        FlashcardSet[] @relation("PathFlashcardSets")
+  quizSets             QuizSet[]      @relation("PathQuizSets")
 
   @@index([userId])
   @@index([notebookId])
-  @@index([clonedFromSharedPathId])
   @@index([contextNotebookIds], type: Gin)
   @@map("study_plans")
 }
@@ -1010,11 +934,11 @@ model CheckpointActivity {
 // the checkpoint drawer (Phase 10.6). Body is TipTap JSON. Not exposed in
 // the notebook tree — only reachable through its CheckpointActivity.
 model TheoryContent {
-  id        String   @id @default(cuid())
+  id        String              @id @default(cuid())
   title     String
   body      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
   activity  CheckpointActivity?
   images    TheoryImage[]
 
@@ -1116,6 +1040,34 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+// Exam Mode (Phase 6) — DB-backed notification/reminder preferences, replacing
+// the old localStorage-only settings. One row per user; a missing row means
+// "all defaults" (opt-in: reminders on, email on). Booleans gate which
+// reminders the cron sweep (src/lib/exam-reminders.ts) creates and emails.
+model UserNotificationPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Exam countdown — "X is in N days" at 7 / 3 / 1 days before the exam.
+  examReminders   Boolean @default(true)
+  // Readiness nudges — when an exam is close and the learner is behind on
+  // weak topics / readiness is low.
+  readinessAlerts Boolean @default(true)
+  // Also deliver the above reminders by email (in addition to in-app).
+  emailReminders  Boolean @default(true)
+  // Marketing / digest channels (UI-managed; no automated sender yet — kept so
+  // the preference survives once those features ship).
+  productUpdates  Boolean @default(true)
+  weeklyReport    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
 }
 
 // --- 1.5 Community Posts ---
@@ -1261,15 +1213,12 @@ model SharedNotebook {
   coverImageUrl String? // Cover image URL
   createdAt     DateTime @default(now())
 
-  notebook   Notebook              @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook   StudyContainer              @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   sharedBy   User                  @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)
   sharedWith User?                 @relation("SharedWithMe", fields: [sharedWithId], references: [id], onDelete: Cascade)
   images     SharedNotebookImage[]
   tags       SharedNotebookTag[]
   downloads  NotebookDownload[]
-  ratings    NotebookRating[]
-  views      NotebookView[]
-  comments   NotebookComment[]
 
   @@index([notebookId])
   @@index([sharedById])
@@ -1335,65 +1284,9 @@ model NotebookDownload {
   @@map("notebook_downloads")
 }
 
-model NotebookRating {
-  id               String   @id @default(cuid())
-  sharedNotebookId String
-  userId           String
-  value            Int // 1-5
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
 
-  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([sharedNotebookId, userId])
-  @@map("notebook_ratings")
-}
 
-model NotebookView {
-  id               String   @id @default(cuid())
-  sharedNotebookId String
-  userId           String
-  createdAt        DateTime @default(now())
-
-  sharedNotebook SharedNotebook @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([sharedNotebookId, userId])
-  @@map("notebook_views")
-}
-
-model NotebookComment {
-  id               String   @id @default(cuid())
-  sharedNotebookId String
-  authorId         String
-  parentCommentId  String?
-  content          String   @db.VarChar(1000)
-  createdAt        DateTime @default(now())
-
-  sharedNotebook SharedNotebook        @relation(fields: [sharedNotebookId], references: [id], onDelete: Cascade)
-  author         User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent         NotebookComment?      @relation("NotebookCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies        NotebookComment[]     @relation("NotebookCommentReplies")
-  votes          NotebookCommentVote[]
-
-  @@index([sharedNotebookId, createdAt])
-  @@index([parentCommentId])
-  @@map("notebook_comments")
-}
-
-model NotebookCommentVote {
-  id        String @id @default(cuid())
-  commentId String
-  userId    String
-  value     Int // 1 = upvote, -1 = downvote
-
-  comment NotebookComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([commentId, userId])
-  @@map("notebook_comment_votes")
-}
 
 model FriendActivity {
   id          String   @id @default(cuid())
@@ -1493,20 +1386,33 @@ model UserCosmetic {
 // ============================================================================
 
 model Exam {
-  id         String   @id @default(cuid())
-  userId     String
-  notebookId String
-  title      String // "Biology Final Exam"
-  examDate   DateTime
-  reminders  Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String
+  notebookId         String
+  title              String // "Biology Final Exam"
+  examDate           DateTime
+  reminders          Boolean  @default(true)
+  // Exam Mode (Phase 0) — the learner's target grade on the 0–100 NEUTRAL scale
+  // (see src/lib/grading-systems.ts; display uses User.gradingSystem). Null = no
+  // target set. Drives "predicted vs target" on the hub + the post-exam report.
+  targetGradeNeutral Float?
+  // Exam Mode (Phase 0) — free-form exam-day format ('written' | 'oral' |
+  // 'practical' | 'mixed' | …). Null = unspecified. Steers mock-exam defaults.
+  format             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook  Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook   StudyContainer        @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   // Mage Revolution Phase 5 — what this exam covers (scoped paths / quiz sets /
   // flashcard sets / pages / documents / sections). Drives deriveExamReadiness.
   scopeItems ExamScopeItem[]
+  // Exam Mode (Phase 0) — AI/deterministic study plans (one active at a time)
+  // and the recorded post-exam result (at most one).
+  studyPlans ExamStudyPlan[]
+  result     ExamResult?
+  // Exam Mode (Phase 3) — timed mock-exam rehearsals run for this exam.
+  mocks      MockExam[]
 
   @@index([userId, examDate])
   @@map("exams")
@@ -1553,6 +1459,120 @@ model PracticeSession {
 
   @@index([userId, createdAt])
   @@map("practice_sessions")
+}
+
+// ============================================================================
+// EXAM MODE — study plans + results (Phase 0 foundations)
+// ============================================================================
+
+// Exam Mode (Phase 0) — an AI- or deterministically-built study plan for one
+// exam. Deliberately named ExamStudyPlan to avoid colliding with the unrelated
+// learning-path `StudyPlan` model above. "Today's plan" = items where
+// scheduledDate = today; the calendar groups items by date. Regenerating builds
+// a fresh row and flips the prior one to `superseded`, so an exam keeps history
+// (only one row stays `active`).
+model ExamStudyPlan {
+  id                 String   @id @default(cuid())
+  examId             String
+  generatedAt        DateTime @default(now())
+  // Days from generation to the exam date the plan was built to cover.
+  horizonDays        Int
+  // Minutes/day the plan budgets the learner — the daily-time slider input.
+  dailyMinutesTarget Int
+  // Mage's "Why this plan" explanation, shown on Today's plan + the calendar.
+  rationale          String   @db.Text
+  status             String   @default("active") // 'active' | 'superseded' | 'archived'
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  exam  Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
+  items ExamStudyPlanItem[]
+
+  @@index([examId, status])
+  @@map("exam_study_plans")
+}
+
+// Exam Mode (Phase 0) — one scheduled task in an ExamStudyPlan. `refType`/`refId`
+// are a bare polymorphic pointer (no FK) at a slot / activity / quiz set the task
+// works through; `weakPoint` / `urgency` / `readinessDelta` let the calendar rank
+// tasks and the hub explain their impact.
+model ExamStudyPlanItem {
+  id             String   @id @default(cuid())
+  planId         String
+  scheduledDate  DateTime @db.Date // the calendar day this task lands on (date-only)
+  // Order within the day. Named sortOrder per the StudyPhase convention; `order`
+  // is a SQL reserved word.
+  sortOrder      Int      @default(0)
+  kind           String // 'theory' | 'flashcards' | 'quiz' | 'mock' | 'review' | 'final_revision'
+  title          String
+  estMinutes     Int      @default(0)
+  status         String   @default("not_started") // 'not_started' | 'in_progress' | 'done'
+  refType        String? // slot | activity | quiz_set | path | flashcard_set | …
+  refId          String?
+  weakPoint      Boolean  @default(false)
+  urgency        Int? // higher = more urgent (sort + "urgent" grouping); null = neutral
+  readinessDelta Float? // estimated readiness gain (0–100 points) from completing this
+
+  createdAt DateTime @default(now())
+
+  plan ExamStudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, scheduledDate, sortOrder])
+  @@map("exam_study_plan_items")
+}
+
+// Exam Mode (Phase 0) — the learner's recorded outcome after sitting the exam.
+// One per exam (examId unique). `gradeNeutral` is on the 0–100 neutral scale
+// (display via User.gradingSystem). `reflection` holds the structured
+// what-went-wrong reasons + Mage's take from the bad-result loop. Drives the
+// report's predicted-vs-actual and the post-exam archive state.
+model ExamResult {
+  id             String   @id @default(cuid())
+  examId         String   @unique
+  gradeNeutral   Float
+  outcome        String   @default("pending") // 'passed' | 'failed' | 'pending'
+  difficultyFelt String? // 'easy' | 'as_expected' | 'tough' | 'very_hard'; null until asked
+  notes          String?  @db.Text
+  reflection     Json?
+  recordedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("exam_results")
+}
+
+// Exam Mode (Phase 3) — one timed mock-exam rehearsal. Reuses the existing
+// PracticeSession(origin='exam_sim') → QuizSet → canonical QuizAttempt grading
+// spine: `practiceSessionId` is the assembly session, `quizSetId` the assembled
+// (sealed) set the learner sits, and `quizAttemptId` the graded attempt once
+// submitted. `config` carries the setup choices (type quick/full/weakness/final,
+// durationSec, questionTypes[], difficulty, hints, topics[], questionCount).
+// `readinessBefore`/`readinessAfter` snapshot deriveExamReadiness at create- and
+// grade-time so the results screen can show the honest readiness delta. The
+// question-navigator flags are ephemeral run-state (no post-submit use) and stay
+// client-side — no extra table. All content pointers are bare columns (no FK) so
+// a mock survives the underlying set/attempt being pruned.
+model MockExam {
+  id                String   @id @default(cuid())
+  examId            String
+  userId            String
+  practiceSessionId String?
+  quizSetId         String?
+  quizAttemptId     String?
+  config            Json
+  readinessBefore   Float?
+  readinessAfter    Float?
+  status            String   @default("ready") // 'assembling' | 'ready' | 'in_progress' | 'completed'
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId, createdAt])
+  @@index([userId, createdAt])
+  @@map("mock_exams")
 }
 
 // ============================================================================
@@ -1757,215 +1777,48 @@ model SecurityEvent {
   @@map("security_events")
 }
 
-// ============================================================================
-// PATH PUBLISHING & COMMUNITY LIBRARY (Phase 1 of path-publishing plan)
-// ============================================================================
-//
-// Mirrors `SharedNotebook` field-for-field where possible. Diverges only where
-// moderation requires extra state (multi-layer audit pipeline, popularity-gated
-// pre-translation, rating aggregates). See:
-//   plans/path-publishing-community-library.md
-//   plans/path-publishing-community-library-p0-spec.md
 
-// A StudyPlan snapshot published to the community library. One current
-// publication per plan (re-publish = delete + insert). Snapshots
-// language/subjects/phaseCount/slotCount at publish time so later edits to
-// the source plan don't retro-mutate the listing.
-model SharedPath {
-  id                    String    @id @default(cuid())
-  planId                String
-  sharedById            String
-  title                 String
-  description           String?   @db.Text
-  coverImageUrl         String?
-  language              String // BCP-47 lowercase, snapshotted from StudyPlan.language
-  subjects              String[]  @default([]) // Snapshotted from StudyPlan.subjects
-  phaseCount            Int       @default(0)
-  slotCount             Int       @default(0)
-  // Moderation state machine (string-enum for compat with existing schema
-  // style). Transitions are tracked row-by-row in ModerationAudit.
-  // "pending" | "auditing_l2" | "auditing_l3" | "flagged_pending_human"
-  //   | "approved" | "rejected"
-  moderationStatus      String    @default("pending")
-  rejectionReason       String?   @db.Text // Composed from ModerationAudit.reasonCode at terminal reject
-  seeded                Boolean   @default(false) // Admin-curated; bypasses L1/L2/L3
-  // Author's publish-time choice (theory-visuals feature): when true, the
-  // clone flow deep-copies embedded theory images; when false it strips the
-  // pathImage nodes from cloned bodies so cloners get no dead image refs.
-  includeImages         Boolean   @default(false)
-  downloadCount         Int       @default(0)
-  viewCount             Int       @default(0)
-  // Denormalized rating aggregates — updated atomically inside the
-  // transaction that mutates PathRating rows. List endpoints read these
-  // directly, no per-row aggregation.
-  ratingAverage         Float?
-  ratingCount           Int       @default(0)
-  approvedAt            DateTime? // Set on transition into "approved"
-  // First time a popular-language fan-out fires for this path. Atomic
-  // guard so concurrent clones crossing POPULARITY_THRESHOLD collapse to
-  // exactly one fan-out. Null = never popularity-gated and never
-  // admin-promoted.
-  popularityTriggeredAt DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+// Onboarding-real-generation P4 — anonymous, pre-signup preview state, kept in
+// its own table (D3) so anonymous data never touches an owned table. Keyed by
+// the httpOnly `nm_anon` cookie (one row per anon session). Holds only the
+// KB-sized corpus slice + the generated preview JSON; the heavy PDF bytes stay
+// client-side in IndexedDB (D2). Materialized into an owned StudyPlan at claim
+// (signup) — the structure is reused verbatim, never regenerated (D8) — then
+// marked `claimed`. Unclaimed rows are swept after `expiresAt` (~48h, P5). No
+// FKs (claimedByUserId is intentionally not a relation, like Ticket.refId) so
+// the table stays isolated; integrity is enforced at the application layer.
+// Pure additive — safe to apply on prod.
+model PendingOnboardingPath {
+  id         String  @id @default(cuid())
+  anonToken  String  @unique
+  sourceKind String // "upload" | "notes" | "link"
+  title      String
+  language   String  @default("en")
+  goal       String? @db.Text
+  intensity  String?
 
-  plan         StudyPlan         @relation(fields: [planId], references: [id], onDelete: Cascade)
-  sharedBy     User              @relation(fields: [sharedById], references: [id], onDelete: Cascade)
-  translations PathTranslation[]
-  audits       ModerationAudit[]
-  ratings      PathRating[]
-  reports      Report[]
-  clones       StudyPlan[]       @relation("PathClones")
+  // The ~10k-char preview slice generation was grounded in (every source kind).
+  cappedCorpus String? @db.Text
+  // Full text for completion — pasted notes / video transcript. PDF = null: its
+  // bytes live client-side, so the full path completes from `cappedCorpus` (the
+  // stored slice) or a post-auth re-upload (the "deeper path" nudge, deferred).
+  fullText     String? @db.Text
 
-  @@unique([planId])
-  @@index([sharedById])
-  @@index([moderationStatus, createdAt])
-  @@index([moderationStatus, language, downloadCount(sort: Desc)])
-  @@index([approvedAt(sort: Desc)])
-  @@index([moderationStatus, ratingAverage(sort: Desc)])
-  @@index([seeded, moderationStatus])
-  @@map("shared_paths")
-}
+  // Preview artifacts as plain JSON (no owned rows until claim): Stage A
+  // structure (PathStructureToolInput), the slot-1 lesson (incl. its TipTap
+  // body, attached as theory at claim), and the 2 warm-up questions.
+  structureJson        Json
+  lessonJson           Json
+  previewQuestionsJson Json
 
-// (sharedPathId, language) cached translation row. The unique constraint is
-// both the read-side cache key and the write-side single-flight lock: the
-// translation flow uses `INSERT … ON CONFLICT DO NOTHING; SELECT` so
-// concurrent first-requesters collapse to exactly one AI call.
-model PathTranslation {
-  id               String   @id @default(cuid())
-  sharedPathId     String
-  language         String // BCP-47 lowercase target code
-  status           String   @default("translating") // "translating" | "ready" | "failed"
-  title            String?
-  description      String?  @db.Text
-  // Translated phases/slots/activities/theory/flashcards/quizzes — the full
-  // translatable surface. Null while translating, populated atomically on
-  // success. Snapshot of SharedPath content at translation time.
-  payload          Json?
-  error            String?  @db.Text // Set when status="failed"
-  provider         String? // Model id (e.g. "gemini-2.5-flash")
-  costUsd          Float    @default(0)
-  tokensIn         Int      @default(0)
-  tokensOut        Int      @default(0)
-  cacheReadTokens  Int      @default(0)
-  cacheWriteTokens Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  status          String  @default("ready") // "ready" | "claimed"
+  claimedByUserId String?
+  claimedPlanId   String?
 
-  sharedPath SharedPath @relation(fields: [sharedPathId], references: [id], onDelete: Cascade)
+  ipHash    String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
-  @@unique([sharedPathId, language])
-  @@index([sharedPathId])
-  @@index([language, createdAt])
-  @@index([status, createdAt])
-  @@map("path_translations")
-}
-
-// Append-only per-layer log of every L1/L2/L3/L4/L5 verdict on a SharedPath.
-// L4 (P13) = post-publish reports + trust-gate auto-flag.
-model ModerationAudit {
-  id               String   @id @default(cuid())
-  sharedPathId     String
-  layer            Int // 1 | 2 | 3 | 4 | 5
-  // Per-layer verdict ranges: L1 "pass"|"reject"; L2 "pass"|"reject"|"flag";
-  // L3 "auto_reject"|"escalate_to_human"; L4 "flag"; L5 "pass"|"reject".
-  verdict          String
-  // Taxonomy: "wordlist.<lang>.<category>" | "l2.<category>"
-  //   | "l3.<category>" | "l4.reports" | "l4.untrusted_author"
-  //   | "l5.<category>"
-  // Categories: adult, hateful, spam, offtopic, low_quality, copyright, other.
-  reasonCode       String?
-  reasoning        String?  @db.Text // Model output (L2/L3) or admin note (L5)
-  actorId          String? // Set for L5; null for L1/L2/L3
-  model            String? // Model id when L2/L3
-  costUsd          Float    @default(0)
-  tokensIn         Int      @default(0)
-  tokensOut        Int      @default(0)
-  cacheReadTokens  Int      @default(0)
-  cacheWriteTokens Int      @default(0)
-  createdAt        DateTime @default(now())
-
-  sharedPath SharedPath @relation(fields: [sharedPathId], references: [id], onDelete: Cascade)
-  actor      User?      @relation("ModerationActor", fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([sharedPathId, createdAt])
-  @@index([layer, verdict, createdAt])
-  @@index([actorId])
-  @@map("moderation_audits")
-}
-
-// 1..5 rating of a SharedPath. Mirrors NotebookRating; one rating per
-// (user, path) via the unique constraint. Aggregates on SharedPath are
-// updated atomically in the same transaction as inserts/updates/deletes.
-model PathRating {
-  id           String   @id @default(cuid())
-  sharedPathId String
-  userId       String
-  value        Int // 1..5; check constraint added in the migration
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  sharedPath SharedPath @relation(fields: [sharedPathId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([sharedPathId, userId])
-  @@index([sharedPathId])
-  @@map("path_ratings")
-}
-
-// Path-publishing Layer 4 (P13) — a community report against an approved
-// SharedPath. One report per (user, path) via the unique constraint
-// (the spam upper-bound, same shape as PathRating). When the distinct
-// count of `open` reports on an approved, non-seeded path crosses
-// REPORT_REMODERATION_THRESHOLD, `runReportAggregation` pulls the path
-// back to `flagged_pending_human` and opens a moderation_review ticket —
-// the post-publish recovery net for content the L1/L2/L3 pipeline let
-// through. Resolved by the human-review (L5) outcome: approve →
-// `dismissed`, reject → `actioned`.
-model Report {
-  id           String   @id @default(cuid())
-  sharedPathId String
-  reporterId   String
-  // Moderation category taxonomy (mirrors L2/L3/L5):
-  // adult | hateful | spam | copyright | offtopic | low_quality | other.
-  reason       String
-  detail       String?  @db.Text // Optional reporter note (capped in the API).
-  status       String   @default("open") // "open" | "actioned" | "dismissed"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  sharedPath SharedPath @relation(fields: [sharedPathId], references: [id], onDelete: Cascade)
-  reporter   User       @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
-
-  @@unique([sharedPathId, reporterId])
-  @@index([sharedPathId, status])
-  @@index([status, createdAt])
-  @@map("reports")
-}
-
-// Generic human-actionable work item. v1 ships only type=moderation_review
-// (L3 escalations). refType/refId is intentionally not a FK so the table
-// stays generic; integrity is enforced at the application layer (open
-// tickets auto-dismiss when the referenced SharedPath is deleted).
-model Ticket {
-  id             String    @id @default(cuid())
-  type           String // v1: "moderation_review"
-  refType        String // v1: "SharedPath"
-  refId          String
-  status         String    @default("open") // "open" | "assigned" | "resolved" | "dismissed"
-  assigneeId     String?
-  resolvedById   String? // Distinct from assignee (may be a different admin)
-  resolvedAt     DateTime?
-  resolutionNote String?   @db.Text
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  assignee   User? @relation("AssignedTickets", fields: [assigneeId], references: [id], onDelete: SetNull)
-  resolvedBy User? @relation("ResolvedTickets", fields: [resolvedById], references: [id], onDelete: SetNull)
-
-  @@index([status, createdAt])
-  @@index([refType, refId])
-  @@index([assigneeId, status])
-  @@index([type, status])
-  @@map("tickets")
+  @@index([expiresAt])
+  @@map("pending_onboarding_paths")
 }

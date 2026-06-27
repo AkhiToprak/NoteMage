@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     // Notebooks → sections (tree) → page titles + plain-text mirror. The page
     // `content` (TipTap JSON) and binary attachments are omitted to keep the
     // export a portable, human-readable text dump rather than a full backup.
-    const notebooks = await db.notebook.findMany({
+    const notebooks = await db.studyContainer.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
       take: TAKE,

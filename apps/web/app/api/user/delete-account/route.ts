@@ -40,7 +40,7 @@ export async function DELETE(request: NextRequest) {
     //    (incomplete GDPR Art.17 erasure). Best-effort — never block deletion on
     //    a storage error.
     try {
-      const notebooks = await db.notebook.findMany({
+      const notebooks = await db.studyContainer.findMany({
         where: { userId },
         select: { id: true, sections: { select: { pages: { select: { id: true } } } } },
       });

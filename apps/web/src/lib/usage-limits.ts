@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { cacheDel, cacheGetOrSet } from '@/lib/redis-cache';
 import { TIERS, getMonthStart, isLifetimeLimit } from '@/lib/tiers';
 import type { FeatureType, TierKey } from '@/lib/tiers';
 
@@ -8,6 +9,16 @@ interface UsageLimitResult {
   limit: number; // -1 = unlimited
   /** True when this tier's budget for the feature is lifetime, not monthly. */
   lifetime: boolean;
+}
+
+const USER_USAGE_SUMMARY_CACHE_TTL_SECONDS = 20;
+
+function userUsageSummaryCacheKey(userId: string): string {
+  return `cache:user-usage-summary:${userId}`;
+}
+
+export async function invalidateUserUsageSummaryCache(userId: string): Promise<void> {
+  await cacheDel(userUsageSummaryCacheKey(userId));
 }
 
 export async function checkUsageLimit(
@@ -104,7 +115,7 @@ export async function reserveUsage(
 
   const lifetime = isLifetimeLimit(tier, featureType);
 
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     // Serialize concurrent reservations for this exact (user, feature). The
     // tagged-template interpolation parameterizes the argument (safe from
     // injection); hashtext() returns int4, which casts to the bigint that
@@ -145,6 +156,9 @@ export async function reserveUsage(
 
     return { allowed: true, used: used + amount, limit, lifetime };
   });
+
+  if (result.allowed) await invalidateUserUsageSummaryCache(userId);
+  return result;
 }
 
 /**
@@ -166,6 +180,7 @@ export async function incrementUsage(
     create: { userId, featureType, month, count: amount },
     update: { count: { increment: amount } },
   });
+  await invalidateUserUsageSummaryCache(userId);
 }
 
 /**
@@ -189,6 +204,7 @@ export async function refundUsage(
     where: { userId_featureType_month: { userId, featureType, month } },
     data: { count: Math.max(0, record.count - amount) },
   });
+  await invalidateUserUsageSummaryCache(userId);
 }
 
 export async function getUserUsageSummary(userId: string) {
@@ -228,4 +244,10 @@ export async function getUserUsageSummary(userId: string) {
     }
     return { featureType: feature, used, limit, lifetime };
   });
+}
+
+export async function getCachedUserUsageSummary(userId: string) {
+  return cacheGetOrSet(userUsageSummaryCacheKey(userId), USER_USAGE_SUMMARY_CACHE_TTL_SECONDS, () =>
+    getUserUsageSummary(userId),
+  );
 }

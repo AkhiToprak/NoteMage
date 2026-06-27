@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('page-image requires notebookId, sectionId, and pageId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         const section = await db.section.findFirst({ where: { id: sectionId, notebookId } });
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('flashcard-image requires notebookId, setId, and cardId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         const flashcardSet = await db.flashcardSet.findFirst({ where: { id: setId, notebookId } });
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('document requires notebookId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         storagePath = `documents/${notebookId}/${timestamp}-${sanitized}`;
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('section-import requires notebookId and sectionId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         const section = await db.section.findFirst({ where: { id: sectionId, notebookId } });
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('flashcard-import requires notebookId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         storagePath = `temp-imports/${userId}/${timestamp}-${sanitized}`;
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('pdf-import requires notebookId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         // The structured importer uploads the raw PDF plus one PNG per
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse('video-import requires notebookId');
         }
 
-        const notebook = await db.notebook.findFirst({ where: { id: notebookId, userId } });
+        const notebook = await db.studyContainer.findFirst({ where: { id: notebookId, userId } });
         if (!notebook) return notFoundResponse('Notebook not found');
 
         // Native video ingest (Lane 2) downloads this temp file and forwards it

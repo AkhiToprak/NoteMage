@@ -32,7 +32,7 @@ export function GET(): NextResponse {
         {
           appID: APP_ID,
           paths: [
-            '/study-packs/*',
+            '/paths/*',
             '/auth/*',
             '/share/*',
             'NOT /api/*',

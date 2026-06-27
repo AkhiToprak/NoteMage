@@ -4,7 +4,8 @@ import { getAuthUserId } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getValidAccessToken } from '@/lib/microsoftAuth';
 import { rateLimit, rateLimitKey } from '@/lib/rate-limit';
-import { runOneNoteImportJob, MAX_ONENOTE_PAGES } from '@/lib/onenote-import/run-job';
+import { MAX_ONENOTE_PAGES } from '@/lib/onenote-import/run-job';
+import { enqueueJob } from '@/lib/background-jobs';
 import {
   createdResponse,
   badRequestResponse,
@@ -19,7 +20,7 @@ import {
 // This replaces the old synchronous importer, which ran the whole
 // section/page/image walk inside the request and timed out on large
 // notebooks. Modeled on `POST /api/notebooks/[id]/pdf-import`: it persists a
-// `queued` ImportJob and fires `runOneNoteImportJob` as a detached promise, so
+// `queued` ImportJob and enqueues the durable OneNote worker, so
 // the request returns at once and the client watches the neutral SSE
 // `/api/import/jobs/[jobId]/progress` route (Phase 3). All the real work — the
 // HTML→Tiptap converter, the SSRF-guarded image download, the image-URL fix,
@@ -52,14 +53,13 @@ export async function POST(request: NextRequest) {
     if (!limit.success) {
       return tooManyRequestsResponse(
         'Too many import requests. Please wait a moment and try again.',
-        limit.retryAfterMs,
+        limit.retryAfterMs
       );
     }
 
     const body = (await request.json().catch(() => ({}))) as OneNoteImportBody;
 
-    const targetNotebookId =
-      typeof body.targetNotebookId === 'string' ? body.targetNotebookId : '';
+    const targetNotebookId = typeof body.targetNotebookId === 'string' ? body.targetNotebookId : '';
     if (!targetNotebookId) return badRequestResponse('targetNotebookId is required');
 
     // Dedupe + drop non-string ids: a duplicate section id would otherwise be
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Notebook ownership — a cheap DB check before the network round-trip below.
-    const notebook = await db.notebook.findFirst({
+    const notebook = await db.studyContainer.findFirst({
       where: { id: targetNotebookId, userId },
       select: { id: true },
     });
@@ -105,11 +105,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Fire-and-forget — `runOneNoteImportJob` never throws; the inner catch is
-    // only here for a synchronous scheduling failure.
-    void runOneNoteImportJob(job.id).catch((err) => {
-      console.error(`[onenote-import] worker crashed for job ${job.id}`, err);
-    });
+    await enqueueJob(
+      'import.onenote',
+      { jobId: job.id },
+      { dedupeKey: `import:onenote:${job.id}` }
+    );
 
     return createdResponse({ jobId: job.id, status: job.status });
   } catch (error) {

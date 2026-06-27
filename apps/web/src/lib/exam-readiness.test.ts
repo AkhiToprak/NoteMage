@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   deriveExamReadiness,
+  deriveWeakAreas,
   PASSIVE_ITEM_WEIGHT,
   type ExamPathReadiness,
   type ExamQuizReadiness,
@@ -182,5 +183,97 @@ describe('deriveExamReadiness — weak topics', () => {
     expect(titles).toEqual(['Cell Respiration', 'Osmosis quiz', 'Photosynthesis']);
     expect(titles).not.toContain('Mastered quiz');
     expect(r.weakTopics[0].source).toEqual({ type: 'path', id: 'p1' });
+  });
+});
+
+describe('deriveWeakAreas — grouping + impact', () => {
+  it('reports nothing for an empty exam', () => {
+    const r = deriveWeakAreas({ paths: [], quizSets: [], passive: [] });
+    expect(r.areas).toHaveLength(0);
+    expect(r.counts).toEqual({ urgent: 0, needs_practice: 0, almost_fixed: 0, total: 0 });
+    expect(r.hasGradedMaterial).toBe(false);
+    expect(r.attempted).toBe(false);
+    expect(r.recoverablePoints).toBe(0);
+  });
+
+  it('bands by mastery vs the pass gate and drops topics at/above the gate', () => {
+    const r = deriveWeakAreas({
+      paths: [],
+      quizSets: [
+        quiz({ id: 'u', title: 'Urgent', bestPercentage: 42 }), // < 50 → urgent
+        quiz({ id: 'n', title: 'Needs', bestPercentage: 58 }), // 50–64 → needs_practice
+        quiz({ id: 'a', title: 'Almost', bestPercentage: 67 }), // 65–69 → almost_fixed
+        quiz({ id: 'ok', title: 'Mastered', bestPercentage: 75 }), // ≥ 70 → excluded
+      ],
+      passive: [],
+    });
+    const byTitle = Object.fromEntries(r.areas.map((a) => [a.title, a.band]));
+    expect(byTitle).toEqual({ Urgent: 'urgent', Needs: 'needs_practice', Almost: 'almost_fixed' });
+    expect(r.areas.some((a) => a.title === 'Mastered')).toBe(false);
+    expect(r.counts.total).toBe(3);
+  });
+
+  it('ranks by readiness impact: a bigger, weaker quiz outranks a small one', () => {
+    const r = deriveWeakAreas({
+      paths: [],
+      quizSets: [
+        quiz({ id: 'big', title: 'Big gap', questionCount: 20, bestPercentage: 30 }),
+        quiz({ id: 'small', title: 'Small gap', questionCount: 4, bestPercentage: 60 }),
+      ],
+      passive: [],
+    });
+    expect(r.areas[0].title).toBe('Big gap');
+    expect(r.areas[0].impact).toBe('high');
+    expect(r.areas[0].impactPoints).toBeGreaterThan(r.areas[1].impactPoints);
+    // recoverablePoints is the sum of every area's impact.
+    const sum = r.areas.reduce((s, a) => s + a.impactPoints, 0);
+    expect(r.recoverablePoints).toBeCloseTo(sum, 6);
+  });
+
+  it('never-attempted scoped quiz is an urgent weak area at 0% (attempted stays false)', () => {
+    const r = deriveWeakAreas({
+      paths: [],
+      quizSets: [quiz({ id: 'q1', title: 'Untouched', bestPercentage: null })],
+      passive: [],
+    });
+    const a = r.areas.find((x) => x.title === 'Untouched')!;
+    expect(a.mastery).toBe(0);
+    expect(a.band).toBe('urgent');
+    expect(r.hasGradedMaterial).toBe(true);
+    expect(r.attempted).toBe(false);
+  });
+
+  it('expands weak path checkpoints and marks the exam attempted', () => {
+    const r = deriveWeakAreas({
+      paths: [
+        path({
+          id: 'p1',
+          readiness: 60,
+          totalCheckpoints: 10,
+          doneCheckpoints: 6,
+          weakCheckpoints: [
+            { title: 'Cell Respiration', pct: 41 },
+            { title: 'Photosynthesis', pct: 68 },
+          ],
+        }),
+      ],
+      quizSets: [],
+      passive: [],
+    });
+    const byTitle = Object.fromEntries(r.areas.map((a) => [a.title, a]));
+    expect(byTitle['Cell Respiration'].band).toBe('urgent');
+    expect(byTitle['Cell Respiration'].sourceType).toBe('path');
+    expect(byTitle['Cell Respiration'].sourceId).toBe('p1');
+    expect(byTitle['Photosynthesis'].band).toBe('almost_fixed');
+    expect(r.attempted).toBe(true);
+  });
+
+  it('drops a quiz already counted via a scoped path (no double counting)', () => {
+    const r = deriveWeakAreas({
+      paths: [path({ id: 'p1', readiness: 80, totalCheckpoints: 10, doneCheckpoints: 8 })],
+      quizSets: [quiz({ id: 'q1', title: 'Owned quiz', bestPercentage: 0, sourcePathId: 'p1' })],
+      passive: [],
+    });
+    expect(r.areas.some((a) => a.sourceId === 'q1')).toBe(false);
   });
 });

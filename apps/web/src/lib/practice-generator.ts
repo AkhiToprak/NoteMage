@@ -31,7 +31,7 @@ import { loadExamReadiness } from './exam-scope';
 import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
 import { QUIZ_FOR_SLOT_TOOL, quizPayloadCatalogFor, type QuizForSlotToolInput } from './ai-tools';
 import { normalizeQuizQuestions } from './path-generator-normalize';
-import { QuizSetV2Schema, type QuestionKind } from '@notemage/shared';
+import { QuizSetV2Schema, QuizSourceSchema, type QuestionKind } from '@notemage/shared';
 import { buildLegacyColumns } from './quiz-grading';
 import { logAiUsage } from './ai-usage';
 import { logTelemetry } from './telemetry-server';
@@ -124,6 +124,8 @@ export function buildPracticeQuizInstructions(kinds: QuestionKind[]): string {
     `Use ONLY these question kinds: ${kinds.join(', ')}. Mix at least two kinds when the material supports it.`,
     'Give each question a short `correctExplanation` and `wrongExplanation` so the learner learns from mistakes.',
     '',
+    'PROVENANCE: when a question is grounded in a specific passage of the SOURCE MATERIALS, attach a `source` object `{ "label": <the "## " section heading the passage came from>, "quote": <a VERBATIM excerpt of <=60 words from that section> }`. Copy the quote word-for-word — never paraphrase or invent one. Omit `source` entirely for any question written from general knowledge.',
+    '',
     quizPayloadCatalogFor(kinds),
   ].join('\n');
 }
@@ -152,7 +154,11 @@ type ValidatedPracticeQuiz = ReturnType<typeof QuizSetV2Schema.parse>;
  * v2 shape → drop any question whose kind is outside {@link PRACTICE_QUIZ_KINDS}.
  * Returns null when nothing usable survives (the caller retries / refunds). Pure.
  */
-export function parsePracticeQuiz(raw: unknown, fallbackTitle: string): ValidatedPracticeQuiz | null {
+export function parsePracticeQuiz(
+  raw: unknown,
+  fallbackTitle: string,
+  allowKinds: readonly QuestionKind[] = PRACTICE_QUIZ_KINDS,
+): ValidatedPracticeQuiz | null {
   const r = (raw ?? {}) as { title?: unknown; questions?: unknown };
   const normalized = normalizeQuizQuestions(r.questions);
   const parsed = QuizSetV2Schema.safeParse({
@@ -160,8 +166,12 @@ export function parsePracticeQuiz(raw: unknown, fallbackTitle: string): Validate
     questions: normalized,
   });
   if (!parsed.success) return null;
-  const allow = new Set<QuestionKind>(PRACTICE_QUIZ_KINDS);
-  const questions = parsed.data.questions.filter((q) => allow.has(q.kind));
+  // Intersect the requested kinds with the always-safe practice set so a mock
+  // can never widen the gradable surface beyond the four reliable kinds.
+  const safe = new Set<QuestionKind>(PRACTICE_QUIZ_KINDS);
+  const allow = new Set<QuestionKind>([...allowKinds].filter((k) => safe.has(k)));
+  const effective = allow.size > 0 ? allow : safe;
+  const questions = parsed.data.questions.filter((q) => effective.has(q.kind));
   if (questions.length === 0) return null;
   return { ...parsed.data, questions };
 }
@@ -173,6 +183,13 @@ export function practiceQuestionRows(
 ): Prisma.QuizQuestionCreateWithoutQuizSetInput[] {
   return questions.map((q, i) => {
     const legacy = buildLegacyColumns(q.kind, q.payload);
+    // Phase E — validate the loose `source` separately (mirrors the path
+    // generator's drop policy): a malformed or general-knowledge source becomes
+    // null rather than failing the question. The runner's Sources card + reader
+    // drawer light up only when a verbatim quote survived.
+    const rawSource = (q as { source?: unknown }).source;
+    const parsedSource = rawSource == null ? null : QuizSourceSchema.safeParse(rawSource);
+    const source = parsedSource && parsedSource.success ? parsedSource.data : null;
     return {
       kind: q.kind,
       payload: q.payload as unknown as Prisma.InputJsonValue,
@@ -182,6 +199,9 @@ export function practiceQuestionRows(
       hint: q.hint ?? null,
       correctExplanation: q.correctExplanation ?? null,
       wrongExplanation: q.wrongExplanation ?? null,
+      sourceLabel: source?.label ?? null,
+      sourcePage: source?.page ?? null,
+      sourceQuote: source?.quote ?? null,
       sortOrder: i,
     };
   });
@@ -346,7 +366,7 @@ export async function loadExamSimFocus(userId: string, examId: string): Promise<
 /** manual origin: the in-context study pack (+ missed answers on an open quiz) or path. */
 export async function loadManualFocus(userId: string, ids: MageContextIds): Promise<PracticeFocus | null> {
   if (ids.notebookId) {
-    const nb = await db.notebook.findFirst({
+    const nb = await db.studyContainer.findFirst({
       where: { id: ids.notebookId, userId },
       select: { name: true },
     });
@@ -418,12 +438,12 @@ const PRACTICE_NOTEBOOK_COLOR = '#7c6cf0';
  * route resolve it by id so the set is fully playable + gradable.
  */
 export async function getOrCreatePracticeNotebook(userId: string): Promise<string> {
-  const existing = await db.notebook.findFirst({
+  const existing = await db.studyContainer.findFirst({
     where: { userId, kind: 'practice' },
     select: { id: true },
   });
   if (existing) return existing.id;
-  const created = await db.notebook.create({
+  const created = await db.studyContainer.create({
     data: { userId, name: PRACTICE_NOTEBOOK_NAME, color: PRACTICE_NOTEBOOK_COLOR, kind: 'practice' },
     select: { id: true },
   });
@@ -446,13 +466,26 @@ export async function assemblePracticeQuiz(opts: {
   title: string;
   count: number;
   origin: PracticeOrigin;
+  /** Restrict to a subset of the safe practice kinds (Phase 3 mock setup lets the
+   *  learner choose). Defaults to all four; always intersected with the safe set. */
+  kinds?: readonly QuestionKind[];
+  /** Appended to the dynamic (uncached) tail — e.g. a mock's difficulty steer. */
+  extraInstruction?: string;
 }): Promise<ValidatedPracticeQuiz> {
-  const staticInstructions = buildPracticeQuizInstructions(PRACTICE_QUIZ_KINDS);
-  const baseTail = buildPracticeFocusTail({
-    focusTopics: opts.focusTopics,
-    count: opts.count,
-    subject: opts.subject,
-  });
+  const safe = new Set<QuestionKind>(PRACTICE_QUIZ_KINDS);
+  const requested = (opts.kinds ?? PRACTICE_QUIZ_KINDS).filter((k) => safe.has(k));
+  const kinds: QuestionKind[] = requested.length > 0 ? requested : PRACTICE_QUIZ_KINDS;
+  const staticInstructions = buildPracticeQuizInstructions(kinds);
+  const baseTail = [
+    buildPracticeFocusTail({
+      focusTopics: opts.focusTopics,
+      count: opts.count,
+      subject: opts.subject,
+    }),
+    opts.extraInstruction?.trim() ? opts.extraInstruction.trim() : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
   const corpus = opts.corpus && opts.corpus.trim().length > 0 ? opts.corpus : null;
 
   const usage = {
@@ -493,7 +526,7 @@ export async function assemblePracticeQuiz(opts: {
         userMessage: 'Generate the practice quiz now. The questions array must not be empty.',
         onUsage,
       });
-      parsed = parsePracticeQuiz(raw, opts.title);
+      parsed = parsePracticeQuiz(raw, opts.title, kinds);
     } catch (err) {
       logTelemetry(opts.userId, 'mage.practice.retry', {
         origin: opts.origin,

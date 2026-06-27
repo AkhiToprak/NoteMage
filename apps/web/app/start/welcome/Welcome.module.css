@@ -1,0 +1,117 @@
+/* Hallmark · Figma "W01 Welcome" (node 14:410) — the no-source onboarding entry.
+ * A standalone splash (no rail): topbar + 2-col hero (copy left, illustration
+ * right). Mobile stacks the illustration over centred copy with a pinned CTA.
+ */
+
+.root {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background: #faf7f0;
+  color: #18202f;
+  color-scheme: light;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 48px 80px 0; }
+.logo { display: inline-flex; }
+.logo img { height: 38px; width: auto; display: block; }
+.topActions { display: flex; align-items: center; gap: 28px; }
+.login { font-size: 17px; font-weight: 600; color: #6b7280; text-decoration: none; transition: color 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+.login:hover { color: #18202f; }
+.getStarted {
+  display: inline-flex; align-items: center; height: 56px; padding: 0 34px; border-radius: 16px;
+  background: #7c5cff; color: #fff; font-size: 17px; font-weight: 600; text-decoration: none;
+  box-shadow: 0 12px 28px rgba(124, 92, 255, 0.34);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.getStarted:hover { transform: translateY(-2px); background: #8d70ff; box-shadow: 0 18px 36px rgba(124, 92, 255, 0.42); }
+
+.hero {
+  flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center;
+  max-width: 1560px; width: 100%; margin: 0 auto; padding: 24px 80px 80px;
+}
+.heroText { max-width: 600px; }
+.h1 { font-size: clamp(38px, 4.6vw, 62px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; color: #18202f; margin: 0; overflow-wrap: anywhere; }
+.sub { font-size: clamp(18px, 1.4vw, 20px); line-height: 1.5; color: #6b7280; margin: 26px 0 0; max-width: 580px; }
+.ctaRow { display: flex; align-items: center; gap: 28px; margin-top: 44px; flex-wrap: wrap; }
+.cta {
+  display: inline-flex; align-items: center; height: 62px; padding: 0 38px; border: 0; border-radius: 18px;
+  background: #7c5cff; color: #fff; font-family: inherit; font-size: 18px; font-weight: 600; cursor: pointer; text-decoration: none;
+  box-shadow: 0 12px 28px rgba(124, 92, 255, 0.34);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cta:hover { transform: translateY(-2px); background: #8d70ff; box-shadow: 0 18px 36px rgba(124, 92, 255, 0.42); }
+.demo { display: inline-flex; align-items: center; gap: 12px; background: none; border: 0; font-family: inherit; font-size: 17px; font-weight: 600; color: #7c5cff; cursor: pointer; }
+.demo:hover { color: #4326b8; }
+.demoIcon { width: 36px; height: 36px; border-radius: 18px; background: #ede9ff; display: grid; place-items: center; color: #4326b8; font-size: 12px; }
+
+/* ─────────── illustration ─────────── */
+.illustration { position: relative; width: 440px; height: 440px; justify-self: center; }
+.illoInner { position: absolute; top: 0; left: 0; width: 440px; height: 440px; }
+.blob1 { position: absolute; left: 0; top: 0; width: 440px; height: 440px; background: #ede9ff; border-radius: 120px; }
+.blob2 { position: absolute; left: 50px; top: 50px; width: 340px; height: 340px; background: #e3dcff; opacity: 0.7; border-radius: 96px; }
+.illoMascot { position: absolute; left: 40px; top: 20px; width: 360px; height: auto; display: block; }
+
+.paper {
+  position: absolute; width: 104px; height: 134px; background: #fff; border: 1.2px solid #ece6d8; border-radius: 16px;
+  overflow: hidden; box-shadow: 0 3px 8px rgba(26, 19, 48, 0.05), 0 14px 34px rgba(58, 46, 102, 0.13);
+}
+.paperHead { position: absolute; left: 0; top: 0; width: 104px; height: 26px; background: #ede9ff; }
+.paperLine { position: absolute; left: 17px; height: 6px; border-radius: 3px; background: #e0d9c9; }
+.pl1 { top: 45px; width: 64px; } .pl2 { top: 61px; width: 72px; } .pl3 { top: 77px; width: 48px; } .pl4 { top: 93px; width: 60px; }
+.paperA { left: -60px; top: 56px; transform: rotate(-13deg); }
+.paperB { left: 362px; top: 70px; transform: rotate(12deg); }
+.paperC { left: -51px; top: 280px; transform: rotate(9deg); }
+
+.illoSpk { position: absolute; line-height: 0; pointer-events: none; animation: w1Twinkle 3s ease-in-out infinite alternate both; }
+.illoSpk svg { display: block; }
+.spkA { left: 420px; top: 11px; } .spkA svg { width: 34px; height: 34px; transform: rotate(-15deg); }
+.spkB { left: -30px; top: 40px; } .spkB svg { width: 22px; height: 22px; }
+.spkC { left: 430px; top: 273px; } .spkC svg { width: 20px; height: 20px; transform: rotate(-20deg); }
+.spkD { left: 0px; top: 260px; } .spkD svg { width: 16px; height: 16px; }
+.spkE { left: 230px; top: -34px; } .spkE svg { width: 26px; height: 26px; transform: rotate(-10deg); }
+.illoSpk svg path[fill="#FFC83D"] { filter: drop-shadow(0 0 7px rgba(255, 200, 61, 0.4)); }
+@keyframes w1Twinkle { from { opacity: 0.55; transform: scale(0.86); } to { opacity: 1; transform: scale(1); } }
+
+/* On large screens, scale the illustration up to fill more of the canvas. Gated
+   to ≥1400px so the fixed-size illustration doesn't squeeze the text column on
+   mid-width laptops (where the 2-col grid is tighter). */
+@media (min-width: 1400px) {
+  .illustration { width: 520px; height: 520px; }
+  .illoInner { transform: scale(1.182); transform-origin: top left; }
+}
+
+/* mobile pinned CTA (desktop hidden) */
+.mobileCta { display: none; }
+
+@media (max-width: 900px) {
+  .topbar { justify-content: center; padding: 22px 20px 0; }
+  .topActions { display: none; }
+  .hero {
+    grid-template-columns: minmax(0, 1fr); gap: 8px; text-align: center; justify-items: center;
+    padding: 8px 20px 120px;
+  }
+  .heroText { order: 2; width: 100%; max-width: 100%; }
+  .illustration { order: 1; width: 290px; height: 290px; margin: -8px auto -16px; }
+  .illoInner { transform: scale(0.659); transform-origin: top left; }
+  .sub { margin-left: auto; margin-right: auto; }
+  .ctaRow { display: none; } /* replaced by the pinned CTA */
+
+  .mobileCta {
+    display: block; position: sticky; bottom: 0; z-index: 5;
+    padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
+    background: #faf7f0; border-top: 1px solid #ece6d8;
+  }
+  .mobileCta .cta { width: 100%; justify-content: center; height: 54px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illoSpk { animation: none; opacity: 0.9; }
+  .cta, .getStarted { transition: none; }
+}

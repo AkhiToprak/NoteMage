@@ -5,8 +5,8 @@
 //   Stage A — `generatePathStructure(opts)`
 //     One AI call returns the curriculum spine (sections + slots). Pure
 //     function: NO database writes. Phase 10.3's `POST /api/learn/paths`
-//     persists the plan + empty slots transactionally and then kicks off
-//     Stage B as a fire-and-forget.
+//     persists the plan + empty slots transactionally and then queues
+//     Stage B as a durable background job.
 //
 //   Stage B — `generatePath(planId)`
 //     Reads the persisted plan, walks every slot sequentially, fires
@@ -69,11 +69,13 @@ export { resolveFlashcardFigures, resolveQuizFigures };
 import { refundUsage } from './usage-limits';
 import {
   QuizSetV2Schema,
+  QuizSourceSchema,
   TheorySectionSchema,
   PathDiagramSchema,
   TheoryFigureSchema,
   DIAGRAM_CLOZE_MASK,
   type QuestionKind,
+  type QuizQuestionSource,
   type TheorySection,
   type PathDiagram,
   type DiagramClozePayload,
@@ -91,11 +93,7 @@ import {
   normalizeTheoryInput,
   type NormalizedFlashcardsInput,
 } from './path-generator-normalize';
-import {
-  allowedKindsForSubjects,
-  coerceSubjectIds,
-  type SubjectId,
-} from './path-subjects';
+import { allowedKindsForSubjects, coerceSubjectIds, type SubjectId } from './path-subjects';
 import {
   expectedActivityKinds,
   isTheoryTooThinForFlashcards,
@@ -103,13 +101,17 @@ import {
 } from './path-slot-activities';
 import { normalizePathLanguage, type PathLanguageCode } from './path-languages';
 import { CANCELLING_STATUS, deletePathCascade } from './path-loader';
+import { invalidateDashboardCache } from './dashboard-data';
 
 // ─────────────────────────────────────────────────────────────────────
 // Public types
 // ─────────────────────────────────────────────────────────────────────
 
 export interface GeneratePathStructureOpts {
-  userId: string;
+  /** Owning user, or `null` for the anonymous onboarding preview (no real user
+   *  yet). Drives telemetry + the AiUsageEvent row; null persists cleanly
+   *  (AiUsageEvent.userId is nullable, no FK). */
+  userId: string | null;
   /** User-provided path title — the AI may refine it. */
   title: string;
   /** Optional brief from the user (intent, focus, …). */
@@ -130,6 +132,22 @@ export interface GeneratePathStructureOpts {
   gemini?: boolean;
   /** Author-selected content language (BCP-47). Defaults to English. */
   language?: PathLanguageCode;
+  /**
+   * PREVIEW mode (onboarding-real-generation P2). When set, generate a SHORT
+   * taster: the Stage A prompt is bounded to a single section of ~`previewMaxSlots`
+   * learning slots, the result is trimmed to one phase capped at that many raw
+   * slots BEFORE `enforceSpacedReviews` interleaves the review + assessment, and
+   * model routing goes through the `path-preview` feature (Sonnet by default,
+   * D4) rather than the cheap full-path structure model. Omit for the full path.
+   */
+  previewMaxSlots?: number;
+  /**
+   * Override the feature tag on the AiUsageEvent + telemetry this call records
+   * (default `'path-structure'`). The anonymous preview passes `'path-preview'`
+   * so its Stage-A spend is rolled up with the rest of the preview's calls
+   * rather than masquerading as a full-path structure call.
+   */
+  usageFeature?: string;
 }
 
 export type GeneratedPathStructure = PathStructureToolInput;
@@ -423,7 +441,7 @@ interface TheoryVisuals {
 export function theoryInputToTipTap(
   input: TheoryCore,
   language: PathLanguageCode = 'en',
-  visuals?: TheoryVisuals,
+  visuals?: TheoryVisuals
 ): TipTapDoc {
   const labels = THEORY_SECTION_LABELS[language] ?? THEORY_SECTION_LABELS.en;
   const content: TipTapNode[] = [];
@@ -460,7 +478,7 @@ export function theoryInputToTipTap(
  * generator can build cards from exactly what the learner just read — which
  * keeps the card count honest (no padding from the bare topic hint).
  */
-function theoryPlainText(input: TheoryCore): string {
+export function theoryPlainText(input: TheoryCore): string {
   const parts: string[] = [];
   if (input.introduction.trim()) parts.push(input.introduction.trim());
   if (input.keyPoints.length > 0) {
@@ -483,8 +501,9 @@ function theoryPlainText(input: TheoryCore): string {
  * owns the transactional plan + phases + empty slots write.
  */
 export async function generatePathStructure(
-  opts: GeneratePathStructureOpts,
+  opts: GeneratePathStructureOpts
 ): Promise<GeneratedPathStructure> {
+  const preview = typeof opts.previewMaxSlots === 'number' && opts.previewMaxSlots > 0;
   const ctx: PathStructureContext = {
     title: opts.title,
     brief: opts.brief,
@@ -492,6 +511,7 @@ export async function generatePathStructure(
     subjects: opts.subjects,
     subjectWeights: opts.subjectWeights,
     language: opts.language ?? 'en',
+    maxNodes: preview ? opts.previewMaxSlots : undefined,
   };
   const { system, tail } = buildPathStructurePrompt(ctx);
   const meter = emptyMeter();
@@ -520,6 +540,10 @@ export async function generatePathStructure(
         staticInstructions: system,
         dynamicInstructions: attemptTail,
         anthropicTool: PATH_STRUCTURE_TOOL,
+        // Preview routes Stage A through `path-preview` (Sonnet); the full path
+        // keeps the cheap `path-structure` model. Provider override (plan.gemini)
+        // still wins inside the resolver.
+        featureOverride: preview ? 'path-preview' : undefined,
         userMessage: `Design the path "${opts.title}".`,
         providerOverride: opts.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(meter, u),
@@ -547,6 +571,14 @@ export async function generatePathStructure(
     throw new Error(`Path structure generation failed: ${lastDetail}`);
   }
 
+  // Preview: hard-cap to a single short section BEFORE enforcement. The model is
+  // already asked for a tight section, but trim defensively so a cheap model that
+  // over-produces can't blow the node budget. enforceSpacedReviews then adds the
+  // review + trailing assessment, landing the final count ~previewMaxSlots + 2.
+  if (preview) {
+    trimStructureForPreview(structure, opts.previewMaxSlots as number);
+  }
+
   // Rebuild each section to interleave spaced-repetition `review` slots and
   // guarantee a trailing graded `assessment`. The prompt asks for this but the
   // model reliably falls back to a wall of learning slots + one assessment, so
@@ -556,11 +588,33 @@ export async function generatePathStructure(
     usage: meter,
     cost: computeCost(meter.perModel),
   });
-  reportMeterUsage(meter, 'path-structure', opts.userId);
+  reportMeterUsage(meter, opts.usageFeature ?? 'path-structure', opts.userId);
   return structure;
 }
 
 type StructureSlot = GeneratedPathStructure['phases'][number]['slots'][number];
+
+/**
+ * Preview-mode (onboarding) structure trim. Keep only the first section and cap
+ * its slots at `maxSlots`, dropping a trailing model-authored `assessment` from
+ * the kept window so `enforceSpacedReviews` re-synthesizes a clean one over the
+ * surviving learning slots (its `covers` indices are recomputed there anyway).
+ * Pure node-count guard — runs BEFORE enforcement.
+ */
+function trimStructureForPreview(structure: GeneratedPathStructure, maxSlots: number): void {
+  if (structure.phases.length === 0) return;
+  structure.phases = structure.phases.slice(0, 1);
+  const phase = structure.phases[0];
+  const cap = Math.max(1, maxSlots);
+  if (phase.slots.length > cap) {
+    phase.slots = phase.slots.slice(0, cap);
+  }
+  // If trimming left the section ending on an `assessment`, drop it — a short
+  // preview wants its learning slots; enforceSpacedReviews adds the checkpoint.
+  while (phase.slots.length > 1 && phase.slots[phase.slots.length - 1].kind === 'assessment') {
+    phase.slots = phase.slots.slice(0, -1);
+  }
+}
 
 /**
  * Stage A reliably emits a wall of `learning` slots and a single trailing
@@ -600,9 +654,7 @@ function enforceSpacedReviews(structure: GeneratedPathStructure): void {
         existing.kind = 'review';
         review = existing;
       } else {
-        const titles = covered
-          .map((i) => rebuilt[i]?.title)
-          .filter((t): t is string => Boolean(t));
+        const titles = covered.map((i) => rebuilt[i]?.title).filter((t): t is string => Boolean(t));
         const last = titles[titles.length - 1];
         const label = last ? `Review: ${last}` : 'Review & Practice';
         review = {
@@ -788,7 +840,7 @@ function attachFigureStats(plan: PlanForGeneration, stats: FigureStats): void {
 /** Fold one resolver result into the plan's accumulator (no-op if unattached). */
 function recordFigureResolution(
   plan: PlanForGeneration,
-  resolution: FigureResolution<unknown>,
+  resolution: FigureResolution<unknown>
 ): void {
   const s = plan.figureStats;
   if (!s) return;
@@ -835,8 +887,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   }
   // Legacy rows without subjects fall back to `general`.
   const resolvedSubjects: SubjectId[] = subjects.length > 0 ? subjects : ['general'];
-  const resolvedWeights: number[] =
-    subjects.length > 0 ? subjectWeights : [1];
+  const resolvedWeights: number[] = subjects.length > 0 ? subjectWeights : [1];
 
   // Rebuild the same material corpus Stage A used so every Stage B activity
   // call is grounded in the learner's content. If a material was deleted
@@ -900,7 +951,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     }
   }
   const catalogImageCount = availableImages.filter(
-    (i) => i.caption && i.caption.trim().length > 0,
+    (i) => i.caption && i.caption.trim().length > 0
   ).length;
 
   return {
@@ -942,14 +993,14 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
             .map((a) => a.kind)
             .filter(
               (k): k is 'theory' | 'flashcards' | 'quiz' =>
-                k === 'theory' || k === 'flashcards' || k === 'quiz',
-            ),
+                k === 'theory' || k === 'flashcards' || k === 'quiz'
+            )
         ),
         prunedActivityKinds: new Set(
           (Array.isArray(s.prunedActivityKinds) ? s.prunedActivityKinds : []).filter(
             (k): k is 'theory' | 'flashcards' | 'quiz' =>
-              k === 'theory' || k === 'flashcards' || k === 'quiz',
-          ),
+              k === 'theory' || k === 'flashcards' || k === 'quiz'
+          )
         ),
       })),
     })),
@@ -972,7 +1023,7 @@ function pendingSlotCount(plan: PlanForGeneration): number {
   for (const phase of plan.phases) {
     for (const slot of phase.slots) {
       const missing = expectedActivityKinds(slot.kind).filter(
-        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
+        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k)
       );
       if (missing.length > 0) n += 1;
     }
@@ -984,7 +1035,7 @@ function makeSlotContentContext(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
-  theoryText?: string,
+  theoryText?: string
 ): SlotContentContext {
   // Build the "review of" pool — the earlier slots a checkpoint consolidates.
   // Each entry is rendered as "Title — what it taught" so Stage B tests the
@@ -1059,7 +1110,7 @@ function makeSlotContentContext(
  */
 export function resolveFigures(
   rawFigures: unknown,
-  available: SourceImage[],
+  available: SourceImage[]
 ): FigureResolution<{ image: SourceImage; caption: string }> {
   const accepted: { image: SourceImage; caption: string }[] = [];
   const rejected: FigureRejection[] = [];
@@ -1100,7 +1151,7 @@ export function resolveFigures(
  */
 export function resolveDiagrams(
   rawDiagrams: unknown,
-  meta?: { userId: string | null; planId: string; slotId: string },
+  meta?: { userId: string | null; planId: string; slotId: string }
 ): PathDiagram[] {
   if (!Array.isArray(rawDiagrams)) return [];
   const out: PathDiagram[] = [];
@@ -1291,7 +1342,7 @@ function maskableElements(diagram: PathDiagram): MaskableElement[] {
  */
 export function buildDiagramClozeQuestion(
   diagrams: PathDiagram[],
-  language: PathLanguageCode,
+  language: PathLanguageCode
 ): { kind: 'diagram_cloze'; question: string; payload: DiagramClozePayload } | null {
   if (!Array.isArray(diagrams) || diagrams.length === 0) return null;
 
@@ -1363,7 +1414,7 @@ export function buildDiagramClozeQuestion(
  */
 async function resolveDiagramsForSet(
   phase: PhaseForGeneration,
-  slot: SlotForGeneration,
+  slot: SlotForGeneration
 ): Promise<PathDiagram[]> {
   if (slot.kind === 'final_exam') return [];
 
@@ -1404,7 +1455,7 @@ async function generateTheoryActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
-  nextSortOrder: number,
+  nextSortOrder: number
 ): Promise<string> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const { system, tail } = buildTheoryPrompt(ctx);
@@ -1451,7 +1502,7 @@ async function generateTheoryActivity(
         });
       } else {
         lastError = `Your previous theory section failed validation: ${truncateError(
-          parsed.error.message,
+          parsed.error.message
         )}`;
         logTelemetry(plan.userId, 'path.theory.retry', {
           planId: plan.id,
@@ -1601,7 +1652,7 @@ async function recordPrunedActivity(
   plan: PlanForGeneration,
   slot: SlotForGeneration,
   kind: PathActivityKind,
-  reason: string,
+  reason: string
 ): Promise<void> {
   // Gating dedupes via a Set, but guard the push so a re-run can't accumulate
   // duplicate entries in the column.
@@ -1624,7 +1675,7 @@ async function generateFlashcardsActivity(
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
   nextSortOrder: number,
-  theoryText?: string,
+  theoryText?: string
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot, theoryText);
   const { system, tail } = buildFlashcardsPrompt(ctx);
@@ -1710,7 +1761,15 @@ async function generateFlashcardsActivity(
   const cardIds = input.flashcards.map(() => randomUUID());
   const snappedByCard = new Map<
     number,
-    { sourcePageImageId: string; side: 'front' | 'back'; fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string }[]
+    {
+      sourcePageImageId: string;
+      side: 'front' | 'back';
+      fileName: string;
+      filePath: string;
+      fileSize: number;
+      mimeType: string;
+      caption: string;
+    }[]
   >();
   for (const fig of figures) {
     try {
@@ -1757,9 +1816,7 @@ async function generateFlashcardsActivity(
         sourcePathId: plan.id,
         title: input.title || slot.title,
         source: 'ai',
-        ...(diagrams.length > 0
-          ? { diagrams: diagrams as unknown as Prisma.InputJsonValue }
-          : {}),
+        ...(diagrams.length > 0 ? { diagrams: diagrams as unknown as Prisma.InputJsonValue } : {}),
         flashcards: {
           create: input.flashcards.map((fc, i) => {
             const imgs = snappedByCard.get(i);
@@ -1805,7 +1862,7 @@ async function callQuizDispatch(
   plan: PlanForGeneration,
   slotTitle: string,
   staticInstructions: string,
-  dynamicInstructions: string,
+  dynamicInstructions: string
 ): Promise<QuizForSlotToolInput> {
   return forcedStructuredCall<QuizForSlotToolInput>({
     stage: 'quiz',
@@ -1822,14 +1879,9 @@ async function callQuizDispatch(
 
 type ValidatedQuizSet = ReturnType<typeof QuizSetV2Schema.parse>;
 
-type QuizParseResult =
-  | { ok: true; data: ValidatedQuizSet }
-  | { ok: false; error: string };
+type QuizParseResult = { ok: true; data: ValidatedQuizSet } | { ok: false; error: string };
 
-function parseQuizInput(
-  raw: QuizForSlotToolInput,
-  fallbackTitle: string,
-): QuizParseResult {
+function parseQuizInput(raw: QuizForSlotToolInput, fallbackTitle: string): QuizParseResult {
   const normalizedQuestions = normalizeQuizQuestions(raw.questions);
   const parsed = QuizSetV2Schema.safeParse({
     title: raw.title || fallbackTitle,
@@ -1852,7 +1904,7 @@ async function tryDegradedQuiz(
   plan: PlanForGeneration,
   slot: SlotForGeneration,
   system: string,
-  baseTail: string,
+  baseTail: string
 ): Promise<ValidatedQuizSet | null> {
   const count = slot.kind === 'final_exam' ? '8–12 questions' : '3–5 questions';
 
@@ -1918,7 +1970,7 @@ async function generateQuizActivity(
   plan: PlanForGeneration,
   phase: PhaseForGeneration,
   slot: SlotForGeneration,
-  nextSortOrder: number,
+  nextSortOrder: number
 ): Promise<void> {
   const ctx = makeSlotContentContext(plan, phase, slot);
   const { system, tail } = buildQuizPrompt(ctx);
@@ -2041,7 +2093,7 @@ async function generateQuizActivity(
 
   if (questions.length === 0) {
     throw new Error(
-      `Quiz produced no questions whose kind is allowed for subjects [${plan.subjects.join(', ')}]`,
+      `Quiz produced no questions whose kind is allowed for subjects [${plan.subjects.join(', ')}]`
     );
   }
 
@@ -2064,7 +2116,14 @@ async function generateQuizActivity(
   const questionIds = finalQuestions.map(() => randomUUID());
   const snappedByQuestion = new Map<
     number,
-    { fileName: string; filePath: string; fileSize: number; mimeType: string; caption: string; sourcePageImageId: string }
+    {
+      fileName: string;
+      filePath: string;
+      fileSize: number;
+      mimeType: string;
+      caption: string;
+      sourcePageImageId: string;
+    }
   >();
   for (const fig of figures) {
     try {
@@ -2103,8 +2162,7 @@ async function generateQuizActivity(
   // when no maskable element or < 3 unique distractors exist — never a degenerate
   // question. Appended AFTER the LLM questions (and after figure snapshotting, so
   // its index never collides with a snapped figure) at the tail sortOrder.
-  const cloze =
-    diagrams.length > 0 ? buildDiagramClozeQuestion(diagrams, plan.language) : null;
+  const cloze = diagrams.length > 0 ? buildDiagramClozeQuestion(diagrams, plan.language) : null;
   if (cloze) {
     logTelemetry(plan.userId, 'path.quiz.diagram_cloze_built', {
       planId: plan.id,
@@ -2113,6 +2171,19 @@ async function generateQuizActivity(
     });
   }
   const clozeId = randomUUID();
+
+  // Source provenance (Phase D) — validate each question's loose `source` against
+  // QuizSourceSchema and keep the valid ones, keyed by question index. A
+  // malformed or general-knowledge source is simply dropped: the columns stay
+  // null and the quiz player falls back to the path-level source. Mirrors the
+  // figure drop policy above — a bad source must never fail a written question.
+  const sourceByQuestion = new Map<number, QuizQuestionSource>();
+  finalQuestions.forEach((q, i) => {
+    const raw = (q as { source?: unknown }).source;
+    if (raw == null) return;
+    const result = QuizSourceSchema.safeParse(raw);
+    if (result.success) sourceByQuestion.set(i, result.data);
+  });
 
   await db.$transaction(async (tx) => {
     const quizSet = await tx.quizSet.create({
@@ -2123,14 +2194,13 @@ async function generateQuizActivity(
         // flat lists while preserving the viewer's notebookId routing.
         sourcePathId: plan.id,
         title: finalTitle,
-        ...(diagrams.length > 0
-          ? { diagrams: diagrams as unknown as Prisma.InputJsonValue }
-          : {}),
+        ...(diagrams.length > 0 ? { diagrams: diagrams as unknown as Prisma.InputJsonValue } : {}),
         questions: {
           create: [
             ...finalQuestions.map((q, i) => {
               const legacy = buildLegacyColumns(q.kind, q.payload);
               const snap = snappedByQuestion.get(i);
+              const src = sourceByQuestion.get(i);
               return {
                 id: questionIds[i],
                 kind: q.kind,
@@ -2141,6 +2211,11 @@ async function generateQuizActivity(
                 hint: q.hint ?? null,
                 correctExplanation: q.correctExplanation ?? null,
                 wrongExplanation: q.wrongExplanation ?? null,
+                // Phase D — denormalized grounding for the reader drawer (null
+                // when the model didn't ground the question or it was dropped).
+                sourceLabel: src?.label ?? null,
+                sourcePage: src?.page ?? null,
+                sourceQuote: src?.quote ?? null,
                 sortOrder: i,
                 ...(snap
                   ? {
@@ -2248,11 +2323,9 @@ async function isCancelRequested(planId: string): Promise<boolean> {
 /**
  * Stage B — generate every slot's activities for a plan that's already
  * been persisted with `generationStatus: "queued"` or `"generating"`.
- * Designed to be called as fire-and-forget from `POST /api/learn/paths`:
+ * Designed to be called by the durable background worker:
  *
- *   void generatePath(plan.id).catch((err) =>
- *     console.error('[path-generator]', err),
- *   );
+ *   enqueueJob('path.generate', { planId: plan.id })
  *
  * The function never throws — errors are collected per-activity and
  * surfaced via `StudyPlan.generationStatus = "failed"` +
@@ -2269,7 +2342,7 @@ async function runGenerationPass(
   plan: PlanForGeneration,
   planId: string,
   progressTotal: number,
-  completedSlotsBase: number,
+  completedSlotsBase: number
 ): Promise<string[]> {
   const failedSlotIds: string[] = [];
   // Seed with work finished in earlier sweeps so the scoped progress bar keeps
@@ -2284,7 +2357,7 @@ async function runGenerationPass(
       // re-attempt the activities that previously failed.
       const wantedKinds = expectedActivityKinds(slot.kind);
       const missingKinds = wantedKinds.filter(
-        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k),
+        (k) => !slot.existingActivityKinds.has(k) && !slot.prunedActivityKinds.has(k)
       );
 
       // Already-complete (or fully-pruned) slots aren't part of this run's
@@ -2312,7 +2385,7 @@ async function runGenerationPass(
       // sortOrder stays monotonically increasing across runs.
       const sortOrderBase = slot.existingActivityKinds.size;
       const sortOrderByKind = new Map<PathActivityKind, number>(
-        missingKinds.map((kind, i) => [kind, sortOrderBase + i]),
+        missingKinds.map((kind, i) => [kind, sortOrderBase + i])
       );
 
       const recordFailure = (kind: PathActivityKind, reason: unknown) => {
@@ -2345,7 +2418,7 @@ async function runGenerationPass(
             plan,
             phase,
             slot,
-            sortOrderByKind.get('theory')!,
+            sortOrderByKind.get('theory')!
           );
         } catch (err) {
           recordFailure('theory', err);
@@ -2361,7 +2434,7 @@ async function runGenerationPass(
           if (kind === 'flashcards')
             return generateFlashcardsActivity(plan, phase, slot, sortOrder, theoryText);
           return generateQuizActivity(plan, phase, slot, sortOrder);
-        }),
+        })
       );
       results.forEach((res, i) => {
         if (res.status === 'rejected') {
@@ -2397,7 +2470,7 @@ async function runGenerationPass(
 
 async function runPathGeneration(
   planId: string,
-  opts: { allowRefund?: boolean } = {},
+  opts: { allowRefund?: boolean } = {}
 ): Promise<void> {
   let plan = await loadPlanForGeneration(planId);
   if (!plan) {
@@ -2424,6 +2497,7 @@ async function runPathGeneration(
         } as unknown as Prisma.InputJsonValue,
       },
     });
+    await invalidateDashboardCache(plan.userId);
     return;
   }
 
@@ -2478,8 +2552,9 @@ async function runPathGeneration(
       // the route can answer the user synchronously, and keeping it there means
       // a single, daily-capped refund instead of one per code path.
       await deletePathCascade(planId).catch((e) =>
-        console.error('[path-generator] cancel cleanup failed', e),
+        console.error('[path-generator] cancel cleanup failed', e)
       );
+      await invalidateDashboardCache(plan.userId);
       logTelemetry(plan.userId, 'path.generation.cancelled', { planId });
       return;
     }
@@ -2526,12 +2601,14 @@ async function runPathGeneration(
     });
     if (current?.generationStatus === CANCELLING_STATUS) {
       await deletePathCascade(planId).catch((e) =>
-        console.error('[path-generator] post-complete cancel cleanup failed', e),
+        console.error('[path-generator] post-complete cancel cleanup failed', e)
       );
+      await invalidateDashboardCache(plan.userId);
       logTelemetry(plan.userId, 'path.generation.cancelled', { planId, race: 'post_complete' });
     }
     return;
   }
+  await invalidateDashboardCache(plan.userId);
   logTelemetry(plan.userId, 'path.generation.completed', {
     planId,
     totalSlots: total,
@@ -2584,7 +2661,7 @@ async function runPathGeneration(
  */
 export async function generatePath(
   planId: string,
-  opts: { allowRefund?: boolean } = {},
+  opts: { allowRefund?: boolean } = {}
 ): Promise<void> {
   try {
     await runPathGeneration(planId, opts);
@@ -2595,7 +2672,9 @@ export async function generatePath(
       .update({
         where: { id: planId },
         data: { generationStatus: 'failed', generationError: `Generation failed: ${message}` },
+        select: { userId: true },
       })
+      .then((plan) => invalidateDashboardCache(plan.userId))
       .catch((e) => console.error('[path-generator] failed to mark plan failed', e));
   }
 }

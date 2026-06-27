@@ -46,7 +46,6 @@ function derivePose(pathname: string, showFirstWave: boolean): MascotPose {
     return showFirstWave ? 'wave' : 'default';
   }
 
-  if (pathname === '/study-packs' || pathname.startsWith('/study-packs/')) return 'holding-pen';
   if (pathname.startsWith('/profile')) return 'holding-scroll';
   if (pathname.startsWith('/settings')) return 'thinking';
   if (pathname.startsWith('/pricing')) return 'holding-scroll';

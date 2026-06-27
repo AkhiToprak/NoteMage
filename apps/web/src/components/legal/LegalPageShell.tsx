@@ -1,7 +1,14 @@
-import LandingNavbar from '@/components/landing/LandingNavbar';
-import LandingFooter from '@/components/landing/LandingFooter';
+/* Hallmark · light legal shell — cream surface, ink headings, bilingual hero.
+ * Recolour-only adaptation of the prior dark shell: same structure (eyebrow,
+ * EN title + DE subtitle, language jump links, EN content → divider → DE
+ * content, back-to-top), now on the redesigned cream system with the shared
+ * MageNav + MageFooter. Content (privacy/terms/refund/legal-notice .md) renders
+ * through the already-light DocsMarkdown — unchanged. Server component.
+ */
+
+import MageNav from '@/components/landing/MageNav';
+import MageFooter from '@/components/landing/MageFooter';
 import DocsMarkdown from '@/components/docs/DocsMarkdown';
-import MarketingHeroBackdrop from '@/components/landing/MarketingHeroBackdrop';
 
 interface LegalPageShellProps {
   eyebrow: string;
@@ -10,6 +17,22 @@ interface LegalPageShellProps {
   enContent: string;
   deContent: string;
 }
+
+const jumpPill: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '10px 18px',
+  borderRadius: 999,
+  background: '#f1edfb',
+  border: '1px solid #e3dbf7',
+  color: '#4326b8',
+  textDecoration: 'none',
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+};
 
 export default function LegalPageShell({
   eyebrow,
@@ -23,81 +46,53 @@ export default function LegalPageShell({
       className="nm-legal"
       style={{
         position: 'relative',
-        background: '#0c0a1a',
-        color: 'var(--on-surface)',
-        fontFamily: 'var(--font-sans)',
+        isolation: 'isolate',
+        background: '#faf7f0',
+        color: '#18202f',
         minHeight: '100vh',
-        overflow: 'hidden',
+        fontFamily:
+          "var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+        WebkitFontSmoothing: 'antialiased',
+        overflowX: 'clip',
       }}
     >
-      <LandingNavbar />
+      <MageNav />
 
       {/* ───────────── HERO ───────────── */}
-      <section
-        style={{
-          position: 'relative',
-          paddingTop: 160,
-          paddingBottom: 56,
-          overflow: 'hidden',
-        }}
-      >
-        <MarketingHeroBackdrop sparkles={false} wash="rgba(140, 82, 255, 0.12)" grainOpacity={0.04} />
-
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            maxWidth: 760,
-            margin: '0 auto',
-            padding: '0 32px',
-            textAlign: 'center',
-          }}
-        >
+      <section style={{ position: 'relative', padding: '150px 24px 44px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
           {/* Eyebrow pill */}
-          <div
+          <span
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 10,
-              padding: '8px 18px',
-              borderRadius: 'var(--radius-full)',
-              background: 'rgba(174, 137, 255, 0.18)',
-              border: '1px solid rgba(174, 137, 255, 0.3)',
-              marginBottom: 32,
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              gap: 8,
+              padding: '7px 16px',
+              borderRadius: 999,
+              background: '#ece3ff',
+              color: '#4326b8',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              marginBottom: 26,
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 16, color: 'var(--tertiary-container)' }}
-            >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
               shield
             </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-brand)',
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                color: 'var(--on-surface)',
-              }}
-            >
-              {eyebrow}
-            </span>
-          </div>
+            {eyebrow}
+          </span>
 
           {/* English title — primary */}
           <h1
             style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(40px, 6vw, 68px)',
+              fontSize: 'clamp(40px, 6vw, 66px)',
               fontWeight: 800,
               letterSpacing: '-0.03em',
               lineHeight: 1.04,
               margin: 0,
-              color: 'var(--on-surface)',
+              color: '#18202f',
             }}
           >
             {titleEn}
@@ -108,11 +103,10 @@ export default function LegalPageShell({
             lang="de"
             style={{
               margin: '14px 0 0',
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(18px, 2vw, 22px)',
+              fontSize: 'clamp(17px, 2vw, 21px)',
               fontWeight: 500,
               fontStyle: 'italic',
-              color: 'rgba(237, 233, 255, 0.5)',
+              color: '#6b7280',
               letterSpacing: '-0.005em',
             }}
           >
@@ -125,56 +119,18 @@ export default function LegalPageShell({
               display: 'flex',
               gap: 12,
               justifyContent: 'center',
-              marginTop: 36,
+              marginTop: 34,
               flexWrap: 'wrap',
             }}
           >
-            <a
-              href="#en"
-              className="nm-legal-pill"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 18px',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(174, 137, 255, 0.08)',
-                border: '1px solid rgba(174, 137, 255, 0.22)',
-                color: 'var(--on-surface)',
-                textDecoration: 'none',
-                fontSize: 12,
-                fontFamily: 'var(--font-brand)',
-                fontWeight: 600,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+            <a href="#en" className="nm-legal-pill" style={jumpPill}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
                 arrow_downward
               </span>
               English
             </a>
-            <a
-              href="#de"
-              className="nm-legal-pill"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 18px',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(174, 137, 255, 0.08)',
-                border: '1px solid rgba(174, 137, 255, 0.22)',
-                color: 'var(--on-surface)',
-                textDecoration: 'none',
-                fontSize: 12,
-                fontFamily: 'var(--font-brand)',
-                fontWeight: 600,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+            <a href="#de" className="nm-legal-pill" style={jumpPill}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
                 arrow_downward
               </span>
               Deutsch
@@ -184,47 +140,8 @@ export default function LegalPageShell({
       </section>
 
       {/* ───────────── CONTENT ───────────── */}
-      <section
-        style={{
-          position: 'relative',
-          padding: '24px 32px 120px',
-        }}
-      >
-        {/* Soft side glows for the content well */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: '8%',
-            left: '-8%',
-            width: 540,
-            height: 540,
-            borderRadius: '50%',
-            background: 'rgba(174, 137, 255, 0.06)',
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: '60%',
-            right: '-6%',
-            width: 460,
-            height: 460,
-            borderRadius: '50%',
-            background: 'rgba(81, 112, 255, 0.05)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        <article
-          style={{
-            position: 'relative',
-            maxWidth: 720,
-            margin: '0 auto',
-          }}
-        >
+      <section style={{ position: 'relative', padding: '16px 24px 120px' }}>
+        <article style={{ maxWidth: 720, margin: '0 auto' }}>
           {/* English section */}
           <div id="en" style={{ scrollMarginTop: 100 }}>
             <DocsMarkdown content={enContent} />
@@ -233,40 +150,22 @@ export default function LegalPageShell({
           {/* Editorial section divider */}
           <div
             aria-hidden
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 20,
-              margin: '96px 0 56px',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 20, margin: '88px 0 52px' }}
           >
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                background: 'rgba(174, 137, 255, 0.50)',
-              }}
-            />
+            <div style={{ flex: 1, height: 1, background: '#e0d9c9' }} />
             <span
               style={{
-                fontFamily: 'var(--font-brand)',
                 fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.24em',
+                fontWeight: 700,
+                letterSpacing: '0.22em',
                 textTransform: 'uppercase',
-                color: 'var(--primary)',
+                color: '#7c5cff',
                 whiteSpace: 'nowrap',
               }}
             >
               Deutsche Version
             </span>
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                background: 'rgba(174, 137, 255, 0.50)',
-              }}
-            />
+            <div style={{ flex: 1, height: 1, background: '#e0d9c9' }} />
           </div>
 
           {/* German section */}
@@ -275,34 +174,9 @@ export default function LegalPageShell({
           </div>
 
           {/* Back to top */}
-          <div
-            style={{
-              marginTop: 72,
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <a
-              href="#en"
-              className="nm-legal-pill"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 18px',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(174, 137, 255, 0.08)',
-                border: '1px solid rgba(174, 137, 255, 0.22)',
-                color: 'var(--on-surface)',
-                textDecoration: 'none',
-                fontSize: 12,
-                fontFamily: 'var(--font-brand)',
-                fontWeight: 600,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+          <div style={{ marginTop: 64, display: 'flex', justifyContent: 'center' }}>
+            <a href="#en" className="nm-legal-pill" style={jumpPill}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }} aria-hidden>
                 arrow_upward
               </span>
               Back to top
@@ -311,23 +185,25 @@ export default function LegalPageShell({
         </article>
       </section>
 
-      <LandingFooter />
+      <MageFooter />
 
       <style>{`
         .nm-legal .nm-legal-pill {
           transition:
-            transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-            background 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-            border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+            background 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+            border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .nm-legal .nm-legal-pill:hover {
-          background: rgba(174, 137, 255, 0.18);
+          background: #ece3ff;
+          border-color: #c9bcf7;
+          transform: translateY(-1px);
         }
         .nm-legal a:focus-visible,
         .nm-legal button:focus-visible {
-          outline: 2px solid #ffde59;
+          outline: 3px solid #7c5cff;
           outline-offset: 3px;
-          border-radius: 8px;
+          border-radius: 10px;
         }
         .nm-legal a:focus:not(:focus-visible),
         .nm-legal button:focus:not(:focus-visible) {

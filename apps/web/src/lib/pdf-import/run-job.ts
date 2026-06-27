@@ -1,10 +1,10 @@
-// P5 — the detached background worker for a PDF import.
+// P5 — the background handler for a PDF import.
 //
 // `runPdfImportJob` wires P2–P4 together behind the `ImportJob` table,
 // mirroring the learn-path generation pattern (`generatePath`): the
-// `POST /api/notebooks/[id]/pdf-import` route persists a `queued` job and
-// fires this as a fire-and-forget promise, so the request returns at once
-// and the client watches progress over the SSE route.
+// `POST /api/notebooks/[id]/pdf-import` route persists an `ImportJob`, queues
+// a durable `BackgroundJob`, and returns at once while the client watches
+// progress over the SSE route.
 //
 // Like `generatePath`, this function NEVER throws — every failure is
 // caught and written to `ImportJob.status = "failed"` with a friendly

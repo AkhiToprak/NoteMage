@@ -24,6 +24,7 @@ import {
   type PathLanguageCode,
 } from './path-languages';
 import { logTelemetry } from './telemetry-server';
+import { invalidateDashboardCache } from './dashboard-data';
 import {
   translationStructuredCall,
   type TranslationUsage,
@@ -1136,6 +1137,7 @@ export async function translatePath(
         generationProgress: Prisma.DbNull,
       },
     });
+    await invalidateDashboardCache(plan.userId);
     logTelemetry(plan.userId, 'path.translation.completed', {
       planId,
       source,
@@ -1150,7 +1152,9 @@ export async function translatePath(
       .update({
         where: { id: planId },
         data: { generationStatus: 'failed', generationError: `Translation failed: ${message}` },
+        select: { userId: true },
       })
+      .then((plan) => invalidateDashboardCache(plan.userId))
       .catch(() => {});
   }
 }

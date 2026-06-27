@@ -1,10 +1,10 @@
-// Phase 2 of the OneNote-import plan — the detached background worker.
+// Phase 2 of the OneNote-import plan — the background handler.
 //
 // `runOneNoteImportJob` is a structural twin of `runPdfImportJob`: the
 // (Phase 4) `POST /api/import/onenote/import` route persists a `queued`
-// `ImportJob` row and fires this as a fire-and-forget promise, so the
-// request returns at once and the client watches progress over the SSE
-// route (Phase 3). Access is free — the deliberate divergence from the PDF
+// `ImportJob` row, queues a durable `BackgroundJob`, and returns at once
+// while the client watches progress over the SSE route (Phase 3). Access is
+// free — the deliberate divergence from the PDF
 // worker is that nothing is metered; an anti-abuse page cap stands in for
 // the usage budget.
 //

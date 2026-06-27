@@ -17,11 +17,15 @@ import { derivePathStats } from './path-stats';
 import { serializePath, pathInclude } from './path-loader';
 import {
   deriveExamReadiness,
+  deriveWeakAreas,
   type ExamPassiveItem,
   type ExamPathReadiness,
   type ExamQuizReadiness,
   type ExamReadiness,
+  type ExamReadinessInput,
+  type WeakAreasResult,
 } from './exam-readiness';
+import { getGradingSystem, formatGrade, DEFAULT_GRADING_SYSTEM_ID } from './grading-systems';
 
 /** Accepted `ExamScopeItem.itemType` values. */
 export const EXAM_SCOPE_ITEM_TYPES = [
@@ -42,6 +46,9 @@ export const MAX_SCOPE_ITEMS = 200;
 
 /** Picker bound per content kind. */
 const CANDIDATE_TAKE = 200;
+
+/** Bound on the exams-list overview — each active exam triggers a readiness rollup. */
+const OVERVIEW_TAKE = 30;
 
 export interface ScopeItemRef {
   itemType: ScopeItemTypeStr;
@@ -87,6 +94,50 @@ export interface ExamReadinessResult {
   /** Whole days until the exam (negative once past). */
   daysUntil: number;
   readiness: ExamReadiness;
+}
+
+export interface ExamWeakAreasResult {
+  exam: ExamMeta;
+  /** Whole days until the exam (negative once past). */
+  daysUntil: number;
+  /** First scoped learning path — the deep-link target for path-sourced topics. */
+  primaryPathId: string | null;
+  weakAreas: WeakAreasResult;
+}
+
+/** One upcoming exam, enriched with its readiness summary for the exams list. */
+export interface ExamOverviewActive {
+  id: string;
+  title: string;
+  examDate: string; // ISO-8601
+  notebookName: string | null;
+  /** Whole days until the exam. */
+  daysUntil: number;
+  /** 0–100 weighted readiness (0 until graded material is in scope). */
+  readiness: number;
+  hasGradedMaterial: boolean;
+  /** True when nothing is scoped yet. */
+  isEmpty: boolean;
+  /** Number of weak topics surfaced by the rollup. */
+  weakAreas: number;
+  /** Number of scoped learning paths. */
+  linkedPaths: number;
+}
+
+/** One past exam — no readiness, plus the recorded grade for the "Archived" list. */
+export interface ExamOverviewArchived {
+  id: string;
+  title: string;
+  examDate: string; // ISO-8601
+  notebookName: string | null;
+  /** The recorded grade in the learner's system, or null if not entered yet. */
+  gradeDisplay: string | null;
+  outcome: 'passed' | 'failed' | 'pending' | null;
+}
+
+export interface ExamsOverview {
+  active: ExamOverviewActive[];
+  archived: ExamOverviewArchived[];
 }
 
 /**
@@ -387,6 +438,31 @@ export async function loadExamReadiness(
   const exam = await loadExamMeta(userId, examId);
   if (!exam) return null;
 
+  const readiness = await deriveReadinessForExam(userId, examId);
+  const daysUntil = Math.ceil((new Date(exam.examDate).getTime() - Date.now()) / 86_400_000);
+
+  return { exam, daysUntil, readiness };
+}
+
+/**
+ * Derive an exam's readiness rollup from its stored scope, WITHOUT re-loading
+ * the exam meta. Shared by {@link loadExamReadiness} (single exam, after an
+ * ownership check) and {@link loadExamsOverview} (the exams list, which already
+ * holds each exam's meta from its list query). Callers must scope `examId` to
+ * the user themselves — this reads scope items by `examId` and re-scopes every
+ * content lookup to `userId`, so an unowned exam simply yields empty readiness.
+ */
+async function deriveReadinessForExam(userId: string, examId: string): Promise<ExamReadiness> {
+  return deriveExamReadiness(await loadExamReadinessInput(userId, examId));
+}
+
+/**
+ * Resolve an exam's stored scope into the slim {@link ExamReadinessInput} the
+ * pure rollups consume. Shared by {@link deriveReadinessForExam} and
+ * {@link loadExamWeakAreas} so both read the same deduped, re-authorized
+ * material. Callers must already have scoped `examId` to the user.
+ */
+async function loadExamReadinessInput(userId: string, examId: string): Promise<ExamReadinessInput> {
   const stored = await db.examScopeItem.findMany({
     where: { examId },
     select: { itemType: true, itemId: true },
@@ -395,21 +471,102 @@ export async function loadExamReadiness(
   const refs = stored.filter((s): s is ScopeItemRef => SCOPE_TYPE_SET.has(s.itemType));
   const ids = groupByType(refs);
 
-  const [pathInputs, quizInputs, passive] = await Promise.all([
+  const [paths, quizSets, passive] = await Promise.all([
     loadPathReadinessInputs(userId, ids.path),
     loadQuizReadinessInputs(userId, ids.quiz_set),
     loadPassiveItems(userId, ids),
   ]);
 
-  const readiness = deriveExamReadiness({
-    paths: pathInputs,
-    quizSets: quizInputs,
-    passive,
-  });
+  return { paths, quizSets, passive };
+}
 
+/**
+ * Load the weak-areas dashboard view for one exam: every weak topic (NOT the
+ * hub's capped preview), grouped + impact-ranked by {@link deriveWeakAreas},
+ * plus the primary linked path id so the screen can deep-link each path topic to
+ * its exam mission. Backs `GET /api/user/exams/:id/weak-areas`. Returns null for
+ * an unowned/unknown exam (the meta check fails closed). Exam Mode Phase 2.
+ */
+export async function loadExamWeakAreas(
+  userId: string,
+  examId: string,
+): Promise<ExamWeakAreasResult | null> {
+  const exam = await loadExamMeta(userId, examId);
+  if (!exam) return null;
+
+  const input = await loadExamReadinessInput(userId, examId);
+  const weakAreas = deriveWeakAreas(input);
   const daysUntil = Math.ceil((new Date(exam.examDate).getTime() - Date.now()) / 86_400_000);
 
-  return { exam, daysUntil, readiness };
+  return { exam, daysUntil, primaryPathId: input.paths[0]?.id ?? null, weakAreas };
+}
+
+/**
+ * Load the exams-list overview: upcoming exams enriched with their readiness
+ * summary (the "Active" cards) plus recent past exams ("Archived"). Active
+ * enrichment is bounded — each exam triggers a readiness rollup — so we cap at
+ * the soonest {@link OVERVIEW_TAKE} upcoming and most-recent {@link OVERVIEW_TAKE}
+ * past exams. Backs `GET /api/user/exams/overview`.
+ */
+export async function loadExamsOverview(userId: string): Promise<ExamsOverview> {
+  const now = new Date();
+
+  const [upcoming, past] = await Promise.all([
+    db.exam.findMany({
+      where: { userId, examDate: { gte: now } },
+      orderBy: { examDate: 'asc' },
+      take: OVERVIEW_TAKE,
+      select: { id: true, title: true, examDate: true, notebook: { select: { name: true } } },
+    }),
+    db.exam.findMany({
+      where: { userId, examDate: { lt: now } },
+      orderBy: { examDate: 'desc' },
+      take: OVERVIEW_TAKE,
+      select: {
+        id: true,
+        title: true,
+        examDate: true,
+        notebook: { select: { name: true } },
+        result: { select: { gradeNeutral: true, outcome: true } },
+      },
+    }),
+  ]);
+
+  // One grading-system load for all archived grade formatting.
+  const userRow = await db.user.findUnique({ where: { id: userId }, select: { gradingSystem: true } });
+  const sys = getGradingSystem(userRow?.gradingSystem ?? DEFAULT_GRADING_SYSTEM_ID) ?? getGradingSystem(DEFAULT_GRADING_SYSTEM_ID)!;
+
+  const active: ExamOverviewActive[] = await Promise.all(
+    upcoming.map(async (e) => {
+      const readiness = await deriveReadinessForExam(userId, e.id);
+      return {
+        id: e.id,
+        title: e.title,
+        examDate: e.examDate.toISOString(),
+        notebookName: e.notebook?.name ?? null,
+        daysUntil: Math.ceil((e.examDate.getTime() - now.getTime()) / 86_400_000),
+        readiness: readiness.readiness,
+        hasGradedMaterial: readiness.hasGradedMaterial,
+        isEmpty: readiness.isEmpty,
+        weakAreas: readiness.weakTopics.length,
+        linkedPaths: readiness.counts.paths,
+      };
+    }),
+  );
+
+  const archived: ExamOverviewArchived[] = past.map((e) => ({
+    id: e.id,
+    title: e.title,
+    examDate: e.examDate.toISOString(),
+    notebookName: e.notebook?.name ?? null,
+    gradeDisplay: e.result ? formatGrade(e.result.gradeNeutral, sys) : null,
+    outcome:
+      e.result && (e.result.outcome === 'passed' || e.result.outcome === 'failed' || e.result.outcome === 'pending')
+        ? e.result.outcome
+        : null,
+  }));
+
+  return { active, archived };
 }
 
 /** Scoped paths → `derivePathStats`-reduced readiness inputs. */

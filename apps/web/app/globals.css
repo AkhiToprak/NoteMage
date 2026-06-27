@@ -75,6 +75,16 @@
      dark in light mode too. Replaces the former flat pure-black (#000). */
   --quiz-question-surface: #0c0a1a;
 
+  /* Quiz player shell (Figma "Quiz screens" redesign) — the immersive
+     question-answering frame's page background, white card surface, and the
+     hairline drawn on those cards. Theme-flipping: a deep navy in dark mode; a
+     warm cream page + true-white cards in light mode (see the
+     [data-theme='light'] block). Distinct from the fixed --quiz-question-surface
+     navy so the redesigned cards carry dark ink in light mode. */
+  --quiz-bg: #131229;
+  --quiz-card: #1e1d3c;
+  --quiz-card-border: rgb(255 255 255 / 0.08);
+
   /* Strong action purple — the saturated CTA / selection fill used across the
      notebook viewers, chat, and forms (formerly the hardcoded #8c52ff). Fixed
      (NON theme-flipping): it's a brand-accent fill that reads on both the dark
@@ -356,6 +366,41 @@
   --nm-streak-ink: #2a2200;
 }
 
+/* ─── Rework-on-cream scope ────────────────────────────────────────────
+   Legacy "rework" (Neon Scholar) components inherit the GLOBAL theme, which
+   defaults to dark — so when one is dropped onto the warm cream AppShell
+   (`.shell`, a hardcoded light surface that is NOT `data-theme="light"`), its
+   `--on-surface-variant` / `--on-surface` text renders light-on-light and
+   vanishes (e.g. the YouTube budget label in VideoMaterialPicker). This scope
+   remaps the rework semantic tokens to the warm cream palette so any such
+   component reads correctly on light. Apply it to the wrapper around a rework
+   component embedded in a cream surface. */
+.nm-rework-cream {
+  --on-surface: #18202f;
+  --on-surface-variant: #5b6273;
+  --foreground: #18202f;
+  --surface: #ffffff;
+  --surface-bright: #ffffff;
+  --surface-container-lowest: #faf7f0;
+  --surface-container-low: #faf7f0;
+  /* Inputs + list rows render white (matches the wizard's other inputs/cards);
+     the elevated tiers stay subtly warm so preview cards keep a hairline of
+     hierarchy on the cream page. */
+  --surface-container: #ffffff;
+  --surface-container-high: #ffffff;
+  --surface-container-highest: #f4f0e8;
+  --outline: #b0a99a;
+  --outline-variant: #ece6d8;
+  --ink-06: rgb(24 32 47 / 0.05);
+  --ink-08: rgb(24 32 47 / 0.07);
+  --ink-12: rgb(24 32 47 / 0.10);
+  --ink-20: rgb(24 32 47 / 0.16);
+  --primary: #7c5cff;
+  --on-primary: #ffffff;
+  --accent-strong: #7c5cff;
+  --error: #c0392b;
+}
+
 /* ─── Light theme overrides (data-theme="light") ──────────────────────── */
 
 [data-theme='light'] {
@@ -495,6 +540,12 @@
   --nm-streak: #a16207;
   --nm-streak-soft: rgb(161 98 7 / 0.12);
   --nm-streak-ink: #2a2200;
+
+  /* Quiz player shell (light) — warm cream page, true-white cards, a warm
+     hairline. Matches the app's existing cream AppShell (#faf7f0). */
+  --quiz-bg: #faf7f0;
+  --quiz-card: #ffffff;
+  --quiz-card-border: #ece6d8;
 }
 
 /* Light mode: every tokenized surface card gets a visible deep outline so the

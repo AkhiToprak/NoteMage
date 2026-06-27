@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     // --- Own Notebooks (home + notebooks contexts) ---
     if (context === 'home' || context === 'notebooks') {
-      data.notebooks = await db.notebook.findMany({
+      data.notebooks = await db.studyContainer.findMany({
         where: {
           userId,
           name: { contains: query, mode: 'insensitive' },
