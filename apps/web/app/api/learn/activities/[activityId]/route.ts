@@ -13,6 +13,7 @@ import { isSlotUnlocked } from '@/lib/path-gating';
 import { logTelemetry } from '@/lib/telemetry-server';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { getAchievementDef } from '@/lib/achievements';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 
 /** Map newly-unlocked badges to the shape the client celebrates with. */
 function toUnlockedPayload(newly: { badge: string; name: string }[]) {
@@ -107,6 +108,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         activityKind: activity.kind,
       });
       unlocked = toUnlockedPayload(await checkAndUnlockAchievements(userId));
+      await invalidateDashboardCache(userId);
     }
 
     // Return the updated slot so the drawer can refresh in-place

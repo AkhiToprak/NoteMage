@@ -10,6 +10,7 @@ import {
   internalErrorResponse,
 } from '@/lib/api-response';
 import { staleGenerationCutoff } from '@/lib/path-loader';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 
 type Params = { params: Promise<{ planId: string }> };
 
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       return successResponse({ planId, status: current.generationStatus });
     }
 
+    await invalidateDashboardCache(userId);
     return successResponse({ planId, status: 'ready' });
   } catch (error) {
     console.error('[learn/paths/[planId] cancel]', error);

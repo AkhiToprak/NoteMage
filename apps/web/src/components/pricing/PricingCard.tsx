@@ -27,22 +27,15 @@ interface PricingCardProps {
   delay?: number;
   /** Tighter spacing/typography for embedded contexts like the onboarding wizard. */
   compact?: boolean;
-  /**
-   * Phase 12 switchover: when true, the FREE tier's AI path generation is off,
-   * so the FREE card shows "Community study paths" instead of an AI-path count.
-   * Must be resolved server-side and passed in — the env flag is stripped from
-   * the client bundle, so the component can't read it itself.
-   */
-  freeAiPathsDisabled?: boolean;
   /** Cap the number of feature rows shown. Used by the compact onboarding plan
    *  step so two cards fit a laptop viewport without scrolling. */
   maxFeatures?: number;
 }
 
 // Only features with a label here are shown on the pricing card. Internal
-// anti-abuse caps (path_regenerate, path_translate, moderation_audit,
-// code_execute) are intentionally omitted so they never surface as a "plan
-// feature" — the filter below drops any FeatureType missing from this map.
+// anti-abuse caps (path_regenerate, path_translate, code_execute) are
+// intentionally omitted so they never surface as a "plan feature" — the
+// filter below drops any FeatureType missing from this map.
 const FEATURE_LABELS: Partial<Record<FeatureType, string>> = {
   ai_flashcards: 'AI Flashcard sets',
   ai_pptx: 'AI Presentations',
@@ -52,7 +45,6 @@ const FEATURE_LABELS: Partial<Record<FeatureType, string>> = {
   scholar_chat: 'Mage Chat messages',
   ai_inline_edit: 'Inline AI editing',
   pdf_import: 'PDF pages',
-  path_translation: 'Path translations',
   youtube_transcript: 'Video transcript minutes',
   video_ingest: 'Video notes (minutes)',
 };
@@ -91,7 +83,6 @@ export default function PricingCard({
   isRevealed = true,
   delay = 0,
   compact = false,
-  freeAiPathsDisabled = false,
   maxFeatures,
 }: PricingCardProps) {
   const config = TIERS[tier];
@@ -306,11 +297,7 @@ export default function PricingCard({
           .filter(([feature]) => feature in FEATURE_LABELS)
           .slice(0, maxFeatures ?? Infinity)
           .map(([feature, limit], idx) => {
-          // Phase 12 switchover: when FREE AI paths are off, surface the curated
-          // community-paths offering as an included feature instead of a count.
-          const isCommunityPaths =
-            freeAiPathsDisabled && tier === 'FREE' && feature === 'ai_study_plan';
-          const dimmed = !isCommunityPaths && limit === 0;
+          const dimmed = limit === 0;
           return (
             <li
               key={feature}
@@ -336,13 +323,11 @@ export default function PricingCard({
                   transitionDelay: `${delay + 200 + idx * 50}ms`,
                 }}
               >
-                {isCommunityPaths
-                  ? 'check_circle'
-                  : limit === -1
-                    ? 'all_inclusive'
-                    : limit === 0
-                      ? 'lock'
-                      : 'check_circle'}
+                {limit === -1
+                  ? 'all_inclusive'
+                  : limit === 0
+                    ? 'lock'
+                    : 'check_circle'}
               </span>
               <span
                 style={
@@ -354,9 +339,7 @@ export default function PricingCard({
                     : undefined
                 }
               >
-                {isCommunityPaths ? (
-                  'Community study paths'
-                ) : (
+                {(
                   <>
                     {limit === -1 ? (
                       <strong style={{ color: accent.text }}>Unlimited*</strong>

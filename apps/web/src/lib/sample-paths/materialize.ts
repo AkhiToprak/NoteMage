@@ -18,8 +18,7 @@ export interface MaterializeResult {
   alreadyMaterialized: boolean;
 }
 
-/** Idempotency marker stored in StudyPlan.materialIds (a free String[], no FK —
- *  clonedFromSharedPathId can't be used, it's an enforced FK to SharedPath). */
+/** Idempotency marker stored in StudyPlan.materialIds (a free String[], no FK). */
 function sampleMarker(id: SampleId): string {
   return `sample:${id}`;
 }
@@ -85,7 +84,7 @@ export async function materializeSamplePath(
   const result = await db.$transaction(
     async (tx) => {
       // Notebook (study-pack container) + one source-material page.
-      const notebook = await tx.notebook.create({
+      const notebook = await tx.studyContainer.create({
         data: {
           userId,
           name: meta.notebookName,

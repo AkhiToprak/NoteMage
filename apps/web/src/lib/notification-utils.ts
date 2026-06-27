@@ -16,50 +16,13 @@ export const NOTIFICATION_ICONS: Record<string, string> = {
   achievement_unlocked: 'emoji_events',
   cosmetic_unlocked: 'auto_awesome',
   exam_reminder: 'alarm',
-  // Path-publishing moderation lifecycle (Phase 1 of path-publishing plan).
-  path_published: 'rocket_launch',
-  path_rejected: 'block',
-  path_flagged_for_review: 'hourglass_top',
+  exam_readiness_low: 'trending_down',
+  exam_weak_topic: 'target',
 };
 
 export function safeStr(val: unknown, fallback: string): string {
   if (typeof val === 'string' && val.length > 0 && val.length <= 200) return val;
   return fallback;
-}
-
-/**
- * Translate a path-moderation reasonCode (e.g. "wordlist.en.adult" /
- * "l2.spam" / "l5.offtopic") into a short human phrase suitable for
- * a notification line. The raw code stays useful in admin/audit
- * surfaces; this helper is just for the author-facing strip.
- */
-export function describeModerationReason(reasonCode: unknown): string {
-  if (typeof reasonCode !== 'string' || reasonCode.length === 0) return 'see review notes';
-  const last = reasonCode.split('.').pop() ?? reasonCode;
-  switch (last) {
-    case 'adult':
-      return 'contains explicit or adult content';
-    case 'hateful':
-      return 'contains hateful language';
-    case 'spam':
-      return 'looks like spam or promotion';
-    case 'copyright':
-      return 'contains piracy or copyright bypass terms';
-    case 'offtopic':
-      return 'looks off-topic for a learning resource';
-    case 'low_quality':
-      return 'was flagged as low quality';
-    case 'other':
-      return 'was flagged by the review pipeline';
-    // Layer 4 (P13) — report aggregation + new-author trust gate. These
-    // surface on the admin ticket timeline, not author-facing copy.
-    case 'reports':
-      return 'was pulled for re-review after community reports';
-    case 'untrusted_author':
-      return 'was sent for a deeper look (new author)';
-    default:
-      return 'see review notes';
-  }
 }
 
 export function getNotificationText(n: Notification): string {
@@ -88,12 +51,21 @@ export function getNotificationText(n: Notification): string {
       if (days === 1) return `${title} is tomorrow!`;
       return days !== null ? `${title} is in ${days} days` : `Upcoming exam: ${title}`;
     }
-    case 'path_published':
-      return `Your path "${safeStr(data.title, 'Untitled')}" was approved and is live in the community library`;
-    case 'path_rejected':
-      return `Your path "${safeStr(data.title, 'Untitled')}" was rejected — ${describeModerationReason(data.reasonCode)}`;
-    case 'path_flagged_for_review':
-      return `Your path "${safeStr(data.title, 'Untitled')}" is queued for human review`;
+    case 'exam_readiness_low': {
+      const title = safeStr(data.examTitle, 'your exam');
+      const weak = typeof data.weakCount === 'number' ? data.weakCount : null;
+      if (weak && weak > 0) {
+        return `You're behind on ${title} — ${weak} weak ${weak === 1 ? 'topic' : 'topics'} to review`;
+      }
+      return `You're behind on ${title} — time to review`;
+    }
+    case 'exam_weak_topic': {
+      const title = safeStr(data.examTitle, 'your exam');
+      const topic = typeof data.topic === 'string' ? safeStr(data.topic, '') : '';
+      return topic
+        ? `New weak topic for ${title}: ${topic}`
+        : `New weak topics detected for ${title}`;
+    }
     default:
       return 'You have a new notification';
   }
@@ -111,13 +83,11 @@ export function getNotificationLink(n: Notification): string | null {
       return typeof data.postId === 'string' ? `/community/post/${data.postId}` : null;
     case 'cosmetic_unlocked':
       return '/profile';
-    case 'path_published':
-      return typeof data.shareId === 'string' ? `/learn/community/${data.shareId}` : null;
-    case 'path_rejected':
-    case 'path_flagged_for_review':
-      // Author needs to land on their own publication-status surface, not
-      // the public listing (which won't show non-approved paths).
-      return typeof data.shareId === 'string' ? `/my-path?status=${data.shareId}` : null;
+    case 'exam_reminder':
+    case 'exam_readiness_low':
+      return typeof data.examId === 'string' ? `/exam/${data.examId}` : null;
+    case 'exam_weak_topic':
+      return typeof data.examId === 'string' ? `/exam/${data.examId}/weak-areas` : null;
     default:
       return null;
   }

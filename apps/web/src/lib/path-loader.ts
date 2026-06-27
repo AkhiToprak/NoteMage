@@ -5,7 +5,6 @@
 // same DTO.
 
 import { Prisma } from '@prisma/client';
-import type { SharedPathModerationStatus } from '@notemage/shared';
 import { db } from './db';
 import { annotatePhases } from './path-gating';
 
@@ -100,19 +99,6 @@ export async function deletePathCascade(planId: string): Promise<void> {
  */
 export const pathInclude = {
   notebook: { select: { id: true, name: true, color: true, kind: true } },
-  // Path-publishing P2 — the StudyPlan ↔ SharedPath relation is 1..0/1 via
-  // SharedPath.@@unique([planId]). Including it lets the list endpoint
-  // render the publication-status chip without a per-card round-trip; the
-  // serializer collapses the array to a single nullable field.
-  sharedPaths: {
-    select: {
-      id: true,
-      moderationStatus: true,
-      rejectionReason: true,
-      approvedAt: true,
-      createdAt: true,
-    },
-  },
   phases: {
     orderBy: { sortOrder: 'asc' },
     include: {
@@ -204,20 +190,6 @@ export interface SerializedPathPhase {
   slots: SerializedPathSlot[];
 }
 
-/**
- * Slim publication summary attached to every serialized path. Populated
- * when the path has been submitted to the community library; null for
- * unpublished paths. Drives the status chip on the path card and the
- * Publish / Unpublish menu items without a per-card fetch.
- */
-export interface SerializedPathPublication {
-  shareId: string;
-  moderationStatus: SharedPathModerationStatus;
-  rejectionReason: string | null;
-  approvedAt: string | null; // ISO-8601
-  createdAt: string; // ISO-8601
-}
-
 export interface SerializedPath {
   id: string;
   title: string;
@@ -254,13 +226,6 @@ export interface SerializedPath {
   subjects: string[];
   /** Per-subject weights aligned with `subjects`. Empty for legacy rows. */
   subjectWeights: number[];
-  /**
-   * Publication-status companion (Phase 2 of the path-publishing plan).
-   * Null when the path has never been published; otherwise carries the
-   * current moderation status so the list view can render the chip
-   * without an extra fetch per card.
-   */
-  publication: SerializedPathPublication | null;
   phases: SerializedPathPhase[];
 }
 
@@ -271,19 +236,6 @@ export interface SerializedPath {
  */
 export function serializePath(plan: PlanWithTree): SerializedPath {
   const annotated = annotatePhases(plan.phases);
-  // Collapse the 0..1 SharedPath array down to a single optional field.
-  // @@unique([planId]) guarantees at most one row; we still defensively
-  // pick the first in case Prisma returns an undefined ordering.
-  const sp = plan.sharedPaths.length > 0 ? plan.sharedPaths[0] : null;
-  const publication: SerializedPathPublication | null = sp
-    ? {
-        shareId: sp.id,
-        moderationStatus: sp.moderationStatus as SharedPathModerationStatus,
-        rejectionReason: sp.rejectionReason,
-        approvedAt: sp.approvedAt ? sp.approvedAt.toISOString() : null,
-        createdAt: sp.createdAt.toISOString(),
-      }
-    : null;
   // Surface the background run's mode (if any) so the UI can distinguish a
   // translation from a generation. Stored on generationProgress.mode by the
   // translator; absent for ordinary generation.
@@ -313,7 +265,6 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
     generationMode,
     subjects: plan.subjects,
     subjectWeights: plan.subjectWeights,
-    publication,
     phases: annotated.map((ap) => ({
       id: ap.source.id,
       title: ap.source.title,

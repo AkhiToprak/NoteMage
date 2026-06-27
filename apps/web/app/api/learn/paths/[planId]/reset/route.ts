@@ -9,6 +9,7 @@ import {
   badRequestResponse,
 } from '@/lib/api-response';
 import { staleGenerationCutoff } from '@/lib/path-loader';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 
 // Reset a learner's progress on a path WITHOUT touching the generated
 // content. Clears completion, stars, best scores, assessment attempts, and
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
       }),
     ]);
+    await invalidateDashboardCache(userId);
 
     return successResponse({ reset: true });
   } catch (error) {

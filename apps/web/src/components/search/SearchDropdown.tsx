@@ -7,7 +7,6 @@ import type {
   SearchContext,
   UserResult,
   NotebookResult,
-  CommunityNotebookResult,
   PageResult,
 } from '@/types/search';
 import { UserName } from '@/components/user/UserName';
@@ -261,64 +260,6 @@ function NotebookItem({
   );
 }
 
-function CommunityItem({
-  nb,
-  query,
-  onClick,
-}: {
-  nb: CommunityNotebookResult;
-  query: string;
-  onClick: () => void;
-}) {
-  return (
-    <button onMouseDown={onClick} style={itemStyle}>
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          flexShrink: 0,
-          background: 'rgba(174,137,255,0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: 16, color: C.primary }}>
-          public
-        </span>
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: C.textPrimary,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {highlightMatch(nb.title || nb.name, query)}
-        </div>
-        <div style={{ fontSize: 11, color: C.textMuted }}>
-          by @
-          <UserName
-            user={{
-              username: nb.ownerUsername,
-              name: nb.ownerName ?? null,
-              nameStyle: nb.ownerNameStyle ?? null,
-              equippedTitleId: nb.ownerEquippedTitleId ?? null,
-            }}
-            preferUsername
-          />
-          {nb.subject ? ` · ${nb.subject}` : ''}
-        </div>
-      </div>
-    </button>
-  );
-}
-
 function PageItem({
   page,
   query,
@@ -466,9 +407,8 @@ export default function SearchDropdown({
 
   const hasUsers = (results?.users?.length ?? 0) > 0;
   const hasNotebooks = (results?.notebooks?.length ?? 0) > 0;
-  const hasCommunity = (results?.communityNotebooks?.length ?? 0) > 0;
   const hasPages = (results?.pages?.length ?? 0) > 0;
-  const hasAny = hasUsers || hasNotebooks || hasCommunity || hasPages;
+  const hasAny = hasUsers || hasNotebooks || hasPages;
 
   return (
     <div
@@ -553,38 +493,7 @@ export default function SearchDropdown({
                 nb={nb}
                 query={query}
                 onClick={() => {
-                  router.push(`/study-packs/${nb.id}`);
-                  onClose();
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {hasCommunity && (
-        <div
-          style={{
-            padding: '4px 0',
-            borderTop: hasUsers || hasNotebooks ? `1px solid ${C.border}` : 'none',
-          }}
-        >
-          <CategoryHeader
-            icon="public"
-            label="Published Notebooks"
-            count={results!.communityNotebooks!.length}
-          />
-          {results!.communityNotebooks!.map((nb) => (
-            <div
-              key={nb.shareId}
-              className="search-item"
-              style={{ borderRadius: 8, margin: '0 6px' }}
-            >
-              <CommunityItem
-                nb={nb}
-                query={query}
-                onClick={() => {
-                  router.push(`/community/notebooks/${nb.shareId}`);
+                  router.push('/my-path');
                   onClose();
                 }}
               />
@@ -597,7 +506,7 @@ export default function SearchDropdown({
         <div
           style={{
             padding: '4px 0',
-            borderTop: hasUsers || hasNotebooks || hasCommunity ? `1px solid ${C.border}` : 'none',
+            borderTop: hasUsers || hasNotebooks ? `1px solid ${C.border}` : 'none',
           }}
         >
           <CategoryHeader icon="description" label="Pages" count={results!.pages!.length} />
@@ -607,7 +516,7 @@ export default function SearchDropdown({
                 page={p}
                 query={query}
                 onClick={() => {
-                  router.push(`/study-packs/${p.notebookId}`);
+                  router.push('/my-path');
                   onClose();
                 }}
               />

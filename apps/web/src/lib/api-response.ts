@@ -91,9 +91,9 @@ export function notFoundResponse(error: string = 'Not found') {
 
 /**
  * Payment required response (402). Use when a capability is gated behind a
- * paid tier rather than a transient quota — e.g. the Phase 12 free-tier
- * switchover routes FREE users away from AI path generation toward the
- * community library. Distinct from 429 (quota exhausted, retry later).
+ * paid tier rather than a transient quota — e.g. AI path generation is a Pro
+ * feature, so a FREE user is answered with 402. Distinct from 429 (quota
+ * exhausted, retry later).
  */
 export function paymentRequiredResponse(error: string = 'Payment required', code?: string) {
   return NextResponse.json(

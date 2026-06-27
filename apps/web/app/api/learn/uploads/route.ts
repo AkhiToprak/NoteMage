@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const inbox = await db.notebook.findFirst({ where: { userId, kind: 'inbox' } });
+    const inbox = await db.studyContainer.findFirst({ where: { userId, kind: 'inbox' } });
     if (!inbox) return successResponse([]);
 
     const documents = await db.document.findMany({

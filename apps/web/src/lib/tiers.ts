@@ -1,5 +1,4 @@
 import type { Tier } from '@prisma/client';
-import { freeTierAiPathsDisabled } from '@/lib/feature-flags';
 
 export type TierKey = Tier;
 
@@ -12,9 +11,6 @@ export type FeatureType =
   | 'ai_quizzes'
   | 'ai_inline_edit'
   | 'pdf_import'
-  // Path-publishing (Phase 1) — counts AI-call (cache-miss) translations of
-  // community paths. FREE is lifetime-capped; PRO is monthly anti-abuse.
-  | 'path_translation'
   // Video-as-context (Lane 1) — counts YouTube transcript extractions. Costs
   // ~0 AI tokens, but oEmbed + transcript fetch are outbound calls, so an
   // abuse cap is mandatory: FREE is lifetime-capped, PRO is monthly.
@@ -28,10 +24,8 @@ export type FeatureType =
   // full AI generation, so a monthly anti-abuse cap is mandatory (never -1).
   | 'path_regenerate'
   // Path translation re-trigger — counts on-demand translations of an existing
-  // path (distinct from community-library `path_translation`). Monthly anti-abuse cap.
+  // path. Monthly anti-abuse cap.
   | 'path_translate'
-  // Moderation audit re-runs — counts manual re-moderation passes. Monthly anti-abuse cap.
-  | 'moderation_audit'
   // Sandboxed code execution — counts code-run invocations. Monthly anti-abuse cap.
   | 'code_execute';
 
@@ -73,31 +67,18 @@ export const TIERS: Record<TierKey, TierConfig> = {
     limits: {
       ai_flashcards: 1,
       ai_pptx: 1,
-      // Phase 12 (path-publishing) free-tier switchover — AI path
-      // generation is a Pro feature, so this returns 0 by DEFAULT:
-      // checkUsageLimit then blocks FREE AI path generation and FREE users
-      // get paths from the community library instead. Set
-      // FREE_TIER_AI_PATHS_DISABLED=false to restore the legacy allowance
-      // of 3 (the re-enable lever). A getter (not a constant) so a
-      // container restart flips it without a rebuild — the one-minute
-      // rollback in plan §5.2 / AC-Switch-5 depends on this. Per P0 spec
-      // §5.1 the change lives in exactly this one place. (On the client
-      // the env var is undefined, so this reads 0 — matching the default;
-      // the authoritative gate is server-side.)
-      get ai_study_plan(): number {
-        return freeTierAiPathsDisabled() ? 0 : 3;
-      },
+      // AI path generation is a Pro feature — FREE is rejected server-side
+      // (checkUsageLimit) and the create CTA points to upgrade.
+      ai_study_plan: 0,
       ultra_path: 0, // Pro-only — Free is rejected server-side and the toggle is greyed out
       ai_quizzes: 2,
       scholar_chat: 50,
       ai_inline_edit: 0,
       pdf_import: 50, // pages, not imports — a one-time lifetime allowance (see LIFETIME_LIMITS)
-      path_translation: 5, // lifetime allowance — see LIFETIME_LIMITS.FREE
       youtube_transcript: 120, // ⚠️ MINUTES of video (lifetime) — placeholder, set final number
       video_ingest: 15, // MINUTES — one-time lifetime trial of native video notes (see LIFETIME_LIMITS.FREE)
       path_regenerate: 5, // monthly anti-abuse cap on path re-generations
       path_translate: 5, // monthly anti-abuse cap on on-demand path translations
-      moderation_audit: 10, // monthly anti-abuse cap on re-moderation passes
       code_execute: 300, // monthly anti-abuse cap on sandboxed code runs
     },
     badge: {
@@ -119,12 +100,10 @@ export const TIERS: Record<TierKey, TierConfig> = {
       scholar_chat: -1,
       ai_inline_edit: -1,
       pdf_import: 450, // pages per month
-      path_translation: 50, // anti-abuse monthly cap (never shipped as -1)
       youtube_transcript: 1000, // ⚠️ MINUTES of video per month — placeholder, set final number
       video_ingest: 1000, // MINUTES of video per month (worst-case COGS ~$1.85/mo); never -1
       path_regenerate: 50, // monthly anti-abuse cap on path re-generations
       path_translate: 50, // monthly anti-abuse cap on on-demand path translations
-      moderation_audit: 30, // monthly anti-abuse cap on re-moderation passes
       code_execute: 3000, // monthly anti-abuse cap on sandboxed code runs
     },
     badge: {
@@ -142,7 +121,7 @@ export const TIERS: Record<TierKey, TierConfig> = {
  * rather than read from the current month alone.
  */
 export const LIFETIME_LIMITS: Partial<Record<TierKey, readonly FeatureType[]>> = {
-  FREE: ['pdf_import', 'path_translation', 'youtube_transcript', 'video_ingest'],
+  FREE: ['pdf_import', 'youtube_transcript', 'video_ingest'],
 };
 
 /** True when a tier's limit for a feature is a lifetime budget, not monthly. */

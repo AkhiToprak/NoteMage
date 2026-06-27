@@ -13,6 +13,7 @@ import { isSlotUnlocked, starsForPercentage } from '@/lib/path-gating';
 import { logTelemetry } from '@/lib/telemetry-server';
 import { checkAndUnlockAchievements } from '@/lib/achievement-checker';
 import { getAchievementDef } from '@/lib/achievements';
+import { invalidateDashboardCache } from '@/lib/dashboard-data';
 
 // Phase 10.6 — record an assessment attempt + roll up the slot.
 //
@@ -135,6 +136,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         });
       }
     });
+    await invalidateDashboardCache(userId);
 
     const updatedSlot = await db.checkpointSlot.findUnique({
       where: { id: slotId },
