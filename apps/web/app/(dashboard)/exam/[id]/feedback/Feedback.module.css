@@ -1,0 +1,463 @@
+/* Hallmark · component: exam-feedback · genre: editorial · theme: system-managed (cream AppShell)
+ * states: default · hover · focus-visible · active · disabled
+ * contrast: pass — cream `.shell` tokens only; amber pill = dark ink on amber-soft fill.
+ *
+ * Exam Submit Feedback — Step 2 of 3 (Figma feedback.png web / m-feedback.png mobile).
+ * Single centered column: step indicator → amber pill → Mage bubble → card with
+ * chip-input section + dropzone section → footer buttons. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── loading / error center ── */
+.center {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+.centerTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ── back link ── */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.back:hover { opacity: 0.78; }
+.back:active { transform: translateX(-1px); }
+.back:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+/* ── heading ── */
+.head { min-width: 0; }
+.title {
+  margin: 0;
+  font-size: 33px;
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.subtitle {
+  margin: 7px 0 0;
+  font-size: 14.5px;
+  color: var(--body);
+}
+
+/* ── step indicator ── */
+.stepRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stepPill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--lilac);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.stepTrack {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.stepSeg {
+  width: 36px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.2s var(--ease);
+}
+.stepSeg[data-filled="true"] {
+  background: var(--accent);
+}
+.stepLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* ── amber pill wrapper ── */
+.pillWrap {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Mage chat bubble ── */
+.bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--lilac-soft);
+  border: 1px solid #e4ddff;
+  border-radius: var(--rc);
+  padding: 14px 16px;
+}
+.bubbleMascot {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.bubbleText {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* ── layout / card ── */
+.layout {
+  display: flex;
+  justify-content: center;
+}
+.card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--amber-line);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── section header ── */
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.sectionNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--lilac);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.sectionTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.sectionHelper {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: var(--body);
+  line-height: 1.5;
+}
+
+/* ── chip input area ── */
+.chipArea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--amber-line);
+  background: #faf7ef;
+  cursor: text;
+  transition: border-color 0.16s var(--ease);
+}
+.chipArea:focus-within {
+  border-color: var(--primary);
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* individual topic chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 12px;
+  border-radius: 999px;
+  background: var(--lilac-soft);
+  border: 1px solid #ddd2ff;
+  color: var(--accent);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chipX {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.14s var(--ease), transform 0.14s var(--ease);
+}
+.chipX:hover { background: #ddd2ff; }
+.chipX:active { transform: scale(0.88); }
+.chipX:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* invisible text input inside chip area */
+.chipInput {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  padding: 0;
+}
+.chipInput::placeholder { color: var(--muted); }
+
+/* "+ Add topic" affordance button inside the chip area */
+.addChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s var(--ease);
+}
+.addChip:hover { background: var(--lilac-soft); }
+.addChip:active { background: var(--lilac); }
+.addChip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* "Add as plain text instead" link */
+.plainTextBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 3px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  transition: opacity 0.16s var(--ease);
+}
+.plainTextBtn:hover { opacity: 0.72; }
+.plainTextBtn:active { opacity: 0.55; }
+.plainTextBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* optional plain-text textarea */
+.noteArea {
+  width: 100%;
+  resize: vertical;
+  min-height: 72px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--amber-line);
+  background: #faf7ef;
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.55;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+.noteArea::placeholder { color: var(--muted); }
+.noteArea:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; border-color: var(--primary); }
+
+/* ── divider ── */
+.divider {
+  height: 1px;
+  background: var(--border, #ece4d4);
+  margin: 22px 0;
+}
+
+/* ── dropzone ── */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border-radius: 14px;
+  border: 2px dashed var(--border);
+  background: var(--lilac-soft);
+  text-align: center;
+  transition: opacity 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.dropzoneDimmed {
+  opacity: 0.48;
+  pointer-events: none;
+}
+.dropzoneTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.dropzoneFormats {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dropzoneBtn {
+  margin-top: 6px;
+}
+.dropzoneBtnDimmed {
+  pointer-events: none;
+}
+
+/* ── skip upload toggle row ── */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: #faf7ef;
+}
+.toggleLabel {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+}
+
+/* accessible toggle / switch */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.2s var(--ease);
+}
+.toggleOn {
+  background: var(--primary);
+}
+.toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.toggle:hover { opacity: 0.85; }
+.toggle:active { opacity: 0.70; }
+.toggleThumb {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  transition: transform 0.2s var(--ease);
+  pointer-events: none;
+}
+.toggleOn .toggleThumb {
+  transform: translateX(18px);
+}
+
+/* ── footer ── */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.submitWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.submitHint {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.err {
+  margin: 0;
+  font-size: 12.5px;
+  color: #b4341f;
+}
+.privacy {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── mobile ── */
+@media (max-width: 720px) {
+  .title { font-size: 26px; }
+  .card { padding: 18px 16px; }
+  .stepRow { gap: 8px; }
+  .stepSeg { width: 28px; }
+  .footer { flex-direction: column; align-items: stretch; }
+  .footer > * { width: 100%; justify-content: center; }
+  .submitWrap { flex-direction: column; align-items: stretch; }
+  .submitHint { text-align: center; }
+}

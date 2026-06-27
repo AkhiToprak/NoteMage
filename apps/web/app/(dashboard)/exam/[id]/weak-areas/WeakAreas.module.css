@@ -1,0 +1,304 @@
+/* Hallmark · component: exam-weak-areas · genre: editorial · theme: system-managed (cream AppShell)
+ * states: default · hover · focus-visible · active · disabled · loading · empty
+ * contrast: pass — cream `.shell` tokens only, no light text on light surfaces
+ *
+ * Weak Areas dashboard (X2 Weaknesses, Figma 89:18921 web / 89:16868 mobile /
+ * 89:23389 empty). Reuses the shipped exam screens' cream language so hub →
+ * weak-areas reads as one surface; this module is layout + the band chrome only.
+ * Local soft-red family (the cream shell has no red) — single source matching
+ * ExamHub.module.css. */
+
+.page {
+  --st-red-ink: #b4341f;
+  --st-red-soft: #fdecea;
+  --st-red-strong: #a32d18;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- header ---- */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.back:hover { opacity: 0.78; }
+.back:active { transform: translateX(-1px); }
+.back:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+.headRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.titleWrap { min-width: 0; }
+.title {
+  margin: 0;
+  font-size: 33px;
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.subtitle { margin: 7px 0 0; font-size: 14.5px; color: var(--body); }
+
+/* ---- toolbar (sort + ask mage to plan) ---- */
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sortControl {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: #efeade;
+  border: 1px solid var(--border);
+}
+.sortBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.16s var(--ease), color 0.16s var(--ease);
+}
+.sortBtn:hover { color: var(--ink); }
+.sortBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sortBtnActive { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+/* ---- summary strip ---- */
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+}
+.summaryStats { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; min-width: 0; }
+.statChip { display: flex; flex-direction: column; gap: 1px; }
+.statValue { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); line-height: 1.05; }
+.statUrgent { color: var(--st-red-ink); }
+.statNeeds { color: var(--amber-ink); }
+.statAlmost { color: var(--green-ink); }
+.statAccent { color: var(--accent); }
+.statLabel { font-size: 12px; color: var(--body); }
+.summaryActions { display: flex; align-items: center; gap: 10px; }
+
+.fixAllBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: var(--rm);
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(124, 92, 255, 0.26);
+  transition: background-color 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.fixAllBtn:hover { background: var(--primary-press); }
+.fixAllBtn:active { transform: translateY(1px); }
+.fixAllBtn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.fixAllBtn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+
+/* ---- group ---- */
+.group { display: flex; flex-direction: column; gap: 12px; }
+.groupHead { display: flex; align-items: center; gap: 9px; }
+.groupTitle { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); }
+.groupCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #efeade;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.cardGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+
+/* ---- card ---- */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: 18px 18px 16px;
+}
+.cardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.cardTitle { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; min-width: 0; }
+.bandBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bUrgent { background: var(--st-red-soft); color: var(--st-red-strong); }
+.bNeeds { background: var(--amber-soft); color: var(--amber-ink); }
+.bAlmost { background: var(--green-soft); color: var(--green-ink); }
+
+/* ---- mastery bar ---- */
+.masteryRow { display: flex; align-items: center; gap: 11px; }
+.bar { flex: 1; min-width: 0; height: 8px; border-radius: 999px; background: #eee7da; overflow: hidden; }
+.barFill { display: block; height: 100%; border-radius: 999px; transition: width 0.5s var(--ease); }
+.masteryLabel { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; flex-shrink: 0; }
+
+.note { margin: 0; font-size: 13px; color: var(--body); line-height: 1.5; }
+
+/* ---- meta chips ---- */
+.metaRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sourceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #faf7ef;
+  border: 1px solid var(--border-soft);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  max-width: 60%;
+}
+.sourceText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.impactChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chipUrgent { background: var(--st-red-soft); color: var(--st-red-ink); }
+.chipNeeds { background: var(--amber-soft); color: var(--amber-ink); }
+.chipAlmost { background: var(--green-soft); color: var(--green-ink); }
+
+/* ---- CTAs ---- */
+.ctaRow { display: flex; align-items: center; gap: 9px; }
+.ctaPrimary,
+.ctaOutline,
+.ctaCompact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border-radius: var(--rm);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.16s var(--ease), transform 0.16s var(--ease), opacity 0.16s var(--ease);
+}
+.ctaPrimary { border: none; background: var(--primary); color: #fff; box-shadow: 0 5px 14px rgba(124, 92, 255, 0.24); }
+.ctaPrimary:hover { background: var(--primary-press); }
+.ctaPrimary:active { transform: translateY(1px); }
+.ctaPrimary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ctaPrimary:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+
+.ctaOutline { border: 1px solid var(--border); background: var(--surface); color: var(--ink); }
+.ctaOutline:hover { background: #f6f3ec; }
+.ctaOutline:active { transform: translateY(1px); }
+.ctaOutline:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.ctaCompact { border: 1px solid var(--border); background: #faf7ef; color: var(--ink-soft); font-weight: 700; }
+.ctaCompact:hover { background: #f1ece0; color: var(--ink); }
+.ctaCompact:active { transform: translateY(1px); }
+.ctaCompact:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ctaCompact:disabled { opacity: 0.55; cursor: default; }
+
+.cardErr { margin: 2px 0 0; font-size: 12px; color: var(--st-red-ink); }
+
+/* ---- empty states ---- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  padding: clamp(36px, 7vw, 64px) 24px;
+}
+.emptyTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  background: var(--lilac-soft);
+  border: 1px solid #e4ddff;
+}
+.emptyTileGood { background: var(--green-soft); border-color: #cdeccd; color: var(--green-ink); }
+.emptyMascot { width: 54px; height: 54px; object-fit: contain; }
+.emptyTitle { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.emptyText { margin: 0; font-size: 14px; color: var(--body); line-height: 1.6; max-width: 42ch; }
+.emptyActions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+/* ---- responsive ---- */
+@media (max-width: 880px) {
+  .cardGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .title { font-size: 26px; }
+  /* clear the fixed MobileBottomNav so the last card is fully reachable */
+  .page { padding-bottom: 84px; }
+  .headRow { align-items: flex-start; }
+  .toolbar { width: 100%; }
+  .toolbar > .sortControl { flex: 1; }
+  .sortBtn { flex: 1; }
+  /* Figma mobile omits the stat strip — keep just the Fix-all action */
+  .summaryStats { display: none; }
+  .summary { padding: 12px; }
+  .summaryActions { width: 100%; }
+  .fixAllBtn { width: 100%; }
+  .card { padding: 16px; }
+}

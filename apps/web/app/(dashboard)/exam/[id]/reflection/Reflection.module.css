@@ -1,0 +1,267 @@
+/* Hallmark · component: exam-reflection · genre: editorial · theme: system-managed (cream AppShell)
+ * states: default · hover · focus-visible · active · disabled · loading · empty
+ * contrast: pass — cream `.shell` tokens only; red/amber pills use dark ink on tinted fills,
+ *   never light text on light surfaces.
+ *
+ * Exam Reflection (Exam Mode Phase 5 — "What went wrong?"). Single centered content
+ * column: mascot hero, status pill, reason checklist card, Mage's take card, CTA.
+ * Palette inherited from AppShell `.shell`; local soft-red declared on .page. */
+
+.page {
+  --st-red-ink: #b4341f;
+  --st-red-soft: #fdecea;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---- loading / not-found / error center ---- */
+.center {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+.centerTitle { margin: 0; font-size: 22px; font-weight: 800; color: var(--ink); }
+
+/* ---- back link ---- */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.back:hover { opacity: 0.78; }
+.back:active { transform: translateX(-1px); }
+.back:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+/* ---- page header ---- */
+.head { min-width: 0; }
+.title {
+  margin: 0;
+  font-size: 33px;
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.subtitle { margin: 7px 0 0; font-size: 14.5px; color: var(--body); }
+
+/* ---- centered content column ---- */
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 540px;
+  align-self: center;
+}
+
+/* ---- mascot hero block ---- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.mascot { width: 56px; height: 56px; object-fit: contain; }
+.heroHeading {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.heroSub { margin: 0; font-size: 14px; color: var(--muted); }
+
+/* ---- status pill (red fail / amber below-target) ---- */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.statusPillRed {
+  background: var(--st-red-soft);
+  color: var(--st-red-ink);
+}
+.statusPillAmber {
+  background: var(--amber-soft, #fef4e1);
+  color: var(--amber-ink, #9a6b16);
+}
+
+/* ---- "What went wrong?" card ---- */
+.card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--amber-line);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 14px;
+}
+.cardTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.cardHint { font-size: 12px; font-weight: 600; color: var(--muted); }
+
+/* reason rows */
+.reasonList { display: flex; flex-direction: column; }
+.reasonRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 22px;
+  border-top: 1px solid var(--border-soft, #f0ead8);
+  cursor: pointer;
+  transition: background-color 0.16s var(--ease);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.reasonRow:hover { background: #faf7ef; }
+.reasonRow:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.reasonRow:active { background: #f4eedf; }
+
+/* custom checkbox */
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--amber-line, #ddd0b3);
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease);
+}
+.checkboxOn {
+  background: var(--accent, #4326b8);
+  border-color: var(--accent, #4326b8);
+}
+/* `:global()` is required — the icon carries the GLOBAL `material-symbols-outlined`
+   class, so a bare `.checkboxOn .material-symbols-outlined` selector gets the
+   icon class CSS-module-hashed and never matches (the glyph then falls back to
+   the global 24px default and overflows the 20px box). */
+.checkboxOn :global(.material-symbols-outlined) {
+  font-size: 16px;
+  line-height: 1;
+  color: #fff;
+}
+
+.reasonLabel {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+/* "Needs practice" amber tag */
+.practiceTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--amber-soft, #fef4e1);
+  color: var(--amber-ink, #9a6b16);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---- Mage's take card (lilac) ---- */
+.mageCard {
+  width: 100%;
+  background: var(--lilac-soft, #efeaff);
+  border: 1px solid #e4ddff;
+  border-radius: var(--rc);
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.mageMascot { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.mageBody { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.mageEyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent, #4326b8);
+}
+.mageText {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft, #404762);
+  line-height: 1.55;
+}
+
+/* ---- actions ---- */
+.actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.continueBtn {
+  width: 100%;
+}
+.skip {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--body);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.skip:hover { color: var(--ink); }
+.skip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* inline error */
+.err {
+  width: 100%;
+  font-size: 12.5px;
+  color: var(--st-red-ink);
+  text-align: center;
+}
+
+/* ---- mobile ---- */
+@media (max-width: 720px) {
+  .title { font-size: 27px; }
+  .col { max-width: 100%; }
+  .cardHead { padding: 16px 18px 12px; }
+  .reasonRow { padding: 12px 18px; }
+  .mageCard { padding: 16px; }
+  .heroHeading { font-size: 21px; }
+}

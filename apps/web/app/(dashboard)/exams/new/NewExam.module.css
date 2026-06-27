@@ -1,0 +1,102 @@
+/* Standalone Create-exam flow (Exam Mode Phase 0). Palette inherited from the
+   AppShell `.shell` scope. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 26px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.input,
+.select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: var(--rm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.16);
+}
+
+.input[aria-invalid='true'] {
+  border-color: #b4341f;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239aa0ad' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+}
+
+.error {
+  font-size: 12.5px;
+  color: #b4341f;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-soft);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.nextNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .form {
+    padding: 20px 18px;
+  }
+  .footer .submit {
+    width: 100%;
+  }
+}
