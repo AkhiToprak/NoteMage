@@ -18,7 +18,7 @@ import styles from './Profile.module.css';
    - Hero: avatar, name, email, tier pill + day-streak pill, Edit button
    - Stats strip: Day streak · Active paths · Questions · Accuracy (real,
      with empty states when the user has no data yet)
-   - Achievements (RecentTrophies, real)
+   - Achievements (inline AchievementsSection, real)
    - Pro upsell (free tier only) · settings rows → /settings · Log out
    Edit / avatar / username remain reachable from the hero Edit button.
    The design has no heatmap / about / socials / inline cosmetics panel —
