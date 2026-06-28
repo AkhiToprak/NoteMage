@@ -25,8 +25,11 @@ import {
   forcedStructuredCallGemini,
   type GeminiUsage,
 } from '../path-generator-gemini';
+import { forcedStructuredCallOpenRouter } from '../path-generator-openrouter';
+import { isGlmComposition } from '../model-routing';
+import { GLM_HAIKU_MODEL } from '../openrouter';
 
-export type TranslationProvider = 'anthropic' | 'gemini';
+export type TranslationProvider = 'anthropic' | 'gemini' | 'openrouter';
 
 export interface TranslationUsage {
   provider: TranslationProvider;
@@ -101,6 +104,29 @@ export async function translationStructuredCall<T>(
   ].join('\n');
 
   if (provider === 'anthropic') {
+    // GLM_COMPOSITION routes the Haiku-tier translation to GLM-4.7 (forced
+    // tool). Only reached when TRANSLATION_PROVIDER=anthropic is explicitly set
+    // AND the flag is on — the default Gemini path is untouched.
+    if (isGlmComposition()) {
+      const model = GLM_HAIKU_MODEL;
+      const result = await forcedStructuredCallOpenRouter<T>({
+        system: ctx.rubric,
+        tool: ctx.anthropicTool,
+        userMessage,
+        maxAttempts: ctx.maxAttempts,
+        model,
+        onUsage: (u) =>
+          ctx.onUsage?.({
+            provider: 'openrouter',
+            model,
+            inputTokens: u.inputTokens,
+            outputTokens: u.outputTokens,
+            cacheReadTokens: u.cachedTokens,
+            cacheWriteTokens: 0,
+          }),
+      });
+      return { result, provider: 'openrouter', model };
+    }
     // Haiku — matches the per-translation cost target. Sonnet would be
     // overkill for a structural overlay translation and tip past the
     // P0 §7.4 hard ceiling.

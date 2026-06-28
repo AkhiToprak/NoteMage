@@ -13,7 +13,14 @@ import {
   tooManyRequestsResponse,
 } from './api-response';
 import { db } from './db';
-import { anthropic, AI_MODEL, MAX_OUTPUT_TOKENS, MAX_CONTEXT_CHARS } from './anthropic';
+import {
+  anthropic,
+  AI_MODEL,
+  AI_GENERATION_MODEL,
+  AI_GENERATION_MODEL_LITE,
+  MAX_OUTPUT_TOKENS,
+  MAX_CONTEXT_CHARS,
+} from './anthropic';
 import { checkUsageLimit, incrementUsage } from './usage-limits';
 import {
   extractToolUses,
@@ -52,6 +59,7 @@ import { randomUUID } from 'crypto';
 import { resolveModel } from './model-routing';
 import { logAiUsage } from './ai-usage';
 import { streamGeminiChatText } from './chat-stream-gemini';
+import { streamChatGLM } from './chat-stream-openrouter';
 import type { TierKey } from './tiers';
 import { buildLegacyColumns } from './quiz-grading';
 import { QuizSetV2Schema } from '@notemage/shared';
@@ -589,14 +597,30 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
         : null;
     const plainChatModel =
       intent === 'chat' && !isMageAnswer ? resolveModel('chat-plain', { tier }) : null;
+    // Generation intents (flashcards/quiz/mindmap/…) used to hardcode AI_MODEL
+    // (Haiku); now routed so GLM_COMPOSITION flips them to GLM like the other
+    // Haiku slots. Plain chat keeps its composition (Gemini Flash by default).
+    const chatGenerateModel = intent !== 'chat' ? resolveModel('chat-generate', { tier }) : null;
     const useGemini = plainChatModel?.provider === 'gemini';
-    // The Anthropic model id for this turn (Mage answer → resolver; plain
-    // Anthropic chat → resolver; everything else → the generation default).
-    const activeAnthropicModel = mageAnswerModel
-      ? mageAnswerModel.model
-      : !useGemini && plainChatModel?.provider === 'anthropic'
-        ? plainChatModel.model
-        : AI_MODEL;
+    // Resolved model for the non-Gemini (Anthropic OR GLM) path this turn.
+    const activeResolved =
+      mageAnswerModel ?? chatGenerateModel ?? (!useGemini ? plainChatModel : null);
+    const activeProvider: 'anthropic' | 'openrouter' =
+      activeResolved?.provider === 'openrouter' ? 'openrouter' : 'anthropic';
+    const activeIsGLM = !useGemini && activeProvider === 'openrouter';
+    // GLM model id used by the OpenRouter path (falls back to the Haiku default).
+    const activeModel =
+      activeResolved && activeResolved.provider !== 'gemini' ? activeResolved.model : AI_MODEL;
+    // The Anthropic model id `anthropic.messages.stream` uses — for normal
+    // Anthropic turns AND the GLM→Anthropic fallback. Maps a GLM token back to
+    // its Claude equivalent so a fallback never sends a GLM id to the Anthropic
+    // SDK.
+    const anthropicFallbackModel =
+      activeResolved?.token === 'glm-sonnet'
+        ? AI_GENERATION_MODEL
+        : activeResolved?.token === 'glm-haiku'
+          ? AI_GENERATION_MODEL_LITE
+          : activeModel;
     // Corpus leads for Gemini implicit caching. "Reference data, not
     // instructions" framing mirrors the Anthropic cached block (PA-30).
     const geminiCorpus =
@@ -691,7 +715,7 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
     // it is never used for the answer itself.
     const mageAuto = isMageAnswer && !intentToolName;
     const streamParams: Parameters<typeof anthropic.messages.stream>[0] = {
-      model: activeAnthropicModel,
+      model: anthropicFallbackModel,
       max_tokens: MAX_OUTPUT_TOKENS,
       system: systemBlocks,
       tools: CHAT_TOOLS,
@@ -811,14 +835,53 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
             }
           }
 
-          const stream = anthropic.messages.stream(streamParams, {
-            signal: abortController.signal,
-          });
+          let glmResponse: Anthropic.Messages.Message | null = null;
+          let usedProvider: 'anthropic' | 'openrouter' = 'anthropic';
+          let usedModel = anthropicFallbackModel;
 
-          stream.on('text', enqueueText);
+          // ── GLM (OpenRouter) path — Mage answer / in-chat generation under
+          // GLM_COMPOSITION. Returns an Anthropic-shaped Message so the
+          // post-stream processing below is identical for both providers. ──
+          if (activeIsGLM) {
+            try {
+              glmResponse = await streamChatGLM({
+                model: activeModel,
+                system: systemBlocks,
+                messages: conversationMessages,
+                tools: CHAT_TOOLS,
+                toolChoice: streamParams.tool_choice as Anthropic.Messages.ToolChoice,
+                onText: enqueueText,
+                signal: abortController.signal,
+              });
+              usedProvider = 'openrouter';
+              usedModel = activeModel;
+            } catch (glmErr) {
+              if (fullText) {
+                // Partial prose already streamed — can't switch mid-stream;
+                // finalize what we have (mirrors the Gemini mid-stream path).
+                console.error('[AI Chat] GLM mid-stream error:', glmErr);
+                const done = await saveAndBuildDone(fullText, 0, 0);
+                controller.enqueue(sseEvent('done', done));
+                await fireTitleGenIfNeeded(controller);
+                controller.close();
+                return;
+              }
+              // Nothing streamed yet — fall back to Anthropic below.
+              console.error('[AI Chat] GLM failed pre-stream, falling back to Anthropic:', glmErr);
+            }
+          }
 
           try {
-            const response = await stream.finalMessage();
+            let response: Anthropic.Messages.Message;
+            if (glmResponse) {
+              response = glmResponse;
+            } else {
+              const stream = anthropic.messages.stream(streamParams, {
+                signal: abortController.signal,
+              });
+              stream.on('text', enqueueText);
+              response = await stream.finalMessage();
+            }
 
             await incrementUsage(userId, 'scholar_chat');
 
@@ -832,9 +895,9 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
             Sentry.addBreadcrumb({
               category: 'chat-stream',
               level: 'info',
-              message: 'chat anthropic usage',
+              message: 'chat model usage',
               data: {
-                provider: 'anthropic',
+                provider: usedProvider,
                 intent,
                 intentVia: intentResult.via,
                 toolLoaded: mageAuto ? 'auto' : intentToolName ?? 'none',
@@ -853,8 +916,8 @@ export async function startChatStream(opts: ChatStreamOptions): Promise<Response
               feature:
                 intent === 'chat' ? (isMageAnswer ? 'mage-answer' : 'chat-plain') : 'chat-generate',
               tier,
-              provider: 'anthropic',
-              model: activeAnthropicModel,
+              provider: usedProvider,
+              model: usedModel,
               inputTokens: response.usage.input_tokens,
               outputTokens: response.usage.output_tokens,
               cacheReadTokens,

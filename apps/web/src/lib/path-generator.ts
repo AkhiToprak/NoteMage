@@ -46,7 +46,7 @@ import {
   type PathStructureContext,
   type SlotContentContext,
 } from './path-prompts';
-import { forcedStructuredCall, type NormalizedUsage } from './path-generator-routing';
+import { forcedStructuredCall, type NormalizedUsage, type Provider } from './path-generator-routing';
 import { computeCost, type ModelUsage } from './path-generator-cost';
 import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
 import { pathContentCap } from './path-corpus-fit';
@@ -204,7 +204,7 @@ interface UsageMeter {
   // provider-level rollup would hide the Sonnet upgrade on ultra quizzes.
   perModel: Record<string, ModelUsage>;
   // Per-provider call counts — quick at-a-glance signal in telemetry.
-  byProvider: { anthropic: number; gemini: number };
+  byProvider: { anthropic: number; gemini: number; openrouter: number };
 }
 
 function emptyMeter(): UsageMeter {
@@ -215,7 +215,7 @@ function emptyMeter(): UsageMeter {
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
     perModel: {},
-    byProvider: { anthropic: 0, gemini: 0 },
+    byProvider: { anthropic: 0, gemini: 0, openrouter: 0 },
   };
 }
 
@@ -242,6 +242,15 @@ function addNormalizedUsage(meter: UsageMeter, u: NormalizedUsage): void {
   meter.byProvider[u.provider] += 1;
 }
 
+/** Derive the billing provider from a model id (for the per-model ledger rows).
+ *  GLM models route via OpenRouter (`z-ai/glm-*`); Gemini ids start with
+ *  `gemini`; everything else is Anthropic. */
+function providerOfModel(model: string): Provider {
+  if (model.startsWith('gemini')) return 'gemini';
+  if (model.startsWith('z-ai/') || model.includes('glm')) return 'openrouter';
+  return 'anthropic';
+}
+
 /**
  * Persist a path-stage's accumulated usage to the admin AI-usage ledger — one
  * row per model so Haiku vs Sonnet costs stay distinguishable. Emitted once per
@@ -253,7 +262,7 @@ function reportMeterUsage(meter: UsageMeter, feature: string, userId: string | n
     logAiUsage({
       userId,
       feature,
-      provider: m.model.startsWith('gemini') ? 'gemini' : 'anthropic',
+      provider: providerOfModel(m.model),
       model: m.model,
       inputTokens: m.inputTokens,
       outputTokens: m.outputTokens,

@@ -22,6 +22,10 @@ export interface AiUsageEvent {
   outputTokens: number;
   cacheReadTokens?: number;
   cacheWriteTokens?: number;
+  /** Exact USD billed for this call (e.g. OpenRouter's inline `usage.cost`).
+   *  When set, overrides the model-id-derived `costForCall` estimate — used for
+   *  GLM, where OpenRouter reports the real charged amount per call. */
+  costUsd?: number;
   /** Optional extra context (e.g. essay mode, inline action). */
   extra?: Record<string, unknown>;
 }
@@ -32,12 +36,16 @@ export interface AiUsageEvent {
  * token counts (cost 0) for later backfill.
  */
 export function logAiUsage(event: AiUsageEvent): void {
-  const costUsd = costForCall(event.model, {
-    inputTokens: event.inputTokens,
-    outputTokens: event.outputTokens,
-    cacheReadTokens: event.cacheReadTokens,
-    cacheWriteTokens: event.cacheWriteTokens,
-  });
+  // Prefer the exact billed cost when the caller provides it (OpenRouter/GLM);
+  // otherwise derive it from the model id + token counts.
+  const costUsd =
+    event.costUsd ??
+    costForCall(event.model, {
+      inputTokens: event.inputTokens,
+      outputTokens: event.outputTokens,
+      cacheReadTokens: event.cacheReadTokens,
+      cacheWriteTokens: event.cacheWriteTokens,
+    });
   logTelemetry(event.userId, 'ai.model_usage', {
     feature: event.feature,
     tier: event.tier ?? null,

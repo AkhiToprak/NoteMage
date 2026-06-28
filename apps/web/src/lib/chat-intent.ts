@@ -10,6 +10,9 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { anthropic, AI_CLASSIFIER_MODEL, MAX_OUTPUT_TOKENS } from './anthropic';
 import { CLASSIFY_CHAT_INTENT_TOOL, type ClassifyChatIntentToolInput } from './ai-tools';
 import { logAiUsage } from './ai-usage';
+import { resolveModel } from './model-routing';
+import { callOpenRouter } from './openrouter';
+import { anthropicToolToOpenAI } from './openrouter-tools';
 
 export type ChatIntent =
   | 'chat'
@@ -126,6 +129,44 @@ export async function classifyChatIntent(
       lines.push('', 'Recent conversation:', opts.recentTail.trim());
     }
     lines.push('', 'Classify this turn now using the tool.');
+
+    // GLM_COMPOSITION flips this Haiku classifier to GLM-4.7 (forced tool —
+    // 100% reliable on GLM, unlike json_schema). Any failure falls through to
+    // the outer catch → plain 'chat', same degradation as the Anthropic path.
+    const resolved = resolveModel('chat-intent');
+    if (resolved.provider === 'openrouter') {
+      const r = await callOpenRouter({
+        model: resolved.model,
+        system: SYSTEM_PROMPT,
+        user: lines.join('\n'),
+        tools: [anthropicToolToOpenAI(CLASSIFY_CHAT_INTENT_TOOL)],
+        toolChoice: { type: 'function', function: { name: CLASSIFY_CHAT_INTENT_TOOL.name } },
+        maxTokens: 256,
+        disableReasoning: true,
+      });
+      logAiUsage({
+        userId: null,
+        feature: 'chat-intent',
+        provider: 'openrouter',
+        model: resolved.model,
+        inputTokens: r.usage.inputTokens,
+        outputTokens: r.usage.outputTokens,
+        cacheReadTokens: r.usage.cachedTokens,
+        costUsd: r.usage.costUsd,
+      });
+      const call =
+        r.toolCalls.find((c) => c.name === CLASSIFY_CHAT_INTENT_TOOL.name) ?? r.toolCalls[0];
+      let glmIntent: ChatIntent | undefined;
+      if (call) {
+        try {
+          glmIntent = (JSON.parse(call.arguments) as ClassifyChatIntentToolInput).intent;
+        } catch {
+          glmIntent = undefined;
+        }
+      }
+      if (glmIntent && VALID_INTENTS.has(glmIntent)) return { intent: glmIntent, via: 'llm' };
+      return { intent: 'chat', via: 'fallback' };
+    }
 
     const response = await anthropic.messages.create({
       model: AI_CLASSIFIER_MODEL,

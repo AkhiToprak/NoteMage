@@ -95,7 +95,8 @@ export const TIERS: Record<TierKey, TierConfig> = {
       ai_flashcards: -1,
       ai_pptx: -1,
       ai_study_plan: -1,
-      ultra_path: 3, // 3 ultra paths per month
+      ultra_path: 30, // anti-abuse safety cap, ~1/day. Paths run on GLM-5.2
+      // (~12¢ each), so 30/mo = ~$3.60 worst-case COGS vs 12.99 CHF revenue.
       ai_quizzes: -1,
       scholar_chat: -1,
       ai_inline_edit: -1,

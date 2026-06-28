@@ -18,11 +18,13 @@
 import type { TierKey } from './tiers';
 import { AI_GENERATION_MODEL, AI_GENERATION_MODEL_LITE } from './anthropic';
 import { GEMINI_PATH_MODEL, GEMINI_PATH_MODEL_LITE, GEMINI_CHAT_MODEL } from './gemini';
+import { GLM_HAIKU_MODEL, GLM_SONNET_MODEL } from './openrouter';
 
-export type ModelProvider = 'anthropic' | 'gemini';
+export type ModelProvider = 'anthropic' | 'gemini' | 'openrouter';
 
-/** The four models the composition picks between. */
-export type ModelToken = 'haiku' | 'sonnet' | 'flash' | 'flash-lite';
+/** The model slots the composition picks between. `glm-haiku` / `glm-sonnet`
+ *  are the OpenRouter/GLM replacements activated by GLM_COMPOSITION (applyGlm). */
+export type ModelToken = 'haiku' | 'sonnet' | 'flash' | 'flash-lite' | 'glm-haiku' | 'glm-sonnet';
 
 export interface ResolvedModel {
   provider: ModelProvider;
@@ -43,6 +45,8 @@ export type ModelFeature =
   | 'path-quiz'
   | 'path-preview'
   | 'chat-plain'
+  | 'chat-generate'
+  | 'chat-intent'
   | 'mage-answer'
   | 'inline-rewrite'
   | 'inline-summarize'
@@ -81,6 +85,10 @@ function fromToken(token: ModelToken): ResolvedModel {
       return { provider: 'gemini', model: GEMINI_PATH_MODEL, token };
     case 'flash-lite':
       return { provider: 'gemini', model: GEMINI_PATH_MODEL_LITE, token };
+    case 'glm-haiku':
+      return { provider: 'openrouter', model: GLM_HAIKU_MODEL, token };
+    case 'glm-sonnet':
+      return { provider: 'openrouter', model: GLM_SONNET_MODEL, token };
   }
 }
 
@@ -98,6 +106,14 @@ function parseToken(value: string | undefined): ModelToken | null {
     case 'flash_lite':
     case 'lite':
       return 'flash-lite';
+    case 'glm-haiku':
+    case 'glm-4.7':
+    case 'glm4.7':
+      return 'glm-haiku';
+    case 'glm-sonnet':
+    case 'glm-5.2':
+    case 'glm5.2':
+      return 'glm-sonnet';
     default:
       return null;
   }
@@ -108,6 +124,32 @@ export function isLegacyComposition(): boolean {
   return v === '1' || v === 'true';
 }
 
+/**
+ * GLM_COMPOSITION=1 flips every Anthropic DEFAULT slot to its GLM-via-OpenRouter
+ * equivalent (haiku→glm-haiku = GLM-4.7, sonnet→glm-sonnet = GLM-5.2). The
+ * legacy master switch wins — when MODEL_COMPOSITION_LEGACY is on we revert to
+ * today's routing, so it is checked first and disables the GLM swap entirely.
+ */
+export function isGlmComposition(): boolean {
+  if (isLegacyComposition()) return false;
+  const v = process.env.GLM_COMPOSITION;
+  return v === '1' || v === 'true';
+}
+
+/**
+ * Redirect a DEFAULT token to its GLM equivalent when GLM_COMPOSITION is on.
+ * Applied ONLY to default selection — explicit per-feature env overrides
+ * (parseToken results) bypass this, so `PATH_QUIZ_MODEL=haiku` still pins that
+ * one slot back to real Claude Haiku while everything else runs on GLM. Gemini
+ * tokens (flash / flash-lite) and already-GLM tokens pass through untouched.
+ */
+function applyGlm(token: ModelToken): ModelToken {
+  if (!isGlmComposition()) return token;
+  if (token === 'haiku') return 'glm-haiku';
+  if (token === 'sonnet') return 'glm-sonnet';
+  return token;
+}
+
 /** Static (non tier/ultra-sensitive) feature: env token override → legacy/optimized. */
 function resolveStatic(
   envName: string,
@@ -116,7 +158,7 @@ function resolveStatic(
 ): ResolvedModel {
   const override = parseToken(process.env[envName]);
   if (override) return fromToken(override);
-  return fromToken(isLegacyComposition() ? legacy : optimized);
+  return fromToken(applyGlm(isLegacyComposition() ? legacy : optimized));
 }
 
 // ── path generation (tier/ultra/override sensitive) ───────────────────────
@@ -176,18 +218,16 @@ function resolvePathStage(stage: PathStage, ctx: ResolveModelCtx): ResolvedModel
     return fromToken(legacyPathProvider(stage) === 'gemini' ? 'flash' : 'haiku');
   }
 
-  // 4. Optimized composition (the −67% ultra-path saving).
-  switch (stage) {
-    case 'structure':
-      return fromToken(ultra ? 'sonnet' : 'flash');
-    case 'theory':
-    case 'flashcards':
-      return fromToken('flash-lite');
-    case 'quiz':
-      // Haiku for ALL tiers — it beat Sonnet/Flash on correctness in the audit,
-      // so the ultra→Sonnet upgrade is dropped. Override via PATH_QUIZ_MODEL.
-      return fromToken('haiku');
-  }
+  // 4. Path generation runs entirely on GLM-5.2 (validated 2026-06-28: ~half
+  //    Claude's cost at better quality, and GLM-4.7's per-call overhead erased
+  //    its per-token discount on a many-call workload, so a single flagship
+  //    model is both cheaper and simpler than the old GLM-4.7/Gemini mix). All
+  //    four stages — structure, theory, flashcards, quiz — resolve to glm-sonnet
+  //    for BOTH basic and ultra; the basic/ultra split is by content (corpus
+  //    caps, theory visuals), not model. PATH_<STAGE>_MODEL still pins a single
+  //    stage (step 2) and MODEL_COMPOSITION_LEGACY=1 reverts to the prior
+  //    Anthropic/Gemini routing (step 3) as the rollback.
+  return fromToken('glm-sonnet');
 }
 
 // ── chat (plain turn only — generation intents stay on Anthropic) ──────────
@@ -223,8 +263,8 @@ function resolveChatPlain(ctx: ResolveModelCtx): ResolvedModel {
 function resolveMageAnswer(ctx: ResolveModelCtx): ResolvedModel {
   const override = parseToken(process.env.MAGE_ANSWER_MODEL);
   if (override) return fromToken(override);
-  if (ctx.mode === 'deep') return fromToken('sonnet');
-  return fromToken('haiku');
+  if (ctx.mode === 'deep') return fromToken(applyGlm('sonnet'));
+  return fromToken(applyGlm('haiku'));
 }
 
 // ── public entry point ─────────────────────────────────────────────────────
@@ -248,7 +288,7 @@ export function resolveModel(
         (isFull ? parseToken(process.env.ESSAY_FULL_MODEL) : null) ??
         parseToken(process.env.ESSAY_MODEL);
       if (override) return fromToken(override);
-      return fromToken(isLegacyComposition() ? 'sonnet' : 'haiku');
+      return fromToken(applyGlm(isLegacyComposition() ? 'sonnet' : 'haiku'));
     }
 
     case 'chat-title':
@@ -262,7 +302,7 @@ export function resolveModel(
       const prov = process.env.CLASSIFIER_PROVIDER?.trim().toLowerCase();
       if (prov === 'anthropic') return fromToken('haiku');
       if (prov === 'gemini') return fromToken('flash-lite');
-      return fromToken(isLegacyComposition() ? 'haiku' : 'flash-lite');
+      return fromToken(applyGlm(isLegacyComposition() ? 'haiku' : 'flash-lite'));
     }
 
     case 'inline-rewrite':
@@ -303,6 +343,20 @@ export function resolveModel(
 
     case 'chat-plain':
       return resolveChatPlain(ctx);
+
+    case 'chat-generate':
+      // In-chat artifact generation (flashcards/quiz/mindmap/… via a forced
+      // tool). Was hardcoded to AI_MODEL (Haiku) and bypassed the resolver;
+      // now routed so GLM_COMPOSITION flips it to glm-haiku like the other
+      // Haiku slots. CHAT_GENERATE_MODEL pins it; legacy == optimized (Haiku).
+      return resolveStatic('CHAT_GENERATE_MODEL', 'haiku', 'haiku');
+
+    case 'chat-intent':
+      // Per-turn intent gate (forced single-enum tool, runs only on ambiguous
+      // turns the heuristic can't resolve). Was hardcoded to AI_CLASSIFIER_MODEL
+      // (Haiku); now routed so GLM_COMPOSITION flips it to glm-haiku.
+      // CHAT_INTENT_MODEL pins it; legacy == optimized (Haiku).
+      return resolveStatic('CHAT_INTENT_MODEL', 'haiku', 'haiku');
 
     case 'mage-answer':
       return resolveMageAnswer(ctx);

@@ -56,8 +56,22 @@ export const COSTS: Record<string, RateCard> = {
   'gemini-2.5-flash-lite': { input: 0.1, output: 0.4, cacheRead: 0.025, cacheWrite: 0.025 },
 };
 
+/**
+ * Approximate per-1M rates for GLM-via-OpenRouter models, matched by slug PREFIX
+ * so an env slug bump (glm-4.7 → 4.8) keeps pricing. GLM-4.x ≈ the Haiku tier
+ * ($0.40/$1.75), GLM-5.x ≈ the Sonnet tier ($0.95/$3); cacheRead ≈ 25% of input
+ * (OpenRouter implicit caching is ~75% cheaper). The EXACT cost is available
+ * inline from OpenRouter (usage.cost) and is preferred via the logAiUsage
+ * `costUsd` override — this is the fallback when that isn't threaded.
+ */
+function glmRates(model: string): RateCard | undefined {
+  if (!model.startsWith('z-ai/glm-')) return undefined;
+  if (/glm-5/.test(model)) return { input: 0.95, output: 3.0, cacheRead: 0.24, cacheWrite: 0 };
+  return { input: 0.4, output: 1.75, cacheRead: 0.1, cacheWrite: 0 };
+}
+
 function computeModelCost(usage: ModelUsage): number {
-  const rates = COSTS[usage.model];
+  const rates = COSTS[usage.model] ?? glmRates(usage.model);
   if (!rates) return 0;
   return (
     (usage.inputTokens * rates.input +

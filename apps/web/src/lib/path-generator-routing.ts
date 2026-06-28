@@ -14,6 +14,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { buildCachedSystem, buildSourceMaterialsBlock, GEMINI_JSON_PREAMBLE } from './path-prompts';
 import { forcedStructuredCallAnthropic } from './path-generator-anthropic';
 import { forcedStructuredCallGemini, type GeminiUsage } from './path-generator-gemini';
+import { forcedStructuredCallOpenRouter } from './path-generator-openrouter';
+import { AI_GENERATION_MODEL, AI_GENERATION_MODEL_LITE } from './anthropic';
 import { resolveModel, type ModelFeature } from './model-routing';
 import {
   PATH_STRUCTURE_TOOL,
@@ -35,7 +37,7 @@ const PATH_TOOLS_STABLE: Anthropic.Messages.Tool[] = [
   QUIZ_FOR_SLOT_TOOL,
 ];
 
-export type Provider = 'anthropic' | 'gemini';
+export type Provider = 'anthropic' | 'gemini' | 'openrouter';
 export type Stage = 'structure' | 'theory' | 'flashcards' | 'quiz';
 
 /** Map a pipeline stage to its routing feature key. */
@@ -54,6 +56,10 @@ export interface NormalizedUsage {
   cacheReadTokens: number;
   /** Anthropic: cache_creation_input_tokens. Gemini: explicit CachedContent create cost (0 when inline). */
   cacheWriteTokens: number;
+  /** OpenRouter only: the real USD cost OpenRouter bills inline for this call.
+   *  Undefined for Anthropic/Gemini (cost is derived from tokens). Phase 5 wires
+   *  this straight into the meter instead of re-deriving from token pricing. */
+  costUsd?: number;
 }
 
 // Stage→provider/model resolution moved to model-routing.ts (`resolveModel`),
@@ -130,7 +136,9 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   const provider = resolved.provider;
   const model = resolved.model;
 
-  if (provider === 'anthropic') {
+  // Anthropic generation — used directly when the resolver picks Anthropic, and
+  // as the fail-safe fallback for the openrouter branch below.
+  const runAnthropic = (anthropicModel: string): Promise<T> => {
     // Stage A is a single call per path — its 1h cache write is never read,
     // so use ephemeral (5-min, 1.25× write) to cover retries only.
     const cacheTtl: '1h' | '5m' = ctx.stage === 'structure' ? '5m' : '1h';
@@ -146,17 +154,70 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
       tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
       userMessage: ctx.userMessage,
       maxAttempts: ctx.maxAttempts,
-      model,
+      model: anthropicModel,
       onUsage: (usage) =>
         ctx.onUsage({
           provider: 'anthropic',
-          model,
+          model: anthropicModel,
           inputTokens: usage.input_tokens,
           outputTokens: usage.output_tokens,
           cacheReadTokens: usage.cache_read_input_tokens ?? 0,
           cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
         }),
     });
+  };
+
+  if (provider === 'anthropic') {
+    return runAnthropic(model);
+  }
+
+  if (provider === 'openrouter') {
+    // GLM via OpenRouter (GLM_COMPOSITION on). Structured output goes through
+    // FORCED TOOLS — json_schema is flaky on GLM-4.7; the reused Anthropic tools
+    // are translated to OpenAI shape inside the wrapper. No cache_control: GLM
+    // caches the prefix implicitly, so lead with corpus + static rules and keep
+    // the dynamic tail last (mirrors the Gemini prefix ordering below). The
+    // Gemini JSON preamble is omitted — tool_choice forces the structure.
+    const system = [
+      ctx.corpus && ctx.corpus.trim().length > 0 ? buildSourceMaterialsBlock(ctx.corpus) : null,
+      ctx.staticInstructions,
+      ctx.dynamicInstructions,
+    ]
+      .filter((part): part is string => Boolean(part && part.length > 0))
+      .join('\n\n');
+    try {
+      return await forcedStructuredCallOpenRouter<T>({
+        system,
+        tool: ctx.anthropicTool,
+        tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
+        userMessage: ctx.userMessage,
+        maxAttempts: ctx.maxAttempts,
+        model,
+        onUsage: (usage) =>
+          ctx.onUsage({
+            provider: 'openrouter',
+            model,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            cacheReadTokens: usage.cachedTokens,
+            cacheWriteTokens: 0,
+            costUsd: usage.costUsd,
+          }),
+      });
+    } catch (glmErr) {
+      // Fail-safe: GLM/OpenRouter unavailable (provider outage, or
+      // OPENROUTER_API_KEY not set in the runtime env) → fall back to Claude so
+      // path generation never breaks. glm-5.2 → Sonnet, glm-4.7 → Haiku.
+      console.error(`[path-gen] GLM ${model} failed; falling back to Anthropic:`, glmErr);
+      return runAnthropic(model.includes('glm-5') ? AI_GENERATION_MODEL : AI_GENERATION_MODEL_LITE);
+    }
+  }
+
+  // Safety guard (Phase 3 group 5): only Gemini should remain. Throw on any
+  // unhandled provider rather than silently routing it through Gemini — this is
+  // what makes GLM_COMPOSITION safe to flip once every dispatcher is wired.
+  if (provider !== 'gemini') {
+    throw new Error(`forcedStructuredCall: unhandled provider '${provider as string}'`);
   }
 
   // Gemini branch — split the prompt into the per-path-constant prefix
