@@ -20,6 +20,7 @@ import {
   MediaResolution,
   type Content,
   type GenerateContentConfig,
+  type GenerateContentResponse,
   type Part,
 } from '@google/genai';
 import { getGeminiClient, isDegenerateText } from '@/lib/gemini';
@@ -29,6 +30,7 @@ import { COSTS } from '@/lib/path-generator-cost';
 import type { TierKey } from '@/lib/tiers';
 import {
   getVideoIngestCostCeilingUsd,
+  getVideoIngestTimeoutMs,
   type VideoMediaResolution,
 } from './config';
 
@@ -319,6 +321,10 @@ export async function ingestVideo(opts: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       responseMimeType: 'application/json',
       mediaResolution: mediaResolutionEnum(resolution),
+      // Bound the request: native YouTube ingestion fetches+analyses the whole
+      // video server-side and can stall indefinitely. Without this the worker
+      // hangs until its 30-min lease (no log, no refund).
+      httpOptions: { timeout: getVideoIngestTimeoutMs() },
       // Thinking tokens bill at the output rate; the JSON shape is enforced by
       // the prompt + parse, so the extra reasoning adds little for the cost.
       thinkingConfig: { thinkingBudget: 0 },
@@ -327,7 +333,21 @@ export async function ingestVideo(opts: {
       { role: 'user', parts: [videoPart, { text: 'Produce the study notes JSON now.' }] },
     ];
 
-    const response = await client.models.generateContent({ model, contents, config });
+    let response: GenerateContentResponse;
+    try {
+      response = await client.models.generateContent({ model, contents, config });
+    } catch (err) {
+      // Log the real cause (timeout, quota, unsupported model, YouTube fetch
+      // failure) — run-job only logs non-VideoIngestError, so capture it here
+      // before mapping to a user-safe message.
+      console.error('[video-ingest] generateContent failed', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new VideoIngestError(
+        /timed?\s*out|deadline|abort|ETIMEDOUT/i.test(msg)
+          ? 'Analysing this video took too long. Try a shorter video, or try again.'
+          : 'The video could not be analysed. Please try again.',
+      );
+    }
 
     const usage = response.usageMetadata;
     const promptTokens = usage?.promptTokenCount ?? 0;
