@@ -265,8 +265,12 @@ function resolveChatPlain(ctx: ResolveModelCtx): ResolvedModel {
 function resolveMageAnswer(ctx: ResolveModelCtx): ResolvedModel {
   const override = parseToken(process.env.MAGE_ANSWER_MODEL);
   if (override) return fromToken(override);
-  if (ctx.mode === 'deep') return fromToken(applyGlm('sonnet'));
-  return fromToken(applyGlm('haiku'));
+  // Mage runs on GLM (flag-independent, like path generation): GLM-4.7 for
+  // normal answers, GLM-5.2 for `deep`. MODEL_COMPOSITION_LEGACY=1 reverts to
+  // Claude (Haiku / Sonnet by mode) as the rollback; chat-stream falls back to
+  // Claude automatically on a GLM failure, so Mage never breaks.
+  if (isLegacyComposition()) return fromToken(ctx.mode === 'deep' ? 'sonnet' : 'haiku');
+  return fromToken(ctx.mode === 'deep' ? 'glm-sonnet' : 'glm-haiku');
 }
 
 // ── public entry point ─────────────────────────────────────────────────────
