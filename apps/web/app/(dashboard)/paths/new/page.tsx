@@ -846,7 +846,7 @@ function AnalyzeView({
     <div className={s.analyze}>
       <div className={s.analyzeOrb}>
         <MS name="auto_awesome" className={s.analyzeStar} />
-        <Mascot pose="holding-wand" size="lg" idle="float" />
+        <Mascot pose="holding-wand" size={64} idle="float" />
       </div>
       <h2 className={s.analyzeTitle}>{title}</h2>
       <p className={s.analyzeSub}>{subtitle}</p>
@@ -866,10 +866,11 @@ function AnalyzeView({
       </div>
       <div className={ui.track} style={{ maxWidth: 360 }}><div className={ui.fill} style={{ width: `${percent}%` }} /></div>
       <span className={s.analyzeFootNote}>{footNote}</span>
-      <div className={`${ui.tip} ${ui.tipSoft}`} style={{ maxWidth: 420 }}>
-        <span className={ui.tipText} style={{ fontWeight: 500 }}>
-          <MS name="add" size={15} /> Tip: keep this open — I’ll let you know the moment it’s ready.
+      <div className={s.analyzeTip}>
+        <span className={s.analyzeTipIcon} aria-hidden>
+          <MS name="notifications" size={16} />
         </span>
+        <span className={s.analyzeTipText}>Keep this open — I’ll ping you the moment it’s ready.</span>
       </div>
     </div>
   );
@@ -1232,6 +1233,11 @@ function Step6Build({
   const isReady = stream.status === 'ready';
   const failed = state.genError !== null || stream.status === 'failed';
 
+  // Generation interleaves theory + flashcards/quiz per checkpoint, so the raw
+  // activity flips back and forth. The 5-stage checklist is a forward-only
+  // narrative — track the furthest stage reached so it never jumps backward.
+  const maxStageRef = React.useRef(3);
+
   React.useEffect(() => {
     if (!isReady || !state.planId) return;
     const plan = stream.plan as PlanTree | null;
@@ -1244,20 +1250,24 @@ function Step6Build({
 
   // ── FAILED ──
   if (failed) {
+    const retry = () => { onChange({ genError: null }); const nb = packId ?? state.notebookId; if (nb) void runPathGeneration(nb); else void startGeneration(); };
     return (
       <div className={s.analyze}>
-        <div className={s.analyzeOrb}><Mascot pose="thinking" size={64} idle="none" /></div>
-        <h2 className={s.analyzeTitle}>Generation hit a snag</h2>
-        <p className={s.analyzeSub}>{state.genError || stream.errorMessage || 'Something went wrong. Try again.'}</p>
-        <div className={s.footBtns} style={{ width: '100%', maxWidth: 360 }}>
-          {state.notebookId && (
-            <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => onViewPath(state.planId ?? '')}>View path</button>
-          )}
-          {!state.planId && (
-            <button type="button" className={`${ui.btn} ${ui.primary}`} style={{ flex: 1 }} onClick={() => { onChange({ genError: null }); const nb = packId ?? state.notebookId; if (nb) void runPathGeneration(nb); else void startGeneration(); }}>
+        <div className={`${ui.card} ${s.failCard}`}>
+          <div className={s.failOrb}>
+            <Mascot pose="thinking" size={56} idle="none" />
+            <span className={s.failBadge} aria-hidden><MS name="priority_high" /></span>
+          </div>
+          <h2 className={s.analyzeTitle}>Generation hit a snag</h2>
+          <p className={s.failMsg}>{state.genError || stream.errorMessage || 'Something interrupted the build. Your sources are safe — give it another go.'}</p>
+          <div className={s.failBtns}>
+            <button type="button" className={`${ui.btn} ${ui.primary} ${s.footGrow}`} onClick={retry}>
               <MS name="refresh" className={ui.ic} /> Try again
             </button>
-          )}
+            {state.notebookId && (
+              <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => onViewPath(state.planId ?? '')}>View path</button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1367,7 +1377,11 @@ function Step6Build({
   const done = stream.progress?.completedSlots ?? 0;
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 6;
   const currentActivity = stream.progress?.currentActivity;
-  const activeIndex = !currentActivity || currentActivity === 'theory' ? 3 : 4;
+  const rawStage = !currentActivity || currentActivity === 'theory' ? 3 : 4;
+  // Monotonic: once flashcards/quizzes start, stay there — never revert to the
+  // lesson stage when a later checkpoint writes its theory.
+  if (rawStage > maxStageRef.current) maxStageRef.current = rawStage;
+  const activeIndex = maxStageRef.current;
   const currentSlot = stream.progress?.currentSlot;
   return (
     <AnalyzeView
