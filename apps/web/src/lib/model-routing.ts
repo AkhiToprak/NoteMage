@@ -202,11 +202,13 @@ function legacyPathProvider(stage: PathStage): ModelProvider {
 function resolvePathStage(stage: PathStage, ctx: ResolveModelCtx): ResolvedModel {
   const ultra = ctx.ultra === true;
 
-  // 1. Per-plan force-provider toggle (plan.gemini) — identical in both modes so
-  //    the toggle stays predictable. Mirrors the old forcedStructuredCall:
-  //    forced gemini → flash; forced anthropic → haiku.
-  if (ctx.providerOverride === 'gemini') return fromToken('flash');
-  if (ctx.providerOverride === 'anthropic') return fromToken('haiku');
+  // 1. The legacy plan.gemini / providerOverride force-toggle is RETIRED. Path
+  //    generation no longer routes to Gemini in normal operation — every stage
+  //    runs on GLM-5.2 (step 4). providerOverride is intentionally ignored so a
+  //    stray `gemini:true` on a request can never put a path back on Gemini.
+  //    (Gemini is still reachable ONLY via MODEL_COMPOSITION_LEGACY=1 → step 3,
+  //    the explicit rollback; a GLM failure falls back to Claude in
+  //    forcedStructuredCall, never Gemini.)
 
   // 2. Per-stage env token override (e.g. PATH_QUIZ_MODEL=sonnet).
   const tokenOverride = parseToken(process.env[PATH_STAGE_MODEL_ENV[stage]]);

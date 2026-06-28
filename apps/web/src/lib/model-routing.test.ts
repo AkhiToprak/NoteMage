@@ -110,6 +110,14 @@ describe('resolveModel — path stages default to GLM-5.2', () => {
     });
   });
 
+  it('a gemini providerOverride is IGNORED — paths never route to Gemini', () => {
+    for (const f of ['path-structure', 'path-theory', 'path-flashcards', 'path-quiz'] as const) {
+      const m = resolveModel(f, { ultra: true, providerOverride: 'gemini' });
+      expect(m.provider).toBe('openrouter');
+      expect(m.token).toBe('glm-sonnet');
+    }
+  });
+
   it('PATH_QUIZ_MODEL still pins a stage back to real Claude', () => {
     process.env.PATH_QUIZ_MODEL = 'haiku';
     expect(resolveModel('path-quiz')).toMatchObject({ token: 'haiku', provider: 'anthropic' });
