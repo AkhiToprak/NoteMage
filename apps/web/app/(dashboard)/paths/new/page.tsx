@@ -309,6 +309,10 @@ function Step1Material({
     });
     const json = await res.json().catch(() => null);
     if (res.status === 422) { const e = new Error('No captions'); e.name = 'CaptionsMissing'; throw e; }
+    // A 500 here is the fragile caption scraper failing (e.g. YouTube blocking
+    // our datacenter IP), NOT a missing-captions verdict. Flag it so the build
+    // step can still drop to the native lane instead of failing the import.
+    if (res.status === 500) { const e = new Error('Transcript fetch failed'); e.name = 'TranscriptFailed'; throw e; }
     if (!res.ok || !json?.success || !json.data?.document?.id) throw new Error(json?.error || 'Could not transcribe a video.');
     return json.data.document.id as string;
   }
@@ -415,7 +419,10 @@ function Step1Material({
         try {
           materialId = await transcribeVideo(v.url, ctrl.signal);
         } catch (err) {
-          if (!(err instanceof Error) || err.name !== 'CaptionsMissing') throw err;
+          // Fall through to the native (Gemini) lane both when captions are
+          // genuinely absent (422) and when the scraper itself failed (500).
+          const fallback = err instanceof Error && (err.name === 'CaptionsMissing' || err.name === 'TranscriptFailed');
+          if (!fallback) throw err;
           setProgress({ label: `Reading ${v.title}`, current: done, total });
           if (!videoInboxId) { videoInboxId = await resolveInboxId(ctrl.signal); if (!videoInboxId) throw new Error('Could not prepare video processing. Try again.'); }
           if (!videoSectionId) videoSectionId = await resolveVideoSection(videoInboxId, ctrl.signal);
@@ -445,7 +452,7 @@ function Step1Material({
   if (processing) {
     return (
       <div className={s.analyze}>
-        <div className={s.analyzeOrb}><Mascot pose="thinking" size="lg" idle="float" /></div>
+        <div className={s.analyzeOrb}><Mascot pose="thinking" size={64} idle="float" /></div>
         <h2 className={s.analyzeTitle}>Preparing your material…</h2>
         <div className={`${ui.card} ${s.checkCard}`} style={{ gap: 14 }}>
           <div className={ui.track}><div className={ui.fill} style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 8}%` }} /></div>
@@ -926,7 +933,7 @@ function Step4Analyze({
   if (hasError) {
     return (
       <div className={s.analyze}>
-        <div className={s.analyzeOrb}><Mascot pose="thinking" size="lg" idle="none" /></div>
+        <div className={s.analyzeOrb}><Mascot pose="thinking" size={64} idle="none" /></div>
         <h2 className={s.analyzeTitle}>That didn&apos;t work</h2>
         <p className={s.analyzeSub}>{state.detectError}</p>
         <div className={s.footBtns} style={{ width: '100%', maxWidth: 360 }}>
@@ -1239,7 +1246,7 @@ function Step6Build({
   if (failed) {
     return (
       <div className={s.analyze}>
-        <div className={s.analyzeOrb}><Mascot pose="thinking" size="lg" idle="none" /></div>
+        <div className={s.analyzeOrb}><Mascot pose="thinking" size={64} idle="none" /></div>
         <h2 className={s.analyzeTitle}>Generation hit a snag</h2>
         <p className={s.analyzeSub}>{state.genError || stream.errorMessage || 'Something went wrong. Try again.'}</p>
         <div className={s.footBtns} style={{ width: '100%', maxWidth: 360 }}>

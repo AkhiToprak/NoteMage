@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
     await incrementUsage(userId, 'youtube_transcript', minutes);
 
     return createdResponse({ document });
-  } catch {
+  } catch (err) {
+    console.error('[youtube-transcript]', err);
     return internalErrorResponse();
   }
 }
