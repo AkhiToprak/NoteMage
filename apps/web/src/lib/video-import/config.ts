@@ -26,6 +26,13 @@ const DEFAULT_VIDEO_INGEST_MEDIA_RESOLUTION = 'low';
  *  failure (and a refund) instead of a silent hang. */
 const DEFAULT_VIDEO_INGEST_TIMEOUT_MS = 8 * 60_000;
 
+/** Hard cap on the notes JSON the model may emit. Bounds output COGS, but must
+ *  be large enough to hold a dense long-video's notes (~120 blocks) — 8k
+ *  truncated 30-min videos and surfaced a bogus "too long to fit". Gemini 2.5
+ *  Flash supports 65k output; 32k comfortably fits the block cap with headroom.
+ *  Override via VIDEO_INGEST_MAX_OUTPUT_TOKENS. */
+const DEFAULT_VIDEO_INGEST_MAX_OUTPUT_TOKENS = 32_768;
+
 export type VideoMediaResolution = 'low' | 'default';
 
 /** Master kill switch for Lane 2. When set, the video-import route/worker must
@@ -59,4 +66,11 @@ export function getVideoIngestTimeoutMs(): number {
   if (raw === undefined || raw === '') return DEFAULT_VIDEO_INGEST_TIMEOUT_MS;
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_VIDEO_INGEST_TIMEOUT_MS;
+}
+
+export function getVideoIngestMaxOutputTokens(): number {
+  const raw = process.env.VIDEO_INGEST_MAX_OUTPUT_TOKENS;
+  if (raw === undefined || raw === '') return DEFAULT_VIDEO_INGEST_MAX_OUTPUT_TOKENS;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : DEFAULT_VIDEO_INGEST_MAX_OUTPUT_TOKENS;
 }

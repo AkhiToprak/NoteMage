@@ -30,6 +30,7 @@ import { COSTS } from '@/lib/path-generator-cost';
 import type { TierKey } from '@/lib/tiers';
 import {
   getVideoIngestCostCeilingUsd,
+  getVideoIngestMaxOutputTokens,
   getVideoIngestTimeoutMs,
   type VideoMediaResolution,
 } from './config';
@@ -42,12 +43,6 @@ const TOKENS_PER_SEC_LOW = 100;
 const TOKENS_PER_SEC_DEFAULT = 300;
 /** Of the per-second token budget, the share billed at the AUDIO input rate. */
 const AUDIO_TOKENS_PER_SEC = 32;
-
-/** Hard cap on the notes JSON the model may emit — bounds output COGS (G4). */
-const MAX_OUTPUT_TOKENS = 8_192;
-
-/** Conservative output-token assumption for the pre-flight USD estimate. */
-const ESTIMATED_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS;
 
 /** Per-second token rate for the chosen media resolution. */
 function tokensPerSec(resolution: VideoMediaResolution): number {
@@ -86,7 +81,7 @@ export function estimateVideoIngestUsd(
   const audioRate = rates ? Math.max(inputRate, 1.0) : 0;
 
   const inputUsd = (frameTokens * inputRate + audioTokens * audioRate) / 1_000_000;
-  const outputUsd = (ESTIMATED_OUTPUT_TOKENS * outputRate) / 1_000_000;
+  const outputUsd = (getVideoIngestMaxOutputTokens() * outputRate) / 1_000_000;
   return inputUsd + outputUsd;
 }
 
@@ -318,7 +313,7 @@ export async function ingestVideo(opts: {
   try {
     const config: GenerateContentConfig = {
       systemInstruction: buildVideoNotesPrompt(durationSec),
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      maxOutputTokens: getVideoIngestMaxOutputTokens(),
       responseMimeType: 'application/json',
       mediaResolution: mediaResolutionEnum(resolution),
       // Bound the request: native YouTube ingestion fetches+analyses the whole
