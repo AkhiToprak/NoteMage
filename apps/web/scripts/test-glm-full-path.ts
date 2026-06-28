@@ -114,8 +114,7 @@ async function genTheory(ctx: SlotContentContext): Promise<{ text: string; ok: b
     onUsage: (uu) => (u = uu),
   });
   rec(`theory:${ctx.slotTitle}`, u);
-  const norm = normalizeTheoryInput(raw) as Record<string, unknown>;
-  const text = plainTextOf(norm);
+  const text = plainTextOf(normalizeTheoryInput(raw));
   return { text, ok: text.length > 40 };
 }
 
