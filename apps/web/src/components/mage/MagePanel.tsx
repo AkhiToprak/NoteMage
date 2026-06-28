@@ -1851,7 +1851,7 @@ function AssistantBody({
   onNavigate?: (href: string) => void;
 }) {
   if (!content.includes('[flashcard_set:') && !content.includes('[quiz_set:')) {
-    return <MarkdownRenderer content={content} variant="plain" />;
+    return <MarkdownRenderer content={content} variant="bubble" />;
   }
 
   const parts: React.ReactNode[] = [];
@@ -1862,7 +1862,7 @@ function AssistantBody({
   while ((m = re.exec(content)) !== null) {
     if (m.index > last) {
       const chunk = content.slice(last, m.index).trim();
-      if (chunk) parts.push(<MarkdownRenderer key={`md-${key++}`} content={chunk} variant="plain" />);
+      if (chunk) parts.push(<MarkdownRenderer key={`md-${key++}`} content={chunk} variant="bubble" />);
     }
     const isQuiz = m[1] === 'quiz_set';
     const setId = m[2];
@@ -1882,7 +1882,7 @@ function AssistantBody({
   }
   if (last < content.length) {
     const tail = content.slice(last).trim();
-    if (tail) parts.push(<MarkdownRenderer key={`md-${key++}`} content={tail} variant="plain" />);
+    if (tail) parts.push(<MarkdownRenderer key={`md-${key++}`} content={tail} variant="bubble" />);
   }
 
   return <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{parts}</div>;
