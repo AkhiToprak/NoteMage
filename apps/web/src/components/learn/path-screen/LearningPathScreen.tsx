@@ -137,6 +137,8 @@ function SectionZone({
   );
   const gateCards = phase.slots.filter((s) => s.kind === 'assessment' && s.unlocked && !s.completed);
   const activeNode = coreNodes.find((s) => s.isActive) ?? null;
+  // No node to study right now because the next one is still being generated.
+  const sectionBuilding = !activeNode && coreNodes.some((s) => s.generating);
   const doneCount = coreNodes.filter((s) => s.completed).length;
 
   const sectionCls =
@@ -185,6 +187,7 @@ function SectionZone({
           </div>
           <div className={styles.sideCol}>
             {activeNode ? <NodeHub slot={activeNode} onSlotClick={onSlotClick} /> : null}
+            {sectionBuilding ? <BuildingHint /> : null}
             {gateCards.map((slot) => (
               <GateCard key={slot.id} slot={slot} nextSectionTitle={nextSectionTitle} onSlotClick={onSlotClick} />
             ))}
@@ -225,7 +228,11 @@ function HRow({ slots, onSlotClick }: { slots: PathSlot[]; onSlotClick: (slot: P
           <div className={styles.hWrap} key={slot.id}>
             <div className={styles.hNode}>
               <NodeTileButton slot={slot} onSlotClick={onSlotClick} />
-              <span className={`${styles.hLabel} ${state === 'locked' ? styles.hLabelMuted : ''}`}>
+              <span
+                className={`${styles.hLabel} ${
+                  state === 'locked' || state === 'generating' ? styles.hLabelMuted : ''
+                }`}
+              >
                 {slot.title}
               </span>
               {isGate && state === 'completed' && slot.starsEarned > 0 ? (
@@ -288,7 +295,11 @@ function NodeTrail({ slots, onSlotClick }: { slots: PathSlot[]; onSlotClick: (sl
             </div>
             <div className={styles.trailContent}>
               <div className={styles.trailLabelRow}>
-                <span className={`${styles.trailLabel} ${state === 'locked' ? styles.trailLabelMuted : ''}`}>
+                <span
+                  className={`${styles.trailLabel} ${
+                    state === 'locked' || state === 'generating' ? styles.trailLabelMuted : ''
+                  }`}
+                >
                   {slot.title}
                 </span>
                 {state === 'active' ? <span className={styles.startPill}>START</span> : null}
@@ -315,9 +326,11 @@ function trailSubLabel(slot: PathSlot, state: NodeState, isGate: boolean): strin
       const g = bestGrade(slot.bestPercentage, slot.starsEarned);
       return g ? `Checkpoint · Passed · Grade ${g}` : 'Checkpoint · Passed';
     }
+    if (state === 'generating') return 'Checkpoint · Building…';
     return state === 'locked' ? 'Checkpoint · Locked' : 'Checkpoint';
   }
   if (state === 'completed') return 'Completed';
+  if (state === 'generating') return 'Building…';
   if (state === 'active') return 'Continue here';
   if (state === 'locked') return 'Locked';
   return 'Up next';
@@ -326,25 +339,37 @@ function trailSubLabel(slot: PathSlot, state: NodeState, isGate: boolean): strin
 function NodeTileButton({ slot, onSlotClick }: { slot: PathSlot; onSlotClick: (slot: PathSlot) => void }) {
   const state = nodeStateFor(slot);
   const isGate = slot.kind === 'assessment';
-  const disabled = !slot.unlocked;
+  // A still-generating node has nothing to open yet — it isn't clickable.
+  const disabled = !slot.unlocked || state === 'generating';
 
   let tileCls: string;
   let icon: string;
   if (isGate) {
     tileCls =
-      state === 'locked'
-        ? `${styles.nodeTile} ${styles.nodeGateLocked}`
-        : `${styles.nodeTile} ${styles.nodeGate}`;
-    icon = state === 'completed' ? 'verified' : state === 'locked' ? 'lock' : 'workspace_premium';
+      state === 'generating'
+        ? `${styles.nodeTile} ${styles.nodeGenerating}`
+        : state === 'locked'
+          ? `${styles.nodeTile} ${styles.nodeGateLocked}`
+          : `${styles.nodeTile} ${styles.nodeGate}`;
+    icon =
+      state === 'generating'
+        ? 'progress_activity'
+        : state === 'completed'
+          ? 'verified'
+          : state === 'locked'
+            ? 'lock'
+            : 'workspace_premium';
   } else {
     tileCls =
       state === 'completed'
         ? `${styles.nodeTile} ${styles.nodeDone}`
-        : state === 'active'
-          ? `${styles.nodeTile} ${styles.nodeActive}`
-          : state === 'locked'
-            ? `${styles.nodeTile} ${styles.nodeLocked}`
-            : styles.nodeTile;
+        : state === 'generating'
+          ? `${styles.nodeTile} ${styles.nodeGenerating}`
+          : state === 'active'
+            ? `${styles.nodeTile} ${styles.nodeActive}`
+            : state === 'locked'
+              ? `${styles.nodeTile} ${styles.nodeLocked}`
+              : styles.nodeTile;
     icon = nodeIcon(slot, state);
   }
 
@@ -355,7 +380,7 @@ function NodeTileButton({ slot, onSlotClick }: { slot: PathSlot; onSlotClick: (s
       onClick={() => !disabled && onSlotClick(slot)}
       disabled={disabled}
       aria-disabled={disabled || undefined}
-      aria-label={slot.title}
+      aria-label={state === 'generating' ? `${slot.title} (still building)` : slot.title}
       data-active-slot={state === 'active' ? 'true' : undefined}
     >
       <MsIcon name={icon} size={24} />
@@ -420,6 +445,23 @@ function NodeHub({ slot, onSlotClick }: { slot: PathSlot; onSlotClick: (slot: Pa
           <MsIcon name="description" size={15} />
           View sources
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── still-building hint ─────────────────────────────────────────────
+// Shown in the current section's side column when its next checkpoint hasn't
+// finished generating yet — so the zone reads "Mage is working", not empty.
+function BuildingHint() {
+  return (
+    <div className={styles.buildingHint}>
+      <span className={styles.buildingHintIcon} aria-hidden>
+        <MsIcon name="progress_activity" size={20} />
+      </span>
+      <div>
+        <p className={styles.buildingHintTitle}>Building the next checkpoint…</p>
+        <p className={styles.buildingHintSub}>It unlocks here the moment it&apos;s ready.</p>
       </div>
     </div>
   );

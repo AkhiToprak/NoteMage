@@ -49,6 +49,9 @@ export interface PathSlot {
   completed: boolean;
   /** Missing one or more expected activities — AI generation failed. */
   incompleteGeneration: boolean;
+  /** Missing activities, but generation is still in flight — pending, not
+   *  failed. Rendered as a "generating" node, never a broken one. */
+  generating: boolean;
   isActive: boolean;
   activities: PathActivity[];
 }

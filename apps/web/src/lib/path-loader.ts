@@ -171,6 +171,10 @@ export interface SerializedPathSlot {
   completed: boolean;
   /** Missing one or more expected activities — AI generation failed. */
   incompleteGeneration: boolean;
+  /** Missing activities, but generation is still in flight — pending, not
+   *  failed. The UI renders these as a "generating" node (non-clickable),
+   *  never as a broken/incomplete one. */
+  generating: boolean;
   /** Activity kinds Stage B intentionally pruned (material too thin). NOT a
    *  failure — the UI renders these as intentionally absent, not broken. */
   prunedActivityKinds: string[];
@@ -235,7 +239,16 @@ export interface SerializedPath {
  * `completed` / `isActive` flags ship pre-computed.
  */
 export function serializePath(plan: PlanWithTree): SerializedPath {
-  const annotated = annotatePhases(plan.phases);
+  // While generation is in flight, slots Stage B hasn't built yet are PENDING
+  // ("generating"), not failed — so they render as building nodes and block
+  // the path ahead of the build instead of unlocking it. Once the status
+  // settles to ready/failed, a missing-activity slot reverts to a true
+  // incompleteGeneration failure.
+  const generationActive =
+    plan.generationStatus === 'generating' ||
+    plan.generationStatus === 'queued' ||
+    plan.generationStatus === CANCELLING_STATUS;
+  const annotated = annotatePhases(plan.phases, { generationActive });
   // Surface the background run's mode (if any) so the UI can distinguish a
   // translation from a generation. Stored on generationProgress.mode by the
   // translator; absent for ordinary generation.
@@ -286,6 +299,7 @@ export function serializePath(plan: PlanWithTree): SerializedPath {
         unlocked: s.unlocked,
         completed: s.completed,
         incompleteGeneration: s.incompleteGeneration,
+        generating: s.generating,
         prunedActivityKinds: s.prunedActivityKinds,
         isActive: s.isActive,
         activities: s.activities.map((a) => ({

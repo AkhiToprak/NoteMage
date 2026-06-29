@@ -52,6 +52,7 @@ export function nodeBadgeLabel(kind: string): string {
 /** Glyph for a node tile in the path strip, by slot kind + state. */
 export function nodeIcon(slot: PathSlot, state: NodeState): string {
   if (state === 'completed') return 'check';
+  if (state === 'generating') return 'progress_activity';
   if (state === 'locked') return 'lock';
   if (state === 'active') return 'play_arrow';
   if (slot.kind === 'assessment') return 'workspace_premium';
@@ -94,10 +95,13 @@ export function sourceName(plan: ScreenPlan): string {
 
 // ── node + section state ────────────────────────────────────────────
 
-export type NodeState = 'locked' | 'available' | 'active' | 'completed';
+export type NodeState = 'locked' | 'available' | 'active' | 'completed' | 'generating';
 
 export function nodeStateFor(slot: PathSlot): NodeState {
   if (slot.completed) return 'completed';
+  // Still-building checkpoints read as "generating" — ahead of both locked and
+  // available, so an un-built node never masquerades as a user-gated one.
+  if (slot.generating) return 'generating';
   if (!slot.unlocked) return 'locked';
   if (slot.isActive) return 'active';
   return 'available';

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/app/AppShell';
 import MageTip from '@/components/app/MageTip';
+import { UltraBadge } from '@/components/learn/UltraBadge';
 import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import type { SerializedPath } from '@/lib/path-loader';
 import type { PathPlan } from '@/components/learn/PathView';
@@ -47,11 +48,6 @@ function sourceLabel(p: SerializedPath): string {
     default:
       return 'AI-generated path';
   }
-}
-
-/** Total number of slots across all phases. */
-function totalSlots(p: SerializedPath): number {
-  return p.phases.reduce((n, ph) => n + ph.slots.length, 0);
 }
 
 // ── Overflow menu ─────────────────────────────────────────────────────────
@@ -161,25 +157,18 @@ function PathCard({
   const stats = derivePathStats(p as unknown as PathPlan);
   const nextSlot = findContinueSlot(p as unknown as PathPlan);
   const isAssessment = nextSlot?.kind === 'assessment' || nextSlot?.kind === 'final_exam';
+  const isDone = stats.progressPct >= 100;
+  const isUltra = p.ultra === true;
 
   const ctaHref = nextSlot
     ? `/learn/paths/${encodeURIComponent(p.id)}?slot=${encodeURIComponent(nextSlot.id)}`
     : `/learn/paths/${encodeURIComponent(p.id)}`;
 
-  const ctaLabel =
-    stats.progressPct >= 100 ? 'Review' : isAssessment ? 'Take checkpoint' : 'Continue';
-
-  const nextText = nextSlot ? `Next: ${nextSlot.title}` : 'Completed · Review anytime';
+  const ctaLabel = isDone ? 'Review' : isAssessment ? 'Take checkpoint' : 'Continue';
 
   // Badge: "Completed" if done, "Active" only for the most-recently-updated in-progress path.
   const badge: 'Active' | 'Completed' | null =
-    stats.progressPct >= 100 ? 'Completed' : isActive ? 'Active' : null;
-
-  // Tile color: gold for ultra, lilac for everyone else.
-  const tileGold = p.ultra;
-  const tileStyle = tileGold
-    ? { background: 'var(--brand-gold, #f5c842)', color: '#1a1a36' }
-    : undefined;
+    isDone ? 'Completed' : isActive ? 'Active' : null;
 
   // Subject-based icon: pick a simple material symbol per subject, fallback to menu_book.
   const subjectIcon = (() => {
@@ -194,7 +183,11 @@ function PathCard({
     return 'menu_book';
   })();
 
-  const steps = totalSlots(p);
+  // Total checkpoints drive the "X of N" progress count (the per-step total now
+  // lives in the spine, not the meta line).
+  const steps = stats.totalCheckpoints;
+  // One segment per phase, filled by that phase's completion — the path's backbone.
+  const segments = stats.topics.map((t) => t.pct);
 
   const menuItems: MoreMenuItem[] = [
     {
@@ -220,42 +213,76 @@ function PathCard({
 
   return (
     <article className={`${styles.pathCard} ${isActive ? styles.pathActive : ''}`}>
-      <div className={styles.pathHead}>
-        <span className={styles.pathTile} style={tileStyle}>
-          <MsIcon name={subjectIcon} size={24} />
+      <div className={styles.cardTop}>
+        <div className={styles.cardHeader}>
+          <span className={`${styles.iconTile} ${isUltra ? styles.iconTileGold : ''}`}>
+            <MsIcon name={subjectIcon} size={24} />
+          </span>
+          <div className={styles.headerMeta}>
+            <div className={styles.titleRow}>
+              <h2 className={styles.pathTitle}>{p.title}</h2>
+              {badge === 'Active' && (
+                <span className={`${styles.badge} ${styles.badgeActive}`}>Active</span>
+              )}
+              {badge === 'Completed' && (
+                <span className={`${styles.badge} ${styles.badgeDone}`}>Completed</span>
+              )}
+            </div>
+            <div className={styles.sourceLine}>
+              {isUltra && <UltraBadge fontSize={10.5} iconSize={12} />}
+              {isUltra && <span className={styles.metaDot} aria-hidden>·</span>}
+              <span className={styles.sourceText}>{sourceLabel(p)}</span>
+            </div>
+          </div>
+          <div className={styles.cardMenu}>
+            <MoreMenu label={`More actions for ${p.title}`} items={menuItems} />
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.progressSpine}>
+        <div className={styles.progressTop}>
+          <span className={styles.progressLabel}>Progress</span>
+          <span
+            className={`${styles.progressCount} ${stats.doneCheckpoints === 0 ? styles.progressCountZero : ''}`}
+          >
+            {stats.doneCheckpoints} of {steps}
+          </span>
+        </div>
+        <div
+          className={styles.stepTrack}
+          role="progressbar"
+          aria-valuenow={stats.progressPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${stats.progressPct}% complete`}
+        >
+          {segments.map((pct, i) => (
+            <span
+              key={i}
+              className={`${styles.stepSeg} ${
+                pct >= 100 ? styles.stepSegFilled : pct > 0 ? styles.stepSegPartial : ''
+              }`}
+              style={pct > 0 && pct < 100 ? ({ '--fill': `${pct}%` } as CSSProperties) : undefined}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.cardDivider} />
+
+      <div className={styles.cardFooter}>
+        <span className={styles.nextStep}>
+          {nextSlot ? (
+            <>
+              <span className={styles.nextLabel}>Next</span>
+              <span className={styles.nextText}>{nextSlot.title}</span>
+            </>
+          ) : (
+            <span className={styles.nextText}>Completed · Review anytime</span>
+          )}
         </span>
-        <div className={styles.headText}>
-          <div className={styles.titleRow}>
-            <h2 className={styles.pathTitle}>{p.title}</h2>
-            {badge === 'Active' && (
-              <span className={`${styles.badge} ${styles.badgeActive}`}>Active</span>
-            )}
-            {badge === 'Completed' && (
-              <span className={`${styles.badge} ${styles.badgeDone}`}>Completed</span>
-            )}
-          </div>
-          <div className={styles.source}>
-            {sourceLabel(p)}
-            {steps > 0 ? ` · ${steps} step${steps === 1 ? '' : 's'}` : ''}
-          </div>
-        </div>
-        <div className={styles.cardMenu}>
-          <MoreMenu label={`More actions for ${p.title}`} items={menuItems} />
-        </div>
-      </div>
-
-      <div className={styles.progress}>
-        <div className={ui.track}>
-          <div className={ui.fill} style={{ width: `${stats.progressPct}%` }} />
-        </div>
-        <span className={styles.pct}>{stats.progressPct}%</span>
-      </div>
-
-      <div className={styles.divider} />
-
-      <div className={styles.foot}>
-        <span className={styles.next}>{nextText}</span>
-        <Link href={ctaHref} className={styles.link}>
+        <Link href={ctaHref} className={styles.ctaBtn}>
           {ctaLabel}
           <MsIcon name="arrow_forward" size={16} />
         </Link>
@@ -283,46 +310,55 @@ function GeneratingCard({
 
   return (
     <article className={styles.pathCard}>
-      <div className={styles.pathHead}>
-        <span className={styles.pathTile}>
-          {stuck ? (
-            <MsIcon name="sync_problem" size={24} />
-          ) : (
-            <MsIcon name="hourglass_top" size={24} />
-          )}
-        </span>
-        <div className={styles.headText}>
-          <div className={styles.titleRow}>
-            <h2 className={styles.pathTitle}>{p.title || 'Generating…'}</h2>
-          </div>
-          <div className={styles.source}>
-            {cancelling
-              ? 'Cancelling…'
-              : stuck
-                ? isTranslate
-                  ? 'Translation stalled — your path is intact.'
-                  : "Stuck — won't finish. Stop it to start fresh."
-                : isTranslate
-                  ? `${sourceLabel(p)} · Translating your path…`
-                  : `${sourceLabel(p)} · Building your path`}
+      <div className={styles.cardTop}>
+        <div className={styles.cardHeader}>
+          <span className={styles.iconTile}>
+            {stuck ? (
+              <MsIcon name="sync_problem" size={24} />
+            ) : (
+              <MsIcon name="hourglass_top" size={24} />
+            )}
+          </span>
+          <div className={styles.headerMeta}>
+            <div className={styles.titleRow}>
+              <h2 className={styles.pathTitle}>{p.title || 'Generating…'}</h2>
+            </div>
+            <div className={styles.sourceLine}>
+              <span className={styles.sourceText}>
+                {cancelling
+                  ? 'Cancelling…'
+                  : stuck
+                    ? isTranslate
+                      ? 'Translation stalled — your path is intact.'
+                      : "Stuck — won't finish. Stop it to start fresh."
+                    : isTranslate
+                      ? `${sourceLabel(p)} · Translating your path…`
+                      : `${sourceLabel(p)} · Building your path`}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className={styles.progress}>
-        <div className={ui.track}>
-          <div className={ui.fill} style={{ width: '0%' }} />
+      <div className={styles.progressSpine}>
+        <div className={styles.progressTop}>
+          <span className={styles.progressLabel}>Progress</span>
+          <span className={`${styles.progressCount} ${styles.progressCountZero}`}>—</span>
         </div>
-        <span className={styles.pct}>—</span>
+        <div className={styles.stepTrack} aria-hidden>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span key={i} className={styles.stepSeg} />
+          ))}
+        </div>
       </div>
 
-      <div className={styles.divider} />
+      <div className={styles.cardDivider} />
 
-      <div className={styles.foot}>
+      <div className={styles.cardFooter}>
         {cancelling ? (
-          <span className={styles.next} aria-live="polite">Cancelling…</span>
+          <span className={styles.nextText} aria-live="polite">Cancelling…</span>
         ) : (
-          <span className={styles.next}>
+          <span className={styles.nextText}>
             {stuck ? 'Path generation is stuck' : 'Mage is building this path…'}
           </span>
         )}

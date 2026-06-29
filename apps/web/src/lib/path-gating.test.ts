@@ -127,6 +127,107 @@ describe('path-gating — pruned vs failed generation', () => {
   });
 });
 
+// ── generating vs failed: a slot missing activities is PENDING while
+//    generation is in flight, FAILED only once it has settled ──
+describe('path-gating — generating (in-flight) vs failed (settled)', () => {
+  it('flags a missing-activity slot as generating (not incompleteGeneration) when generationActive', () => {
+    const annotated = annotatePhases(
+      [
+        phase([
+          slot({
+            id: 's1',
+            kind: 'learning', // expects theory + flashcards
+            activities: [{ id: 'a1', kind: 'theory', completed: false, sortOrder: 0 }],
+          }),
+        ]),
+      ],
+      { generationActive: true },
+    );
+    const s1 = annotated[0].slots[0];
+    expect(s1.generating).toBe(true);
+    expect(s1.incompleteGeneration).toBe(false);
+    expect(s1.completed).toBe(false);
+  });
+
+  it('a still-generating slot is NOT active (nothing to study there yet)', () => {
+    const annotated = annotatePhases(
+      [phase([slot({ id: 's1', kind: 'learning', activities: [] })])],
+      { generationActive: true },
+    );
+    expect(annotated[0].slots[0].isActive).toBe(false);
+  });
+
+  it('a still-generating slot BLOCKS the slots after it (no unlock ahead of the build)', () => {
+    const annotated = annotatePhases(
+      [
+        phase([
+          // First slot is still building (no activities yet).
+          slot({ id: 's1', kind: 'learning', activities: [] }),
+          // Second slot is fully built, but must stay locked behind the build frontier.
+          slot({
+            id: 's2',
+            sortOrder: 1,
+            kind: 'learning',
+            activities: [
+              { id: 'b1', kind: 'theory', completed: false, sortOrder: 0 },
+              { id: 'b2', kind: 'flashcards', completed: false, sortOrder: 1 },
+            ],
+          }),
+        ]),
+      ],
+      { generationActive: true },
+    );
+    expect(annotated[0].slots[0].generating).toBe(true);
+    expect(annotated[0].slots[1].unlocked).toBe(false);
+    expect(annotated[0].slots[1].isActive).toBe(false);
+  });
+
+  it('a ready-but-not-completed first slot is the active node while later slots still generate', () => {
+    const annotated = annotatePhases(
+      [
+        phase([
+          slot({
+            id: 's1',
+            kind: 'learning',
+            activities: [
+              { id: 'a1', kind: 'theory', completed: false, sortOrder: 0 },
+              { id: 'a2', kind: 'flashcards', completed: false, sortOrder: 1 },
+            ],
+          }),
+          slot({ id: 's2', sortOrder: 1, kind: 'learning', activities: [] }),
+        ]),
+      ],
+      { generationActive: true },
+    );
+    expect(annotated[0].slots[0].isActive).toBe(true);
+    expect(annotated[0].slots[0].generating).toBe(false);
+    expect(annotated[0].slots[1].generating).toBe(true);
+  });
+
+  it('once generation settles (default), a missing-activity slot reverts to incompleteGeneration', () => {
+    const annotated = annotatePhases([
+      phase([
+        slot({
+          id: 's1',
+          kind: 'learning',
+          activities: [{ id: 'a1', kind: 'theory', completed: true, sortOrder: 0 }],
+        }),
+      ]),
+    ]);
+    const s1 = annotated[0].slots[0];
+    expect(s1.generating).toBe(false);
+    expect(s1.incompleteGeneration).toBe(true);
+  });
+
+  it('isSlotUnlocked refuses writes to a still-generating slot', () => {
+    const phases = [phase([slot({ id: 's1', kind: 'learning', activities: [] })])];
+    expect(isSlotUnlocked(phases, 's1', { generationActive: true })).toEqual({
+      unlocked: false,
+      reason: 'slot_generating',
+    });
+  });
+});
+
 // ── NM3-50: starsForPercentage / gradeForPercentage / isSlotUnlocked ──
 
 function activity(

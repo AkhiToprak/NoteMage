@@ -328,6 +328,17 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
   // A stuck translation is recoverable non-destructively (restore to ready); a
   // stuck generation is incomplete and gets deleted. Copy + actions branch on it.
   const isTranslate = plan.generationMode === 'translate';
+  // At least one checkpoint is ready to study right now (finished, or unlocked
+  // with built activities) — so the banner can invite the learner to begin
+  // while Stage B keeps building the rest.
+  const anyStudyable =
+    generating &&
+    !isTranslate &&
+    plan.phases.some((ph) =>
+      ph.slots.some(
+        (s) => s.completed || (s.unlocked && !s.generating && s.activities.length > 0),
+      ),
+    );
 
   const bannerNode = generating ? (
           <div className="path-banner" style={{ margin: '0 0 16px' }}>
@@ -411,7 +422,9 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
                       : 'This path got stuck'
                     : isTranslate
                       ? 'Translating your path'
-                      : 'Still generating your path'}
+                      : anyStudyable
+                        ? 'You can start now'
+                        : 'Still generating your path'}
                 </p>
                 <p
                   style={{
@@ -427,7 +440,9 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
                       : "It stopped responding and won't finish. Stop it to remove the path and create a fresh one."
                     : isTranslate
                       ? "Your path is being translated. This updates automatically when it's done."
-                      : "Your path is still being built. This updates automatically when it's done."}
+                      : anyStudyable
+                        ? 'Your first checkpoint is ready — start now. Mage keeps building the rest, and new checkpoints unlock as they finish.'
+                        : "Your path is still being built. This updates automatically when it's done."}
                 </p>
                 {stopError ? (
                   <p

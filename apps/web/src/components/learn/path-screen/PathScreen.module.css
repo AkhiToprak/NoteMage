@@ -310,6 +310,53 @@
 .nodeGate { background: var(--gold); color: #5a4300; box-shadow: 0 3px 0 #d6a325; }
 .nodeGateLocked { background: #f6ecd2; color: #b89248; box-shadow: 0 3px 0 #e8d6ac; }
 
+/* Still-building checkpoint: a calm "working" node, not a locked one. The tile
+   breathes on opacity and its progress glyph spins (transform/opacity only). */
+.nodeGenerating {
+  background: #efece4;
+  color: var(--accent);
+  box-shadow: 0 3px 0 #e0dccf;
+  animation: hmNodePulse 1.8s ease-in-out infinite;
+}
+.nodeGenerating :global(.material-symbols-outlined) {
+  animation: hmNodeSpin 1.1s linear infinite;
+}
+@keyframes hmNodePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@keyframes hmNodeSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Side-column hint while the next checkpoint is still generating. */
+.buildingHint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--rc);
+  box-shadow: var(--shadow);
+}
+.buildingHintIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #efece4;
+  color: var(--accent);
+}
+.buildingHintIcon :global(.material-symbols-outlined) {
+  animation: hmNodeSpin 1.1s linear infinite;
+}
+.buildingHintTitle { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink); }
+.buildingHintSub { margin: 2px 0 0; font-size: 12px; color: var(--body); }
+
 .nodeStars {
   display: inline-flex;
   gap: 1px;
@@ -927,4 +974,6 @@
   .pillBtn, .hubSources, .crumbLink, .chevron { transition: none; }
   .nodeTile:active, .missionCard:active, .heroGo:active, .askBtn:active, .railBtn:active,
   .backPill:active, .weakBtn:active, .pillBtn:active { transform: none; }
+  .nodeGenerating, .nodeGenerating :global(.material-symbols-outlined),
+  .buildingHintIcon :global(.material-symbols-outlined) { animation: none; }
 }

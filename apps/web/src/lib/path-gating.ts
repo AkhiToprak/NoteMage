@@ -5,18 +5,26 @@ import { expectedActivityKinds } from './path-slot-activities';
 // that marked everything unlocked).
 //
 // Rules:
+//   - A slot is `generating` iff generation is still IN FLIGHT
+//     (`opts.generationActive`) AND it is missing one or more of its
+//     expected activity kinds — i.e. Stage B simply hasn't built it yet.
+//     This is a PENDING state, not a failure: it blocks the slots after it
+//     (so the path never unlocks ahead of the build) and renders a
+//     "generating" node instead of a broken one.
 //   - A slot is `incompleteGeneration` iff it is missing one or more of
-//     the activity kinds its `kind` should contain (AI generation failed
-//     for some activity).
+//     the activity kinds its `kind` should contain AND generation has
+//     settled (NOT `generationActive`) — i.e. AI generation genuinely
+//     failed for some activity.
 //   - A slot is `completed` iff it is NOT incompleteGeneration, every
 //     activity is completed, and (for graded slots) `starsEarned >= 1`.
 //   - A slot is "passable" iff it is `completed` OR `incompleteGeneration`
 //     — passable slots never hold up the slots after them, so a failed
-//     checkpoint can never trap the learner.
+//     checkpoint can never trap the learner. A `generating` slot is NOT
+//     passable.
 //   - A slot is `unlocked` iff every `prerequisiteSlotIds` entry is
 //     passable AND every prior slot in flat path order is passable.
 //   - A slot is `active` iff it's the first `unlocked && !completed &&
-//     !incompleteGeneration` slot in path order.
+//     !incompleteGeneration && !generating` slot in path order.
 //   - Phase `unlocked` mirrors "any slot in this phase is unlocked" so
 //     legacy UI bits that read phase-level flags keep working.
 //
@@ -105,6 +113,8 @@ export type AnnotatedSlot<S extends SlotLite = SlotLite> = S & {
   completed: boolean;
   /** Missing one or more expected activities — AI generation failed. */
   incompleteGeneration: boolean;
+  /** Missing activities, but generation is still in flight — pending, not failed. */
+  generating: boolean;
   isActive: boolean;
   activities: AnnotatedActivity<S['activities'][number]>[];
 };
@@ -127,20 +137,32 @@ export interface AnnotatedPhase<P extends PhaseLite> {
  * gate API writes (e.g. activity PATCH refuses to mark progress on a
  * locked slot) and the client uses it to render node state.
  */
-export function annotatePhases<P extends PhaseLite>(phases: P[]): AnnotatedPhase<P>[] {
+export function annotatePhases<P extends PhaseLite>(
+  phases: P[],
+  opts?: { generationActive?: boolean },
+): AnnotatedPhase<P>[] {
   const sortedPhases = sortPhases(phases);
 
-  // First pass: per-slot completion + generation-incomplete (no deps).
+  // First pass: per-slot completion + generation state (no deps).
   const phaseSlots = sortedPhases.map((phase) =>
     sortSlots(phase.slots).map((slot) => {
-      const incompleteGeneration = isGenerationIncomplete(slot);
+      const missing = isGenerationIncomplete(slot);
+      // While generation is in flight, a slot missing its activities is
+      // PENDING — Stage B hasn't built it yet. It's not a failure: it renders
+      // a "generating" node and BLOCKS the slots after it (the path never
+      // unlocks ahead of the build). Only once generation settles does a
+      // missing-activity slot become a true incompleteGeneration failure.
+      const generating = !!opts?.generationActive && missing;
+      const incompleteGeneration = !generating && missing;
       const completed = isSlotCompleted(slot);
       return {
         slot,
         completed,
+        generating,
         incompleteGeneration,
         // A slot is "passable" — i.e. it doesn't hold up the slots after
-        // it — once it's genuinely completed OR its generation failed.
+        // it — once it's genuinely completed OR its generation failed. A
+        // still-generating slot is NOT passable.
         passable: completed || incompleteGeneration,
       };
     }),
@@ -154,7 +176,7 @@ export function annotatePhases<P extends PhaseLite>(phases: P[]): AnnotatedPhase
   let firstActiveId: string | null = null;
   let priorBlockerHit = false;
   const unlockedById = new Map<string, boolean>();
-  for (const { slot, completed, incompleteGeneration, passable } of flat) {
+  for (const { slot, completed, incompleteGeneration, generating, passable } of flat) {
     const prereqsOk = slot.prerequisiteSlotIds.every((pid) => {
       const ref = slotById.get(pid);
       return ref ? ref.passable : true; // missing prereq id → treat as ok
@@ -162,22 +184,25 @@ export function annotatePhases<P extends PhaseLite>(phases: P[]): AnnotatedPhase
     const unlocked = !priorBlockerHit && prereqsOk;
     unlockedById.set(slot.id, unlocked);
     // The active node is the first genuinely-doable, not-done slot.
-    // Generation-incomplete slots are skipped — they're flagged for
-    // regeneration, not presented as the next lesson.
-    if (!completed && !incompleteGeneration && firstActiveId === null && unlocked) {
+    // Generation-incomplete slots are skipped (flagged for regeneration, not
+    // presented as the next lesson); still-generating slots are skipped too
+    // (nothing to study there yet).
+    if (!completed && !incompleteGeneration && !generating && firstActiveId === null && unlocked) {
       firstActiveId = slot.id;
     }
     // A normal incomplete slot blocks everything after it; a generation-
-    // incomplete slot never does.
+    // incomplete (failed) slot never does; a still-generating slot DOES (the
+    // path must not unlock ahead of the build).
     if (!passable) priorBlockerHit = true;
   }
 
   return sortedPhases.map((phase, i) => {
-    const slots = phaseSlots[i].map(({ slot, completed, incompleteGeneration }) => ({
+    const slots = phaseSlots[i].map(({ slot, completed, incompleteGeneration, generating }) => ({
       ...slot,
       unlocked: unlockedById.get(slot.id) ?? false,
       completed,
       incompleteGeneration,
+      generating,
       isActive: slot.id === firstActiveId,
     })) as AnnotatedSlot<P['slots'][number]>[];
     const phaseUnlocked = slots.some((s) => s.unlocked);
@@ -199,11 +224,17 @@ export function annotatePhases<P extends PhaseLite>(phases: P[]): AnnotatedPhase
  * unlocked given the plan's phase tree? Used by the activity PATCH
  * and assessment POST endpoints to refuse writes on locked slots.
  */
-export function isSlotUnlocked(phases: PhaseLite[], slotId: string): GateResult {
-  const annotated = annotatePhases(phases);
+export function isSlotUnlocked(
+  phases: PhaseLite[],
+  slotId: string,
+  opts?: { generationActive?: boolean },
+): GateResult {
+  const annotated = annotatePhases(phases, opts);
   for (const phase of annotated) {
     for (const slot of phase.slots) {
       if (slot.id === slotId) {
+        // A still-generating slot has no built activities to write to yet.
+        if (slot.generating) return { unlocked: false, reason: 'slot_generating' };
         return slot.unlocked
           ? { unlocked: true }
           : { unlocked: false, reason: 'slot_locked' };

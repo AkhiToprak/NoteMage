@@ -455,7 +455,7 @@ function Step1Material({
         <div className={s.analyzeOrb}><Mascot pose="thinking" size={64} idle="float" /></div>
         <h2 className={s.analyzeTitle}>Preparing your material…</h2>
         <div className={`${ui.card} ${s.checkCard}`} style={{ gap: 14 }}>
-          <div className={ui.track}><div className={ui.fill} style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 8}%` }} /></div>
+          <div className={ui.track}><div className={ui.fill} style={{ width: `${progress.total > 0 ? (Math.min(progress.current + 1, progress.total) / progress.total) * 100 : 8}%` }} /></div>
           <p aria-live="polite" className={s.analyzeSub} style={{ margin: 0 }}>
             {progress.total > 0 ? `${Math.min(progress.current + 1, progress.total)} of ${progress.total} · ` : ''}{progress.label || 'Working…'}
           </p>
@@ -829,18 +829,19 @@ const STAGES = [
   'Reading your material',
   'Finding the key topics',
   'Ordering them into a path',
-  'Writing your first lesson',
   'Building flashcards & quizzes',
 ];
 
 function AnalyzeView({
-  title, subtitle, activeIndex, percent, footNote,
+  title, subtitle, activeIndex, percent, footNote, cta,
 }: {
   title: string;
   subtitle: string;
   activeIndex: number;  // index currently "Working…"; lower indices are done
   percent: number;
   footNote?: string;
+  /** Optional early-start affordance, surfaced once checkpoint 1 is ready. */
+  cta?: React.ReactNode;
 }) {
   return (
     <div className={s.analyze}>
@@ -866,6 +867,21 @@ function AnalyzeView({
       </div>
       <div className={ui.track} style={{ maxWidth: 360 }}><div className={ui.fill} style={{ width: `${percent}%` }} /></div>
       {footNote ? <span className={s.analyzeFootNote}>{footNote}</span> : null}
+      {cta ? (
+        <div
+          style={{
+            marginTop: 18,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            maxWidth: 360,
+          }}
+        >
+          {cta}
+        </div>
+      ) : null}
       <div className={s.analyzeTip}>
         <span className={s.analyzeTipIcon} aria-hidden>
           <MS name="notifications" size={16} />
@@ -1232,11 +1248,6 @@ function Step6Build({
   const isReady = stream.status === 'ready';
   const failed = state.genError !== null || stream.status === 'failed';
 
-  // Generation interleaves theory + flashcards/quiz per checkpoint, so the raw
-  // activity flips back and forth. The 5-stage checklist is a forward-only
-  // narrative — track the furthest stage reached so it never jumps backward.
-  const maxStageRef = React.useRef(3);
-
   React.useEffect(() => {
     if (!isReady || !state.planId) return;
     const plan = stream.plan as PlanTree | null;
@@ -1376,12 +1387,30 @@ function Step6Build({
   const done = stream.progress?.completedSlots ?? 0;
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 6;
   const currentActivity = stream.progress?.currentActivity;
-  const rawStage = !currentActivity || currentActivity === 'theory' ? 3 : 4;
-  // Monotonic: once flashcards/quizzes start, stay there — never revert to the
-  // lesson stage when a later checkpoint writes its theory.
-  if (rawStage > maxStageRef.current) maxStageRef.current = rawStage;
-  const activeIndex = maxStageRef.current;
+  // The final stage ("Building flashcards & quizzes") stays active for the whole
+  // build — real progress is shown by the checkpoints bar below.
+  const activeIndex = STAGES.length - 1;
   const currentSlot = stream.progress?.currentSlot;
+  // Once the first checkpoint is finished, invite the learner to start it now —
+  // generation keeps running server-side (the in-process worker owns it), so
+  // leaving this screen is safe. Lands on the path map with checkpoint 1 ready
+  // and the rest shown in their "generating" state.
+  const canStartEarly = done >= 1 && Boolean(state.planId);
+  const earlyStart = canStartEarly ? (
+    <>
+      <button
+        type="button"
+        className={`${ui.btn} ${ui.primary}`}
+        style={{ width: '100%' }}
+        onClick={() => onViewPath(state.planId!)}
+      >
+        <MS name="play_arrow" className={ui.ic} /> Start checkpoint 1
+      </button>
+      <span className={s.analyzeFootNote} style={{ textAlign: 'center' }}>
+        Checkpoint 1&apos;s ready. Start now — Mage finishes the rest in the background.
+      </span>
+    </>
+  ) : null;
   return (
     <AnalyzeView
       title="Building your path…"
@@ -1389,6 +1418,7 @@ function Step6Build({
       activeIndex={activeIndex}
       percent={percent}
       footNote={total > 0 ? `${done} / ${total} checkpoints` : 'You can leave — Mage keeps building in the background.'}
+      cta={earlyStart}
     />
   );
 }
