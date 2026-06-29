@@ -140,19 +140,24 @@ function MoreMenu({ label, items }: { label: string; items: MoreMenuItem[] }) {
   );
 }
 
-/** A single ready (non-generating) path card. */
+/** A single studyable path card. `isGenerating` marks a path that already has a
+ *  studyable checkpoint but is still building the rest. */
 function PathCard({
   p,
   isActive,
+  isGenerating = false,
   onDelete,
   onReset,
   onTranslate,
+  onCancel,
 }: {
   p: SerializedPath;
   isActive: boolean;
+  isGenerating?: boolean;
   onDelete: (p: SerializedPath) => void;
   onReset: (p: SerializedPath) => void;
   onTranslate: (p: SerializedPath) => void;
+  onCancel: (p: SerializedPath) => void;
 }) {
   const stats = derivePathStats(p as unknown as PathPlan);
   const nextSlot = findContinueSlot(p as unknown as PathPlan);
@@ -164,7 +169,17 @@ function PathCard({
     ? `/learn/paths/${encodeURIComponent(p.id)}?slot=${encodeURIComponent(nextSlot.id)}`
     : `/learn/paths/${encodeURIComponent(p.id)}`;
 
-  const ctaLabel = isDone ? 'Review' : isAssessment ? 'Take checkpoint' : 'Continue';
+  // While generating: "Continue" if there's a built checkpoint to resume, else
+  // "Open" the path map (the next checkpoint is still building).
+  const ctaLabel = isDone
+    ? 'Review'
+    : nextSlot
+      ? isAssessment
+        ? 'Take checkpoint'
+        : 'Continue'
+      : isGenerating
+        ? 'Open'
+        : 'Review';
 
   // Badge: "Completed" if done, "Active" only for the most-recently-updated in-progress path.
   const badge: 'Active' | 'Completed' | null =
@@ -189,27 +204,39 @@ function PathCard({
   // One segment per phase, filled by that phase's completion — the path's backbone.
   const segments = stats.topics.map((t) => t.pct);
 
-  const menuItems: MoreMenuItem[] = [
-    {
-      key: 'translate',
-      icon: 'translate',
-      label: 'Translate',
-      onSelect: () => onTranslate(p),
-    },
-    {
-      key: 'reset',
-      icon: 'restart_alt',
-      label: 'Reset',
-      onSelect: () => onReset(p),
-    },
-    {
-      key: 'delete',
-      icon: 'delete',
-      label: 'Delete',
-      danger: true,
-      onSelect: () => onDelete(p),
-    },
-  ];
+  // While still generating, Reset/Translate don't apply to a half-built path —
+  // offer only "Stop generating" (the cancel flow handles a live/stuck build).
+  const menuItems: MoreMenuItem[] = isGenerating
+    ? [
+        {
+          key: 'cancel',
+          icon: 'close',
+          label: 'Stop generating',
+          danger: true,
+          onSelect: () => onCancel(p),
+        },
+      ]
+    : [
+        {
+          key: 'translate',
+          icon: 'translate',
+          label: 'Translate',
+          onSelect: () => onTranslate(p),
+        },
+        {
+          key: 'reset',
+          icon: 'restart_alt',
+          label: 'Reset',
+          onSelect: () => onReset(p),
+        },
+        {
+          key: 'delete',
+          icon: 'delete',
+          label: 'Delete',
+          danger: true,
+          onSelect: () => onDelete(p),
+        },
+      ];
 
   return (
     <article className={`${styles.pathCard} ${isActive ? styles.pathActive : ''}`}>
@@ -231,7 +258,10 @@ function PathCard({
             <div className={styles.sourceLine}>
               {isUltra && <UltraBadge fontSize={10.5} iconSize={12} />}
               {isUltra && <span className={styles.metaDot} aria-hidden>·</span>}
-              <span className={styles.sourceText}>{sourceLabel(p)}</span>
+              <span className={styles.sourceText}>
+                {sourceLabel(p)}
+                {isGenerating ? ' · Still building…' : ''}
+              </span>
             </div>
           </div>
           <div className={styles.cardMenu}>
@@ -278,6 +308,8 @@ function PathCard({
               <span className={styles.nextLabel}>Next</span>
               <span className={styles.nextText}>{nextSlot.title}</span>
             </>
+          ) : isGenerating ? (
+            <span className={styles.nextText}>Building your next checkpoint…</span>
           ) : (
             <span className={styles.nextText}>Completed · Review anytime</span>
           )}
@@ -414,12 +446,22 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
   };
 
   const derived = useMemo(() => {
-    // Paths that have real generated content (not still generating).
-    const ready = paths.filter(
-      (p) => p.generationStatus !== 'generating' && p.phases.some((ph) => ph.slots.length > 0),
+    // A path is studyable the moment any checkpoint has built activities — even
+    // while the rest of the path is still generating.
+    const isStudyable = (p: SerializedPath) =>
+      p.phases.some((ph) => ph.slots.some((s) => s.activities.length > 0));
+    // Cards the learner can open: settled paths with slots, PLUS generating
+    // paths that already have a studyable checkpoint (so they can return to
+    // continue checkpoint 1 while Stage B finishes the rest).
+    const ready = paths.filter((p) =>
+      p.generationStatus !== 'generating'
+        ? p.phases.some((ph) => ph.slots.length > 0)
+        : isStudyable(p),
     );
-    // Paths currently generating (no slots yet).
-    const generating = paths.filter((p) => p.generationStatus === 'generating');
+    // Paths still generating with nothing to study yet (skeleton only).
+    const generating = paths.filter(
+      (p) => p.generationStatus === 'generating' && !isStudyable(p),
+    );
 
     // The "active" path for badge + MageTip: most-recently-updated in-progress path.
     const inProgress = ready.filter(
@@ -586,9 +628,11 @@ export default function PathsView({ paths: initialPaths, errored }: PathsViewPro
             key={p.id}
             p={p}
             isActive={activePath?.id === p.id}
+            isGenerating={p.generationStatus === 'generating'}
             onDelete={setDeleteTarget}
             onReset={setResetTarget}
             onTranslate={setTranslateTarget}
+            onCancel={setCancelTarget}
           />
         ))}
 

@@ -12,10 +12,10 @@ import {
 } from '@/lib/api-response';
 import { generatePathStructure } from '@/lib/path-generator';
 import { persistPlanStructure } from '@/lib/persist-plan-structure';
-import { invalidateDashboardCache } from '@/lib/dashboard-data';
+import { invalidateDashboardCache, loadSerializedPathsForUser } from '@/lib/dashboard-data';
 import { loadMaterialCorpus, renderMaterialCorpus } from '@/lib/path-corpus';
 import { pathContentCap } from '@/lib/path-corpus-fit';
-import { loadPathsForUser, serializePath, staleGenerationCutoff } from '@/lib/path-loader';
+import { staleGenerationCutoff } from '@/lib/path-loader';
 import { checkUsageLimit, incrementUsage } from '@/lib/usage-limits';
 import { costRateLimit, rateLimitKey } from '@/lib/rate-limit';
 import { acquireRedisLock, stableHash } from '@/lib/redis-cache';
@@ -43,8 +43,7 @@ export async function GET(request: NextRequest) {
     const userId = await getAuthUserId(request);
     if (!userId) return unauthorizedResponse();
 
-    const plans = await loadPathsForUser(userId);
-    return successResponse(plans.map(serializePath));
+    return successResponse(await loadSerializedPathsForUser(userId));
   } catch (error) {
     console.error('[learn/paths GET]', error);
     return internalErrorResponse();

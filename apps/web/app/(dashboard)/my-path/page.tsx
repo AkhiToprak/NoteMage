@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerAuthUser } from '@/lib/server-auth';
-import { loadPathsForUser, serializePath } from '@/lib/path-loader';
+import { loadSerializedPathsForUser } from '@/lib/dashboard-data';
 import type { SerializedPath } from '@/lib/path-loader';
 import PathsView from './PathsView';
 
@@ -20,8 +20,7 @@ export default async function PathsPage() {
   let errored = false;
 
   try {
-    const plans = await loadPathsForUser(user.id);
-    paths = plans.map(serializePath);
+    paths = await loadSerializedPathsForUser(user.id);
   } catch (err) {
     console.error('[my-path page]', err);
     errored = true;

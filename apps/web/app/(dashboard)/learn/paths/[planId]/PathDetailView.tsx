@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -90,6 +90,19 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
   const [plan, setPlan] = useState<DetailPlan | null>(initialPath as unknown as DetailPlan);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Lightweight generation snapshot from the cheap status poll (no tree). Its
+  // `updatedAt` keeps stale-detection live between full refetches, and its
+  // `completedSlots` is the cue to refetch the tree (a new checkpoint built).
+  const [genStatus, setGenStatus] = useState<{
+    generationStatus: string;
+    updatedAt: string | null;
+    completedSlots: number;
+  } | null>(null);
+  // Latest updatedAt the poll has seen — read inside the interval without
+  // re-arming the effect. Seeded from SSR so the first stale check is accurate.
+  const liveUpdatedAtRef = useRef<string | null>(initialPath.updatedAt ?? null);
+  // Highest completedSlots seen; -1 forces one sync refetch on the first poll.
+  const completedSlotsRef = useRef<number>(-1);
   const [regenerating, setRegenerating] = useState(false);
   // Stop-a-stuck-generation: a two-step inline confirm in the banner, plus
   // in-flight + error state. Stopping deletes the wedged path and returns to
@@ -133,17 +146,56 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
 
   // Poll while a healthy generation/translation is in flight so the banner
   // resolves to the finished path without a manual reload (mirrors the list
-  // page). Stops once the status settles OR the run goes stale (re-fetching a
-  // dead row is pointless — the banner then offers the recovery action).
+  // page). The poll hits a cheap status-only endpoint (no tree, no gating) and
+  // only triggers a FULL refetch when a checkpoint actually finished
+  // (`completedSlots` advanced → new studyable node to render) or the run
+  // settled to ready/failed — instead of re-pulling the whole annotated tree
+  // every 3s. A single interval spans the whole generation (status stays
+  // 'generating', so the effect doesn't re-arm on each refetch); it stops once
+  // the status settles OR the run goes stale (re-polling a dead row is
+  // pointless — the banner then offers the recovery action).
   useEffect(() => {
     if (plan?.generationStatus !== 'generating') return;
-    const stale =
-      !!plan.updatedAt &&
-      Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
-    if (stale) return;
-    const t = setTimeout(() => setRefreshKey((k) => k + 1), 3000);
-    return () => clearTimeout(t);
-  }, [plan?.generationStatus, plan?.updatedAt, refreshKey]);
+    const setupAt = liveUpdatedAtRef.current;
+    if (setupAt && Date.now() - new Date(setupAt).getTime() > STALE_GENERATION_MS) return;
+
+    let cancelled = false;
+    const id = setInterval(async () => {
+      // Stop polling once the run goes stale mid-flight.
+      const u = liveUpdatedAtRef.current;
+      if (u && Date.now() - new Date(u).getTime() > STALE_GENERATION_MS) {
+        clearInterval(id);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `/api/learn/paths/${encodeURIComponent(planId)}/generation-status`,
+        );
+        const json = await res.json();
+        if (cancelled || !json?.success || !json.data) return;
+        const next = json.data as {
+          generationStatus: string;
+          updatedAt: string | null;
+          completedSlots: number;
+        };
+        liveUpdatedAtRef.current = next.updatedAt ?? liveUpdatedAtRef.current;
+        // New object each tick keeps the time-based `stuckGenerating` check
+        // re-evaluating even when the orchestrator has gone silent.
+        setGenStatus(next);
+        const advanced = next.completedSlots > completedSlotsRef.current;
+        const settled = next.generationStatus !== 'generating';
+        completedSlotsRef.current = next.completedSlots;
+        if (advanced || settled) setRefreshKey((k) => k + 1);
+        if (settled) clearInterval(id);
+      } catch {
+        /* transient network error — next tick retries */
+      }
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [plan?.generationStatus, planId]);
 
   // Keep the learner on their next checkpoint. Whenever the path column is the
   // foreground (no slot drawer or activity viewer open) and the plan is loaded
@@ -321,10 +373,14 @@ function PathDetailInner({ planId, initialPath }: { planId: string; initialPath:
   );
 
   const generating = plan.generationStatus === 'generating';
+  // The status poll's updatedAt is fresher than the (less-often) full-tree
+  // refetch's, so prefer it for stale-detection — otherwise a long gap between
+  // finished checkpoints could read as "stuck" while the run is healthy.
+  const liveUpdatedAt = genStatus?.updatedAt ?? plan.updatedAt;
   const stuckGenerating =
     generating &&
-    !!plan.updatedAt &&
-    Date.now() - new Date(plan.updatedAt).getTime() > STALE_GENERATION_MS;
+    !!liveUpdatedAt &&
+    Date.now() - new Date(liveUpdatedAt).getTime() > STALE_GENERATION_MS;
   // A stuck translation is recoverable non-destructively (restore to ready); a
   // stuck generation is incomplete and gets deleted. Copy + actions branch on it.
   const isTranslate = plan.generationMode === 'translate';

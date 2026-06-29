@@ -845,7 +845,10 @@ model StudyPlan {
   flashcardSets FlashcardSet[]  @relation("PathFlashcardSets")
   quizSets      QuizSet[]       @relation("PathQuizSets")
 
-  @@index([userId])
+  // Serves both `where userId` (leftmost prefix) and the overview/dashboard
+  // `where userId orderBy updatedAt desc` — the planner can walk this backwards
+  // for the sort instead of fetching + in-memory sorting the user's rows.
+  @@index([userId, updatedAt(sort: Desc)])
   @@index([notebookId])
   @@index([contextNotebookIds], type: Gin)
   @@map("study_plans")

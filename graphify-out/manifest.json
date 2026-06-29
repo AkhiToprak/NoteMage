@@ -1215,9 +1215,9 @@
     "semantic_hash": "003678f2418f3fb3f5209d5ded80cb1c"
   },
   "apps/web/src/lib/path-stats.ts": {
-    "mtime": 1782509949.0404067,
-    "ast_hash": "81dabaa5c7899be8fb9b69e9acf31802",
-    "semantic_hash": "81dabaa5c7899be8fb9b69e9acf31802"
+    "mtime": 1782770414.6076283,
+    "ast_hash": "3197f0dcc0c2198c6eb5b1717f12a0ac",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/path-subjects.test.ts": {
     "mtime": 1782509948.9934182,
@@ -1775,8 +1775,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/page.tsx": {
-    "mtime": 1782635856.68798,
-    "ast_hash": "27e65186ff7ced3c1e5dca35f7deecb9",
+    "mtime": 1782770520.7803323,
+    "ast_hash": "349d275f61a2e4babcb5d46c4095bfe3",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/profile/page.tsx": {
@@ -2035,8 +2035,8 @@
     "semantic_hash": "c10492eb7bbebfe802a0e4e2ea91ff1d"
   },
   "apps/web/app/api/learn/paths/route.ts": {
-    "mtime": 1782571106.2063854,
-    "ast_hash": "bf29ea8ae46d009b93625227c3e4cb77",
+    "mtime": 1782770533.0110102,
+    "ast_hash": "ccf28ede54bde703c8336ab219a26133",
     "semantic_hash": ""
   },
   "apps/web/app/api/learn/slots/[slotId]/assessment/route.ts": {
@@ -83410,8 +83410,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/dashboard-data.ts": {
-    "mtime": 1782567541.4191303,
-    "ast_hash": "86fb88d2c28b06290d3d65c5f64714f9",
+    "mtime": 1782770535.3834217,
+    "ast_hash": "26b6a02f401b551858f84dd863d10f83",
     "semantic_hash": ""
   },
   "apps/web/prisma/migrations/20260627000000_background_jobs/migration.sql": {
@@ -84430,8 +84430,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/PathsView.tsx": {
-    "mtime": 1782768986.2235994,
-    "ast_hash": "25a1dcce5bb8b62efb33771427409fa7",
+    "mtime": 1782770471.3884766,
+    "ast_hash": "062d9d8c709a4b98882a94637bd421a9",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/loading.tsx": {

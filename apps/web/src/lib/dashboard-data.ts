@@ -10,6 +10,7 @@ import { derivePathStats, findContinueSlot } from '@/lib/path-stats';
 import type { PathPlan } from '@/components/learn/PathView';
 
 const DASHBOARD_CACHE_TTL_SECONDS = 30;
+const PATHS_CACHE_TTL_SECONDS = 30;
 
 export interface DashboardData {
   hasUsablePath: boolean;
@@ -51,8 +52,21 @@ function dashboardCacheKey(userId: string): string {
   return `cache:dashboard:${userId}`;
 }
 
+function pathsCacheKey(userId: string): string {
+  return `cache:paths:${userId}`;
+}
+
+/**
+ * Invalidate the per-user path-derived caches: the dashboard summary AND the
+ * serialized path-overview list ({@link loadSerializedPathsForUser}). Both are
+ * computed from the same StudyPlan tree, so any path mutation
+ * (create/delete/reset/translate/cancel/regenerate), slot/activity completion,
+ * or generation/translation finishing must clear both. Every such call site
+ * already invokes this, so the path-list cache stays exactly as fresh as the
+ * dashboard cache it sits beside.
+ */
 export async function invalidateDashboardCache(userId: string): Promise<void> {
-  await cacheDel(dashboardCacheKey(userId));
+  await cacheDel(dashboardCacheKey(userId), pathsCacheKey(userId));
 }
 
 function sourceLabel(p: SerializedPath): string {
@@ -91,8 +105,12 @@ export function deriveDashboardDataFromPaths(
   paths: SerializedPath[],
   studiedToday: boolean,
 ): DashboardData {
-  const ready = paths.filter(
-    (p) => p.generationStatus !== 'generating' && p.phases.some((ph) => ph.slots.length > 0),
+  // Studyable = settled paths with slots, PLUS generating paths that already
+  // have a built checkpoint (so "continue" can resume them while Stage B runs).
+  const ready = paths.filter((p) =>
+    p.generationStatus !== 'generating'
+      ? p.phases.some((ph) => ph.slots.length > 0)
+      : p.phases.some((ph) => ph.slots.some((s) => (s.activities?.length ?? 0) > 0)),
   );
   const active =
     ready.find((p) => derivePathStats(p as unknown as PathPlan).progressPct < 100) ?? ready[0];
@@ -170,5 +188,28 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
 
   return cacheGetOrSet(dashboardCacheKey(userId), DASHBOARD_CACHE_TTL_SECONDS, () =>
     buildDashboardData(userId),
+  );
+}
+
+/**
+ * The path-overview list (`/my-path` SSR + `GET /api/learn/paths`),
+ * Redis-cached per user. Mirrors {@link getDashboardData}: while a path is in
+ * flight (`queued`/`generating`/`cancelling`) the cache is bypassed so the
+ * in-progress cards reflect live progress; otherwise the serialized tree is
+ * served from cache for {@link PATHS_CACHE_TTL_SECONDS}. Invalidated by
+ * {@link invalidateDashboardCache} on every path mutation + completion, so a
+ * cache hit is never staler than the dashboard.
+ *
+ * This replaces the previous per-visit `loadPathsForUser().map(serializePath)`
+ * that ran on every `force-dynamic` overview load — ~5 sequential round-trips
+ * to the remote DB plus full gating serialization, with no caching.
+ */
+export async function loadSerializedPathsForUser(userId: string): Promise<SerializedPath[]> {
+  if (await hasActivePathWork(userId)) {
+    return (await loadPathsForUser(userId)).map(serializePath);
+  }
+
+  return cacheGetOrSet(pathsCacheKey(userId), PATHS_CACHE_TTL_SECONDS, async () =>
+    (await loadPathsForUser(userId)).map(serializePath),
   );
 }

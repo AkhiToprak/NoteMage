@@ -150,7 +150,9 @@ export function derivePathStats(plan: PathPlan): PathOverviewStats {
 export function findContinueSlot(plan: PathPlan): PathSlot | null {
   for (const phase of plan.phases) {
     for (const slot of phase.slots) {
-      if (slot.unlocked && !slot.completed) return slot;
+      // Skip still-generating slots — they have no content to study yet, so
+      // they're never a valid "continue here" target while a build is in flight.
+      if (slot.unlocked && !slot.completed && !slot.generating) return slot;
     }
   }
   return null;
