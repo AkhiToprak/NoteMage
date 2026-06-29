@@ -840,7 +840,7 @@ function AnalyzeView({
   subtitle: string;
   activeIndex: number;  // index currently "Working…"; lower indices are done
   percent: number;
-  footNote: string;
+  footNote?: string;
 }) {
   return (
     <div className={s.analyze}>
@@ -865,7 +865,7 @@ function AnalyzeView({
         })}
       </div>
       <div className={ui.track} style={{ maxWidth: 360 }}><div className={ui.fill} style={{ width: `${percent}%` }} /></div>
-      <span className={s.analyzeFootNote}>{footNote}</span>
+      {footNote ? <span className={s.analyzeFootNote}>{footNote}</span> : null}
       <div className={s.analyzeTip}>
         <span className={s.analyzeTipIcon} aria-hidden>
           <MS name="notifications" size={16} />
@@ -954,7 +954,6 @@ function Step4Analyze({
       subtitle={`Mage is turning your ${sources} ${sources === 1 ? 'source' : 'sources'} into a learning path.`}
       activeIndex={stage}
       percent={[18, 38, 58][Math.min(stage, 2)]}
-      footNote="Usually under a minute"
     />
   );
 }
