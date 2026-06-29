@@ -24,6 +24,11 @@ import { loadPathForUser, serializePath } from '@/lib/path-loader';
 // that connects mid-generation gets the current snapshot immediately
 // and continues streaming.
 
+// SSE must stream per-request, never statically optimized or cached: force the
+// dynamic Node runtime so events flush as they're produced.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 type Params = { params: Promise<{ planId: string }> };
 
 interface ProgressPayload {
@@ -74,6 +79,15 @@ export async function GET(request: NextRequest, { params }: Params) {
   const encoder = new TextEncoder();
   const sseEvent = (event: string, data: unknown) =>
     encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  // SSE comment line (ignored by EventSource). Used for the buffer-busting
+  // preamble and the keep-alive heartbeat below.
+  const sseComment = (text: string) => encoder.encode(`: ${text}\n\n`);
+
+  // Heartbeat cadence. Generation can sit silent for 150s+ between slot
+  // completions (only a snapshot *change* emits a `progress` event). Cloudflare
+  // — which fronts this app — idle-closes a proxied connection at ~100s, so we
+  // emit a comment every ~15s to keep bytes flowing and the stream alive.
+  const HEARTBEAT_TICKS = Math.round(15_000 / POLL_INTERVAL_MS);
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -93,11 +107,18 @@ export async function GET(request: NextRequest, { params }: Params) {
       };
 
       try {
+        // Buffer-busting preamble. Reverse proxies (Cloudflare) buffer small
+        // `text/event-stream` bodies, delaying the first real event past the
+        // point the client's EventSource considers the stream usable. A chunky
+        // first write + a `retry` hint forces the connection open immediately.
+        controller.enqueue(encoder.encode(`retry: 3000\n: ${'-'.repeat(2048)}\n\n`));
+
         // Initial snapshot — always emit so a reconnecting client sees
         // current state before having to wait for a tick.
         const initialSnap = readSnapshot(initial.generationStatus, initial.generationProgress);
         controller.enqueue(sseEvent('progress', initialSnap));
         let lastSnap = JSON.stringify(initialSnap);
+        let ticksSinceData = 0;
 
         if (initial.generationStatus === 'ready') {
           await emitDone();
@@ -137,6 +158,12 @@ export async function GET(request: NextRequest, { params }: Params) {
           if (snapStr !== lastSnap) {
             controller.enqueue(sseEvent('progress', snap));
             lastSnap = snapStr;
+            ticksSinceData = 0;
+          } else if (++ticksSinceData >= HEARTBEAT_TICKS) {
+            // No change this window — emit a heartbeat so the proxy doesn't
+            // idle-close the connection during a long slot generation.
+            controller.enqueue(sseComment('keep-alive'));
+            ticksSinceData = 0;
           }
 
           if (row.generationStatus === 'ready') {
@@ -175,6 +202,9 @@ export async function GET(request: NextRequest, { params }: Params) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      // Defeat reverse-proxy / nginx response buffering so events flush in
+      // real time instead of being held until the connection closes.
+      'X-Accel-Buffering': 'no',
     },
   });
 }

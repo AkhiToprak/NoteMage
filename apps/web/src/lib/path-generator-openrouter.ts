@@ -75,6 +75,16 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
         disableReasoning: true,
       });
       onUsage?.(result.usage);
+      // `finish_reason: 'length'` means GLM was cut off at max_tokens — the
+      // forced tool call's `arguments` are truncated JSON and will never parse.
+      // Throw a clear, retryable error so the dispatcher falls back to Anthropic
+      // instead of surfacing a cryptic JSON-parse failure (reasoning models like
+      // GLM-5.2 can burn the whole output budget on thinking and truncate here).
+      if (result.finishReason === 'length') {
+        throw new Error(
+          `GLM ${tool.name} truncated at ${maxTokens}-token cap (finish_reason=length)`,
+        );
+      }
       const call = result.toolCalls.find((c) => c.name === tool.name) ?? result.toolCalls[0];
       if (!call) {
         throw new Error(`GLM did not call ${tool.name} (no tool call in response)`);

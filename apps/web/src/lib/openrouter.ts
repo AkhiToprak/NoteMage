@@ -44,6 +44,9 @@ export interface OpenRouterResult {
   text: string;
   /** Parsed tool calls, when the model returned any (OpenAI shape). */
   toolCalls: Array<{ name: string; arguments: string }>;
+  /** OpenRouter `finish_reason` for the choice. `'length'` ⇒ the response was
+   *  cut off at `max_tokens` — any tool-call `arguments` are truncated JSON. */
+  finishReason: string | null;
   usage: OpenRouterUsage;
 }
 
@@ -94,6 +97,8 @@ interface OpenRouterResponse {
       content?: string;
       tool_calls?: Array<{ function?: { name?: string; arguments?: string } }>;
     };
+    /** `'stop'` (complete), `'tool_calls'`, or `'length'` (hit max_tokens). */
+    finish_reason?: string | null;
   }>;
   usage?: OpenRouterUsageRaw;
 }
@@ -188,7 +193,8 @@ export async function callOpenRouter(opts: CallOpenRouterOptions): Promise<OpenR
   }
 
   const json = (await res.json()) as OpenRouterResponse;
-  const message = json.choices?.[0]?.message ?? {};
+  const choice = json.choices?.[0];
+  const message = choice?.message ?? {};
 
   const toolCalls = Array.isArray(message.tool_calls)
     ? message.tool_calls.map((tc) => ({
@@ -200,6 +206,7 @@ export async function callOpenRouter(opts: CallOpenRouterOptions): Promise<OpenR
   return {
     text: typeof message.content === 'string' ? message.content : '',
     toolCalls,
+    finishReason: choice?.finish_reason ?? null,
     usage: normalizeUsage(json.usage),
   };
 }
@@ -228,6 +235,7 @@ export type OpenRouterStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'reasoning'; delta: string }
   | { type: 'tool_call_delta'; index: number; id?: string; name?: string; argumentsDelta: string }
+  | { type: 'finish'; reason: string | null }
   | { type: 'usage'; usage: OpenRouterUsage };
 
 export interface OpenRouterStreamHandlers {
@@ -323,6 +331,12 @@ export async function* streamOpenRouter(
             }
           }
         }
+        // `finish_reason` rides on the choice (sibling to `delta`), not the delta.
+        // Surface it so collectors can detect a `'length'` truncation.
+        const finishReason = frame.choices?.[0]?.finish_reason;
+        if (finishReason) {
+          yield { type: 'finish', reason: finishReason };
+        }
         if (frame.usage) {
           yield { type: 'usage', usage: normalizeUsage(frame.usage) };
         }
@@ -347,6 +361,7 @@ export async function streamOpenRouterText(
   let text = '';
   const toolAcc = new Map<number, { name: string; arguments: string }>();
   let usage: OpenRouterUsage = EMPTY_USAGE;
+  let finishReason: string | null = null;
 
   for await (const ev of streamOpenRouter(opts)) {
     switch (ev.type) {
@@ -364,6 +379,9 @@ export async function streamOpenRouterText(
         toolAcc.set(ev.index, cur);
         break;
       }
+      case 'finish':
+        finishReason = ev.reason;
+        break;
       case 'usage':
         usage = ev.usage;
         break;
@@ -374,5 +392,5 @@ export async function streamOpenRouterText(
     .sort((a, b) => a[0] - b[0])
     .map(([, v]) => ({ name: v.name, arguments: v.arguments }));
 
-  return { text, toolCalls, usage };
+  return { text, toolCalls, finishReason, usage };
 }
