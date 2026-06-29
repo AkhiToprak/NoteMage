@@ -97,6 +97,22 @@ export type MageActionId = (typeof MAGE_ACTION_IDS)[number];
 export type MageSourceKind = 'theory' | 'page' | 'study-pack' | 'path' | 'exam' | 'quiz';
 
 /**
+ * Source-highlighting feature — when a cited grounding source maps to an openable
+ * ORIGIN material (a study-pack page → its PDF / video / text), the chip carries
+ * this anchor so clicking it opens the shared source viewer (page jump / video
+ * seek / text) instead of navigating away. Omitted for derived sources (lesson /
+ * path / exam outlines) that have no original file to open.
+ */
+export interface MageSourceAnchor {
+  materialId: string;
+  materialKind: 'page' | 'document';
+  /** 1-based PDF page, when known. */
+  page?: number;
+  /** Video seek target in seconds, when known. */
+  timestampSec?: number;
+}
+
+/**
  * One resolved piece of grounding material for the current context. The server
  * resolves the authorized ids into these (Phase 2) and feeds the formatted text
  * into the chat's cached corpus block (Phase 4 numbers them `[S#]`). The
@@ -114,6 +130,8 @@ export interface MageGroundingSource {
   href?: string;
   /** Phase-3 provenance, e.g. "page 7" — shown on the chip when present. */
   pageLabel?: string;
+  /** Source-highlighting — set when the source opens in the source viewer. */
+  anchor?: MageSourceAnchor;
 }
 
 /**
@@ -136,6 +154,8 @@ export interface MageSource {
   subtitle?: string;
   href?: string;
   pageLabel?: string;
+  /** Source-highlighting — clicking opens the source viewer instead of navigating. */
+  anchor?: MageSourceAnchor;
 }
 
 /** The `sources` SSE payload (Phase 4) — resolved chips + the final mode. */
@@ -235,6 +255,7 @@ export function buildMageSourceManifest(sources: MageGroundingSource[]): {
       subtitle: s.subtitle,
       href: s.href,
       pageLabel: s.pageLabel,
+      anchor: s.anchor,
     });
   });
   return { corpusParts, manifest };

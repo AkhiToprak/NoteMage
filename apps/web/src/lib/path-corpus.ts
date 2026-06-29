@@ -132,6 +132,49 @@ const KIND_LABELS: Record<MaterialKind, string> = {
   quiz_set: 'Quiz set',
 };
 
+// Source-highlighting feature — a resolved reference back to an openable origin
+// material. Only pages and documents are openable sources; flashcard/quiz sets
+// are derived materials, not things the source viewer can render.
+export interface SourceMaterialRef {
+  materialId: string;
+  materialKind: 'page' | 'document';
+}
+
+function normalizeSourceLabel(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Index corpus entries by normalized title so the generator can resolve a
+ * model-emitted `source.label` back to its ORIGIN material id. The model is told
+ * to copy `label` verbatim from each "### <kind>: \"<title>\"" corpus header
+ * (see path-prompts), so the title is the join key — the model never echoes an
+ * opaque id (which it would hallucinate). Only page/document entries are indexed;
+ * first occurrence wins on a title collision (ambiguous labels resolve to the
+ * first match, which is harmless — both point at the user's own material).
+ */
+export function buildSourceIdentityIndex(
+  entries: MaterialCorpusEntry[],
+): Map<string, SourceMaterialRef> {
+  const index = new Map<string, SourceMaterialRef>();
+  for (const e of entries) {
+    if (e.kind !== 'page' && e.kind !== 'document') continue;
+    const key = normalizeSourceLabel(e.title);
+    if (key.length === 0 || index.has(key)) continue;
+    index.set(key, { materialId: e.id, materialKind: e.kind });
+  }
+  return index;
+}
+
+/** Resolve a model-emitted source `label` to its origin material, or null. */
+export function resolveSourceIdentity(
+  index: Map<string, SourceMaterialRef> | null | undefined,
+  label: string | null | undefined,
+): SourceMaterialRef | null {
+  if (!index || !label) return null;
+  return index.get(normalizeSourceLabel(label)) ?? null;
+}
+
 /**
  * Render loaded materials into one corpus string for the AI. Bodies are
  * trimmed with a fair-share water-fill (see corpusBudget) so the total stays

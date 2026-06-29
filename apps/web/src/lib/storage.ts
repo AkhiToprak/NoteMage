@@ -90,6 +90,32 @@ export async function savePublicFile(
   return { filePath: storagePath, publicUrl: data.publicUrl };
 }
 
+/**
+ * Mint a short-lived signed read URL for a private-bucket object (source-
+ * highlighting feature — lets the client PDF viewer fetch the original file
+ * without exposing the service-role key). The caller MUST have already
+ * ownership-checked the row that owns `filePath`; this only signs. `expectedPrefix`
+ * is validated (defends against a traversal/smuggled path even post-ownership)
+ * before signing. TTL is short because the URL is needed only for the immediate
+ * viewer fetch. Throws on a rejected path or a signing failure.
+ */
+export async function getSignedReadUrl(
+  filePath: string,
+  ttlSec = 300,
+  expectedPrefix = 'documents/',
+): Promise<string> {
+  if (!validateStoragePath(filePath, expectedPrefix)) {
+    throw new Error('Invalid storage path');
+  }
+  const { data, error } = await supabase.storage
+    .from(BUCKET_PRIVATE)
+    .createSignedUrl(filePath, ttlSec);
+  if (error || !data?.signedUrl) {
+    throw new Error(`Failed to sign URL: ${error?.message ?? 'unknown error'}`);
+  }
+  return data.signedUrl;
+}
+
 export async function readFile(filePath: string): Promise<Buffer> {
   const { data, error } = await supabase.storage.from(BUCKET_PRIVATE).download(filePath);
 

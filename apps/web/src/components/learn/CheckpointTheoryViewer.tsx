@@ -22,7 +22,27 @@ import type { MageQuickAction, MissionStep, QuizSource } from '@/components/quiz
 
 interface TheoryContentPayload {
   kind: 'theory';
-  theory: { id: string; title: string; body: unknown };
+  theory: {
+    id: string;
+    title: string;
+    body: unknown;
+    // Source-highlighting feature — the lesson's primary grounding anchor.
+    sourceLabel?: string | null;
+    sourcePage?: number | null;
+    sourceQuote?: string | null;
+    sourceMaterialId?: string | null;
+    sourceMaterialKind?: string | null;
+    sourceTimestampSec?: number | null;
+  };
+}
+
+// Map a source label (usually a file name) to the Sources icon family.
+function inferSourceKind(label?: string | null): QuizSource['kind'] {
+  const l = (label ?? '').trim().toLowerCase();
+  if (l.endsWith('.pdf')) return 'pdf';
+  if (l.endsWith('.ppt') || l.endsWith('.pptx') || l.endsWith('.key')) return 'ppt';
+  if (l.endsWith('.doc') || l.endsWith('.docx')) return 'doc';
+  return 'page';
 }
 
 // One sibling flashcard, surfaced as the Quick-recall self-check. The cards are
@@ -209,16 +229,35 @@ export default function CheckpointTheoryViewer({
     };
   }, [slot.activities, slot.kind, activity.id, activity.kind]);
 
-  // Sources — Phase C shows the learning path as the grounding source (the
-  // lesson IS written from the path's material). Phase D adds per-lesson
-  // file/page provenance + the reader drawer.
-  const sources = useMemo<QuizSource[]>(
-    () =>
-      pathTitle
-        ? [{ id: planId ?? slot.id, title: pathTitle, kind: 'path', detail: 'Learning path' }]
-        : [],
-    [pathTitle, planId, slot.id],
-  );
+  // Sources — source-highlighting feature: when the lesson carries a grounding
+  // anchor (sourceQuote present) surface that file/page/video with the passage to
+  // highlight, so "Show source" opens the real source instead of Mage. Otherwise
+  // fall back to the learning path itself (no passage → defers to Ask Mage).
+  const sources = useMemo<QuizSource[]>(() => {
+    if (theory?.sourceQuote) {
+      const isVideo = theory.sourceTimestampSec != null;
+      const materialKind =
+        theory.sourceMaterialKind === 'page' || theory.sourceMaterialKind === 'document'
+          ? theory.sourceMaterialKind
+          : undefined;
+      return [
+        {
+          id: `theory-${theory.id}`,
+          title: theory.sourceLabel?.trim() || pathTitle || 'Source material',
+          kind: isVideo ? 'video' : inferSourceKind(theory.sourceLabel),
+          detail: theory.sourcePage != null ? `Page ${theory.sourcePage}` : undefined,
+          quote: theory.sourceQuote,
+          materialId: theory.sourceMaterialId ?? undefined,
+          materialKind,
+          page: theory.sourcePage ?? undefined,
+          timestampSec: theory.sourceTimestampSec ?? undefined,
+        },
+      ];
+    }
+    return pathTitle
+      ? [{ id: planId ?? slot.id, title: pathTitle, kind: 'path', detail: 'Learning path' }]
+      : [];
+  }, [theory, pathTitle, planId, slot.id]);
 
   const openMage = useCallback(() => {
     mage?.open({

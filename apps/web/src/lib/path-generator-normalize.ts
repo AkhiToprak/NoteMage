@@ -106,6 +106,12 @@ interface NormalizedTheoryInput {
   // feature; absent on legacy output.
   figures?: unknown[];
   diagrams?: unknown[];
+  // Optional source provenance (source-highlighting feature). Passed through
+  // verbatim so the generator validates it with SourceAnchorSchema and drops a
+  // malformed anchor — it must never fail the theory parse. Absent when the
+  // section was written from general knowledge or no source materials accompanied
+  // the prompt. Theory carries ONE primary anchor for the whole section.
+  source?: Record<string, unknown>;
 }
 
 function normalizeExamples(v: unknown): NormalizedTheoryExample[] {
@@ -179,6 +185,10 @@ export function normalizeTheoryInput(raw: unknown): NormalizedTheoryInput {
   // Visuals pass through as-is; per-entry validation happens in the generator.
   if (Array.isArray(raw.figures)) result.figures = raw.figures;
   if (Array.isArray(raw.diagrams)) result.diagrams = raw.diagrams;
+  // Pass the source anchor through untyped — SourceAnchorSchema is the arbiter
+  // in the generator. Accept `source` or the drifted `citation` key.
+  const sourceRaw = raw.source ?? raw.citation;
+  if (isPlainObject(sourceRaw)) result.source = sourceRaw;
   return result;
 }
 
@@ -194,6 +204,11 @@ interface NormalizedFlashcard {
   // refs — a malformed figure must never fail the card. Absent on legacy output
   // and whenever no source-figure catalog accompanied the prompt.
   figure?: Record<string, unknown>;
+  // Optional source provenance (source-highlighting feature). Passed through
+  // verbatim so the generator validates it with SourceAnchorSchema and drops a
+  // malformed anchor — it must never fail the card. Absent on legacy output and
+  // whenever the card was written from general knowledge / no source materials.
+  source?: Record<string, unknown>;
 }
 
 export interface NormalizedFlashcardsInput {
@@ -257,6 +272,10 @@ export function normalizeFlashcardsInput(raw: unknown): NormalizedFlashcardsInpu
       // arbiter in the generator. Accept `figure` or `image` as the key.
       const figureRaw = item.figure ?? item.image;
       if (isPlainObject(figureRaw)) card.figure = figureRaw;
+      // Pass the source anchor through untyped — SourceAnchorSchema is the
+      // arbiter in the generator. Accept `source` or the drifted `citation` key.
+      const sourceRaw = item.source ?? item.citation;
+      if (isPlainObject(sourceRaw)) card.source = sourceRaw;
       flashcards.push(card);
     }
   }

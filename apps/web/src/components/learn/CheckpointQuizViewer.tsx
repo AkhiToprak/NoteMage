@@ -51,6 +51,12 @@ interface QuizQuestion {
   sourceLabel?: string | null;
   sourcePage?: number | null;
   sourceQuote?: string | null;
+  // Source-highlighting feature — stable origin identity + media seek so the
+  // reader drawer can open the real PDF page / video timestamp. Null when
+  // unresolved (legacy / general knowledge).
+  sourceMaterialId?: string | null;
+  sourceMaterialKind?: string | null;
+  sourceTimestampSec?: number | null;
   sortOrder: number;
   // Figure-reuse (P4): exhibit image (0-or-1) threaded from the content route
   // into QuizViewer, which renders it above the prompt.
@@ -270,12 +276,22 @@ export default function CheckpointQuizViewer({
   const questionSource = useMemo<QuizSource | undefined>(() => {
     const q = session && quizSet ? quizSet.questions[session.index] : undefined;
     if (!q || !q.sourceQuote) return undefined;
+    const isVideo = q.sourceTimestampSec != null;
+    const materialKind =
+      q.sourceMaterialKind === 'page' || q.sourceMaterialKind === 'document'
+        ? q.sourceMaterialKind
+        : undefined;
     return {
       id: `q-${q.id}`,
       title: q.sourceLabel?.trim() || pathTitle || 'Source material',
-      kind: inferSourceKind(q.sourceLabel),
+      kind: isVideo ? 'video' : inferSourceKind(q.sourceLabel),
       detail: q.sourcePage != null ? `Page ${q.sourcePage}` : undefined,
       quote: q.sourceQuote,
+      // Source-highlighting — let the drawer resolve + open the real source.
+      materialId: q.sourceMaterialId ?? undefined,
+      materialKind,
+      page: q.sourcePage ?? undefined,
+      timestampSec: q.sourceTimestampSec ?? undefined,
     };
   }, [session, quizSet, pathTitle]);
 

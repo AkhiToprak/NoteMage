@@ -60,6 +60,19 @@ export interface QuizSource {
    * fallback source) → "Show source" defers to Ask Mage instead.
    */
   quote?: string;
+  /**
+   * Source-highlighting feature — a stable reference back to the ORIGIN material,
+   * resolved server-side at generation time. When present, the reader drawer
+   * fetches /api/learn/sources/resolve and opens the real source (PDF page /
+   * video timestamp / text passage) instead of only re-printing the quote.
+   * Absent on legacy / unresolved anchors → quote-only fallback.
+   */
+  materialId?: string;
+  materialKind?: 'page' | 'document';
+  /** 1-based PDF page for the resolver/highlighter. */
+  page?: number;
+  /** Video seek target in seconds. */
+  timestampSec?: number;
 }
 
 /** One step in the Mission progress rail. */

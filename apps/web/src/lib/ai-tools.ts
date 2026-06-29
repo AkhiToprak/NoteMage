@@ -839,6 +839,41 @@ export const PATH_STRUCTURE_TOOL: Anthropic.Messages.Tool = {
   },
 };
 
+// Source-highlighting feature — the optional `source` anchor shared by the
+// theory (one per section), flashcard (one per card), and quiz (one per question)
+// slot tools, so the model contract can't drift across the three. Advertised
+// only on the path/slot tools (alongside a PROVENANCE instruction in the system
+// prompt); the chat tools stay anchor-less so a turn never advertises grounding
+// it can't supply. The server validates it with SourceAnchorSchema and resolves
+// `label` to the origin material — the model never echoes an id.
+const SOURCE_ANCHOR_PROPERTY = {
+  type: 'object' as const,
+  description:
+    "OPTIONAL. Only when SOURCE MATERIALS accompany this prompt: the passage in those materials this item is grounded in, so the learner can open it. Add it ONLY when this genuinely comes from the supplied material (never from general knowledge); omit it otherwise.",
+  properties: {
+    label: {
+      type: 'string' as const,
+      description:
+        'The title of the material this came from, copied from its "### …:" header (e.g. the document or page name).',
+    },
+    page: {
+      type: 'number' as const,
+      description: 'The source page number, ONLY when the material header shows a "[page N]" marker. Omit otherwise.',
+    },
+    timestampSec: {
+      type: 'number' as const,
+      description:
+        'The video moment in SECONDS, ONLY when the excerpt comes from a video transcript whose text carries "[MM:SS]" timestamps (e.g. [02:45] → 165). Omit for non-video material.',
+    },
+    quote: {
+      type: 'string' as const,
+      description:
+        'A short VERBATIM excerpt (≤ ~60 words) from the source material that supports this. Copy it exactly; do not paraphrase.',
+    },
+  },
+  required: ['quote'],
+};
+
 export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
   name: 'create_theory_section',
   description: [
@@ -894,6 +929,7 @@ export const THEORY_SECTION_TOOL: Anthropic.Messages.Tool = {
         type: 'string',
         description: 'Optional closing paragraph. Skip if the section is already self-contained.',
       },
+      source: SOURCE_ANCHOR_PROPERTY,
       figures: {
         type: 'array',
         maxItems: 3,
@@ -1040,6 +1076,7 @@ export const FLASHCARDS_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
               },
               required: ['imageRef', 'caption'],
             },
+            source: SOURCE_ANCHOR_PROPERTY,
           },
           required: ['question', 'answer'],
         },
@@ -1094,33 +1131,6 @@ const FLASHCARD_FIGURE_PROPERTY = {
     },
   },
   required: ['imageRef', 'caption'],
-};
-
-// Source provenance (Phase D): chat-conditional optional `source` exhibit, the
-// quiz analogue of QUIZ_FIGURE_PROPERTY. Only the path/practice slot tool injects
-// it (alongside an instruction in the system prompt); the chat quiz tool stays
-// source-less so a turn never advertises grounding it can't honestly supply.
-const QUIZ_SOURCE_PROPERTY = {
-  type: 'object' as const,
-  description:
-    "OPTIONAL. Only when SOURCE MATERIALS accompany this prompt: the passage in those materials this question is grounded in, so the learner can open it. Add it ONLY when the question genuinely comes from the supplied material (never from general knowledge); omit it otherwise.",
-  properties: {
-    label: {
-      type: 'string' as const,
-      description:
-        'The title of the material this came from, copied from its "### …:" header (e.g. the document or page name).',
-    },
-    page: {
-      type: 'number' as const,
-      description: 'The source page number, ONLY when the material header shows a "[page N]" marker. Omit otherwise.',
-    },
-    quote: {
-      type: 'string' as const,
-      description:
-        'A short VERBATIM excerpt (≤ ~60 words) from the source material that supports the answer. Copy it exactly; do not paraphrase.',
-    },
-  },
-  required: ['quote'],
 };
 
 /**
@@ -1185,7 +1195,7 @@ export const QUIZ_FOR_SLOT_TOOL: Anthropic.Messages.Tool = {
     withFigureProperty(QUIZ_TOOL_V2.input_schema, 'questions', QUIZ_FIGURE_PROPERTY),
     'questions',
     'source',
-    QUIZ_SOURCE_PROPERTY,
+    SOURCE_ANCHOR_PROPERTY,
   ),
 };
 

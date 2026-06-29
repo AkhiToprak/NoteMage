@@ -151,6 +151,14 @@ export function dbGroundingLoader(userId: string): MageGroundingLoader {
         text: capText(text),
         subtitle: nb?.name || undefined,
         pageLabel: page.sourceDocPage ? `page ${page.sourceDocPage}` : undefined,
+        // Source-highlighting — the chip opens this page's origin (PDF page /
+        // video / text) in the source viewer. The resolve route derives the
+        // media type from the page id at click time.
+        anchor: {
+          materialId: pageId,
+          materialKind: 'page',
+          page: page.sourceDocPage ?? undefined,
+        },
       };
     },
 

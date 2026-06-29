@@ -132,70 +132,70 @@ model User {
   updatedAt                  DateTime           @updatedAt
 
   // Core relations
-  notebooks       StudyContainer[]
-  chatMessages    ChatMessage[]
+  notebooks    StudyContainer[]
+  chatMessages ChatMessage[]
 
   // Phase 1 — Social relations
-  sentFriendRequests     Friendship[]            @relation("SentFriendRequests")
-  receivedFriendRequests Friendship[]            @relation("ReceivedFriendRequests")
-  notifications          Notification[]
+  sentFriendRequests      Friendship[]                 @relation("SentFriendRequests")
+  receivedFriendRequests  Friendship[]                 @relation("ReceivedFriendRequests")
+  notifications           Notification[]
   // Exam Mode (Phase 6) — DB-backed notification/reminder preferences. At most
   // one row per user; absence means "all defaults" (opt-in model). See
   // src/lib/notification-preferences.ts.
   notificationPreferences UserNotificationPreferences?
-  posts                  Post[]
-  postVotes              PostVote[]
-  postComments           PostComment[]
-  commentVotes           CommentVote[]
-  pollVotes              PollVote[]
-  postVisibility         PostVisibility[]
-  sharedByMe             SharedNotebook[]        @relation("SharedByMe")
-  sharedWithMe           SharedNotebook[]        @relation("SharedWithMe")
-  notebookDownloads      NotebookDownload[]
-  friendActivities       FriendActivity[]
-  lastSeenAt             DateTime?
-  microsoftConnection    MicrosoftConnection?
-  studyMinutes           StudyMinute[]
-  streak                 UserStreak?
-  achievements           Achievement[]
+  posts                   Post[]
+  postVotes               PostVote[]
+  postComments            PostComment[]
+  commentVotes            CommentVote[]
+  pollVotes               PollVote[]
+  postVisibility          PostVisibility[]
+  sharedByMe              SharedNotebook[]             @relation("SharedByMe")
+  sharedWithMe            SharedNotebook[]             @relation("SharedWithMe")
+  notebookDownloads       NotebookDownload[]
+  friendActivities        FriendActivity[]
+  lastSeenAt              DateTime?
+  microsoftConnection     MicrosoftConnection?
+  studyMinutes            StudyMinute[]
+  streak                  UserStreak?
+  achievements            Achievement[]
   // Cosmetics — see src/lib/cosmetics/catalog.ts for the canonical list.
   // nameStyle is denormalized so username rendering never needs a join.
   // Shape: { fontId?: string, colorId?: string } — both reference catalog slugs.
-  nameStyle              Json?
-  equippedTitleId        String?
-  equippedFrameId        String?
-  equippedBackgroundId   String?
+  nameStyle               Json?
+  equippedTitleId         String?
+  equippedFrameId         String?
+  equippedBackgroundId    String?
   // Admin-only escape hatch: URL of a GIF/image uploaded by the admin that
   // overrides the catalog-based profile background. If set AND the user has
   // role = "admin", ProfileBackground renders this image as-is. Writes are
   // gated to admin accounts inside /api/user/profile and the upload endpoint.
-  customBackgroundUrl    String?
-  cosmetics              UserCosmetic[]
-  exams                  Exam[]
-  todos                  Todo[]
-  usageRecords           UsageRecord[]
-  adminAuditLogs         AdminAuditLog[]         @relation("AdminAuditLogs")
-  oauthAccounts          OAuthAccount[]
+  customBackgroundUrl     String?
+  cosmetics               UserCosmetic[]
+  exams                   Exam[]
+  todos                   Todo[]
+  usageRecords            UsageRecord[]
+  adminAuditLogs          AdminAuditLog[]              @relation("AdminAuditLogs")
+  oauthAccounts           OAuthAccount[]
   // Phase 10 — renamed from checkpointAttempts (CheckpointAttempt was dropped
   // and replaced by AssessmentAttempt scoped to CheckpointSlot).
-  assessmentAttempts     AssessmentAttempt[]
+  assessmentAttempts      AssessmentAttempt[]
   // Phase 9 — direct ownership for detached learn surfaces (paths,
   // flashcards, quizzes, chats); these can live without a notebook now.
-  notebookChats          NotebookChat[]
-  flashcardSets          FlashcardSet[]
-  quizSets               QuizSet[]
-  studyPlans             StudyPlan[]
-  importJobs             ImportJob[]
+  notebookChats           NotebookChat[]
+  flashcardSets           FlashcardSet[]
+  quizSets                QuizSet[]
+  studyPlans              StudyPlan[]
+  importJobs              ImportJob[]
   // Mage Revolution Phase 7 — focused remediation sessions (weak-topic /
   // exam-sim / mistake-review / manual). Each assembles a QuizSet the learner
   // takes through the canonical attempt route.
-  practiceSessions       PracticeSession[]
+  practiceSessions        PracticeSession[]
   // Email-confirmation codes for the credentials-signup gate (one active
   // row per user; reissued on resend).
-  emailVerificationCodes EmailVerificationCode[]
+  emailVerificationCodes  EmailVerificationCode[]
   // Password-reset codes for the forgot-password flow (one active row per
   // user; reissued on each request — see src/lib/verification.ts).
-  passwordResetCodes     PasswordResetCode[]
+  passwordResetCodes      PasswordResetCode[]
 
   @@map("users")
 }
@@ -264,7 +264,6 @@ model BackgroundJob {
 // NOTEBOOK & DOCUMENT MODELS
 // ============================================================================
 
-
 model StudyContainer {
   id          String   @id @default(cuid())
   userId      String
@@ -297,36 +296,36 @@ model StudyContainer {
 }
 
 model ImportJob {
-  id                String    @id @default(cuid())
+  id                String         @id @default(cuid())
   notebookId        String
   sectionId         String? // PDF target section; null for OneNote (worker creates many sections)
   userId            String
-  sourceFormat      String    @default("pdf") // "pdf" | "onenote" | "video"
+  sourceFormat      String         @default("pdf") // "pdf" | "onenote" | "video"
   fileName          String
-  engine            String    @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"; video uses "gemini-flash" (model token from resolveModel)
-  mode              String    @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
+  engine            String         @default("") // PDF engine at submission ("gemini-flash-lite" / "text-layer"); OneNote uses "onenote-html"; video uses "gemini-flash" (model token from resolveModel)
+  mode              String         @default("rich") // "rich" (vision) | "fast" (text-layer only, P5 of the cost-reduction plan)
   pageTitle         String? // PDF only: user-chosen title for the created page; null = derive from fileName
   pageCap           Int
-  status            String    @default("queued") // queued|processing|ready|failed
+  status            String         @default("queued") // queued|processing|ready|failed
   progress          Json? // { phase, totalPages, processedPages, message }
-  error             String?   @db.Text
+  error             String?        @db.Text
   pdfPath           String? // PDF only
   pageImagePaths    Json? // PDF only: string[] temp-imports/ paths
   oneNoteSectionIds Json? // OneNote only: string[] of selected section ids
   videoPath         String? // Video only: temp-imports/ path for an uploaded video file
   videoUrl          String? // Video only: YouTube URL ingested via Gemini fileData.fileUri
   videoDurationSec  Int? // Video only: probed/estimated duration; drives the minutes meter
-  mediaResolution   String?   @default("low") // Video only: "low" | "default" — token-rate control
+  mediaResolution   String?        @default("low") // Video only: "low" | "default" — token-rate control
   resultPageId      String?
   resultSummary     Json? // OneNote: { sectionsImported, pagesImported, errors[], firstSectionId?, firstPageId? }
-  truncated         Boolean   @default(false)
-  fallbackPages     Int       @default(0)
+  truncated         Boolean        @default(false)
+  fallbackPages     Int            @default(0)
   startedAt         DateTime?
   finishedAt        DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  notebook          StudyContainer  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  notebook          StudyContainer @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
   @@index([userId, status])
@@ -344,12 +343,11 @@ model Document {
   createdAt   DateTime @default(now())
 
   // Relations
-  notebook      StudyContainer          @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook StudyContainer @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
   @@map("documents")
 }
-
 
 // Citation provenance (Mage Revolution P3) — forward-looking char-range
 // provenance. Maps a region of a source Document (page + optional character
@@ -383,8 +381,8 @@ model NotebookChat {
   updatedAt          DateTime @updatedAt
 
   // Relations
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook      StudyContainer?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook      StudyContainer? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   messages      ChatMessage[]
   flashcardSets FlashcardSet[]
   quizSets      QuizSet[]
@@ -415,9 +413,9 @@ model ChatMessage {
   createdAt  DateTime @default(now())
 
   // Relations
-  notebook StudyContainer?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chat     NotebookChat? @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  notebook StudyContainer? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat     NotebookChat?   @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
   @@index([userId, createdAt])
@@ -456,7 +454,7 @@ model FlashcardSet {
   updatedAt    DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook           StudyContainer?           @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  notebook           StudyContainer?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   chat               NotebookChat?       @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section            Section?            @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   sourcePath         StudyPlan?          @relation("PathFlashcardSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
@@ -474,19 +472,29 @@ model FlashcardSet {
 }
 
 model Flashcard {
-  id             String    @id @default(cuid())
-  flashcardSetId String
-  question       String
-  answer         String    @db.Text
-  sortOrder      Int       @default(0)
+  id                 String    @id @default(cuid())
+  flashcardSetId     String
+  question           String
+  answer             String    @db.Text
+  // Source-highlighting feature — denormalized grounding anchor (parity with
+  // QuizQuestion). `sourceQuote` is the passage the source viewer highlights;
+  // identity is server-resolved from the corpus at generation time. All
+  // nullable so legacy cards and unresolvable anchors fall back gracefully.
+  sourceLabel        String? // Citation label, e.g. the document / page title
+  sourcePage         Int? // 1-based source page/slide, when known
+  sourceQuote        String?   @db.Text // Verbatim grounding passage to highlight
+  sourceMaterialId   String? // Page.id or Document.id the quote came from
+  sourceMaterialKind String? // "page" | "document"
+  sourceTimestampSec Int? // video seek target (seconds)
+  sortOrder          Int       @default(0)
   // Spaced repetition fields (SM-2 algorithm)
-  easeFactor     Float     @default(2.5)
-  interval       Int       @default(0) // days until next review
-  repetitions    Int       @default(0) // consecutive correct answers
-  nextReviewAt   DateTime? // null = never reviewed
-  lastReviewAt   DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  easeFactor         Float     @default(2.5)
+  interval           Int       @default(0) // days until next review
+  repetitions        Int       @default(0) // consecutive correct answers
+  nextReviewAt       DateTime? // null = never reviewed
+  lastReviewAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   flashcardSet FlashcardSet     @relation(fields: [flashcardSetId], references: [id], onDelete: Cascade)
   images       FlashcardImage[]
@@ -543,7 +551,7 @@ model QuizSet {
   updatedAt    DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook           StudyContainer?           @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  notebook           StudyContainer?     @relation(fields: [notebookId], references: [id], onDelete: SetNull)
   chat               NotebookChat?       @relation(fields: [chatId], references: [id], onDelete: Cascade)
   section            Section?            @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   sourcePath         StudyPlan?          @relation("PathQuizSets", fields: [sourcePathId], references: [id], onDelete: SetNull)
@@ -586,6 +594,14 @@ model QuizQuestion {
   sourceLabel        String? // Citation label, e.g. the document / page title
   sourcePage         Int? // 1-based source page/slide, when known
   sourceQuote        String?      @db.Text // Verbatim grounding passage to highlight
+  // Source-highlighting feature — stable identity + media seek so the source
+  // viewer can open the ORIGIN material (not just re-print the quote). Resolved
+  // server-side from the in-memory corpus at generation time (the model never
+  // echoes an id). All nullable: legacy rows and unresolvable labels stay null
+  // and the viewer falls back to the quote-only drawer / Mage.
+  sourceMaterialId   String? // Page.id or Document.id the quote came from
+  sourceMaterialKind String? // "page" | "document"
+  sourceTimestampSec Int? // video seek target (seconds), for video-grounded items
   sortOrder          Int          @default(0)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -670,7 +686,7 @@ model Section {
   updatedAt  DateTime @updatedAt
 
   // Relations
-  notebook      StudyContainer       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook      StudyContainer @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   parent        Section?       @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
   children      Section[]      @relation("SectionTree")
   pages         Page[]
@@ -683,25 +699,32 @@ model Section {
 }
 
 model Page {
-  id            String   @id @default(cuid())
-  sectionId     String
-  title         String   @default("Untitled")
-  pageType      String   @default("text") // "text" (TipTap editor) | "canvas" (infinite canvas)
-  content       Json? // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
-  textContent   String? // Plain text mirror for AI context + search
-  drawingData   Json? // Array of stroke objects [{points, color, width}]
-  sortOrder     Int      @default(0)
-  sourceDocId   String? // Set if this page was imported from a Document
+  id              String   @id @default(cuid())
+  sectionId       String
+  title           String   @default("Untitled")
+  pageType        String   @default("text") // "text" (TipTap editor) | "canvas" (infinite canvas)
+  content         Json? // TipTap JSON document format (text pages) or canvas state JSON (canvas pages)
+  textContent     String? // Plain text mirror for AI context + search
+  drawingData     Json? // Array of stroke objects [{points, color, width}]
+  sortOrder       Int      @default(0)
+  sourceDocId     String? // Set if this page was imported from a Document
   // Citation provenance (Mage Revolution P3). The 1-based source PDF page
   // where this imported page's content begins — cheap v1 page-number citation
   // a source chip can render as "Biology.pdf · page 7". Null for pages not
-  sourceDocPage Int? // 1-based start page of the imported PDF content
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  sourceDocPage   Int? // 1-based start page of the imported PDF content
+  // Source-highlighting feature — durable video origin for video-imported pages.
+  // The YouTube URL lives on the ephemeral ImportJob ledger; denormalized here so
+  // the source viewer can embed + seek without a reverse join. Null for non-video
+  // pages. `sourceMediaType` distinguishes a seekable YouTube embed from an
+  // uploaded file (whose blob is temp-only — viewer degrades to transcript).
+  sourceVideoUrl  String? // durable origin URL (YouTube) for video-derived pages
+  sourceMediaType String? // "youtube" | "upload"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  section       Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  images        PageImage[]
+  section Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  images  PageImage[]
 
   @@index([sectionId])
   @@map("pages")
@@ -762,65 +785,65 @@ model PageImage {
 // --- Study Planning ---
 
 model StudyPlan {
-  id                     String   @id @default(cuid())
+  id                 String   @id @default(cuid())
   // Phase 9 — see NotebookChat for the userId/notebookId rationale. A path may
   // draw materials from multiple notebooks; contextNotebookIds tracks them.
-  userId                 String
-  notebookId             String?
-  title                  String
-  description            String?  @db.Text
+  userId             String
+  notebookId         String?
+  title              String
+  description        String?  @db.Text
   // The learner's own goals / intent message for this path (the "Study goals"
   // brief from setup, or the manual tab's description + section hints). Stage A
   // already used it to shape the structure; persisted so Stage B reads it back
   // and the requested tone / emphasis / focus / difficulty steer the actual
   // theory, flashcards, and quizzes — not just the curriculum skeleton.
-  learnerBrief           String?  @db.Text
-  startDate              DateTime
-  endDate                DateTime
-  source                 String   @default("manual") // "manual" | "ai"
-  contextNotebookIds     String[] @default([])
+  learnerBrief       String?  @db.Text
+  startDate          DateTime
+  endDate            DateTime
+  source             String   @default("manual") // "manual" | "ai"
+  contextNotebookIds String[] @default([])
   // Phase 10 — exact material ids (pages / docs / flashcard + quiz sets) the
   // learner picked as source content. Persisted so Stage B can rebuild the
   // same material corpus the structure call was grounded in.
-  materialIds            String[] @default([])
+  materialIds        String[] @default([])
   // Phase 10 — AI generation lifecycle for checkpoint bundles. POST returns
   // immediately with status="generating"; the orchestrator (Phase 10.2) flips
   // it to "ready" once every slot has its theory/flashcards/quiz, or "failed"
   // with a message in generationError. The /generation SSE endpoint tails
   // generationProgress (`{ totalSlots, completedSlots, currentSlot,
   // currentActivity }`).
-  generationStatus       String   @default("ready") // "queued" | "generating" | "ready" | "failed"
-  generationProgress     Json?
-  generationError        String?  @db.Text
+  generationStatus   String   @default("ready") // "queued" | "generating" | "ready" | "failed"
+  generationProgress Json?
+  generationError    String?  @db.Text
   // Subject-aware generation (Phase 10.8). Classifier-detected subject
   // buckets ranked by weight; the generator restricts question kinds to
   // each subject's palette. Empty arrays mean the row predates the
   // feature — the orchestrator treats this as `['general']` with weight 1.
-  subjects               String[] @default([])
-  subjectWeights         Float[]  @default([])
+  subjects           String[] @default([])
+  subjectWeights     Float[]  @default([])
   // Ultra path = quizzes generated with the premium model (Pro-only,
   // quota-limited). Persisted because Stage B runs detached and reloads
   // the plan from this row.
-  ultra                  Boolean  @default(false)
+  ultra              Boolean  @default(false)
   // Per-path Gemini override (test toggle). When true, every stage
   // (structure / theory / flashcards / quiz) routes through Gemini
   // regardless of PATH_PROVIDER env vars OR the ultra flag. Default
   // false → behavior unchanged.
-  gemini                 Boolean  @default(false)
+  gemini             Boolean  @default(false)
   // Content language of the path (BCP-47 lowercase). Drives the source
   // side of in-place path translation.
-  language               String   @default("en")
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  language           String   @default("en")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook             StudyContainer?      @relation(fields: [notebookId], references: [id], onDelete: SetNull)
-  phases               StudyPhase[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebook      StudyContainer? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  phases        StudyPhase[]
   // Back-references for FlashcardSet/QuizSet.sourcePathId — used by
   // future "Save to notebook" promote action; SetNull there so deleting
   // the path leaves the bundle behind for the notebook to claim.
-  flashcardSets        FlashcardSet[] @relation("PathFlashcardSets")
-  quizSets             QuizSet[]      @relation("PathQuizSets")
+  flashcardSets FlashcardSet[]  @relation("PathFlashcardSets")
+  quizSets      QuizSet[]       @relation("PathQuizSets")
 
   @@index([userId])
   @@index([notebookId])
@@ -934,13 +957,23 @@ model CheckpointActivity {
 // the checkpoint drawer (Phase 10.6). Body is TipTap JSON. Not exposed in
 // the notebook tree — only reachable through its CheckpointActivity.
 model TheoryContent {
-  id        String              @id @default(cuid())
-  title     String
-  body      Json
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  activity  CheckpointActivity?
-  images    TheoryImage[]
+  id                 String              @id @default(cuid())
+  title              String
+  body               Json
+  // Source-highlighting feature — ONE primary grounding anchor for the lesson
+  // (parity with QuizQuestion). `sourceQuote` is the passage the source viewer
+  // highlights; identity is server-resolved from the corpus at generation time.
+  // All nullable so legacy theory and unresolvable anchors fall back gracefully.
+  sourceLabel        String? // Citation label, e.g. the document / page title
+  sourcePage         Int? // 1-based source page/slide, when known
+  sourceQuote        String?             @db.Text // Verbatim grounding passage to highlight
+  sourceMaterialId   String? // Page.id or Document.id the quote came from
+  sourceMaterialKind String? // "page" | "document"
+  sourceTimestampSec Int? // video seek target (seconds)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  activity           CheckpointActivity?
+  images             TheoryImage[]
 
   @@map("theory_content")
 }
@@ -1213,7 +1246,7 @@ model SharedNotebook {
   coverImageUrl String? // Cover image URL
   createdAt     DateTime @default(now())
 
-  notebook   StudyContainer              @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook   StudyContainer        @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   sharedBy   User                  @relation("SharedByMe", fields: [sharedById], references: [id], onDelete: Cascade)
   sharedWith User?                 @relation("SharedWithMe", fields: [sharedWithId], references: [id], onDelete: Cascade)
   images     SharedNotebookImage[]
@@ -1283,10 +1316,6 @@ model NotebookDownload {
   @@unique([sharedNotebookId, userId])
   @@map("notebook_downloads")
 }
-
-
-
-
 
 model FriendActivity {
   id          String   @id @default(cuid())
@@ -1403,7 +1432,7 @@ model Exam {
   updatedAt          DateTime @updatedAt
 
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notebook   StudyContainer        @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebook   StudyContainer  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   // Mage Revolution Phase 5 — what this exam covers (scoped paths / quiz sets /
   // flashcard sets / pages / documents / sections). Drives deriveExamReadiness.
   scopeItems ExamScopeItem[]
@@ -1776,7 +1805,6 @@ model SecurityEvent {
   @@index([type, createdAt])
   @@map("security_events")
 }
-
 
 // Onboarding-real-generation P4 — anonymous, pre-signup preview state, kept in
 // its own table (D3) so anonymous data never touches an owned table. Keyed by

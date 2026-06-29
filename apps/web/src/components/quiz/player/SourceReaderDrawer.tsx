@@ -14,9 +14,18 @@
  * (z 1300) at z 1400; desktop = right slide-over, phone = full-width sheet.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { QuizSource } from './types';
+import type { ResolveResult } from '@/lib/source-anchor';
+import SourceQuote from './source-panes/SourceQuote';
+
+// Lazy panes — code-split so the PDF/video/text renderers (and any heavier
+// Phase-2 pdf.js viewer) never enter the quiz-player bundle until a source opens.
+const SourcePdfPane = dynamic(() => import('./source-panes/SourcePdfPane'), { ssr: false });
+const SourceVideoPane = dynamic(() => import('./source-panes/SourceVideoPane'), { ssr: false });
+const SourceTextPane = dynamic(() => import('./source-panes/SourceTextPane'), { ssr: false });
 
 const SOURCE_ICON: Record<NonNullable<QuizSource['kind']>, string> = {
   pdf: 'picture_as_pdf',
@@ -41,6 +50,12 @@ interface SourceReaderDrawerProps {
   /** Hand off to the Ask-Mage panel ("Ask Mage about this"). */
   onAskMage?: () => void;
   onClose: () => void;
+  /**
+   * Stacking context. Default 1400 rides above the quiz shell (1300). The Mage
+   * panel hosts this drawer at a higher value so it opens IN FRONT of the panel
+   * (which sits at 1440), not behind it.
+   */
+  zIndex?: number;
 }
 
 export default function SourceReaderDrawer({
@@ -51,10 +66,54 @@ export default function SourceReaderDrawer({
   questionNumber,
   onAskMage,
   onClose,
+  zIndex = 1400,
 }: SourceReaderDrawerProps) {
   const { isDesktop } = useBreakpoint();
   const isPhone = !isDesktop;
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // Source-highlighting — resolve the active source to a renderable origin (PDF
+  // page / video timestamp / text passage). Only fires for anchors that carry a
+  // stable `materialId`; legacy / quote-only sources skip the fetch and render the
+  // grounding quote on its own. Resolution is keyed by the source id so state is
+  // only ever set in the async callback (never synchronously in the effect) and a
+  // stale source's result can't leak onto a newly-shown one.
+  const active = sources[activeIndex] ?? sources[0] ?? null;
+  const activeId = active?.id ?? null;
+  const materialId = active?.materialId ?? null;
+  const materialKind =
+    active?.materialKind === 'page' || active?.materialKind === 'document'
+      ? active.materialKind
+      : null;
+  const quote = active?.quote ?? '';
+  const page = active?.page ?? null;
+  const timestampSec = active?.timestampSec ?? null;
+  const canResolve = open && !!activeId && !!materialId && !!materialKind;
+
+  const [resolvedState, setResolvedState] = useState<{ forId: string; result: ResolveResult } | null>(null);
+
+  useEffect(() => {
+    if (!canResolve || !activeId || !materialId || !materialKind) return;
+    if (resolvedState?.forId === activeId) return; // already resolved this source
+    const controller = new AbortController();
+    const params = new URLSearchParams({ materialId, kind: materialKind, quote });
+    if (page != null) params.set('page', String(page));
+    if (timestampSec != null) params.set('timestampSec', String(timestampSec));
+    const id = activeId;
+    fetch(`/api/learn/sources/resolve?${params.toString()}`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const result = (json?.data ?? { resolvable: false }) as ResolveResult;
+        setResolvedState({ forId: id, result });
+      })
+      .catch((err) => {
+        if (err?.name !== 'AbortError') setResolvedState({ forId: id, result: { resolvable: false } });
+      });
+    return () => controller.abort();
+  }, [canResolve, activeId, materialId, materialKind, quote, page, timestampSec, resolvedState?.forId]);
+
+  const resolved = activeId && resolvedState?.forId === activeId ? resolvedState.result : null;
+  const resolving = canResolve && !resolved;
 
   // Move focus into the drawer on open, restore it on close.
   useEffect(() => {
@@ -93,7 +152,7 @@ export default function SourceReaderDrawer({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1400,
+        zIndex,
         display: 'flex',
         justifyContent: 'flex-end',
       }}
@@ -288,38 +347,21 @@ export default function SourceReaderDrawer({
             </span>
           ) : null}
 
-          {source.quote ? (
-            <figure style={{ margin: 0 }}>
-              <figcaption
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: 'var(--on-surface-variant)',
-                  marginBottom: '10px',
-                }}
-              >
-                Grounding passage
-              </figcaption>
-              <blockquote
-                style={{
-                  margin: 0,
-                  padding: '16px 18px',
-                  borderRadius: 'var(--radius-md)',
-                  borderLeft: '3px solid var(--nm-primary)',
-                  background: 'var(--nm-primary-light)',
-                  color: 'var(--on-surface)',
-                  fontSize: '15px',
-                  lineHeight: 1.7,
-                }}
-              >
-                {source.quote}
-              </blockquote>
-            </figure>
+          {resolving ? (
+            <SourceSkeleton />
+          ) : resolved && resolved.resolvable ? (
+            resolved.sourceType === 'pdf' ? (
+              <SourcePdfPane source={resolved} />
+            ) : resolved.sourceType === 'video' ? (
+              <SourceVideoPane source={resolved} />
+            ) : (
+              <SourceTextPane source={resolved} />
+            )
+          ) : source.quote ? (
+            <SourceQuote quote={source.quote} />
           ) : (
             <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.6, color: 'var(--on-surface-variant)' }}>
-              This question is grounded in {source.title}. Ask Mage to walk through how it connects.
+              Grounded in {source.title}. Ask Mage to walk through how it connects.
             </p>
           )}
         </div>
@@ -391,6 +433,22 @@ export default function SourceReaderDrawer({
           </button>
         </footer>
       </div>
+    </div>
+  );
+}
+
+function SourceSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading source" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <style>{`
+        .qsd-skel { background: var(--quiz-card); border: 1px solid var(--quiz-card-border); border-radius: var(--radius-md); animation: qsdSkel 1.1s ease-in-out infinite; }
+        @keyframes qsdSkel { 0%,100% { opacity: 0.55; } 50% { opacity: 0.95; } }
+        @media (prefers-reduced-motion: reduce) { .qsd-skel { animation: none; } }
+      `}</style>
+      <div className="qsd-skel" style={{ height: '14px', width: '38%' }} />
+      <div className="qsd-skel" style={{ height: '120px', width: '100%' }} />
+      <div className="qsd-skel" style={{ height: '12px', width: '90%' }} />
+      <div className="qsd-skel" style={{ height: '12px', width: '70%' }} />
     </div>
   );
 }

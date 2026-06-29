@@ -48,7 +48,13 @@ import {
 } from './path-prompts';
 import { forcedStructuredCall, type NormalizedUsage, type Provider } from './path-generator-routing';
 import { computeCost, type ModelUsage } from './path-generator-cost';
-import { loadMaterialCorpus, renderMaterialCorpus } from './path-corpus';
+import {
+  loadMaterialCorpus,
+  renderMaterialCorpus,
+  buildSourceIdentityIndex,
+  resolveSourceIdentity,
+  type SourceMaterialRef,
+} from './path-corpus';
 import { pathContentCap } from './path-corpus-fit';
 import {
   loadSourceImages,
@@ -69,13 +75,12 @@ export { resolveFlashcardFigures, resolveQuizFigures };
 import { refundUsage } from './usage-limits';
 import {
   QuizSetV2Schema,
-  QuizSourceSchema,
+  SourceAnchorSchema,
   TheorySectionSchema,
   PathDiagramSchema,
   TheoryFigureSchema,
   DIAGRAM_CLOZE_MASK,
   type QuestionKind,
-  type QuizQuestionSource,
   type TheorySection,
   type PathDiagram,
   type DiagramClozePayload,
@@ -766,6 +771,13 @@ interface PlanForGeneration {
   /** Rendered material corpus, rebuilt from StudyPlan.materialIds. */
   corpus: string | null;
   /**
+   * Source-highlighting feature — corpus titles indexed to their origin
+   * Page/Document id, so each activity's persistence step can resolve a
+   * model-emitted `source.label` to a stable material reference. Null when no
+   * materials are loaded.
+   */
+  sourceIndex: Map<string, SourceMaterialRef> | null;
+  /**
    * Rendered source-image catalog appended to the theory prompt's cached
    * system block. Non-null only when the path's materials carried (captioned)
    * images and `PATH_THEORY_FIGURES_DISABLED` is off (all tiers since P2). When
@@ -834,6 +846,52 @@ function makeFigureStats(): FigureStats {
     flashcardImageCount: 0,
     quizImageCount: 0,
     skippedReason: null,
+  };
+}
+
+// Source-highlighting feature — the persisted anchor columns for one content
+// item (theory / flashcard / quiz question). All six default to null.
+interface AnchorColumns {
+  sourceLabel: string | null;
+  sourcePage: number | null;
+  sourceQuote: string | null;
+  sourceMaterialId: string | null;
+  sourceMaterialKind: string | null;
+  sourceTimestampSec: number | null;
+}
+
+const EMPTY_ANCHOR: AnchorColumns = {
+  sourceLabel: null,
+  sourcePage: null,
+  sourceQuote: null,
+  sourceMaterialId: null,
+  sourceMaterialKind: null,
+  sourceTimestampSec: null,
+};
+
+/**
+ * Validate a model-emitted `source` anchor and resolve it to persisted columns.
+ * `quote` is the load-bearing field — a malformed or quote-less anchor yields the
+ * empty (all-null) columns so the item falls back to the path-level source / Mage.
+ * Identity (materialId/Kind) is resolved server-side from the corpus index — the
+ * model never echoes an id. Never throws: a bad anchor must not fail an item.
+ */
+function anchorColumns(
+  rawSource: unknown,
+  sourceIndex: Map<string, SourceMaterialRef> | null | undefined,
+): AnchorColumns {
+  if (rawSource == null) return EMPTY_ANCHOR;
+  const parsed = SourceAnchorSchema.safeParse(rawSource);
+  if (!parsed.success) return EMPTY_ANCHOR;
+  const src = parsed.data;
+  const ref = resolveSourceIdentity(sourceIndex, src.label);
+  return {
+    sourceLabel: src.label ?? null,
+    sourcePage: src.page ?? null,
+    sourceQuote: src.quote,
+    sourceMaterialId: ref?.materialId ?? null,
+    sourceMaterialKind: ref?.materialKind ?? null,
+    sourceTimestampSec: src.timestampSec ?? null,
   };
 }
 
@@ -906,6 +964,11 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
   const corpus = corpusEntries
     ? renderMaterialCorpus(corpusEntries, pathContentCap(plan.ultra))
     : null;
+  // Source-highlighting feature — index the corpus by title so each activity's
+  // persistence step can resolve a model-emitted `source.label` back to its
+  // origin Page/Document id. Built once per path (cheap) and threaded into every
+  // Stage B activity via the gen context. Null when no materials are loaded.
+  const sourceIndex = corpusEntries ? buildSourceIdentityIndex(corpusEntries) : null;
 
   // Theory visuals. Diagrams are all-tiers (no added AI cost) so they ride a
   // simple kill-switch. Figures are all-tiers too: captions are pre-warmed at
@@ -976,6 +1039,7 @@ async function loadPlanForGeneration(planId: string): Promise<PlanForGeneration 
     gemini: plan.gemini,
     language: normalizePathLanguage(plan.language),
     corpus,
+    sourceIndex,
     imageCatalog,
     availableImages,
     sourceImageCount: availableImages.length,
@@ -1474,6 +1538,9 @@ async function generateTheoryActivity(
   // are spent — a thin section beats a blocked checkpoint.
   let input: TheorySection | null = null;
   let exampleLess: TheorySection | null = null;
+  // Source-highlighting — the raw `source` anchor from the ACCEPTED attempt
+  // (schema parse strips it, so capture it off the normalized input separately).
+  let rawTheorySource: unknown = null;
   let lastError = '';
   for (let attempt = 1; attempt <= MAX_ACTIVITY_ATTEMPTS && !input; attempt++) {
     const attemptTail =
@@ -1497,11 +1564,14 @@ async function generateTheoryActivity(
         providerOverride: plan.gemini ? 'gemini' : undefined,
         onUsage: (u) => addNormalizedUsage(plan.usage, u),
       });
-      const parsed = TheorySectionSchema.safeParse(normalizeTheoryInput(raw));
+      const normalized = normalizeTheoryInput(raw);
+      const parsed = TheorySectionSchema.safeParse(normalized);
       if (parsed.success && parsed.data.examples.length > 0) {
         input = parsed.data;
+        rawTheorySource = normalized.source ?? null;
       } else if (parsed.success) {
         exampleLess = parsed.data;
+        rawTheorySource = normalized.source ?? null;
         lastError = 'Your previous theory section had an empty `examples` array.';
         logTelemetry(plan.userId, 'path.theory.retry', {
           planId: plan.id,
@@ -1592,11 +1662,21 @@ async function generateTheoryActivity(
     diagrams,
   });
 
+  // Source-highlighting — resolve the lesson's primary anchor (corpus-resolved
+  // identity + quote + media seek). All-null when the section wasn't grounded.
+  const theoryAnchor = anchorColumns(rawTheorySource, plan.sourceIndex);
+
   await db.$transaction(async (tx) => {
     const theory = await tx.theoryContent.create({
       data: {
         title: resolved.title,
         body: body as unknown as Prisma.InputJsonValue,
+        sourceLabel: theoryAnchor.sourceLabel,
+        sourcePage: theoryAnchor.sourcePage,
+        sourceQuote: theoryAnchor.sourceQuote,
+        sourceMaterialId: theoryAnchor.sourceMaterialId,
+        sourceMaterialKind: theoryAnchor.sourceMaterialKind,
+        sourceTimestampSec: theoryAnchor.sourceTimestampSec,
       },
     });
     if (snapped.length > 0) {
@@ -1829,10 +1909,19 @@ async function generateFlashcardsActivity(
         flashcards: {
           create: input.flashcards.map((fc, i) => {
             const imgs = snappedByCard.get(i);
+            // Source-highlighting — per-card grounding anchor (corpus-resolved
+            // identity + quote + media seek). All-null when the card wasn't grounded.
+            const anchor = anchorColumns(fc.source, plan.sourceIndex);
             return {
               id: cardIds[i],
               question: fc.question,
               answer: fc.answer,
+              sourceLabel: anchor.sourceLabel,
+              sourcePage: anchor.sourcePage,
+              sourceQuote: anchor.sourceQuote,
+              sourceMaterialId: anchor.sourceMaterialId,
+              sourceMaterialKind: anchor.sourceMaterialKind,
+              sourceTimestampSec: anchor.sourceTimestampSec,
               sortOrder: i,
               ...(imgs && imgs.length > 0
                 ? {
@@ -2181,17 +2270,15 @@ async function generateQuizActivity(
   }
   const clozeId = randomUUID();
 
-  // Source provenance (Phase D) — validate each question's loose `source` against
-  // QuizSourceSchema and keep the valid ones, keyed by question index. A
-  // malformed or general-knowledge source is simply dropped: the columns stay
-  // null and the quiz player falls back to the path-level source. Mirrors the
-  // figure drop policy above — a bad source must never fail a written question.
-  const sourceByQuestion = new Map<number, QuizQuestionSource>();
+  // Source-highlighting feature — validate each question's loose `source` anchor
+  // and resolve it to persisted columns (quote + identity + media seek), keyed by
+  // question index. A malformed or general-knowledge anchor is simply dropped: the
+  // columns stay null and the quiz player falls back to the path-level source.
+  // Mirrors the figure drop policy above — a bad anchor must never fail a question.
+  const anchorByQuestion = new Map<number, AnchorColumns>();
   finalQuestions.forEach((q, i) => {
-    const raw = (q as { source?: unknown }).source;
-    if (raw == null) return;
-    const result = QuizSourceSchema.safeParse(raw);
-    if (result.success) sourceByQuestion.set(i, result.data);
+    const cols = anchorColumns((q as { source?: unknown }).source, plan.sourceIndex);
+    if (cols.sourceQuote) anchorByQuestion.set(i, cols);
   });
 
   await db.$transaction(async (tx) => {
@@ -2209,7 +2296,7 @@ async function generateQuizActivity(
             ...finalQuestions.map((q, i) => {
               const legacy = buildLegacyColumns(q.kind, q.payload);
               const snap = snappedByQuestion.get(i);
-              const src = sourceByQuestion.get(i);
+              const anchor = anchorByQuestion.get(i) ?? EMPTY_ANCHOR;
               return {
                 id: questionIds[i],
                 kind: q.kind,
@@ -2220,11 +2307,15 @@ async function generateQuizActivity(
                 hint: q.hint ?? null,
                 correctExplanation: q.correctExplanation ?? null,
                 wrongExplanation: q.wrongExplanation ?? null,
-                // Phase D — denormalized grounding for the reader drawer (null
-                // when the model didn't ground the question or it was dropped).
-                sourceLabel: src?.label ?? null,
-                sourcePage: src?.page ?? null,
-                sourceQuote: src?.quote ?? null,
+                // Source-highlighting — denormalized grounding for the source
+                // viewer (all null when the model didn't ground the question or
+                // the anchor was dropped). Identity is corpus-resolved server-side.
+                sourceLabel: anchor.sourceLabel,
+                sourcePage: anchor.sourcePage,
+                sourceQuote: anchor.sourceQuote,
+                sourceMaterialId: anchor.sourceMaterialId,
+                sourceMaterialKind: anchor.sourceMaterialKind,
+                sourceTimestampSec: anchor.sourceTimestampSec,
                 sortOrder: i,
                 ...(snap
                   ? {

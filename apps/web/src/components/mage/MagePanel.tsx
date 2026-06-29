@@ -13,7 +13,7 @@
  * prefers-reduced-motion.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { getMageName } from '@/lib/scholar';
@@ -21,6 +21,8 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { Mascot } from '@/components/mascot';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useStreamingChat } from '@/hooks/useStreamingChat';
+import SourceReaderDrawer from '@/components/quiz/player/SourceReaderDrawer';
+import type { QuizSource } from '@/components/quiz/player/types';
 import {
   gateVisibility,
   mageContextKey,
@@ -35,6 +37,30 @@ import {
 import type { MageActionCard } from '@/lib/mage-actions';
 import { useMage } from './MageProvider';
 import { presentMageContext } from './mage-presentation';
+
+// Source-highlighting — lets a citation chip rendered deep in the message tree
+// open the shared source viewer mounted at the panel root, without threading a
+// callback through every intermediate component. Null outside the provider.
+const MageSourceViewerContext = createContext<((s: MageSource) => void) | null>(null);
+
+/** Map a cited Mage source to the source viewer's input. Mage cites whole
+ *  sources (no per-citation quote), so the viewer opens the origin and shows it
+ *  page-only / at its timestamp; the empty quote simply means "no passage to
+ *  highlight". */
+function mageSourceToQuizSource(s: MageSource): QuizSource {
+  const a = s.anchor;
+  return {
+    id: `mage-S${s.n}`,
+    title: s.title,
+    kind: a?.timestampSec != null ? 'video' : 'page',
+    detail: s.pageLabel,
+    quote: '',
+    materialId: a?.materialId,
+    materialKind: a?.materialKind,
+    page: a?.page,
+    timestampSec: a?.timestampSec,
+  };
+}
 
 interface PanelMessage {
   id: string;
@@ -180,6 +206,9 @@ export function MagePanel() {
   const contextTitle = context.title?.trim();
   const showContextCard = (context.type ?? 'global') !== 'global' || Boolean(contextTitle);
   const headerSubtitle = subtitleFor(context.type);
+
+  // Source-highlighting — the citation chip currently open in the source viewer.
+  const [viewerSource, setViewerSource] = useState<MageSource | null>(null);
 
   const [messages, setMessages] = useState<PanelMessage[]>([]);
   const [input, setInput] = useState('');
@@ -484,7 +513,7 @@ export function MagePanel() {
   const panelWidth = isPhone ? '100vw' : 'clamp(360px, 30vw, 420px)';
 
   return (
-    <>
+    <MageSourceViewerContext.Provider value={setViewerSource}>
       {/* Scrim — mobile only; click to dismiss. */}
       <div
         className="mage-scrim"
@@ -1424,7 +1453,19 @@ export function MagePanel() {
           .mage-confirm-scrim { animation: none; }
         }
       `}</style>
-    </>
+
+      {/* Source-highlighting — a citation chip with a material anchor opens the
+          shared source viewer above the panel (panel is z1440; drawer z1500). */}
+      {viewerSource ? (
+        <SourceReaderDrawer
+          open={isOpen}
+          sources={[mageSourceToQuizSource(viewerSource)]}
+          activeIndex={0}
+          zIndex={1500}
+          onClose={() => setViewerSource(null)}
+        />
+      ) : null}
+    </MageSourceViewerContext.Provider>
   );
 }
 
@@ -1445,6 +1486,7 @@ function SourceFooter({
   notFoundInMaterial?: boolean;
   onNavigate: (href: string) => void;
 }) {
+  const openSource = useContext(MageSourceViewerContext);
   const chips = sources ?? [];
   const hasChips = chips.length > 0;
   const showGeneralBadge = Boolean(notFoundInMaterial) || (sourceMode === 'general' && !hasChips);
@@ -1485,6 +1527,22 @@ function SourceFooter({
             )}
           </>
         );
+        // Source-highlighting — a chip with a material anchor opens the source
+        // viewer (page jump / video / text) in place; otherwise it navigates via
+        // its deep link, or stays static when there's no destination.
+        if (s.anchor && openSource) {
+          return (
+            <button
+              key={s.n}
+              type="button"
+              className="mage-source-chip"
+              title={`Open source — ${fullLabel}`}
+              onClick={() => openSource(s)}
+            >
+              {inner}
+            </button>
+          );
+        }
         return href ? (
           <button
             key={s.n}

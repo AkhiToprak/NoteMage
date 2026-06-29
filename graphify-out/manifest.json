@@ -250,13 +250,13 @@
     "semantic_hash": "40e7c1dbb75e6474c87529a859c3df54"
   },
   "apps/web/src/components/learn/CheckpointFlashcardViewer.tsx": {
-    "mtime": 1782509949.1381364,
-    "ast_hash": "81cec0dcac024a26ed476e615b42940a",
+    "mtime": 1782768267.8621705,
+    "ast_hash": "b2e6aedb27b6fd5d4d544a9394b02c5d",
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/CheckpointQuizViewer.tsx": {
-    "mtime": 1782570415.9519022,
-    "ast_hash": "6b48dca1b3088e2ecaa584c9b797e815",
+    "mtime": 1782767935.346155,
+    "ast_hash": "78fb92a7767ce69e4cce91df5b5d4062",
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/CheckpointSkeleton.tsx": {
@@ -265,8 +265,8 @@
     "semantic_hash": "8ffcf2cc71a6d67feaf1c734b978f2a3"
   },
   "apps/web/src/components/learn/CheckpointTheoryViewer.tsx": {
-    "mtime": 1782567541.4101145,
-    "ast_hash": "458116c4d9b7a593a643bf22459eb8a3",
+    "mtime": 1782767982.129174,
+    "ast_hash": "2e086d12bb867c268f447e59e51a4b56",
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/DeletePathDialog.tsx": {
@@ -300,8 +300,8 @@
     "semantic_hash": "05ab861e43a954a605cd8cad3f847385"
   },
   "apps/web/src/components/learn/PathView.tsx": {
-    "mtime": 1782567541.4103348,
-    "ast_hash": "0f5f7d5a7104765f25a63df72fcd6808",
+    "mtime": 1782765333.935084,
+    "ast_hash": "7998b7900358e607e6d5e6652dc03a08",
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/ResetPathDialog.tsx": {
@@ -765,9 +765,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/hooks/usePathGenerationStream.ts": {
-    "mtime": 1782509948.9862084,
-    "ast_hash": "287319219bc73ca31b749288a37b4159",
-    "semantic_hash": "287319219bc73ca31b749288a37b4159"
+    "mtime": 1782646116.612303,
+    "ast_hash": "1b379fc68d74e192d67e8987858c7356",
+    "semantic_hash": ""
   },
   "apps/web/src/hooks/useScrollReveal.ts": {
     "mtime": 1782509948.9856725,
@@ -820,8 +820,8 @@
     "semantic_hash": "7b3c5544da43000fcd4f04047f6beb59"
   },
   "apps/web/src/lib/ai-tools.ts": {
-    "mtime": 1782571137.8527987,
-    "ast_hash": "a62927bf59ad976da01ca0672e2fd81d",
+    "mtime": 1782767453.2008104,
+    "ast_hash": "1a69c716a5fb0dae1786cd3ba42148a6",
     "semantic_hash": ""
   },
   "apps/web/src/lib/ai-usage.ts": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": "7aec5a2d1702b910235030116c9aa000"
   },
   "apps/web/src/lib/model-routing.ts": {
-    "mtime": 1782635856.7202213,
-    "ast_hash": "be75221b5645c304234ce93ff0fa14e7",
+    "mtime": 1782639645.3188508,
+    "ast_hash": "4277f237764a2f44d39ec55ab91fe4fa",
     "semantic_hash": ""
   },
   "apps/web/src/lib/native-bridge.ts": {
@@ -1130,19 +1130,19 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-corpus.ts": {
-    "mtime": 1782567541.4234357,
-    "ast_hash": "4209ee76efccbe945823eecb51a34962",
+    "mtime": 1782767219.2573898,
+    "ast_hash": "1fa8a0cc37b484bb93e82b9952522bc4",
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-gating.test.ts": {
-    "mtime": 1782509949.025339,
-    "ast_hash": "2a6ecd058a5f6f2544919b74ff50e9d3",
-    "semantic_hash": "2a6ecd058a5f6f2544919b74ff50e9d3"
+    "mtime": 1782765434.8780916,
+    "ast_hash": "3e8daa865a7f8668d4c2d3e9b4c61adf",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/path-gating.ts": {
-    "mtime": 1782509949.0288286,
-    "ast_hash": "eb66148a42629cf48053c0df12ebbf7c",
-    "semantic_hash": "eb66148a42629cf48053c0df12ebbf7c"
+    "mtime": 1782765306.5759573,
+    "ast_hash": "737552fd148ef211fe7f810df27758c2",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/path-generator-anthropic.ts": {
     "mtime": 1782509949.0155685,
@@ -1165,8 +1165,8 @@
     "semantic_hash": "dee96df61be9fe458d087e06d2a3d9ed"
   },
   "apps/web/src/lib/path-generator-normalize.ts": {
-    "mtime": 1782567541.423554,
-    "ast_hash": "d8c1463ff7fa07d0b4efc9ac7e895e67",
+    "mtime": 1782767206.1392453,
+    "ast_hash": "e3f00b520546febf70314d37de7a2a75",
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-generator-routing.ts": {
@@ -1175,8 +1175,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-generator.ts": {
-    "mtime": 1782635856.721179,
-    "ast_hash": "2fc2705a3ba5ff5ecb81838eb888ceeb",
+    "mtime": 1782767395.9851325,
+    "ast_hash": "b0bd4684a5088ef04f928988f8d35bd3",
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-image-catalog.ts": {
@@ -1190,13 +1190,13 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-loader.ts": {
-    "mtime": 1782567541.4242556,
-    "ast_hash": "a5e05bac7f75270acbdb31154d38d2c2",
+    "mtime": 1782765327.559492,
+    "ast_hash": "a7a47a9a003b80e188ff29050da57bb9",
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-prompts.ts": {
-    "mtime": 1782567541.4246128,
-    "ast_hash": "cbd24594ebd8ac36c8331daa532ed1e6",
+    "mtime": 1782767494.28932,
+    "ast_hash": "6deb919eebf1004fe681dbe4b6a2ae43",
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-quiz-prompt.test.ts": {
@@ -1510,9 +1510,9 @@
     "semantic_hash": "9823d66eaad9c9c7c4085a10ca959c8b"
   },
   "apps/web/src/lib/storage.ts": {
-    "mtime": 1782509949.0105274,
-    "ast_hash": "c2dd1ac4d965306755cca1828717e658",
-    "semantic_hash": "c2dd1ac4d965306755cca1828717e658"
+    "mtime": 1782767555.8045597,
+    "ast_hash": "58738043d66a507c0d1a677f0ed78d1e",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/streaks.ts": {
     "mtime": 1782509949.060397,
@@ -1645,14 +1645,14 @@
     "semantic_hash": "eac7deb1c77a6d1b121ab176b1768828"
   },
   "apps/web/src/lib/video-import/config.ts": {
-    "mtime": 1782509949.084762,
-    "ast_hash": "83a42c6f984d41a44146206e0b251c4d",
-    "semantic_hash": "83a42c6f984d41a44146206e0b251c4d"
+    "mtime": 1782646586.5676415,
+    "ast_hash": "5f296ed06e8622b631c7ec3aa941d174",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/video-import/gemini-ingest.ts": {
-    "mtime": 1782509949.0841887,
-    "ast_hash": "0c9e1bfe139da70313a3744f8d064b75",
-    "semantic_hash": "0c9e1bfe139da70313a3744f8d064b75"
+    "mtime": 1782646610.5224068,
+    "ast_hash": "2f5fcc1e752871ef13372be134f81bec",
+    "semantic_hash": ""
   },
   "apps/web/src/lib/video-import/notes-to-page.ts": {
     "mtime": 1782509949.0837228,
@@ -1970,9 +1970,9 @@
     "semantic_hash": "34626137b6e15586e23a5defd1bc6430"
   },
   "apps/web/app/api/learn/activities/[activityId]/content/route.ts": {
-    "mtime": 1782509949.2221823,
-    "ast_hash": "19f9ec6c86ec0eccb54f5b31e3b5db57",
-    "semantic_hash": "19f9ec6c86ec0eccb54f5b31e3b5db57"
+    "mtime": 1782767651.6561534,
+    "ast_hash": "3c3bcaa041cad891a4727e201189d8f3",
+    "semantic_hash": ""
   },
   "apps/web/app/api/learn/activities/[activityId]/route.ts": {
     "mtime": 1782567541.3919997,
@@ -1980,8 +1980,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/api/learn/documents/youtube/route.ts": {
-    "mtime": 1782509949.2154572,
-    "ast_hash": "ec671939018f9af8f0c6859588c861c3",
+    "mtime": 1782642798.1185596,
+    "ast_hash": "1d0c3a744c6cd72ace5fe4af06ffcb9d",
     "semantic_hash": ""
   },
   "apps/web/app/api/learn/inventory/route.ts": {
@@ -1995,9 +1995,9 @@
     "semantic_hash": ""
   },
   "apps/web/app/api/learn/paths/[planId]/generation/route.ts": {
-    "mtime": 1782509949.231095,
-    "ast_hash": "5e0f9de676f63d044074db71cc45675b",
-    "semantic_hash": "5e0f9de676f63d044074db71cc45675b"
+    "mtime": 1782754455.4072192,
+    "ast_hash": "6d318d2878ee0cb533dd3715ca37b30e",
+    "semantic_hash": ""
   },
   "apps/web/app/api/learn/paths/[planId]/regenerate/route.ts": {
     "mtime": 1782567541.3924046,
@@ -81095,8 +81095,8 @@
     "semantic_hash": ""
   },
   "apps/web/instrumentation.ts": {
-    "mtime": 1775578031.061374,
-    "ast_hash": "93f4c35ebb4ad03406229c45bdb744f6",
+    "mtime": 1782644333.7095888,
+    "ast_hash": "3610347c8289bcba6d3aa428655f9a0d",
     "semantic_hash": ""
   },
   "apps/web/next-env.d.ts": {
@@ -82960,8 +82960,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/mage/MagePanel.tsx": {
-    "mtime": 1782570681.5120459,
-    "ast_hash": "0847b229fdf4fe47eb157cd6ca7ae6a2",
+    "mtime": 1782769188.8007748,
+    "ast_hash": "307d2326e7db5edd54d5cc7ac3c98369",
     "semantic_hash": ""
   },
   "apps/web/src/components/mage/MageProvider.tsx": {
@@ -82980,13 +82980,13 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/mage-context.ts": {
-    "mtime": 1782567541.421457,
-    "ast_hash": "c57f7a9567c2abc058d993502eef5098",
+    "mtime": 1782769071.2451653,
+    "ast_hash": "59cc03d6c7f3de9a4d5e9e67443a2723",
     "semantic_hash": ""
   },
   "apps/web/src/lib/mage-types.ts": {
-    "mtime": 1782567541.4215527,
-    "ast_hash": "b153d46280ad35db1eeecc0d1b9b2a59",
+    "mtime": 1782769059.4280095,
+    "ast_hash": "41a0a9f91111517cb7debc5f1c6540f6",
     "semantic_hash": ""
   },
   "apps/web/app/(admin)/admin/pdf-assets/page.tsx": {
@@ -83100,8 +83100,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/model-routing.test.ts": {
-    "mtime": 1782635856.7200868,
-    "ast_hash": "2edb0ae6e89b51d1d9052c4353911632",
+    "mtime": 1782639740.8524227,
+    "ast_hash": "742846c7517dc43c8c195fe0aff796ea",
     "semantic_hash": ""
   },
   "apps/web/prisma/migrations/20260624000000_mage_context_threads/migration.sql": {
@@ -83350,8 +83350,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/path-screen/LearningPathScreen.tsx": {
-    "mtime": 1782567541.4110034,
-    "ast_hash": "c9bd39eecd275ac5f670df693f777247",
+    "mtime": 1782765599.4194238,
+    "ast_hash": "2dc61f73e47f2d0eeff3e1ee6f05921c",
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/path-screen/NodeOverview.tsx": {
@@ -83360,8 +83360,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/learn/path-screen/helpers.tsx": {
-    "mtime": 1782567541.4113007,
-    "ast_hash": "6c381368b599442cabc5171270e220a6",
+    "mtime": 1782765450.5394418,
+    "ast_hash": "ea617c7d544e5d6a1316d8b72131c09c",
     "semantic_hash": ""
   },
   "apps/web/src/components/onboarding/SignupFlow.tsx": {
@@ -83405,8 +83405,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/dashboard-data.test.ts": {
-    "mtime": 1782567541.4190261,
-    "ast_hash": "a2374158cb9d991f5a56a132f4b35733",
+    "mtime": 1782765401.0690768,
+    "ast_hash": "e0d2cbd7daefdbdb05c297e361bf5e84",
     "semantic_hash": ""
   },
   "apps/web/src/lib/dashboard-data.ts": {
@@ -83440,8 +83440,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/worker.ts": {
-    "mtime": 1782567541.4272625,
-    "ast_hash": "cc690d1f3a25a6817d1b32d470f6c7c9",
+    "mtime": 1782644299.8984358,
+    "ast_hash": "7fa561bfd1e4f0ac3ebb5e79e3ba9f3f",
     "semantic_hash": ""
   },
   "apps/web/app/api/user/exams/overview/route.ts": {
@@ -83505,8 +83505,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/quiz/player/types.ts": {
-    "mtime": 1782567541.4143164,
-    "ast_hash": "8cd5c7ac60961858cf03f7002a3510dc",
+    "mtime": 1782767688.2604094,
+    "ast_hash": "3480bd2fbaaa9453193835a617e98b4f",
     "semantic_hash": ""
   },
   "apps/web/src/components/quiz/player/QuickRecall.tsx": {
@@ -83525,8 +83525,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/quiz/player/SourceReaderDrawer.tsx": {
-    "mtime": 1782567541.4140759,
-    "ast_hash": "2d82499c228546f6f210bafd4f44817a",
+    "mtime": 1782769092.7443984,
+    "ast_hash": "54584424a2c96ee0213d3138184b9853",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/exams/new/page.tsx": {
@@ -83810,8 +83810,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/paths/new/page.tsx": {
-    "mtime": 1782567541.3892808,
-    "ast_hash": "49b2cd9cbed7586a34e9e038a09ab479",
+    "mtime": 1782765707.8019485,
+    "ast_hash": "f0c78347bbcd9d696e10affb7f0ac641",
     "semantic_hash": ""
   },
   "apps/web/app/api/material/[id]/inventory/route.ts": {
@@ -83875,8 +83875,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/openrouter.ts": {
-    "mtime": 1782635856.720598,
-    "ast_hash": "20a48358773d34fec0c3685010259997",
+    "mtime": 1782754046.9410205,
+    "ast_hash": "74d36c503d78667aac51d514b1fe9472",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -84430,8 +84430,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/PathsView.tsx": {
-    "mtime": 1782635856.687659,
-    "ast_hash": "92fa1278efbb643c7b2df66c29114360",
+    "mtime": 1782768986.2235994,
+    "ast_hash": "25a1dcce5bb8b62efb33771427409fa7",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/my-path/loading.tsx": {
@@ -84505,8 +84505,8 @@
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/learn/paths/[planId]/PathDetailView.tsx": {
-    "mtime": 1782635856.6870234,
-    "ast_hash": "a636d7e0fd4a20df9dcb5beaaa7baf10",
+    "mtime": 1782765654.0112326,
+    "ast_hash": "7ca978feb2c1435815f8b2e99d5d8068",
     "semantic_hash": ""
   },
   "apps/web/app/(dashboard)/learn/paths/[planId]/loading.tsx": {
@@ -84525,8 +84525,8 @@
     "semantic_hash": ""
   },
   "apps/web/scripts/test-glm-full-path.ts": {
-    "mtime": 1782635856.718687,
-    "ast_hash": "2dc160a3612137b201d3b4559f14a830",
+    "mtime": 1782636709.8753724,
+    "ast_hash": "f9c517a15b6747f4d1a117c0897e2950",
     "semantic_hash": ""
   },
   "apps/web/scripts/test-glm-path-tool.ts": {
@@ -84550,8 +84550,78 @@
     "semantic_hash": ""
   },
   "apps/web/src/lib/path-generator-openrouter.ts": {
-    "mtime": 1782635856.7208347,
-    "ast_hash": "61cd9b2e44b242564e669fa675a344bc",
+    "mtime": 1782753954.7205286,
+    "ast_hash": "7a055705500b0db574123354779994a4",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/background-worker.ts": {
+    "mtime": 1782644293.1400003,
+    "ast_hash": "c323915da589019abd6957b6e8a802f8",
+    "semantic_hash": ""
+  },
+  "apps/web/app/api/learn/sources/resolve/route.ts": {
+    "mtime": 1782767631.4806852,
+    "ast_hash": "d145511a3bd8c1a5d20fd7bf83a91f28",
+    "semantic_hash": ""
+  },
+  "apps/web/prisma/migrations/20260705000000_source_anchor_provenance/migration.sql": {
+    "mtime": 1782766910.809185,
+    "ast_hash": "ba2a8d754b283fc42e45659e31601309",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/quiz/player/source-panes/HighlightedText.tsx": {
+    "mtime": 1782767772.1234574,
+    "ast_hash": "def9b38f6d4cb7dca0d26e966adcdec3",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/quiz/player/source-panes/SourcePdfPane.tsx": {
+    "mtime": 1782768714.0698678,
+    "ast_hash": "62b6dd8e7db34c4a2932613c81a48b27",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/quiz/player/source-panes/SourceQuote.tsx": {
+    "mtime": 1782767762.615507,
+    "ast_hash": "e158b450b7341241b6b9f249ff54602c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/quiz/player/source-panes/SourceTextPane.tsx": {
+    "mtime": 1782767796.813772,
+    "ast_hash": "a8af13b92001420f5bf1b46b26cb18bd",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/quiz/player/source-panes/SourceVideoPane.tsx": {
+    "mtime": 1782767819.8727014,
+    "ast_hash": "fbdecff8477488ff75c8de770305a321",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/source-anchor.test.ts": {
+    "mtime": 1782768132.147988,
+    "ast_hash": "3d19bcf7519d8b358f158dbf1e240b97",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/source-anchor.ts": {
+    "mtime": 1782767607.1448977,
+    "ast_hash": "5f8c831e7017d1e33dd3be56b7eb607a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/source-highlight.test.ts": {
+    "mtime": 1782768119.1049106,
+    "ast_hash": "31ad4d19d376b827e0a7ba28897c4919",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/source-highlight.ts": {
+    "mtime": 1782767719.254995,
+    "ast_hash": "539db9e0fb849de6e6aeac0a1ae0e4d3",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/quiz/player/source-panes/PdfHighlightViewer.tsx": {
+    "mtime": 1782768744.3798718,
+    "ast_hash": "fe80c4736e844aa2a17274a730687e3c",
+    "semantic_hash": ""
+  },
+  "apps/web/scripts/backfill-source-anchors.ts": {
+    "mtime": 1782769328.8154671,
+    "ast_hash": "f8c11965c30f397b881a323ccb80eb8f",
     "semantic_hash": ""
   }
 }

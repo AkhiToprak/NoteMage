@@ -298,18 +298,28 @@ export const QuizSetV2Schema = z.object({
 });
 export type QuizSetV2 = z.infer<typeof QuizSetV2Schema>;
 
-// Source provenance (Phase D) — the validated shape of a question's `source`.
-// Held loose on the question (see QuestionCommonShape.source) and parsed with
-// THIS schema in the generator, so a malformed source is dropped instead of
-// failing the whole question. `quote` is the load-bearing field (the passage the
-// reader drawer highlights); `label` (document / page title) and `page` are best
-// effort — only set when the model could cite them.
-export const QuizSourceSchema = z.object({
+// Source provenance — the validated shape of a content item's `source` anchor,
+// shared by theory, flashcards, and quiz questions (source-highlighting feature).
+// Held loose on each item and parsed with THIS schema in the generator, so a
+// malformed source is dropped instead of failing the whole item. `quote` is the
+// load-bearing field (the passage the source viewer highlights); `label` (the
+// document / page title), `page`, and `timestampSec` are best effort — only set
+// when the model could cite them. `timestampSec` is the video seek target in
+// seconds (the model emits it for video-grounded items). Material identity
+// (which Page/Document the quote came from) is NOT modelled here on purpose —
+// the server resolves `label` against the in-memory corpus at persist time, so
+// the model never has to echo an opaque id.
+export const SourceAnchorSchema = z.object({
   label: z.string().trim().min(1).max(200).optional(),
   page: z.number().int().positive().max(100_000).optional(),
+  timestampSec: z.number().int().nonnegative().max(86_400).optional(),
   quote: z.string().trim().min(1).max(600),
 });
-export type QuizQuestionSource = z.infer<typeof QuizSourceSchema>;
+export type SourceAnchor = z.infer<typeof SourceAnchorSchema>;
+
+// Back-compat aliases — existing imports (path-generator, normalize) keep working.
+export const QuizSourceSchema = SourceAnchorSchema;
+export type QuizQuestionSource = SourceAnchor;
 
 // Theory visuals (theory-visuals feature). A figure references one image from
 // the per-path source-image catalog by its `imageRef` (a catalog id). The

@@ -182,6 +182,32 @@ export function buildSourceMaterialsBlock(corpus: string): string {
 }
 
 /**
+ * Source-highlighting feature — the SINGLE provenance instruction shared by the
+ * theory, flashcard, and quiz builders so the model contract can never drift.
+ * `unit` is the item the anchor hangs off. The emitted `source` object is
+ * validated server-side with SourceAnchorSchema and resolved to the origin
+ * material; a malformed or unmatched anchor is dropped, never fatal. Constant per
+ * path (it lives in the cached `system` block), so it never fragments the cache.
+ */
+function sourceProvenanceRule(unit: 'section' | 'card' | 'question'): string {
+  const where =
+    unit === 'section'
+      ? 'add ONE top-level `source` object for the main passage this section is built from'
+      : unit === 'card'
+        ? 'for every card grounded in those materials, add a card-level `source` object (a sibling of `question`/`answer`)'
+        : 'for every question grounded in those materials, add a question-level `source` object (a sibling of `kind`/`prompt`/`payload`, NEVER inside `payload`)';
+  const omitSubject = unit === 'section' ? 'this section if it' : `any ${unit} you`;
+  return (
+    `PROVENANCE — ${where}: \`{ "label": string, "page": number?, "timestampSec": number?, "quote": string }\`. ` +
+    '`quote` is a SHORT VERBATIM excerpt (≤ 60 words) copied EXACTLY from the material that supports it — never paraphrased, never your own words. ' +
+    '`label` is that material\'s title, copied verbatim from its "### …" header. ' +
+    'Set `page` ONLY when that header shows a "[page N]" marker (use that N); otherwise omit `page`. ' +
+    'When the excerpt comes from a video transcript (its text carries "[MM:SS]" timestamps), set `timestampSec` to that moment in SECONDS (e.g. [02:45] → 165); otherwise omit it. ' +
+    `Omit the whole \`source\` object for ${omitSubject} wrote from general knowledge instead of the materials.`
+  );
+}
+
+/**
  * The output of every path-prompt builder, split into a cacheable prefix and
  * a per-call tail. `system` is per-path-constant (role, JSON-shape spec, rule
  * catalogs, voice/math rules, subject fragment, language directive) so it is
@@ -366,6 +392,7 @@ export function buildTheoryPrompt(ctx: SlotContentContext): SplitPrompt {
     ...(ctx.hasSourceMaterials
       ? [
           'Ground this section in the SOURCE MATERIALS above — explain the actual facts, definitions, terminology, and examples found there. Do not write a generic version of the topic; teach what the provided material covers.',
+          sourceProvenanceRule('section'),
         ]
       : []),
   ];
@@ -441,6 +468,7 @@ export function buildFlashcardsPrompt(ctx: SlotContentContext): SplitPrompt {
     ...(ctx.hasSourceMaterials
       ? [
           'Build these cards from the SOURCE MATERIALS above — turn the actual facts, definitions, and details in that content into cards. Do not invent generic cards the materials do not support.',
+          sourceProvenanceRule('card'),
         ]
       : []),
   ];
@@ -570,7 +598,7 @@ export function buildQuizPrompt(ctx: SlotContentContext): SplitPrompt {
     ...(ctx.hasSourceMaterials
       ? [
           'Write every question FROM the SOURCE MATERIALS above — test what that content actually states. Ground each prompt, answer, and explanation in the material rather than generic subject knowledge.',
-          'PROVENANCE — for every question grounded in those materials, add a question-level `source` object (a sibling of `kind`/`prompt`/`payload`, NEVER inside `payload`): `{ "label": string, "page": number?, "quote": string }`. `quote` is a SHORT VERBATIM excerpt (≤ 60 words) copied EXACTLY from the material that supports the answer — never paraphrased, never your own words. `label` is that material\'s title, copied verbatim from its "### …" header. Set `page` ONLY when that header shows a "[page N]" marker (use that N); otherwise omit `page`. Omit the whole `source` object for any question you wrote from general knowledge instead of the materials.',
+          sourceProvenanceRule('question'),
         ]
       : []),
   ];

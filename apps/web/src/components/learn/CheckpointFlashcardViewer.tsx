@@ -1,13 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import DiagramReferencePanel from '@/components/learn/DiagramReferencePanel';
+import SourceReaderDrawer from '@/components/quiz/player/SourceReaderDrawer';
+import type { QuizSource } from '@/components/quiz/player/types';
 import { useCoarsePointer } from '@/hooks/useCoarsePointer';
 import type { PathActivity, PathSlot } from '@/components/learn/PathView';
 import { readUnlocked, type PathUnlock } from '@/components/learn/path-rewards';
 import { CheckpointSkeletonBody } from '@/components/learn/CheckpointSkeleton';
 import { trackEvent } from '@/lib/telemetry';
+
+// Map a source label (usually a file name) to the Sources icon family.
+function inferSourceKind(label?: string | null): QuizSource['kind'] {
+  const l = (label ?? '').trim().toLowerCase();
+  if (l.endsWith('.pdf')) return 'pdf';
+  if (l.endsWith('.ppt') || l.endsWith('.pptx') || l.endsWith('.key')) return 'ppt';
+  if (l.endsWith('.doc') || l.endsWith('.docx')) return 'doc';
+  return 'page';
+}
 
 // Full-screen viewer for checkpoint flashcards. Replaces the in-drawer
 // FlashcardViewer for path checkpoints — no edit / delete / SRS rating /
@@ -32,6 +43,14 @@ interface Flashcard {
   answer: string;
   sortOrder: number;
   images?: FlashcardImageData[];
+  // Source-highlighting feature — per-card grounding anchor. Present → a "Show
+  // source" control opens the reader drawer on the origin material.
+  sourceLabel?: string | null;
+  sourcePage?: number | null;
+  sourceQuote?: string | null;
+  sourceMaterialId?: string | null;
+  sourceMaterialKind?: string | null;
+  sourceTimestampSec?: number | null;
 }
 
 interface FlashcardSetPayload {
@@ -145,12 +164,37 @@ export default function CheckpointFlashcardViewer({
   const card = cards?.[currentIndex];
   const isLast = total > 0 && currentIndex === total - 1;
 
+  // Source-highlighting — the current card's grounding anchor (when present)
+  // drives a "Show source" control + the reader drawer. The drawer is closed in
+  // the nav callbacks so it never shows a stale card's source.
+  const [readerOpen, setReaderOpen] = useState(false);
+  const cardSource = useMemo<QuizSource | undefined>(() => {
+    if (!card?.sourceQuote) return undefined;
+    const isVideo = card.sourceTimestampSec != null;
+    const materialKind =
+      card.sourceMaterialKind === 'page' || card.sourceMaterialKind === 'document'
+        ? card.sourceMaterialKind
+        : undefined;
+    return {
+      id: `card-${card.id}`,
+      title: card.sourceLabel?.trim() || titleText || 'Source material',
+      kind: isVideo ? 'video' : inferSourceKind(card.sourceLabel),
+      detail: card.sourcePage != null ? `Page ${card.sourcePage}` : undefined,
+      quote: card.sourceQuote,
+      materialId: card.sourceMaterialId ?? undefined,
+      materialKind,
+      page: card.sourcePage ?? undefined,
+      timestampSec: card.sourceTimestampSec ?? undefined,
+    };
+  }, [card, titleText]);
+
   const flip = useCallback(() => setIsFlipped((v) => !v), []);
 
   const next = useCallback(() => {
     setCurrentIndex((i) => {
       if (i >= total - 1) return i;
       setIsFlipped(false);
+      setReaderOpen(false);
       return i + 1;
     });
   }, [total]);
@@ -159,6 +203,7 @@ export default function CheckpointFlashcardViewer({
     setCurrentIndex((i) => {
       if (i <= 0) return i;
       setIsFlipped(false);
+      setReaderOpen(false);
       return i - 1;
     });
   }, []);
@@ -323,6 +368,35 @@ export default function CheckpointFlashcardViewer({
             <span>{total}</span>
           </span>
         )}
+        {cardSource ? (
+          <button
+            type="button"
+            onClick={() => setReaderOpen(true)}
+            aria-label="Show source"
+            title="Show source"
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--outline-variant)',
+              background: 'transparent',
+              color: 'var(--on-surface)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexShrink: 0,
+              fontFamily: 'inherit',
+              fontSize: '13px',
+              fontWeight: 700,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }} aria-hidden>
+              menu_book
+            </span>
+            Source
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onClose}
@@ -493,6 +567,18 @@ export default function CheckpointFlashcardViewer({
             </button>
           )}
         </footer>
+      ) : null}
+
+      {/* Source-highlighting — reader drawer for the current card's grounding
+          anchor. No Ask-Mage handoff here (the flashcard overlay has no Mage
+          panel); the drawer omits that CTA gracefully. */}
+      {cardSource ? (
+        <SourceReaderDrawer
+          open={readerOpen}
+          sources={[cardSource]}
+          activeIndex={0}
+          onClose={() => setReaderOpen(false)}
+        />
       ) : null}
     </div>
   );

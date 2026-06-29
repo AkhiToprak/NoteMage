@@ -92,6 +92,14 @@ export async function GET(request: NextRequest, { params }: Params) {
           id: activity.theory.id,
           title: activity.theory.title,
           body: activity.theory.body,
+          // Source-highlighting — the lesson's primary grounding anchor so the
+          // theory viewer can open the origin material instead of opening Mage.
+          sourceLabel: activity.theory.sourceLabel,
+          sourcePage: activity.theory.sourcePage,
+          sourceQuote: activity.theory.sourceQuote,
+          sourceMaterialId: activity.theory.sourceMaterialId,
+          sourceMaterialKind: activity.theory.sourceMaterialKind,
+          sourceTimestampSec: activity.theory.sourceTimestampSec,
         },
       });
     }
