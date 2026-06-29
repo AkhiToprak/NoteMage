@@ -15,7 +15,6 @@ import { buildCachedSystem, buildSourceMaterialsBlock, GEMINI_JSON_PREAMBLE } fr
 import { forcedStructuredCallAnthropic } from './path-generator-anthropic';
 import { forcedStructuredCallGemini, type GeminiUsage } from './path-generator-gemini';
 import { forcedStructuredCallOpenRouter } from './path-generator-openrouter';
-import { AI_GENERATION_MODEL, AI_GENERATION_MODEL_LITE } from './anthropic';
 import { resolveModel, type ModelFeature } from './model-routing';
 import {
   PATH_STRUCTURE_TOOL,
@@ -136,8 +135,9 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
   const provider = resolved.provider;
   const model = resolved.model;
 
-  // Anthropic generation — used directly when the resolver picks Anthropic, and
-  // as the fail-safe fallback for the openrouter branch below.
+  // Anthropic generation — reached ONLY when the resolver explicitly picks the
+  // Anthropic provider (i.e. MODEL_COMPOSITION_LEGACY=1, the rollback path). It
+  // is NOT a fallback for the GLM branch anymore: normal operation is GLM-only.
   const runAnthropic = (anthropicModel: string): Promise<T> => {
     // Stage A is a single call per path — its 1h cache write is never read,
     // so use ephemeral (5-min, 1.25× write) to cover retries only.
@@ -185,32 +185,34 @@ export async function forcedStructuredCall<T>(ctx: StructuredCallCtx<T>): Promis
     ]
       .filter((part): part is string => Boolean(part && part.length > 0))
       .join('\n\n');
-    try {
-      return await forcedStructuredCallOpenRouter<T>({
-        system,
-        tool: ctx.anthropicTool,
-        tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
-        userMessage: ctx.userMessage,
-        maxAttempts: ctx.maxAttempts,
-        model,
-        onUsage: (usage) =>
-          ctx.onUsage({
-            provider: 'openrouter',
-            model,
-            inputTokens: usage.inputTokens,
-            outputTokens: usage.outputTokens,
-            cacheReadTokens: usage.cachedTokens,
-            cacheWriteTokens: 0,
-            costUsd: usage.costUsd,
-          }),
-      });
-    } catch (glmErr) {
-      // Fail-safe: GLM/OpenRouter unavailable (provider outage, or
-      // OPENROUTER_API_KEY not set in the runtime env) → fall back to Claude so
-      // path generation never breaks. glm-5.2 → Sonnet, glm-4.7 → Haiku.
-      console.error(`[path-gen] GLM ${model} failed; falling back to Anthropic:`, glmErr);
-      return runAnthropic(model.includes('glm-5') ? AI_GENERATION_MODEL : AI_GENERATION_MODEL_LITE);
-    }
+    // NO CLAUDE FALLBACK. Path generation runs GLM-only. A Claude net just
+    // masked GLM failures at $3–15/M while making them invisible — and the two
+    // failures we actually saw were OURS to fix, not GLM's: (1) a stringified
+    // `questions` array we were dropping (fixed in normalizeQuizQuestions), and
+    // (2) output truncation at the cap (fixed by the higher GLM_MAX_OUTPUT_TOKENS
+    // headroom in path-generator-openrouter.ts). forcedStructuredCallOpenRouter
+    // already retries transient OpenRouter blips internally with backoff, and the
+    // activity/sweep layer retries on GLM again — so a thrown error here means
+    // GLM genuinely could not produce valid output, and the right outcome is to
+    // surface that (activity_failed → sweep retry on GLM), never to spend Claude.
+    return await forcedStructuredCallOpenRouter<T>({
+      system,
+      tool: ctx.anthropicTool,
+      tools: ctx.anthropicTools ?? PATH_TOOLS_STABLE,
+      userMessage: ctx.userMessage,
+      maxAttempts: ctx.maxAttempts,
+      model,
+      onUsage: (usage) =>
+        ctx.onUsage({
+          provider: 'openrouter',
+          model,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          cacheReadTokens: usage.cachedTokens,
+          cacheWriteTokens: 0,
+          costUsd: usage.costUsd,
+        }),
+    });
   }
 
   // Safety guard (Phase 3 group 5): only Gemini should remain. Throw on any

@@ -216,7 +216,8 @@ function resolvePathStage(stage: PathStage, ctx: ResolveModelCtx): ResolvedModel
 
   // 3. LEGACY — exact reproduction of the pre-composition routing.
   if (isLegacyComposition()) {
-    if (stage === 'quiz' && ultra) return fromToken('sonnet');
+    // SONNET REMOVED: legacy ultra-quiz used to upgrade to Sonnet — now Haiku.
+    if (stage === 'quiz' && ultra) return fromToken('haiku');
     return fromToken(legacyPathProvider(stage) === 'gemini' ? 'flash' : 'haiku');
   }
 
@@ -269,7 +270,8 @@ function resolveMageAnswer(ctx: ResolveModelCtx): ResolvedModel {
   // normal answers, GLM-5.2 for `deep`. MODEL_COMPOSITION_LEGACY=1 reverts to
   // Claude (Haiku / Sonnet by mode) as the rollback; chat-stream falls back to
   // Claude automatically on a GLM failure, so Mage never breaks.
-  if (isLegacyComposition()) return fromToken(ctx.mode === 'deep' ? 'sonnet' : 'haiku');
+  // SONNET REMOVED: legacy deep-mode Mage used to use Sonnet — now Haiku.
+  if (isLegacyComposition()) return fromToken('haiku');
   return fromToken(ctx.mode === 'deep' ? 'glm-sonnet' : 'glm-haiku');
 }
 
@@ -286,15 +288,15 @@ export function resolveModel(
 ): ResolvedModel {
   switch (feature) {
     case 'essay': {
-      // Grammar + full both move Sonnet → Haiku. ESSAY_FULL_MODEL pins the
-      // full-mode model independently (e.g. keep Sonnet for deep checks);
-      // ESSAY_MODEL is the shared override.
+      // SONNET REMOVED: grammar + full both run on Haiku (or glm-haiku under
+      // GLM_COMPOSITION) in BOTH legacy and optimized. ESSAY_FULL_MODEL /
+      // ESSAY_MODEL still override per call if a stronger model is ever needed.
       const isFull = ctx.action === 'full';
       const override =
         (isFull ? parseToken(process.env.ESSAY_FULL_MODEL) : null) ??
         parseToken(process.env.ESSAY_MODEL);
       if (override) return fromToken(override);
-      return fromToken(applyGlm(isLegacyComposition() ? 'sonnet' : 'haiku'));
+      return fromToken(applyGlm('haiku'));
     }
 
     case 'chat-title':
@@ -340,12 +342,13 @@ export function resolveModel(
 
     case 'path-preview':
       // D4 (onboarding-real-generation): the anonymous pre-signup PREVIEW —
-      // structure + 1 lesson + 2 questions — runs on Sonnet. It is the
-      // make-or-break first impression and only ~3 small calls, so quality wins
-      // over cost here. PATH_PREVIEW_MODEL pins it (e.g. =haiku to cut cost);
-      // MODEL_COMPOSITION_LEGACY deliberately does NOT downgrade it. Distinct
-      // from the FULL completion, which keeps the cheap path-* routing above.
-      return resolveStatic('PATH_PREVIEW_MODEL', 'sonnet', 'sonnet');
+      // structure + 1 lesson + 2 questions — the make-or-break first impression.
+      // SONNET REMOVED (cost): runs on GLM-5.2 — the same flagship that replaced
+      // Sonnet for full path gen, so quality holds without the Sonnet bill. The
+      // dispatcher (forcedStructuredCall) falls back to Haiku, never Sonnet, if
+      // GLM is unavailable. PATH_PREVIEW_MODEL still pins it (e.g. =haiku to go
+      // cheaper). Distinct from the FULL completion's cheap path-* routing above.
+      return resolveStatic('PATH_PREVIEW_MODEL', 'glm-sonnet', 'glm-sonnet');
 
     case 'chat-plain':
       return resolveChatPlain(ctx);

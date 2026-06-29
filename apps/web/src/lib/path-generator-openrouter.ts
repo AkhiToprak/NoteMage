@@ -11,9 +11,19 @@
 // output budget so the tool call / content comes back empty.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { MAX_OUTPUT_TOKENS } from './anthropic';
 import { callOpenRouter, type OpenRouterUsage } from './openrouter';
 import { anthropicToolToOpenAI } from './openrouter-tools';
+
+// GLM output ceiling — deliberately higher than the shared Anthropic
+// MAX_OUTPUT_TOKENS (16k). Anthropic caps low because its non-streaming SDK
+// rejects long-running requests; the OpenRouter path streams internally, so it
+// has no such limit. The headroom is the truncation fix: with reasoning OFF and
+// 32k of room, a single path activity (one theory section / one quiz, the unit
+// of work is already small) finishes well inside the budget instead of hitting
+// finish_reason=length. There is NO Claude fallback anymore, so staying under
+// the cap is how generation stays reliable — if an activity ever still truncates
+// at 32k, split that activity (e.g. batch quiz questions), don't raise this blindly.
+const GLM_MAX_OUTPUT_TOKENS = 32000;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,7 +68,7 @@ export async function forcedStructuredCallOpenRouter<T>(opts: {
     userMessage = 'Generate now.',
     maxAttempts = 2,
     model,
-    maxTokens = MAX_OUTPUT_TOKENS,
+    maxTokens = GLM_MAX_OUTPUT_TOKENS,
     onUsage,
   } = opts;
   const toolArray = (tools ?? [tool]).map(anthropicToolToOpenAI);

@@ -555,9 +555,13 @@ function normalizeQuestionPayload(
 }
 
 export function normalizeQuizQuestions(raw: unknown): NormalizedQuizQuestion[] {
-  if (!Array.isArray(raw)) return [];
+  // `toUnknownArray` (not a bare Array.isArray) so a JSON-stringified questions
+  // array — GLM-5.2 returns the whole `questions` field as a `"[...]"` string
+  // under forced tools — is parsed back into an array instead of dropped. A
+  // dropped array failed Zod (`too_small`), which forced a retry storm and a
+  // Sonnet fallback per checkpoint. Mirrors normalizePathStructure's phases/slots.
   const out: NormalizedQuizQuestion[] = [];
-  for (const q of raw) {
+  for (const q of toUnknownArray(raw)) {
     if (!isPlainObject(q)) continue;
     const kind = asNonEmptyString(q.kind) ?? '';
     const prompt =
