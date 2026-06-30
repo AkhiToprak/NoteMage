@@ -28,8 +28,8 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { href: '/dashboard',      label: 'Home',     icon: 'cottage', img: '/nav/home.png' },
-  { href: '/my-path',        label: 'My Paths', icon: 'route', img: '/nav/flag.png' },
+  { href: '/dashboard',      label: 'Home',     icon: 'cottage', img: 'home' },
+  { href: '/my-path',        label: 'My Paths', icon: 'route', img: 'flag' },
   { href: '/paths/new',      label: 'Create', icon: 'add', isPrimary: true },
   { label: 'Mage',           icon: 'auto_fix_high', action: 'open-mage' },
 ];

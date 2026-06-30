@@ -16,9 +16,9 @@ import styles from './AppMobileNav.module.css';
 import { NavIcon } from './NavIcon';
 
 const NAV: { href: string; label: string; icon: string; img?: string }[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'cottage', img: '/nav/home.png' },
+  { href: '/dashboard', label: 'Dashboard', icon: 'cottage', img: 'home' },
   { href: '/exams', label: 'Exams', icon: 'target' },
-  { href: '/my-path', label: 'Paths', icon: 'account_tree', img: '/nav/flag.png' },
+  { href: '/my-path', label: 'Paths', icon: 'account_tree', img: 'flag' },
   { href: '/profile', label: 'Profile', icon: 'person' },
 ];
 

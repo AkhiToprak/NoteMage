@@ -46,8 +46,8 @@ type NavItem = {
 /** Primary destinations — learning-path focused. Mage is no longer a route;
  *  it opens the global panel in place. */
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',   label: 'Home',        icon: 'cottage', img: '/nav/home.png' },
-  { href: '/my-path',     label: 'My Paths',    icon: 'route', img: '/nav/flag.png' },
+  { href: '/dashboard',   label: 'Home',        icon: 'cottage', img: 'home' },
+  { href: '/my-path',     label: 'My Paths',    icon: 'route', img: 'flag' },
   { label: 'Mage',        icon: 'auto_fix_high', action: 'open-mage' },
 ];
 
