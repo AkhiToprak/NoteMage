@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { haptics } from '@/lib/haptics';
 import { useOptionalMage } from '@/components/mage';
+import { NavIcon } from '@/components/app/NavIcon';
 
 /**
  * Phone-only bottom tab bar. Five tabs: four icon+label destinations plus a
@@ -16,6 +17,8 @@ type Tab = {
   href?: string;
   label: string;
   icon: string | ((color: string) => ReactNode);
+  /** Custom brand glyph (PNG) drawn as a recolorable mask; wins over `icon`. */
+  img?: string;
   /** Active when the path starts with this prefix (defaults to the href). */
   prefix?: string;
   /** Renders as a prominent center FAB instead of a standard tab. */
@@ -25,8 +28,8 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { href: '/dashboard',      label: 'Home',     icon: 'cottage' },
-  { href: '/my-path',        label: 'My Paths', icon: 'route' },
+  { href: '/dashboard',      label: 'Home',     icon: 'cottage', img: '/nav/home.png' },
+  { href: '/my-path',        label: 'My Paths', icon: 'route', img: '/nav/flag.png' },
   { href: '/paths/new',      label: 'Create', icon: 'add', isPrimary: true },
   { label: 'Mage',           icon: 'auto_fix_high', action: 'open-mage' },
 ];
@@ -109,7 +112,9 @@ export default function MobileBottomNav() {
 
           const tabInner = (
             <>
-              {typeof tab.icon === 'string' ? (
+              {tab.img ? (
+                <NavIcon img={tab.img} size={24} />
+              ) : typeof tab.icon === 'string' ? (
                 <span
                   className="material-symbols-outlined"
                   style={{ fontSize: 24, fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}

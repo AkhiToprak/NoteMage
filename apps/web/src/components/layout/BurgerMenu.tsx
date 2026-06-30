@@ -9,6 +9,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useOptionalMage } from '@/components/mage';
 import { UserName } from '@/components/user/UserName';
 import { UserAvatar } from '@/components/user/UserAvatar';
+import { NavIcon } from '@/components/app/NavIcon';
 // NavIcons kept for backward compat; new items use Material Symbols strings only
 
 interface BurgerMenuProps {
@@ -35,6 +36,8 @@ type NavItem = {
   href?: string;
   label: string;
   icon: string | ((color: string) => ReactNode);
+  /** Custom brand glyph (PNG) drawn as a recolorable mask; wins over `icon`. */
+  img?: string;
   /** Phase 10 — a non-route item that opens the global Mage panel instead of
    *  navigating (the old /learn/chats route was folded into the panel). */
   action?: 'open-mage';
@@ -43,8 +46,8 @@ type NavItem = {
 /** Primary destinations — learning-path focused. Mage is no longer a route;
  *  it opens the global panel in place. */
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',   label: 'Home',        icon: 'cottage' },
-  { href: '/my-path',     label: 'My Paths',    icon: 'route' },
+  { href: '/dashboard',   label: 'Home',        icon: 'cottage', img: '/nav/home.png' },
+  { href: '/my-path',     label: 'My Paths',    icon: 'route', img: '/nav/flag.png' },
   { label: 'Mage',        icon: 'auto_fix_high', action: 'open-mage' },
 ];
 
@@ -174,7 +177,9 @@ export default function BurgerMenu({ open, onClose }: BurgerMenuProps) {
 
     const inner = (
       <>
-        {typeof item.icon === 'function' ? (
+        {item.img ? (
+          <NavIcon img={item.img} size={sb.itemIcon} />
+        ) : typeof item.icon === 'function' ? (
           item.icon(tint)
         ) : (
           <span

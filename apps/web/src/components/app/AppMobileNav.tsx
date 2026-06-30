@@ -13,11 +13,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { haptics } from '@/lib/haptics';
 import styles from './AppMobileNav.module.css';
+import { NavIcon } from './NavIcon';
 
-const NAV: { href: string; label: string; icon: string }[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'cottage' },
+const NAV: { href: string; label: string; icon: string; img?: string }[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'cottage', img: '/nav/home.png' },
   { href: '/exams', label: 'Exams', icon: 'target' },
-  { href: '/my-path', label: 'Paths', icon: 'account_tree' },
+  { href: '/my-path', label: 'Paths', icon: 'account_tree', img: '/nav/flag.png' },
   { href: '/profile', label: 'Profile', icon: 'person' },
 ];
 
@@ -51,13 +52,7 @@ export default function AppMobileNav() {
                 }}
               >
                 <span className={styles.iconWrap}>
-                  <span
-                    className={active ? 'material-symbols-outlined filled' : 'material-symbols-outlined'}
-                    style={{ fontSize: 23, color: 'inherit' }}
-                    aria-hidden
-                  >
-                    {n.icon}
-                  </span>
+                  <NavIcon icon={n.icon} img={n.img} active={active} size={23} />
                 </span>
                 <span className={styles.label}>{n.label}</span>
               </Link>

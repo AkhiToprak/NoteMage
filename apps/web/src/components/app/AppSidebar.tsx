@@ -8,11 +8,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useOptionalMage } from '@/components/mage';
 import styles from './AppSidebar.module.css';
+import { NavIcon } from './NavIcon';
 
-const NAV: { href: string; label: string; icon: string }[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'cottage' },
+const NAV: { href: string; label: string; icon: string; img?: string }[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'cottage', img: '/nav/home.png' },
   { href: '/exams', label: 'Exams', icon: 'target' },
-  { href: '/my-path', label: 'Paths', icon: 'account_tree' },
+  { href: '/my-path', label: 'Paths', icon: 'account_tree', img: '/nav/flag.png' },
   { href: '/profile', label: 'Profile', icon: 'person' },
 ];
 
@@ -45,13 +46,7 @@ export default function AppSidebar() {
               className={active ? `${styles.item} ${styles.active}` : styles.item}
               aria-current={active ? 'page' : undefined}
             >
-              <span
-                className={active ? 'material-symbols-outlined filled' : 'material-symbols-outlined'}
-                style={{ fontSize: 21, color: 'inherit' }}
-                aria-hidden
-              >
-                {n.icon}
-              </span>
+              <NavIcon icon={n.icon} img={n.img} active={active} size={21} />
               {n.label}
             </Link>
           );
